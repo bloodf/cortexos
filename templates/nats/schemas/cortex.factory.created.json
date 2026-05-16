@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://cortexos/nats/schemas/cortex.factory.created.json",
+  "title": "cortex.factory.created",
+  "description": "Published when an agent factory is created and ready to have routes registered.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["factory_slug", "ts"],
+  "properties": {
+    "factory_slug": {
+      "type": "string",
+      "description": "Unique identifier for the agent factory."
+    },
+    "factory_kind": {
+      "type": "string",
+      "enum": ["role", "workflow", "pipeline", "project"]
+    },
+    "account_ref": {
+      "type": "string",
+      "description": "OpenClaw account to register routes under. Defaults to 'cortex'."
+    },
+    "channels": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "OpenClaw channel IDs to register for this factory."
+    },
+    "actor": {
+      "type": "string",
+      "description": "User or system that created the factory."
+    },
+    "ts": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

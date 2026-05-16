@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  dashboard:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - run: npm test
+      - run: npm run build
+      - run: docker build -t cortex-dashboard:ci .
+
+  scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash -n scripts/cortex-healthcheck.sh stacks/nats/setup-jetstream.sh templates/scripts/bootstrap-project.sh templates/scripts/verify-pipeline.sh
+      - run: DASHBOARD_DB_PASSWORD=x CORTEX_MASTER_KEY=x docker compose -f dashboard/docker-compose.yml config >/dev/null
+      - run: docker compose -f stacks/nats/docker-compose.yml config >/dev/null

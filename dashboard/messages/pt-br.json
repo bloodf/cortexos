@@ -1,0 +1,67 @@
+{
+  "Navigation": {
+    "Overview": "Visão geral",
+    "Services": "Serviços",
+    "Agents": "Agentes",
+    "Docker": "Docker",
+    "Admin": "Admin",
+    "Apps": "Apps",
+    "Processes": "Processos",
+    "System": "Sistema",
+    "Settings": "Configurações",
+    "Terminal": "Terminal",
+    "Alerts": "Alertas",
+    "Storage": "Armazenamento"
+  },
+  "Dashboard": {
+    "EditLayout": "Editar layout",
+    "Reset": "Restaurar",
+    "Done": "Concluído"
+  },
+  "Services": {
+    "AddService": "Adicionar serviço",
+    "Search": "Buscar serviços...",
+    "All": "Todos",
+    "AI": "IA",
+    "Infrastructure": "Infraestrutura",
+    "Storage": "Armazenamento",
+    "Monitoring": "Monitoramento",
+    "Security": "Segurança",
+    "Home": "Casa",
+    "Media": "Mídia",
+    "Database": "Banco de dados",
+    "Healthcheck": "Verificação",
+    "WebUI": "Interface web",
+    "Credentials": "Credenciais",
+    "Badges": "Insígnias",
+    "Environment": "Ambiente"
+  },
+  "Actions": {
+    "Add": "Adicionar",
+    "Edit": "Editar",
+    "Delete": "Excluir",
+    "Save": "Salvar",
+    "Cancel": "Cancelar",
+    "Reveal": "Revelar",
+    "Hide": "Ocultar",
+    "Copy": "Copiar",
+    "Pin": "Fixar",
+    "Unpin": "Desafixar",
+    "Open": "Abrir"
+  },
+  "CommandPalette": {
+    "Title": "Paleta de comandos",
+    "Placeholder": "Buscar páginas e serviços..."
+  },
+  "Widgets": {
+    "Online": "Online",
+    "Offline": "Offline",
+    "Idle": "Inativo",
+    "LivePerformance": "Desempenho ao vivo",
+    "Network": "Rede",
+    "TopProcesses": "Principais processos",
+    "Storage": "Armazenamento",
+    "Memory": "Memória",
+    "CPU": "CPU"
+  }
+}

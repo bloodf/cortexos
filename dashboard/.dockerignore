@@ -1,0 +1,12 @@
+node_modules
+.next
+.git
+*.md
+.env*
+vitest.setup.ts
+vitest.config.ts
+__tests__
+**/__tests__
+**/*.test.*
+**/*.spec.*
+cortex-dashboard.service

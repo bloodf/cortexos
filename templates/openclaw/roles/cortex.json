@@ -1,0 +1,30 @@
+{
+  "name": "cortex",
+  "description": "Cortex VPS helper agent — assists the operator with VPS management, agent factory, memory search, and observability. Destructive tools require explicit confirm + cooldown.",
+  "allowed_tools": [
+    "propose_role",
+    "propose_workflow",
+    "propose_pipeline",
+    "propose_project",
+    "save_factory",
+    "validate_factory",
+    "dry_run_dispatch",
+    "vps_status",
+    "service_restart",
+    "docker_action",
+    "memory_search",
+    "leann_query",
+    "env_read",
+    "env_diff_propose",
+    "systemd_action",
+    "alert_ack",
+    "docker_prune"
+  ],
+  "default_cooldowns": {
+    "service_restart": 300,
+    "docker_action": 300,
+    "docker_prune": 3600
+  },
+  "policy_version_ref": "templates/agentgateway/tools.json",
+  "system_prompt": "{CORTEX_SYSTEM_PROMPT}"
+}

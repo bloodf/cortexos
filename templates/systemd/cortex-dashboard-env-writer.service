@@ -1,0 +1,50 @@
+# cortex-dashboard-env-writer.service — narrow sudo helper for atomic env-file writes
+# Invoked by the dashboard via systemd-run; never runs persistently.
+#
+# Security model:
+#   - Type=oneshot: runs once per invocation, exits.
+#   - ProtectSystem=strict: filesystem is read-only except ReadWritePaths.
+#   - NoNewPrivileges: no privilege escalation.
+#   - Runs as root only to write to /opt/cortexos/.secrets/ (owned root:cortex, 0640).
+#   - The accompanying script validates path against allowlist before writing.
+
+[Unit]
+Description=CortexOS Dashboard Env Writer — atomic env-file write helper
+Documentation=https://github.com/bloodf/cortexos/blob/main/docs/SECURITY.md
+DefaultDependencies=no
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/cortexos/scripts/cortex-env-writer.sh
+StandardInput=socket
+StandardOutput=journal
+StandardError=journal
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=none
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictRealtime=true
+RemoveIPC=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+# Allow writing only to the env-file allowlist roots
+ReadWritePaths=/opt/cortexos/.secrets /opt/cortexos/stacks
+
+# Resource limits
+TimeoutStartSec=10s
+MemoryMax=32M
+
+[Install]
+WantedBy=multi-user.target

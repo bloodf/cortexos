@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://cortexos/nats/schemas/cortex.health.json",
+  "title": "cortex.health.*",
+  "description": "Heartbeat published every 10s by cortex-consumer. Subject: cortex.health.consumer",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["ts", "circuit", "uptime_s"],
+  "properties": {
+    "ts": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "circuit": {
+      "type": "string",
+      "enum": ["closed", "open", "half-open"]
+    },
+    "pending_approvals": { "type": "integer", "minimum": 0 },
+    "uptime_s": { "type": "integer", "minimum": 0 }
+  }
+}

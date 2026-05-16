@@ -1,0 +1,20 @@
+[Unit]
+Description=Cortex Dashboard
+After=network.target
+
+StartLimitIntervalSec=60
+StartLimitBurst=5
+[Service]
+Type=simple
+User=__CORTEX_USER__
+WorkingDirectory=__CORTEX_ROOT__/dashboard
+ExecStart=__CORTEX_NODE_BIN__ server.js
+Restart=on-failure
+RestartSec=5
+Environment=PORT=3080
+Environment=NODE_ENV=production
+Environment=PATH=__CORTEX_PATH__
+EnvironmentFile=__CORTEX_ROOT__/secrets/dashboard.env
+
+[Install]
+WantedBy=multi-user.target
