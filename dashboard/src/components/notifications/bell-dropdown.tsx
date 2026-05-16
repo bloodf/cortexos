@@ -21,12 +21,13 @@ interface Alert {
   read_at: string | null
 }
 
-const ALERTS_URL = "/api/alerts?unread=1"
+const ALERTS_URL = "/api/alerts/operational?unacknowledged=1&limit=10"
 
 const fetcher = (url: string) =>
-  fetch(url).then((r) => {
+  fetch(url).then(async (r) => {
     if (!r.ok) throw new Error("Failed to fetch alerts")
-    return r.json() as Promise<Alert[]>
+    const data = await r.json()
+    return Array.isArray(data?.alerts) ? data.alerts : []
   })
 
 const severityClass: Record<Alert["severity"], string> = {
@@ -36,7 +37,7 @@ const severityClass: Record<Alert["severity"], string> = {
 }
 
 async function acknowledgeAlert(id: string) {
-  await fetch(`/api/alerts/${id}/acknowledge`, { method: "POST" })
+  await fetch(`/api/alerts/operational?id=${encodeURIComponent(id)}`, { method: "PATCH" })
   await mutate(ALERTS_URL)
 }
 
@@ -46,8 +47,9 @@ function BellDropdown({ className }: { className?: string }) {
     revalidateOnFocus: true,
   })
 
-  const unreadCount = alerts.length
-  const visible = alerts.slice(0, 10)
+  const safeAlerts = Array.isArray(alerts) ? alerts : []
+  const unreadCount = safeAlerts.length
+  const visible = safeAlerts.slice(0, 10)
 
   return (
     <DropdownMenu>

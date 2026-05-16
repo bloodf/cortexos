@@ -39,7 +39,7 @@ run_remote_migrate() {
 		set -e
 		cd '${REMOTE_DIR}'
 		# Load dashboard env via sudo (file is 0600 root). Prefer migrate.js.
-		ENV_FILE=/opt/homeos/secrets/dashboard.env
+		ENV_FILE=/opt/cortexos/secrets/dashboard.env
 		if [ -f 'scripts/migrate.js' ]; then
 			sudo -E env CORTEX_ENV_FILE=\"\$ENV_FILE\" bash -c 'set -a; . \"\$CORTEX_ENV_FILE\"; set +a; exec '${NODE_BIN}' scripts/migrate.js'
 		else

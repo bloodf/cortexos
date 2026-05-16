@@ -10,10 +10,10 @@ export function AlertsWidget() {
 	useEffect(() => {
 		mountedRef.current = true;
 		const fetchAlerts = () => {
-			fetch("/api/alerts?history=true")
+			fetch("/api/alerts?history=1")
 				.then((r) => r.json())
 				.then((d) => {
-					if (mountedRef.current) setCount((d.history || []).length);
+					if (mountedRef.current) setCount(Array.isArray(d.history) ? d.history.length : 0);
 				})
 				.catch(() => {});
 		};

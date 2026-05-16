@@ -61,8 +61,8 @@ export interface ProcessInfo {
 	pid: number;
 	user: string;
 	command: string;
-	cpu: string;
-	mem: string;
+	cpu: number;
+	mem: number;
 }
 
 export interface DashboardData {
@@ -73,6 +73,9 @@ export interface DashboardData {
 	docker: unknown;
 }
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+	typeof value === "object" && value !== null;
+
 export function useDashboardData() {
 	const { connected, subscribe, unsubscribe } = useSocket();
 	const [socketData, setSocketData] = useState<Partial<DashboardData>>({});
@@ -81,9 +84,23 @@ export function useDashboardData() {
 		const onSystem = (payload: unknown) =>
 			setSocketData((d) => ({ ...d, system: payload as SystemData }));
 		const onServices = (payload: unknown) =>
-			setSocketData((d) => ({ ...d, services: (payload as { services: ServiceCheck[] }).services }));
+			setSocketData((d) => ({
+				...d,
+				services: Array.isArray(payload)
+					? payload
+					: isRecord(payload) && Array.isArray(payload.services)
+						? payload.services as ServiceCheck[]
+						: d.services,
+			}));
 		const onProcesses = (payload: unknown) =>
-			setSocketData((d) => ({ ...d, processes: (payload as { processes: ProcessInfo[] }).processes }));
+			setSocketData((d) => ({
+				...d,
+				processes: Array.isArray(payload)
+					? payload
+					: isRecord(payload) && Array.isArray(payload.processes)
+						? payload.processes as ProcessInfo[]
+						: d.processes,
+			}));
 		const onNetwork = (payload: unknown) =>
 			setSocketData((d) => ({ ...d, network: payload as NetworkData }));
 		const onDocker = (payload: unknown) =>
@@ -134,10 +151,25 @@ export function useDashboardData() {
 		(!socketData.system && systemSWR.isLoading) ||
 		(!socketData.services && servicesSWR.isLoading);
 
+	const services = connected
+		? socketData.services
+		: Array.isArray(socketData.services)
+			? socketData.services
+			: Array.isArray(servicesSWR.data?.services)
+				? servicesSWR.data.services
+				: undefined;
+	const processes = connected
+		? socketData.processes
+		: Array.isArray(socketData.processes)
+			? socketData.processes
+			: Array.isArray(processesSWR.data?.processes)
+				? processesSWR.data.processes
+				: undefined;
+
 	return {
 		system: connected ? socketData.system : (socketData.system ?? systemSWR.data),
-		services: connected ? socketData.services : (socketData.services ?? servicesSWR.data?.services),
-		processes: connected ? socketData.processes : (socketData.processes ?? processesSWR.data?.processes),
+		services,
+		processes,
 		network: connected ? socketData.network : (socketData.network ?? networkSWR.data),
 		docker: connected ? socketData.docker : (socketData.docker ?? dockerSWR.data),
 		connected,
@@ -167,12 +199,14 @@ export function useSystemData() {
 
 export function useServicesData() {
 	const { services, isLoading, error } = useDashboard();
-	return { data: services ? { services } : undefined, isLoading, error };
+	const safeServices = Array.isArray(services) ? services : [];
+	return { data: { services: safeServices }, isLoading, error };
 }
 
 export function useProcessesData() {
 	const { processes, isLoading, error } = useDashboard();
-	return { data: processes ? { processes: processes as ProcessInfo[] } : undefined, isLoading, error };
+	const safeProcesses = Array.isArray(processes) ? processes : [];
+	return { data: { processes: safeProcesses }, isLoading, error };
 }
 
 export function useNetworkData() {
