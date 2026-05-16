@@ -36,6 +36,26 @@ If you fork `deploy.sh`, keep both rsync passes.
 
 **Do not** paste credentials into the dashboard UI. All keys are sourced from VPS `.secrets/` files.
 
+## Systemd unit
+
+Install dashboard systemd unit from `templates/systemd/cortex-dashboard.service`. Substitute `{VPS_USER}`, `{NODE_BIN}`, `{NODE_BIN_DIR}` (Linuxbrew default `{NODE_BIN}=/home/linuxbrew/.linuxbrew/opt/node@24/bin/node`).
+
+Unit declares `After=network-online.target postgresql.service docker.service` + `Wants=network-online.target` so the dashboard waits for routable network AND its database deps before launch — critical for clean post-reboot auto-start.
+
+```bash
+sudo install -m 644 templates/systemd/cortex-dashboard.service /etc/systemd/system/cortex-dashboard.service
+# sed -i the placeholders, then:
+sudo systemctl daemon-reload
+sudo systemctl enable --now cortex-dashboard
+```
+
+Verify auto-boot wiring:
+
+```bash
+systemctl is-enabled cortex-dashboard   # → enabled
+systemctl show cortex-dashboard -p After,Wants   # contains network-online.target
+```
+
 ## Configure
 
 Add dashboard env vars to `/opt/cortexos/.secrets/dashboard.env` on the VPS if not already present:

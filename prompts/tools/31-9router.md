@@ -42,33 +42,22 @@ sudo chmod 600 /opt/cortexos/.secrets/9router.env
 
 Replace each `{placeholder}` with the actual value. Add or remove provider keys as needed.
 
-Write systemd unit:
+Install systemd unit from `templates/systemd/9router.service`. Substitute placeholders (`{VPS_USER}`, `{VPS_HOME}`, `{NODE_BIN}`, `{NODE_BIN_DIR}`, `{NPM_PREFIX}`) — typical Linuxbrew layout: `{NODE_BIN}=/home/linuxbrew/.linuxbrew/opt/node@24/bin/node`, `{NPM_PREFIX}=/home/linuxbrew/.linuxbrew`.
+
+The template uses `After=network-online.target` + `Wants=network-online.target` so the unit waits for routable network before launch — critical for post-reboot auto-start. Headless flags `--skip-update --no-browser` are MANDATORY — without them 9Router renders interactive update prompt or browser-open menu, then exits with status 0 the moment it detects no TTY (unit appears `active (exited)` with no logs).
 
 ```bash
-sudo tee /etc/systemd/system/9router.service <<'EOF'
-[Unit]
-Description=9Router AI model gateway
-After=network.target nats.service
-
-[Service]
-Type=simple
-WorkingDirectory=/opt/cortexos/stacks/9router
-EnvironmentFile=/opt/cortexos/.secrets/9router.env
-# Headless flags are MANDATORY. Without `--skip-update --no-browser`
-# 9Router renders its interactive update prompt or its browser-open
-# menu, then exits with status 0 the moment it detects there is no
-# TTY — the systemd unit appears "active (exited)" with no logs.
-ExecStart=/usr/bin/node index.js --skip-update --no-browser
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
+sudo install -m 644 templates/systemd/9router.service /etc/systemd/system/9router.service
+# Substitute placeholders in the installed copy with sed -i, then:
 sudo systemctl daemon-reload
-sudo systemctl enable 9router
-sudo systemctl start 9router
+sudo systemctl enable --now 9router
+```
+
+`enable --now` enables auto-start at boot AND starts the unit immediately. Verify auto-boot wiring:
+
+```bash
+systemctl is-enabled 9router   # → enabled
+systemctl show 9router -p WantedBy   # → multi-user.target
 ```
 
 ## Verify
