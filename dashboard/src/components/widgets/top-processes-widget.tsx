@@ -26,9 +26,9 @@ export function TopProcessesWidget() {
 						</span>
 						<span
 							className={`text-[10px] font-mono font-semibold ${
-								parseFloat(proc.cpu) > 30
+								proc.cpu > 30
 									? "text-red-400"
-									: parseFloat(proc.cpu) > 10
+									: proc.cpu > 10
 										? "text-amber-400"
 										: "text-emerald-400"
 							}`}
