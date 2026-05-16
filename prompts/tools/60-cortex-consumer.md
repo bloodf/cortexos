@@ -46,12 +46,18 @@ EOF
 sudo chmod 600 /opt/cortexos/.secrets/cortex-consumer.env
 ```
 
-Enable systemd unit (already copied above):
+Enable systemd unit (already copied above). Unit declares `After=network-online.target docker.service` + `Wants=network-online.target` so consumer waits for routable network AND docker before launch (NATS is docker-backed):
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable cortex-consumer
-sudo systemctl start cortex-consumer
+sudo systemctl enable --now cortex-consumer
+```
+
+`enable --now` enables auto-start at boot AND starts immediately. Verify:
+
+```bash
+systemctl is-enabled cortex-consumer   # → enabled
+systemctl show cortex-consumer -p After,Wants   # contains network-online.target, docker.service
 ```
 
 ## Verify

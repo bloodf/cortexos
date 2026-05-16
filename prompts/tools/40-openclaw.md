@@ -52,31 +52,23 @@ Apply the cortex role policy:
 cp templates/openclaw/roles/cortex.json ~/.openclaw/roles/cortex.json
 ```
 
-Start OpenClaw gateway:
+Install gateway systemd unit from `templates/systemd/openclaw-gateway.service`. Substitute `{VPS_USER}`, `{VPS_HOME}`, `{NODE_BIN}`, `{NODE_BIN_DIR}`, `{NPM_PREFIX}` (Linuxbrew defaults: `{NODE_BIN}=/home/linuxbrew/.linuxbrew/opt/node@24/bin/node`, `{NPM_PREFIX}=/home/linuxbrew/.linuxbrew`).
+
+Template uses `After=network-online.target docker.service caddy.service` + `Wants=network-online.target docker.service` so the gateway waits for routable network AND docker readiness before launch — required for clean post-reboot auto-start (channel plugins fail fast if docker-backed services aren't ready).
 
 ```bash
-sudo tee /etc/systemd/system/openclaw.service <<'EOF'
-[Unit]
-Description=OpenClaw agent gateway
-After=network.target openviking.service 9router.service
-
-[Service]
-Type=simple
-User={VPS_USER}
-ExecStart=/usr/bin/openclaw start
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
+sudo install -m 644 templates/systemd/openclaw-gateway.service /etc/systemd/system/openclaw-gateway.service
+# sed -i the placeholders, then:
 sudo systemctl daemon-reload
-sudo systemctl enable openclaw
-sudo systemctl start openclaw
+sudo systemctl enable --now openclaw-gateway
 ```
 
-Replace `{VPS_USER}` with your non-root user.
+Verify auto-boot wiring:
+
+```bash
+systemctl is-enabled openclaw-gateway   # → enabled
+systemctl show openclaw-gateway -p After,Wants   # contains network-online.target
+```
 
 ## Verify
 

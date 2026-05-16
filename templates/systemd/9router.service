@@ -1,0 +1,24 @@
+[Unit]
+Description=9Router AI Gateway
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User={VPS_USER}
+WorkingDirectory={VPS_HOME}
+# Headless flags MANDATORY. Without `--skip-update --no-browser` 9Router
+# renders interactive update prompt or browser-open menu, then exits with
+# status 0 the moment it detects no TTY — unit appears "active (exited)"
+# with no logs.
+ExecStart={NODE_BIN} {NPM_PREFIX}/lib/node_modules/9router/cli.js --skip-update --no-browser
+Restart=always
+RestartSec=5
+Environment=HOME={VPS_HOME}
+Environment=PATH={NODE_BIN_DIR}:/home/linuxbrew/.linuxbrew/bin:/usr/local/bin:/usr/bin:/bin
+EnvironmentFile=-/opt/cortexos/.secrets/9router.env
+
+[Install]
+WantedBy=multi-user.target
