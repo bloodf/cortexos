@@ -1,0 +1,86 @@
+services:
+  opik-backend:
+    image: comet/opik-backend:latest
+    restart: unless-stopped
+    environment:
+      - OPIK_POSTGRES_HOST=opik-db
+      - OPIK_POSTGRES_PORT=5432
+      - OPIK_POSTGRES_DB=opik
+      - OPIK_POSTGRES_USER=opik
+      - OPIK_POSTGRES_PASSWORD=${OPIK_POSTGRES_PASSWORD}
+      - OPIK_CLICKHOUSE_HOST=opik-clickhouse
+      - OPIK_CLICKHOUSE_PORT=8123
+    depends_on:
+      opik-db:
+        condition: service_healthy
+      opik-clickhouse:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - opik
+
+  opik-frontend:
+    image: comet/opik-frontend:latest
+    restart: unless-stopped
+    environment:
+      - OPIK_BACKEND_URL=http://opik-backend:8080
+    ports:
+      # Bind to Tailscale interface only — set TAILSCALE_IP in env
+      - "${TAILSCALE_IP:-127.0.0.1}:5173:3000"
+    depends_on:
+      opik-backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - opik
+
+  opik-db:
+    image: postgres:latest
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=opik
+      - POSTGRES_USER=opik
+      - POSTGRES_PASSWORD=${OPIK_POSTGRES_PASSWORD}
+    volumes:
+      - opik-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U opik -d opik"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - opik
+
+  opik-clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    restart: unless-stopped
+    environment:
+      - CLICKHOUSE_DB=opik
+      - CLICKHOUSE_USER=opik
+      - CLICKHOUSE_PASSWORD=${OPIK_CLICKHOUSE_PASSWORD}
+    volumes:
+      - opik-clickhouse-data:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - opik
+
+volumes:
+  opik-db-data:
+  opik-clickhouse-data:
+
+networks:
+  opik:
+    driver: bridge

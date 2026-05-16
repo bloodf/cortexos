@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://cortexos/nats/schemas/cortex.approval.json",
+  "title": "cortex.approval.*",
+  "description": "Re-emitted by cortex-consumer after verifying an OpenClaw inbound approval. Subject: cortex.approval.<stage>",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["approval_id", "nonce", "expires_at", "stage", "decision", "ts"],
+  "properties": {
+    "approval_id": {
+      "type": "string",
+      "description": "Unique approval request identifier."
+    },
+    "nonce": {
+      "type": "string",
+      "description": "Single-use random value; stored in cortex_approvals_seen KV for replay prevention."
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO8601 expiry; consumer rejects if now > expires_at."
+    },
+    "stage": {
+      "type": "string",
+      "description": "Factory stage this approval applies to."
+    },
+    "factory_slug": { "type": "string" },
+    "decision": {
+      "type": "string",
+      "enum": ["approved", "rejected", "deferred"]
+    },
+    "actor": {
+      "type": "string",
+      "description": "User who performed the approval action."
+    },
+    "platform": {
+      "type": "string",
+      "enum": ["telegram", "slack", "discord", "whatsapp", "dashboard"]
+    },
+    "hmac": {
+      "type": "string",
+      "description": "HMAC-SHA256 over JCS canonical payload (excluding this field) with CORTEX_NATS_HMAC."
+    },
+    "ts": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

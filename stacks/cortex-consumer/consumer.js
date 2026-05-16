@@ -1,0 +1,825 @@
+#!/usr/bin/env node
+// cortex-consumer v1.0 — JetStream durable subs, OpenClaw HTTP API, rich blocks, circuit breaker
+
+// ---------------------------------------------------------------------------
+// nats.js upstream bug workaround: internal timers may pass values > 2^31-1
+// ms to setTimeout, triggering "TimeoutOverflowWarning" flood that crashes
+// the process via systemd watchdog. Cap all timeouts at INT32_MAX before
+// delegating to native setTimeout. Safe: any real timer < 24.8 days stays
+// unchanged; pathological values get clamped to 24.8 days instead of 1ms.
+// ---------------------------------------------------------------------------
+const __INT32_MAX = 2_147_483_647;
+const __origSetTimeout = global.setTimeout;
+global.setTimeout = function patchedSetTimeout(handler, timeout, ...args) {
+  if (typeof timeout === "number" && Number.isFinite(timeout) && timeout > __INT32_MAX) {
+    timeout = __INT32_MAX;
+  }
+  return __origSetTimeout(handler, timeout, ...args);
+};
+global.setTimeout.__patched = true;
+
+import { connect, StringCodec, AckPolicy, DeliverPolicy, StorageType, nanos } from "nats";
+import { createHmac } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
+import http from "node:http";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+const execFileP = promisify(execFile);
+
+// ---------------------------------------------------------------------------
+// Config + env
+// ---------------------------------------------------------------------------
+const NATS_URL = process.env.NATS_URL || "nats://127.0.0.1:4222";
+const OPENCLAW_BASE = (process.env.OPENCLAW_BASE_URL || "http://127.0.0.1:18789").replace(/\/$/, "");
+const OPENCLAW_BIN = process.env.OPENCLAW_BIN || "openclaw";
+const OPENCLAW_CLI_TIMEOUT_MS = Number(process.env.OPENCLAW_CLI_TIMEOUT_MS || 15_000);
+const OPENCLAW_OUTBOUND_HMAC = process.env.CORTEX_OPENCLAW_OUTBOUND_HMAC || "";
+const NATS_HMAC = process.env.CORTEX_NATS_HMAC || "";
+const ROUTING_CONFIG = process.env.ROUTING_CONFIG || "/opt/cortexos/stacks/cortex-consumer/config.json";
+const STATE_FILE = process.env.THREAD_STATE_FILE || "/opt/cortexos/state/consumer-threads.json";
+const HEALTH_PORT = Number(process.env.HEALTH_PORT || 7080);
+const METRICS_PORT = Number(process.env.METRICS_PORT || 7081);
+const STREAM = process.env.CORTEX_STREAM || "CORTEX";
+const DRY_RUN = process.env.DRY_RUN === "1";
+
+// Consumer durables — one per subject filter
+const DURABLES = {
+  factoryCreated: process.env.DURABLE_FACTORY_CREATED || "cortex-consumer-factory-created",
+  factoryWorkflow: process.env.DURABLE_FACTORY_WORKFLOW || "cortex-consumer-factory-workflow",
+  openclawReceived: process.env.DURABLE_OPENCLAW_RECEIVED || "cortex-consumer-openclaw-received",
+};
+
+const STREAM_NAMES = {
+  FACTORY: "cortex_factory",
+  APPROVAL: "cortex_approval",
+  ALERT: "cortex_alert",
+  HEALTH: "cortex_health",
+  DLQ: "cortex_consumer_errors",
+};
+
+const KV_BUCKET = "cortex_approvals_seen";
+const KV_TTL_MS = 10 * 60 * 1000; // 10 min in milliseconds
+
+// ---------------------------------------------------------------------------
+// Ajv schema validation (loaded lazily)
+// ---------------------------------------------------------------------------
+let ajvInstance = null;
+async function getAjv() {
+  if (ajvInstance !== null) return ajvInstance;
+  try {
+    const { default: AjvClass } = await import("ajv");
+    ajvInstance = new AjvClass({ strict: false });
+  } catch {
+    process.stderr.write("[schema] ajv not available; skipping validation\n");
+    ajvInstance = false;
+  }
+  return ajvInstance;
+}
+
+const schemaCache = new Map();
+
+/**
+ * Schema name resolution.
+ *
+ * Two roots:
+ *   - NATS event envelopes:    templates/nats/schemas/<name>.json
+ *   - Canonical block payload: templates/messages/schema.json
+ *
+ * The special name "messages.blocks" maps to templates/messages/schema.json so
+ * consumer.js can dual-validate cortex.factory.workflow.* events: envelope
+ * against cortex.factory.workflow.json, and the inner `blocks` payload against
+ * the canonical block schema referenced in plan §4f.
+ *
+ * Override roots via CORTEX_TEMPLATES_DIR for testing.
+ */
+function resolveSchemaCandidates(name) {
+  const templatesDirEnv = process.env.CORTEX_TEMPLATES_DIR;
+  if (name === "messages.blocks") {
+    const candidates = [];
+    if (templatesDirEnv) candidates.push(`${templatesDirEnv}/messages/schema.json`);
+    candidates.push(
+      "/opt/cortexos/templates/messages/schema.json",
+      new URL("../../templates/messages/schema.json", import.meta.url).pathname,
+    );
+    return candidates;
+  }
+  const candidates = [];
+  if (templatesDirEnv) candidates.push(`${templatesDirEnv}/nats/schemas/${name}.json`);
+  candidates.push(
+    `/opt/cortexos/templates/nats/schemas/${name}.json`,
+    new URL(`../../templates/nats/schemas/${name}.json`, import.meta.url).pathname,
+  );
+  return candidates;
+}
+
+export function loadSchema(name) {
+  if (schemaCache.has(name)) return schemaCache.get(name);
+  for (const p of resolveSchemaCandidates(name)) {
+    try {
+      const s = JSON.parse(readFileSync(p, "utf8"));
+      schemaCache.set(name, s);
+      return s;
+    } catch { /* try next */ }
+  }
+  return null;
+}
+
+export async function validatePayload(schemaName, payload) {
+  const ajv = await getAjv();
+  const strict = process.env.STRICT_VALIDATION === "1";
+  if (!ajv) {
+    if (strict) throw new Error(`[schema] ajv unavailable but STRICT_VALIDATION=1 (schema=${schemaName})`);
+    return true;
+  }
+  const schema = loadSchema(schemaName);
+  if (!schema) {
+    if (strict) throw new Error(`[schema] missing schema file: ${schemaName} (STRICT_VALIDATION=1)`);
+    return true;
+  }
+  const validate = ajv.compile(schema);
+  if (!validate(payload)) {
+    process.stderr.write(`[schema] ${schemaName} invalid: ${JSON.stringify(validate.errors)}\n`);
+    return false;
+  }
+  return true;
+}
+
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
+const sc = StringCodec();
+const THREAD_TS = new Map();
+/** @type {import("nats").NatsConnection | null} */
+let nc = null;
+/** @type {import("nats").JetStreamClient | null} */
+let js = null;
+/** @type {import("nats").KV | null} */
+let kvBucket = null;
+let shuttingDown = false;
+let lastMessageAt = 0;
+let lastError = "";
+
+// ---------------------------------------------------------------------------
+// Metrics counters
+// ---------------------------------------------------------------------------
+const metrics = {
+  messages_received_total: 0,
+  messages_acked_total: 0,
+  messages_nacked_total: 0,
+  messages_dlq_total: 0,
+  openclaw_http_errors_total: 0,
+  openclaw_http_ok_total: 0,
+  hmac_reject_total: 0,
+  nonce_replay_total: 0,
+  approval_stall_total: 0,
+  circuit_open_total: 0,
+};
+
+// ---------------------------------------------------------------------------
+// Circuit breaker (inline — no external lib)
+// ---------------------------------------------------------------------------
+const CB_THRESHOLD = 5;
+const CB_WINDOW_MS = 30_000;
+const CB_OPEN_MS = 60_000;
+
+const cb = {
+  state: "closed",   // "closed" | "open" | "half-open"
+  failures: [],      // timestamps of recent failures
+  openAt: 0,
+  probeInFlight: false,
+};
+
+function cbRecord(success) {
+  const now = Date.now();
+  if (success) {
+    cb.state = "closed";
+    cb.failures = [];
+    cb.probeInFlight = false;
+    return;
+  }
+  cb.failures.push(now);
+  cb.failures = cb.failures.filter(t => now - t < CB_WINDOW_MS);
+  if (cb.failures.length >= CB_THRESHOLD && cb.state === "closed") {
+    cb.state = "open";
+    cb.openAt = now;
+    metrics.circuit_open_total++;
+    process.stderr.write("[circuit] OPEN — OpenClaw HTTP suspended for 60s\n");
+  }
+}
+
+function cbAllow() {
+  const now = Date.now();
+  if (cb.state === "closed") return true;
+  if (cb.state === "open") {
+    if (now - cb.openAt >= CB_OPEN_MS) {
+      cb.state = "half-open";
+      process.stdout.write("[circuit] HALF-OPEN — probe attempt\n");
+    } else {
+      return false;
+    }
+  }
+  // half-open: allow one probe at a time
+  if (cb.probeInFlight) return false;
+  cb.probeInFlight = true;
+  return true;
+}
+
+// ---------------------------------------------------------------------------
+// OpenClaw CLI helpers (gateway uses ws://, not HTTP REST — shell to CLI)
+// ---------------------------------------------------------------------------
+async function openclawExec(args) {
+  if (!cbAllow()) throw new Error(`circuit open — skipping openclaw ${args[0]}`);
+  try {
+    const { stdout } = await execFileP(OPENCLAW_BIN, args, {
+      timeout: OPENCLAW_CLI_TIMEOUT_MS,
+      maxBuffer: 4 * 1024 * 1024,
+    });
+    metrics.openclaw_http_ok_total++;
+    cbRecord(true);
+    return stdout;
+  } catch (e) {
+    metrics.openclaw_http_errors_total++;
+    cbRecord(false);
+    throw new Error(`openclaw ${args.join(" ")} failed: ${e.message || e}`);
+  }
+}
+
+function renderBlocksToText(blocks) {
+  if (!blocks) return "";
+  const lines = [];
+  const h = blocks.header;
+  if (h) lines.push(`${h.emoji || ""} ${h.title || ""}${h.subtitle ? ` — ${h.subtitle}` : ""}`.trim());
+  for (const s of blocks.sections || []) {
+    if (s.type === "kv") for (const [k, v] of s.items || []) lines.push(`${k}: ${v}`);
+    else if (s.type === "text") lines.push(s.markdown || "");
+    else if (s.type === "code") lines.push("```" + (s.lang || "") + "\n" + (s.body || "") + "\n```");
+  }
+  return lines.join("\n").trim();
+}
+
+async function openclawSendMessage({ account, channel, target, blocks }) {
+  const args = ["message", "send", "--json"];
+  if (account) args.push("--account", account);
+  if (channel) args.push("--channel", channel);
+  if (target) args.push("--target", String(target));
+  args.push("-m", renderBlocksToText(blocks) || " ");
+  args.push("--presentation", JSON.stringify(blocks || {}));
+  return openclawExec(args);
+}
+
+async function openclawBindRoute({ agent, channel, account }) {
+  const args = ["agents", "bind", "--agent", agent];
+  if (channel) args.push("--channel", channel);
+  if (account) args.push("--account", account);
+  return openclawExec(args);
+}
+
+// ---------------------------------------------------------------------------
+// HMAC + JCS
+// ---------------------------------------------------------------------------
+
+/** RFC8785-style canonical JSON (stable key order) */
+function jcs(value) {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(jcs).join(",")}]`;
+  const keys = Object.keys(value).sort();
+  return `{${keys.map(k => `${JSON.stringify(k)}:${jcs(value[k])}`).join(",")}}`;
+}
+
+function hmacSha256(secret, payload) {
+  return createHmac("sha256", secret).update(payload).digest("hex");
+}
+
+function verifyOpenclawHmac(envelopeRaw, signature) {
+  if (!OPENCLAW_OUTBOUND_HMAC) {
+    process.stderr.write("[hmac] CORTEX_OPENCLAW_OUTBOUND_HMAC not set — rejecting all inbound\n");
+    return false;
+  }
+  return hmacSha256(OPENCLAW_OUTBOUND_HMAC, envelopeRaw) === signature;
+}
+
+function verifyNatsApprovalHmac(payload) {
+  if (!NATS_HMAC) {
+    process.stderr.write("[hmac] CORTEX_NATS_HMAC not set — rejecting approval\n");
+    return false;
+  }
+  const { hmac: sig, ...rest } = payload;
+  if (!sig) return false;
+  return hmacSha256(NATS_HMAC, jcs(rest)) === sig;
+}
+
+// ---------------------------------------------------------------------------
+// Replay-nonce KV
+// ---------------------------------------------------------------------------
+async function checkAndRecordNonce(nonce) {
+  if (!kvBucket) return true; // degraded — allow
+  try {
+    await kvBucket.create(nonce, sc.encode("1"));
+    return true;
+  } catch (e) {
+    // create() throws on duplicate key
+    metrics.nonce_replay_total++;
+    return false;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Stalled approval tracker
+// ---------------------------------------------------------------------------
+const pendingApprovals = new Map();
+
+function trackApproval(approvalId, stage, timeoutMs) {
+  clearApprovalTimer(approvalId);
+  const t = setTimeout(async () => {
+    metrics.approval_stall_total++;
+    process.stderr.write(`[approval] stalled: ${approvalId} stage=${stage}\n`);
+    pendingApprovals.delete(approvalId);
+    try {
+      await publishAlert("approval-stalled", { approval_id: approvalId, stage, ts: new Date().toISOString() });
+    } catch (e) {
+      process.stderr.write(`[approval] stall alert failed: ${e.message}\n`);
+    }
+  }, timeoutMs);
+  pendingApprovals.set(approvalId, { stage, ts: Date.now(), timeout: t });
+}
+
+function clearApprovalTimer(approvalId) {
+  const entry = pendingApprovals.get(approvalId);
+  if (entry?.timeout) clearTimeout(entry.timeout);
+  pendingApprovals.delete(approvalId);
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+function loadJson(filePath, fallback) {
+  try { return JSON.parse(readFileSync(filePath, "utf8")); }
+  catch { return fallback; }
+}
+
+function loadConfig() {
+  return loadJson(ROUTING_CONFIG, {
+    routes: {},
+    approval_timeout_minutes: 30,
+    openclaw: { account_ref: "cortex" },
+  });
+}
+
+function loadThreadState() {
+  const state = loadJson(STATE_FILE, {});
+  for (const [k, v] of Object.entries(state)) {
+    if (typeof v === "string") THREAD_TS.set(k, v);
+  }
+}
+
+function saveThreadState() {
+  mkdirSync(dirname(STATE_FILE), { recursive: true });
+  const tmp = `${STATE_FILE}.tmp`;
+  writeFileSync(tmp, JSON.stringify(Object.fromEntries(THREAD_TS), null, 2));
+  renameSync(tmp, STATE_FILE);
+}
+
+// ---------------------------------------------------------------------------
+// NATS publish helpers
+// ---------------------------------------------------------------------------
+function publish(subject, payload) {
+  if (!nc || nc.isClosed()) return;
+  nc.publish(subject, sc.encode(JSON.stringify(payload)));
+}
+
+async function publishAlert(kind, data) {
+  publish(`cortex.alert.${kind}`, { kind, ts: new Date().toISOString(), ...data });
+}
+
+async function publishDLQ(subject, data, reason) {
+  metrics.messages_dlq_total++;
+  publish("cortex.consumer.errors", {
+    original_subject: subject,
+    reason,
+    ts: new Date().toISOString(),
+    payload: data,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Event handlers
+// ---------------------------------------------------------------------------
+
+async function handleFactoryCreated(data) {
+  await validatePayload("cortex.factory.created", data);
+  const { factory_slug, account_ref, channels = [] } = data;
+  if (!factory_slug) throw new Error("factory_slug missing");
+  if (DRY_RUN) {
+    process.stdout.write(`[dry-run] registerRoute factory_slug=${factory_slug}\n`);
+    return;
+  }
+  const accountRef = account_ref || "cortex";
+  let bound = 0;
+  for (const ch of channels) {
+    const channelName = typeof ch === "string" ? ch : ch?.channel;
+    const channelAccount = typeof ch === "string" ? accountRef : (ch?.account || accountRef);
+    if (!channelName) continue;
+    try {
+      await openclawBindRoute({ agent: factory_slug, channel: channelName, account: channelAccount });
+      bound++;
+    } catch (e) {
+      process.stderr.write(`[factory.created] bind failed ${factory_slug}/${channelName}: ${e.message}\n`);
+    }
+  }
+  process.stdout.write(`[factory.created] bound ${bound}/${channels.length} routes for ${factory_slug}\n`);
+}
+
+async function handleFactoryWorkflow(subject, data, cfg) {
+  // Envelope validation (subject schema).
+  await validatePayload("cortex.factory.workflow", data);
+  const parts = subject.split(".");
+  const slug = parts[3] || "unknown";
+  const stage = parts[4] || "unknown";
+  const accountRef = data.account_ref || cfg.openclaw?.account_ref || "cortex";
+  const threadKey = data.thread_key || `factory:${slug}`;
+  const approvalId = data.approval_id;
+  const approvalTimeoutMs = (cfg.approval_timeout_minutes || 30) * 2 * 60 * 1000;
+
+  // Canonical block payload validation (templates/messages/schema.json).
+  // Plan §4f: dual-validate envelope + inner blocks. Under STRICT_VALIDATION=1
+  // a malformed blocks payload is DLQ'd and the throw propagates so the poll
+  // loop records the failure; otherwise we warn and still publish so a single
+  // bad sender cannot stop the whole stream.
+  const strict = process.env.STRICT_VALIDATION === "1";
+  const blocks = data.blocks || buildDefaultBlocks(slug, stage, data);
+  const blocksOk = await validatePayload("messages.blocks", blocks);
+  if (!blocksOk) {
+    if (strict) {
+      await publishDLQ(subject, data, "blocks_schema_invalid");
+      throw new Error(`[schema] blocks invalid for ${subject} (STRICT_VALIDATION=1)`);
+    }
+    process.stderr.write(`[schema] blocks invalid for ${subject} — publishing anyway (non-strict)\n`);
+  }
+
+  if (DRY_RUN) {
+    process.stdout.write(`[dry-run] sendMessage slug=${slug} stage=${stage}\n`);
+    return;
+  }
+
+  // Channel list resolution: data.channels > cfg.routes[slug].channels > [{account: accountRef}]
+  const route = cfg.routes?.[slug];
+  const channels = data.channels || route?.channels || [{ account: accountRef, target: data.target }];
+  let sent = 0;
+  for (const ch of channels) {
+    const account = ch.account || accountRef;
+    const channel = ch.channel; // optional — CLI infers from account if omitted
+    const target = ch.target || data.target;
+    try {
+      await openclawSendMessage({ account, channel, target, blocks });
+      sent++;
+    } catch (e) {
+      process.stderr.write(`[factory.workflow] send failed ${slug}/${stage} ${account}/${channel || "?"}: ${e.message}\n`);
+    }
+  }
+
+  if (approvalId) trackApproval(approvalId, stage, approvalTimeoutMs);
+  process.stdout.write(`[factory.workflow] ${slug}/${stage} → sent ${sent}/${channels.length}\n`);
+}
+
+function buildDefaultBlocks(slug, stage, data) {
+  const emoji = stage.includes("failed") ? "❌" : stage.includes("passed") ? "✅" : "⚙️";
+  return {
+    schema_version: 1,
+    header: { emoji, title: `Factory: ${slug}`, subtitle: `stage: ${stage}` },
+    sections: [
+      {
+        type: "kv",
+        items: [
+          ["Slug", slug],
+          ["Stage", stage],
+          ["Time", data.ts || new Date().toISOString()],
+        ],
+      },
+    ],
+    context: { factory_slug: slug, stage, ts: data.ts || new Date().toISOString() },
+  };
+}
+
+async function handleOpenclawReceived(data) {
+  await validatePayload("openclaw.message.received", data);
+  const { envelope, signature, stage } = data;
+  if (!envelope || !signature) {
+    metrics.hmac_reject_total++;
+    throw new Error("openclaw.message.received missing envelope or signature");
+  }
+
+  const envelopeRaw = typeof envelope === "string" ? envelope : jcs(envelope);
+  if (!verifyOpenclawHmac(envelopeRaw, signature)) {
+    metrics.hmac_reject_total++;
+    throw new Error("openclaw envelope HMAC invalid");
+  }
+
+  const parsed = typeof envelope === "string" ? JSON.parse(envelope) : envelope;
+
+  if (parsed.hmac && !verifyNatsApprovalHmac(parsed)) {
+    metrics.hmac_reject_total++;
+    throw new Error("approval HMAC invalid");
+  }
+
+  if (parsed.expires_at && new Date(parsed.expires_at) < new Date()) {
+    throw new Error(`approval expired at ${parsed.expires_at}`);
+  }
+
+  if (parsed.nonce) {
+    const fresh = await checkAndRecordNonce(parsed.nonce);
+    if (!fresh) {
+      await publishDLQ("openclaw.message.received", data, "replay_nonce");
+      throw new Error(`approval nonce replayed: ${parsed.nonce}`);
+    }
+  }
+
+  const approvalStage = stage || parsed.stage || "unknown";
+  clearApprovalTimer(parsed.approval_id);
+  publish(`cortex.approval.${approvalStage}`, { ...parsed, ts: new Date().toISOString() });
+  process.stdout.write(`[openclaw.received] re-emitted cortex.approval.${approvalStage}\n`);
+}
+
+// ---------------------------------------------------------------------------
+// JetStream setup
+// ---------------------------------------------------------------------------
+async function ensureStreams(jsm) {
+  const defs = [
+    { name: STREAM, subjects: ["cortex.>", "openclaw.>"] },
+  ];
+  for (const def of defs) {
+    try { await jsm.streams.info(def.name); }
+    catch { await jsm.streams.add({ ...def, storage: StorageType.File }); }
+  }
+}
+
+async function ensureConsumer(jsm, stream, durable, filterSubject) {
+  try { await jsm.consumers.info(stream, durable); }
+  catch {
+    await jsm.consumers.add(stream, {
+      durable_name: durable,
+      ack_policy: AckPolicy.Explicit,
+      deliver_policy: DeliverPolicy.All,
+      filter_subject: filterSubject,
+      max_deliver: 5,
+      ack_wait: nanos(30_000),
+      backoff: [nanos(1_000), nanos(5_000), nanos(15_000), nanos(30_000), nanos(60_000)],
+    });
+  }
+}
+
+async function ensureKV(jsClient) {
+  try {
+    return await jsClient.views.kv(KV_BUCKET, { ttl: KV_TTL_MS });
+  } catch {
+    process.stderr.write("[kv] failed to open cortex_approvals_seen; nonce dedup disabled\n");
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Health + metrics servers
+// ---------------------------------------------------------------------------
+function buildMetricsText() {
+  const lines = [];
+  for (const [k, v] of Object.entries(metrics)) {
+    lines.push(`# TYPE ${k} counter\n${k} ${v}`);
+  }
+  lines.push(
+    `# TYPE cortex_consumer_circuit_state gauge\ncortex_consumer_circuit_state{state="${cb.state}"} 1`,
+    `# TYPE cortex_consumer_last_message_age_seconds gauge\ncortex_consumer_last_message_age_seconds ${lastMessageAt ? (Date.now() - lastMessageAt) / 1000 : -1}`,
+    `# TYPE cortex_consumer_pending_approvals gauge\ncortex_consumer_pending_approvals ${pendingApprovals.size}`,
+  );
+  return lines.join("\n") + "\n";
+}
+
+function startHealthServer() {
+  const srv = http.createServer((req, res) => {
+    if (req.url === "/healthz") {
+      const ok = !shuttingDown && nc && !nc.isClosed();
+      const body = JSON.stringify({
+        status: ok ? "ok" : "degraded",
+        circuit: cb.state,
+        last_message_ago_ms: lastMessageAt ? Date.now() - lastMessageAt : null,
+        last_error: lastError || null,
+        pending_approvals: pendingApprovals.size,
+      });
+      res.writeHead(ok ? 200 : 503, { "Content-Type": "application/json" });
+      res.end(body);
+    } else {
+      res.writeHead(404);
+      res.end();
+    }
+  });
+  srv.listen(HEALTH_PORT, () => process.stdout.write(`[health] :${HEALTH_PORT}/healthz\n`));
+  return srv;
+}
+
+function startMetricsServer() {
+  const srv = http.createServer((req, res) => {
+    if (req.url === "/metrics") {
+      res.writeHead(200, { "Content-Type": "text/plain; version=0.0.4" });
+      res.end(buildMetricsText());
+    } else {
+      res.writeHead(404);
+      res.end();
+    }
+  });
+  srv.listen(METRICS_PORT, () => process.stdout.write(`[metrics] :${METRICS_PORT}/metrics\n`));
+  return srv;
+}
+
+// ---------------------------------------------------------------------------
+// Heartbeat
+// ---------------------------------------------------------------------------
+let heartbeatTimer = null;
+
+function startHeartbeat() {
+  heartbeatTimer = setInterval(() => {
+    try {
+      publish("cortex.health.consumer", {
+        ts: new Date().toISOString(),
+        circuit: cb.state,
+        pending_approvals: pendingApprovals.size,
+        uptime_s: Math.floor(process.uptime()),
+      });
+    } catch (e) {
+      process.stderr.write(`[heartbeat] failed: ${e.message}\n`);
+    }
+  }, 10_000);
+  return heartbeatTimer;
+}
+
+async function flushFinalHeartbeat() {
+  if (!js) return;
+  try {
+    await js.publish("cortex.health.consumer", sc.encode(JSON.stringify({
+      ts: new Date().toISOString(),
+      circuit: cb.state,
+      pending_approvals: pendingApprovals.size,
+      uptime_s: Math.floor(process.uptime()),
+      final: true,
+    })));
+  } catch (e) {
+    process.stderr.write(`[heartbeat] final flush failed: ${e.message}\n`);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Message processing with DLQ fallback
+// ---------------------------------------------------------------------------
+async function processMessage(m, cfg) {
+  const subject = m.subject;
+  metrics.messages_received_total++;
+  lastMessageAt = Date.now();
+
+  let data = {};
+  try { data = JSON.parse(sc.decode(m.data)); }
+  catch { data = { raw: sc.decode(m.data) }; }
+
+  process.stdout.write(`[recv] ${subject}\n`);
+
+  // Delivery count starts at 0; index 4 = 5th attempt = max_deliver reached
+  const deliveryCount = m.info?.redeliveryCount ?? 0;
+
+  try {
+    if (subject === "cortex.factory.created") {
+      await handleFactoryCreated(data);
+    } else if (subject.startsWith("cortex.factory.workflow.")) {
+      await handleFactoryWorkflow(subject, data, cfg);
+    } else if (subject === "openclaw.message.received") {
+      await handleOpenclawReceived(data);
+    } else {
+      process.stdout.write(`[skip] unhandled: ${subject}\n`);
+    }
+    m.ack();
+    metrics.messages_acked_total++;
+  } catch (e) {
+    lastError = e.message;
+    process.stderr.write(`[err] ${subject} delivery=${deliveryCount}: ${e.message}\n`);
+    if (deliveryCount >= 4) {
+      m.ack(); // prevent further redelivery
+      await publishDLQ(subject, data, e.message);
+      process.stderr.write(`[dlq] ${subject} after ${deliveryCount + 1} attempts\n`);
+    } else {
+      const backoffMs = Math.min(1000 * Math.pow(2, deliveryCount), 60_000);
+      m.nak(nanos(backoffMs));
+      metrics.messages_nacked_total++;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Graceful shutdown
+// ---------------------------------------------------------------------------
+let shutdownHandled = false;
+async function shutdown(signal, servers) {
+  if (shutdownHandled) return;
+  shutdownHandled = true;
+  process.stdout.write(`[shutdown] ${signal} — draining (max 10s)\n`);
+  shuttingDown = true;
+  saveThreadState();
+
+  // M-7: stop heartbeat before draining so the timer cannot fire on a draining
+  // connection. Then publish one final JetStream-acked heartbeat for forensic
+  // closure before nc.drain() blocks new publishes.
+  if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
+  await flushFinalHeartbeat();
+
+  for (const { timeout } of pendingApprovals.values()) clearTimeout(timeout);
+  pendingApprovals.clear();
+
+  const deadline = setTimeout(() => {
+    process.stderr.write("[shutdown] deadline exceeded — forcing exit\n");
+    process.exit(1);
+  }, 10_000);
+
+  for (const s of servers) { try { s.close(); } catch {} }
+  try { if (nc && !nc.isClosed()) await nc.drain(); } catch {}
+
+  clearTimeout(deadline);
+  process.exit(0);
+}
+
+// ---------------------------------------------------------------------------
+// Poll loop
+// ---------------------------------------------------------------------------
+async function pollConsumer(consumer, cfg) {
+  while (!shuttingDown) {
+    try {
+      const messages = await consumer.fetch({ max_messages: 10, expires: nanos(30_000) });
+      for await (const m of messages) {
+        if (shuttingDown) { m.nak(); break; }
+        await processMessage(m, cfg);
+      }
+    } catch (e) {
+      if (!shuttingDown) {
+        process.stderr.write(`[poll] fetch error: ${e.message}\n`);
+        // L-8: back off on fetch errors so a NATS disconnect cannot pin a CPU
+        // in a tight retry loop.
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
+async function main() {
+  loadThreadState();
+  const cfg = loadConfig();
+
+  const healthServer = startHealthServer();
+  const metricsServer = startMetricsServer();
+  const servers = [healthServer, metricsServer];
+
+  process.on("SIGTERM", () => shutdown("SIGTERM", servers));
+  process.on("SIGINT", () => shutdown("SIGINT", servers));
+
+  nc = await connect({
+    servers: NATS_URL,
+    reconnect: true,
+    maxReconnectAttempts: -1,
+    name: "cortex-consumer",
+  });
+
+  (async () => {
+    for await (const status of nc.status()) {
+      process.stdout.write(`[nats] ${status.type} ${status.data || ""}\n`);
+    }
+  })();
+
+  js = nc.jetstream();
+  const jsm = await nc.jetstreamManager();
+
+  await ensureStreams(jsm);
+  await ensureConsumer(jsm, STREAM, DURABLES.factoryCreated, "cortex.factory.created");
+  await ensureConsumer(jsm, STREAM, DURABLES.factoryWorkflow, "cortex.factory.workflow.>");
+  await ensureConsumer(jsm, STREAM, DURABLES.openclawReceived, "openclaw.message.received");
+
+  kvBucket = await ensureKV(js);
+
+  const consumers = await Promise.all([
+    js.consumers.get(STREAM, DURABLES.factoryCreated),
+    js.consumers.get(STREAM, DURABLES.factoryWorkflow),
+    js.consumers.get(STREAM, DURABLES.openclawReceived),
+  ]);
+
+  startHeartbeat();
+  process.stdout.write(`[cortex-consumer] v1.0 ready nats=${NATS_URL} dry_run=${DRY_RUN}\n`);
+
+  await Promise.all(consumers.map(c => pollConsumer(c, cfg)));
+  // Heartbeat cleared in shutdown() before nc.drain().
+}
+
+// Only auto-run when invoked directly. When imported (e.g. by tests under
+// __tests__/), the caller drives validatePayload/loadSchema in isolation
+// without connecting to NATS.
+const invokedDirectly = process.argv[1] && import.meta.url === new URL(process.argv[1], "file://").href;
+if (invokedDirectly) {
+  main().catch(e => {
+    process.stderr.write(`[fatal] ${e.stack || e.message}\n`);
+    process.exit(1);
+  });
+}

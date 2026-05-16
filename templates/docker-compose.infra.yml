@@ -1,0 +1,102 @@
+networks:
+  cortex-internal:
+    name: cortex-internal
+    driver: bridge
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: cortex-postgresql
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      POSTGRES_PASSWORD: "${PG_ROOT_PASS}"
+    volumes:
+      - $CORTEX_ROOT/volumes/postgres:/var/lib/postgresql/data
+    networks:
+      - cortex-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mysql:
+    image: mysql:8.4
+    container_name: cortex-mysql
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASS}"
+    volumes:
+      - $CORTEX_ROOT/volumes/mysql:/var/lib/mysql
+    networks:
+      - cortex-internal
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongodb:
+    image: mongo:7
+    container_name: cortex-mongodb
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: "${MONGO_ROOT_PASS}"
+    volumes:
+      - $CORTEX_ROOT/volumes/mongodb:/data/db
+    networks:
+      - cortex-internal
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: cortex-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+    command: redis-server --requirepass "${REDIS_PASS}"
+    volumes:
+      - $CORTEX_ROOT/volumes/redis:/data
+    networks:
+      - cortex-internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASS}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  nats:
+    image: nats:2.10-alpine
+    container_name: cortex-nats
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4222:4222"
+      - "127.0.0.1:8222:8222"
+    command:
+      - "-js"
+      - "-sd"
+      - "/data"
+      - "-m"
+      - "8222"
+      - "--max_payload"
+      - "8MB"
+    volumes:
+      - $CORTEX_ROOT/volumes/nats:/data
+    networks:
+      - cortex-internal
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8222/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

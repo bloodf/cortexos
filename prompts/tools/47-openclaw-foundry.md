@@ -1,0 +1,56 @@
+# OpenClaw Foundry (latest)
+
+## Purpose
+Install the `0xRyanLucci/openclaw-foundry` plugin to enable template-based agent scaffolding and role provisioning directly from OpenClaw.
+
+## Prerequisites
+- `40-openclaw.md` completed.
+
+## CHECKPOINT 1
+Operator: confirm OpenClaw is running. Type "confirmed" to proceed.
+
+## Install
+
+```bash
+git clone https://github.com/0xRyanLucci/openclaw-foundry /tmp/openclaw-foundry
+cd /tmp/openclaw-foundry
+npm install
+```
+
+Snapshot upstream README:
+```bash
+test -f docs/external/openclaw-foundry.snapshot.md && echo "OK" || \
+  (curl -fsSL https://raw.githubusercontent.com/0xRyanLucci/openclaw-foundry/HEAD/README.md \
+    > docs/external/openclaw-foundry.snapshot.md && \
+   sed -i '1s/^/<!-- Snapshot of upstream openclaw-foundry at probe time. NOT a version pin. Operator reinstalls latest upstream on each fresh install. -->\n/' \
+    docs/external/openclaw-foundry.snapshot.md)
+```
+
+Register:
+
+```bash
+openclaw plugins install /tmp/openclaw-foundry
+```
+
+## Configure
+
+```bash
+openclaw plugins configure openclaw-foundry \
+  --templates-dir templates/openclaw/roles/
+sudo systemctl reload openclaw
+```
+
+## Verify
+
+```bash
+openclaw plugins list | grep foundry
+openclaw foundry list-templates
+```
+
+Expected: `openclaw-foundry` active; template list shows at least `cortex.json`.
+
+## CHECKPOINT 2
+Operator: confirm foundry plugin is active and `cortex.json` template is listed. Type "confirmed" to proceed.
+
+## Next
+→ `prompts/tools/48-openclaw-opik.md`

@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "header": {
+    "emoji": "🔍",
+    "title": "Approval Required: {factory_slug}",
+    "subtitle": "Stage: {stage}"
+  },
+  "sections": [
+    {
+      "type": "kv",
+      "items": [
+        ["Factory", "{factory_slug}"],
+        ["Stage", "{stage}"],
+        ["Requested at", "{ts}"],
+        ["Expires at", "{expires_at}"]
+      ]
+    },
+    {
+      "type": "text",
+      "markdown": "{summary}"
+    },
+    {
+      "type": "code",
+      "lang": "diff",
+      "body": "{diff}"
+    }
+  ],
+  "actions": [
+    { "id": "approve", "label": "✅ Approve", "style": "primary" },
+    { "id": "reject", "label": "❌ Reject", "style": "danger" },
+    { "id": "defer", "label": "⏰ Defer", "style": "default" }
+  ],
+  "context": {
+    "factory_slug": "{factory_slug}",
+    "stage": "{stage}",
+    "ts": "{ts}",
+    "approval_id": "{approval_id}"
+  }
+}

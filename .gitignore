@@ -1,0 +1,141 @@
+# ============================================
+# OS & Editor
+# ============================================
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# ============================================
+# AI Coding Tools
+# ============================================
+
+# Claude Code / Anthropic
+.claude/
+CLAUDE.md
+
+# Gemini / Google
+.gemini/
+
+# Cursor
+.cursor/
+.cursorignore
+.cursorindexingignore
+.cursorrules
+
+# Windsurf / Codeium
+.windsurf/
+.windsurfrules
+.codeium/
+
+# Aider
+.aider*
+.aider.conf.yml
+.aider.tags.cache.v3/
+
+# GitHub Copilot
+.copilot/
+.github/copilot-instructions.md
+
+# Cline / Roo Code
+.cline/
+.clinerules
+.clineignore
+.clinecontext
+.roo/
+
+# Continue
+.continue/
+.continuerules
+
+# Bolt
+.bolt/
+
+# v0 (Vercel)
+.v0/
+
+# Codex (OpenAI)
+.codex/
+
+# OMC (Open Multi-agent Collaboration)
+.omc/
+
+# Pi / Pi-Lens (TaskPlane)
+.pi/
+.pi-lens/
+
+# Augment
+.augment/
+
+# GSD Planning
+.planning/
+.worktrees/
+
+# LanceDB (vector store)
+lancedb/
+
+# ============================================
+# Secrets & Credentials
+# ============================================
+.secrets/
+*.env
+*.env.*
+!*.env.example
+!*.env.template
+*.pem
+*.key
+*.p12
+*.pfx
+
+# ============================================
+# Node.js / JavaScript
+# ============================================
+node_modules/
+.next/
+out/
+build/
+dist/
+.turbo/
+.vercel/
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+*.tsbuildinfo
+next-env.d.ts
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+coverage/
+
+# ============================================
+# Python
+# ============================================
+__pycache__/
+*.py[cod]
+*$py.class
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+*.egg-info/
+
+# ============================================
+# Docker
+# ============================================
+docker-compose.override.yml
+
+# ============================================
+# Documentation (generated / private)
+# ============================================
+.dashboard_update/
+.playwright-mcp/
+*.png
+REVIEW.md

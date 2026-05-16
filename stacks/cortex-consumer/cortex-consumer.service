@@ -1,0 +1,30 @@
+[Unit]
+Description=Cortex NATS Consumer — subscribes cortex.> and dispatches to agents + Slack
+After=network-online.target docker.service
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=%i
+WorkingDirectory=/opt/cortexos/stacks/cortex-consumer
+ExecStart=/usr/bin/env node consumer.js
+Environment=NATS_URL=nats://127.0.0.1:4222
+Environment=OPENCLAW_CONFIG=/home/%i/.openclaw/openclaw.json
+Environment=ROUTING_CONFIG=/opt/cortexos/stacks/cortex-consumer/config.json
+Environment=THREAD_STATE_FILE=/opt/cortexos/state/consumer-threads.json
+Environment=HEALTH_PORT=3099
+Environment=METRICS_PORT=7091
+ExecStartPre=/usr/bin/mkdir -p /opt/cortexos/state
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+StandardOutput=journal
+StandardError=journal
+MemoryHigh=256M
+MemoryMax=512M
+
+[Install]
+WantedBy=multi-user.target
