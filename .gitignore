@@ -138,4 +138,5 @@ docker-compose.override.yml
 .dashboard_update/
 .playwright-mcp/
 *.png
+!.github/assets/*.png
 REVIEW.md

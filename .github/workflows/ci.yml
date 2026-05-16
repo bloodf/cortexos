@@ -5,8 +5,13 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   dashboard:
+    name: Dashboard (lint • types • test • build)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -21,14 +26,64 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npx tsc --noEmit
-      - run: npm test
+      - run: npm test -- --reporter=verbose
       - run: npm run build
-      - run: docker build -t cortex-dashboard:ci .
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
 
-  scripts:
+  consumer:
+    name: Cortex Consumer (node --test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: stacks/cortex-consumer
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: stacks/cortex-consumer/package-lock.json
+      - run: npm ci || npm install
+      - run: npm test
+
+  shell:
+    name: Shell scripts (shellcheck + bash -n)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: bash -n scripts/cortex-healthcheck.sh stacks/nats/setup-jetstream.sh templates/scripts/bootstrap-project.sh templates/scripts/verify-pipeline.sh
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: bash -n parse-check
+        run: |
+          set -e
+          mapfile -d '' files < <(find scripts templates/scripts stacks -name '*.sh' -not -path '*/node_modules/*' -print0)
+          for f in "${files[@]}"; do bash -n "$f"; done
+      - name: shellcheck (warnings allowed)
+        run: |
+          shellcheck --severity=error \
+            $(find scripts templates/scripts stacks -name '*.sh' -not -path '*/node_modules/*')
+
+  compose:
+    name: Docker compose configs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
       - run: DASHBOARD_DB_PASSWORD=x CORTEX_MASTER_KEY=x docker compose -f dashboard/docker-compose.yml config >/dev/null
       - run: docker compose -f stacks/nats/docker-compose.yml config >/dev/null
+
+  docker-image:
+    name: Dashboard image build
+    runs-on: ubuntu-latest
+    needs: [dashboard]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build dashboard image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./dashboard
+          push: false
+          tags: cortexos-dashboard:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
