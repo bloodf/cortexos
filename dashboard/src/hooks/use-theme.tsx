@@ -14,27 +14,22 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 const STORAGE_KEY = "cortex-theme";
 
+function readStoredTheme(): Theme {
+	if (typeof window === "undefined") return "dark";
+	const stored = localStorage.getItem(STORAGE_KEY);
+	return stored === "light" || stored === "dark" ? stored : "dark";
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-	const [theme, setThemeState] = useState<Theme>("dark");
-	const [mounted, setMounted] = useState(false);
+	const [theme, setThemeState] = useState<Theme>(() => readStoredTheme());
 
-	// Read from localStorage on mount
+	// Apply theme class to <html> (effect only runs in the browser).
 	useEffect(() => {
-		const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
-		if (stored === "light" || stored === "dark") {
-			setThemeState(stored);
-		}
-		setMounted(true);
-	}, []);
-
-	// Apply theme class to <html>
-	useEffect(() => {
-		if (!mounted) return;
 		const html = document.documentElement;
 		html.classList.remove("light", "dark");
 		html.classList.add(theme);
 		localStorage.setItem(STORAGE_KEY, theme);
-	}, [theme, mounted]);
+	}, [theme]);
 
 	const setTheme = useCallback((t: Theme) => {
 		setThemeState(t);

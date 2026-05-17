@@ -46,10 +46,13 @@ function ColorPicker({
   previewLabel,
 }: ColorPickerProps) {
   const [color, setColor] = React.useState(value)
+  const [lastValue, setLastValue] = React.useState(value)
 
-  React.useEffect(() => {
+  // Reset local color when controlled value prop changes (derived state pattern).
+  if (value !== lastValue) {
+    setLastValue(value)
     setColor(value)
-  }, [value])
+  }
 
   const handleChange = (newColor: string) => {
     setColor(newColor)

@@ -35,14 +35,6 @@ const eslintConfig = defineConfig([
       "@typescript-eslint/no-require-imports": "off",
     },
   },
-  // TODO: refactor useEffect patterns; see .tmp-validation/REPORT.md action item #7.
-  {
-    rules: {
-      "react-hooks/set-state-in-effect": "warn",
-      "react-hooks/static-components": "warn",
-      "react-hooks/immutability": "warn",
-    },
-  },
 ]);
 
 export default eslintConfig;

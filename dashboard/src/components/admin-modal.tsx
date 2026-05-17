@@ -23,6 +23,33 @@ interface AdminModalProps {
 
 type DeletePhase = "idle" | "confirm1" | "confirm2" | "confirm3";
 
+const thClass = "pb-3 pr-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap";
+
+interface SortHeaderProps {
+	field: SortField;
+	sortState: SortState;
+	onSort: (field: SortField) => void;
+	children: React.ReactNode;
+}
+
+function SortHeader({ field, sortState, onSort, children }: SortHeaderProps) {
+	return (
+		<th
+			className={`${thClass} cursor-pointer select-none hover:text-foreground transition-colors`}
+			onClick={() => onSort(field)}
+		>
+			<span className="inline-flex items-center gap-1">
+				{children}
+				{sortState.field === field ? (
+					sortState.direction === "asc" ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+				) : (
+					<ArrowUpDown className="w-3 h-3 opacity-30" />
+				)}
+			</span>
+		</th>
+	);
+}
+
 export function AdminModal({ open, onClose, onUpdate }: AdminModalProps) {
 	const [services, setServices] = useState<Service[]>([]);
 	const [loading, setLoading] = useState(true);
@@ -69,14 +96,29 @@ export function AdminModal({ open, onClose, onUpdate }: AdminModalProps) {
 
 	useEffect(() => {
 		mountedRef.current = true;
-		if (open) {
-			setLoading(true);
-			fetchServices();
+		if (!open) {
+			return () => {
+				mountedRef.current = false;
+			};
 		}
+		(async () => {
+			try {
+				const res = await fetch("/api/services?raw=1", { cache: "no-store" });
+				if (!mountedRef.current) return;
+				if (res.ok) {
+					const json = await res.json();
+					if (mountedRef.current) setServices(json.services);
+				}
+			} catch {
+				if (mountedRef.current) setMessage("Failed to load services");
+			} finally {
+				if (mountedRef.current) setLoading(false);
+			}
+		})();
 		return () => {
 			mountedRef.current = false;
 		};
-	}, [open, fetchServices]);
+	}, [open]);
 
 	useEffect(() => {
 		if (!open) return;
@@ -127,24 +169,6 @@ export function AdminModal({ open, onClose, onUpdate }: AdminModalProps) {
 			setMessage("Delete failed");
 		}
 	};
-
-	const thClass = "pb-3 pr-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap";
-
-	const SortHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
-		<th
-			className={`${thClass} cursor-pointer select-none hover:text-foreground transition-colors`}
-			onClick={() => handleSort(field)}
-		>
-			<span className="inline-flex items-center gap-1">
-				{children}
-				{sortState.field === field ? (
-					sortState.direction === "asc" ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
-				) : (
-					<ArrowUpDown className="w-3 h-3 opacity-30" />
-				)}
-			</span>
-		</th>
-	);
 
 	return (
 		<AnimatePresence>
@@ -217,12 +241,12 @@ export function AdminModal({ open, onClose, onUpdate }: AdminModalProps) {
 							<thead className="sticky top-0 z-10 backdrop-blur-xl bg-background/40">
 						<tr className="border-b border-border">
 							<th className={thClass}>Avatar</th>
-							<SortHeader field="name">Name</SortHeader>
-							<SortHeader field="slug">Slug</SortHeader>
-							<SortHeader field="category">Category</SortHeader>
+							<SortHeader field="name" sortState={sortState} onSort={handleSort}>Name</SortHeader>
+							<SortHeader field="slug" sortState={sortState} onSort={handleSort}>Slug</SortHeader>
+							<SortHeader field="category" sortState={sortState} onSort={handleSort}>Category</SortHeader>
 							<th className={thClass}>Status</th>
 							<th className={thClass}>Health Target</th>
-							<SortHeader field="is_active">Enabled</SortHeader>
+							<SortHeader field="is_active" sortState={sortState} onSort={handleSort}>Enabled</SortHeader>
 							<th className={`${thClass} text-right`}>Actions</th>
 						</tr>
 					</thead>

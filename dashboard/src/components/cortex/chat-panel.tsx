@@ -89,24 +89,31 @@ function isToolUIPart(part: unknown): part is ToolUIPartLike {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 function ChatPanel() {
-  const [open, setOpenState] = React.useState(false)
-  const [isMobile, setIsMobile] = React.useState(false)
-  const [sessionId, setSessionId] = React.useState<string>("")
+  const [open, setOpenState] = React.useState<boolean>(() => readPanelStorage().panel_open)
+  const [isMobile, setIsMobile] = React.useState<boolean>(() => {
+    if (typeof window === "undefined") return false
+    return window.matchMedia("(max-width: 767px)").matches
+  })
+  const [sessionId] = React.useState<string>(() => ensureSessionId())
   const [input, setInput] = React.useState("")
   const scrollRef = React.useRef<HTMLDivElement>(null)
 
-  // Hydrate from localStorage
-  React.useEffect(() => {
+  const setOpen = React.useCallback((value: boolean) => {
+    setOpenState(value)
     const stored = readPanelStorage()
-    setOpenState(stored.panel_open)
-    setSessionId(ensureSessionId())
+    const next = { ...stored, panel_open: value }
+    writePanelStorage(next)
+    fetch("/api/chat-sessions", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ panel_open: value, width: stored.width }),
+    }).catch(() => {})
   }, [])
 
-  // Mobile detection
+  // Mobile detection (subscribe to mq change events)
   React.useEffect(() => {
     const mq = window.matchMedia("(max-width: 767px)")
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
-    setIsMobile(mq.matches)
     mq.addEventListener("change", handler)
     return () => mq.removeEventListener("change", handler)
   }, [])
@@ -118,8 +125,7 @@ function ChatPanel() {
     }
     document.addEventListener("keydown", handler)
     return () => document.removeEventListener("keydown", handler)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open])
+  }, [open, setOpen])
 
   // Transport — supplies sessionId on every send.
   const transport = React.useMemo(() => {
@@ -138,18 +144,6 @@ function ChatPanel() {
       behavior: "smooth",
     })
   }, [chat.messages])
-
-  const setOpen = (value: boolean) => {
-    setOpenState(value)
-    const stored = readPanelStorage()
-    const next = { ...stored, panel_open: value }
-    writePanelStorage(next)
-    fetch("/api/chat-sessions", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ panel_open: value, width: stored.width }),
-    }).catch(() => {})
-  }
 
   const handleSend = () => {
     const text = input.trim()
