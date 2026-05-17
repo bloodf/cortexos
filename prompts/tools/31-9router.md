@@ -1,13 +1,16 @@
 # 9Router (latest)
 
 ## Purpose
+
 Install 9Router, the OpenAI-compatible model gateway that proxies AI provider APIs and writes credentials to `/opt/cortexos/.secrets/9router.env`.
 
 ## Prerequisites
+
 - `30-nats.md` completed (9Router publishes metrics to NATS).
 - AI provider API keys available (at least one: OpenAI, Anthropic, or other).
 
 ## CHECKPOINT 1
+
 Operator: confirm you have at least one AI provider API key ready. Type "confirmed" to proceed.
 
 ## Install
@@ -21,6 +24,7 @@ npm install
 ```
 
 Snapshot upstream install docs:
+
 ```bash
 # Already done by 00-preflight.md — see docs/external/9router-models.snapshot.md
 ```
@@ -69,7 +73,9 @@ curl -s http://localhost:11434/v1/models | jq '.data[].id' | head -5
 Expected: model IDs listed (e.g. `gpt-4o`, `claude-sonnet-4-5`).
 
 ## CHECKPOINT 2
+
 Operator: confirm `curl localhost:11434/v1/models` returns a model list. Record the endpoint and API key in your notes — every subsequent spoke that calls AI uses this gateway. Type "confirmed" to proceed.
 
 ## Next
+
 → `prompts/tools/32-openviking.md`

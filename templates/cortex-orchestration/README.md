@@ -4,7 +4,7 @@ Local CI/CD + agent message bus. Replaces GitHub Actions. See [`docs/CORTEX-ORCH
 
 ## Layout
 
-```
+```text
 templates/cortex-orchestration/
   bin/
     cortex-bus          NATS CLI wrapper (pub/sub/streams/consumers)
@@ -57,7 +57,7 @@ A push triggers `gh-bus` (next iteration) → `cortex-flux` execution → status
 
 ## Bus subjects (cheat sheet)
 
-```
+```text
 cortex.workflow.<repo>.run.{started,stage,completed,failed}
 cortex.workflow.<repo>.deploy.{started,completed,failed,rollback}
 cortex.agent.<id>.{inbox,outbox}

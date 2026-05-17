@@ -1,12 +1,14 @@
 # Langfuse v2 (latest)
 
 ## Purpose
+
 Deploy Langfuse v2 as the CortexOS LLM observability platform: traces,
 prompt versioning, eval scores, and dashboards over every 9Router /
 OpenClaw call. Supersedes `35-opik.md` (Opik backend hardcodes MySQL —
 violates the PostgreSQL-only rule).
 
 ## Why v2, not v3
+
 - Langfuse v3 requires **ClickHouse + Redis + S3** as hard dependencies.
 - S3 conflicts with the operator "no R2 / no foreign object stores" rule.
 - ClickHouse adds a second OLAP datastore not present elsewhere in the
@@ -16,11 +18,13 @@ violates the PostgreSQL-only rule).
   on 2026-05-16 selected v2 for this reason.
 
 ## Prerequisites
+
 - `14-postgresql.md` completed (Langfuse will use the existing
   `cortex-postgresql` container — see `docs/POSTGRES-LAYOUT.md`).
 - `11-docker.md` completed.
 
 ## CHECKPOINT 1
+
 Operator: confirm ports 3000 (Langfuse UI) and `cortex-postgresql` is
 reachable on the internal docker network. Type "confirmed" to proceed.
 
@@ -96,9 +100,11 @@ curl -sS -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/api/public/health
 Expected: `200`.
 
 ## CHECKPOINT 2
+
 Operator: confirm Langfuse UI loads at `http://127.0.0.1:3000`, the
 `/api/public/health` endpoint returns `200`, and 9Router shows
 `LANGFUSE_*` env vars on restart. Type "confirmed" to proceed.
 
 ## Next
+
 → `prompts/tools/40-openclaw.md`

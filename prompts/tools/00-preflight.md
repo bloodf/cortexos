@@ -53,7 +53,7 @@ For each project below, fetch the upstream README or install documentation at HE
 
 Each snapshot file **must** begin with this exact header line:
 
-```
+```html
 <!-- Snapshot of upstream <project> at probe time. NOT a version pin. Operator reinstalls latest upstream on each fresh install. -->
 ```
 

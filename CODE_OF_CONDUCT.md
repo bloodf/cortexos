@@ -36,4 +36,4 @@ This code applies in repository issues, pull requests, discussions, community ch
 
 ## Attribution
 
-Adapted from Contributor Covenant version 2.1: https://www.contributor-covenant.org/version/2/1/code_of_conduct/
+Adapted from Contributor Covenant version 2.1: <https://www.contributor-covenant.org/version/2/1/code_of_conduct/>

@@ -1,12 +1,15 @@
 # Final Validation
 
 ## Purpose
+
 Run a full-stack health check across every CortexOS component installed by this setup sequence. No new installs — verification only.
 
 ## Prerequisites
+
 All prior spokes completed and their CHECKPOINT 2s confirmed.
 
 ## CHECKPOINT 1
+
 Operator: confirm all prior spokes completed successfully and `.secrets/.setup-state.json` exists. Type "confirmed" to proceed.
 
 ## Validation Steps
@@ -126,6 +129,7 @@ print('State updated.')
 ```
 
 ## CHECKPOINT 2
+
 Operator: confirm all health checks returned expected values and both paranoia greps returned `CLEAN`. CortexOS v1.0 setup is complete.
 
 **Setup complete.** All services are running. Register additional projects via the dashboard Projects page at `https://{DOMAIN}/en/admin/projects`.

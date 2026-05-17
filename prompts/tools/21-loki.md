@@ -1,12 +1,15 @@
 # Loki (latest)
 
 ## Purpose
+
 Run Grafana Loki as a Docker container to aggregate logs from Fluent Bit and make them queryable in Grafana.
 
 ## Prerequisites
+
 - `20-prometheus.md` completed (monitoring stack compose file exists).
 
 ## CHECKPOINT 1
+
 Operator: confirm port 3100 is free (`ss -tlnp | grep 3100`). Type "confirmed" to proceed.
 
 ## Install
@@ -81,7 +84,9 @@ curl -s http://localhost:3100/ready
 Expected: `ready`.
 
 ## CHECKPOINT 2
+
 Operator: confirm Loki returns `ready`. Type "confirmed" to proceed.
 
 ## Next
+
 → `prompts/tools/22-grafana.md`

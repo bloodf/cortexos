@@ -1,13 +1,16 @@
 # OpenClaw ↔ OpenViking Plugin (latest)
 
 ## Purpose
+
 Install the `@openclaw/openviking` plugin so OpenClaw routes all memory reads/writes through the OpenViking backend.
 
 ## Prerequisites
+
 - `40-openclaw.md` completed.
 - `32-openviking.md` completed (OpenViking running at `localhost:18790`).
 
 ## CHECKPOINT 1
+
 Operator: confirm OpenViking is healthy (`curl -s http://localhost:18790/health`). Type "confirmed" to proceed.
 
 ## Install
@@ -17,6 +20,7 @@ npm install -g @openclaw/openviking@latest
 ```
 
 Snapshot upstream README:
+
 ```bash
 # Already captured as docs/external/openclaw-openviking-install.snapshot.md by 00-preflight.md
 # Verify it exists:
@@ -33,6 +37,7 @@ openclaw plugins install @openclaw/openviking \
 ```
 
 Reload:
+
 ```bash
 sudo systemctl reload openclaw
 ```
@@ -46,7 +51,9 @@ openclaw memory ping
 Expected: `OpenViking backend: OK` (or equivalent success response from the plugin).
 
 ## CHECKPOINT 2
+
 Operator: confirm `openclaw memory ping` returns success. Type "confirmed" to proceed.
 
 ## Next
+
 → `prompts/tools/43-openclaw-memory-core.md`

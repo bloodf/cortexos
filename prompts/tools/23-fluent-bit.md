@@ -1,13 +1,16 @@
 # Fluent Bit (latest)
 
 ## Purpose
+
 Run Fluent Bit as a Docker container to collect Docker container logs and systemd journal logs, then forward them to Loki.
 
 ## Prerequisites
+
 - `21-loki.md` completed (Loki reachable at `localhost:3100`).
 - `11-docker.md` completed.
 
 ## CHECKPOINT 1
+
 Operator: confirm Loki is running (`curl -s http://localhost:3100/ready` returns `ready`). Type "confirmed" to proceed.
 
 ## Install
@@ -74,7 +77,9 @@ docker compose -p monitoring logs fluent-bit --tail 20
 Expected: no errors, Loki output plugin reports `flush OK`.
 
 ## CHECKPOINT 2
+
 Operator: confirm Fluent Bit container is running without errors and logs appear in Grafana → Loki datasource. Type "confirmed" to proceed.
 
 ## Next
+
 → `prompts/tools/24-cadvisor.md`

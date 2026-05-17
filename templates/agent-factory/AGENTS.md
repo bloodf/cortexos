@@ -209,7 +209,7 @@ Transform tasks into verifiable goals:
 
 For multi-step tasks, state a brief plan:
 
-```
+```text
 1. [Step] → verify: [check]
 2. [Step] → verify: [check]
 3. [Step] → verify: [check]
@@ -227,7 +227,7 @@ When an agent needs human input, it does NOT contact the user directly. All huma
 
 ### Flow
 
-```
+```text
 Agent (blocked/confused)
   → creates GitHub issue/PR comment containing literal token @pm with:
       - What is unclear
@@ -270,7 +270,7 @@ Agent (blocked/confused)
 
 All significant work passes through quality gates via the `gstack` skill. The pipeline:
 
-```
+```text
 office → ceo → eng → [dev] → review → qa → ship → retro
 ```
 
@@ -442,7 +442,7 @@ Submodule rule: if a project uses git submodules and the fix touches submodule c
 
 For normal PR-based work only:
 
-```
+```text
 {stage}/{issue-number}-{short-description}
 ```
 
@@ -454,7 +454,7 @@ Examples:
 
 ### Commit Messages
 
-```
+```text
 {type}({scope}): {description}
 
 {optional body}
@@ -514,7 +514,7 @@ The agent factory runs a GitHub-label-driven pipeline. Respect it.
 
 Endpoints mirrored from `.shared/endpoints.md` (canonical).
 
-```
+```text
 Endpoint:    http://127.0.0.1:20128/v1/chat/completions
 Models list: http://127.0.0.1:20128/v1/models
 ```

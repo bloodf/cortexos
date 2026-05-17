@@ -1,14 +1,17 @@
 # OpenViking (latest)
 
 ## Purpose
+
 Install OpenViking as the canonical long-term memory backend for OpenClaw. OpenViking is the single source of truth for agent memory; Hindsight is retired.
 
 ## Prerequisites
+
 - `14-postgresql.md` completed (OpenViking stores memory in PostgreSQL).
 - `31-9router.md` completed (OpenViking calls AI through 9Router).
 - `30-nats.md` completed.
 
 ## CHECKPOINT 1
+
 Operator: confirm PostgreSQL is running and the `cortex_dashboard` database is accessible. Type "confirmed" to proceed.
 
 ## Install
@@ -75,7 +78,9 @@ curl -s http://localhost:18790/health
 Expected: `{"status":"ok"}` or similar health response.
 
 ## CHECKPOINT 2
+
 Operator: confirm OpenViking health endpoint returns OK. Type "confirmed" to proceed.
 
 ## Next
+
 → `prompts/tools/33-leann.md`

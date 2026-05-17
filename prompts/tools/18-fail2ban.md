@@ -1,13 +1,16 @@
 # fail2ban (latest)
 
 ## Purpose
+
 Install and configure fail2ban to ban IPs with repeated SSH authentication failures and protect Caddy-proxied HTTP endpoints.
 
 ## Prerequisites
+
 - `10-os-hardening.md` completed.
 - `17-dnsmasq.md` completed (so syslog is functional).
 
 ## CHECKPOINT 1
+
 Operator: confirm `journalctl -u ssh --no-pager -n 5` shows recent SSH log entries (fail2ban reads these). Type "confirmed" to proceed.
 
 ## Install
@@ -51,7 +54,9 @@ sudo fail2ban-client status sshd
 Expected: `sshd` jail is active, filter listed.
 
 ## CHECKPOINT 2
+
 Operator: confirm `fail2ban-client status sshd` shows the jail as active with 0 or more banned IPs. Type "confirmed" to proceed.
 
 ## Next
+
 → `prompts/tools/20-prometheus.md`

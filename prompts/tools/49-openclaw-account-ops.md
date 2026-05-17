@@ -1,13 +1,16 @@
 # OpenClaw Account Ops (latest)
 
 ## Purpose
+
 Set up backup and restore procedures for your personal OpenClaw account using the generic account-slug-parameterized scripts in `templates/scripts/`. This spoke is generic — run it once per account you wish to protect.
 
 ## Prerequisites
+
 - `40-openclaw.md` completed.
 - `templates/scripts/backup-openclaw-account.sh` and `templates/scripts/restore-openclaw-account.sh` present.
 
 ## CHECKPOINT 1
+
 Operator: decide which OpenClaw account slug you want to back up (e.g. the account name shown in `~/.openclaw/openclaw.json` → `"account"` field). Have the slug ready. Type "confirmed" to proceed.
 
 ## Configure
@@ -53,7 +56,9 @@ ls -lh /opt/cortexos/.secrets/backups/
 Expected: at least one `.tar.gz` archive for your account slug.
 
 ## CHECKPOINT 2
+
 Operator: confirm the backup archive exists and the restore script dry-run completes without errors. Type "confirmed" to proceed.
 
 ## Next
+
 → `prompts/tools/50-agentgateway.md`

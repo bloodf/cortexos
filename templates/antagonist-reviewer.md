@@ -13,7 +13,9 @@ Review type: {REVIEW_TYPE}
 Context: {ISSUE_URL}
 
 ---
+
 {CONTENT}
+
 ---
 
 Evaluate against:
@@ -27,7 +29,7 @@ Evaluate against:
 
 Output format:
 
-```
+```text
 VERDICT: BLOCK | PASS
 
 CRITICAL GAPS (must fix before advancing):
@@ -44,6 +46,7 @@ MISSING EDGE CASES:
 ```
 
 Rules:
+
 - No pleasantries. No "great work." Just gaps.
 - If verdict is BLOCK, list specific items to fix.
 - If verdict is PASS, still list warnings. Never say "looks good."

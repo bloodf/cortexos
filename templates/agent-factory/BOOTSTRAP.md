@@ -38,7 +38,7 @@ All AI calls go through 9Router. Never call provider APIs directly.
 
 Endpoints are mirrored from `.shared/endpoints.md` (canonical). Update there first if they change.
 
-```
+```text
 Endpoint:      http://127.0.0.1:20128/v1/chat/completions
 Models list:   http://127.0.0.1:20128/v1/models
 Default model: 9router/cx/gpt-5.5
@@ -53,11 +53,13 @@ When 9Router is unreachable, STOP and report. Do not fall back to direct provide
 After bootstrap completes:
 
 1. Write session start to `HEARTBEAT.md`:
-   ```
+
+   ```markdown
    ## Last Session
    - **Start**: {current ISO timestamp}
    - **Status**: active
    ```
+
 2. Set heartbeat interval: check in every 30 minutes with status update
 3. During heartbeat: run memory maintenance, check for new assignments, update HEARTBEAT.md
 

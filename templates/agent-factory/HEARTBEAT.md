@@ -40,6 +40,6 @@ Last checked timestamps for periodic tasks:
 
 <!-- Append session summaries here. Keep last 5. -->
 
-```
+```text
 [{timestamp}] {status}: {one-line summary}
 ```

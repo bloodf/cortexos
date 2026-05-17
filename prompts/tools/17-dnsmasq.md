@@ -1,12 +1,15 @@
 # dnsmasq (latest)
 
 ## Purpose
+
 Install dnsmasq as a local caching DNS resolver so VPS services can resolve each other by short hostname and upstream DNS is cached.
 
 ## Prerequisites
+
 - `10-os-hardening.md` completed.
 
 ## CHECKPOINT 1
+
 Operator: confirm `systemd-resolved` is the current stub resolver (`resolvectl status | head -5`) and port 53 is not already bound by another service. Type "confirmed" to proceed.
 
 ## Install
@@ -16,6 +19,7 @@ sudo apt-get install -y dnsmasq
 ```
 
 Disable systemd-resolved stub listener to free port 53:
+
 ```bash
 sudo sed -i 's/#DNSStubListener=yes/DNSStubListener=no/' /etc/systemd/resolved.conf
 sudo systemctl restart systemd-resolved
@@ -38,6 +42,7 @@ EOF
 ```
 
 Point `/etc/resolv.conf` at dnsmasq:
+
 ```bash
 sudo rm -f /etc/resolv.conf
 echo "nameserver 127.0.0.1" | sudo tee /etc/resolv.conf
@@ -45,6 +50,7 @@ sudo chattr +i /etc/resolv.conf
 ```
 
 Enable and start:
+
 ```bash
 sudo systemctl enable dnsmasq
 sudo systemctl restart dnsmasq
@@ -59,7 +65,9 @@ dig +short google.com @127.0.0.1
 Expected: one or more IP addresses returned.
 
 ## CHECKPOINT 2
+
 Operator: confirm DNS resolution works (`dig +short google.com @127.0.0.1` returns IPs). Type "confirmed" to proceed.
 
 ## Next
+
 → `prompts/tools/18-fail2ban.md`

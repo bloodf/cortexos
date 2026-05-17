@@ -1,12 +1,15 @@
 # OpenClaw Foundry (latest)
 
 ## Purpose
+
 Install the `0xRyanLucci/openclaw-foundry` plugin to enable template-based agent scaffolding and role provisioning directly from OpenClaw.
 
 ## Prerequisites
+
 - `40-openclaw.md` completed.
 
 ## CHECKPOINT 1
+
 Operator: confirm OpenClaw is running. Type "confirmed" to proceed.
 
 ## Install
@@ -18,6 +21,7 @@ npm install
 ```
 
 Snapshot upstream README:
+
 ```bash
 test -f docs/external/openclaw-foundry.snapshot.md && echo "OK" || \
   (curl -fsSL https://raw.githubusercontent.com/0xRyanLucci/openclaw-foundry/HEAD/README.md \
@@ -50,7 +54,9 @@ openclaw foundry list-templates
 Expected: `openclaw-foundry` active; template list shows at least `cortex.json`.
 
 ## CHECKPOINT 2
+
 Operator: confirm foundry plugin is active and `cortex.json` template is listed. Type "confirmed" to proceed.
 
 ## Next
+
 → `prompts/tools/48-openclaw-opik.md`

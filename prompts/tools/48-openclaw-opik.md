@@ -1,13 +1,16 @@
 # OpenClaw ↔ Opik Plugin (latest)
 
 ## Purpose
+
 Install the `comet-ml/opik-openclaw` plugin to forward all OpenClaw LLM traces to the Opik observability platform for evaluation and monitoring.
 
 ## Prerequisites
+
 - `40-openclaw.md` completed.
 - `35-opik.md` completed (Opik API running at `localhost:5000`).
 
 ## CHECKPOINT 1
+
 Operator: confirm Opik API is healthy (`curl -s http://localhost:5000/api/v1/health`). Type "confirmed" to proceed.
 
 ## Install
@@ -19,6 +22,7 @@ npm install
 ```
 
 Snapshot upstream README:
+
 ```bash
 test -f docs/external/opik-openclaw.snapshot.md && echo "OK" || \
   (curl -fsSL https://raw.githubusercontent.com/comet-ml/opik-openclaw/HEAD/README.md \
@@ -53,7 +57,9 @@ openclaw trace test
 Expected: plugin active; trace appears in Opik UI at `http://localhost:5173`.
 
 ## CHECKPOINT 2
+
 Operator: confirm `opik-openclaw` plugin is active and test trace appears in Opik UI. Type "confirmed" to proceed.
 
 ## Next
+
 → `prompts/tools/49-openclaw-account-ops.md`

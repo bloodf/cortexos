@@ -1,12 +1,15 @@
 # OpenClaw Memory Core (latest)
 
 ## Purpose
+
 Configure OpenClaw's memory-core module: enable `dream` mode for background consolidation, set retention policies, and wire up the memory graph.
 
 ## Prerequisites
+
 - `42-openclaw-openviking.md` completed.
 
 ## CHECKPOINT 1
+
 Operator: confirm `openclaw memory ping` returns OK from the previous spoke. Type "confirmed" to proceed.
 
 ## Install
@@ -39,7 +42,9 @@ openclaw memory status
 Expected: shows `dream` mode enabled with next scheduled run, retention policy active.
 
 ## CHECKPOINT 2
+
 Operator: confirm `openclaw memory status` shows dream enabled and retention policy configured. Type "confirmed" to proceed.
 
 ## Next
+
 → `prompts/tools/44-openclaw-a2a-gateway.md`

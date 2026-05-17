@@ -88,7 +88,7 @@ One root message per issue/PR. All updates in the thread. See `ARCHITECTURE.md` 
 
 Decision-ready format for owner questions:
 
-```
+```text
 📋 Decision needed — {repo}#{issue}
 
 {role} blocked on: {question}

@@ -16,7 +16,7 @@
 
 Endpoints mirrored from `.shared/endpoints.md` (canonical).
 
-```
+```text
 Endpoint:        http://127.0.0.1:20128/v1/chat/completions
 Models list:     http://127.0.0.1:20128/v1/models
 Health check:    http://127.0.0.1:20128/health
@@ -64,7 +64,7 @@ Forbidden container operations:
 
 Local AWS-compatible services for Terraform validation, development, and testing:
 
-```
+```text
 Endpoint:  http://127.0.0.1:4566
 Profile:   floci (use `--profile floci` or `AWS_PROFILE=floci`)
 Region:    us-east-1
@@ -122,7 +122,7 @@ Credentials for all databases are in `.secrets/cortex-credentials.md`. Never har
 
 ### OpenViking — Knowledge Base
 
-```
+```text
 Endpoint: http://127.0.0.1:{openviking_port}
 ```
 
@@ -130,7 +130,7 @@ Semantic search over indexed documents, code, and workspace knowledge.
 
 ### Hindsight — Agent Memory
 
-```
+```text
 Endpoint: http://127.0.0.1:{hindsight_port}
 ```
 

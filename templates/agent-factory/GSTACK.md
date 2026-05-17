@@ -45,6 +45,7 @@ AI-assisted work makes marginal cost of completeness near-zero.
 Trigger: PR opened, "review this PR", pre-merge gate.
 
 Checklist:
+
 1. Diff against base branch (`git diff origin/<base>...HEAD`).
 2. SQL safety: parameterized queries only, no string interpolation, migrations
    reversible, no `TRUNCATE`/`DROP` without confirmation.
@@ -64,6 +65,7 @@ ship/no-ship verdict.
 Trigger: pre-implementation, architecture lock-in.
 
 Walk through interactively:
+
 - Architecture diagram (text), data flow, sequence of operations.
 - Edge cases enumerated (empty, max, concurrent, failure, retry).
 - Test plan: unit + integration + e2e listed with names.
@@ -78,6 +80,7 @@ Refuse to proceed if any dimension is < 7/10.
 Trigger: "think bigger", strategy review, scope challenge.
 
 Four modes:
+
 - **SCOPE EXPANSION**: what would the 10-star version look like?
 - **SELECTIVE EXPANSION**: hold scope, cherry-pick expansions worth doing.
 - **HOLD SCOPE**: maximum rigor, no scope drift.
@@ -90,6 +93,7 @@ Output: scope decision + rationale + owner sign-off request.
 Trigger: design-phase plan, before UI build.
 
 Rate each dimension 0-10:
+
 - Visual hierarchy, typography system, color system, spacing/layout grid,
   motion language, accessibility, brand alignment, edge-case states (loading,
   empty, error, success), responsive breakpoints, dark mode.
@@ -101,6 +105,7 @@ For each < 10: explain what makes it a 10, fix the plan.
 Trigger: greenfield project, "create DESIGN.md".
 
 Output: `DESIGN.md` containing:
+
 - Brand statement + 3 adjectives
 - Typography (font family, scale, weights, line-heights)
 - Color (primary, secondary, neutrals, semantic — with hex + a11y contrast)
@@ -114,6 +119,7 @@ Output: `DESIGN.md` containing:
 Trigger: "ship", "create PR", "push to main".
 
 Sequence:
+
 1. `git status` clean check.
 2. Detect base branch (`main` or `master`), pull, rebase.
 3. Run full test suite. Block on red.
@@ -145,11 +151,13 @@ TOOLS.md). Output: screenshot evidence + console errors + network failures.
 Trigger: pre-ship QA, "test and fix".
 
 Three tiers:
+
 - **Quick**: CRITICAL + HIGH bugs only.
 - **Standard**: + MEDIUM.
 - **Exhaustive**: + COSMETIC.
 
 Loop:
+
 1. Test the feature (golden path + edge cases).
 2. Capture before-state health score (0-100).
 3. For each bug found: file structured report (severity, repro, evidence).
@@ -168,6 +176,7 @@ screenshots, repro steps. For when triage > fix.
 Trigger: deployed UI, "design review the site".
 
 Walk each page:
+
 - Visual hierarchy clear (10 = obvious primary action).
 - Typography consistent across components.
 - Color usage matches DESIGN.md.
@@ -184,6 +193,7 @@ Rate each 0-10. Recommend fixes for < 8.
 Trigger: weekly cadence (cron Friday 18:00), "weekly retro".
 
 Pull commit history for the week. Output:
+
 - **What shipped**: per-feature one-liners.
 - **Velocity**: commits/PRs/lines per author.
 - **Code quality trend**: lint errors, test count, coverage delta.

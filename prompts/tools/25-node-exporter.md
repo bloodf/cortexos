@@ -1,12 +1,15 @@
 # Node Exporter (latest)
 
 ## Purpose
+
 Run Prometheus Node Exporter as a Docker container to expose host-level metrics (CPU, memory, disk, network) to Prometheus.
 
 ## Prerequisites
+
 - `20-prometheus.md` completed (Prometheus already scrapes `host.docker.internal:9100`).
 
 ## CHECKPOINT 1
+
 Operator: confirm port 9100 is free. Type "confirmed" to proceed.
 
 ## Install
@@ -47,7 +50,9 @@ curl -s http://localhost:9100/metrics | grep 'node_cpu_seconds_total' | head -3
 Expected: metric lines printed.
 
 ## CHECKPOINT 2
+
 Operator: confirm Node Exporter metrics appear and Prometheus target `node` shows `UP` at `http://localhost:9090/targets`. Type "confirmed" to proceed.
 
 ## Next
+
 → `prompts/tools/30-nats.md`

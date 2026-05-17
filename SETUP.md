@@ -60,6 +60,7 @@ export AGENTGATEWAY_TOKEN_SECRET=""
 Before executing any spoke, the agent must complete all steps below. **BLOCKS** — do not proceed if any step fails.
 
 ### Step A — Hardware and OS
+
 ```bash
 # Minimum: Ubuntu 22.04+, 4 cores, 16 GB RAM, 100 GB disk
 lsb_release -a
@@ -67,20 +68,25 @@ nproc && free -h && df -h /
 ```
 
 ### Step B — SSH and sudo
+
 ```bash
 sudo whoami   # Must return: root
 ```
 
 ### Step C — Snapshot external docs
+
 Run spoke `prompts/tools/00-preflight.md`. This probe:
+
 - Verifies OpenClaw gateway is reachable (or that `40-openclaw.md` will install it).
 - Snapshots all upstream documentation into `docs/external/*.snapshot.md`.
 - Writes initial `.secrets/.setup-state.json`.
 
 ### Step D — OpenClaw version check
+
 ```bash
 openclaw --version 2>/dev/null || echo "NOT_INSTALLED"
 ```
+
 If `NOT_INSTALLED`: note that `40-openclaw.md` will install it. Pre-flight continues.
 If installed: confirm version is from upstream HEAD (no pinned older version).
 
@@ -91,7 +97,8 @@ If installed: confirm version is from upstream HEAD (no pinned older version).
 The agent computes topological sort from `prompts/tools/_order.md`. Enabled spokes only (skip `16-mongodb` unless `INSTALL_MONGODB=yes`).
 
 Default linear order (no optional services):
-```
+
+```text
 00-preflight → 10-os-hardening → 11-docker → 12-tailscale → 13-caddy
 → 14-postgresql → 15-redis → 17-dnsmasq → 18-fail2ban
 → 20-prometheus → 21-loki → 22-grafana → 23-fluent-bit → 24-cadvisor → 25-node-exporter
@@ -118,6 +125,7 @@ For each spoke:
 5. Agent marks spoke complete in `.secrets/.setup-state.json`.
 
 State file format:
+
 ```json
 {
   "preflight": { "probe_exit_code": 0, "probe_timestamp": "..." },
@@ -134,6 +142,7 @@ If interrupted, re-run from the last incomplete spoke. The state file prevents d
 ## AI Agent Requirements
 
 Tested with Claude Code, Cursor, and Codex CLI. The agent must be able to:
+
 - Open SSH to `{CORTEX_IP}` as `{CORTEX_USER}`.
 - Read all files under `prompts/` and `templates/` (local repo).
 - Write files to `/opt/cortexos/...` on the VPS via SSH.
@@ -163,7 +172,7 @@ Plain Markdown fallback: every spoke can be read and executed manually in a term
 
 Begin here:
 
-```
+```text
 Read and execute: prompts/tools/00-preflight.md
 ```
 
