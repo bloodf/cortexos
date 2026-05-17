@@ -1,6 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+case "${1:-}" in
+  -h|--help)
+    cat <<'USAGE'
+Usage: change-admin-password.sh <username> [new-password]
+
+Resets the password for an existing admin user in the dashboard DB.
+If new-password is omitted, the script prompts.
+
+Env: reads $CORTEX_ROOT/secrets/dashboard.env when present, else expects
+DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD in the environment.
+USAGE
+    exit 0
+    ;;
+esac
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="${CORTEX_ROOT:-/opt/cortex}/secrets/dashboard.env"
 

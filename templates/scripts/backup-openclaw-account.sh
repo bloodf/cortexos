@@ -4,6 +4,16 @@
 # Generic: works for any OpenClaw account slug. Personal account wrappers live on the VPS only.
 set -euo pipefail
 
+case "${1:-}" in
+  -h|--help)
+    sed -n '2,4p' "$0" | sed 's/^# *//'
+    echo
+    echo "Usage: $0 <account-slug>"
+    echo "Env: AGE_PUBKEY (required), BACKUP_ROOT, OFFHOST_DEST"
+    exit 0
+    ;;
+esac
+
 ACCOUNT_SLUG="${1:-}"
 [[ -n "$ACCOUNT_SLUG" ]] || { echo "Usage: $0 <account-slug>"; exit 1; }
 

@@ -3,6 +3,23 @@
 # Restore pg_dump + OpenClaw config + pinned dashboard redeploy + systemd unit restore.
 set -euo pipefail
 
+case "${1:-}" in
+  -h|--help)
+    cat <<'USAGE'
+Usage: rollback-v1.sh [--dry-run]
+
+Restores the most recent age-encrypted pg_dump from $BACKUP_ROOT, replays
+OpenClaw config, redeploys the pinned dashboard build, and restores systemd
+units. --dry-run prints actions without changing anything.
+
+Env: BACKUP_ROOT (default /opt/cortexos/backups),
+     AGE_IDENTITY (default /opt/cortexos/.secrets/backup-identity.txt),
+     POSTGRES_DB, POSTGRES_USER, DASHBOARD_DIR, STACKS_DIR.
+USAGE
+    exit 0
+    ;;
+esac
+
 DRY_RUN=0
 [[ "${1:-}" == "--dry-run" ]] && DRY_RUN=1
 
@@ -10,7 +27,8 @@ BACKUP_ROOT="${BACKUP_ROOT:-/opt/cortexos/backups}"
 DASHBOARD_DIR="${DASHBOARD_DIR:-/opt/cortexos/dashboard}"
 STACKS_DIR="${STACKS_DIR:-/opt/cortexos/stacks}"
 SYSTEMD_BACKUP="${BACKUP_ROOT}/systemd"
-DB_BACKUP_PATTERN="${BACKUP_ROOT}/dashboard/pre-v1-rebuild-*.sql.age"
+DB_BACKUP_DIR="${BACKUP_ROOT}/dashboard"
+DB_BACKUP_NAME_GLOB="pre-v1-rebuild-*.sql.age"
 AGE_IDENTITY="${AGE_IDENTITY:-/opt/cortexos/.secrets/backup-identity.txt}"
 
 log()    { printf '[rollback] %s\n' "$*"; }
@@ -20,10 +38,14 @@ dryrun() { if [[ "$DRY_RUN" -eq 1 ]]; then log "[DRY-RUN] $*"; return 0; fi; "$@
 [[ "$DRY_RUN" -eq 1 ]] && log "DRY-RUN MODE — no changes will be applied"
 
 # ---------------------------------------------------------------------------
-# Find most recent pg_dump backup
+# Find most recent pg_dump backup (find handles missing dir + empty result
+# safely under set -euo pipefail; the old `ls $glob` pattern aborted silently)
 # ---------------------------------------------------------------------------
-DB_BACKUP="$(ls -t $DB_BACKUP_PATTERN 2>/dev/null | head -n1)"
-[[ -n "$DB_BACKUP" ]] || die "no pg_dump backup found matching $DB_BACKUP_PATTERN"
+DB_BACKUP=""
+if [[ -d "$DB_BACKUP_DIR" ]]; then
+  DB_BACKUP="$(find "$DB_BACKUP_DIR" -maxdepth 1 -type f -name "$DB_BACKUP_NAME_GLOB" -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -n1 | cut -d' ' -f2- || true)"
+fi
+[[ -n "$DB_BACKUP" ]] || die "no pg_dump backup found matching $DB_BACKUP_DIR/$DB_BACKUP_NAME_GLOB"
 log "pg_dump backup: $DB_BACKUP"
 
 # ---------------------------------------------------------------------------
