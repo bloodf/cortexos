@@ -14,6 +14,7 @@ import {
 	Box,
 	Terminal,
 	Shield,
+	UserCog,
 	ChevronDown,
 	ChevronRight,
 } from "lucide-react";
@@ -59,6 +60,7 @@ const ADMIN_NAV: NavItem[] = [
 	{ href: "/admin/users", label: "Users", icon: Shield },
 	{ href: "/admin/projects", label: "Projects", icon: Shield },
 	{ href: "/admin/audit", label: "Audit Log", icon: Shield },
+	{ href: "/admin/account", label: "Account", icon: UserCog },
 ];
 
 export function AppSidebar() {

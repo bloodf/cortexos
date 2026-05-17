@@ -283,5 +283,14 @@ INSERT INTO dashboard_layouts (user_id, layout)
 VALUES (1, '{"rows":[{"items":["cpu-gauge","memory-gauge","storage-gauge"]},{"items":["service-online","service-offline","service-idle"]},{"items":["uptime","docker-status","alerts"]},{"items":["live-performance","top-processes"]},{"items":["network-graph"]},{"items":["total-download","total-upload"]}]}'::jsonb)
 ON CONFLICT (user_id) DO NOTHING;
 
+-- ============================================================
+-- Default admin user
+-- Default admin: admin / 12345678 — operator MUST change via /admin/account on first login
+-- Hash generated via: node -e 'console.log(require("bcryptjs").hashSync("12345678",10))'
+-- ============================================================
+INSERT INTO admin_users (username, password_hash, is_admin)
+VALUES ('admin', '$2b$10$A7llpDGfeZc4eHVsGbC6.excbMKkNRI5nC7Cz8mySg0U6eOe50V1e', TRUE)
+ON CONFLICT (username) DO NOTHING;
+
 INSERT INTO migrations (name) VALUES ('002_seed')
 ON CONFLICT (name) DO NOTHING;
