@@ -31,10 +31,10 @@ export async function POST(request: Request) {
       typeof newPassword !== "string" ||
       !currentPassword ||
       !newPassword ||
-      newPassword.length < 6
+      newPassword.length < 8
     ) {
       return NextResponse.json(
-        { error: "Current password and new password (min 6 chars) required" },
+        { error: "Current password and new password (min 8 chars) required" },
         { status: 400 },
       );
     }
