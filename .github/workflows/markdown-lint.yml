@@ -27,3 +27,6 @@ jobs:
             !**/node_modules/**
             !**/CHANGELOG.md
             !dashboard/.next/**
+            !templates/.pi/**
+            !REVIEW.md
+            !.tmp-validation/**

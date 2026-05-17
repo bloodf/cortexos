@@ -46,7 +46,13 @@ EOF
 sudo chmod 600 /opt/cortexos/.secrets/cortex-consumer.env
 ```
 
-Enable systemd unit (already copied above). Unit declares `After=network-online.target docker.service` + `Wants=network-online.target` so consumer waits for routable network AND docker before launch (NATS is docker-backed):
+Substitute placeholders in the installed unit (template ships with `{VPS_USER}` + `{VPS_HOME}` — must be replaced before enable):
+
+```bash
+sudo sed -i "s|{VPS_USER}|$USER|g; s|{VPS_HOME}|$HOME|g" /etc/systemd/system/cortex-consumer.service
+```
+
+Enable systemd unit. Unit declares `After=network-online.target docker.service` + `Wants=network-online.target` so consumer waits for routable network AND docker before launch (NATS is docker-backed):
 
 ```bash
 sudo systemctl daemon-reload

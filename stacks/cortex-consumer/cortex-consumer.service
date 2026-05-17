@@ -7,11 +7,11 @@ StartLimitBurst=5
 
 [Service]
 Type=simple
-User=%i
+User={VPS_USER}
 WorkingDirectory=/opt/cortexos/stacks/cortex-consumer
 ExecStart=/usr/bin/env node consumer.js
 Environment=NATS_URL=nats://127.0.0.1:4222
-Environment=OPENCLAW_CONFIG=/home/%i/.openclaw/openclaw.json
+Environment=OPENCLAW_CONFIG={VPS_HOME}/.openclaw/openclaw.json
 Environment=ROUTING_CONFIG=/opt/cortexos/stacks/cortex-consumer/config.json
 Environment=THREAD_STATE_FILE=/opt/cortexos/state/consumer-threads.json
 Environment=HEALTH_PORT=3099

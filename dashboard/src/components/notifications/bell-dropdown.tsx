@@ -3,6 +3,7 @@
 import * as React from "react"
 import useSWR, { mutate } from "swr"
 import { BellIcon } from "lucide-react"
+import Link from "next/link"
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -132,12 +133,12 @@ function BellDropdown({ className }: { className?: string }) {
         </div>
 
         <div className="border-t border-border px-4 py-2">
-          <a
+          <Link
             href="/alerts"
             className="block text-center text-xs text-primary hover:underline"
           >
             See all alerts
-          </a>
+          </Link>
         </div>
       </DropdownMenuContent>
     </DropdownMenu>

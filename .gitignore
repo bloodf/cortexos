@@ -140,3 +140,4 @@ docker-compose.override.yml
 *.png
 !.github/assets/*.png
 REVIEW.md
+.tmp-validation/
