@@ -70,9 +70,11 @@ account to a specific agent with an optional sender allowlist.
   message processed under a public binding.
 - Adding a new sender = edit `allowFrom` in place, validate JSON, restart
   `agentgateway`:
+
   ```bash
   sudo systemctl restart agentgateway
   ```
+
 - Removing an account from `openclaw.json` requires deleting every binding that
   references it; orphan bindings cause `agentgateway` to refuse startup.
 

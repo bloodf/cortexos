@@ -1,12 +1,15 @@
 # cAdvisor (latest)
 
 ## Purpose
+
 Run cAdvisor as a Docker container to expose per-container CPU, memory, and I/O metrics for Prometheus to scrape.
 
 ## Prerequisites
+
 - `20-prometheus.md` completed (Prometheus already scrapes `host.docker.internal:8080`).
 
 ## CHECKPOINT 1
+
 Operator: confirm port 8080 is free (`ss -tlnp | grep 8080`). Type "confirmed" to proceed.
 
 ## Install
@@ -47,7 +50,9 @@ curl -s http://localhost:8080/metrics | grep 'container_cpu_usage_seconds_total'
 Expected: metric lines printed.
 
 ## CHECKPOINT 2
+
 Operator: confirm cAdvisor metrics are visible and Prometheus target `cadvisor` shows `UP` at `http://localhost:9090/targets`. Type "confirmed" to proceed.
 
 ## Next
+
 → `prompts/tools/25-node-exporter.md`

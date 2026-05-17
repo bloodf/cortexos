@@ -47,7 +47,7 @@ Stakeholder comms, priority debate in repo thread:
 
 ## Issue format
 
-```
+```text
 Title: [Epic] <clear description>
 Labels: type:epic, priority:<level>, component:<area>
 Body:

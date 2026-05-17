@@ -5,6 +5,7 @@ Phase 4b scaffolding scripts. Bash, `set -euo pipefail`, macOS bash 3.2 compatib
 ## Scripts
 
 ### `bootstrap-project.sh`
+
 Bootstraps a project repo with `.agents/<role>/` from `templates/agent-factory/` + `templates/agent-roles/`.
 Idempotent — existing files are left intact; new candidates land as `<file>.new` with a warning.
 
@@ -28,6 +29,7 @@ Role file resolution: `templates/agent-roles/<ROLE>.md` → falls back to `ENGIN
 `ENG-BACKEND`, `ENG-FRONTEND`, `ENG-MOBILE` and unknown roles.
 
 ### `teardown-project.sh`
+
 Re-runnable Phase 1 teardown per project.
 
 ```bash
@@ -38,6 +40,7 @@ Re-runnable Phase 1 teardown per project.
 ```
 
 Steps:
+
 1. Tarball `<repo>/.agents/` → `<backup-dir>/<project>-agents-<ts>.tgz`
 2. SSH backup `~/.openclaw/openclaw.json`
 3. List + delete agents matching `<project>-*` via `openclaw agents delete`
@@ -46,6 +49,7 @@ Steps:
 6. `rm -rf ${CORTEX_WORKSPACE_ROOT}/<project>`
 
 ### `regenerate-agents-md.sh`
+
 Re-applies templates onto an existing `.agents/` tree.
 `MEMORY.md` and `HEARTBEAT.md` are preserved (only restored if missing).
 All other factory files + `ROLE.md` get rewritten with current placeholder values.
@@ -58,6 +62,7 @@ All other factory files + `ROLE.md` get rewritten with current placeholder value
 ```
 
 ### `verify-pipeline.sh`
+
 PASS/FAIL audit. Non-zero exit on any failure.
 
 ```bash
@@ -67,6 +72,7 @@ PASS/FAIL audit. Non-zero exit on any failure.
 ```
 
 Checks:
+
 - `.agents/` exists with role dirs
 - 14 required files per role: SOUL, IDENTITY, USER, BOOTSTRAP, MEMORY, HEARTBEAT,
   AGENTS, CI_POLICY, TELEGRAM_APPROVAL, TOOLS, ESCALATION, STACK, PIPELINE, ROLE

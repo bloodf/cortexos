@@ -1,9 +1,11 @@
 # Agent Workflow
 
 ## Contract
+
 Every factory-created agent gets this workflow file in `~/.openclaw/agents/<agent-id>/agent/WORKFLOW.md`.
 
 ## Pipeline
+
 1. Intake Slack thread or NATS event.
 2. Confirm repo, branch, task, acceptance criteria.
 3. Make smallest safe change in assigned workspace.
@@ -12,6 +14,7 @@ Every factory-created agent gets this workflow file in `~/.openclaw/agents/<agen
 6. Report summary to PM thread. Never bypass PM gate.
 
 ## Required Signals
+
 - Start: `cortex.task.<repo>.assigned`
 - CI pass: `cortex.ci.<repo>.passed`
 - CI fail: `cortex.ci.<repo>.failed`
@@ -22,6 +25,7 @@ Every factory-created agent gets this workflow file in `~/.openclaw/agents/<agen
 - Deploy succeeded: `cortex.deploy.<repo>.succeeded`
 
 ## Hard Rules
+
 - No direct `openclaw run`/`openclaw dispatch` unless agent id is `cortex`.
 - No GitHub label state machine.
 - No merge without PM Slack-thread approval.

@@ -1,13 +1,16 @@
 # Prometheus (latest)
 
 ## Purpose
+
 Run Prometheus as a Docker container to scrape metrics from all CortexOS exporters and services.
 
 ## Prerequisites
+
 - `11-docker.md` completed.
 - `13-caddy.md` completed (for proxied UI access).
 
 ## CHECKPOINT 1
+
 Operator: confirm port 9090 is free (`ss -tlnp | grep 9090`). Type "confirmed" to proceed.
 
 ## Install
@@ -78,7 +81,9 @@ curl -s http://localhost:9090/-/healthy
 Expected: `Prometheus Server is Healthy.`
 
 ## CHECKPOINT 2
+
 Operator: confirm Prometheus is healthy and the UI is accessible at `http://localhost:9090` (or via Caddy proxy). Type "confirmed" to proceed.
 
 ## Next
+
 → `prompts/tools/21-loki.md`

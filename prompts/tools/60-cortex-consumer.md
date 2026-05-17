@@ -1,14 +1,17 @@
 # Cortex Consumer (latest)
 
 ## Purpose
+
 Deploy the `stacks/cortex-consumer/` NATS subscriber that processes approval events, forwards them to OpenClaw, and deduplicates via the `cortex_approvals_seen` JetStream KV bucket.
 
 ## Prerequisites
+
 - `30-nats.md` completed.
 - `40-openclaw.md` completed.
 - `50-agentgateway.md` completed.
 
 ## CHECKPOINT 1
+
 Operator: confirm NATS is running and the `cortex_approvals_seen` KV bucket exists (`nats kv info cortex_approvals_seen --server nats://127.0.0.1:4222`). Type "confirmed" to proceed.
 
 ## Install
@@ -76,17 +79,19 @@ journalctl -u cortex-consumer --no-pager -n 20
 Expected: service active, log shows `Connected to NATS` and `Subscribed to cortex.approvals.*`.
 
 ## CHECKPOINT 2
+
 Operator: confirm cortex-consumer is active and subscribed to the NATS approval subject. Type "confirmed" to proceed.
 
 ## Known Limitations
 
 ### WatchdogSec intentionally absent
+
 The shipped `stacks/cortex-consumer/cortex-consumer.service` unit does **not**
 declare `WatchdogSec=`. An earlier revision set `WatchdogSec=60`, which caused
 systemd to SIGABRT the process every ~60s because `consumer.js` never calls
 `sd_notify("WATCHDOG=1")`. Live VPS verification on 2026-05-16:
 
-```
+```bash
 $ sudo systemctl show cortex-consumer -p WatchdogUSec -p NRestarts -p MainPID
 WatchdogUSec=0
 NRestarts=0
@@ -99,6 +104,7 @@ above patches in-place via `sed -i '/^WatchdogSec=/d'` on legacy hosts where
 the older unit may still exist.
 
 ### setTimeout INT32_MAX clamp shim
+
 `consumer.js` installs a process-level shim that caps any `setTimeout(fn, ms)`
 where `ms > 2147483647` (the Node 32-bit timer ceiling) down to `INT32_MAX`.
 This works around an internal timer-overflow bug in the bundled `nats.js`
@@ -107,6 +113,7 @@ the shim re-introduces `TimeoutOverflowWarning` and silent reconnect stalls.
 See repo commit `ca98e1c`.
 
 ### OpenClaw gateway `/sendMessage` returns 404 (Phase H blocker)
+
 As of OpenClaw `2026.5.12`, the gateway at `:18789` does **not** expose
 `/sendMessage` nor `/registerRoute`. `consumer.js` still POSTs to those
 URLs and receives HTTP 404 for every outbound delivery. This is **Phase H
@@ -122,4 +129,5 @@ consumer's `openclaw.send()` returns 404 and no message reaches the
 configured channel. See `docs/MESSAGING.md` → "Known Limitations".
 
 ## Next
+
 → `prompts/tools/61-smoke-tests.md`

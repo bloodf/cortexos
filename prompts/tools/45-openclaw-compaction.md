@@ -1,12 +1,15 @@
 # OpenClaw Compaction Context (latest)
 
 ## Purpose
+
 Install the `robertcuadra/compaction-context` plugin to enable automatic context window compaction for long-running OpenClaw agent sessions.
 
 ## Prerequisites
+
 - `40-openclaw.md` completed.
 
 ## CHECKPOINT 1
+
 Operator: confirm OpenClaw is running. Type "confirmed" to proceed.
 
 ## Install
@@ -18,6 +21,7 @@ npm install
 ```
 
 Snapshot upstream README:
+
 ```bash
 test -f docs/external/openclaw-compaction-context.snapshot.md && echo "OK" || \
   (curl -fsSL https://raw.githubusercontent.com/robertcuadra/compaction-context/HEAD/README.md \
@@ -52,6 +56,7 @@ openclaw plugins list | grep compaction-context
 Expected: `compaction-context` listed as active.
 
 ## CHECKPOINT 2
+
 Operator: confirm compaction-context is listed as active. Type "confirmed" to proceed.
 
 ## Known Limitations
@@ -66,4 +71,5 @@ with no diagnostic. Use the
 operator gateway auth token). Re-run after every fresh clone.
 
 ## Next
+
 → `prompts/tools/46-openclaw-codex-watchdog.md`

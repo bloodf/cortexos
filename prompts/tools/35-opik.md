@@ -13,13 +13,16 @@
 > already run Opik; do NOT enable it on a fresh CortexOS install.
 
 ## Purpose
+
 Deploy the Opik LLM observability platform (by Comet ML) to trace, evaluate, and monitor AI agent calls flowing through 9Router and OpenClaw.
 
 ## Prerequisites
+
 - `14-postgresql.md` completed.
 - `11-docker.md` completed.
 
 ## CHECKPOINT 1
+
 Operator: confirm ports 5173 (Opik UI) and 5000 (Opik API) are free. Type "confirmed" to proceed.
 
 ## Install
@@ -30,6 +33,7 @@ cd /opt/cortexos/stacks/opik
 ```
 
 Snapshot upstream docs:
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/comet-ml/opik/HEAD/README.md \
   > docs/external/opik.snapshot.md
@@ -65,7 +69,9 @@ Expected: health OK response.
 Access UI: `http://localhost:5173` (or via Caddy proxy at `opik.{DOMAIN}`).
 
 ## CHECKPOINT 2
+
 Operator: confirm Opik API health returns OK and the UI is accessible. Type "confirmed" to proceed.
 
 ## Next
+
 → `prompts/tools/40-openclaw.md`

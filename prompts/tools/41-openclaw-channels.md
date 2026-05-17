@@ -1,14 +1,18 @@
 # OpenClaw Channels (latest) — Telegram, Slack, Discord, WhatsApp
 
 ## Purpose
+
 Configure all four mandatory v1.0 messaging channels in OpenClaw. All four must be operational before v1.0 sign-off. Each must render canonical rich blocks (emoji + buttons) per `templates/messages/schema.json`.
 
 ## Prerequisites
+
 - `40-openclaw.md` completed.
 - Bot tokens / webhook URLs for all four platforms ready.
 
 ## CHECKPOINT 1
+
 Operator: gather and confirm you have:
+
 - Telegram bot token (from @BotFather)
 - Slack bot OAuth token + signing secret
 - Discord bot token + application ID
@@ -48,6 +52,7 @@ openclaw config channels set whatsapp \
 ```
 
 Reload OpenClaw to pick up channel config:
+
 ```bash
 sudo systemctl reload openclaw
 ```
@@ -66,7 +71,9 @@ openclaw channels test whatsapp --message "🤖 CortexOS channel test"
 Expected: probe message received on each platform with no errors.
 
 ## CHECKPOINT 2
+
 Operator: confirm all four channel test messages were received, emoji rendered correctly, and no API errors were reported. Type "confirmed" to proceed.
 
 ## Next
+
 → `prompts/tools/42-openclaw-openviking.md`

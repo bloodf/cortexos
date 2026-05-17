@@ -1,13 +1,16 @@
 # MongoDB (latest) — CONDITIONAL
 
 ## Purpose
+
 Run MongoDB as a Docker container for workloads that require document storage. **This spoke is optional** — only execute if the SETUP.md questionnaire had `mongodb=yes`.
 
 ## Prerequisites
+
 - `11-docker.md` completed.
 - SETUP.md questionnaire: `mongodb=yes`.
 
 ## CHECKPOINT 1
+
 Operator: confirm MongoDB is required for your workloads and port 27017 is free (`ss -tlnp | grep 27017`). If MongoDB is not needed, skip this spoke and proceed to `17-dnsmasq.md`. Type "confirmed" to proceed.
 
 ## Install
@@ -33,6 +36,7 @@ EOF
 ```
 
 Write env file:
+
 ```bash
 sudo tee /opt/cortexos/.secrets/mongodb.env <<EOF
 MONGO_ROOT_USER={MONGO_ROOT_USER}
@@ -59,7 +63,9 @@ docker exec $(docker compose -p mongodb ps -q mongodb) \
 Expected: `{ ok: 1 }`.
 
 ## CHECKPOINT 2
+
 Operator: confirm MongoDB responds with `{ ok: 1 }` and the container is running. Type "confirmed" to proceed.
 
 ## Next
+
 → `prompts/tools/17-dnsmasq.md`

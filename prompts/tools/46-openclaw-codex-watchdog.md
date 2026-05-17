@@ -1,13 +1,16 @@
 # OpenClaw Codex Watchdog (latest)
 
 ## Purpose
+
 Install the `ThisIsJeron/openclaw-codex-watchdog` plugin to monitor stale Codex worker processes and auto-restart them when they exceed idle or error thresholds.
 
 ## Prerequisites
+
 - `40-openclaw.md` completed.
 - `30-nats.md` completed (watchdog publishes alerts to NATS).
 
 ## CHECKPOINT 1
+
 Operator: confirm OpenClaw is running and NATS is reachable. Type "confirmed" to proceed.
 
 ## Install
@@ -19,6 +22,7 @@ npm install
 ```
 
 Snapshot upstream README:
+
 ```bash
 test -f docs/external/openclaw-codex-watchdog.snapshot.md && echo "OK" || \
   (curl -fsSL https://raw.githubusercontent.com/ThisIsJeron/openclaw-codex-watchdog/HEAD/README.md \
@@ -53,6 +57,7 @@ openclaw plugins list | grep codex-watchdog
 Expected: `openclaw-codex-watchdog` listed as active.
 
 ## CHECKPOINT 2
+
 Operator: confirm watchdog plugin is active. Type "confirmed" to proceed.
 
 ## Known Limitations
@@ -68,4 +73,5 @@ sufficient — verified absent from `openclaw plugins list` on
 (requires operator gateway auth token). Re-run after every fresh clone.
 
 ## Next
+
 → `prompts/tools/47-openclaw-foundry.md`

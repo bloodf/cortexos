@@ -1,12 +1,15 @@
 # Grafana (latest)
 
 ## Purpose
+
 Run Grafana as a Docker container; provision Prometheus and Loki as data sources and import the CortexOS dashboard template.
 
 ## Prerequisites
+
 - `20-prometheus.md` and `21-loki.md` completed.
 
 ## CHECKPOINT 1
+
 Operator: confirm port 3000 is free. Type "confirmed" to proceed.
 
 ## Install
@@ -66,6 +69,7 @@ docker compose --env-file /opt/cortexos/.secrets/grafana.env up -d grafana
 ```
 
 Import CortexOS Grafana dashboard:
+
 ```bash
 # Dashboard JSON lives at templates/grafana/cortex-v1.json
 curl -s -X POST http://admin:{GRAFANA_ADMIN_PASSWORD}@localhost:3000/api/dashboards/import \
@@ -82,7 +86,9 @@ curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/login
 Expected: `200`.
 
 ## CHECKPOINT 2
+
 Operator: confirm Grafana UI loads at `http://localhost:3000`, both datasources show green, and the CortexOS dashboard is visible. Type "confirmed" to proceed.
 
 ## Next
+
 → `prompts/tools/23-fluent-bit.md`

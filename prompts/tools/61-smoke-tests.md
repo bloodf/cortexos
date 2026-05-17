@@ -1,6 +1,7 @@
 # Weekly Smoke Tests (latest)
 
 ## Purpose
+
 Install the weekly smoke-test pipeline: a publisher script
 (`/usr/local/bin/cortex-smoke-publish.sh`) plus per-slug systemd
 templates (`cortex-smoke@.service` + `cortex-smoke@.timer`) that fire
@@ -14,11 +15,13 @@ plus channel heartbeat already covers the same surface, and weekly
 WhatsApp PMs to the operator are not desired.
 
 ## Prerequisites
+
 - `60-cortex-consumer.md` completed.
 - `30-nats.md` completed.
 - `nats` CLI installed on the host (not just the container).
 
 ## CHECKPOINT 1
+
 Operator: confirm `nats --version` works and `cortex-consumer.service`
 is active. Type "confirmed" to proceed.
 
@@ -92,7 +95,7 @@ sudo systemctl list-timers 'cortex-smoke*' --all --no-pager
 
 Expected (sample evidence from live VPS 2026-05-16):
 
-```
+```text
 NEXT                             LEFT LAST PASSED UNIT
 Mon 2026-05-18 09:00:30 UTC 1 day 23h -    -      cortex-smoke@netbook.timer
 Mon 2026-05-18 09:01:09 UTC 1 day 23h -    -      cortex-smoke@celebrar.timer
@@ -115,8 +118,10 @@ and log a delivery failure, but no Telegram / Slack / Discord /
 WhatsApp message will reach the corresponding account.
 
 ## CHECKPOINT 2
+
 Operator: confirm timers list-timers shows the four enabled slugs and
 the next-fire timestamp is in the future. Type "confirmed" to proceed.
 
 ## Next
+
 → `prompts/tools/70-dashboard.md`

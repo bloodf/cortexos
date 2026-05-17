@@ -18,7 +18,7 @@ Long-term curated memory for {agent_name}. Distilled from daily session notes.
 
 ## Format
 
-```
+```text
 [YYYY-MM-DD] content
 ```
 

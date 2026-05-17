@@ -1,14 +1,17 @@
 # AgentGateway (latest)
 
 ## Purpose
+
 Deploy AgentGateway to enforce the tool taxonomy, per-role allow-lists, confirmation tokens, rate limits, and cooldowns defined in `templates/agentgateway/tools.json`. All destructive-class tool calls from AI agents must pass through AgentGateway.
 
 ## Prerequisites
+
 - `40-openclaw.md` completed.
 - `30-nats.md` completed (AgentGateway publishes audit events to NATS).
 - `14-postgresql.md` completed (audit log columns stored in PostgreSQL).
 
 ## CHECKPOINT 1
+
 Operator: confirm `templates/agentgateway/tools.json` exists and contains the tool taxonomy. Type "confirmed" to proceed.
 
 ## Install
@@ -83,7 +86,9 @@ curl -s -X POST http://localhost:18800/tool/invoke \
 Expected: `403 Forbidden` or `{"allowed": false, "reason": "deny-list"}`.
 
 ## CHECKPOINT 2
+
 Operator: confirm AgentGateway is healthy, audit events appear in NATS subject `cortex.audit.*`, and the deny-list test returns 403. Type "confirmed" to proceed.
 
 ## Next
+
 → `prompts/tools/60-cortex-consumer.md`

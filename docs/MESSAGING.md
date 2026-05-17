@@ -53,7 +53,6 @@ Next: approve in dashboard if expected.
 | Warning | Degraded state or human attention needed |
 | Critical | Security, data loss, outage, or unsafe action |
 
-
 ## Known Limitations
 
 ### Phase H FAIL — OpenClaw gateway `/sendMessage` 404 (operator decision pending)
@@ -86,6 +85,7 @@ Until resolved, treat Telegram / Slack / Discord / WhatsApp delivery as
 `40-openclaw.md`, `41-openclaw-channels.md`) mirror this caveat.
 
 ### `@openclaw/slack` plugin not bundled
+
 The Slack channel requires the upstream `@openclaw/slack` plugin
 (`npm install -g @openclaw/slack@latest`). It is NOT carried in the
 base OpenClaw distribution and must be installed explicitly during

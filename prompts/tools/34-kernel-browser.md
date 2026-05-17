@@ -1,13 +1,16 @@
 # Kernel Browser (latest)
 
 ## Purpose
+
 Install a headless Chromium-based browser service that AI agents can control programmatically via the Kernel Browser API for web scraping and browser automation tasks.
 
 ## Prerequisites
+
 - `11-docker.md` completed.
 - `31-9router.md` completed (agents route requests through 9Router).
 
 ## CHECKPOINT 1
+
 Operator: confirm the VPS has at least 2 GB free RAM (browser processes are memory-intensive). Type "confirmed" to proceed.
 
 ## Install
@@ -53,7 +56,9 @@ curl -s "http://localhost:3333/json/version?token={KERNEL_BROWSER_TOKEN}"
 Expected: JSON with browser version information.
 
 ## CHECKPOINT 2
+
 Operator: confirm the browser API responds with version JSON. Type "confirmed" to proceed.
 
 ## Next
+
 → `prompts/tools/35-opik.md`

@@ -1,13 +1,16 @@
 # NATS (latest)
 
 ## Purpose
+
 Run NATS with JetStream enabled, NKey accounts, and create the `cortex_approvals_seen` KV bucket used for approval deduplication.
 
 ## Prerequisites
+
 - `11-docker.md` completed.
 - `templates/nats/accounts.conf` present in repo.
 
 ## CHECKPOINT 1
+
 Operator: confirm port 4222 is free (`ss -tlnp | grep 4222`) and `nats` CLI is installed (`nats --version` or install via `brew install nats-io/nats-tools/nats`). Type "confirmed" to proceed.
 
 ## Install
@@ -73,11 +76,13 @@ nats kv info cortex_approvals_seen --server nats://127.0.0.1:4222
 Expected: server info shows JetStream enabled; KV bucket info shows `cortex_approvals_seen`.
 
 ## CHECKPOINT 2
+
 Operator: confirm NATS is running with JetStream and the `cortex_approvals_seen` KV bucket exists. Type "confirmed" to proceed.
 
 ## Known Limitations
 
 ### `nats.js` setTimeout overflow
+
 The bundled `nats.js` client advertises some heartbeat / reconnect timers
 with values that exceed the Node 32-bit timer ceiling (`2147483647` ms),
 producing `TimeoutOverflowWarning` and silent reconnect stalls. Any Node
@@ -87,4 +92,5 @@ see `60-cortex-consumer.md`) must install a process-level
 to the original implementation. Repo reference: commit `ca98e1c`.
 
 ## Next
+
 → `prompts/tools/31-9router.md`

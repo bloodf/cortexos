@@ -1,13 +1,16 @@
 # LEANN (latest)
 
 ## Purpose
+
 Install LEANN as the document-RAG (retrieval-augmented generation) layer. LEANN indexes documents and answers semantic queries, complementing OpenViking's episodic memory.
 
 ## Prerequisites
+
 - `32-openviking.md` completed.
 - `31-9router.md` completed (LEANN uses 9Router for embeddings).
 
 ## CHECKPOINT 1
+
 Operator: confirm OpenViking is running and 9Router is serving embedding models. Type "confirmed" to proceed.
 
 ## Install
@@ -19,6 +22,7 @@ npm install
 ```
 
 Snapshot upstream install docs:
+
 ```bash
 # See docs/external/ — add leann.snapshot.md if not present
 curl -fsSL https://raw.githubusercontent.com/leann-rag/leann/HEAD/README.md \
@@ -82,7 +86,9 @@ curl -s http://localhost:18791/health
 Expected: health OK response.
 
 ## CHECKPOINT 2
+
 Operator: confirm LEANN health endpoint returns OK. Type "confirmed" to proceed.
 
 ## Next
+
 → `prompts/tools/34-kernel-browser.md`

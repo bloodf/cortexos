@@ -1,13 +1,16 @@
 # OpenClaw A2A Gateway (latest)
 
 ## Purpose
+
 Install the `win4r/openclaw-a2a-gateway` plugin to enable agent-to-agent (A2A) communication between OpenClaw and other AI agents over a standardized gateway protocol.
 
 ## Prerequisites
+
 - `40-openclaw.md` completed.
 - `50-agentgateway.md` will be executed after this spoke to apply tool taxonomy and rate limits.
 
 ## CHECKPOINT 1
+
 Operator: confirm OpenClaw gateway is running (`curl -s http://127.0.0.1:18789/health`). Type "confirmed" to proceed.
 
 ## Install
@@ -19,6 +22,7 @@ npm install
 ```
 
 Snapshot upstream README:
+
 ```bash
 # Should exist from 00-preflight.md:
 test -f docs/external/openclaw-a2a-gateway.snapshot.md && echo "OK" || \
@@ -52,6 +56,7 @@ openclaw plugins list | grep a2a-gateway
 Expected: `openclaw-a2a-gateway` listed as active.
 
 ## CHECKPOINT 2
+
 Operator: confirm the A2A gateway plugin is listed as active. Type "confirmed" to proceed.
 
 ## Known Limitations
@@ -71,4 +76,5 @@ auth token. Re-run after every fresh clone — manifest edits alone do
 not survive a reload.
 
 ## Next
+
 → `prompts/tools/45-openclaw-compaction.md`

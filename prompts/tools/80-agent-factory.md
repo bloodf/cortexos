@@ -1,14 +1,17 @@
 # Agent Factory (latest)
 
 ## Purpose
+
 Configure the GitHub Actions label-based state machine (13-stage pipeline) that drives agent task orchestration. Templates live in `templates/` — this spoke wires them to the target GitHub repository.
 
 ## Prerequisites
+
 - `70-dashboard.md` completed.
 - GitHub repository for agent tasks exists.
 - GitHub Actions enabled on that repository.
 
 ## CHECKPOINT 1
+
 Operator: confirm the target GitHub repository URL and that you have admin access (needed to create labels and secrets). Type "confirmed" to proceed.
 
 ## Install
@@ -66,7 +69,9 @@ gh issue create --repo $AGENT_REPO \
 Confirm the triage workflow triggers within 60 seconds (check Actions tab on GitHub).
 
 ## CHECKPOINT 2
+
 Operator: confirm the smoke-test issue triggered the triage workflow and the issue label advanced to `stage/01-triage`. Close the test issue. Type "confirmed" to proceed.
 
 ## Next
+
 → `prompts/tools/81-projects.md`

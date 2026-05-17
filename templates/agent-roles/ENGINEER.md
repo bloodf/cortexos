@@ -40,7 +40,7 @@ Bus: `nats://127.0.0.1:4222`. JetStream `CORTEX` captures `cortex.>`.
 
 Every task runs in its own `git worktree` under `<repo>-worktrees/<lane>/` so multiple agents work in parallel without lockfile contention. Create once per task:
 
-```
+```bash
 git -C <repo> worktree add ../<repo>-worktrees/<lane> -b <branch>
 ```
 

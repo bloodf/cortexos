@@ -1,14 +1,17 @@
 # OpenClaw (latest)
 
 ## Purpose
+
 Install the latest OpenClaw agent orchestrator from upstream HEAD; configure the `cortex` account with single-role policy; write `~/.openclaw/openclaw.json`.
 
 ## Prerequisites
+
 - `31-9router.md` completed (OpenClaw routes all AI calls through 9Router).
 - `32-openviking.md` completed (OpenClaw uses OpenViking for memory).
 - Node.js ≥ 20 installed.
 
 ## CHECKPOINT 1
+
 Operator: confirm Node.js ≥ 20 is installed (`node --version`) and 9Router is running. Type "confirmed" to proceed.
 
 ## Install
@@ -18,6 +21,7 @@ npm install -g openclaw@latest
 ```
 
 Verify:
+
 ```bash
 openclaw --version
 ```
@@ -79,6 +83,7 @@ curl -s http://127.0.0.1:18789/health
 Expected: gateway health OK (used by `00-preflight.md` probe script).
 
 ## CHECKPOINT 2
+
 Operator: confirm OpenClaw gateway is healthy. Type "confirmed" to proceed.
 
 ## Known Limitations
@@ -106,4 +111,5 @@ operator-only gateway auth token. See each plugin spoke
 (`44-`, `45-`, `46-`) for the install-from-path step.
 
 ## Next
+
 → `prompts/tools/41-openclaw-channels.md`

@@ -1,15 +1,18 @@
 # Dashboard (latest)
 
 ## Purpose
+
 Build and deploy the CortexOS Next.js dashboard to the VPS. The dashboard is a live read/update panel over VPS state — it does NOT import or store credentials.
 
 ## Prerequisites
+
 - `14-postgresql.md` completed (schema already applied).
 - `13-caddy.md` completed (Caddy proxies `{DOMAIN}` → port 3080).
 - `40-openclaw.md` completed (dashboard chat panel connects to OpenClaw gateway).
 - Node.js ≥ 20 on the VPS.
 
 ## CHECKPOINT 1
+
 Operator: confirm Node.js ≥ 20 is installed on the VPS and `/opt/cortexos/.secrets/dashboard.env` exists with `DATABASE_URL`. Type "confirmed" to proceed.
 
 ## Install
@@ -25,6 +28,7 @@ CORTEX_HOSTNAME={VPS_HOSTNAME} CORTEX_USER={VPS_USER} ./deploy.sh
 `deploy.sh` performs: build → rsync → migrate → restart → health-check.
 
 ### Next.js 16 standalone gap — `public/` must be explicit-rsync'd
+
 Next.js 16 `output: "standalone"` does **not** bundle the `public/`
 directory into `.next/standalone/`. `deploy.sh` therefore rsyncs the
 standalone tree first, then performs a second pass to copy
@@ -81,7 +85,9 @@ curl -sS -o /dev/null -w "%{http_code}" https://{DOMAIN}/en/login
 Expected: `200`.
 
 ## CHECKPOINT 2
+
 Operator: confirm the dashboard login page loads at `https://{DOMAIN}/en/login` with no certificate errors, and the OpenClaw chat panel connects successfully. Type "confirmed" to proceed.
 
 ## Next
+
 → `prompts/tools/80-agent-factory.md`

@@ -1,13 +1,16 @@
 # Projects (latest)
 
 ## Purpose
+
 Register each project that should be managed by CortexOS by writing per-project env files at `/opt/cortexos/.secrets/projects/<slug>.env`. Projects are NOT listed in SETUP.md — they are registered here and via the dashboard Projects page on the running VPS.
 
 ## Prerequisites
+
 - `70-dashboard.md` completed.
 - Project slugs determined by operator.
 
 ## CHECKPOINT 1
+
 Operator: list the project slugs you want to register (one per line). Each project needs a slug (lowercase, hyphens OK), a GitHub repository URL, and optionally a messaging channel for notifications. Type "confirmed" when ready.
 
 ## Install
@@ -66,7 +69,9 @@ psql -U dashboard -h 127.0.0.1 cortex_dashboard -c "SELECT slug, github_repo FRO
 Expected: env files exist for each slug; database rows match.
 
 ## CHECKPOINT 2
+
 Operator: confirm all project env files exist and dashboard Projects page shows the registered projects. Type "confirmed" to proceed.
 
 ## Next
+
 → `prompts/tools/99-final-validation.md`

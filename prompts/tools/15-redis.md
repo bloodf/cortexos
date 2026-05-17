@@ -1,12 +1,15 @@
 # Redis (latest)
 
 ## Purpose
+
 Run Redis as a Docker container for session caching and ephemeral queue use by CortexOS services.
 
 ## Prerequisites
+
 - `11-docker.md` completed.
 
 ## CHECKPOINT 1
+
 Operator: confirm port 6379 is not already in use (`ss -tlnp | grep 6379`). Type "confirmed" to proceed.
 
 ## Install
@@ -32,6 +35,7 @@ EOF
 ```
 
 Write env file:
+
 ```bash
 sudo tee /opt/cortexos/.secrets/redis.env <<EOF
 REDIS_PASSWORD={REDIS_PASSWORD}
@@ -58,7 +62,9 @@ docker exec $(docker compose -p redis ps -q redis) \
 Expected: `PONG`.
 
 ## CHECKPOINT 2
+
 Operator: confirm Redis responds `PONG` and the container is running (`docker compose -p redis ps`). Type "confirmed" to proceed.
 
 ## Next
+
 → `prompts/tools/16-mongodb.md` (if MongoDB enabled) OR `prompts/tools/17-dnsmasq.md`
