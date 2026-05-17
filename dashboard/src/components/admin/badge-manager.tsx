@@ -26,7 +26,6 @@ export function BadgeManager({ serviceId }: BadgeManagerProps) {
   const [editColor, setEditColor] = useState("");
 
   const fetchBadges = async () => {
-    setLoading(true);
     try {
       const res = await fetch(`/api/badges?service_id=${serviceId}`);
       if (res.ok) {
@@ -41,7 +40,24 @@ export function BadgeManager({ serviceId }: BadgeManagerProps) {
   };
 
   useEffect(() => {
-    fetchBadges();
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/badges?service_id=${serviceId}`);
+        if (cancelled) return;
+        if (res.ok) {
+          const data = await res.json();
+          if (!cancelled) setBadges(data.badges || []);
+        }
+      } catch {
+        // ignore
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [serviceId]);
 
   const addBadge = async () => {

@@ -40,7 +40,24 @@ export function SystemdServices() {
   }
 
   useEffect(() => {
-    void fetchServices();
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/systemd", { cache: "no-store" });
+        const data = await res.json();
+        if (cancelled) return;
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        setServices(data.services ?? []);
+        setError(null);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : "Failed to fetch systemd services");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function runAction(name: string, action: string) {

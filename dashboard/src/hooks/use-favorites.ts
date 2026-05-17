@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export type FavoriteService = {
 	id: number;
@@ -27,16 +27,17 @@ function normalize(value: unknown): FavoriteService[] {
 	});
 }
 
-export function useFavorites() {
-	const [favorites, setFavorites] = useState<FavoriteService[]>([]);
+function readFavorites(): FavoriteService[] {
+	if (typeof window === "undefined") return [];
+	try {
+		return normalize(JSON.parse(localStorage.getItem(KEY) || "[]"));
+	} catch {
+		return [];
+	}
+}
 
-	useEffect(() => {
-		try {
-			setFavorites(normalize(JSON.parse(localStorage.getItem(KEY) || "[]")));
-		} catch {
-			setFavorites([]);
-		}
-	}, []);
+export function useFavorites() {
+	const [favorites, setFavorites] = useState<FavoriteService[]>(() => readFavorites());
 
 	function save(next: FavoriteService[]) {
 		setFavorites(next);

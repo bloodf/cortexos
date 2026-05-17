@@ -45,12 +45,14 @@ function SidebarProvider({
   className,
 }: SidebarProviderProps) {
   const [internalOpen, setInternalOpen] = React.useState(defaultOpen)
-  const [isMobile, setIsMobile] = React.useState(false)
+  const [isMobile, setIsMobile] = React.useState<boolean>(() => {
+    if (typeof window === "undefined") return false
+    return window.matchMedia("(max-width: 767px)").matches
+  })
 
   React.useEffect(() => {
     const mq = window.matchMedia("(max-width: 767px)")
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
-    setIsMobile(mq.matches)
     mq.addEventListener("change", handler)
     return () => mq.removeEventListener("change", handler)
   }, [])
