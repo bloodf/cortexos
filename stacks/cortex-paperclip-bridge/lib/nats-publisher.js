@@ -1,4 +1,4 @@
-import { connect, StringCodec } from "nats";
+import { connect, StringCodec, headers as natsHeaders } from "nats";
 import { createHmac } from "node:crypto";
 
 const sc = StringCodec();
@@ -48,10 +48,29 @@ export async function getConnection() {
   return connecting;
 }
 
+/**
+ * Extract CloudEvents id from an inner payload (the bridge always wraps as
+ * a CE before signing, but tolerate legacy callers that pass raw data).
+ */
+function extractCloudEventId(payload) {
+  if (!payload || typeof payload !== "object") return null;
+  if (typeof payload.id === "string" && payload.specversion === "1.0") return payload.id;
+  return null;
+}
+
 export async function publish(subject, payload) {
   const nc = await getConnection();
   const envelope = signEnvelope(payload);
-  nc.publish(subject, sc.encode(JSON.stringify(envelope)));
+  // JetStream dedup: stamp Nats-Msg-Id = CloudEvents id so duplicate publishes
+  // within the stream's duplicate_window collapse to a single delivery.
+  const id = extractCloudEventId(payload);
+  if (id) {
+    const h = natsHeaders();
+    h.set("Nats-Msg-Id", id);
+    nc.publish(subject, sc.encode(JSON.stringify(envelope)), { headers: h });
+  } else {
+    nc.publish(subject, sc.encode(JSON.stringify(envelope)));
+  }
 }
 
 export async function getJetStreamManager() {

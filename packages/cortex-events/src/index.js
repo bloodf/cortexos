@@ -59,7 +59,7 @@ export function schemaFileForType(type) {
   const verb = parts[2];
 
   // Top-level namespace events (no verb dimension in schema filename).
-  const collapsed = new Set(["alerts", "graph", "signal"]);
+  const collapsed = new Set(["alerts", "graph", "signal", "dlq"]);
   if (collapsed.has(namespace)) {
     if (namespace === "graph") return `cortex-graph-state-${version}.json`;
     return `cortex-${namespace}-${version}.json`;
