@@ -1,4 +1,3 @@
-import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { WIDGET_REGISTRY, WIDGET_LABELS } from '../dashboard-widgets';
 
@@ -8,7 +7,7 @@ describe('WIDGET_REGISTRY', () => {
 	});
 
 	it('maps widget keys to React components', () => {
-		for (const [key, Component] of Object.entries(WIDGET_REGISTRY)) {
+		for (const [, Component] of Object.entries(WIDGET_REGISTRY)) {
 			expect(typeof Component).toBe('function');
 		}
 	});

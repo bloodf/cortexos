@@ -69,6 +69,7 @@ function DataTable<TData>({
   const activePagination = isServerSide ? controlledPagination : internalPagination
   const handlePaginationChange = isServerSide ? onPaginationChange : setInternalPagination
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
     columns,

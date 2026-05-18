@@ -42,7 +42,7 @@ export function MobileNav() {
 	const t = useTranslations("Navigation");
 	const [open, setOpen] = useState(false);
 
-	const activeItem = navConfig.find(
+	const _activeItem = navConfig.find(
 		(item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
 	);
 
@@ -60,6 +60,7 @@ export function MobileNav() {
 					<SheetContent side="left" className="w-[280px] p-0">
 						<SheetHeader className="p-4 border-b border-border">
 							<div className="flex items-center gap-3">
+								{/* eslint-disable-next-line @next/next/no-img-element */}
 								<img
 									src="/cortexos-logo.svg"
 									alt="CortexOS"

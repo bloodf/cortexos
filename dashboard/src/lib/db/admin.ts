@@ -1,4 +1,4 @@
-import { query, queryOne, execute } from "./client";
+import { queryOne, execute } from "./client";
 
 export interface AdminUser {
   id: number;

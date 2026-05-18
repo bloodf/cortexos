@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, type ReactNode } from "react";
 import { useDashboardData } from "./use-dashboard-data";
 import type { SystemData, ServiceCheck, ProcessInfo, NetworkData } from "./use-dashboard-data";
 

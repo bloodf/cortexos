@@ -9,6 +9,7 @@ export function TopBar() {
 			<div className="flex items-center justify-between px-4 py-3">
 				<div className="flex items-center gap-3 min-w-0">
 					<SidebarTrigger className="lg:hidden" />
+					{/* eslint-disable-next-line @next/next/no-img-element */}
 					<img
 						src="/cortexos-logo.svg"
 						alt="CortexOS"

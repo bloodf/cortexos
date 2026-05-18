@@ -48,8 +48,7 @@ interface DockerData {
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
-const PRUNE_TARGETS = ["containers", "images", "volumes", "networks"] as const;
-type PruneTarget = (typeof PRUNE_TARGETS)[number];
+type PruneTarget = "containers" | "images" | "volumes" | "networks";
 
 export function AdminDockerPanel() {
 	const { data, mutate } = useSWR<DockerData>("/api/docker", fetcher, {

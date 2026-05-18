@@ -1,4 +1,4 @@
-import { query, queryOne, execute } from "./client";
+import { query, queryOne } from "./client";
 
 export interface HealthLogEntry {
 	id: number;

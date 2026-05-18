@@ -183,6 +183,7 @@ export function AddServiceForm({
 							/>
 						</label>
 						{form.icon_image && (
+							// eslint-disable-next-line @next/next/no-img-element
 							<img src={form.icon_image} alt="preview" className="w-6 h-6 rounded object-cover" />
 						)}
 					</div>

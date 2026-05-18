@@ -12,10 +12,6 @@ vi.mock("util", async () => {
 	};
 });
 
-function createRequest() {
-	return new Request("http://localhost/api/docker");
-}
-
 describe("docker route", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();

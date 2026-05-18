@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { query, queryOne, execute } from '../client';
+import { queryOne, execute } from '../client';
 import {
   getUserByUsername,
   getUserById,

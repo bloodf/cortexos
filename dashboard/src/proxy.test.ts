@@ -8,7 +8,7 @@ vi.mock("@/lib/db/admin", () => ({
   getSessionByToken: vi.fn(),
 }));
 
-import { middleware } from "./middleware";
+import { proxy } from "./proxy";
 import { getSessionByToken } from "@/lib/db/admin";
 
 const fetchSpy = vi.spyOn(global, "fetch");
@@ -46,7 +46,7 @@ describe("middleware", () => {
       user_id: 1,
       token: "valid",
     });
-    await middleware(makeRequest({ pathname: "/en/overview", cookie: "valid" }));
+    await proxy(makeRequest({ pathname: "/en/overview", cookie: "valid" }));
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
@@ -56,7 +56,7 @@ describe("middleware", () => {
       user_id: 1,
       token: "valid",
     });
-    const res = await middleware(
+    const res = await proxy(
       makeRequest({ pathname: "/en/overview", cookie: "valid" }),
     );
     expect(res.status).toBe(200);
@@ -64,26 +64,26 @@ describe("middleware", () => {
 
   it("returns 401 JSON for unauthenticated /api/* requests", async () => {
     (getSessionByToken as any).mockResolvedValue(null);
-    const res = await middleware(
+    const res = await proxy(
       makeRequest({ pathname: "/api/system", cookie: "bad" }),
     );
     expect(res.status).toBe(401);
   });
 
   it("redirects unauthenticated page requests to /<locale>/login", async () => {
-    const res = await middleware(makeRequest({ pathname: "/en/overview" }));
+    const res = await proxy(makeRequest({ pathname: "/en/overview" }));
     expect(res.status).toBe(307);
     expect(res.headers.get("location")).toContain("/en/login");
   });
 
   it("allows public paths without DB lookup", async () => {
-    const res = await middleware(makeRequest({ pathname: "/en/login" }));
+    const res = await proxy(makeRequest({ pathname: "/en/login" }));
     expect(res.status).toBe(200);
     expect(getSessionByToken).not.toHaveBeenCalled();
   });
 
   it("allows internal token bypass without DB lookup", async () => {
-    const res = await middleware(
+    const res = await proxy(
       makeRequest({
         pathname: "/api/system",
         headers: { "x-cortex-internal-token": "secret-token" },
