@@ -1,0 +1,14 @@
+{
+  "name": "cortexos-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "stacks/cortex-paperclip-bridge",
+    "stacks/cortex-consumer",
+    "dashboard"
+  ],
+  "engines": {
+    "node": ">=22"
+  }
+}
