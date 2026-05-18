@@ -9,6 +9,14 @@ Install the `comet-ml/opik-openclaw` plugin to forward all OpenClaw LLM traces t
 - `40-openclaw.md` completed.
 - `35-opik.md` completed (Opik API running at `localhost:5000`).
 
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
+
 ## CHECKPOINT 1
 
 Operator: confirm Opik API is healthy (`curl -s http://localhost:5000/api/v1/health`). Type "confirmed" to proceed.

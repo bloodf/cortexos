@@ -8,6 +8,14 @@ Run Grafana Loki as a Docker container to aggregate logs from Fluent Bit and mak
 
 - `20-prometheus.md` completed (monitoring stack compose file exists).
 
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
+
 ## CHECKPOINT 1
 
 Operator: confirm port 3100 is free (`ss -tlnp | grep 3100`). Type "confirmed" to proceed.

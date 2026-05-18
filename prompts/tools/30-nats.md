@@ -9,6 +9,16 @@ Run NATS with JetStream enabled, NKey accounts, and create the `cortex_approvals
 - `11-docker.md` completed.
 - `templates/nats/accounts.conf` present in repo.
 
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
+
+> **NATS CLI.** Static binary release at `https://github.com/nats-io/natscli/releases/latest` works on Ubuntu, Fedora, and RHEL alike — prefer it over `brew` on Linux. Pin the version inline (operator pins each run).
+
 ## CHECKPOINT 1
 
 Operator: confirm port 4222 is free (`ss -tlnp | grep 4222`) and `nats` CLI is installed (`nats --version` or install via `brew install nats-io/nats-tools/nats`). Type "confirmed" to proceed.

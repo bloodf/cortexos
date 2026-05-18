@@ -8,6 +8,14 @@ Install dnsmasq as a local caching DNS resolver so VPS services can resolve each
 
 - `10-os-hardening.md` completed.
 
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
+
 ## CHECKPOINT 1
 
 Operator: confirm `systemd-resolved` is the current stub resolver (`resolvectl status | head -5`) and port 53 is not already bound by another service. Type "confirmed" to proceed.
@@ -15,7 +23,8 @@ Operator: confirm `systemd-resolved` is the current stub resolver (`resolvectl s
 ## Install
 
 ```bash
-sudo apt-get install -y dnsmasq
+pkg_install dnsmasq
+if [ "$(pkg_family)" = "ubuntu" ]; then dpkg -s dnsmasq >/dev/null; else rpm -qi dnsmasq >/dev/null; fi
 ```
 
 Disable systemd-resolved stub listener to free port 53:
@@ -24,6 +33,15 @@ Disable systemd-resolved stub listener to free port 53:
 sudo sed -i 's/#DNSStubListener=yes/DNSStubListener=no/' /etc/systemd/resolved.conf
 sudo systemctl restart systemd-resolved
 ```
+
+Open the DNS port in the host firewall (Fedora/RHEL firewalld; UFW on Ubuntu):
+
+```bash
+firewall_open 53 udp
+firewall_open 53 tcp
+```
+
+# SELinux: see docs/FEDORA-SUPPORT.md for AVC triage
 
 ## Configure
 

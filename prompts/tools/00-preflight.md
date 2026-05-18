@@ -2,6 +2,16 @@
 
 Run this prompt before any other `prompts/tools/` spoke. It verifies the OpenClaw HTTP gateway is live, confirms every required endpoint is reachable, and captures upstream documentation snapshots into `docs/external/` as read-only guides for implementors. Nothing in Phase 4c may proceed until this prompt exits cleanly.
 
+> **Distro pre-step.** If `CORTEX_OS_FAMILY` is not set in your shell, run `prompts/os/00-os-selection.md` FIRST. Every subsequent tool prompt assumes the distro family is detected.
+
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
+
 ---
 
 ## CHECKPOINT 1 — Operator: confirm OpenClaw is installed and running

@@ -8,6 +8,14 @@ Run Grafana as a Docker container; provision Prometheus and Loki as data sources
 
 - `20-prometheus.md` and `21-loki.md` completed.
 
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
+
 ## CHECKPOINT 1
 
 Operator: confirm port 3000 is free. Type "confirmed" to proceed.

@@ -16,6 +16,20 @@
 #   DASHBOARD_ORIGIN        defaults to http://$(hostname -I | awk '{print $1}'):3080
 set -euo pipefail
 
+# Source distro-agnostic pkg dispatcher. Repo root is two levels up from this script.
+__prov_self="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+__repo_root="$(cd "${__prov_self}/../.." && pwd)"
+if [[ -f "${__repo_root}/scripts/pkg.sh" ]]; then
+  # shellcheck source=/dev/null
+  source "${__repo_root}/scripts/pkg.sh"
+else
+  echo "[provision] WARN: ${__repo_root}/scripts/pkg.sh not found; assuming Ubuntu" >&2
+  pkg_install() { sudo apt-get install -y --no-install-recommends "$@"; }
+  pkg_family()  { echo ubuntu; }
+  firewall_open() { sudo ufw allow "$1/${2:-tcp}" || true; }
+fi
+echo "[provision] OS family: $(pkg_family) $(pkg_version 2>/dev/null || echo unknown)"
+
 WITH_CADDY=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -37,14 +51,33 @@ BACKUPS_DIR="${CORTEX_ROOT}/backups/dashboard"
 LAN_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
 DASHBOARD_ORIGIN_DEFAULT="http://${LAN_IP:-127.0.0.1}:3080"
 
-echo "=== [1/7] Updating apt index ==="
-sudo apt-get update -y
+echo "=== [1/7] Refreshing package index ==="
+case "$(pkg_family)" in
+  ubuntu)      sudo apt-get update -y ;;
+  fedora|rhel) sudo dnf -y makecache ;;
+esac
 
 echo "=== [2/7] Installing baseline packages ==="
-sudo apt-get install -y --no-install-recommends \
-  curl ca-certificates gnupg lsb-release build-essential \
-  postgresql postgresql-contrib \
-  rsync ufw git jq
+case "$(pkg_family)" in
+  ubuntu)
+    pkg_install \
+      curl ca-certificates gnupg lsb-release build-essential \
+      postgresql postgresql-contrib \
+      rsync ufw git jq
+    ;;
+  fedora|rhel)
+    # Fedora/RHEL: no ufw (firewalld assumed via prereq prompts); base build group differs.
+    pkg_install \
+      curl ca-certificates gnupg2 \
+      @development-tools \
+      postgresql-server postgresql-contrib \
+      rsync git jq
+    # Initialize Postgres data dir if needed (Fedora/RHEL skip it by default).
+    if [[ ! -d /var/lib/pgsql/data/base ]]; then
+      sudo postgresql-setup --initdb || true
+    fi
+    ;;
+esac
 
 echo "=== [3/7] Installing Node 24 via linuxbrew (idempotent) ==="
 if [[ ! -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
@@ -118,17 +151,28 @@ else
 fi
 
 if [[ $WITH_CADDY -eq 1 ]]; then
-  echo "=== Installing Caddy ==="
+  echo "=== Installing Caddy ($(pkg_family)) ==="
   if ! command -v caddy >/dev/null; then
-    sudo apt-get install -y debian-keyring debian-archive-keyring apt-transport-https
-    curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/gpg.key \
-      | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-    curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt \
-      | sudo tee /etc/apt/sources.list.d/caddy-stable.list >/dev/null
-    sudo apt-get update -y
-    sudo apt-get install -y caddy
+    case "$(pkg_family)" in
+      ubuntu)
+        pkg_install debian-keyring debian-archive-keyring apt-transport-https
+        curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/gpg.key \
+          | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+        curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt \
+          | sudo tee /etc/apt/sources.list.d/caddy-stable.list >/dev/null
+        sudo apt-get update -y
+        pkg_install caddy
+        ;;
+      fedora|rhel)
+        sudo dnf copr enable -y @caddy/caddy
+        pkg_install caddy
+        ;;
+    esac
   fi
   sudo systemctl enable --now caddy
+  # Open HTTP/HTTPS in firewall (no-op on UFW if rule already exists).
+  firewall_open 80  tcp
+  firewall_open 443 tcp
 fi
 
 echo "=== [7/7] Provision complete ==="

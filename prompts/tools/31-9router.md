@@ -9,6 +9,16 @@ Install 9Router, the OpenAI-compatible model gateway that proxies AI provider AP
 - `30-nats.md` completed (9Router publishes metrics to NATS).
 - AI provider API keys available (at least one: OpenAI, Anthropic, or other).
 
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
+
+> **Node runtime.** Ubuntu provisioning uses NodeSource (or Linuxbrew Node 24); Fedora/RHEL ship Node 22 in the base/AppStream repos (`pkg_install nodejs npm`). All `npm install -g` invocations below assume Node ≥ 20 is on `$PATH`.
+
 ## CHECKPOINT 1
 
 Operator: confirm you have at least one AI provider API key ready. Type "confirmed" to proceed.

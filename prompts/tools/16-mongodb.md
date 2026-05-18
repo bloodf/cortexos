@@ -9,6 +9,16 @@ Run MongoDB as a Docker container for workloads that require document storage. *
 - `11-docker.md` completed.
 - SETUP.md questionnaire: `mongodb=yes`.
 
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
+
+> **Fedora/RHEL note.** MongoDB upstream publishes only RHEL repos (`https://repo.mongodb.org/yum/redhat/$releasever/mongodb-org/7.0/x86_64/`); there is no official Fedora repo. The Docker-Compose stack below sidesteps the repo gap entirely. If you need the `mongosh` CLI on the host for Fedora/RHEL, install via `pkg_install mongodb-mongosh` from the RHEL repo only.
+
 ## CHECKPOINT 1
 
 Operator: confirm MongoDB is required for your workloads and port 27017 is free (`ss -tlnp | grep 27017`). If MongoDB is not needed, skip this spoke and proceed to `17-dnsmasq.md`. Type "confirmed" to proceed.

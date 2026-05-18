@@ -14,6 +14,18 @@
 set -u
 set -o pipefail
 
+# Resolve repo root so we can source pkg.sh regardless of where install.sh was launched from.
+__install_self="$(cd "$(dirname "$0")" && pwd)"
+__repo_root="$(cd "${__install_self}/../.." && pwd)"
+if [ -f "${__repo_root}/scripts/pkg.sh" ]; then
+  # shellcheck source=/dev/null
+  source "${__repo_root}/scripts/pkg.sh"
+else
+  echo "[install] WARN: scripts/pkg.sh not found at ${__repo_root}; falling back to apt-get" >&2
+  pkg_install() { sudo apt-get install -y "$@"; }
+  pkg_family()  { echo ubuntu; }
+fi
+
 CORTEX_HOME="/opt/cortex"
 NATS_CLI_VERSION="0.1.5"
 SRC_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -37,8 +49,15 @@ if ! command -v nats >/dev/null 2>&1; then
 fi
 nats --version
 
-# python3-yaml check
-python3 -c "import yaml" 2>/dev/null || { echo "[install] installing python3-yaml"; sudo apt-get install -y python3-yaml; }
+# python3-yaml check (package name differs across families)
+if ! python3 -c "import yaml" 2>/dev/null; then
+  echo "[install] installing PyYAML for $(pkg_family)"
+  case "$(pkg_family)" in
+    ubuntu)        pkg_install python3-yaml ;;
+    fedora|rhel)   pkg_install python3-pyyaml ;;
+    *)             pkg_install python3-pyyaml || pkg_install python3-yaml ;;
+  esac
+fi
 
 # Wait for NATS, then init streams
 echo "[install] waiting for NATS on 127.0.0.1:4222 ..."

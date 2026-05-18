@@ -8,6 +8,14 @@ Run Prometheus Node Exporter as a Docker container to expose host-level metrics 
 
 - `20-prometheus.md` completed (Prometheus already scrapes `host.docker.internal:9100`).
 
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
+
 ## CHECKPOINT 1
 
 Operator: confirm port 9100 is free. Type "confirmed" to proceed.

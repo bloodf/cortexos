@@ -20,6 +20,15 @@ WhatsApp PMs to the operator are not desired.
 - `30-nats.md` completed.
 - `nats` CLI installed on the host (not just the container).
 
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+pkg_install jq util-linux  # uuidgen lives in util-linux on Fedora/RHEL; pre-installed on Ubuntu
+```
+
 ## CHECKPOINT 1
 
 Operator: confirm `nats --version` works and `cortex-consumer.service`

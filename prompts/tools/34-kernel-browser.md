@@ -9,6 +9,14 @@ Install a headless Chromium-based browser service that AI agents can control pro
 - `11-docker.md` completed.
 - `31-9router.md` completed (agents route requests through 9Router).
 
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
+
 ## CHECKPOINT 1
 
 Operator: confirm the VPS has at least 2 GB free RAM (browser processes are memory-intensive). Type "confirmed" to proceed.

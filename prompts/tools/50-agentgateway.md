@@ -10,6 +10,14 @@ Deploy AgentGateway to enforce the tool taxonomy, per-role allow-lists, confirma
 - `30-nats.md` completed (AgentGateway publishes audit events to NATS).
 - `14-postgresql.md` completed (audit log columns stored in PostgreSQL).
 
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
+
 ## CHECKPOINT 1
 
 Operator: confirm `templates/agentgateway/tools.json` exists and contains the tool taxonomy. Type "confirmed" to proceed.

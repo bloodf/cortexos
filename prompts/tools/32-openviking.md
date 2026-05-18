@@ -10,6 +10,14 @@ Install OpenViking as the canonical long-term memory backend for OpenClaw. OpenV
 - `31-9router.md` completed (OpenViking calls AI through 9Router).
 - `30-nats.md` completed.
 
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
+
 ## CHECKPOINT 1
 
 Operator: confirm PostgreSQL is running and the `cortex_dashboard` database is accessible. Type "confirmed" to proceed.

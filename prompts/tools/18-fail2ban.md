@@ -9,6 +9,16 @@ Install and configure fail2ban to ban IPs with repeated SSH authentication failu
 - `10-os-hardening.md` completed.
 - `17-dnsmasq.md` completed (so syslog is functional).
 
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
+
+> **RHEL note.** `fail2ban` is in EPEL on RHEL; `prompts/os/10-rhel-prereqs.md` enables the CRB + EPEL repos. Fedora ships `fail2ban` in the base repos.
+
 ## CHECKPOINT 1
 
 Operator: confirm `journalctl -u ssh --no-pager -n 5` shows recent SSH log entries (fail2ban reads these). Type "confirmed" to proceed.
@@ -16,8 +26,14 @@ Operator: confirm `journalctl -u ssh --no-pager -n 5` shows recent SSH log entri
 ## Install
 
 ```bash
-sudo apt-get install -y fail2ban
+if [ "$(pkg_family)" = "rhel" ]; then
+  pkg_install epel-release
+fi
+pkg_install fail2ban
+if [ "$(pkg_family)" = "ubuntu" ]; then dpkg -s fail2ban >/dev/null; else rpm -qi fail2ban >/dev/null; fi
 ```
+
+# SELinux: see docs/FEDORA-SUPPORT.md for AVC triage
 
 ## Configure
 

@@ -9,6 +9,14 @@ Register each project that should be managed by CortexOS by writing per-project 
 - `70-dashboard.md` completed.
 - Project slugs determined by operator.
 
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
+
 ## CHECKPOINT 1
 
 Operator: list the project slugs you want to register (one per line). Each project needs a slug (lowercase, hyphens OK), a GitHub repository URL, and optionally a messaging channel for notifications. Type "confirmed" when ready.

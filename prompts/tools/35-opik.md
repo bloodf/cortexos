@@ -21,6 +21,14 @@ Deploy the Opik LLM observability platform (by Comet ML) to trace, evaluate, and
 - `14-postgresql.md` completed.
 - `11-docker.md` completed.
 
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
+
 ## CHECKPOINT 1
 
 Operator: confirm ports 5173 (Opik UI) and 5000 (Opik API) are free. Type "confirmed" to proceed.

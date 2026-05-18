@@ -9,6 +9,14 @@ Configure all four mandatory v1.0 messaging channels in OpenClaw. All four must 
 - `40-openclaw.md` completed.
 - Bot tokens / webhook URLs for all four platforms ready.
 
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
+
 ## CHECKPOINT 1
 
 Operator: gather and confirm you have:

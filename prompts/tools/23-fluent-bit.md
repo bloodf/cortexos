@@ -9,6 +9,14 @@ Run Fluent Bit as a Docker container to collect Docker container logs and system
 - `21-loki.md` completed (Loki reachable at `localhost:3100`).
 - `11-docker.md` completed.
 
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
+
 ## CHECKPOINT 1
 
 Operator: confirm Loki is running (`curl -s http://localhost:3100/ready` returns `ready`). Type "confirmed" to proceed.
