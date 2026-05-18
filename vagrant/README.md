@@ -1,8 +1,14 @@
 # Vagrant rehearsal harness
 
 Local libvirt/QEMU VMs for rehearsing the CortexOS operator prompt sequence
-on Ubuntu and Fedora before touching a real VPS. RHEL-family boxes are
-defined but disabled until Phase P6.
+on Ubuntu, Fedora, Rocky Linux, and AlmaLinux before touching a real VPS.
+
+RHEL proper is not available as a generic Vagrant box (it requires a Red
+Hat subscription via `subscription-manager register`). Rehearse RHEL-only
+flows on Rocky 9 or Alma 9 — both share `CORTEX_OS_FAMILY=rhel` and the
+same dnf branch in `scripts/pkg.sh`. The only behavior gated on
+subscription is Step 2 of `prompts/os/10-rhel-prereqs.md`, which is
+guarded by `pkg_subfamily`.
 
 ## macOS prerequisites
 
@@ -50,6 +56,22 @@ make vm-ubuntu-up        # 24.04
 make vm-ubuntu22-up      # 22.04
 make vm-rehearse FAMILY=ubuntu
 ```
+
+For Rocky Linux 9 / AlmaLinux 9 (RHEL family):
+
+```bash
+make vm-rocky-up
+make vm-rocky-ssh
+make vm-rehearse FAMILY=rocky      # or FAMILY=rhel BOX=rocky
+
+make vm-alma-up
+make vm-alma-ssh
+make vm-rehearse FAMILY=alma       # or FAMILY=rhel BOX=alma
+```
+
+Both boxes route through `CORTEX_OS_FAMILY=rhel`. `pkg_subfamily` (from
+`scripts/pkg.sh`) returns `rocky` or `almalinux` so prompts can branch
+on subscription / repo differences.
 
 Destroy and rebuild:
 

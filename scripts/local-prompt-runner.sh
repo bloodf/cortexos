@@ -6,7 +6,10 @@
 # host) under `vagrant ssh`.
 #
 # Flags:
-#   --family <ubuntu|fedora|rhel>   sets CORTEX_OS_FAMILY for the run
+#   --family <ubuntu|fedora|rhel|rocky|alma>
+#                                   sets CORTEX_OS_FAMILY for the run.
+#                                   `rocky` and `alma` are convenience aliases
+#                                   that map to CORTEX_OS_FAMILY=rhel.
 #   --prompts <spec>                comma list of items; each item is either
 #                                   a single prompt path (relative to
 #                                   prompts/, no .md) or a RANGE expressed
@@ -51,6 +54,12 @@ done
 [ -n "${FAMILY}" ]      || die "--family required"
 [ -n "${PROMPT_SPEC}" ] || die "--prompts required"
 [ -d "${PROMPTS_DIR}" ] || die "prompts dir not found: ${PROMPTS_DIR}"
+
+# `rocky` and `alma` are subfamily-tagged convenience aliases. Normalize them
+# to the canonical family `rhel` so prompts/os/10-rhel-prereqs.md picks up.
+case "${FAMILY}" in
+  rocky|alma|almalinux|centos) FAMILY="rhel" ;;
+esac
 
 export CORTEX_OS_FAMILY="${FAMILY}"
 
