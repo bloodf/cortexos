@@ -24,36 +24,21 @@ Operator: confirm no existing PostgreSQL instance is running on port 5432 (`ss -
 ## Install
 
 ```bash
-if [ "$(pkg_family)" = "ubuntu" ]; then
-  pkg_install curl gnupg lsb-release
-  curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | \
-    sudo gpg --dearmor -o /usr/share/keyrings/postgresql.gpg
-  echo "deb [signed-by=/usr/share/keyrings/postgresql.gpg] \
-    https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | \
-    sudo tee /etc/apt/sources.list.d/pgdg.list
-  sudo apt-get update -y -qq
-  pkg_install postgresql postgresql-contrib
-  service_enable postgresql
-elif [ "$(pkg_family)" = "fedora" ]; then
-  pkg_install "https://download.postgresql.org/pub/repos/yum/reporpms/F-$(rpm -E %fedora)-x86_64/pgdg-fedora-repo-latest.noarch.rpm"
-  sudo dnf -qy module disable postgresql || true
-  pkg_install postgresql16-server postgresql16-contrib
-  sudo /usr/pgsql-16/bin/postgresql-16-setup initdb
-  service_enable postgresql-16
-elif [ "$(pkg_family)" = "rhel" ]; then
-  # RHEL: enable CRB+EPEL via prompts/os/10-rhel-prereqs.md (P6 stub)
-  pkg_install "https://download.postgresql.org/pub/repos/yum/reporpms/EL-$(rpm -E %rhel)-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
-  sudo dnf -qy module disable postgresql || true
-  pkg_install postgresql16-server postgresql16-contrib
-  sudo /usr/pgsql-16/bin/postgresql-16-setup initdb
-  service_enable postgresql-16
-fi
+pkg_install curl gnupg lsb-release
+curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | \
+  sudo gpg --dearmor -o /usr/share/keyrings/postgresql.gpg
+echo "deb [signed-by=/usr/share/keyrings/postgresql.gpg] \
+  https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | \
+  sudo tee /etc/apt/sources.list.d/pgdg.list
+sudo apt-get update -y -qq
+pkg_install postgresql postgresql-contrib
+service_enable postgresql
 ```
 
-Verify package install (family-appropriate):
+Verify package install:
 
 ```bash
-if [ "$(pkg_family)" = "ubuntu" ]; then dpkg -s postgresql >/dev/null; else rpm -qi postgresql16-server >/dev/null; fi
+dpkg -s postgresql >/dev/null
 ```
 
 ## Configure

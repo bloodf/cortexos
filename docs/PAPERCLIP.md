@@ -204,7 +204,6 @@ Failure tags from `scripts/paperclip-smoke-test.sh` (full list in
 | `SMOKE-FAIL:approval-bypass`        | Approval gate not enforced. SECURITY incident.             |
 | `SMOKE-FAIL:budget-not-enforced`    | Cost accounting regression in consumer.                    |
 | `SMOKE-FAIL:approval-no-timebox`    | Approval queue unbounded. Restore default timeout.         |
-| `SMOKE-FAIL:selinux-not-enforcing`  | Fedora/RHEL host permissive. `selinux_set enforcing`.       |
 
 ## Rollback procedures
 

@@ -26,7 +26,7 @@ WhatsApp PMs to the operator are not desired.
 source scripts/pkg.sh
 echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
-pkg_install jq util-linux  # uuidgen lives in util-linux on Fedora/RHEL; pre-installed on Ubuntu
+pkg_install jq uuid-runtime  # uuidgen for smoke fixtures
 ```
 
 ## CHECKPOINT 1

@@ -17,8 +17,6 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
-> **RHEL note.** `fail2ban` is in EPEL on RHEL/Rocky/Alma; `prompts/os/10-rhel-prereqs.md` enables the CRB + EPEL repos (subfamily-aware: `crb` on Rocky/Alma, `codeready-builder-for-rhel-9-*` on RHEL). Fedora ships `fail2ban` in the base repos. See `docs/RHEL-FAMILY-SUPPORT.md` for package gap reference.
-
 ## CHECKPOINT 1
 
 Operator: confirm `journalctl -u ssh --no-pager -n 5` shows recent SSH log entries (fail2ban reads these). Type "confirmed" to proceed.
@@ -26,17 +24,9 @@ Operator: confirm `journalctl -u ssh --no-pager -n 5` shows recent SSH log entri
 ## Install
 
 ```bash
-if [ "$(pkg_family)" = "rhel" ]; then
-  # epel-release should already be installed by prompts/os/10-rhel-prereqs.md.
-  # Re-installing is idempotent and protects against rehearsal hosts that
-  # skipped the prereq prompt.
-  rpm -q epel-release >/dev/null 2>&1 || pkg_install epel-release
-fi
 pkg_install fail2ban
-if [ "$(pkg_family)" = "ubuntu" ]; then dpkg -s fail2ban >/dev/null; else rpm -qi fail2ban >/dev/null; fi
+dpkg -s fail2ban >/dev/null
 ```
-
-# SELinux: see docs/FEDORA-SUPPORT.md for AVC triage
 
 ## Configure
 

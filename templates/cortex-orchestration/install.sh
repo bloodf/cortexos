@@ -49,14 +49,10 @@ if ! command -v nats >/dev/null 2>&1; then
 fi
 nats --version
 
-# python3-yaml check (package name differs across families)
+# python3-yaml check
 if ! python3 -c "import yaml" 2>/dev/null; then
   echo "[install] installing PyYAML for $(pkg_family)"
-  case "$(pkg_family)" in
-    ubuntu)        pkg_install python3-yaml ;;
-    fedora|rhel)   pkg_install python3-pyyaml ;;
-    *)             pkg_install python3-pyyaml || pkg_install python3-yaml ;;
-  esac
+  pkg_install python3-yaml
 fi
 
 # Wait for NATS, then init streams

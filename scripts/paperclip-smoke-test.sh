@@ -516,7 +516,7 @@ step_22_os_detect() {
   local out
   out="$("${__self_dir}/os-detect.sh")" || { printf '%s' "$out"; return 1; }
   case "$out" in
-    'ubuntu '*|'fedora '*|'rhel '*|'rocky '*|'almalinux '*)
+    'ubuntu '*|'debian '*)
       printf 'detected=%s' "$out"
       ;;
     *)
@@ -531,7 +531,7 @@ step_23_pkg_dispatch() {
   local fam
   fam=$(bash -c ". '${__self_dir}/pkg.sh'; pkg_family" 2>&1) || { printf '%s' "$fam"; return 1; }
   case "$fam" in
-    ubuntu|fedora|rhel) printf 'family=%s' "$fam" ;;
+    ubuntu|debian) printf 'family=%s' "$fam" ;;
     *) printf 'unsupported family=%s' "$fam"; return 1 ;;
   esac
 }
@@ -575,29 +575,18 @@ step_26_systemd_units() {
   return "$rc"
 }
 
-step_27_selinux() {
-  if ! command -v getenforce >/dev/null 2>&1; then
-    printf 'getenforce absent (likely Ubuntu) -- skip'
-    return 0
-  fi
-  local mode
-  mode=$(getenforce 2>/dev/null || printf 'Unknown')
-  assert_eq "$mode" "Enforcing" "selinux-not-enforcing" || { printf 'mode=%s' "$mode"; return 1; }
+step_27_apt_journal() {
+  # Ubuntu/Debian: verify no apt/dpkg error spam in journal recently (advisory).
   if command -v journalctl >/dev/null 2>&1; then
-    if journalctl -p err -u 'cortex-*' --since '1 hour ago' 2>/dev/null | grep -Eq 'avc: *denied'; then
-      printf 'AVC denials present in journal'
+    if journalctl -p err -u 'cortex-*' --since '1 hour ago' 2>/dev/null | grep -Eq 'apt|dpkg'; then
+      printf 'apt/dpkg errors present in journal'
       return 1
     fi
   fi
+  printf 'no journal errors'
 }
 
 step_28_firewall() {
-  if command -v firewall-cmd >/dev/null 2>&1; then
-    local ports
-    ports=$(firewall-cmd --list-ports 2>/dev/null || true)
-    printf 'firewalld ports=%s' "$ports"
-    return 0
-  fi
   if command -v ufw >/dev/null 2>&1; then
     local st
     st=$(ufw status 2>/dev/null | head -n1)
@@ -622,7 +611,7 @@ if [ "$DRY_RUN" = "1" ]; then
             step_16_missing_bearer step_17_length_mismatch_bearer step_18_replay_idempotent \
             step_19_approval_gate step_20_budget_enforcement step_21_approval_timeout \
             step_22_os_detect step_23_pkg_dispatch step_24_prompt_sequence \
-            step_25_dashboard_health step_26_systemd_units step_27_selinux step_28_firewall; do
+            step_25_dashboard_health step_26_systemd_units step_27_apt_journal step_28_firewall; do
     if ! declare -F "$fn" >/dev/null; then
       printf 'SMOKE-FAIL:dry-run-step-missing fn=%s\n' "$fn" >&2
       exit 1
@@ -679,7 +668,7 @@ if [ "$SMOKE_SKIP_DISTRO" != "1" ] && [ "$RUN_RC" -eq 0 ]; then
   __sm_run 24 "prompt-sequence" step_24_prompt_sequence prompt-sequence-fail &&
   __sm_run 25 "dashboard-health" step_25_dashboard_health dashboard-unhealthy &&
   __sm_run 26 "systemd-green" step_26_systemd_units systemd-degraded &&
-  __sm_run 27 "selinux" step_27_selinux selinux-not-enforcing &&
+  __sm_run 27 "apt-journal" step_27_apt_journal apt-journal-errors &&
   __sm_run 28 "firewall" step_28_firewall firewall-misconfigured
   RUN_RC=$?
 fi

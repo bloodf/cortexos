@@ -4,18 +4,18 @@
 # Output is whitespace-separated on a single line:
 #   "<family> <version> <subfamily>"
 # where:
-#   <family>    ∈ {ubuntu, fedora, rhel, unsupported}
+#   <family>    ∈ {ubuntu, debian, unsupported}
 #   <version>   = VERSION_ID from /etc/os-release (or "unknown")
 #   <subfamily> = lowercased ID from /etc/os-release for finer dispatch:
-#                   - rhel family: rhel | rocky | almalinux | centos
-#                   - other families: same as <family> (ubuntu, fedora, ...)
+#                   - ubuntu family: ubuntu
+#                   - debian family: debian
+#                   - other: lowercased ID (when family is unsupported)
 #
 # The third token is additive and back-compat: existing callers that do
 # `awk '{print $1}'` (family) or `awk '{print $2}'` (version) keep working.
 # New callers wanting subfamily-aware dispatch read the third token.
 #
-# RHEL family (RHEL, Rocky, AlmaLinux, CentOS Stream) normalizes <family> to
-# "rhel"; <subfamily> preserves the original distro id.
+# Supported distros: Ubuntu 24.04 LTS, Ubuntu 25.x, Debian 13 Trixie.
 #
 # `OSRELEASE` env override is honored so unit tests can point at fixtures.
 #
@@ -45,18 +45,15 @@ case "$id_lower" in
   ubuntu)
     emit ubuntu "$ver" ubuntu
     ;;
-  fedora)
-    emit fedora "$ver" fedora
-    ;;
-  rhel|rocky|almalinux|centos)
-    emit rhel "$ver" "$id_lower"
+  debian)
+    emit debian "$ver" debian
     ;;
   *)
     # Fall back to ID_LIKE family hint (e.g., derivatives).
     like_lower=$(printf '%s' "${ID_LIKE:-}" | tr '[:upper:]' '[:lower:]')
     case " $like_lower " in
-      *" rhel "*|*" fedora "*) emit rhel "$ver" "$id_lower" ;;
-      *" debian "*|*" ubuntu "*) emit ubuntu "$ver" "$id_lower" ;;
+      *" ubuntu "*) emit ubuntu "$ver" "$id_lower" ;;
+      *" debian "*) emit ubuntu "$ver" "$id_lower" ;;
       *) emit unsupported "$ver" "$id_lower" ;;
     esac
     ;;

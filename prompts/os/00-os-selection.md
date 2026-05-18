@@ -4,17 +4,16 @@
 
 Confirm the target host distribution before any other `prompts/os/` or `prompts/tools/` spoke runs. This prompt detects the OS family with `scripts/os-detect.sh`, exports `CORTEX_OS_FAMILY` for the rest of the prompt sequence, and pins the supported version matrix.
 
-All downstream prompts branch on `CORTEX_OS_FAMILY`. Distro-sensitive operations (package install, repo registration, firewall, SELinux) are routed through `scripts/pkg.sh`.
+All downstream prompts branch on `CORTEX_OS_FAMILY`. Distro-sensitive operations (package install, repo registration, firewall) are routed through `scripts/pkg.sh`.
 
 ## Supported matrix
 
 | Family | Versions |
 |---|---|
-| `ubuntu` | 22.04, 24.04 |
-| `fedora` | 40, 41, 42 |
-| `rhel` | RHEL 9, RHEL 10, Rocky 9, Rocky 10, AlmaLinux 9, AlmaLinux 10 |
+| `ubuntu` | 24.04 LTS, 25.x (latest) |
+| `debian` | 13 (Trixie) |
 
-`scripts/os-detect.sh` normalizes Rocky, AlmaLinux, and CentOS Stream to the `rhel` family. Anything not on this list emits `unsupported` and HALTs the prompt sequence.
+`scripts/os-detect.sh` normalizes derivatives via `ID_LIKE` where possible. Anything not on this list emits `unsupported` and HALTs the prompt sequence.
 
 ## Steps
 
@@ -24,12 +23,12 @@ All downstream prompts branch on `CORTEX_OS_FAMILY`. Distro-sensitive operations
 bash scripts/os-detect.sh
 ```
 
-Expected output: a single line `<family> <version>`, for example:
+Expected output: a single line `<family> <version> <subfamily>`, for example:
 
 ```text
-ubuntu 24.04
-fedora 41
-rhel 9.4
+ubuntu 24.04 ubuntu
+ubuntu 25.04 ubuntu
+debian 13 debian
 ```
 
 If the output begins with `unsupported`, HALT. Open an issue describing the host (`cat /etc/os-release`) before continuing.
@@ -37,7 +36,7 @@ If the output begins with `unsupported`, HALT. Open an issue describing the host
 ### Step 2 — Export the family
 
 ```bash
-read -r CORTEX_OS_FAMILY CORTEX_OS_VERSION < <(bash scripts/os-detect.sh)
+read -r CORTEX_OS_FAMILY CORTEX_OS_VERSION _ < <(bash scripts/os-detect.sh)
 export CORTEX_OS_FAMILY CORTEX_OS_VERSION
 printf 'family=%s version=%s\n' "$CORTEX_OS_FAMILY" "$CORTEX_OS_VERSION"
 ```
@@ -56,7 +55,7 @@ Cross-check the detected `<family> <version>` against the supported matrix above
 
 Operator: confirm the following before the agent proceeds.
 
-1. `bash scripts/os-detect.sh` printed one of `ubuntu`, `fedora`, or `rhel` as the family.
+1. `bash scripts/os-detect.sh` printed `ubuntu` or `debian` as the family.
 2. The printed version is present in the supported matrix above.
 3. `CORTEX_OS_FAMILY` and `CORTEX_OS_VERSION` are exported in the current shell.
 4. `echo "$CORTEX_OS_FAMILY"` returns the same family as Step 1.
@@ -68,5 +67,4 @@ Type "confirmed" to proceed.
 Branch on `CORTEX_OS_FAMILY`:
 
 - `ubuntu` → `prompts/os/10-ubuntu-prereqs.md`
-- `fedora` → `prompts/os/10-fedora-prereqs.md`
-- `rhel` → `prompts/os/10-rhel-prereqs.md`
+- `debian` → `prompts/os/10-ubuntu-prereqs.md` (apt-based path; same prereqs)

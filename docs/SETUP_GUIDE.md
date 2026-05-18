@@ -16,7 +16,7 @@
 
 | Requirement | Recommended value |
 |---|---|
-| OS | Ubuntu 22.04 / 24.04 LTS, Fedora 40 / 41 / 42, or RHEL-family 9 / 10 (Rocky, Alma) |
+| OS | Ubuntu 24.04 LTS, Ubuntu 25.x, or Debian 13 (Trixie) |
 | CPU | 4+ cores |
 | Memory | 16 GB+ |
 | Disk | 200 GB+ SSD |
@@ -28,9 +28,7 @@ Before running any module, pick a distro family with
 [`prompts/os/00-os-selection.md`](../prompts/os/00-os-selection.md);
 it exports `CORTEX_OS_FAMILY` and gates every package-management call
 through `scripts/pkg.sh`. Distro-specific prereqs live in
-`prompts/os/10-{ubuntu,fedora,rhel}-prereqs.md` (and
-[FEDORA-SUPPORT.md](FEDORA-SUPPORT.md) /
-[RHEL-FAMILY-SUPPORT.md](RHEL-FAMILY-SUPPORT.md) for long-form notes).
+`prompts/os/10-ubuntu-prereqs.md` (used for both Ubuntu and Debian — apt-based path).
 
 ## Environment variables
 

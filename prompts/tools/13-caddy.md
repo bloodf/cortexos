@@ -25,44 +25,19 @@ Operator: confirm DNS is propagated (`dig +short {DOMAIN}` returns the correct I
 ## Install
 
 ```bash
-if [ "$(pkg_family)" = "ubuntu" ]; then
-  pkg_install debian-keyring debian-archive-keyring apt-transport-https curl
-  curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | \
-    sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-  curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | \
-    sudo tee /etc/apt/sources.list.d/caddy-stable.list
-  sudo apt-get update -y -qq
-  pkg_install caddy
-elif [ "$(pkg_family)" = "fedora" ]; then
-  sudo dnf copr enable -y @caddy/caddy
-  pkg_install caddy
-elif [ "$(pkg_family)" = "rhel" ]; then
-  # CRB + EPEL are enabled by prompts/os/10-rhel-prereqs.md.
-  # EPEL ships `caddy` for el9; prefer it over copr (copr coverage for
-  # rhel9 is patchy on Rocky/Alma — see docs/RHEL-FAMILY-SUPPORT.md).
-  case "$(pkg_subfamily)" in
-    rocky|almalinux|centos)
-      # EPEL caddy is reliable here.
-      pkg_install caddy
-      ;;
-    rhel)
-      # Try EPEL first; fall back to copr if the operator opted in to coprs.
-      pkg_install caddy || {
-        sudo dnf copr enable -y @caddy/caddy
-        pkg_install caddy
-      }
-      ;;
-    *)
-      pkg_install caddy
-      ;;
-  esac
-fi
+pkg_install debian-keyring debian-archive-keyring apt-transport-https curl
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | \
+  sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | \
+  sudo tee /etc/apt/sources.list.d/caddy-stable.list
+sudo apt-get update -y -qq
+pkg_install caddy
 ```
 
-Verify package install (family-appropriate):
+Verify package install:
 
 ```bash
-if [ "$(pkg_family)" = "ubuntu" ]; then dpkg -s caddy >/dev/null; else rpm -qi caddy >/dev/null; fi
+dpkg -s caddy >/dev/null
 ```
 
 ## Configure

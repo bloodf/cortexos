@@ -33,10 +33,7 @@
 
 ## OS / install
 
-| Document | Purpose |
-|---|---|
-| [FEDORA-SUPPORT.md](FEDORA-SUPPORT.md) | Fedora 40/41/42 support: prerequisites, SELinux, firewalld, known-good installs |
-| [RHEL-FAMILY-SUPPORT.md](RHEL-FAMILY-SUPPORT.md) | RHEL / Rocky / AlmaLinux 9 and 10 support (filled in P6) |
+Supported host OS families: Ubuntu 24.04 LTS, Ubuntu 25.x, Debian 13 (Trixie). OS routing handled by `scripts/os-detect.sh` + `scripts/pkg.sh`.
 
 ## Operations manuals
 

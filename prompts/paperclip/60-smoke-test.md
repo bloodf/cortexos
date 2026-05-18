@@ -85,7 +85,7 @@ sudo -u cortex env $(sudo grep -v '^#' /opt/cortexos/.secrets/paperclip.env | xa
   "failure":  null | { "step": 11, "tag": "SMOKE-FAIL:consumer-no-claim", "evidence": "…" },
   "git_sha":  "abc1234…",
   "paperclip_pinned_sha": "…",
-  "distro":   "fedora-41",
+  "distro":   "ubuntu-24.04",
   "role":     "ENG-BACKEND"
 }
 ```
@@ -120,7 +120,6 @@ Use the `failure.tag` to jump to the right remediation. All tags share the
 | `approval-no-timebox`        | Approval queue is unbounded. Check policy.                        |
 | `budget-not-enforced`        | Consumer ignores budget cap. Cost accounting regression.          |
 | `os-detect-fail` / `pkg-dispatch-fail` | Distro foundation regression (P0).                      |
-| `selinux-not-enforcing`      | Fedora/RHEL host in permissive. Set `selinux_set enforcing`.       |
 
 ## Resuming
 

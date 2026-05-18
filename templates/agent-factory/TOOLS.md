@@ -2,7 +2,7 @@
 
 ## VPS Platform
 
-- **OS**: Ubuntu 22.04+ / 24.04+, Fedora 40+, RHEL 9+/10, Rocky 9+/10, AlmaLinux 9+/10. OS-family routing handled by `scripts/os-detect.sh` + `scripts/pkg.sh`.
+- **OS**: Ubuntu 24.04 LTS, Ubuntu 25.x, or Debian 13 (Trixie). OS-family routing handled by `scripts/os-detect.sh` + `scripts/pkg.sh`.
 - **Container Runtime**: Docker/Docker Compose policy is split by surface:
   - For **application projects**: Docker/Docker Compose is allowed only in CI/CD scripts and ephemeral validation jobs. Dev, staging, and production infrastructure is provisioned with Terraform through Floci, not Compose.
   - For the **cortex agent and CortexOS itself**: Docker Compose is the **primary deployment mechanism** for VPS-resident services under `$CORTEX_ROOT/stacks/`. The cortex agent maintains, deploys, and operates these stacks directly. Floci/Terraform is reserved for app projects, not for the CortexOS substrate.
