@@ -1,0 +1,142 @@
+# distro-matrix.yml — verify scripts/os-detect.sh and scripts/pkg.sh dispatch
+# correctly on every supported distro family.
+#
+# Each job runs the os-detect script inside a stock container image and
+# asserts the emitted <family> token. Bats tests for os-detect.sh run on
+# Ubuntu (the GitHub runner) once, since they exercise fixtures rather than
+# the live host.
+#
+# Phase ownership:
+#   P1 — ubuntu-22.04, ubuntu-24.04, fedora-41
+#   P6 — rocky-9, alma-9 (this commit)
+#   future — rhel-9 (gated on self-hosted runner with subscription)
+
+name: distro-matrix
+
+on:
+  push:
+    paths:
+      - "scripts/os-detect.sh"
+      - "scripts/pkg.sh"
+      - "scripts/__tests__/os-detect.bats"
+      - ".github/workflows/distro-matrix.yml"
+  pull_request:
+    paths:
+      - "scripts/os-detect.sh"
+      - "scripts/pkg.sh"
+      - "scripts/__tests__/os-detect.bats"
+      - ".github/workflows/distro-matrix.yml"
+  workflow_dispatch: {}
+
+jobs:
+  bats:
+    name: bats / os-detect fixtures
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install bats
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y bats
+      - name: Lint scripts
+        run: |
+          bash -n scripts/os-detect.sh
+          bash -n scripts/pkg.sh
+      - name: Run bats
+        run: bats scripts/__tests__/os-detect.bats
+
+  ubuntu-2204:
+    name: live / ubuntu-22.04
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detect
+        run: |
+          bash -n scripts/os-detect.sh
+          bash -n scripts/pkg.sh
+          out=$(bash scripts/os-detect.sh)
+          echo "out=$out"
+          test "$(echo "$out" | awk '{print $1}')" = "ubuntu"
+
+  ubuntu-2404:
+    name: live / ubuntu-24.04
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detect
+        run: |
+          bash -n scripts/os-detect.sh
+          bash -n scripts/pkg.sh
+          out=$(bash scripts/os-detect.sh)
+          echo "out=$out"
+          test "$(echo "$out" | awk '{print $1}')" = "ubuntu"
+
+  fedora-41:
+    name: container / fedora:41
+    runs-on: ubuntu-24.04
+    container:
+      image: fedora:41
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install minimal toolchain
+        run: dnf install -y -q bash awk gawk
+      - name: Detect
+        run: |
+          bash -n scripts/os-detect.sh
+          bash -n scripts/pkg.sh
+          out=$(bash scripts/os-detect.sh)
+          echo "out=$out"
+          test "$(echo "$out" | awk '{print $1}')" = "fedora"
+
+  rocky-9:
+    name: container / rockylinux:9
+    runs-on: ubuntu-24.04
+    container:
+      image: rockylinux:9
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install minimal toolchain
+        run: dnf install -y -q bash gawk
+      - name: Detect
+        run: |
+          bash -n scripts/os-detect.sh
+          bash -n scripts/pkg.sh
+          out=$(bash scripts/os-detect.sh)
+          echo "out=$out"
+          test "$(echo "$out" | awk '{print $1}')" = "rhel"
+          test "$(echo "$out" | awk '{print $3}')" = "rocky"
+
+  alma-9:
+    name: container / almalinux:9
+    runs-on: ubuntu-24.04
+    container:
+      image: almalinux:9
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install minimal toolchain
+        run: dnf install -y -q bash gawk
+      - name: Detect
+        run: |
+          bash -n scripts/os-detect.sh
+          bash -n scripts/pkg.sh
+          out=$(bash scripts/os-detect.sh)
+          echo "out=$out"
+          test "$(echo "$out" | awk '{print $1}')" = "rhel"
+          test "$(echo "$out" | awk '{print $3}')" = "almalinux"
+
+  # RHEL job gated: requires self-hosted runner with active subscription.
+  # Uncomment when an entitled runner is available and labeled `self-hosted-rhel9`.
+  #
+  # rhel-9:
+  #   name: live / rhel-9 (self-hosted)
+  #   runs-on: [self-hosted, rhel9]
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Detect
+  #       run: |
+  #         bash -n scripts/os-detect.sh
+  #         bash -n scripts/pkg.sh
+  #         out=$(bash scripts/os-detect.sh)
+  #         echo "out=$out"
+  #         test "$(echo "$out" | awk '{print $1}')" = "rhel"
+  #         test "$(echo "$out" | awk '{print $3}')" = "rhel"
