@@ -30,6 +30,13 @@
 | [MESSAGING.md](MESSAGING.md) | Slack, Telegram, and notification rendering patterns |
 | [PROJECT-BOTS.md](PROJECT-BOTS.md) | Project bot registration and per-project credentials |
 
+## OS / install
+
+| Document | Purpose |
+|---|---|
+| [FEDORA-SUPPORT.md](FEDORA-SUPPORT.md) | Fedora 40/41/42 support: prerequisites, SELinux, firewalld, known-good installs |
+| [RHEL-FAMILY-SUPPORT.md](RHEL-FAMILY-SUPPORT.md) | RHEL / Rocky / AlmaLinux 9 and 10 support (filled in P6) |
+
 ## Operations manuals
 
 | Document | Purpose |
