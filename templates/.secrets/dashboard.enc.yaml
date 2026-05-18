@@ -1,0 +1,13 @@
+# SOPS-encrypted secrets for cortex-dashboard.
+# Before commit: `sops -e -i templates/.secrets/dashboard.enc.yaml`
+# Committed plaintext as TEMPLATE. Operators encrypt with their real age recipients.
+PORT: "3080"
+NODE_ENV: "production"
+HOSTNAME: "0.0.0.0"
+DASHBOARD_ORIGIN: "<replace-me>"
+DB_HOST: "127.0.0.1"
+DB_PORT: "5432"
+DB_NAME: "cortex_dashboard"
+DB_USER: "dashboard"
+DB_PASSWORD: "<replace-me>"
+CORTEX_MASTER_KEY: "<replace-me>"

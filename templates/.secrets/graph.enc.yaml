@@ -1,0 +1,9 @@
+# SOPS-encrypted secrets for cortex-graph (V7 forward-looking).
+# Before commit: `sops -e -i templates/.secrets/graph.enc.yaml`
+# Committed plaintext as TEMPLATE. Operators encrypt with their real age recipients.
+GRAPH_PORT: "8090"
+GRAPH_BEARER: "<replace-me>"
+OPENAI_API_KEY: "<replace-me>"
+PG_DSN: "postgres://cortex:<replace-me>@127.0.0.1:5432/cortex_graph"
+NATS_URL: "nats://127.0.0.1:4222"
+CORTEX_NATS_HMAC: "<replace-me>"

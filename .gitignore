@@ -80,7 +80,15 @@ lancedb/
 # ============================================
 # Secrets & Credentials
 # ============================================
-.secrets/
+# Runtime decrypted secrets on host — never committed.
+/opt/cortexos/.secrets/
+# Catch-all for stray local .secrets directories at repo root.
+/.secrets/
+# Allowlist under templates/.secrets: SOPS-encrypted YAML and *.env.example
+# templates MUST ship in git. Plaintext .env files are forbidden.
+templates/.secrets/*.env
+!templates/.secrets/*.env.example
+!templates/.secrets/*.enc.yaml
 *.env
 *.env.*
 !*.env.example
