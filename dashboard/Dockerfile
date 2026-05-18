@@ -5,8 +5,21 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
-RUN npx next build --webpack
-RUN npx esbuild server.ts --bundle --platform=node --packages=external --outfile=server.compiled.js
+# Build Next.js with turbopack producing .next/standalone + .next/static.
+RUN npx next build --turbopack
+# Replace standalone's stock server with our custom server (Socket.IO + workers).
+RUN npx esbuild server.ts \
+    --bundle \
+    --platform=node \
+    --target=node22 \
+    --format=cjs \
+    --packages=external \
+    --outfile=.next/standalone/server.js
+# Standalone does not copy public/ or static/ — stage them next to server.js.
+RUN cp -r public .next/standalone/public 2>/dev/null || true
+RUN mkdir -p .next/standalone/.next && cp -r .next/static .next/standalone/.next/static
+RUN cp -r messages .next/standalone/messages 2>/dev/null || true
+RUN cp next.config.ts .next/standalone/next.config.ts
 
 FROM base AS runner
 WORKDIR /app
@@ -19,18 +32,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     procps \
     iproute2 \
     curl \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /app/package.json /app/package-lock.json ./
-RUN npm ci --omit=dev
-
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/server.compiled.js ./server.js
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/next.config.ts ./next.config.ts
-COPY migrations ./migrations
+# Standalone bundle ships its own node_modules. No npm ci needed at runtime.
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/migrations ./migrations
+COPY --from=builder /app/scripts ./scripts
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
-RUN chmod +x docker-entrypoint.sh
+RUN chmod +x docker-entrypoint.sh scripts/*.sh 2>/dev/null || true
 
 EXPOSE 3080
 
