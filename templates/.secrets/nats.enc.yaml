@@ -1,0 +1,8 @@
+# SOPS-encrypted secrets for NATS JetStream broker.
+# Before commit: `sops -e -i templates/.secrets/nats.enc.yaml`
+# Committed plaintext as TEMPLATE. Operators encrypt with their real age recipients.
+NATS_ADMIN_USER: "admin"
+NATS_ADMIN_PASSWORD: "<replace-me>"
+NATS_CORTEX_USER: "cortex"
+NATS_CORTEX_PASSWORD: "<replace-me>"
+CORTEX_NATS_HMAC: "<replace-me>"

@@ -104,10 +104,24 @@ sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='${DB_NAME}'
   || sudo -u postgres createdb -O "${DB_USER}" "${DB_NAME}"
 
 echo "=== [6/7] Scaffolding ${CORTEX_ROOT} layout ==="
-sudo mkdir -p "${SECRETS_DIR}" "${DASHBOARD_DIR}" "${BACKUPS_DIR}"
+sudo mkdir -p "${SECRETS_DIR}" "${DASHBOARD_DIR}" "${BACKUPS_DIR}" "${CORTEX_ROOT}/.secrets"
 sudo chown root:root "${SECRETS_DIR}"
 sudo chmod 0700 "${SECRETS_DIR}"
+sudo chmod 0700 "${CORTEX_ROOT}/.secrets"
 sudo chown -R "${USER}:${USER}" "${DASHBOARD_DIR}" "${BACKUPS_DIR}"
+
+# SOPS decrypt of templates/.secrets/*.enc.yaml -> /opt/cortexos/.secrets/*.env
+# Prereq: prompts/tools/12a-sops-bootstrap.md must have placed the host age key.
+SOPS_AGE_KEY_FILE_DEFAULT="${CORTEX_ROOT}/.age/host.key"
+SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:-${SOPS_AGE_KEY_FILE_DEFAULT}}"
+if [[ -f "${SOPS_AGE_KEY_FILE}" ]] && command -v sops >/dev/null 2>&1; then
+  echo "  Decrypting templates/.secrets/*.enc.yaml -> ${CORTEX_ROOT}/.secrets/"
+  sudo -E SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE}" \
+    bash "${__repo_root}/scripts/secrets-decrypt.sh"
+else
+  echo "  WARN: ${SOPS_AGE_KEY_FILE} or sops missing — skipping decrypt."
+  echo "        Run prompts/tools/12a-sops-bootstrap.md before starting services."
+fi
 
 if [[ ! -f "$ENV_FILE" ]]; then
   MASTER_KEY="${CORTEX_MASTER_KEY:-$(openssl rand -hex 32)}"
