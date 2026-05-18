@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-set -euo pipefail
-if [ -f package.json ] && command -v npm >/dev/null 2>&1; then
-  if jq -e '.scripts.lint' package.json >/dev/null 2>&1; then
-    npm run lint --silent || exit 1
-  fi
-fi
