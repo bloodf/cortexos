@@ -30,24 +30,14 @@ Type "confirmed" to proceed.
 ## Install
 
 ```bash
-if [ "$(pkg_family)" = "ubuntu" ]; then
-  curl -fsSL https://tailscale.com/install.sh | sh
-elif [ "$(pkg_family)" = "fedora" ]; then
-  sudo dnf config-manager --add-repo https://pkgs.tailscale.com/stable/fedora/tailscale.repo
-  pkg_install tailscale
-  sudo systemctl enable --now tailscaled
-elif [ "$(pkg_family)" = "rhel" ]; then
-  # RHEL: enable CRB+EPEL via prompts/os/10-rhel-prereqs.md (P6 stub)
-  sudo dnf config-manager --add-repo https://pkgs.tailscale.com/stable/rhel/$(rpm -E %rhel)/tailscale.repo
-  pkg_install tailscale
-  sudo systemctl enable --now tailscaled
-fi
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo systemctl enable --now tailscaled
 ```
 
-Verify package install (family-appropriate):
+Verify package install:
 
 ```bash
-if [ "$(pkg_family)" = "ubuntu" ]; then dpkg -s tailscale >/dev/null; else rpm -qi tailscale >/dev/null; fi
+dpkg -s tailscale >/dev/null
 ```
 
 ## Configure

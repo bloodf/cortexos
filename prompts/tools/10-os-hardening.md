@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Apply baseline security hardening to the VPS: disable root SSH login, configure unattended-upgrades / dnf-automatic, set kernel parameters, and restrict default services. Works on Ubuntu, Fedora, and RHEL families.
+Apply baseline security hardening to the VPS: disable root SSH login, configure unattended-upgrades, set kernel parameters, and restrict default services. Supports Ubuntu (24.04, 25.x) and Debian 13.
 
 ## Prerequisites
 
@@ -26,18 +26,13 @@ Operator: confirm you are connected as a non-root sudo user and that `/etc/ssh/s
 ## Install
 
 ```bash
-if [ "$(pkg_family)" = "ubuntu" ]; then
-  pkg_install unattended-upgrades ufw fail2ban-common
-elif [ "$(pkg_family)" = "fedora" ] || [ "$(pkg_family)" = "rhel" ]; then
-  pkg_install dnf-automatic firewalld fail2ban
-  # SELinux: see docs/FEDORA-SUPPORT.md for AVC triage
-fi
+pkg_install unattended-upgrades ufw fail2ban
 ```
 
-Verify package install (family-appropriate):
+Verify package install:
 
 ```bash
-if [ "$(pkg_family)" = "ubuntu" ]; then dpkg -s ufw >/dev/null; else rpm -qi firewalld >/dev/null; fi
+dpkg -s ufw >/dev/null
 ```
 
 ## Configure
@@ -60,25 +55,16 @@ sudo systemctl reload sshd
 ### Unattended upgrades
 
 ```bash
-if [ "$(pkg_family)" = "ubuntu" ]; then
-  sudo dpkg-reconfigure -plow unattended-upgrades
-elif [ "$(pkg_family)" = "fedora" ] || [ "$(pkg_family)" = "rhel" ]; then
-  sudo systemctl enable --now dnf-automatic.timer
-fi
+sudo dpkg-reconfigure -plow unattended-upgrades
 ```
 
 ### Firewall baseline rules
 
 ```bash
-if [ "$(pkg_family)" = "ubuntu" ]; then
-  sudo ufw default deny incoming
-  sudo ufw default allow outgoing
-  firewall_open {SSH_PORT} tcp
-  sudo ufw --force enable
-else
-  sudo systemctl enable --now firewalld
-  firewall_open {SSH_PORT} tcp
-fi
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+firewall_open {SSH_PORT} tcp
+sudo ufw --force enable
 ```
 
 Replace `{SSH_PORT}` with your SSH port (default `22`).

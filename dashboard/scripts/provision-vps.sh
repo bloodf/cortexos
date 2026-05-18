@@ -53,31 +53,15 @@ DASHBOARD_ORIGIN_DEFAULT="http://${LAN_IP:-127.0.0.1}:3080"
 
 echo "=== [1/7] Refreshing package index ==="
 case "$(pkg_family)" in
-  ubuntu)      sudo apt-get update -y ;;
-  fedora|rhel) sudo dnf -y makecache ;;
+  ubuntu|debian) sudo apt-get update -y ;;
+  *) echo "Unsupported OS family: $(pkg_family)" >&2; exit 3 ;;
 esac
 
 echo "=== [2/7] Installing baseline packages ==="
-case "$(pkg_family)" in
-  ubuntu)
-    pkg_install \
-      curl ca-certificates gnupg lsb-release build-essential \
-      postgresql postgresql-contrib \
-      rsync ufw git jq
-    ;;
-  fedora|rhel)
-    # Fedora/RHEL: no ufw (firewalld assumed via prereq prompts); base build group differs.
-    pkg_install \
-      curl ca-certificates gnupg2 \
-      @development-tools \
-      postgresql-server postgresql-contrib \
-      rsync git jq
-    # Initialize Postgres data dir if needed (Fedora/RHEL skip it by default).
-    if [[ ! -d /var/lib/pgsql/data/base ]]; then
-      sudo postgresql-setup --initdb || true
-    fi
-    ;;
-esac
+pkg_install \
+  curl ca-certificates gnupg lsb-release build-essential \
+  postgresql postgresql-contrib \
+  rsync ufw git jq
 
 echo "=== [3/7] Installing Node 24 via linuxbrew (idempotent) ==="
 if [[ ! -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
@@ -153,21 +137,13 @@ fi
 if [[ $WITH_CADDY -eq 1 ]]; then
   echo "=== Installing Caddy ($(pkg_family)) ==="
   if ! command -v caddy >/dev/null; then
-    case "$(pkg_family)" in
-      ubuntu)
-        pkg_install debian-keyring debian-archive-keyring apt-transport-https
-        curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/gpg.key \
-          | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-        curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt \
-          | sudo tee /etc/apt/sources.list.d/caddy-stable.list >/dev/null
-        sudo apt-get update -y
-        pkg_install caddy
-        ;;
-      fedora|rhel)
-        sudo dnf copr enable -y @caddy/caddy
-        pkg_install caddy
-        ;;
-    esac
+    pkg_install debian-keyring debian-archive-keyring apt-transport-https
+    curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/gpg.key \
+      | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+    curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt \
+      | sudo tee /etc/apt/sources.list.d/caddy-stable.list >/dev/null
+    sudo apt-get update -y
+    pkg_install caddy
   fi
   sudo systemctl enable --now caddy
   # Open HTTP/HTTPS in firewall (no-op on UFW if rule already exists).

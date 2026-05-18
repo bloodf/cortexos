@@ -7,7 +7,7 @@ Install Docker Engine and Docker Compose plugin from the official Docker apt rep
 ## Prerequisites
 
 - `10-os-hardening.md` completed.
-- Host firewall active (ufw on Ubuntu, firewalld on Fedora/RHEL).
+- Host firewall active (ufw on Ubuntu/Debian).
 
 ## Distro selection
 
@@ -19,46 +19,33 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 
 ## CHECKPOINT 1
 
-Operator: confirm the host matches a supported family/version (Ubuntu 22.04/24.04, Fedora 40-42, or RHEL/Rocky/Alma 9-10) and no prior Docker installation exists (run `docker --version 2>/dev/null || echo "not installed"`). Type "confirmed" to proceed.
+Operator: confirm the host matches a supported family/version (Ubuntu 24.04, Ubuntu 25.x, or Debian 13 Trixie) and no prior Docker installation exists (run `docker --version 2>/dev/null || echo "not installed"`). Type "confirmed" to proceed.
 
 ## Install
 
 ```bash
-if [ "$(pkg_family)" = "ubuntu" ]; then
-  pkg_install ca-certificates curl gnupg lsb-release
+pkg_install ca-certificates curl gnupg lsb-release
 
-  sudo install -m 0755 -d /etc/apt/keyrings
-  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
-    sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-  sudo chmod a+r /etc/apt/keyrings/docker.gpg
+sudo install -m 0755 -d /etc/apt/keyrings
+DOCKER_REPO_PATH="$(. /etc/os-release && echo "$ID")"
+curl -fsSL "https://download.docker.com/linux/${DOCKER_REPO_PATH}/gpg" | \
+  sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
 
-  echo \
-    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
-    https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | \
-    sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-  sudo apt-get update -y -qq
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+  https://download.docker.com/linux/${DOCKER_REPO_PATH} $(lsb_release -cs) stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update -y -qq
 
-  pkg_install docker-ce docker-ce-cli containerd.io \
-    docker-buildx-plugin docker-compose-plugin
-
-elif [ "$(pkg_family)" = "fedora" ]; then
-  pkg_install dnf-plugins-core
-  sudo dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
-  pkg_install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-  # SELinux: see docs/FEDORA-SUPPORT.md for AVC triage
-
-elif [ "$(pkg_family)" = "rhel" ]; then
-  # RHEL: enable CRB+EPEL via prompts/os/10-rhel-prereqs.md (P6 stub)
-  pkg_install dnf-plugins-core
-  sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-  pkg_install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-fi
+pkg_install docker-ce docker-ce-cli containerd.io \
+  docker-buildx-plugin docker-compose-plugin
 ```
 
-Verify package install (family-appropriate):
+Verify package install:
 
 ```bash
-if [ "$(pkg_family)" = "ubuntu" ]; then dpkg -s docker-ce >/dev/null; else rpm -qi docker-ce >/dev/null; fi
+dpkg -s docker-ce >/dev/null
 ```
 
 ## Configure

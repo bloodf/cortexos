@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # pkg.sh — distro-agnostic package + service + firewall dispatcher.
 #
+# Supported families: ubuntu (Ubuntu 24.04 / 25.x), debian (Debian 13 Trixie).
+#
 # Source this file, then call the public functions:
 #
 #   pkg_install <name> [<name>...]
@@ -9,10 +11,9 @@
 #   service_enable <unit>      # systemctl enable --now
 #   service_restart <unit>
 #   firewall_open <port> [tcp|udp]
-#   selinux_set <permissive|enforcing>   # no-op on ubuntu
-#   pkg_family                  # echoes ubuntu | fedora | rhel | unsupported
-#   pkg_subfamily               # echoes rhel | rocky | almalinux | centos |
-#                               #        ubuntu | fedora | <derivative-id>
+#   selinux_set <permissive|enforcing>   # no-op on ubuntu/debian
+#   pkg_family                  # echoes ubuntu | debian | unsupported
+#   pkg_subfamily               # echoes ubuntu | debian | <derivative-id>
 #
 # All functions return non-zero on failure. Quiet by default; set PKG_DEBUG=1
 # for verbose tracing.
@@ -28,8 +29,6 @@ __pkg_detect() {
     line=$("${__pkg_self_dir}/os-detect.sh")
     __PKG_FAMILY=$(printf '%s' "$line" | awk '{print $1}')
     __PKG_VERSION=$(printf '%s' "$line" | awk '{print $2}')
-    # Third token is the subfamily (rhel | rocky | almalinux | centos | ...).
-    # Older os-detect.sh emits only two tokens — fall back to family.
     __PKG_SUBFAMILY=$(printf '%s' "$line" | awk '{print $3}')
     [ -n "$__PKG_SUBFAMILY" ] || __PKG_SUBFAMILY="$__PKG_FAMILY"
     export __PKG_FAMILY __PKG_VERSION __PKG_SUBFAMILY
@@ -57,27 +56,11 @@ pkg_subfamily() {
 
 # pkg_module_enable <module:stream>
 #
-# Enables a dnf module stream. No-op on ubuntu. On rhel-family, some hosts
-# (RHEL 10, minimal images) lack the module entirely — return non-zero so
-# callers can fall back (e.g., NodeSource for nodejs).
+# No-op on debian-family hosts (apt has no module streams). Returns 0.
 pkg_module_enable() {
   __pkg_detect
-  local stream="$1"
   case "$__PKG_FAMILY" in
-    ubuntu) return 0 ;;
-    fedora)
-      sudo dnf module reset -y "${stream%%:*}" >/dev/null 2>&1 || true
-      sudo dnf module enable -y "$stream"
-      ;;
-    rhel)
-      # RHEL/Rocky/Alma 9 ship a subset of streams; 10 dropped modules entirely.
-      if ! sudo dnf module list "${stream%%:*}" >/dev/null 2>&1; then
-        __pkg_log "module ${stream} unavailable on $__PKG_SUBFAMILY $__PKG_VERSION"
-        return 1
-      fi
-      sudo dnf module reset -y "${stream%%:*}" >/dev/null 2>&1 || true
-      sudo dnf module enable -y "$stream"
-      ;;
+    ubuntu|debian) return 0 ;;
     *)
       echo "pkg_module_enable: unsupported family '$__PKG_FAMILY'" >&2
       return 3
@@ -90,12 +73,9 @@ pkg_install() {
   [ $# -gt 0 ] || { echo "pkg_install: requires at least one package" >&2; return 2; }
   __pkg_log "install ($__PKG_FAMILY): $*"
   case "$__PKG_FAMILY" in
-    ubuntu)
+    ubuntu|debian)
       DEBIAN_FRONTEND=noninteractive sudo -E apt-get update -y -qq
       DEBIAN_FRONTEND=noninteractive sudo -E apt-get install -y --no-install-recommends "$@"
-      ;;
-    fedora|rhel)
-      sudo dnf install -y "$@"
       ;;
     *)
       echo "pkg_install: unsupported family '$__PKG_FAMILY'" >&2
@@ -104,14 +84,12 @@ pkg_install() {
   esac
 }
 
-# pkg_repo_add takes family-specific positional args because repo registration
-# is fundamentally different per package manager:
+# pkg_repo_add takes family-specific positional args:
 #
 #   ubuntu:  pkg_repo_add ubuntu  <list-name> <deb-line>            [key-url]
-#   fedora:  pkg_repo_add fedora  <repo-file-basename> <repo-url>
-#   rhel:    pkg_repo_add rhel    <repo-file-basename> <repo-url>   [--enable-crb]
+#   debian:  pkg_repo_add debian  <list-name> <deb-line>            [key-url]
 #
-# Each branch accepts only its own family; passing the wrong family is a hard error.
+# Each branch accepts only its own family; passing a different family is a no-op.
 pkg_repo_add() {
   __pkg_detect
   local target_family="$1"; shift
@@ -120,28 +98,13 @@ pkg_repo_add() {
     return 0
   fi
   case "$target_family" in
-    ubuntu)
+    ubuntu|debian)
       local list="$1" deb_line="$2" key_url="${3:-}"
       if [ -n "$key_url" ]; then
         pkg_key_import "$key_url" "/etc/apt/keyrings/${list}.gpg"
       fi
       echo "$deb_line" | sudo tee "/etc/apt/sources.list.d/${list}.list" >/dev/null
       sudo apt-get update -y -qq
-      ;;
-    fedora|rhel)
-      local repo_name="$1" repo_url="$2"; shift 2
-      sudo dnf config-manager addrepo --from-repofile="$repo_url" || \
-        sudo dnf config-manager --add-repo "$repo_url"
-      # Optional flags
-      while [ $# -gt 0 ]; do
-        case "$1" in
-          --enable-crb)
-            sudo dnf config-manager --set-enabled crb 2>/dev/null || \
-              sudo dnf config-manager --set-enabled powertools 2>/dev/null || true
-            ;;
-        esac
-        shift
-      done
       ;;
     *)
       echo "pkg_repo_add: unsupported family '$target_family'" >&2
@@ -154,14 +117,11 @@ pkg_key_import() {
   __pkg_detect
   local url="$1" dest="${2:-}"
   case "$__PKG_FAMILY" in
-    ubuntu)
+    ubuntu|debian)
       [ -n "$dest" ] || dest="/etc/apt/keyrings/$(basename "$url" | sed 's/\.[^.]*$//').gpg"
       sudo install -m 0755 -d "$(dirname "$dest")"
       curl -fsSL "$url" | sudo gpg --dearmor -o "$dest"
       sudo chmod 0644 "$dest"
-      ;;
-    fedora|rhel)
-      sudo rpm --import "$url"
       ;;
     *)
       echo "pkg_key_import: unsupported family '$__PKG_FAMILY'" >&2
@@ -186,12 +146,8 @@ firewall_open() {
   __pkg_detect
   local port="$1" proto="${2:-tcp}"
   case "$__PKG_FAMILY" in
-    ubuntu)
+    ubuntu|debian)
       sudo ufw allow "${port}/${proto}" || true
-      ;;
-    fedora|rhel)
-      sudo firewall-cmd --permanent --add-port="${port}/${proto}"
-      sudo firewall-cmd --reload
       ;;
     *)
       echo "firewall_open: unsupported family '$__PKG_FAMILY'" >&2
@@ -204,14 +160,7 @@ selinux_set() {
   __pkg_detect
   local mode="$1"
   case "$__PKG_FAMILY" in
-    ubuntu) return 0 ;;
-    fedora|rhel)
-      case "$mode" in
-        permissive) sudo setenforce 0 || true ;;
-        enforcing)  sudo setenforce 1 || true ;;
-        *) echo "selinux_set: mode must be permissive|enforcing" >&2; return 2 ;;
-      esac
-      ;;
+    ubuntu|debian) return 0 ;;
     *)
       echo "selinux_set: unsupported family '$__PKG_FAMILY'" >&2
       return 3

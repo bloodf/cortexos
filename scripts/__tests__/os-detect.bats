@@ -31,57 +31,30 @@ ID_LIKE=debian'
   [ "$output" = "ubuntu 24.04 ubuntu" ]
 }
 
-@test "fedora 41 emits 'fedora 41 fedora'" {
-  write_fixture 'ID=fedora
-VERSION_ID=41'
+@test "ubuntu 25.04 emits 'ubuntu 25.04 ubuntu'" {
+  write_fixture 'ID=ubuntu
+VERSION_ID="25.04"
+ID_LIKE=debian'
   run env OSRELEASE="$FIX" "$SCRIPT"
   [ "$status" -eq 0 ]
-  [ "$output" = "fedora 41 fedora" ]
+  [ "$output" = "ubuntu 25.04 ubuntu" ]
 }
 
-@test "rhel 9.4 emits 'rhel 9.4 rhel'" {
-  write_fixture 'ID="rhel"
-VERSION_ID="9.4"
-ID_LIKE="fedora"'
+@test "debian 13 trixie emits 'debian 13 debian'" {
+  write_fixture 'ID=debian
+VERSION_ID="13"'
   run env OSRELEASE="$FIX" "$SCRIPT"
   [ "$status" -eq 0 ]
-  [ "$output" = "rhel 9.4 rhel" ]
+  [ "$output" = "debian 13 debian" ]
 }
 
-@test "rocky 9 emits 'rhel 9.3 rocky'" {
-  write_fixture 'ID="rocky"
-VERSION_ID="9.3"
-ID_LIKE="rhel centos fedora"'
+@test "ID_LIKE ubuntu derivative emits ubuntu family" {
+  write_fixture 'ID="pop"
+VERSION_ID="24.04"
+ID_LIKE="ubuntu debian"'
   run env OSRELEASE="$FIX" "$SCRIPT"
   [ "$status" -eq 0 ]
-  [ "$output" = "rhel 9.3 rocky" ]
-}
-
-@test "almalinux 9 emits 'rhel 9.3 almalinux'" {
-  write_fixture 'ID="almalinux"
-VERSION_ID="9.3"
-ID_LIKE="rhel centos fedora"'
-  run env OSRELEASE="$FIX" "$SCRIPT"
-  [ "$status" -eq 0 ]
-  [ "$output" = "rhel 9.3 almalinux" ]
-}
-
-@test "centos stream emits 'rhel 9 centos'" {
-  write_fixture 'ID="centos"
-VERSION_ID="9"
-ID_LIKE="rhel fedora"'
-  run env OSRELEASE="$FIX" "$SCRIPT"
-  [ "$status" -eq 0 ]
-  [ "$output" = "rhel 9 centos" ]
-}
-
-@test "ID_LIKE rhel derivative emits rhel family" {
-  write_fixture 'ID="oraclelinux"
-VERSION_ID="9.3"
-ID_LIKE="rhel fedora"'
-  run env OSRELEASE="$FIX" "$SCRIPT"
-  [ "$status" -eq 0 ]
-  [ "$output" = "rhel 9.3 oraclelinux" ]
+  [ "$output" = "ubuntu 24.04 pop" ]
 }
 
 @test "missing os-release emits unsupported" {
@@ -98,11 +71,20 @@ VERSION_ID="1.0"'
   [ "$output" = "unsupported 1.0 weirdos" ]
 }
 
-@test "third token is back-compat additive: awk '{print \$1}' still gives family" {
+@test "rhel-family is no longer supported -> unsupported" {
   write_fixture 'ID="rocky"
-VERSION_ID="9.3"'
+VERSION_ID="9.3"
+ID_LIKE="rhel centos fedora"'
+  run env OSRELEASE="$FIX" "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [ "$output" = "unsupported 9.3 rocky" ]
+}
+
+@test "back-compat: awk '{print \$1}' yields family token" {
+  write_fixture 'ID="debian"
+VERSION_ID="13"'
   family="$(env OSRELEASE="$FIX" "$SCRIPT" | awk '{print $1}')"
-  [ "$family" = "rhel" ]
+  [ "$family" = "debian" ]
   version="$(env OSRELEASE="$FIX" "$SCRIPT" | awk '{print $2}')"
-  [ "$version" = "9.3" ]
+  [ "$version" = "13" ]
 }

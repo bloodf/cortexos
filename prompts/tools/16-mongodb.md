@@ -17,12 +17,7 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
-> **Fedora/RHEL note.** MongoDB upstream publishes only RHEL repos (`https://repo.mongodb.org/yum/redhat/$releasever/mongodb-org/7.0/x86_64/`); there is no official Fedora repo. The Docker-Compose stack below sidesteps the repo gap entirely.
->
-> If you need the `mongosh` CLI on the host:
->
-> - **Fedora**: no upstream package — pull `mongosh` from the rhel9 repo manually, or `docker run --rm -it mongo:7 mongosh ...`.
-> - **RHEL / Rocky / AlmaLinux 9**: the upstream `mongodb-org` repo for `rhel9` exists and ships `mongodb-mongosh`. Add the repo file (see <https://www.mongodb.com/docs/manual/tutorial/install-mongodb-on-red-hat/>) and `pkg_install mongodb-mongosh`. See `docs/RHEL-FAMILY-SUPPORT.md` for the package gap table.
+> **Ubuntu/Debian note.** MongoDB is installed via the Docker-Compose stack below. If you need the `mongosh` CLI on the host, install via the official MongoDB apt repo or use `docker run --rm -it mongo:7 mongosh ...`.
 
 ## CHECKPOINT 1
 

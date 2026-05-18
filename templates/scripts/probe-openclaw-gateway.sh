@@ -49,12 +49,11 @@ if [[ ${#missing_tools[@]} -gt 0 ]]; then
     # shellcheck source=/dev/null
     source "${__probe_repo_root}/scripts/pkg.sh"
     case "$(pkg_family)" in
-      ubuntu)      printf '        Install: sudo apt-get install -y %s\n' "${missing_tools[*]}" >&2 ;;
-      fedora|rhel) printf '        Install: sudo dnf install -y %s\n'      "${missing_tools[*]}" >&2 ;;
-      *)           printf '        Install: brew install %s   # macOS / unknown family\n' "${missing_tools[*]}" >&2 ;;
+      ubuntu|debian) printf '        Install: sudo apt-get install -y %s\n' "${missing_tools[*]}" >&2 ;;
+      *)             printf '        Install: brew install %s   # macOS / unknown family\n' "${missing_tools[*]}" >&2 ;;
     esac
   else
-    printf '        Install via your package manager (apt-get install / dnf install / brew install): %s\n' "${missing_tools[*]}" >&2
+    printf '        Install via your package manager (apt-get install / brew install): %s\n' "${missing_tools[*]}" >&2
   fi
   exit 2
 fi

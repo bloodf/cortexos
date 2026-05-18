@@ -17,7 +17,7 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
-> **Python runtime.** LEANN's systemd unit invokes `uvicorn` from the system Python. Install Python deps with `pkg_install python3 python3-pip` (works on Ubuntu, Fedora, RHEL). The `uvicorn` binary itself comes from `pip install uvicorn` inside the LEANN tree or a venv.
+> **Python runtime.** LEANN's systemd unit invokes `uvicorn` from the system Python. Install Python deps with `pkg_install python3 python3-pip` (Ubuntu/Debian). The `uvicorn` binary itself comes from `pip install uvicorn` inside the LEANN tree or a venv.
 
 ## CHECKPOINT 1
 

@@ -17,7 +17,7 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
-> **NATS CLI.** Static binary release at `https://github.com/nats-io/natscli/releases/latest` works on Ubuntu, Fedora, and RHEL alike — prefer it over `brew` on Linux. Pin the version inline (operator pins each run).
+> **NATS CLI.** Static binary release at `https://github.com/nats-io/natscli/releases/latest` works on Ubuntu and Debian — prefer it over `brew` on Linux. Pin the version inline (operator pins each run).
 
 ## CHECKPOINT 1
 
