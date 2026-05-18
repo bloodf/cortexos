@@ -18,7 +18,7 @@ global.setTimeout = function patchedSetTimeout(handler, timeout, ...args) {
 };
 global.setTimeout.__patched = true;
 
-import { connect, StringCodec, AckPolicy, DeliverPolicy, StorageType, nanos } from "nats";
+import { connect, StringCodec, AckPolicy, DeliverPolicy, RetentionPolicy, StorageType, headers as natsHeaders, nanos } from "nats";
 import { createHmac } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
@@ -26,6 +26,7 @@ import http from "node:http";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { envelope as buildCloudEvent, validate as validateCloudEvent, EnvelopeValidationError } from "@cortexos/events";
+import { publishToDlq } from "./lib/dlq.js";
 const execFileP = promisify(execFile);
 
 const CORTEX_REQUIRE_ENVELOPE = process.env.CORTEX_REQUIRE_ENVELOPE === "1";
@@ -387,9 +388,37 @@ function saveThreadState() {
 // ---------------------------------------------------------------------------
 // NATS publish helpers
 // ---------------------------------------------------------------------------
+/**
+ * Extract CloudEvents id from a payload shape. The bridge wraps work events
+ * as `{ data: <CE>, sig }`; status events follow the same shape. Bare
+ * CloudEvents objects expose `.id` directly. Returns null if no id found.
+ */
+function extractCloudEventId(payload) {
+  if (!payload || typeof payload !== "object") return null;
+  if (typeof payload.id === "string" && payload.specversion === "1.0") return payload.id;
+  if (payload.data && typeof payload.data === "object" && typeof payload.data.id === "string" && payload.data.specversion === "1.0") {
+    return payload.data.id;
+  }
+  return null;
+}
+
+function buildPublishOpts(payload) {
+  const id = extractCloudEventId(payload);
+  if (!id) return undefined;
+  const h = natsHeaders();
+  h.set("Nats-Msg-Id", id);
+  return { headers: h };
+}
+
 function publish(subject, payload) {
   if (!nc || nc.isClosed()) return;
-  nc.publish(subject, sc.encode(JSON.stringify(payload)));
+  // Best-effort dedup header. Core publish accepts headers via nc.publish opts.
+  const opts = buildPublishOpts(payload);
+  if (opts) {
+    nc.publish(subject, sc.encode(JSON.stringify(payload)), opts);
+  } else {
+    nc.publish(subject, sc.encode(JSON.stringify(payload)));
+  }
 }
 
 async function publishAlert(kind, data) {
@@ -624,13 +653,58 @@ async function handleOpenclawReceived(data) {
 // ---------------------------------------------------------------------------
 // JetStream setup
 // ---------------------------------------------------------------------------
-async function ensureStreams(jsm) {
-  const defs = [
-    { name: STREAM, subjects: ["cortex.>", "openclaw.>"] },
-  ];
-  for (const def of defs) {
-    try { await jsm.streams.info(def.name); }
-    catch { await jsm.streams.add({ ...def, storage: StorageType.File }); }
+function mapRetention(value) {
+  if (value === "workqueue") return RetentionPolicy.Workqueue;
+  if (value === "interest") return RetentionPolicy.Interest;
+  return RetentionPolicy.Limits;
+}
+
+/**
+ * Idempotently create/update streams. Reads declarations from
+ * `cfg.streams` (V3) and falls back to the legacy single CORTEX stream when
+ * the config omits the array.
+ *
+ * V3 streams:
+ *   - CORTEX_PAPERCLIP_WORK: workqueue retention, dedup window 120s.
+ *   - CORTEX_PAPERCLIP_OPS: limits retention, dedup window 120s.
+ *   - CORTEX_DLQ: limits retention, 7-day max_age.
+ *
+ * Existing CORTEX stream keeps `cortex.factory.*`, `openclaw.>`, and any
+ * legacy subjects that V3 hasn't shifted to a dedicated stream.
+ */
+export async function ensureStreams(jsm, cfg) {
+  const declared = Array.isArray(cfg?.streams) ? cfg.streams : null;
+  if (!declared) {
+    // Legacy path — preserved for tests/operators that have not picked up the
+    // V3 config shape yet.
+    const legacy = [{ name: STREAM, subjects: ["cortex.>", "openclaw.>"] }];
+    for (const def of legacy) {
+      try { await jsm.streams.info(def.name); }
+      catch { await jsm.streams.add({ ...def, storage: StorageType.File }); }
+    }
+    return;
+  }
+  // V3 — explicit stream list. Keep the legacy CORTEX stream for factory/
+  // openclaw subjects (not in declared list) so existing durables survive.
+  const legacyDef = { name: STREAM, subjects: ["cortex.factory.>", "openclaw.>"] };
+  try { await jsm.streams.info(legacyDef.name); }
+  catch { await jsm.streams.add({ ...legacyDef, storage: StorageType.File }); }
+  for (const s of declared) {
+    const cfgOpts = {
+      name: s.name,
+      subjects: s.subjects,
+      retention: mapRetention(s.retention),
+      storage: StorageType.File,
+      duplicate_window: s.duplicate_window_ns,
+    };
+    if (s.max_age_ns) cfgOpts.max_age = s.max_age_ns;
+    try {
+      await jsm.streams.info(s.name);
+      // update in place to converge retention/dedup window if config changed.
+      try { await jsm.streams.update(s.name, cfgOpts); } catch { /* nats version may reject update of certain fields; ignore */ }
+    } catch {
+      await jsm.streams.add(cfgOpts);
+    }
   }
 }
 
@@ -646,6 +720,34 @@ async function ensureConsumer(jsm, stream, durable, filterSubject) {
       ack_wait: nanos(30_000),
       backoff: [nanos(1_000), nanos(5_000), nanos(15_000), nanos(30_000), nanos(60_000)],
     });
+  }
+}
+
+/**
+ * Paperclip-work specific durable: tighter backpressure (max_ack_pending=32)
+ * and 60s ack_wait to match the executor budget. Lives on the dedicated
+ * CORTEX_PAPERCLIP_WORK workqueue stream so a single consumer dispatches
+ * each role-scoped message exactly once.
+ */
+async function ensurePaperclipWorkConsumer(jsm, stream, durable, filterSubject, opts = {}) {
+  const maxDeliver = opts.max_deliver ?? 5;
+  const maxAckPending = opts.max_ack_pending ?? 32;
+  const ackWaitNs = opts.ack_wait_ns ?? 60_000_000_000;
+  const desired = {
+    durable_name: durable,
+    ack_policy: AckPolicy.Explicit,
+    deliver_policy: DeliverPolicy.All,
+    filter_subject: filterSubject,
+    max_deliver: maxDeliver,
+    max_ack_pending: maxAckPending,
+    ack_wait: ackWaitNs,
+    backoff: [nanos(1_000), nanos(5_000), nanos(15_000), nanos(30_000), nanos(60_000)],
+  };
+  try {
+    await jsm.consumers.info(stream, durable);
+    try { await jsm.consumers.update(stream, durable, desired); } catch { /* version-tolerant */ }
+  } catch {
+    await jsm.consumers.add(stream, desired);
   }
 }
 
@@ -749,6 +851,25 @@ async function flushFinalHeartbeat() {
 // ---------------------------------------------------------------------------
 // Message processing with DLQ fallback
 // ---------------------------------------------------------------------------
+// Per-message error chain history. Keyed by `${stream}:${seq}` so retries on
+// the same JetStream message append rather than overwrite. Bounded to keep
+// memory flat under long-running redelivery.
+const ERROR_CHAINS = new Map();
+const ERROR_CHAINS_MAX = 1024;
+
+function recordError(streamSeqKey, err) {
+  const entry = { ts: new Date().toISOString(), message: String(err?.message ?? err) };
+  if (err?.code) entry.code = String(err.code);
+  const chain = ERROR_CHAINS.get(streamSeqKey) ?? [];
+  chain.push(entry);
+  if (ERROR_CHAINS.size >= ERROR_CHAINS_MAX) {
+    const first = ERROR_CHAINS.keys().next().value;
+    if (first) ERROR_CHAINS.delete(first);
+  }
+  ERROR_CHAINS.set(streamSeqKey, chain);
+  return chain;
+}
+
 async function processMessage(m, cfg) {
   const subject = m.subject;
   metrics.messages_received_total++;
@@ -762,6 +883,8 @@ async function processMessage(m, cfg) {
 
   // Delivery count starts at 0; index 4 = 5th attempt = max_deliver reached
   const deliveryCount = m.info?.redeliveryCount ?? 0;
+  const maxDeliver = cfg?.paperclip_work_consumer?.max_deliver ?? 5;
+  const streamSeqKey = `${m.info?.stream ?? "?"}:${m.info?.streamSequence ?? m.seq ?? "?"}`;
 
   try {
     if (subject === "cortex.factory.created") {
@@ -777,13 +900,29 @@ async function processMessage(m, cfg) {
     }
     m.ack();
     metrics.messages_acked_total++;
+    ERROR_CHAINS.delete(streamSeqKey);
   } catch (e) {
     lastError = e.message;
+    const chain = recordError(streamSeqKey, e);
     process.stderr.write(`[err] ${subject} delivery=${deliveryCount}: ${e.message}\n`);
-    if (deliveryCount >= 4) {
-      m.ack(); // prevent further redelivery
-      await publishDLQ(subject, data, e.message);
-      process.stderr.write(`[dlq] ${subject} after ${deliveryCount + 1} attempts\n`);
+    if (deliveryCount >= maxDeliver - 1) {
+      // Terminal: emit DLQ record on `cortex.dlq.<original>` then ack so
+      // JetStream stops redelivery. JetStream DLQ replaces legacy
+      // cortex.consumer.errors core publish for paperclip work and any
+      // subject that exceeds max_deliver.
+      m.ack();
+      metrics.messages_dlq_total++;
+      try {
+        if (js) {
+          await publishToDlq(js, subject, data, chain, deliveryCount + 1);
+        } else {
+          await publishDLQ(subject, data, e.message);
+        }
+        process.stderr.write(`[dlq] ${subject} after ${deliveryCount + 1} attempts\n`);
+      } catch (dlqErr) {
+        process.stderr.write(`[dlq] publish failed for ${subject}: ${dlqErr.message}\n`);
+      }
+      ERROR_CHAINS.delete(streamSeqKey);
     } else {
       const backoffMs = Math.min(1000 * Math.pow(2, deliveryCount), 60_000);
       m.nak(nanos(backoffMs));
@@ -876,11 +1015,22 @@ async function main() {
   js = nc.jetstream();
   const jsm = await nc.jetstreamManager();
 
-  await ensureStreams(jsm);
+  await ensureStreams(jsm, cfg);
   await ensureConsumer(jsm, STREAM, DURABLES.factoryCreated, "cortex.factory.created");
   await ensureConsumer(jsm, STREAM, DURABLES.factoryWorkflow, "cortex.factory.workflow.>");
   await ensureConsumer(jsm, STREAM, DURABLES.openclawReceived, "openclaw.message.received");
-  await ensureConsumer(jsm, STREAM, DURABLES.paperclipWork, "cortex.paperclip.work.>");
+  // V3: paperclip work consumer lives on the dedicated workqueue stream with
+  // tightened backpressure (max_ack_pending=32, ack_wait=60s).
+  const paperclipWorkStream = (cfg.streams || []).some((s) => s.name === "CORTEX_PAPERCLIP_WORK")
+    ? "CORTEX_PAPERCLIP_WORK"
+    : STREAM;
+  await ensurePaperclipWorkConsumer(
+    jsm,
+    paperclipWorkStream,
+    DURABLES.paperclipWork,
+    "cortex.paperclip.work.>",
+    cfg.paperclip_work_consumer || {},
+  );
 
   kvBucket = await ensureKV(js);
 
@@ -888,7 +1038,7 @@ async function main() {
     js.consumers.get(STREAM, DURABLES.factoryCreated),
     js.consumers.get(STREAM, DURABLES.factoryWorkflow),
     js.consumers.get(STREAM, DURABLES.openclawReceived),
-    js.consumers.get(STREAM, DURABLES.paperclipWork),
+    js.consumers.get(paperclipWorkStream, DURABLES.paperclipWork),
   ]);
 
   startHeartbeat();

@@ -213,6 +213,57 @@ The flag is read by `stacks/cortex-paperclip-bridge/worker.js` and `stacks/corte
 - `data` is validated against the schema selected by `type`: `<namespace>-<verb>-v<N>.json` (or `cortex-<top>-v<N>.json` for collapsed top-level namespaces like `alerts`, `graph`, `signal`).
 - On failure, producers throw `EnvelopeValidationError` (with `.errors` array). Consumers either throw (strict) or log + continue (grace).
 
+## JetStream hardening (V3)
+
+### Streams
+
+| Stream | Subjects | Retention | Dedup window | Max age |
+|---|---|---|---|---|
+| `CORTEX_PAPERCLIP_WORK` | `cortex.paperclip.work.>` | `workqueue` | 120s | 24h |
+| `CORTEX_PAPERCLIP_OPS` | `cortex.paperclip.status.>`, `cortex.paperclip.approval.>`, `cortex.alerts.>` | `limits` | 120s | — |
+| `CORTEX_DLQ` | `cortex.dlq.>` | `limits` | 120s | 7d |
+| `CORTEX` (legacy) | `cortex.factory.>`, `openclaw.>` | `limits` | server default | — |
+
+WorkQueue retention on `CORTEX_PAPERCLIP_WORK` guarantees single-consumer dispatch semantics: a delivered message is removed from the stream once acked, so two parallel durables on the same filter cannot both process the same event.
+
+### Dedup: `Nats-Msg-Id`
+
+Every JetStream publish stamps `Nats-Msg-Id: <CloudEvents.id>`. The server collapses duplicate publishes within the stream's `duplicate_window` (2 minutes). Producers wired:
+
+- `stacks/cortex-paperclip-bridge/lib/nats-publisher.js` — outbound work + alerts publishes.
+- `stacks/cortex-consumer/consumer.js` — status echoes, heartbeats, accepted events.
+
+DLQ records use a fresh uuid per terminal failure (one record per genuine failure, never collapsed).
+
+### Dead-letter queue: `cortex.dlq.<original-subject>`
+
+After `max_deliver` is exhausted on the originating durable, `cortex-consumer` publishes a CloudEvents-wrapped failure record to `cortex.dlq.<original-subject>` and acks the source message so JetStream stops redelivery.
+
+DLQ schema: `schemas/cortex-dlq-v1.json`.
+
+`data` shape:
+
+```json
+{
+  "originalSubject": "cortex.paperclip.work.ENG-BACKEND",
+  "originalEvent":   { "specversion": "1.0", "...": "..." },
+  "errorChain":      [{ "ts": "RFC3339", "message": "...", "code": "?" }],
+  "attempts":        5,
+  "terminalAt":      "RFC3339"
+}
+```
+
+### Backpressure
+
+Paperclip work durable (`cortex-consumer-paperclip-work`) on `CORTEX_PAPERCLIP_WORK`:
+
+- `max_deliver = 5`
+- `max_ack_pending = 32`
+- `ack_wait = 60s`
+- exponential backoff: 1s, 5s, 15s, 30s, 60s
+
+`max_ack_pending=32` caps inflight executor budget — JetStream stops dispatching new work once 32 messages are unacked, preventing executor overload during a slowdown.
+
 ## Related docs
 
 - [Documentation index](README.md)

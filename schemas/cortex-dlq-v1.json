@@ -1,0 +1,34 @@
+{
+  "$id": "https://cortexos/schemas/cortex-dlq-v1.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cortex.dlq.<original-namespace>.v1 data payload",
+  "description": "Terminal failure record emitted by cortex-consumer after JetStream max_deliver is exhausted on the originating subject.",
+  "type": "object",
+  "required": ["originalSubject", "originalEvent", "errorChain", "attempts", "terminalAt"],
+  "additionalProperties": false,
+  "properties": {
+    "originalSubject": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Subject the failed message was delivered on."
+    },
+    "originalEvent": {
+      "description": "Decoded original message body (CloudEvents envelope or legacy raw payload)."
+    },
+    "errorChain": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["ts", "message"],
+        "additionalProperties": false,
+        "properties": {
+          "ts": { "type": "string", "format": "date-time" },
+          "message": { "type": "string", "minLength": 1 },
+          "code": { "type": "string" }
+        }
+      }
+    },
+    "attempts": { "type": "integer", "minimum": 1 },
+    "terminalAt": { "type": "string", "format": "date-time" }
+  }
+}

@@ -19,5 +19,36 @@
     "work_subject_filter": "cortex.paperclip.work.>",
     "status_subject_prefix": "cortex.paperclip.status",
     "approval_subject_prefix": "cortex.paperclip.approval"
+  },
+  "streams": [
+    {
+      "name": "CORTEX_PAPERCLIP_WORK",
+      "subjects": ["cortex.paperclip.work.>"],
+      "retention": "workqueue",
+      "duplicate_window_ns": 120000000000,
+      "max_age_ns": 86400000000000
+    },
+    {
+      "name": "CORTEX_PAPERCLIP_OPS",
+      "subjects": [
+        "cortex.paperclip.status.>",
+        "cortex.paperclip.approval.>",
+        "cortex.alerts.>"
+      ],
+      "retention": "limits",
+      "duplicate_window_ns": 120000000000
+    },
+    {
+      "name": "CORTEX_DLQ",
+      "subjects": ["cortex.dlq.>"],
+      "retention": "limits",
+      "duplicate_window_ns": 120000000000,
+      "max_age_ns": 604800000000000
+    }
+  ],
+  "paperclip_work_consumer": {
+    "max_deliver": 5,
+    "max_ack_pending": 32,
+    "ack_wait_ns": 60000000000
   }
 }
