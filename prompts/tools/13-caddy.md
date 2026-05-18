@@ -37,9 +37,25 @@ elif [ "$(pkg_family)" = "fedora" ]; then
   sudo dnf copr enable -y @caddy/caddy
   pkg_install caddy
 elif [ "$(pkg_family)" = "rhel" ]; then
-  # RHEL: enable CRB+EPEL via prompts/os/10-rhel-prereqs.md (P6 stub)
-  sudo dnf copr enable -y @caddy/caddy
-  pkg_install caddy
+  # CRB + EPEL are enabled by prompts/os/10-rhel-prereqs.md.
+  # EPEL ships `caddy` for el9; prefer it over copr (copr coverage for
+  # rhel9 is patchy on Rocky/Alma — see docs/RHEL-FAMILY-SUPPORT.md).
+  case "$(pkg_subfamily)" in
+    rocky|almalinux|centos)
+      # EPEL caddy is reliable here.
+      pkg_install caddy
+      ;;
+    rhel)
+      # Try EPEL first; fall back to copr if the operator opted in to coprs.
+      pkg_install caddy || {
+        sudo dnf copr enable -y @caddy/caddy
+        pkg_install caddy
+      }
+      ;;
+    *)
+      pkg_install caddy
+      ;;
+  esac
 fi
 ```
 
