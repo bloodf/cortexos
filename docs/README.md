@@ -47,6 +47,7 @@ Supported host OS families: Ubuntu 24.04 LTS, Ubuntu 25.x, Debian 13 (Trixie). O
 | [SECRETS-ROTATION.md](SECRETS-ROTATION.md) | Rotation procedures and verification steps |
 | [SUPPLY-CHAIN.md](SUPPLY-CHAIN.md) | SLSA L2 verification protocol, cosign + syft + GH attestations, threat model |
 | [AUDIT.md](AUDIT.md) | V9 hash-chained audit hypertable + Sigstore Rekor anchoring, tamper-detection runbook |
+| [SANDBOX.md](SANDBOX.md) | V10 gVisor (runsc) tool-exec sandbox runner: threat model, isolation guarantees, operational runbook |
 | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Failure catalog and remediation recipes |
 
 ## Documentation standards

@@ -10,6 +10,9 @@ paperclip:
 # V7 opt-in: route this role through cortex-graph LangGraph sidecar
 # when cortex-consumer has CORTEX_GRAPH_URL set. See docs/AGENT-GRAPH.md.
 graphEnabled: false
+# V10 opt-in: tool exec MUST run via cortex-sandbox-runner (gVisor) when
+# cortex-consumer has CORTEX_SANDBOX_URL set. See docs/SANDBOX.md.
+sandboxRequired: true
 ---
 # Engineer Agent — {repo}
 
