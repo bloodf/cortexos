@@ -13,11 +13,23 @@ npm run dev
 
 Open `http://localhost:3000`.
 
-Production build:
+Production build (runs `next build --turbopack` then esbuilds `server.ts` over the standalone server):
 
 ```bash
 npm run build
 npm start
+```
+
+For a fresh VPS:
+
+```bash
+# On the VPS, as the SSH user with sudo
+./scripts/provision-vps.sh             # node 24 + postgres + role/DB + secrets
+
+# From your workstation
+export CORTEX_HOSTNAME=<vps-host>
+export CORTEX_USER=<ssh-user>
+./deploy.sh
 ```
 
 Docker Compose:
