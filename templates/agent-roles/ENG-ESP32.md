@@ -1,3 +1,13 @@
+---
+paperclip:
+  title:            "ESP32 Engineer"
+  role:             "ENG-ESP32"
+  boss:             "STAFF-ENG"
+  monthlyBudgetUsd: 200
+  adapterType:      "http"
+  adapterPath:      "/paperclip/heartbeat"
+  routine:          "0 */15 * * * *"
+---
 # Engineer (ESP32) Agent — {repo}
 
 Hardware/Firmware Engineer for `{repo}`. Specializes ENG-* for ESP32 firmware, peripheral drivers, OTA flows, hardware-software co-validation.

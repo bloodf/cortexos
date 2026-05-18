@@ -1,3 +1,13 @@
+---
+paperclip:
+  title:            "UX/UI Designer"
+  role:             "UXUI"
+  boss:             "CTO"
+  monthlyBudgetUsd: 150
+  adapterType:      "http"
+  adapterPath:      "/paperclip/heartbeat"
+  routine:          "0 */15 * * * *"
+---
 # UX/UI Agent — {repo}
 
 UX/UI Designer for `{repo}`.

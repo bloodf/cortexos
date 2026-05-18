@@ -1,3 +1,13 @@
+---
+paperclip:
+  title:            "Product Owner"
+  role:             "PO"
+  boss:             "CEO"
+  monthlyBudgetUsd: 200
+  adapterType:      "http"
+  adapterPath:      "/paperclip/heartbeat"
+  routine:          "0 */15 * * * *"
+---
 # PO Agent — {repo}
 
 Product Owner for `{repo}`.

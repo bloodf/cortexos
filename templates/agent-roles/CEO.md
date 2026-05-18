@@ -1,3 +1,13 @@
+---
+paperclip:
+  title:            "CEO"
+  role:             "CEO"
+  boss:             "none"
+  monthlyBudgetUsd: 500
+  adapterType:      "http"
+  adapterPath:      "/paperclip/heartbeat"
+  routine:          "0 */15 * * * *"
+---
 # CEO Agent — {repo}
 
 CEO of engineering team for `{repo}`.
