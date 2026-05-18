@@ -27,7 +27,31 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { envelope as buildCloudEvent, validate as validateCloudEvent, EnvelopeValidationError } from "@cortexos/events";
 import { instrument as instrumentTelemetry, traceLLMCall, shutdown as shutdownTelemetry } from "@cortexos/telemetry";
+import { append as auditAppend } from "@cortexos/audit";
 import { publishToDlq } from "./lib/dlq.js";
+
+// V9 — hash-chained audit log. Failures here MUST NOT block production
+// transitions; they raise `cortex.alerts.error.audit-append-failed` and
+// the original op continues. See docs/AUDIT.md for the trade-off rationale.
+const CORTEX_AUDIT_ENABLED = process.env.CORTEX_AUDIT_ENABLED !== "0";
+
+async function safeAuditAppend(event) {
+  if (!CORTEX_AUDIT_ENABLED) return;
+  try {
+    await auditAppend(event);
+  } catch (e) {
+    process.stderr.write(`[audit] append failed type=${event.event_type}: ${e.message}\n`);
+    try {
+      publish("cortex.alerts.error.audit-append-failed", {
+        event_type: event.event_type,
+        source: event.source,
+        subject: event.subject ?? null,
+        reason: e.message,
+        ts: new Date().toISOString(),
+      });
+    } catch { /* publish failures already logged elsewhere */ }
+  }
+}
 const execFileP = promisify(execFile);
 
 const CORTEX_REQUIRE_ENVELOPE = process.env.CORTEX_REQUIRE_ENVELOPE === "1";
@@ -697,6 +721,18 @@ async function handlePaperclipWork(subject, envelope) {
     comment: "CortexOS picked up the run",
     costUsdCents: 0,
   });
+  await safeAuditAppend({
+    event_type: `cortex.paperclip.work.${role}.accepted`,
+    source: "cortex-consumer",
+    subject: data.issueId,
+    actor: data.agentId || role,
+    payload: {
+      runId: data.runId,
+      issueId: data.issueId,
+      role,
+      transition: "accepted",
+    },
+  });
   process.stdout.write(`[paperclip.work] run=${data.runId} role=${role} accepted\n`);
 }
 
@@ -719,6 +755,21 @@ function publishPaperclipStatus(role, payload) {
   }
   const sig = hmacSha256(NATS_HMAC, jcs(ce));
   publish(`cortex.paperclip.status.${role}`, { data: ce, sig });
+  // Fire-and-forget hash-chain append for the status transition.
+  safeAuditAppend({
+    event_type: `cortex.paperclip.status.${role}`,
+    source: "cortex-consumer",
+    subject: payload.issueId,
+    actor: role,
+    event_id: ce.id,
+    payload: {
+      runId: payload.runId,
+      issueId: payload.issueId,
+      status: payload.status,
+      comment: payload.comment ?? null,
+      costUsdCents: payload.costUsdCents ?? 0,
+    },
+  });
 }
 
 async function handleOpenclawReceived(data) {

@@ -1,0 +1,38 @@
+{
+  "name": "@cortexos/audit",
+  "version": "0.1.0",
+  "description": "Hash-chained TimescaleDB audit log with Sigstore Rekor anchoring for CortexOS.",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./jcs": "./src/jcs.js",
+    "./rekor": "./src/rekor.js"
+  },
+  "bin": {
+    "cortex-audit": "./bin/cortex-audit.js"
+  },
+  "files": [
+    "src",
+    "bin",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "pg": "^8.13.0",
+    "undici": "^7.0.0",
+    "uuid": "^11.0.3"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^3.0.0",
+    "vitest": "^3.0.0"
+  }
+}

@@ -14,6 +14,7 @@
     "test:integration": "RUN_INTEGRATION=1 vitest run __tests__/integration.test.js"
   },
   "dependencies": {
+    "@cortexos/audit": "*",
     "@cortexos/events": "*",
     "@cortexos/paperclip-adapter": "*",
     "@cortexos/telemetry": "*",

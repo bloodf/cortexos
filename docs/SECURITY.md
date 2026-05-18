@@ -60,6 +60,34 @@ Prefer Tailscale for operator access. Public routes should be limited to dashboa
 
 Audit events should include actor, action, target, timestamp, and result. Sensitive values must be redacted. Slack should receive high-signal summaries for human awareness.
 
+### Audit immutability (V9)
+
+CortexOS keeps an append-only, hash-chained audit log in a TimescaleDB
+hypertable (`audit_log`). Every paperclip state transition and bridge
+inbound/outbound emit appends one row via the `@cortexos/audit` package:
+
+```
+payload_hash = SHA-256( JCS(payload) )
+chain_hash   = SHA-256( prev_hash || payload_hash )
+```
+
+The genesis row uses `prev_hash = 0×64`. Writers serialise on a
+row-level `FOR UPDATE` lock against the current chain tip, so concurrent
+appends never branch the chain.
+
+Chain heads are anchored hourly into the public Sigstore Rekor
+transparency log (`scripts/audit-anchor-cron.sh` → `cortex-audit anchor`).
+Any post-hoc tampering with rows that precede an anchor is detectable
+externally by comparing the row's `chain_hash` against the matching Rekor
+`hashedrekord` entry.
+
+`append()` failures must **never** block the originating operation;
+instead they raise `cortex.alerts.error.audit-append-failed` and the
+production path continues. Gaps surface as `prev_hash_mismatch` results
+from `verifyChain` / the `/audit` viewer badge. See `docs/AUDIT.md` for
+the full hash-chain semantics, Rekor anchoring details, and
+tamper-detection runbook.
+
 ## Checklist
 
 - [ ] `.secrets/` gitignored and permission restricted.

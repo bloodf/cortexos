@@ -5,6 +5,28 @@ import { recordLink } from "./lib/idempotency.js";
 import { publish, getConnection } from "./lib/nats-publisher.js";
 import { envelope, validate as validateCloudEvent } from "@cortexos/events";
 import { instrument as instrumentTelemetry, shutdown as shutdownTelemetry } from "@cortexos/telemetry";
+import { append as auditAppend } from "@cortexos/audit";
+
+// V9 — hash-chained audit log. Same fire-and-forget contract as the
+// consumer: failures emit `cortex.alerts.error.audit-append-failed` and
+// the webhook still returns 202 so Paperclip doesn't retry the run.
+const CORTEX_AUDIT_ENABLED = process.env.CORTEX_AUDIT_ENABLED !== "0";
+async function safeAuditAppend(event) {
+  if (!CORTEX_AUDIT_ENABLED) return;
+  try { await auditAppend(event); }
+  catch (e) {
+    process.stderr.write(`[audit] append failed type=${event.event_type}: ${e.message}\n`);
+    try {
+      await publish("cortex.alerts.error.audit-append-failed", {
+        event_type: event.event_type,
+        source: event.source,
+        subject: event.subject ?? null,
+        reason: e.message,
+        ts: new Date().toISOString(),
+      });
+    } catch { /* swallow */ }
+  }
+}
 
 const PORT = Number(process.env.BRIDGE_PORT || 8089);
 const FAMILY = process.env.CORTEX_OS_FAMILY || "unknown";
@@ -99,6 +121,20 @@ export function createApp() {
       event.replay = !inserted;
       validateCloudEvent(event);
       await publish(subject, event);
+      await safeAuditAppend({
+        event_type: `cortex.paperclip.work.${cortexRole}.inbound`,
+        source: "cortex-paperclip-bridge",
+        subject: context.taskId,
+        actor: agentId,
+        event_id: event.id,
+        payload: {
+          runId,
+          issueId: context.taskId,
+          role: cortexRole,
+          replay: !inserted,
+          wakeReason: context.wakeReason,
+        },
+      });
       res.status(202).json({ runId, status: "queued" });
     } catch (e) {
       process.stderr.write(`[bridge] heartbeat failed run=${runId}: ${e.message}\n`);

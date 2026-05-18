@@ -8,6 +8,7 @@
     "test": "node --test \"__tests__/**/*.test.js\""
   },
   "dependencies": {
+    "@cortexos/audit": "*",
     "@cortexos/events": "*",
     "@cortexos/telemetry": "*",
     "ajv": "^8.17.1",
