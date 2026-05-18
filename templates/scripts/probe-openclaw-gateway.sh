@@ -43,9 +43,19 @@ command -v jq   >/dev/null 2>&1 || missing_tools+=(jq)
 
 if [[ ${#missing_tools[@]} -gt 0 ]]; then
   printf '[ERROR] Required tools not found: %s\n' "${missing_tools[*]}" >&2
-  printf '        Install via your package manager, e.g.:\n' >&2
-  printf '          brew install curl jq   # macOS\n' >&2
-  printf '          apt-get install -y curl jq  # Debian/Ubuntu\n' >&2
+  # Detect family via repo-local pkg.sh if available; fallback to a generic hint.
+  __probe_repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+  if [[ -f "${__probe_repo_root}/scripts/pkg.sh" ]]; then
+    # shellcheck source=/dev/null
+    source "${__probe_repo_root}/scripts/pkg.sh"
+    case "$(pkg_family)" in
+      ubuntu)      printf '        Install: sudo apt-get install -y %s\n' "${missing_tools[*]}" >&2 ;;
+      fedora|rhel) printf '        Install: sudo dnf install -y %s\n'      "${missing_tools[*]}" >&2 ;;
+      *)           printf '        Install: brew install %s   # macOS / unknown family\n' "${missing_tools[*]}" >&2 ;;
+    esac
+  else
+    printf '        Install via your package manager (apt-get install / dnf install / brew install): %s\n' "${missing_tools[*]}" >&2
+  fi
   exit 2
 fi
 

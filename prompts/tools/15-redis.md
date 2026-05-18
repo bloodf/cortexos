@@ -8,6 +8,14 @@ Run Redis as a Docker container for session caching and ephemeral queue use by C
 
 - `11-docker.md` completed.
 
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
+
 ## CHECKPOINT 1
 
 Operator: confirm port 6379 is not already in use (`ss -tlnp | grep 6379`). Type "confirmed" to proceed.

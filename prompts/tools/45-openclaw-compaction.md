@@ -8,6 +8,14 @@ Install the `robertcuadra/compaction-context` plugin to enable automatic context
 
 - `40-openclaw.md` completed.
 
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
+
 ## CHECKPOINT 1
 
 Operator: confirm OpenClaw is running. Type "confirmed" to proceed.

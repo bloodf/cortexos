@@ -9,6 +9,14 @@ Set up backup and restore procedures for your personal OpenClaw account using th
 - `40-openclaw.md` completed.
 - `templates/scripts/backup-openclaw-account.sh` and `templates/scripts/restore-openclaw-account.sh` present.
 
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
+
 ## CHECKPOINT 1
 
 Operator: decide which OpenClaw account slug you want to back up (e.g. the account name shown in `~/.openclaw/openclaw.json` → `"account"` field). Have the slug ready. Type "confirmed" to proceed.

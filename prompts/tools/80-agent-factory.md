@@ -10,6 +10,14 @@ Configure the GitHub Actions label-based state machine (13-stage pipeline) that 
 - GitHub repository for agent tasks exists.
 - GitHub Actions enabled on that repository.
 
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
+
 ## CHECKPOINT 1
 
 Operator: confirm the target GitHub repository URL and that you have admin access (needed to create labels and secrets). Type "confirmed" to proceed.

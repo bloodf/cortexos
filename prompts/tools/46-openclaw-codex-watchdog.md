@@ -9,6 +9,14 @@ Install the `ThisIsJeron/openclaw-codex-watchdog` plugin to monitor stale Codex 
 - `40-openclaw.md` completed.
 - `30-nats.md` completed (watchdog publishes alerts to NATS).
 
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
+
 ## CHECKPOINT 1
 
 Operator: confirm OpenClaw is running and NATS is reachable. Type "confirmed" to proceed.

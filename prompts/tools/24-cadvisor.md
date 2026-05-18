@@ -8,6 +8,14 @@ Run cAdvisor as a Docker container to expose per-container CPU, memory, and I/O 
 
 - `20-prometheus.md` completed (Prometheus already scrapes `host.docker.internal:8080`).
 
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
+
 ## CHECKPOINT 1
 
 Operator: confirm port 8080 is free (`ss -tlnp | grep 8080`). Type "confirmed" to proceed.

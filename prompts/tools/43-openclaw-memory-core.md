@@ -8,6 +8,14 @@ Configure OpenClaw's memory-core module: enable `dream` mode for background cons
 
 - `42-openclaw-openviking.md` completed.
 
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
+
 ## CHECKPOINT 1
 
 Operator: confirm `openclaw memory ping` returns OK from the previous spoke. Type "confirmed" to proceed.

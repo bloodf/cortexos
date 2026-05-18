@@ -9,6 +9,14 @@ Install the `win4r/openclaw-a2a-gateway` plugin to enable agent-to-agent (A2A) c
 - `40-openclaw.md` completed.
 - `50-agentgateway.md` will be executed after this spoke to apply tool taxonomy and rate limits.
 
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
+
 ## CHECKPOINT 1
 
 Operator: confirm OpenClaw gateway is running (`curl -s http://127.0.0.1:18789/health`). Type "confirmed" to proceed.

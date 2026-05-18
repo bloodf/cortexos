@@ -11,6 +11,16 @@ Build and deploy the CortexOS Next.js dashboard to the VPS. The dashboard is a l
 - `40-openclaw.md` completed (dashboard chat panel connects to OpenClaw gateway).
 - Node.js ≥ 20 on the VPS.
 
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
+
+> **Node bootstrap.** Ubuntu uses Linuxbrew's `node@24`; Fedora/RHEL install Node from AppStream via `pkg_install nodejs npm`. `dashboard/scripts/provision-vps.sh` now branches on `pkg_family` automatically.
+
 ## CHECKPOINT 1
 
 Operator: confirm Node.js ≥ 20 is installed on the VPS and `/opt/cortexos/.secrets/dashboard.env` exists with `DATABASE_URL`. Type "confirmed" to proceed.

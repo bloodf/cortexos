@@ -10,6 +10,16 @@ Install the latest OpenClaw agent orchestrator from upstream HEAD; configure the
 - `32-openviking.md` completed (OpenClaw uses OpenViking for memory).
 - Node.js ≥ 20 installed.
 
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
+
+> **Node bootstrap.** Ubuntu installs Node via NodeSource or Linuxbrew; Fedora ships Node 22 (`pkg_install nodejs npm`); RHEL ships Node 20 in AppStream (`pkg_install nodejs npm`). Verify `node --version` is ≥ 20 before continuing.
+
 ## CHECKPOINT 1
 
 Operator: confirm Node.js ≥ 20 is installed (`node --version`) and 9Router is running. Type "confirmed" to proceed.

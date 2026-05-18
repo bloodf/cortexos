@@ -8,6 +8,14 @@ Run a full-stack health check across every CortexOS component installed by this 
 
 All prior spokes completed and their CHECKPOINT 2s confirmed.
 
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
+
 ## CHECKPOINT 1
 
 Operator: confirm all prior spokes completed successfully and `.secrets/.setup-state.json` exists. Type "confirmed" to proceed.
@@ -18,7 +26,7 @@ Operator: confirm all prior spokes completed successfully and `.secrets/.setup-s
 
 ```bash
 # OS
-ufw status verbose
+if [ "$(pkg_family)" = "ubuntu" ]; then sudo ufw status verbose; else sudo firewall-cmd --list-all; fi
 sudo fail2ban-client status sshd
 sysctl net.ipv4.tcp_syncookies
 

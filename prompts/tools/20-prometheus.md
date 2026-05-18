@@ -9,6 +9,14 @@ Run Prometheus as a Docker container to scrape metrics from all CortexOS exporte
 - `11-docker.md` completed.
 - `13-caddy.md` completed (for proxied UI access).
 
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
+
 ## CHECKPOINT 1
 
 Operator: confirm port 9090 is free (`ss -tlnp | grep 9090`). Type "confirmed" to proceed.

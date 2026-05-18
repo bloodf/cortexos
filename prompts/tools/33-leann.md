@@ -9,6 +9,16 @@ Install LEANN as the document-RAG (retrieval-augmented generation) layer. LEANN 
 - `32-openviking.md` completed.
 - `31-9router.md` completed (LEANN uses 9Router for embeddings).
 
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
+
+> **Python runtime.** LEANN's systemd unit invokes `uvicorn` from the system Python. Install Python deps with `pkg_install python3 python3-pip` (works on Ubuntu, Fedora, RHEL). The `uvicorn` binary itself comes from `pip install uvicorn` inside the LEANN tree or a venv.
+
 ## CHECKPOINT 1
 
 Operator: confirm OpenViking is running and 9Router is serving embedding models. Type "confirmed" to proceed.

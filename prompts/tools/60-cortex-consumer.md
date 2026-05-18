@@ -10,6 +10,14 @@ Deploy the `stacks/cortex-consumer/` NATS subscriber that processes approval eve
 - `40-openclaw.md` completed.
 - `50-agentgateway.md` completed.
 
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
+
 ## CHECKPOINT 1
 
 Operator: confirm NATS is running and the `cortex_approvals_seen` KV bucket exists (`nats kv info cortex_approvals_seen --server nats://127.0.0.1:4222`). Type "confirmed" to proceed.
