@@ -27,6 +27,7 @@ dependencies = [
   "opentelemetry-instrumentation-httpx>=0.51b0",
   "opentelemetry-exporter-otlp-proto-grpc>=1.30.0",
   "structlog>=24.4.0",
+  "traceloop-sdk>=0.40.0",
 ]
 
 [project.optional-dependencies]

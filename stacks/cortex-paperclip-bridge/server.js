@@ -4,6 +4,7 @@ import { timingSafeEqual } from "node:crypto";
 import { recordLink } from "./lib/idempotency.js";
 import { publish, getConnection } from "./lib/nats-publisher.js";
 import { envelope, validate as validateCloudEvent } from "@cortexos/events";
+import { instrument as instrumentTelemetry, shutdown as shutdownTelemetry } from "@cortexos/telemetry";
 
 const PORT = Number(process.env.BRIDGE_PORT || 8089);
 const FAMILY = process.env.CORTEX_OS_FAMILY || "unknown";
@@ -109,6 +110,14 @@ export function createApp() {
 }
 
 async function main() {
+  // V8 — OpenLLMetry + Langfuse bootstrap. Safe no-op when LANGFUSE_HOST is
+  // unset; otherwise webhook ingest + downstream NATS publish are linked
+  // into the same trace tree as the consumer/graph spans.
+  const tel = instrumentTelemetry({ service: "cortex-paperclip-bridge" });
+  if (tel.enabled) {
+    process.stdout.write(`[telemetry] enabled service=${tel.service} env=${tel.env}\n`);
+  }
+
   const app = createApp();
   try { await getConnection(); } catch (e) {
     process.stderr.write(`[bridge] NATS preconnect failed (will retry on publish): ${e.message}\n`);
@@ -118,7 +127,10 @@ async function main() {
   });
   const shutdown = (sig) => {
     process.stdout.write(`[bridge] ${sig} — closing\n`);
-    server.close(() => process.exit(0));
+    server.close(async () => {
+      try { await shutdownTelemetry(); } catch {}
+      process.exit(0);
+    });
     setTimeout(() => process.exit(1), 10_000).unref();
   };
   process.on("SIGTERM", () => shutdown("SIGTERM"));

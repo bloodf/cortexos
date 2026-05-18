@@ -1,0 +1,31 @@
+{
+  "name": "@cortexos/telemetry",
+  "version": "0.1.0",
+  "description": "CortexOS Node OpenLLMetry + Langfuse wrapper. One-call instrument() + traceLLMCall helper. No-op when LANGFUSE_HOST is unset.",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@traceloop/node-server-sdk": "^0.13.0",
+    "langfuse": "^3.37.0"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^3.0.0",
+    "vitest": "^3.0.0"
+  }
+}

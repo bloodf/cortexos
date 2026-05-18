@@ -26,6 +26,7 @@ import http from "node:http";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { envelope as buildCloudEvent, validate as validateCloudEvent, EnvelopeValidationError } from "@cortexos/events";
+import { instrument as instrumentTelemetry, traceLLMCall, shutdown as shutdownTelemetry } from "@cortexos/telemetry";
 import { publishToDlq } from "./lib/dlq.js";
 const execFileP = promisify(execFile);
 
@@ -246,19 +247,34 @@ function cbAllow() {
 // ---------------------------------------------------------------------------
 async function openclawExec(args) {
   if (!cbAllow()) throw new Error(`circuit open — skipping openclaw ${args[0]}`);
-  try {
-    const { stdout } = await execFileP(OPENCLAW_BIN, args, {
-      timeout: OPENCLAW_CLI_TIMEOUT_MS,
-      maxBuffer: 4 * 1024 * 1024,
-    });
-    metrics.openclaw_http_ok_total++;
-    cbRecord(true);
-    return stdout;
-  } catch (e) {
-    metrics.openclaw_http_errors_total++;
-    cbRecord(false);
-    throw new Error(`openclaw ${args.join(" ")} failed: ${e.message || e}`);
-  }
+  // V8 — wrap the OpenClaw dispatch in a Langfuse generation span so
+  // operator visibility extends from NATS receipt through the downstream
+  // LLM-driven channel send. The wrapper is a no-op when LANGFUSE_HOST is
+  // unset, preserving the existing dev/test behaviour.
+  return traceLLMCall(
+    {
+      name: `openclaw.${args[0] || "cmd"}`,
+      model: "openclaw-cli",
+      input: { args },
+      metadata: { component: "cortex-consumer" },
+      tags: ["openclaw", "dispatch"],
+    },
+    async () => {
+      try {
+        const { stdout } = await execFileP(OPENCLAW_BIN, args, {
+          timeout: OPENCLAW_CLI_TIMEOUT_MS,
+          maxBuffer: 4 * 1024 * 1024,
+        });
+        metrics.openclaw_http_ok_total++;
+        cbRecord(true);
+        return stdout;
+      } catch (e) {
+        metrics.openclaw_http_errors_total++;
+        cbRecord(false);
+        throw new Error(`openclaw ${args.join(" ")} failed: ${e.message || e}`);
+      }
+    },
+  );
 }
 
 function renderBlocksToText(blocks) {
@@ -1052,6 +1068,7 @@ async function shutdown(signal, servers) {
 
   for (const s of servers) { try { s.close(); } catch {} }
   try { if (nc && !nc.isClosed()) await nc.drain(); } catch {}
+  try { await shutdownTelemetry(); } catch {}
 
   clearTimeout(deadline);
   process.exit(0);
@@ -1085,6 +1102,12 @@ async function pollConsumer(consumer, cfg) {
 async function main() {
   loadThreadState();
   const cfg = loadConfig();
+
+  // V8 — OpenLLMetry + Langfuse bootstrap. No-op when LANGFUSE_HOST is unset.
+  const tel = instrumentTelemetry({ service: "cortex-consumer" });
+  if (tel.enabled) {
+    process.stdout.write(`[telemetry] enabled service=${tel.service} env=${tel.env}\n`);
+  }
 
   const healthServer = startHealthServer();
   const metricsServer = startMetricsServer();

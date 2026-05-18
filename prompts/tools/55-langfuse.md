@@ -1,0 +1,169 @@
+# 55 — Langfuse self-host + first-admin bootstrap (V8)
+
+> Operator-facing install prompt. Run as the privileged operator on the
+> CortexOS host. Requires `sops`, `age`, `docker compose`, the core
+> Postgres stack (prompt `14-postgresql.md`), and the `cortex-net` Docker
+> network (created by `11-docker.md`). Supersedes `35-opik.md` and the
+> placeholder `35a-langfuse.md`.
+
+## 0. Preconditions
+
+```bash
+docker network ls | grep -q cortex-net || docker network create cortex-net
+test -d /opt/cortexos/stacks/cortex-langfuse || sudo mkdir -p /opt/cortexos/stacks/cortex-langfuse
+sudo cp -a stacks/cortex-langfuse/. /opt/cortexos/stacks/cortex-langfuse/
+```
+
+Confirm host family + package dispatcher (per `prompts/os/00-os-selection.md`):
+
+```bash
+source /opt/cortexos/scripts/pkg.sh
+echo "OS family: ${CORTEX_OS_FAMILY:?must be set by 00-os-selection.md}"
+```
+
+## 1. Provision Postgres database
+
+```bash
+sudo -u postgres psql <<'SQL'
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'langfuse') THEN
+    CREATE ROLE langfuse LOGIN PASSWORD :'pw';
+  END IF;
+END$$;
+SELECT 'role ready';
+SQL
+sudo -u postgres createdb -O langfuse langfuse || true
+```
+
+Replace `:pw` with the value of `LANGFUSE_DB_PASSWORD` from the decrypted
+secrets bundle (next step).
+
+## 2. Decrypt secrets
+
+```bash
+bash /opt/cortexos/scripts/secrets-decrypt.sh langfuse
+# → /opt/cortexos/.secrets/langfuse.env
+chmod 0600 /opt/cortexos/.secrets/langfuse.env
+```
+
+Sanity check (no plaintext leaves the host):
+
+```bash
+grep -E '^LANGFUSE_(HOST|PUBLIC_KEY|SECRET_KEY|DATABASE_URL|NEXTAUTH_SECRET|SALT|ENCRYPTION_KEY)=' \
+  /opt/cortexos/.secrets/langfuse.env | wc -l
+# expect: 7
+```
+
+## 3. Generate project keys
+
+Langfuse v3 accepts headless bootstrap; we pre-mint the `cortexos` project
+key pair so downstream services can be wired before the UI is opened.
+
+```bash
+PUB="pk-lf-$(openssl rand -hex 12)"
+SEC="sk-lf-$(openssl rand -hex 24)"
+sudo sed -i \
+  -e "s|^LANGFUSE_PUBLIC_KEY=.*|LANGFUSE_PUBLIC_KEY=${PUB}|" \
+  -e "s|^LANGFUSE_SECRET_KEY=.*|LANGFUSE_SECRET_KEY=${SEC}|" \
+  /opt/cortexos/.secrets/langfuse.env
+```
+
+Stash `${PUB}` and `${SEC}` in the operator password manager; do not commit
+to git.
+
+## 4. Bring the stack up
+
+```bash
+cd /opt/cortexos/stacks/cortex-langfuse
+set -a; . /opt/cortexos/.secrets/langfuse.env; set +a
+docker compose pull
+docker compose up -d
+```
+
+### 4.1 Wait for health
+
+```bash
+for i in 1 2 3 4 5 6 7 8 9 10; do
+  curl -fsS http://127.0.0.1:3000/api/public/health && break
+  sleep 10
+done
+```
+
+ClickHouse migrations run on first `langfuse-web` boot and may take 60-120s
+on a cold start.
+
+## 5. Verify first-admin bootstrap
+
+```bash
+docker logs --since 5m cortex-langfuse-langfuse-web-1 \
+  | grep -E "initialised|bootstrap" || true
+```
+
+Login at `http://${TAILSCALE_IP:-127.0.0.1}:3000` with
+`LANGFUSE_INIT_USER_EMAIL` + `LANGFUSE_INIT_USER_PASSWORD`. Confirm the
+`cortexos` org + project exist and the pre-minted key pair is listed under
+**Project → Settings → API Keys**.
+
+## 6. Wire downstream services
+
+Append the project key triplet to every service that imports
+`@cortexos/telemetry` (Node) or `cortex_telemetry` (Python):
+
+```bash
+for env in /opt/cortexos/.secrets/consumer.env \
+           /opt/cortexos/.secrets/paperclip.env \
+           /opt/cortexos/.secrets/graph.env; do
+  test -f "$env" || continue
+  grep -q '^LANGFUSE_HOST=' "$env" || cat >> "$env" <<EOF
+
+# V8 — OpenLLMetry / Langfuse
+LANGFUSE_HOST=http://langfuse-web:3000
+LANGFUSE_PUBLIC_KEY=${PUB}
+LANGFUSE_SECRET_KEY=${SEC}
+EOF
+done
+
+systemctl restart cortex-consumer cortex-paperclip-bridge cortex-graph || true
+```
+
+## 7. Smoke trace
+
+```bash
+# Trigger a paperclip work event; observe a span land on Langfuse.
+curl -fsS -X POST http://127.0.0.1:8089/paperclip/run \
+  -H "Authorization: Bearer ${PAPERCLIP_WEBHOOK_SECRET}" \
+  -H "Content-Type: application/json" \
+  -d '{"runId":"smoke-1","agentId":"smoke","cortexRole":"smoke","context":{"taskId":"smoke","wakeReason":"manual"}}'
+
+# After ~5 s the trace appears under: Langfuse → Traces → cortex-consumer
+```
+
+## 8. Rollback
+
+```bash
+cd /opt/cortexos/stacks/cortex-langfuse
+docker compose down
+# Data persists in clickhouse-data + minio-data volumes; remove only on full
+# tenant teardown:
+#   docker volume rm cortex-langfuse_clickhouse-data \
+#                    cortex-langfuse_clickhouse-logs \
+#                    cortex-langfuse_minio-data
+```
+
+## 9. Checkpoint
+
+- [ ] `docker compose ps` shows `langfuse-web`, `langfuse-worker`,
+      `clickhouse`, `minio` all `Up (healthy)`.
+- [ ] `/api/public/health` returns HTTP 200.
+- [ ] First-admin login succeeds.
+- [ ] `cortexos` project lists the pre-minted public key.
+- [ ] Smoke trace visible in Langfuse Traces view.
+- [ ] All three downstream services log `[telemetry] enabled service=…`.
+
+## Related
+
+- `stacks/cortex-langfuse/README.md`
+- `docs/OBSERVABILITY-LLM.md`
+- `packages/cortex-telemetry/README.md`
+- `templates/.secrets/langfuse.enc.yaml`

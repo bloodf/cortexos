@@ -41,6 +41,7 @@ Supported host OS families: Ubuntu 24.04 LTS, Ubuntu 25.x, Debian 13 (Trixie). O
 | Document | Purpose |
 |---|---|
 | [OBSERVABILITY.md](OBSERVABILITY.md) | Metrics, logs, alerts, dashboards, runbooks |
+| [OBSERVABILITY-LLM.md](OBSERVABILITY-LLM.md) | LLM-call traces via self-hosted Langfuse + ClickHouse + OpenLLMetry |
 | [MEMORY.md](MEMORY.md) | LEANN memory architecture and retrieval flow |
 | [POSTGRES-LAYOUT.md](POSTGRES-LAYOUT.md) | Topology of the two PostgreSQL instances (dashboard vs. shared analytics) |
 | [SECRETS-ROTATION.md](SECRETS-ROTATION.md) | Rotation procedures and verification steps |
