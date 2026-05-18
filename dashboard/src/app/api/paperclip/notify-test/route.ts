@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { requireAdmin } from "@/lib/auth";
 import { publishAlert } from "@/lib/alerts";
+import { notifyTestInputSchema, parseInput } from "@/lib/validation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -42,19 +43,25 @@ export async function POST(request: Request): Promise<Response> {
     if (auth.error) return auth.error;
   }
 
-  const body = (await request.json().catch(() => null)) as
-    | { title?: string; body?: string; source?: string }
-    | null;
+  const rawBody = (await request.json().catch(() => null)) as unknown;
+
+  // Zod parse at the boundary. On failure we still proceed with safe
+  // defaults — notify-test is a synthetic alert and historically tolerates
+  // partial garbage in the body (drops bad fields rather than 400).
+  const parsed = parseInput(notifyTestInputSchema, rawBody ?? {}, {
+    action: "paperclip.notify-test",
+  });
+  const validated = parsed.ok ? parsed.data : {};
 
   const title =
-    typeof body?.title === "string" && body.title.trim()
-      ? body.title.trim()
+    validated.title && validated.title.trim()
+      ? validated.title.trim()
       : "Synthetic notification";
   const text =
-    typeof body?.body === "string" ? body.body : "Triggered via notify-test";
+    typeof validated.body === "string" ? validated.body : "Triggered via notify-test";
   const source =
-    typeof body?.source === "string" && /^[a-zA-Z0-9._-]+$/.test(body.source)
-      ? body.source
+    typeof validated.source === "string" && validated.source.length > 0
+      ? validated.source
       : "test";
 
   const timestamp = new Date().toISOString();
