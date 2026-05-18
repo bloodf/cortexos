@@ -8,6 +8,8 @@
  * and only attempted when NATS_URL is configured. Failures never throw.
  */
 import { createHmac } from "node:crypto";
+// @ts-expect-error — workspace JS package, no .d.ts shipped yet
+import { envelope as buildCloudEvent, validate as validateCloudEvent } from "@cortexos/events";
 
 export type AlertSeverity = "info" | "warning" | "critical";
 
@@ -146,7 +148,21 @@ export async function publishAlert(payload: AlertPayload): Promise<{
   try {
     const nc = await getNatsClient();
     if (!nc) return { published: false, subject, reason: "no NATS client" };
-    const envelope = signEnvelope(data);
+    // Wrap the alert payload in a CloudEvents 1.0 envelope per @cortexos/events schemas,
+    // then sign the CloudEvents object via the legacy HMAC envelope { data, sig }.
+    const ce = buildCloudEvent({
+      type: `cortex.alerts.${payload.severity}.${payload.source}.v1`,
+      source: "cortex-dashboard",
+      subject: payload.source,
+      data: {
+        severity: data.severity,
+        source: data.source,
+        message: data.title + (data.body ? `: ${data.body}` : ""),
+        metadata: data.metadata,
+      },
+    });
+    validateCloudEvent(ce);
+    const envelope = signEnvelope(ce as unknown as AlertPayload & { timestamp: string });
     const encoded = new TextEncoder().encode(JSON.stringify(envelope));
     nc.publish(subject, encoded);
     return { published: true, subject };

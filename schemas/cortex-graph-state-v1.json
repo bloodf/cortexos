@@ -1,0 +1,14 @@
+{
+  "$id": "https://cortexos/schemas/cortex-graph-state-v1.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cortex.graph.state.<scope>.v1 data payload (placeholder for V7 LangGraph integration)",
+  "type": "object",
+  "required": ["runId", "nodeId", "state"],
+  "additionalProperties": false,
+  "properties": {
+    "runId": { "type": "string", "minLength": 1 },
+    "nodeId": { "type": "string", "minLength": 1 },
+    "state": { "type": "string", "enum": ["started", "completed", "interrupted", "failed"] },
+    "checkpoint": { "type": "string" }
+  }
+}

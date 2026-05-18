@@ -164,8 +164,58 @@ until the approval workflow lands.
 
 - **Kill switch**: bridge env `BRIDGE_ALERTS_ENABLED=0` skips the subscription.
 
+## Envelope (v2)
+
+Starting with V2, **every** NATS publish, inbound webhook payload, and audit row body
+is wrapped in a **CloudEvents 1.0 envelope** before the existing HMAC envelope
+(`{ data, sig }`). On the wire the layering is therefore:
+
+```
+{ data: <CloudEvent>, sig: <hex hmac over JCS(<CloudEvent>)> }
+```
+
+### CloudEvents fields (required)
+
+| Field            | Description                                                                  |
+|------------------|------------------------------------------------------------------------------|
+| `specversion`    | const `"1.0"`                                                                |
+| `id`             | UUID v4 per event                                                            |
+| `type`           | `cortex.<namespace>.<verb>.<scope>.v<N>` (e.g. `cortex.paperclip.work.eng-backend.v1`) |
+| `source`         | producer identifier (`cortex-paperclip-bridge`, `cortex-consumer`, …)        |
+| `time`           | RFC 3339 / ISO 8601 UTC timestamp                                            |
+| `datacontenttype`| const `"application/json"`                                                   |
+| `data`           | namespace-specific JSON payload — validated against `schemas/<file>.json`    |
+
+Optional: `subject`, `dataschema`, `traceparent`. CloudEvents extension attributes are allowed at top level (e.g. `replay: true` on `cortex.paperclip.work.*`).
+
+### Schema URL convention
+
+`dataschema` is set automatically: `https://cortexos/schemas/<namespace>-<verb>-v<N>.json`.
+The registry lives under `schemas/` (see `schemas/README.md`).
+
+### Producer / consumer obligations
+
+- **Producers** MUST build events via `@cortexos/events.envelope()` and call `validate()` before publishing.
+- **Consumers** MUST `parse()` (or `validate()`) every inbound message. Validation failures are fatal under strict mode, see flag below.
+
+### Grace-period flag: `CORTEX_REQUIRE_ENVELOPE`
+
+| Value         | Behavior                                                                |
+|---------------|-------------------------------------------------------------------------|
+| `0` (default) | Accept legacy (pre-v2) raw payloads; log a warning; continue.           |
+| `1`           | Reject anything that is not a valid CloudEvents 1.0 envelope.            |
+
+The flag is read by `stacks/cortex-paperclip-bridge/worker.js` and `stacks/cortex-consumer/consumer.js`. Set `1` once all producers in your environment have rolled to v2.
+
+### Validation behavior
+
+- Base envelope is validated against `schemas/cloudevents-base.json`.
+- `data` is validated against the schema selected by `type`: `<namespace>-<verb>-v<N>.json` (or `cortex-<top>-v<N>.json` for collapsed top-level namespaces like `alerts`, `graph`, `signal`).
+- On failure, producers throw `EnvelopeValidationError` (with `.errors` array). Consumers either throw (strict) or log + continue (grace).
+
 ## Related docs
 
 - [Documentation index](README.md)
 - [Architecture](ARCHITECTURE.md)
 - [Security](SECURITY.md)
+- [Schema registry](../schemas/README.md)

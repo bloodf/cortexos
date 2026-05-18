@@ -3,6 +3,7 @@ import { Buffer } from "node:buffer";
 import { timingSafeEqual } from "node:crypto";
 import { recordLink } from "./lib/idempotency.js";
 import { publish, getConnection } from "./lib/nats-publisher.js";
+import { envelope, validate as validateCloudEvent } from "@cortexos/events";
 
 const PORT = Number(process.env.BRIDGE_PORT || 8089);
 const FAMILY = process.env.CORTEX_OS_FAMILY || "unknown";
@@ -77,18 +78,26 @@ export function createApp() {
         role: cortexRole,
         subject,
       });
-      const payload = {
+      const data = {
         runId,
-        agentId,
         issueId: context.taskId,
-        wakeReason: context.wakeReason,
-        commentId: context.commentId || null,
+        agentId,
         role: cortexRole,
+        wakeReason: context.wakeReason,
         payload: req.body,
-        ts: new Date().toISOString(),
-        replay: !inserted,
+        requestedBy: context.commentId || undefined,
       };
-      await publish(subject, payload);
+      const event = envelope({
+        type: `cortex.paperclip.work.${cortexRole}.v1`,
+        source: "cortex-paperclip-bridge",
+        subject: context.taskId,
+        data,
+      });
+      // CloudEvents extension attribute (top-level) — preserves the legacy replay marker
+      // without polluting the strict inner data schema.
+      event.replay = !inserted;
+      validateCloudEvent(event);
+      await publish(subject, event);
       res.status(202).json({ runId, status: "queued" });
     } catch (e) {
       process.stderr.write(`[bridge] heartbeat failed run=${runId}: ${e.message}\n`);

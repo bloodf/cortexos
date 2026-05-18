@@ -1,0 +1,13 @@
+{
+  "$id": "https://cortexos/schemas/cortex-signal-v1.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cortex.signal.<scope>.v1 data payload (placeholder for V12 approval signals)",
+  "type": "object",
+  "required": ["runId", "signalName", "payload"],
+  "additionalProperties": false,
+  "properties": {
+    "runId": { "type": "string", "minLength": 1 },
+    "signalName": { "type": "string", "minLength": 1 },
+    "payload": {}
+  }
+}

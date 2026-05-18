@@ -1,0 +1,27 @@
+{
+  "$id": "https://cortexos/schemas/cloudevents-base.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CloudEvents 1.0 Envelope (CortexOS profile)",
+  "description": "CloudEvents v1.0 envelope used for every NATS publish, webhook payload, and audit row in CortexOS.",
+  "type": "object",
+  "required": ["specversion", "id", "type", "source", "time", "datacontenttype"],
+  "additionalProperties": true,
+  "properties": {
+    "specversion": { "type": "string", "const": "1.0" },
+    "id": { "type": "string", "minLength": 1 },
+    "type": {
+      "type": "string",
+      "pattern": "^cortex\\.[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)+\\.v[0-9]+$"
+    },
+    "source": { "type": "string", "minLength": 1 },
+    "time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "datacontenttype": { "type": "string", "const": "application/json" },
+    "subject": { "type": "string" },
+    "dataschema": { "type": "string", "format": "uri" },
+    "traceparent": { "type": "string" },
+    "data": {}
+  }
+}
