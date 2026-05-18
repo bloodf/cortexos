@@ -1,0 +1,39 @@
+# Cortex Dashboard — on-VPS Docker Compose build.
+#
+# Build context is the dashboard/ source tree (materialized on the VPS by the
+# operator-laptop bootstrap via `git archive | ssh tar -x`). No rsync, no
+# laptop-side Next.js build. The VPS builds the image locally with
+# `docker compose build`.
+#
+# Postgres and NATS are expected to run as sibling services on the
+# `cortex-net` external Docker network (see stacks/nats and the postgres
+# container brought up by provisioning). The dashboard does NOT manage
+# their lifecycle, hence no `depends_on` here — use the external network
+# as the integration seam.
+services:
+  cortex-dashboard:
+    build:
+      context: ../../dashboard
+      dockerfile: Dockerfile
+    image: cortex-dashboard:local
+    container_name: cortex-dashboard
+    restart: unless-stopped
+    env_file:
+      - /opt/cortexos/.secrets/dashboard.env
+    environment:
+      PORT: "3080"
+      NODE_ENV: production
+    ports:
+      - "3080:3080"
+    networks:
+      - cortex-net
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3080/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+networks:
+  cortex-net:
+    external: true

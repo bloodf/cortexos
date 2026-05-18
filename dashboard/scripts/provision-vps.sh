@@ -79,19 +79,36 @@ echo "=== [2/7] Installing baseline packages ==="
 pkg_install \
   curl ca-certificates gnupg lsb-release build-essential \
   postgresql postgresql-contrib \
-  rsync ufw git jq
+  ufw git jq
 
-echo "=== [3/7] Installing Node 24 via linuxbrew (idempotent) ==="
-if [[ ! -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
-  NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+echo "=== [3/7] Installing Docker Engine + Compose plugin (idempotent) ==="
+# Dashboard now builds on the VPS via docker compose. We no longer need
+# linuxbrew Node — the image base (node:22-slim) carries Node 22.
+if ! command -v docker >/dev/null 2>&1; then
+  case "$(pkg_family)" in
+    ubuntu|debian)
+      sudo install -m 0755 -d /etc/apt/keyrings
+      curl -fsSL "https://download.docker.com/linux/$(pkg_family)/gpg" \
+        | sudo gpg --dearmor --yes -o /etc/apt/keyrings/docker.gpg
+      sudo chmod a+r /etc/apt/keyrings/docker.gpg
+      ARCH="$(dpkg --print-architecture)"
+      CODENAME="$(. /etc/os-release && echo "${VERSION_CODENAME:-${UBUNTU_CODENAME:-stable}}")"
+      echo "deb [arch=${ARCH} signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$(pkg_family) ${CODENAME} stable" \
+        | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
+      sudo apt-get update -y
+      pkg_install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+      ;;
+    *) echo "Unsupported OS family for docker: $(pkg_family)" >&2; exit 3 ;;
+  esac
 fi
-export PATH="/home/linuxbrew/.linuxbrew/bin:${PATH}"
-if ! command -v node >/dev/null || [[ "$(node -v 2>/dev/null | cut -c2- | cut -d. -f1)" != "24" ]]; then
-  brew install node@24
-  brew link --overwrite --force node@24
-fi
-NODE_BIN="$(brew --prefix node@24)/bin/node"
-echo "Node: $(${NODE_BIN} -v)"
+sudo systemctl enable --now docker
+sudo usermod -aG docker "${USER}" 2>/dev/null || true
+docker --version
+docker compose version
+
+echo "=== [3b/7] Ensuring cortex-net Docker network exists ==="
+docker network inspect cortex-net >/dev/null 2>&1 \
+  || sudo docker network create cortex-net
 
 echo "=== [4/7] Ensuring PostgreSQL is running ==="
 sudo systemctl enable --now postgresql
@@ -183,13 +200,21 @@ if [[ $WITH_CADDY -eq 1 ]]; then
   firewall_open 443 tcp
 fi
 
-echo "=== [7/7] Provision complete ==="
-echo "  Node binary    : ${NODE_BIN}"
+echo "=== [7/7] Bringing up cortex-dashboard via Docker Compose ==="
+STACK_DIR="${__repo_root}/stacks/cortex-dashboard"
+if [[ -f "${STACK_DIR}/docker-compose.yml" ]]; then
+  ( cd "${STACK_DIR}" && sudo docker compose up -d --build )
+else
+  echo "  WARN: ${STACK_DIR}/docker-compose.yml not found — skipping compose up."
+  echo "        Re-run after the repo tree is fully materialized at ${__repo_root}."
+fi
+
+echo "=== Provision complete ==="
 echo "  Dashboard root : ${DASHBOARD_DIR}"
 echo "  Env file       : ${ENV_FILE}"
 echo "  Postgres       : ${DB_USER}@127.0.0.1:5432/${DB_NAME}"
+echo "  Compose stack  : ${STACK_DIR}"
 echo
-echo "Next steps from your workstation:"
-echo "  export CORTEX_HOSTNAME=$(hostname -f 2>/dev/null || echo "<vps-host>")"
-echo "  export CORTEX_USER=${USER}"
-echo "  ./deploy.sh"
+echo "Verify on the VPS:"
+echo "  curl -fsS http://127.0.0.1:3080/api/health"
+echo "  docker compose -f ${STACK_DIR}/docker-compose.yml ps"

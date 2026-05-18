@@ -2,14 +2,21 @@
 
 ## Purpose
 
-Build and deploy the CortexOS Next.js dashboard to the VPS. The dashboard is a live read/update panel over VPS state — it does NOT import or store credentials.
+Build and deploy the CortexOS Next.js dashboard to the VPS as a Docker
+Compose service built **on the VPS** from the materialized repo at
+`/opt/cortexos`. The dashboard is a live read/update panel over VPS
+state — it does NOT import or store credentials. No rsync, no
+laptop-side build.
 
 ## Prerequisites
 
 - `14-postgresql.md` completed (schema already applied).
 - `13-caddy.md` completed (Caddy proxies `{DOMAIN}` → port 3080).
 - `40-openclaw.md` completed (dashboard chat panel connects to OpenClaw gateway).
-- Node.js ≥ 20 on the VPS.
+- Docker Engine + Compose plugin installed on the VPS
+  (`dashboard/scripts/provision-vps.sh` installs them when missing).
+- Repo materialized at `/opt/cortexos` via the bootstrap flow
+  (`prompts/00-bootstrap.md`).
 
 ## Distro selection
 
@@ -19,15 +26,28 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
-> **Node bootstrap.** Ubuntu/Debian use Linuxbrew's `node@24` via `dashboard/scripts/provision-vps.sh`.
+> **Build runtime.** Image base is `node:22-slim`. Container runs as
+> the non-root `node` user with `dumb-init` as PID 1.
 
 ## CHECKPOINT 1
 
-Operator: confirm Node.js ≥ 20 is installed on the VPS and `/opt/cortexos/.secrets/dashboard.env` exists with `DATABASE_URL`. Type "confirmed" to proceed.
+Operator: confirm `/opt/cortexos/dashboard/` is populated, the
+`cortex-net` Docker network exists, and
+`/opt/cortexos/.secrets/dashboard.env` is present with `DB_*` and
+`CORTEX_MASTER_KEY`. Type "confirmed" to proceed.
+
+```bash
+docker network inspect cortex-net >/dev/null 2>&1 \
+  || docker network create cortex-net
+test -f /opt/cortexos/.secrets/dashboard.env && echo OK
+```
 
 ## Supply-chain gate (mandatory before build)
 
-Before building or deploying the dashboard, verify the signed release tarball on the operator laptop. The preflight prompt (`prompts/tools/00-preflight.md` → Step 0) must have already installed `cosign`, `syft`, and `gh`, and pinned `CORTEX_VERIFY_REPO`.
+Before building or deploying the dashboard, verify the signed release
+tarball on the operator laptop. The preflight prompt
+(`prompts/tools/00-preflight.md` → Step 0) must have already installed
+`cosign`, `syft`, and `gh`, and pinned `CORTEX_VERIFY_REPO`.
 
 ```bash
 # From repo root on the operator laptop:
@@ -39,80 +59,80 @@ gh release download "$TAG" --repo "$CORTEX_VERIFY_REPO" --pattern 'dashboard-*'
 
 Expected: `[verify] OK: dashboard-<TAG>.tar.gz verified (checksum + cosign + SBOM + provenance)`.
 
-If verification fails: **HALT**. Do not run `deploy.sh`. Investigate before proceeding — see [docs/SUPPLY-CHAIN.md](../../docs/SUPPLY-CHAIN.md).
+If verification fails: **HALT**. Do not run `docker compose build`.
+Investigate before proceeding — see
+[docs/SUPPLY-CHAIN.md](../../docs/SUPPLY-CHAIN.md).
 
-## Install
+## Build & start
 
-Run `deploy.sh` from your local machine (not on the VPS):
-
-```bash
-# From repo root on your local machine:
-cd dashboard
-CORTEX_HOSTNAME={VPS_HOSTNAME} CORTEX_USER={VPS_USER} ./deploy.sh
-```
-
-`deploy.sh` performs: build → rsync → migrate → restart → health-check.
-
-### Next.js 16 standalone gap — `public/` must be explicit-rsync'd
-
-Next.js 16 `output: "standalone"` does **not** bundle the `public/`
-directory into `.next/standalone/`. `deploy.sh` therefore rsyncs the
-standalone tree first, then performs a second pass to copy
-`dashboard/public/` to `<target>/public/`. Confirmed on the live VPS
-during Phase H: without the second pass, static assets (favicons,
-locale JSON, brand SVGs) return 404 and `/en/login` renders broken.
-
-If you fork `deploy.sh`, keep both rsync passes.
-
-**Do not** paste credentials into the dashboard UI. All keys are sourced from VPS `.secrets/` files.
-
-## Systemd unit
-
-Install dashboard systemd unit from `templates/systemd/cortex-dashboard.service`. Substitute `{VPS_USER}`, `{NODE_BIN}`, `{NODE_BIN_DIR}` (Linuxbrew default `{NODE_BIN}=/home/linuxbrew/.linuxbrew/opt/node@24/bin/node`).
-
-Unit declares `After=network-online.target postgresql.service docker.service` + `Wants=network-online.target` so the dashboard waits for routable network AND its database deps before launch — critical for clean post-reboot auto-start.
+The compose stack lives at
+`/opt/cortexos/stacks/cortex-dashboard/docker-compose.yml`. Build
+context points at `../../dashboard` (the source tree materialized by
+bootstrap). The first `up --build` performs the full multi-stage build
+(`deps → builder → runtime`).
 
 ```bash
-sudo install -m 644 templates/systemd/cortex-dashboard.service /etc/systemd/system/cortex-dashboard.service
-# sed -i the placeholders, then:
-sudo systemctl daemon-reload
-sudo systemctl enable --now cortex-dashboard
+# On the VPS, as the SSH user with docker group membership:
+cd /opt/cortexos/stacks/cortex-dashboard
+docker compose up -d --build
 ```
 
-Verify auto-boot wiring:
+Subsequent rebuilds after `git pull` (or bootstrap re-materialization)
+use the same command — Docker reuses cached layers when only source
+changes.
+
+Tail logs while the container starts:
 
 ```bash
-systemctl is-enabled cortex-dashboard   # → enabled
-systemctl show cortex-dashboard -p After,Wants   # contains network-online.target
+docker compose logs -f cortex-dashboard
 ```
 
-## Configure
+The container entrypoint:
 
-Add dashboard env vars to `/opt/cortexos/.secrets/dashboard.env` on the VPS if not already present:
+1. Waits for PostgreSQL (`DB_HOST:DB_PORT` from the env file).
+2. Runs idempotent migrations (`node scripts/migrate.js`).
+3. Starts the bundled Next.js standalone server on port 3080.
 
-```bash
-# On VPS:
-cat >> /opt/cortexos/.secrets/dashboard.env <<EOF
-CORTEX_MASTER_KEY={CORTEX_MASTER_KEY}
-OPENCLAW_BASE=http://127.0.0.1:18789
-AGENTGATEWAY_BASE=http://127.0.0.1:18800
-NEXT_PUBLIC_APP_URL=https://{DOMAIN}
-EOF
-sudo chmod 600 /opt/cortexos/.secrets/dashboard.env
-sudo systemctl restart cortex-dashboard
-```
+**Do not** paste credentials into the dashboard UI. All keys are
+sourced from VPS `.secrets/` files.
 
 ## Verify
 
 ```bash
-curl -sS -o /dev/null -w "%{http_code}" https://{DOMAIN}/en/login
+curl -fsS http://127.0.0.1:3080/api/health
+```
+
+Expected: HTTP 200 with a JSON health payload.
+
+## CHECKPOINT 2
+
+Operator: confirm `curl localhost:3080/api/health` returns 200 and
+`docker compose ps` shows `cortex-dashboard` as `healthy`. Type
+"confirmed" to proceed.
+
+## Public verification (through Caddy)
+
+```bash
+curl -sS -o /dev/null -w "%{http_code}\n" https://{DOMAIN}/en/login
 ```
 
 Expected: `200`.
 
-## CHECKPOINT 2
+## CHECKPOINT 3
 
-Operator: confirm the dashboard login page loads at `https://{DOMAIN}/en/login` with no certificate errors, and the OpenClaw chat panel connects successfully. Type "confirmed" to proceed.
+Operator: confirm the dashboard login page loads at
+`https://{DOMAIN}/en/login` with no certificate errors, and the
+OpenClaw chat panel connects successfully. Type "confirmed" to proceed.
+
+## Operations
+
+| Action | Command |
+|---|---|
+| Restart | `docker compose restart cortex-dashboard` |
+| Stop | `docker compose down` |
+| Update env | edit `/opt/cortexos/.secrets/dashboard.env` → `docker compose up -d` |
+| Rebuild after code change | `docker compose up -d --build` |
+| View logs | `docker compose logs -f cortex-dashboard` |
 
 ## Next
 
