@@ -3,8 +3,9 @@ import { LiveHealthcheckTable } from "@/components/healthcheck/live-healthcheck-
 
 export default async function HealthcheckPage() {
 	const rawServices = await getAllServices();
+	const visibleServices = rawServices.filter((s) => s.show_in_healthcheck);
 
-	const initialServices = rawServices.map((s) => ({
+	const initialServices = visibleServices.map((s) => ({
 		id: s.id,
 		slug: s.slug,
 		name: s.name,

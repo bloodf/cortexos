@@ -10,7 +10,7 @@ interface LiveHealthcheckTableProps {
 }
 
 export function LiveHealthcheckTable({ initialServices }: LiveHealthcheckTableProps) {
-	const { data } = useSWR("/api/services", fetcher, { refreshInterval: 5000 });
+	const { data } = useSWR("/api/services?healthcheck=true", fetcher, { refreshInterval: 5000 });
 	const liveServices: HealthcheckService[] | undefined = data?.services;
 
 	const merged = liveServices

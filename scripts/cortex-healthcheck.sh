@@ -3,10 +3,24 @@ set -euo pipefail
 
 PASS=0
 FAIL=0
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 CORTEX_ROOT="${CORTEX_ROOT:-/opt/cortexos}"
 OPENCLAW_BASE="${OPENCLAW_BASE:-$HOME/.openclaw}"
 NATS_URL="${NATS_URL:-nats://127.0.0.1:4222}"
 PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/opt/node@24/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+
+# Load secret env files (best-effort, readable only) so internal token and DB password resolve
+# even when this script is run from a plain shell without prior `source`.
+for f in "$CORTEX_ROOT/.secrets/local.env" "$CORTEX_ROOT/.secrets/dashboard.env"; do
+  if [[ -r "$f" ]]; then
+    set -a
+    # shellcheck disable=SC1090
+    source "$f"
+    set +a
+  fi
+done
+
 DASHBOARD_DB_PASSWORD="${DASHBOARD_DB_PASSWORD:-}"
 CORTEX_INTERNAL_TOKEN="${CORTEX_INTERNAL_TOKEN:-${CORTEX_MASTER_KEY:-}}"
 
@@ -100,7 +114,17 @@ done
 echo "[dashboard db]"
 if [[ -n "$DASHBOARD_DB_PASSWORD" ]]; then
   check_cmd env PGPASSWORD="$DASHBOARD_DB_PASSWORD" pg_isready -h 127.0.0.1 -U dashboard -d cortex_dashboard && ok "PostgreSQL reachable" || bad "PostgreSQL reachable"
-  expected="$(find "$CORTEX_ROOT/dashboard/migrations" -maxdepth 1 -name '*.sql' 2>/dev/null | wc -l | tr -d ' ')"
+  migrations_dir=""
+  if [[ -d "$CORTEX_ROOT/dashboard/migrations" ]]; then
+    migrations_dir="$CORTEX_ROOT/dashboard/migrations"
+  elif [[ -d "$REPO_ROOT/dashboard/migrations" ]]; then
+    migrations_dir="$REPO_ROOT/dashboard/migrations"
+  fi
+  if [[ -n "$migrations_dir" ]]; then
+    expected="$(find "$migrations_dir" -maxdepth 1 -name '*.sql' 2>/dev/null | wc -l | tr -d ' ')"
+  else
+    expected=0
+  fi
   actual="$(PGPASSWORD="$DASHBOARD_DB_PASSWORD" psql -h 127.0.0.1 -U dashboard -d cortex_dashboard -Atc 'select count(*) from migrations' 2>/dev/null || echo 0)"
   [[ "$actual" -ge "$expected" ]] && ok "migrations applied $actual/$expected" || bad "migrations applied $actual/$expected"
   count="$(PGPASSWORD="$DASHBOARD_DB_PASSWORD" psql -h 127.0.0.1 -U dashboard -d cortex_dashboard -Atc 'select count(*) from services' 2>/dev/null || echo 0)"

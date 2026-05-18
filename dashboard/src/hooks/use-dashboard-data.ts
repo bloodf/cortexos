@@ -121,57 +121,33 @@ export function useDashboardData() {
 		};
 	}, [subscribe, unsubscribe]);
 
-	const systemSWR = useSWR(
-		connected ? null : "/api/system",
-		fetcher,
-		{ refreshInterval: 3000 },
-	);
-	const servicesSWR = useSWR(
-		connected ? null : "/api/services",
-		fetcher,
-		{ refreshInterval: 3000 },
-	);
-	const processesSWR = useSWR(
-		connected ? null : "/api/processes",
-		fetcher,
-		{ refreshInterval: 3000 },
-	);
-	const networkSWR = useSWR(
-		connected ? null : "/api/network",
-		fetcher,
-		{ refreshInterval: 3000 },
-	);
-	const dockerSWR = useSWR(
-		connected ? null : "/api/docker",
-		fetcher,
-		{ refreshInterval: 3000 },
-	);
+	const systemSWR = useSWR("/api/system", fetcher, { refreshInterval: 3000 });
+	const servicesSWR = useSWR("/api/services", fetcher, { refreshInterval: 3000 });
+	const processesSWR = useSWR("/api/processes", fetcher, { refreshInterval: 3000 });
+	const networkSWR = useSWR("/api/network", fetcher, { refreshInterval: 3000 });
+	const dockerSWR = useSWR("/api/docker", fetcher, { refreshInterval: 3000 });
 
 	const isLoading =
 		(!socketData.system && systemSWR.isLoading) ||
 		(!socketData.services && servicesSWR.isLoading);
 
-	const services = connected
+	const services = Array.isArray(socketData.services)
 		? socketData.services
-		: Array.isArray(socketData.services)
-			? socketData.services
-			: Array.isArray(servicesSWR.data?.services)
-				? servicesSWR.data.services
-				: undefined;
-	const processes = connected
+		: Array.isArray(servicesSWR.data?.services)
+			? servicesSWR.data.services
+			: undefined;
+	const processes = Array.isArray(socketData.processes)
 		? socketData.processes
-		: Array.isArray(socketData.processes)
-			? socketData.processes
-			: Array.isArray(processesSWR.data?.processes)
-				? processesSWR.data.processes
-				: undefined;
+		: Array.isArray(processesSWR.data?.processes)
+			? processesSWR.data.processes
+			: undefined;
 
 	return {
-		system: connected ? socketData.system : (socketData.system ?? systemSWR.data),
+		system: socketData.system ?? systemSWR.data,
 		services,
 		processes,
-		network: connected ? socketData.network : (socketData.network ?? networkSWR.data),
-		docker: connected ? socketData.docker : (socketData.docker ?? dockerSWR.data),
+		network: socketData.network ?? networkSWR.data,
+		docker: socketData.docker ?? dockerSWR.data,
 		connected,
 		isLoading,
 		error:
