@@ -126,6 +126,44 @@ Approval and privileged-operation payloads require HMAC verification. Failed ver
 Reserved for P3 governance gate. Producers must not publish to this subject
 until the approval workflow lands.
 
+## Operational alerts
+
+> Reserved namespace for dashboard → Paperclip alerts plugin (P8). Same HMAC
+> envelope shape `{ data, sig }` as the Paperclip subjects above.
+
+### `cortex.alerts.<severity>.<source>`
+
+- **Direction**: dashboard → bridge → Paperclip.
+- **Producer**: `dashboard/src/lib/alerts.ts` (`publishAlert`).
+- **Consumer**: `stacks/cortex-paperclip-bridge/alerts.js` durable
+  `cortex-paperclip-bridge-alerts`, filter `cortex.alerts.>`.
+- **`<severity>`**: one of `info`, `warning`, `critical`. Bridge gates by
+  `BRIDGE_ALERTS_MIN_SEVERITY` (default `warning`).
+- **`<source>`**: opaque identifier, ASCII `[A-Za-z0-9._-]+` (e.g. `cpu`,
+  `bridge`, `dashboard.api`). Used as the rate-limit bucket key
+  (max 10 events / source / minute).
+- **`data` shape**:
+
+  ```json
+  {
+    "title": "string (required)",
+    "body": "string",
+    "severity": "info|warning|critical",
+    "source": "string",
+    "timestamp": "RFC3339",
+    "metadata": { "...": "optional structured context" }
+  }
+  ```
+
+- **Delivery**:
+  - Default: `POST /api/notifications` on Paperclip with the data fields above.
+  - Fallback (notifications endpoint 404 + `BRIDGE_ALERTS_OPS_ISSUE_ID` set):
+    comment on the configured ops issue with label `priority:high`.
+  - Digest mode (`BRIDGE_ALERTS_DIGEST=1`): `info` alerts buffered for 5 minutes
+    then posted as a single summary notification with `source=bridge-digest`.
+
+- **Kill switch**: bridge env `BRIDGE_ALERTS_ENABLED=0` skips the subscription.
+
 ## Related docs
 
 - [Documentation index](README.md)
