@@ -2,12 +2,22 @@
 
 ## Purpose
 
-Apply baseline security hardening to the Ubuntu VPS: disable root SSH login, configure unattended-upgrades, set kernel parameters, and restrict default services.
+Apply baseline security hardening to the VPS: disable root SSH login, configure unattended-upgrades / dnf-automatic, set kernel parameters, and restrict default services. Works on Ubuntu, Fedora, and RHEL families.
 
 ## Prerequisites
 
 - SSH access as a sudo-capable user (not root).
 - `prompts/tools/00-preflight.md` completed successfully.
+
+## Distro selection
+
+Source distro dispatcher and confirm OS family was selected in `prompts/os/00-os-selection.md`:
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
 
 ## CHECKPOINT 1
 
@@ -16,8 +26,18 @@ Operator: confirm you are connected as a non-root sudo user and that `/etc/ssh/s
 ## Install
 
 ```bash
-sudo apt-get update -y
-sudo apt-get install -y unattended-upgrades ufw fail2ban-common
+if [ "$(pkg_family)" = "ubuntu" ]; then
+  pkg_install unattended-upgrades ufw fail2ban-common
+elif [ "$(pkg_family)" = "fedora" ] || [ "$(pkg_family)" = "rhel" ]; then
+  pkg_install dnf-automatic firewalld fail2ban
+  # SELinux: see docs/FEDORA-SUPPORT.md for AVC triage
+fi
+```
+
+Verify package install (family-appropriate):
+
+```bash
+if [ "$(pkg_family)" = "ubuntu" ]; then dpkg -s ufw >/dev/null; else rpm -qi firewalld >/dev/null; fi
 ```
 
 ## Configure
@@ -40,16 +60,25 @@ sudo systemctl reload sshd
 ### Unattended upgrades
 
 ```bash
-sudo dpkg-reconfigure -plow unattended-upgrades
+if [ "$(pkg_family)" = "ubuntu" ]; then
+  sudo dpkg-reconfigure -plow unattended-upgrades
+elif [ "$(pkg_family)" = "fedora" ] || [ "$(pkg_family)" = "rhel" ]; then
+  sudo systemctl enable --now dnf-automatic.timer
+fi
 ```
 
-### UFW baseline rules
+### Firewall baseline rules
 
 ```bash
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-sudo ufw allow {SSH_PORT}/tcp
-sudo ufw --force enable
+if [ "$(pkg_family)" = "ubuntu" ]; then
+  sudo ufw default deny incoming
+  sudo ufw default allow outgoing
+  firewall_open {SSH_PORT} tcp
+  sudo ufw --force enable
+else
+  sudo systemctl enable --now firewalld
+  firewall_open {SSH_PORT} tcp
+fi
 ```
 
 Replace `{SSH_PORT}` with your SSH port (default `22`).
