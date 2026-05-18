@@ -1,0 +1,32 @@
+[Unit]
+Description=Cortex Paperclip Bridge (webhook receiver + status worker)
+After=network-online.target nats.service postgresql.service
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=notify
+NotifyAccess=all
+WatchdogSec=30
+WorkingDirectory=/opt/cortexos/stacks/cortex-paperclip-bridge
+ExecStart=/opt/cortexos/stacks/cortex-paperclip-bridge/entrypoint.sh
+Restart=on-failure
+RestartSec=5
+User=cortex
+Group=cortex
+EnvironmentFile=/opt/cortexos/.secrets/paperclip.env
+
+ProtectSystem=strict
+ProtectHome=true
+NoNewPrivileges=true
+PrivateTmp=true
+MemoryDenyWriteExecute=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+
+[Install]
+WantedBy=multi-user.target

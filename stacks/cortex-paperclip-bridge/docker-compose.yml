@@ -1,0 +1,26 @@
+services:
+  cortex-paperclip-bridge:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cortex-paperclip-bridge:local
+    container_name: cortex-paperclip-bridge
+    restart: unless-stopped
+    env_file:
+      - /opt/cortexos/.secrets/paperclip.env
+    ports:
+      - "127.0.0.1:8089:8089"
+    depends_on:
+      - nats
+      - postgres
+    networks:
+      - cortex-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8089/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  cortex-net:
+    external: true

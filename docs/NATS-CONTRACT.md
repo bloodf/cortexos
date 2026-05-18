@@ -75,6 +75,57 @@ cortex.infra.nats.unhealthy
 
 Approval and privileged-operation payloads require HMAC verification. Failed verification routes to dead-letter handling and must not trigger action.
 
+## Paperclip subjects
+
+> Reserved namespace for the Paperclip ↔ CortexOS bridge (P2). All payloads use
+> the HMAC envelope shape `{ data: <payload>, sig: <sha256-hex> }` where `sig`
+> is `HMAC-SHA256(CORTEX_NATS_HMAC, JCS(data))`.
+
+### `cortex.paperclip.work.<role>`
+
+- **Direction**: bridge → consumer.
+- **Producer**: `stacks/cortex-paperclip-bridge` after a Paperclip heartbeat.
+- **Consumer**: `cortex-consumer` durable `cortex-consumer-paperclip-work`.
+- **`<role>`**: CortexOS role enum (`ENG-BACKEND`, `ENG-FRONTEND`, `SECURITY`, `OPS`, ...).
+- **`data` shape**:
+
+  ```json
+  {
+    "runId": "string",
+    "agentId": "string",
+    "issueId": "string",
+    "wakeReason": "scheduled|comment|new_issue|manual",
+    "commentId": "string|null",
+    "role": "ENG-BACKEND",
+    "payload": { "...": "merged Paperclip payloadTemplate fields" },
+    "ts": "RFC3339",
+    "replay": false
+  }
+  ```
+
+### `cortex.paperclip.status.<role>`
+
+- **Direction**: consumer → bridge.
+- **Producer**: `cortex-consumer` once an executor pipeline reaches a terminal
+  state (`done|failed|cancelled`) or an intermediate `in_progress` heartbeat.
+- **Consumer**: `cortex-paperclip-bridge` durable `cortex-paperclip-bridge-status`.
+- **`data` shape**:
+
+  ```json
+  {
+    "runId": "string",
+    "issueId": "string",
+    "status": "in_progress|done|failed|cancelled",
+    "comment": "string",
+    "costUsdCents": 0
+  }
+  ```
+
+### `cortex.paperclip.approval.<role>` (reserved)
+
+Reserved for P3 governance gate. Producers must not publish to this subject
+until the approval workflow lands.
+
 ## Related docs
 
 - [Documentation index](README.md)

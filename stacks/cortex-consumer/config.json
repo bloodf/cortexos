@@ -12,6 +12,12 @@
   "durables": {
     "factory_created": "cortex-consumer-factory-created",
     "factory_workflow": "cortex-consumer-factory-workflow",
-    "openclaw_received": "cortex-consumer-openclaw-received"
+    "openclaw_received": "cortex-consumer-openclaw-received",
+    "paperclip_work": "cortex-consumer-paperclip-work"
+  },
+  "paperclip": {
+    "work_subject_filter": "cortex.paperclip.work.>",
+    "status_subject_prefix": "cortex.paperclip.status",
+    "approval_subject_prefix": "cortex.paperclip.approval"
   }
 }
