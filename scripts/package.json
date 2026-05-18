@@ -1,0 +1,19 @@
+{
+  "name": "cortexos-scripts",
+  "private": true,
+  "version": "0.0.0",
+  "type": "commonjs",
+  "scripts": {
+    "test": "vitest run",
+    "register-roles": "tsx paperclip-register-roles.ts"
+  },
+  "dependencies": {
+    "undici": "^7.4.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.0",
+    "typescript": "^5.6.0",
+    "vitest": "^3.2.0",
+    "@types/node": "^22.10.0"
+  }
+}
