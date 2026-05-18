@@ -1,0 +1,11 @@
+{
+  "projectId": "smoke",
+  "title": "smoke-__SHA__-__TS__",
+  "description": "Synthetic Paperclip smoke. Expected: bridge ack -> consumer ack -> status=done with commit SHA in comment.",
+  "assigneeId": "__AGENT_ID__",
+  "metadata": {
+    "smokeRun": true,
+    "commitSha": "__SHA__",
+    "cortexRole": "__ROLE__"
+  }
+}
