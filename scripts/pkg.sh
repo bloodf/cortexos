@@ -11,6 +11,8 @@
 #   firewall_open <port> [tcp|udp]
 #   selinux_set <permissive|enforcing>   # no-op on ubuntu
 #   pkg_family                  # echoes ubuntu | fedora | rhel | unsupported
+#   pkg_subfamily               # echoes rhel | rocky | almalinux | centos |
+#                               #        ubuntu | fedora | <derivative-id>
 #
 # All functions return non-zero on failure. Quiet by default; set PKG_DEBUG=1
 # for verbose tracing.
@@ -26,7 +28,11 @@ __pkg_detect() {
     line=$("${__pkg_self_dir}/os-detect.sh")
     __PKG_FAMILY=$(printf '%s' "$line" | awk '{print $1}')
     __PKG_VERSION=$(printf '%s' "$line" | awk '{print $2}')
-    export __PKG_FAMILY __PKG_VERSION
+    # Third token is the subfamily (rhel | rocky | almalinux | centos | ...).
+    # Older os-detect.sh emits only two tokens — fall back to family.
+    __PKG_SUBFAMILY=$(printf '%s' "$line" | awk '{print $3}')
+    [ -n "$__PKG_SUBFAMILY" ] || __PKG_SUBFAMILY="$__PKG_FAMILY"
+    export __PKG_FAMILY __PKG_VERSION __PKG_SUBFAMILY
   fi
 }
 
@@ -42,6 +48,41 @@ pkg_family() {
 pkg_version() {
   __pkg_detect
   printf '%s\n' "$__PKG_VERSION"
+}
+
+pkg_subfamily() {
+  __pkg_detect
+  printf '%s\n' "$__PKG_SUBFAMILY"
+}
+
+# pkg_module_enable <module:stream>
+#
+# Enables a dnf module stream. No-op on ubuntu. On rhel-family, some hosts
+# (RHEL 10, minimal images) lack the module entirely — return non-zero so
+# callers can fall back (e.g., NodeSource for nodejs).
+pkg_module_enable() {
+  __pkg_detect
+  local stream="$1"
+  case "$__PKG_FAMILY" in
+    ubuntu) return 0 ;;
+    fedora)
+      sudo dnf module reset -y "${stream%%:*}" >/dev/null 2>&1 || true
+      sudo dnf module enable -y "$stream"
+      ;;
+    rhel)
+      # RHEL/Rocky/Alma 9 ship a subset of streams; 10 dropped modules entirely.
+      if ! sudo dnf module list "${stream%%:*}" >/dev/null 2>&1; then
+        __pkg_log "module ${stream} unavailable on $__PKG_SUBFAMILY $__PKG_VERSION"
+        return 1
+      fi
+      sudo dnf module reset -y "${stream%%:*}" >/dev/null 2>&1 || true
+      sudo dnf module enable -y "$stream"
+      ;;
+    *)
+      echo "pkg_module_enable: unsupported family '$__PKG_FAMILY'" >&2
+      return 3
+      ;;
+  esac
 }
 
 pkg_install() {
