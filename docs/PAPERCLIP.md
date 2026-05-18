@@ -223,12 +223,43 @@ The drill is part of the phase "done" checklist.
 
 ## Historic backfill
 
-Placeholder for Phase 7 (`prompts/paperclip/80-historic-backfill.md`).
-That phase ports archived `.omx/` and `.omc/` task records into
-Paperclip with status `done`, links each via
-`paperclip_ticket_link.omc_task_id`, and is gated on a mandatory dry-run
-plus row-count parity check. Expanded notes will land here when P7
-ships.
+Phase 7 ports archived OMC task records into Paperclip with
+`status="done"` and anchors each one in `paperclip_ticket_link` via a
+new `omc_task_id` column added by migration
+`006_paperclip_omc_backfill.sql`. Full operator walkthrough:
+[`prompts/paperclip/80-historic-backfill.md`](../prompts/paperclip/80-historic-backfill.md).
+
+Mechanics:
+
+- Importer: `scripts/migrate-omc-to-paperclip.ts` (resumable; defaults
+  to `--dry-run`). Reads `.omx/logs/*.jsonl` plus
+  `.omc/state/sessions/*/*.json`, groups events by
+  `(sessionId, role)`, and emits one synthetic Paperclip issue per
+  group.
+- Stable id derivation:
+  `omc_task_id = sha256(sessionId + " " + role + " " + earliestTimestamp).slice(0,16)`.
+  This value is reused as `x-paperclip-run-id` so the Paperclip side
+  is idempotent (409 on replay) and the link table is idempotent via
+  `UNIQUE (omc_task_id) WHERE omc_task_id IS NOT NULL`.
+- Date scoping: `--from-date YYYY-MM-DD` / `--to-date YYYY-MM-DD`
+  inclusive on event timestamps. Default: all time.
+- Apply gate: `--apply` requires `PAPERCLIP_API_URL`,
+  `PAPERCLIP_API_KEY`, and `PG_DSN` in the environment. Dry-run runs
+  with no env.
+- Rollback: `006_paperclip_omc_backfill.rollback.sql` drops the new
+  columns + indexes. Backfilled link rows themselves are preserved
+  unless explicitly deleted with
+  `DELETE FROM paperclip_ticket_link WHERE backfilled_at IS NOT NULL`.
+
+Query the backfill state:
+
+```sql
+SELECT cortex_role, COUNT(*) AS rows, MIN(backfilled_at) AS first_run
+FROM paperclip_ticket_link
+WHERE backfilled_at IS NOT NULL
+GROUP BY cortex_role
+ORDER BY rows DESC;
+```
 
 ## Related docs
 
