@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getSessionByToken } from "@/lib/db/admin";
 
-export const runtime = "nodejs";
-
 const PUBLIC_PREFIXES = ["/api/auth", "/_next", "/favicon"];
 const INTERNAL_TOKEN = process.env.CORTEX_INTERNAL_TOKEN || process.env.CORTEX_MASTER_KEY;
 const PUBLIC_PATHS = ["/", "/login", "/setup"];
@@ -46,7 +44,7 @@ function unauthorized(request: NextRequest) {
   return NextResponse.redirect(new URL(`/${locale}/login`, request.url));
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const internalToken = request.headers.get("x-cortex-internal-token");
   if (INTERNAL_TOKEN && internalToken === INTERNAL_TOKEN) {

@@ -1,4 +1,4 @@
-import { getAlertRules, getAlertHistory } from "@/lib/db/alerts";
+import { getAlertRules } from "@/lib/db/alerts";
 import { AlertHistory } from "@/components/notifications";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,7 +6,6 @@ import { BellIcon } from "lucide-react";
 
 export default async function AlertsPage() {
 	const rules = await getAlertRules();
-	const history = await getAlertHistory(undefined, undefined, 20);
 
 	return (
 		<div className="space-y-6">

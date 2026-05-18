@@ -42,7 +42,7 @@ export function EnvViewer({ serviceSlug }: { serviceSlug?: string }) {
 									<div className="truncate font-mono text-muted-foreground">{display}</div>
 								</div>
 								<div className="flex shrink-0 gap-1">
-									<Button type="button" variant="ghost" size="icon" aria-label={`Reveal ${item.key}`} onClick={() => setRevealed((prev) => { const next = new Set(prev); next.has(item.key) ? next.delete(item.key) : next.add(item.key); return next; })}>
+									<Button type="button" variant="ghost" size="icon" aria-label={`Reveal ${item.key}`} onClick={() => setRevealed((prev) => { const next = new Set(prev); if (next.has(item.key)) next.delete(item.key); else next.add(item.key); return next; })}>
 										{isRevealed ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
 									</Button>
 									<Button type="button" variant="ghost" size="icon" aria-label={`Copy ${item.key}`} onClick={() => navigator.clipboard?.writeText(isRevealed ? item.value : display)}>

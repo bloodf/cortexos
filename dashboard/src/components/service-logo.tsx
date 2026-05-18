@@ -70,6 +70,7 @@ export function ServiceLogo({ serviceId, size = 40, iconColor, iconImage }: Serv
 				className="flex items-center justify-center shrink-0 overflow-hidden"
 				style={{ width: size, height: size, borderRadius: size * 0.2 }}
 			>
+				{/* eslint-disable-next-line @next/next/no-img-element */}
 				<img
 					src={iconImage}
 					alt={serviceId}

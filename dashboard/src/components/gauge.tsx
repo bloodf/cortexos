@@ -25,7 +25,6 @@ export function Gauge({
 	const circumference = 2 * Math.PI * radius;
 	const arcLength = circumference * 0.75;
 	const offset = arcLength - (value / 100) * arcLength;
-	const startAngle = 135;
 
 	const [animatedValue, setAnimatedValue] = useState(0);
 

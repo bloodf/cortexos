@@ -13,7 +13,6 @@ export function StatusBadge({
 }) {
 	const isOnline = status === "online";
 	const isOffline = status === "offline";
-	const isUnknown = !isOnline && !isOffline;
 
 	const containerClass = isOnline
 		? "bg-emerald-500/10"

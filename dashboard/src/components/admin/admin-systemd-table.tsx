@@ -25,8 +25,7 @@ interface SystemdRow {
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
-const VALID_ACTIONS = ["start", "stop", "restart"] as const;
-type SystemdAction = (typeof VALID_ACTIONS)[number];
+type SystemdAction = "start" | "stop" | "restart";
 
 export function AdminSystemdTable() {
 	const [filter, setFilter] = React.useState("");
