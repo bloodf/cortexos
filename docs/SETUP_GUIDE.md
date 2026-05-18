@@ -1,6 +1,14 @@
 # CortexOS Setup Guide
 
 > Operator-oriented guide for deploying CortexOS through checkpointed prompt modules.
+>
+> **v4.5 install model — laptop drives, VPS receives.** Operator clones
+> this repository on a workstation, sets `CORTEX_HOST/USER/ROOT/DOMAIN`,
+> and opens [`prompts/00-bootstrap.md`](../prompts/00-bootstrap.md) in an
+> AI coding agent. The bootstrap prompt SSH-dispatches every install
+> step from the laptop to the VPS via `scripts/bootstrap.sh`. The
+> operator age **private** key lives only on the laptop; the VPS never
+> sees it.
 
 ## Contents
 
@@ -20,9 +28,10 @@
 | CPU | 4+ cores |
 | Memory | 16 GB+ |
 | Disk | 200 GB+ SSD |
-| Access | SSH as sudo user |
+| Access | SSH key-based auth from the operator laptop to the VPS as a sudo user |
 | Network | Domain or Tailscale hostname |
-| Tools | Git, AI coding agent, SSH client |
+| Tools (laptop) | `git`, `ssh`, `scp`, `sops`, `age`, AI coding agent |
+| Tools (VPS) | Whatever the OS ships with; the bootstrap pushes everything else |
 
 Before running any module, pick a distro family with
 [`prompts/os/00-os-selection.md`](../prompts/os/00-os-selection.md);
@@ -43,7 +52,33 @@ Keep secrets outside shell history when possible. Use prompt-specific secure inp
 
 ## Execution model
 
-`SETUP.md` is master prompt. It instructs agent to read local repository files, connect to VPS, copy templates, run commands, and stop at checkpoints. Prompts are plain Markdown so operator can execute manually when agent cannot access environment.
+[`prompts/00-bootstrap.md`](../prompts/00-bootstrap.md) is the master
+prompt. It runs on the **operator laptop** and SSH-dispatches every
+install step to the VPS via helpers in
+[`scripts/bootstrap.sh`](../scripts/bootstrap.sh):
+
+- `bootstrap_check_local_deps` — verifies `ssh/scp/git/sops/age` and the
+  four `CORTEX_*` env vars on the laptop.
+- `bootstrap_ensure_operator_age_key` — creates / discovers
+  `~/.config/sops/age/keys.txt` and prints the public recipient for
+  `.sops.yaml`.
+- `bootstrap_detect_remote_os` — pipes `scripts/os-detect.sh` to the
+  VPS over SSH and exports `CORTEX_OS_FAMILY` / `CORTEX_OS_VERSION` in
+  the laptop shell.
+- `bootstrap_push_repo` — materializes the working tree at
+  `/opt/cortexos` on the VPS using `git archive | ssh tar -x`.
+- `bootstrap_run_remote <cmd>` — runs `<cmd>` on the VPS with the
+  CortexOS env exported. This is the wrapper used to execute every
+  shell block in `prompts/os/*` and `prompts/tools/*`.
+- `bootstrap_push_secrets` — decrypts every
+  `templates/.secrets/*.enc.yaml` locally with the operator age key,
+  scp's plaintext `.env` files to `/opt/cortexos/.secrets/`, and chmods
+  them to `0600` on the VPS.
+
+Prompts remain plain Markdown so an operator can fall back to running
+them manually on the VPS if SSH dispatch is unavailable. Legacy
+on-host invocation continues to work for `provision-vps.sh` and the
+prompt steps themselves.
 
 ## Prompt sequence
 
