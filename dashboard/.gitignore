@@ -61,3 +61,8 @@ next-env.d.ts
 CLAUDE.md
 AGENTS.md
 .dashboard_update/
+
+# Playwright (V11)
+/playwright-report/
+/test-results/
+/playwright/.cache/

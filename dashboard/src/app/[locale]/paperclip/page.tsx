@@ -1,36 +1,6 @@
-import { headers } from "next/headers";
-import {
-	PaperclipLinkTable,
-	type PaperclipLinkRow,
-} from "@/components/paperclip/link-table";
+import { PaperclipLinkTable } from "@/components/paperclip/link-table";
 import { EmptyState } from "@/components/ui/empty-state";
-
-async function fetchLinks(): Promise<{
-	rows: PaperclipLinkRow[];
-	warning?: string;
-	error?: string;
-}> {
-	try {
-		const h = await headers();
-		const host = h.get("host") ?? "127.0.0.1:3080";
-		const proto = h.get("x-forwarded-proto") ?? "http";
-		const res = await fetch(`${proto}://${host}/api/paperclip/links`, {
-			cache: "no-store",
-			headers: { cookie: h.get("cookie") ?? "" },
-		});
-		if (!res.ok) {
-			return { rows: [], error: `links api ${res.status}` };
-		}
-		const body = (await res.json()) as {
-			rows?: PaperclipLinkRow[];
-			warning?: string;
-		};
-		return { rows: body.rows ?? [], warning: body.warning };
-	} catch (err) {
-		const msg = err instanceof Error ? err.message : "fetch failed";
-		return { rows: [], error: msg };
-	}
-}
+import { loadPaperclipLinks } from "./actions";
 
 export default async function PaperclipPage() {
 	const apiUrl = process.env.PAPERCLIP_API_URL;
@@ -49,7 +19,7 @@ export default async function PaperclipPage() {
 		);
 	}
 
-	const { rows, warning, error } = await fetchLinks();
+	const { rows, warning, error } = await loadPaperclipLinks({});
 	const boardUrl = `${apiUrl.replace(/\/$/, "")}/board`;
 
 	return (

@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ShieldCheckIcon } from "lucide-react";
 import { AuditChainVerifyBadge } from "./chain-verify-badge";
+import { auditViewerQuerySchema, parseInput } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -40,7 +41,10 @@ interface PageProps {
 
 export default async function AuditViewerPage({ searchParams }: PageProps) {
 	const sp = (await searchParams) ?? {};
-	const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
+	const parsedQuery = parseInput(auditViewerQuerySchema, sp, {
+		action: "audit.viewer",
+	});
+	const page = parsedQuery.ok ? parsedQuery.data.page : 1;
 	const offset = (page - 1) * PAGE_SIZE;
 
 	let rows: AuditRow[] = [];
