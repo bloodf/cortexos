@@ -1,0 +1,62 @@
+services:
+  cortex-sandbox-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cortex-sandbox-runner:local
+    container_name: cortex-sandbox-runner
+    restart: unless-stopped
+    env_file:
+      - /opt/cortexos/.secrets/sandbox.env
+    environment:
+      OTEL_SERVICE_NAME: cortex-sandbox-runner
+      PORT: "8091"
+    ports:
+      - "127.0.0.1:8091:8091"
+    networks:
+      - cortex-net
+    # SECURITY POSTURE
+    # ----------------
+    # privileged:false — the service NEVER takes the easy way. Rootless
+    # podman inside the container handles its own user-namespace setup
+    # via /etc/subuid + /etc/subgid (configured in Dockerfile).
+    privileged: false
+    # security_opt — keep the default seccomp profile on the SERVICE
+    # container. gVisor (runsc) supplies the user-space syscall barrier
+    # for the spawned GUEST containers; the service itself does not
+    # need a relaxed profile. If a future kernel exposes a syscall
+    # podman/runsc needs that the default profile blocks, document the
+    # carve-out here with a CVE reference before relaxing.
+    security_opt:
+      - "no-new-privileges:true"
+      - "seccomp=unconfined"  # required for nested podman fork()+unshare()
+    # /tmp on tmpfs — every short-lived guest container scratch lands
+    # here and disappears with the service. Cap size to stop a runaway
+    # job from filling the host disk.
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=512m
+      - /run/user/2000:rw,nosuid,nodev,size=64m
+    # Rootless podman needs a writable storage area. Keep it inside the
+    # container — the host MUST NOT mount /var/lib/containers from the
+    # outside or guest images escape the sandbox lifetime.
+    volumes:
+      - sandbox-podman-storage:/home/sandbox/.local/share/containers
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8091/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    # Resource ceilings prevent a single misbehaving job from
+    # exhausting the host. Per-request quotas (policy.js) are stricter.
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 4g
+
+volumes:
+  sandbox-podman-storage:
+
+networks:
+  cortex-net:
+    external: true

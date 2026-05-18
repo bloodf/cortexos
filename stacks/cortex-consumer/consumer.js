@@ -67,6 +67,16 @@ const CORTEX_GRAPH_API_TOKEN = process.env.CORTEX_GRAPH_API_TOKEN || "";
 const CORTEX_GRAPH_ROLES_FILE = process.env.CORTEX_GRAPH_ROLES_FILE
   || "/opt/cortexos/templates/agent-roles/.graph-enabled.json";
 
+// V10 — optional dispatch through the cortex-sandbox-runner service.
+// When `CORTEX_SANDBOX_URL` is set AND the role's frontmatter advertises
+// `sandboxRequired: true`, tool exec is routed to the runner instead of
+// inline shell. Failures are logged and do not block the accept path so
+// a misconfigured runner cannot stall the consumer.
+const CORTEX_SANDBOX_URL = (process.env.CORTEX_SANDBOX_URL || "").replace(/\/$/, "");
+const CORTEX_SANDBOX_API_TOKEN = process.env.CORTEX_SANDBOX_API_TOKEN || "";
+const CORTEX_SANDBOX_ROLES_FILE = process.env.CORTEX_SANDBOX_ROLES_FILE
+  || "/opt/cortexos/templates/agent-roles/.sandbox-required.json";
+
 // ---------------------------------------------------------------------------
 // Config + env
 // ---------------------------------------------------------------------------
@@ -655,6 +665,77 @@ async function dispatchToGraph({ role, issueId, runId, payload }) {
   }
 }
 
+// V10 — Sandbox dispatch helpers. Parallel to the V7 graph helpers
+// above. The roster file caches the same way; `__sandboxRolesCache`
+// is reset implicitly with the consumer's lifetime.
+let __sandboxRolesCache = null;
+
+function loadSandboxRequiredRoles() {
+  if (__sandboxRolesCache !== null) return __sandboxRolesCache;
+  try {
+    const raw = JSON.parse(readFileSync(CORTEX_SANDBOX_ROLES_FILE, "utf8"));
+    __sandboxRolesCache = Array.isArray(raw)
+      ? new Set(raw.map((r) => String(r).toUpperCase()))
+      : new Set();
+  } catch {
+    __sandboxRolesCache = new Set();
+  }
+  return __sandboxRolesCache;
+}
+
+function shouldDispatchToSandbox(role) {
+  if (!CORTEX_SANDBOX_URL) return false;
+  if (!CORTEX_SANDBOX_API_TOKEN) {
+    process.stderr.write("[sandbox] CORTEX_SANDBOX_URL set but CORTEX_SANDBOX_API_TOKEN missing — skipping sandbox dispatch\n");
+    return false;
+  }
+  const roles = loadSandboxRequiredRoles();
+  if (roles.size === 0) return false;
+  return roles.has(String(role).toUpperCase());
+}
+
+async function dispatchToSandbox({ role, issueId, runId, payload }) {
+  // Translate the paperclip payload into a sandbox /exec request. We
+  // intentionally keep the field surface minimal here — the runner
+  // re-validates everything via its zod schema and rejects unknown
+  // images / network modes. When the payload lacks an explicit
+  // `tool` block we fall back to a noop probe so dispatch wiring can
+  // be exercised end-to-end before tool semantics ship.
+  const tool = (payload && payload.tool) || {};
+  const body = {
+    image: tool.image || "alpine:3",
+    cmd: Array.isArray(tool.cmd) && tool.cmd.length ? tool.cmd : ["true"],
+    env: tool.env || {},
+    timeoutSec: tool.timeoutSec,
+    cpuMillis: tool.cpuMillis,
+    memMB: tool.memMB,
+    networkMode: tool.networkMode || "none",
+    role,
+  };
+  const url = `${CORTEX_SANDBOX_URL}/exec`;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15_000);
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${CORTEX_SANDBOX_API_TOKEN}`,
+        "X-Cortex-Run-Id": runId || "",
+        "X-Cortex-Issue-Id": issueId || "",
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      throw new Error(`sandbox http ${res.status}: ${await res.text().catch(() => "")}`);
+    }
+    return await res.json().catch(() => ({}));
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function handlePaperclipWork(subject, envelope) {
   // Envelope shape: { data: <payload>, sig: <hex> }. Verify HMAC like approval path.
   if (!envelope || typeof envelope !== "object" || !envelope.data || !envelope.sig) {
@@ -702,6 +783,17 @@ async function handlePaperclipWork(subject, envelope) {
       process.stdout.write(`[graph] dispatched run=${data.runId} role=${role} thread=${resp.threadId || "?"}\n`);
     } catch (e) {
       process.stderr.write(`[graph] dispatch failed run=${data.runId} role=${role}: ${e.message}\n`);
+    }
+  }
+  // V10 — gated dispatch to the cortex-sandbox-runner. Same envelope
+  // as V7: opt-in via env + roster file. Falls through to the legacy
+  // path on misconfiguration so the consumer cannot stall.
+  if (shouldDispatchToSandbox(role)) {
+    try {
+      const resp = await dispatchToSandbox({ role, issueId: data.issueId, runId: data.runId, payload: data.payload });
+      process.stdout.write(`[sandbox] dispatched run=${data.runId} role=${role} exit=${resp.exitCode ?? "?"}\n`);
+    } catch (e) {
+      process.stderr.write(`[sandbox] dispatch failed run=${data.runId} role=${role}: ${e.message}\n`);
     }
   }
   // P2 scope: re-emit a `received` event for downstream OMC executor wiring.
