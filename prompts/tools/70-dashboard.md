@@ -25,6 +25,22 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 
 Operator: confirm Node.js ≥ 20 is installed on the VPS and `/opt/cortexos/.secrets/dashboard.env` exists with `DATABASE_URL`. Type "confirmed" to proceed.
 
+## Supply-chain gate (mandatory before build)
+
+Before building or deploying the dashboard, verify the signed release tarball on the operator laptop. The preflight prompt (`prompts/tools/00-preflight.md` → Step 0) must have already installed `cosign`, `syft`, and `gh`, and pinned `CORTEX_VERIFY_REPO`.
+
+```bash
+# From repo root on the operator laptop:
+TAG="$(git describe --tags --abbrev=0)"
+mkdir -p /tmp/cortex-release && cd /tmp/cortex-release
+gh release download "$TAG" --repo "$CORTEX_VERIFY_REPO" --pattern 'dashboard-*'
+"$OLDPWD/scripts/verify-artifact.sh" "dashboard-${TAG}.tar.gz" --ref "refs/tags/${TAG}"
+```
+
+Expected: `[verify] OK: dashboard-<TAG>.tar.gz verified (checksum + cosign + SBOM + provenance)`.
+
+If verification fails: **HALT**. Do not run `deploy.sh`. Investigate before proceeding — see [docs/SUPPLY-CHAIN.md](../../docs/SUPPLY-CHAIN.md).
+
 ## Install
 
 Run `deploy.sh` from your local machine (not on the VPS):

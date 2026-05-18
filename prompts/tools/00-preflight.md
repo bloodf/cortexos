@@ -14,6 +14,63 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 
 ---
 
+## Step 0 — Supply-chain verification toolchain
+
+The operator laptop must be able to verify CortexOS release artifacts before any artifact is pushed to the VPS. Install the toolchain and pin the OIDC identity once per workstation.
+
+### Install cosign, syft, gh
+
+Ubuntu / Debian:
+
+```bash
+# cosign (Sigstore)
+COSIGN_VERSION="v2.4.1"
+curl -fsSL "https://github.com/sigstore/cosign/releases/download/${COSIGN_VERSION}/cosign-linux-amd64" \
+  -o /tmp/cosign && sudo install -m 0755 /tmp/cosign /usr/local/bin/cosign
+cosign version
+
+# syft (Anchore) — only needed to regenerate SBOMs locally
+curl -fsSL https://raw.githubusercontent.com/anchore/syft/main/install.sh | \
+  sudo sh -s -- -b /usr/local/bin
+syft version
+
+# gh CLI — required for SLSA build-provenance attestation verification
+type gh >/dev/null 2>&1 || pkg_install gh
+gh --version
+```
+
+macOS:
+
+```bash
+brew install cosign syft gh
+```
+
+### Pin the expected OIDC identity
+
+Confirm the expected release identity for this repository. Export for the current shell or persist in your dotfiles:
+
+```bash
+export CORTEX_VERIFY_REPO="bloodf/cortexos"
+export CORTEX_VERIFY_WORKFLOW=".github/workflows/release.yml"
+export CORTEX_VERIFY_ISSUER="https://token.actions.githubusercontent.com"
+```
+
+These pins are consumed by `scripts/verify-artifact.sh`. Forks MUST override `CORTEX_VERIFY_REPO`. See [docs/SUPPLY-CHAIN.md](../../docs/SUPPLY-CHAIN.md) for the threat model and full verification protocol.
+
+### Smoke-test the verifier
+
+Download the latest release artifact and confirm the verifier works end-to-end:
+
+```bash
+mkdir -p /tmp/cortex-verify && cd /tmp/cortex-verify
+gh release download --repo "$CORTEX_VERIFY_REPO" --pattern 'dashboard-*'
+"$OLDPWD/scripts/verify-artifact.sh" dashboard-*.tar.gz
+```
+
+Expected output ends with `[verify] OK: ... verified (checksum + cosign + SBOM + provenance)`. If verification fails: **HALT**. Do not proceed with any installation prompt until the supply-chain gate passes.
+
+---
+
 ## CHECKPOINT 1 — Operator: confirm OpenClaw is installed and running
 
 Pause. Verify manually before the agent proceeds:

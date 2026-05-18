@@ -1,5 +1,14 @@
 name: Release
 
+# Tag-triggered release with SLSA L2 supply chain controls:
+#   - syft SBOM (SPDX JSON) per artifact
+#   - cosign keyless sign-blob via GitHub OIDC (Sigstore public-good Fulcio/Rekor)
+#   - actions/attest-build-provenance for SLSA L2 build provenance
+#
+# Trigger: push of tag matching v* (release-only; not on every commit).
+# Operator verifies artifacts with scripts/verify-artifact.sh before deploy.
+# See docs/SUPPLY-CHAIN.md for verification protocol and threat model.
+
 on:
   push:
     tags:
@@ -7,14 +16,173 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 jobs:
-  release:
+  build-and-attest:
+    name: Build, SBOM, sign, attest (${{ matrix.artifact.name }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        artifact:
+          - name: cortex-paperclip-bridge
+            path: stacks/cortex-paperclip-bridge
+            required: true
+          - name: cortex-consumer
+            path: stacks/cortex-consumer
+            required: true
+          - name: dashboard
+            path: dashboard
+            required: true
+          - name: paperclip-adapter
+            path: packages/paperclip-adapter
+            required: true
+          - name: cortex-graph
+            path: stacks/cortex-graph
+            required: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check artifact source exists
+        id: src
+        run: |
+          if [ -d "${{ matrix.artifact.path }}" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            if [ "${{ matrix.artifact.required }}" = "true" ]; then
+              echo "Required artifact path missing: ${{ matrix.artifact.path }}" >&2
+              exit 1
+            fi
+            echo "Optional artifact ${{ matrix.artifact.name }} missing — skipping (placeholder for future phase)."
+          fi
+
+      - name: Setup Node.js 22
+        if: steps.src.outputs.exists == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Package artifact tarball
+        if: steps.src.outputs.exists == 'true'
+        id: pkg
+        env:
+          ART_NAME: ${{ matrix.artifact.name }}
+          ART_PATH: ${{ matrix.artifact.path }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          OUT="dist/${ART_NAME}-${REF_NAME}.tar.gz"
+          # Pack the artifact source tree. Exclude node_modules and build caches.
+          tar --exclude='node_modules' \
+              --exclude='.next' \
+              --exclude='dist' \
+              --exclude='coverage' \
+              --exclude='.turbo' \
+              -czf "$OUT" "$ART_PATH"
+          sha256sum "$OUT" > "${OUT}.sha256"
+          echo "tarball=$OUT" >> "$GITHUB_OUTPUT"
+          echo "sha256=${OUT}.sha256" >> "$GITHUB_OUTPUT"
+          echo "name=${ART_NAME}-${REF_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Install syft
+        if: steps.src.outputs.exists == 'true'
+        uses: anchore/sbom-action/download-syft@v0
+
+      - name: Generate SBOM (SPDX JSON)
+        if: steps.src.outputs.exists == 'true'
+        id: sbom
+        env:
+          ART_PATH: ${{ matrix.artifact.path }}
+          ART_NAME: ${{ matrix.artifact.name }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          SBOM_OUT="dist/${ART_NAME}-${REF_NAME}.sbom.spdx.json"
+          syft "dir:${ART_PATH}" -o spdx-json="${SBOM_OUT}"
+          echo "sbom=${SBOM_OUT}" >> "$GITHUB_OUTPUT"
+
+      - name: Install cosign
+        if: steps.src.outputs.exists == 'true'
+        uses: sigstore/cosign-installer@v3
+
+      - name: Cosign keyless sign-blob (tarball)
+        if: steps.src.outputs.exists == 'true'
+        env:
+          COSIGN_EXPERIMENTAL: '1'
+          TARBALL: ${{ steps.pkg.outputs.tarball }}
+        run: |
+          set -euo pipefail
+          cosign sign-blob --yes \
+            --output-signature "${TARBALL}.sig" \
+            --output-certificate "${TARBALL}.pem" \
+            "${TARBALL}"
+
+      - name: Cosign keyless sign-blob (SBOM)
+        if: steps.src.outputs.exists == 'true'
+        env:
+          COSIGN_EXPERIMENTAL: '1'
+          SBOM: ${{ steps.sbom.outputs.sbom }}
+        run: |
+          set -euo pipefail
+          cosign sign-blob --yes \
+            --output-signature "${SBOM}.sig" \
+            --output-certificate "${SBOM}.pem" \
+            "${SBOM}"
+
+      - name: Attest build provenance (SLSA L2)
+        if: steps.src.outputs.exists == 'true'
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: ${{ steps.pkg.outputs.tarball }}
+
+      - name: Attest SBOM
+        if: steps.src.outputs.exists == 'true'
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: ${{ steps.sbom.outputs.sbom }}
+
+      - name: Upload artifacts for release job
+        if: steps.src.outputs.exists == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.artifact.name }}
+          path: |
+            dist/${{ matrix.artifact.name }}-*.tar.gz
+            dist/${{ matrix.artifact.name }}-*.tar.gz.sha256
+            dist/${{ matrix.artifact.name }}-*.tar.gz.sig
+            dist/${{ matrix.artifact.name }}-*.tar.gz.pem
+            dist/${{ matrix.artifact.name }}-*.sbom.spdx.json
+            dist/${{ matrix.artifact.name }}-*.sbom.spdx.json.sig
+            dist/${{ matrix.artifact.name }}-*.sbom.spdx.json.pem
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: Publish GitHub release
+    needs: build-and-attest
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Download all artifact bundles
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: release-*
+          merge-multiple: true
+
       - name: Generate release notes
         id: notes
         run: |
@@ -26,7 +194,22 @@ jobs:
             else
               git log --pretty=format:"- %s (%h)"
             fi
+            echo ""
+            echo ""
+            echo "## Supply chain"
+            echo ""
+            echo "Each artifact ships with:"
+            echo "- \`*.tar.gz\` — source tarball"
+            echo "- \`*.tar.gz.sha256\` — SHA-256 checksum"
+            echo "- \`*.tar.gz.sig\` + \`*.tar.gz.pem\` — cosign keyless signature + Fulcio cert"
+            echo "- \`*.sbom.spdx.json\` — SPDX SBOM (syft)"
+            echo "- \`*.sbom.spdx.json.sig\` + \`*.sbom.spdx.json.pem\` — SBOM signature + cert"
+            echo ""
+            echo "SLSA L2 build provenance attestations are attached via GitHub's attestations API."
+            echo "Verify before deploy: \`scripts/verify-artifact.sh <tarball>\`."
+            echo "See [docs/SUPPLY-CHAIN.md](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/docs/SUPPLY-CHAIN.md)."
           } > RELEASE_NOTES.md
+
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
@@ -34,3 +217,11 @@ jobs:
           generate_release_notes: false
           draft: false
           prerelease: ${{ contains(github.ref, '-rc') || contains(github.ref, '-beta') || contains(github.ref, '-alpha') }}
+          files: |
+            dist/*.tar.gz
+            dist/*.tar.gz.sha256
+            dist/*.tar.gz.sig
+            dist/*.tar.gz.pem
+            dist/*.sbom.spdx.json
+            dist/*.sbom.spdx.json.sig
+            dist/*.sbom.spdx.json.pem

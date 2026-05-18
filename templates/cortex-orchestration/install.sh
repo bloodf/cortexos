@@ -30,6 +30,34 @@ CORTEX_HOME="/opt/cortex"
 NATS_CLI_VERSION="0.1.5"
 SRC_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+# --- Supply-chain gate --------------------------------------------------------
+# If CORTEX_RELEASE_ARTIFACT is set, treat it as a signed release tarball and
+# verify it via scripts/verify-artifact.sh before any provisioning runs.
+# Skip with CORTEX_SKIP_SUPPLY_CHAIN=1 only for local development on uncommitted
+# trees — never in production.
+if [ -n "${CORTEX_RELEASE_ARTIFACT:-}" ] && [ "${CORTEX_SKIP_SUPPLY_CHAIN:-0}" != "1" ]; then
+  __verify="${__repo_root}/scripts/verify-artifact.sh"
+  if [ ! -x "$__verify" ]; then
+    echo "[install] FAIL: scripts/verify-artifact.sh missing or not executable at $__verify" >&2
+    echo "[install] FAIL: cannot enforce supply-chain gate. Aborting." >&2
+    exit 2
+  fi
+  echo "[install] verifying release artifact: $CORTEX_RELEASE_ARTIFACT"
+  if [ -n "${CORTEX_RELEASE_REF:-}" ]; then
+    "$__verify" "$CORTEX_RELEASE_ARTIFACT" --ref "$CORTEX_RELEASE_REF" \
+      || { echo "[install] FAIL: supply-chain verification failed" >&2; exit 2; }
+  else
+    "$__verify" "$CORTEX_RELEASE_ARTIFACT" \
+      || { echo "[install] FAIL: supply-chain verification failed" >&2; exit 2; }
+  fi
+  echo "[install] supply-chain gate: PASS"
+elif [ "${CORTEX_SKIP_SUPPLY_CHAIN:-0}" = "1" ]; then
+  echo "[install] WARN: CORTEX_SKIP_SUPPLY_CHAIN=1 — bypassing supply-chain verification (dev only)" >&2
+else
+  echo "[install] NOTE: CORTEX_RELEASE_ARTIFACT not set — installing from working tree (dev mode)."
+  echo "[install] NOTE: production installs MUST set CORTEX_RELEASE_ARTIFACT to a signed tarball. See docs/SUPPLY-CHAIN.md."
+fi
+
 echo "[install] target=$CORTEX_HOME"
 sudo mkdir -p "$CORTEX_HOME/"{bin,logs,runs,state,workflows}
 sudo chown -R ${CORTEX_USER}:${CORTEX_USER} "$CORTEX_HOME"
