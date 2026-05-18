@@ -29,6 +29,7 @@
 | [NATS-CONTRACT.md](NATS-CONTRACT.md) | Subject taxonomy, payload schemas, versioning |
 | [MESSAGING.md](MESSAGING.md) | Slack, Telegram, and notification rendering patterns |
 | [PROJECT-BOTS.md](PROJECT-BOTS.md) | Project bot registration and per-project credentials |
+| [PAPERCLIP.md](PAPERCLIP.md) | Paperclip governance plane: architecture, auth, secret rotation, ops runbook |
 
 ## OS / install
 

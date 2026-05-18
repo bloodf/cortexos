@@ -32,16 +32,32 @@ CortexOS deploys layered services onto one Ubuntu VPS. Operator executes prompt 
 ```mermaid
 flowchart TD
   Operator --> Prompts
-  Prompts --> VPS[/Ubuntu VPS/]
+  Prompts --> VPS[/Linux VPS/]
   VPS --> Docker[Docker Compose Services]
   VPS --> Systemd[systemd Units]
   Docker --> Dashboard[Next.js Dashboard]
   Docker --> NATS[NATS JetStream]
+  Docker --> Bridge[cortex-paperclip-bridge]
+  Paperclip[Paperclip control plane] -->|HTTP webhook| Bridge
+  Bridge -->|cortex.paperclip.work.*| NATS
+  NATS -->|cortex.paperclip.status.*| Bridge
+  Bridge -->|PATCH /api/issues| Paperclip
   NATS --> Consumer[cortex-consumer]
   Consumer --> Slack[Slack Threads]
   Consumer --> Gateway[OpenClaw Gateway]
   Gateway --> Agents[Role Agents]
 ```
+
+### Paperclip governance layer
+
+Paperclip sits **above** CortexOS as the governance plane: it owns
+goals, issues, approvals, and monthly budgets. The bridge service
+(`stacks/cortex-paperclip-bridge`) translates Paperclip HTTP webhooks
+into NATS work messages on `cortex.paperclip.work.<role>` and lifts
+consumer status events back onto `PATCH /api/issues/:id`. The link
+table `paperclip_ticket_link` (migration `005`) enforces idempotency via
+`UNIQUE(paperclip_run_id)`. See [PAPERCLIP.md](PAPERCLIP.md) for the
+full authority split, auth model, and ops runbook.
 
 ## Deployment flow
 
@@ -94,5 +110,6 @@ Add new service by updating compose template, dashboard seed, observability scra
 ## Related docs
 
 - [Documentation index](README.md)
-- [Architecture](ARCHITECTURE.md)
+- [Paperclip integration](PAPERCLIP.md)
+- [NATS contract](NATS-CONTRACT.md)
 - [Security](SECURITY.md)
