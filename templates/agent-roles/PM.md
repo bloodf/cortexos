@@ -7,6 +7,10 @@ paperclip:
   adapterType:      "http"
   adapterPath:      "/paperclip/heartbeat"
   routine:          "0 */15 * * * *"
+# V7 opt-in: when true AND cortex-consumer has CORTEX_GRAPH_URL set,
+# work for this role routes through the cortex-graph LangGraph sidecar.
+# Default false preserves the pre-V7 direct dispatch path.
+graphEnabled: false
 ---
 # PM Agent — {repo}
 

@@ -103,6 +103,20 @@ sequenceDiagram
 | Agent actions | Gateway and role prompts | Scope, approvals, audit trail |
 | Events | NATS subjects | HMAC where required, schema validation |
 
+## Graph execution layer (V7)
+
+The `cortex-graph` sidecar (`stacks/cortex-graph/`) introduces a
+LangGraph-driven execution plane for any agent role whose template
+frontmatter declares `graphEnabled: true`. The sidecar persists graph
+checkpoints in the dashboard's Postgres instance
+(`dashboard/migrations/007_langgraph_checkpoints.sql`) so a crash mid-run
+preserves state. `cortex-consumer` POSTs to the sidecar's
+`/graph/runs` HTTP endpoint when `CORTEX_GRAPH_URL` is set; legacy
+direct dispatch is preserved for roles that opt out. NATS lifecycle
+events flow on `cortex.graph.state.<runId>` using the V2 HMAC envelope.
+See [AGENT-GRAPH.md](AGENT-GRAPH.md) for node contracts, resume
+semantics, and the checkpoint lifecycle.
+
 ## Extension guide
 
 Add new service by updating compose template, dashboard seed, observability scrape config, docs index, and troubleshooting entry. Add new agent by creating role file, label mapping, dispatch rule, and NATS contract entry.
