@@ -1,0 +1,144 @@
+name: Paperclip Smoke (staging)
+
+# Cron disabled per repo policy: E2E workflows manual-trigger only.
+# To enable on a fork, uncomment the schedule block below.
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: 'Phase tag for the smoke summary (P2..P8)'
+        required: false
+        default: 'P4'
+      from_step:
+        description: 'Resume at step N (1-28, default 1)'
+        required: false
+        default: '1'
+      skip_distro:
+        description: 'Skip steps 22-28 (distro/install path)'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+  # schedule:
+  #   # Cron disabled per repo policy: E2E workflows manual-trigger only.
+  #   - cron: '0 3 * * *'  # nightly 03:00 UTC
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paperclip-smoke
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    name: Paperclip 28-step smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: staging
+    env:
+      PAPERCLIP_API_URL:        ${{ secrets.STAGING_PAPERCLIP_API_URL }}
+      PAPERCLIP_API_KEY:        ${{ secrets.STAGING_PAPERCLIP_API_KEY }}
+      PAPERCLIP_WEBHOOK_SECRET: ${{ secrets.STAGING_PAPERCLIP_WEBHOOK_SECRET }}
+      BRIDGE_URL:               ${{ secrets.STAGING_BRIDGE_URL }}
+      NATS_URL:                 ${{ secrets.STAGING_NATS_URL }}
+      PG_DSN:                   ${{ secrets.STAGING_PG_DSN }}
+      SMOKE_ROLE:               ${{ vars.SMOKE_ROLE || 'ENG-BACKEND' }}
+      SMOKE_PROJECT_ID:         ${{ vars.SMOKE_PROJECT_ID || 'smoke' }}
+      SMOKE_TIMEOUT_SEC:        '300'
+      SMOKE_POLL_INTERVAL_SEC:  '5'
+      SMOKE_SKIP_DISTRO:        ${{ inputs.skip_distro == 'false' && '0' || '1' }}
+      SMOKE_DISTRO:             'ci-ubuntu-24.04'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install probes (psql, nats-cli, jq, shellcheck, bats)
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            postgresql-client jq shellcheck bats curl ca-certificates
+          curl -fsSL https://github.com/nats-io/natscli/releases/latest/download/nats-0.1.6-linux-amd64.zip \
+            -o /tmp/nats.zip || true
+          if [ -s /tmp/nats.zip ]; then
+            sudo unzip -j -o /tmp/nats.zip 'nats*/nats' -d /usr/local/bin
+            sudo chmod +x /usr/local/bin/nats
+          fi
+          nats --version || echo "nats CLI install best-effort; smoke will SMOKE-FAIL:nats-cli-missing if absent"
+
+      - name: Validate harness (bash -n + shellcheck)
+        run: |
+          set -euo pipefail
+          bash -n scripts/paperclip-smoke-test.sh
+          shellcheck --severity=warning \
+            scripts/paperclip-smoke-test.sh \
+            scripts/smoke/lib/*.sh
+
+      - name: Bats dry-run self-check
+        run: |
+          set -euo pipefail
+          bats scripts/smoke/__tests__/dry-run.bats
+
+      - name: Dry-run smoke (validates env wiring without hitting services)
+        run: |
+          set -euo pipefail
+          scripts/paperclip-smoke-test.sh --dry-run --phase "${{ inputs.phase }}"
+
+      - name: Run smoke against staging
+        id: smoke
+        run: |
+          set -euo pipefail
+          scripts/paperclip-smoke-test.sh \
+            --phase "${{ inputs.phase }}" \
+            --from-step "${{ inputs.from_step }}" \
+            > /tmp/smoke.json \
+            2> /tmp/smoke.log
+        continue-on-error: true
+
+      - name: Summarise result
+        id: summary
+        if: always()
+        run: |
+          set -euo pipefail
+          if [ ! -s /tmp/smoke.json ]; then
+            echo "result=error" >> "$GITHUB_OUTPUT"
+            echo '{"result":"error","reason":"no summary emitted"}' > /tmp/smoke.json
+          else
+            r=$(jq -r '.result' /tmp/smoke.json)
+            echo "result=$r" >> "$GITHUB_OUTPUT"
+          fi
+          jq '.' /tmp/smoke.json | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload smoke artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: paperclip-smoke-${{ github.run_id }}
+          path: |
+            /tmp/smoke.json
+            /tmp/smoke.log
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Publish digest to cortex.alerts.info.smoke-result (best-effort)
+        if: always()
+        env:
+          NATS_URL: ${{ secrets.STAGING_NATS_URL }}
+        run: |
+          set -euo pipefail
+          if ! command -v nats >/dev/null 2>&1; then
+            echo "nats CLI unavailable; skipping digest publish"
+            exit 0
+          fi
+          digest=$(jq -c '{result, phase, failure, duration_sec, distro, role, git_sha}' /tmp/smoke.json 2>/dev/null \
+            || echo '{"result":"unknown"}')
+          nats --server="$NATS_URL" pub cortex.alerts.info.smoke-result "$digest" || \
+            echo "digest publish best-effort failed; not a fatal error"
+
+      - name: Fail job if smoke failed
+        if: steps.summary.outputs.result != 'pass'
+        run: |
+          echo "smoke result=${{ steps.summary.outputs.result }}"
+          exit 1
