@@ -1,6 +1,16 @@
 import { fetch } from "undici";
+import { HttpAdapter } from "@cortexos/paperclip-adapter";
 
 const DEFAULT_TIMEOUT_MS = 10_000;
+const httpAdapter = new HttpAdapter();
+
+/**
+ * Build a Paperclip HTTP webhook registration payload.
+ * Delegates to @cortexos/paperclip-adapter so the shape stays in one place.
+ */
+export function buildWebhookConfig(role, webhookUrl, secret, events) {
+  return httpAdapter.register(role, webhookUrl, secret, events);
+}
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
