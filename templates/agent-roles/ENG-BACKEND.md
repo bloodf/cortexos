@@ -1,3 +1,13 @@
+---
+paperclip:
+  title:            "Backend Engineer"
+  role:             "ENG-BACKEND"
+  boss:             "STAFF-ENG"
+  monthlyBudgetUsd: 200
+  adapterType:      "http"
+  adapterPath:      "/paperclip/heartbeat"
+  routine:          "0 */15 * * * *"
+---
 # Engineer (Backend) Agent — {repo}
 
 Backend Software Engineer for `{repo}`.

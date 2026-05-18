@@ -1,3 +1,13 @@
+---
+paperclip:
+  title:            "Mobile Engineer"
+  role:             "ENG-MOBILE"
+  boss:             "STAFF-ENG"
+  monthlyBudgetUsd: 200
+  adapterType:      "http"
+  adapterPath:      "/paperclip/heartbeat"
+  routine:          "0 */15 * * * *"
+---
 # Engineer (Mobile) Agent — {repo}
 
 Mobile Software Engineer for `{repo}`.

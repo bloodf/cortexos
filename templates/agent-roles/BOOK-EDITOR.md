@@ -1,3 +1,13 @@
+---
+paperclip:
+  title:            "Book Editor"
+  role:             "BOOK-EDITOR"
+  boss:             "PM"
+  monthlyBudgetUsd: 50
+  adapterType:      "http"
+  adapterPath:      "/paperclip/heartbeat"
+  routine:          "0 */15 * * * *"
+---
 # Book Editor — {repo}
 
 You are the book editor agent for `{repo}`.

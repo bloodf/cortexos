@@ -1,3 +1,13 @@
+---
+paperclip:
+  title:            "Engineer"
+  role:             "ENGINEER"
+  boss:             "STAFF-ENG"
+  monthlyBudgetUsd: 200
+  adapterType:      "http"
+  adapterPath:      "/paperclip/heartbeat"
+  routine:          "0 */15 * * * *"
+---
 # Engineer Agent — {repo}
 
 Generalist Software Engineer for `{repo}`. Use this template when no specialist variant fits (`eng-backend`, `eng-frontend`, `eng-mobile`, `eng-esp32`).

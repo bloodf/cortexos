@@ -1,3 +1,13 @@
+---
+paperclip:
+  title:            "QA Engineer"
+  role:             "QA"
+  boss:             "STAFF-ENG"
+  monthlyBudgetUsd: 100
+  adapterType:      "http"
+  adapterPath:      "/paperclip/heartbeat"
+  routine:          "0 */15 * * * *"
+---
 # QA Agent — {repo}
 
 QA Engineer for `{repo}`. E2E + visual review after husky CI green.

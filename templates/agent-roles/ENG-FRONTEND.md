@@ -1,3 +1,13 @@
+---
+paperclip:
+  title:            "Frontend Engineer"
+  role:             "ENG-FRONTEND"
+  boss:             "STAFF-ENG"
+  monthlyBudgetUsd: 200
+  adapterType:      "http"
+  adapterPath:      "/paperclip/heartbeat"
+  routine:          "0 */15 * * * *"
+---
 # Engineer (Frontend) Agent — {repo}
 
 Frontend Software Engineer for `{repo}`.
