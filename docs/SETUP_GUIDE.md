@@ -16,13 +16,21 @@
 
 | Requirement | Recommended value |
 |---|---|
-| OS | Ubuntu 24.04 LTS VPS |
+| OS | Ubuntu 22.04 / 24.04 LTS, Fedora 40 / 41 / 42, or RHEL-family 9 / 10 (Rocky, Alma) |
 | CPU | 4+ cores |
 | Memory | 16 GB+ |
 | Disk | 200 GB+ SSD |
 | Access | SSH as sudo user |
 | Network | Domain or Tailscale hostname |
 | Tools | Git, AI coding agent, SSH client |
+
+Before running any module, pick a distro family with
+[`prompts/os/00-os-selection.md`](../prompts/os/00-os-selection.md);
+it exports `CORTEX_OS_FAMILY` and gates every package-management call
+through `scripts/pkg.sh`. Distro-specific prereqs live in
+`prompts/os/10-{ubuntu,fedora,rhel}-prereqs.md` (and
+[FEDORA-SUPPORT.md](FEDORA-SUPPORT.md) /
+[RHEL-FAMILY-SUPPORT.md](RHEL-FAMILY-SUPPORT.md) for long-form notes).
 
 ## Environment variables
 
@@ -57,6 +65,26 @@ Keep secrets outside shell history when possible. Use prompt-specific secure inp
 | 11 | Manager agent |
 | 12 | AgentGateway |
 | 13 | Credential export and dashboard import |
+
+## Optional: Paperclip governance plane
+
+After module 13, operators who want the Paperclip governance plane run
+the Paperclip prompts in order:
+
+| Prompt                                         | Stage                            |
+|------------------------------------------------|----------------------------------|
+| `prompts/paperclip/00-overview.md`             | Authority split + decision gate  |
+| `prompts/paperclip/10-install.md`              | Install bridge dependencies      |
+| `prompts/paperclip/20-bridge.md`               | Bring up the bridge service      |
+| `prompts/paperclip/30-register-roles.md`       | Register CortexOS roles          |
+| `prompts/paperclip/40-routines-and-budgets.md` | Configure routines + budgets     |
+| `prompts/paperclip/50-approval-gates.md`       | Wire approval gates              |
+| `prompts/paperclip/60-smoke-test.md`           | Run end-to-end 28-step smoke     |
+| `prompts/paperclip/70-rollback.md`             | Practice rollback drill          |
+
+The Paperclip layer is fully optional: the dashboard, NATS, and consumer
+run unchanged when these prompts are skipped. See
+[PAPERCLIP.md](PAPERCLIP.md) for architecture and ops runbook.
 
 ## Verification
 

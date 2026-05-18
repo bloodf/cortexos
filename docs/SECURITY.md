@@ -27,6 +27,22 @@ CortexOS assumes operator controls VPS, GitHub repository, Slack workspace, and 
 | Agent overreach | Role scopes, dispatch rules, approval gates |
 | Public exposure | Caddy TLS, auth, Tailscale-first access |
 | Undetected action | Dashboard audit log and Slack narrative |
+| Stolen Paperclip webhook secret | Rotation runbook, `chmod 600` on env file, Tailscale-only ingress |
+| Replayed Paperclip runId | `UNIQUE(paperclip_run_id)` on `paperclip_ticket_link` (migration 005) |
+| Approval-deadlock | Bridge timeboxes approvals (default 2 h) and emits `cortex.alerts.warning.approval-timeout` |
+
+## Paperclip integration threats
+
+The Paperclip bridge widens the trust surface in three directions; each
+has an explicit control:
+
+| Threat | Surface | Control |
+|---|---|---|
+| Stolen `PAPERCLIP_WEBHOOK_SECRET` | Inbound HTTP webhook | 90-day rotation, Tailscale-only ingress, `chmod 600`, `crypto.timingSafeEqual` on length-equal buffers. Rotation procedure in [PAPERCLIP.md](PAPERCLIP.md#secret-rotation). |
+| Replayed Paperclip `runId` | Bridge → consumer | `paperclip_ticket_link.paperclip_run_id UNIQUE`; replay returns `202` but no duplicate row. Smoke step 18 enforces. |
+| Approval-deadlock on destructive op | Governance gate | Bridge enforces `PAPERCLIP_APPROVAL_TIMEOUT_SEC` (default 2 h); on expiry, issue moves to `cancelled` with reason `approval_timeout` and alert fires. Smoke step 21 enforces. |
+| Bridge auth length-leak | `timingSafeEqual` impl. | Smoke steps 15–17 cover wrong / missing / length-mismatch bearer; each MUST return 401 in constant time. |
+| Stolen per-agent key | `paperclip-keys.json` | File `chmod 600`, owned by `cortex`, gitignored. Rotate via `scripts/paperclip-register-roles.ts --rotate <role>`. |
 
 ## Secrets
 
