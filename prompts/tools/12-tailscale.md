@@ -9,6 +9,14 @@ Join the VPS to the operator's Tailscale tailnet so all inter-service traffic ca
 - `11-docker.md` completed.
 - A Tailscale auth key from <https://login.tailscale.com/admin/settings/keys> (one-time, reusable, or ephemeral — your choice).
 
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
+
 ## CHECKPOINT 1
 
 Operator: confirm you have a valid Tailscale auth key ready. Set it in your shell:
@@ -22,7 +30,24 @@ Type "confirmed" to proceed.
 ## Install
 
 ```bash
-curl -fsSL https://tailscale.com/install.sh | sh
+if [ "$(pkg_family)" = "ubuntu" ]; then
+  curl -fsSL https://tailscale.com/install.sh | sh
+elif [ "$(pkg_family)" = "fedora" ]; then
+  sudo dnf config-manager --add-repo https://pkgs.tailscale.com/stable/fedora/tailscale.repo
+  pkg_install tailscale
+  sudo systemctl enable --now tailscaled
+elif [ "$(pkg_family)" = "rhel" ]; then
+  # RHEL: enable CRB+EPEL via prompts/os/10-rhel-prereqs.md (P6 stub)
+  sudo dnf config-manager --add-repo https://pkgs.tailscale.com/stable/rhel/$(rpm -E %rhel)/tailscale.repo
+  pkg_install tailscale
+  sudo systemctl enable --now tailscaled
+fi
+```
+
+Verify package install (family-appropriate):
+
+```bash
+if [ "$(pkg_family)" = "ubuntu" ]; then dpkg -s tailscale >/dev/null; else rpm -qi tailscale >/dev/null; fi
 ```
 
 ## Configure

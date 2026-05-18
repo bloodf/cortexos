@@ -8,7 +8,15 @@ Install Caddy as the HTTPS reverse proxy; configure automatic TLS for `{DOMAIN}`
 
 - `12-tailscale.md` completed.
 - DNS A record for `{DOMAIN}` pointing to the VPS public IP (or Tailscale IP if Tailscale-only).
-- Port 80 and 443 open in UFW.
+- Ports 80 and 443 open in the host firewall.
+
+## Distro selection
+
+```bash
+source scripts/pkg.sh
+echo "OS family: $(pkg_family) $(pkg_version)"
+: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+```
 
 ## CHECKPOINT 1
 
@@ -17,13 +25,28 @@ Operator: confirm DNS is propagated (`dig +short {DOMAIN}` returns the correct I
 ## Install
 
 ```bash
-sudo apt-get install -y debian-keyring debian-archive-keyring apt-transport-https curl
-curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | \
-  sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | \
-  sudo tee /etc/apt/sources.list.d/caddy-stable.list
-sudo apt-get update -y
-sudo apt-get install -y caddy
+if [ "$(pkg_family)" = "ubuntu" ]; then
+  pkg_install debian-keyring debian-archive-keyring apt-transport-https curl
+  curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | \
+    sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+  curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | \
+    sudo tee /etc/apt/sources.list.d/caddy-stable.list
+  sudo apt-get update -y -qq
+  pkg_install caddy
+elif [ "$(pkg_family)" = "fedora" ]; then
+  sudo dnf copr enable -y @caddy/caddy
+  pkg_install caddy
+elif [ "$(pkg_family)" = "rhel" ]; then
+  # RHEL: enable CRB+EPEL via prompts/os/10-rhel-prereqs.md (P6 stub)
+  sudo dnf copr enable -y @caddy/caddy
+  pkg_install caddy
+fi
+```
+
+Verify package install (family-appropriate):
+
+```bash
+if [ "$(pkg_family)" = "ubuntu" ]; then dpkg -s caddy >/dev/null; else rpm -qi caddy >/dev/null; fi
 ```
 
 ## Configure
@@ -54,11 +77,11 @@ sudo systemctl enable caddy
 sudo systemctl reload caddy
 ```
 
-Open UFW ports:
+Open firewall ports:
 
 ```bash
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
+firewall_open 80 tcp
+firewall_open 443 tcp
 ```
 
 ## Verify
