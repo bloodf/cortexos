@@ -1,0 +1,35 @@
+# Lima VM template — Ubuntu 25.04 (Plucky) for CortexOS rehearsal
+# Operator should pin sha256 digests in production.
+images:
+  - location: "https://cloud-images.ubuntu.com/releases/25.04/release/ubuntu-25.04-server-cloudimg-arm64.img"
+    arch: "aarch64"
+    digest: null
+  - location: "https://cloud-images.ubuntu.com/releases/25.04/release/ubuntu-25.04-server-cloudimg-amd64.img"
+    arch: "x86_64"
+    digest: null
+
+cpus: 2
+memory: 4GiB
+disk: 20GiB
+
+mounts:
+  - location: "~"
+    writable: false
+  - location: "{{.Dir}}/.."
+    writable: true
+    mountPoint: "/opt/cortexos-src"
+
+containerd:
+  system: false
+  user: false
+
+ssh:
+  localPort: 0
+  loadDotSSHPubKeys: true
+
+provision:
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -eu
+      bash /opt/cortexos-src/lima/provision.sh ubuntu
