@@ -93,16 +93,19 @@ See [Architecture](ARCHITECTURE.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE
 
 ## Quick start
 
-1. Clone repository:
+CortexOS installs are now **laptop-driven**: you clone the repo on your
+workstation, point an AI coding agent at the bootstrap prompt, and the
+prompt orchestrates the VPS over SSH. The VPS does not need Git, an age
+key, or any CortexOS code at the start — bootstrap pushes everything.
+
+1. Clone the repository **on your laptop** (not on the VPS):
 
    ```bash
    git clone https://github.com/bloodf/cortexos.git
    cd cortexos
    ```
 
-2. Open [`SETUP.md`](SETUP.md) in AI coding agent and treat it as session prompt.
-
-3. Provide VPS values:
+2. Provide VPS values in your laptop shell (or a `.env.local`):
 
    ```bash
    export CORTEX_HOST=<vps-hostname-or-ip>
@@ -111,9 +114,33 @@ See [Architecture](ARCHITECTURE.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE
    export CORTEX_DOMAIN=<dashboard-domain>
    ```
 
-4. Execute prompt modules in order, from `prompts/00-preflight.md` through `prompts/13-credentials-export.md`.
+   Confirm SSH works: `ssh "$CORTEX_USER@$CORTEX_HOST" true`.
 
-5. Stop at every `CHECKPOINT`, verify result, then continue.
+3. Install local tooling: `brew install sops age` (macOS) or apt
+   equivalent. Operator age key generation is handled by the bootstrap
+   script — `~/.config/sops/age/keys.txt` is the only place a private
+   key lives.
+
+4. Open [`prompts/00-bootstrap.md`](prompts/00-bootstrap.md) in your AI
+   coding agent and treat it as the session prompt. It will:
+
+   - Verify laptop deps (`scripts/bootstrap.sh bootstrap_check_local_deps`).
+   - Generate / register your operator age key in `.sops.yaml`.
+   - Detect the remote OS family over SSH.
+   - Push the repo to `/opt/cortexos` on the VPS via `git archive | ssh tar -x`.
+   - Dispatch every `prompts/os/*` and `prompts/tools/*` step as
+     `ssh $CORTEX_USER@$CORTEX_HOST '...'` from your laptop.
+   - Decrypt SOPS secrets **locally** and `scp` the resulting `.env`
+     files to `/opt/cortexos/.secrets/` (mode `0600`).
+
+5. Stop at every `CHECKPOINT`. Confirm results before continuing.
+
+To rehearse the entire flow on a macOS-native Linux VM with no real VPS:
+
+```bash
+make vm-debian-up
+make vm-rehearse FAMILY=debian
+```
 
 ## Repository layout
 

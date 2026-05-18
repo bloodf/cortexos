@@ -1,12 +1,30 @@
 #!/bin/bash
 # Fresh-VPS provisioner for the Cortex Dashboard host.
+#
+# EXECUTION MODEL (v4.5+):
+#   This script is now invoked REMOTELY by the operator-laptop bootstrap
+#   flow, NOT by logging into the VPS. The bootstrap prompt
+#   (`prompts/00-bootstrap.md`) dispatches it via:
+#
+#     bootstrap_run_remote 'cd "$CORTEX_ROOT" && bash dashboard/scripts/provision-vps.sh'
+#
+#   `bootstrap_run_remote` is defined in `scripts/bootstrap.sh` and uses
+#   `ssh $CORTEX_USER@$CORTEX_HOST` under the hood. The script itself
+#   still runs on the VPS — it only changes how it is *launched*. No
+#   code changes are required for the new model; the file stays
+#   idempotent and self-contained so it can be re-run safely from either
+#   side.
+#
 # Idempotent: safe to re-run. Installs Node 24 (via linuxbrew), PostgreSQL 17,
 # creates the dashboard role + database, scaffolds /opt/cortexos directory tree,
 # and seeds /opt/cortexos/secrets/dashboard.env from the template.
 #
 # Run as the SSH user with sudo (NOT as root directly — linuxbrew rejects root).
 #
-# Usage:
+# Usage (laptop-driven; preferred):
+#   bootstrap_run_remote 'cd "$CORTEX_ROOT" && bash dashboard/scripts/provision-vps.sh [--with-caddy]'
+#
+# Usage (legacy, on-host):
 #   ./scripts/provision-vps.sh [--with-caddy]
 #
 # Env overrides:

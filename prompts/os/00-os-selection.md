@@ -1,5 +1,14 @@
 # OS selection and family detection
 
+> **Operator-laptop note**: when this prompt is reached via
+> `prompts/00-bootstrap.md`, OS detection has already run over SSH from
+> the laptop (`bootstrap_detect_remote_os`) and `CORTEX_OS_FAMILY` /
+> `CORTEX_OS_VERSION` are exported in the **laptop** shell. Steps 1 and 2
+> below then become a confirmation pass — re-run them via
+> `bootstrap_run_remote 'bash scripts/os-detect.sh'` if you need to
+> double-check from the laptop. The legacy on-host execution shown below
+> still applies when an operator chooses to log into the VPS directly.
+
 ## Purpose
 
 Confirm the target host distribution before any other `prompts/os/` or `prompts/tools/` spoke runs. This prompt detects the OS family with `scripts/os-detect.sh`, exports `CORTEX_OS_FAMILY` for the rest of the prompt sequence, and pins the supported version matrix.
