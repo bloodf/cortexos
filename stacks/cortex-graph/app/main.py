@@ -22,6 +22,7 @@ from app.graph import checkpointer_lifespan
 from app.nats_bridge import NatsBridge
 from app.runner import RunOrchestrator
 from app.state import ResumeRequest, RunRequest, RunResponse, StateSnapshot
+from app.telemetry import instrument as instrument_telemetry
 
 log = logging.getLogger(__name__)
 
@@ -29,6 +30,8 @@ log = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Compose checkpointer + bridge + orchestrator for the app lifetime."""
+    # V8 — OpenLLMetry + Langfuse bootstrap. No-op when LANGFUSE_HOST is unset.
+    instrument_telemetry(service="cortex-graph")
     async with checkpointer_lifespan() as checkpointer:
         bridge: NatsBridge | None = None
         orchestrator = RunOrchestrator(checkpointer)
