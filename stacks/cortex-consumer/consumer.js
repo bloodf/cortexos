@@ -25,7 +25,10 @@ import { dirname } from "node:path";
 import http from "node:http";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { envelope as buildCloudEvent, validate as validateCloudEvent, EnvelopeValidationError } from "@cortexos/events";
 const execFileP = promisify(execFile);
+
+const CORTEX_REQUIRE_ENVELOPE = process.env.CORTEX_REQUIRE_ENVELOPE === "1";
 
 // ---------------------------------------------------------------------------
 // Config + env
@@ -513,7 +516,25 @@ async function handlePaperclipWork(subject, envelope) {
     metrics.hmac_reject_total++;
     throw new Error("paperclip envelope HMAC invalid");
   }
-  const data = envelope.data;
+  // envelope.data is either a CloudEvents v1.0 object (v2) or legacy raw payload (v1).
+  const inner = envelope.data;
+  let data;
+  if (inner && typeof inner === "object" && inner.specversion === "1.0" && inner.type) {
+    try {
+      validateCloudEvent(inner);
+    } catch (e) {
+      if (CORTEX_REQUIRE_ENVELOPE) {
+        const detail = e instanceof EnvelopeValidationError ? JSON.stringify(e.errors) : e.message;
+        throw new Error(`cloudevents_invalid: ${detail}`);
+      }
+      process.stderr.write(`[paperclip.work] cloudevents validation warning: ${e.message}\n`);
+    }
+    data = inner.data;
+  } else {
+    if (CORTEX_REQUIRE_ENVELOPE) throw new Error("cloudevents_required");
+    process.stderr.write("[paperclip.work] legacy non-cloudevents payload accepted (CORTEX_REQUIRE_ENVELOPE=0)\n");
+    data = inner;
+  }
   const parts = subject.split(".");
   const role = parts[3] || data.role || "unknown";
   if (DRY_RUN) {
@@ -545,8 +566,20 @@ function publishPaperclipStatus(role, payload) {
     process.stderr.write("[paperclip.status] CORTEX_NATS_HMAC missing — skipping signed publish\n");
     return;
   }
-  const sig = hmacSha256(NATS_HMAC, jcs(payload));
-  publish(`cortex.paperclip.status.${role}`, { data: payload, sig });
+  const ce = buildCloudEvent({
+    type: `cortex.paperclip.status.${role}.v1`,
+    source: "cortex-consumer",
+    subject: payload.issueId,
+    data: payload,
+  });
+  try {
+    validateCloudEvent(ce);
+  } catch (e) {
+    process.stderr.write(`[paperclip.status] cloudevents build invalid: ${e.message}\n`);
+    if (CORTEX_REQUIRE_ENVELOPE) return;
+  }
+  const sig = hmacSha256(NATS_HMAC, jcs(ce));
+  publish(`cortex.paperclip.status.${role}`, { data: ce, sig });
 }
 
 async function handleOpenclawReceived(data) {

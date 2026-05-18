@@ -120,9 +120,13 @@ describe("publishAlert", () => {
     const [subject, bytes] = publishMock.mock.calls[0];
     expect(subject).toBe("cortex.alerts.critical.cpu");
     const decoded = JSON.parse(new TextDecoder().decode(bytes));
-    expect(decoded.data.title).toBe("high cpu");
-    expect(decoded.data.severity).toBe("critical");
-    expect(decoded.data.source).toBe("cpu");
+    // Outer HMAC envelope { data, sig } wraps a CloudEvents 1.0 envelope.
+    expect(decoded.data.specversion).toBe("1.0");
+    expect(decoded.data.type).toBe("cortex.alerts.critical.cpu.v1");
+    expect(decoded.data.source).toBe("cortex-dashboard");
+    expect(decoded.data.data.severity).toBe("critical");
+    expect(decoded.data.data.source).toBe("cpu");
+    expect(decoded.data.data.message).toContain("high cpu");
     expect(typeof decoded.sig).toBe("string");
     expect(decoded.sig).toMatch(/^[a-f0-9]{64}$/);
   });

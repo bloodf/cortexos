@@ -112,7 +112,12 @@ describe("validation", () => {
     await request("POST", "/paperclip/heartbeat", { auth: SECRET, body: validBody() });
     expect(publishMock).toHaveBeenCalledWith(
       "cortex.paperclip.work.ENG-BACKEND",
-      expect.objectContaining({ runId: "run_abc", role: "ENG-BACKEND" }),
+      expect.objectContaining({
+        specversion: "1.0",
+        type: "cortex.paperclip.work.ENG-BACKEND.v1",
+        source: "cortex-paperclip-bridge",
+        data: expect.objectContaining({ runId: "run_abc", role: "ENG-BACKEND" }),
+      }),
     );
   });
 });

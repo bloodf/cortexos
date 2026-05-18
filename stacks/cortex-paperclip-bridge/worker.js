@@ -2,6 +2,9 @@ import { AckPolicy, DeliverPolicy, StringCodec, nanos } from "nats";
 import { getConnection, verifyEnvelope, publish } from "./lib/nats-publisher.js";
 import { updateStatus } from "./lib/idempotency.js";
 import { PaperclipClient } from "./lib/paperclip-client.js";
+import { validate as validateCloudEvent, EnvelopeValidationError } from "@cortexos/events";
+
+const REQUIRE_ENVELOPE = process.env.CORTEX_REQUIRE_ENVELOPE === "1";
 
 const sc = StringCodec();
 const STREAM = process.env.CORTEX_STREAM || "CORTEX";
@@ -42,7 +45,25 @@ export async function handleStatusMessage(envelope, client) {
   if (!verifyEnvelope(envelope)) {
     throw new Error("hmac_invalid");
   }
-  const data = envelope.data;
+  // envelope.data is either a CloudEvents object (v2) or the legacy raw payload (v1).
+  const inner = envelope.data;
+  let data;
+  if (inner && typeof inner === "object" && inner.specversion === "1.0" && inner.type) {
+    try {
+      validateCloudEvent(inner);
+    } catch (e) {
+      if (REQUIRE_ENVELOPE) {
+        const detail = e instanceof EnvelopeValidationError ? JSON.stringify(e.errors) : e.message;
+        throw new Error(`cloudevents_invalid: ${detail}`);
+      }
+      process.stderr.write(`[worker] cloudevents validation warning: ${e.message}\n`);
+    }
+    data = inner.data;
+  } else {
+    if (REQUIRE_ENVELOPE) throw new Error("cloudevents_required");
+    process.stderr.write("[worker] legacy non-cloudevents payload accepted (CORTEX_REQUIRE_ENVELOPE=0)\n");
+    data = inner;
+  }
   const { runId, issueId, status, comment, costUsdCents } = data;
   if (!runId || !issueId || !status) throw new Error("missing_fields");
 
@@ -72,8 +93,8 @@ async function poll(consumer, client) {
           if (deliveryCount >= MAX_ATTEMPTS - 1) {
             try {
               await publish("cortex.alerts.error.bridge-status-stuck", {
-                runId: envelope?.data?.runId || null,
-                issueId: envelope?.data?.issueId || null,
+                runId: envelope?.data?.data?.runId ?? envelope?.data?.runId ?? null,
+                issueId: envelope?.data?.data?.issueId ?? envelope?.data?.issueId ?? null,
                 reason: e.message,
                 ts: new Date().toISOString(),
               });
