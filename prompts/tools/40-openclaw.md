@@ -18,7 +18,7 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
-> **Node bootstrap.** Ubuntu installs Node via NodeSource or Linuxbrew; Fedora ships Node 22 (`pkg_install nodejs npm`); RHEL ships Node 20 in AppStream (`pkg_install nodejs npm`). Verify `node --version` is ≥ 20 before continuing.
+> **Node bootstrap.** Ubuntu installs Node via NodeSource or Linuxbrew; Fedora ships Node 22 (`pkg_install nodejs npm`); RHEL/Rocky/AlmaLinux 9 ship Node 20 via AppStream (`sudo dnf module enable -y nodejs:20 && pkg_install nodejs npm`). On RHEL 10 or hosts without the module, fall back to NodeSource: `curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash - && pkg_install nodejs`. Verify `node --version` is ≥ 20 before continuing. See `docs/RHEL-FAMILY-SUPPORT.md`.
 
 ## CHECKPOINT 1
 

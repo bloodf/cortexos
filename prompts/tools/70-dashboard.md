@@ -19,7 +19,7 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
-> **Node bootstrap.** Ubuntu uses Linuxbrew's `node@24`; Fedora/RHEL install Node from AppStream via `pkg_install nodejs npm`. `dashboard/scripts/provision-vps.sh` now branches on `pkg_family` automatically.
+> **Node bootstrap.** Ubuntu uses Linuxbrew's `node@24`. Fedora installs Node 22 via `pkg_install nodejs npm`. RHEL/Rocky/AlmaLinux 9 cap AppStream at `nodejs:20` — `dashboard/scripts/provision-vps.sh` branches on `pkg_family` + `pkg_subfamily` and falls back to NodeSource (`setup_22.x`) when the AppStream stream is missing (e.g., RHEL 10, minimal images). See `docs/RHEL-FAMILY-SUPPORT.md` "Node 20 AppStream caveat".
 
 ## CHECKPOINT 1
 
