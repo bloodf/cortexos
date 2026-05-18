@@ -3,8 +3,27 @@ import { getConnection, verifyEnvelope, publish } from "./lib/nats-publisher.js"
 import { updateStatus } from "./lib/idempotency.js";
 import { PaperclipClient } from "./lib/paperclip-client.js";
 import { validate as validateCloudEvent, EnvelopeValidationError } from "@cortexos/events";
+import { append as auditAppend } from "@cortexos/audit";
 
 const REQUIRE_ENVELOPE = process.env.CORTEX_REQUIRE_ENVELOPE === "1";
+const CORTEX_AUDIT_ENABLED = process.env.CORTEX_AUDIT_ENABLED !== "0";
+
+async function safeAuditAppend(event) {
+  if (!CORTEX_AUDIT_ENABLED) return;
+  try { await auditAppend(event); }
+  catch (e) {
+    process.stderr.write(`[audit] append failed type=${event.event_type}: ${e.message}\n`);
+    try {
+      await publish("cortex.alerts.error.audit-append-failed", {
+        event_type: event.event_type,
+        source: event.source,
+        subject: event.subject ?? null,
+        reason: e.message,
+        ts: new Date().toISOString(),
+      });
+    } catch { /* swallow */ }
+  }
+}
 
 const sc = StringCodec();
 const STREAM = process.env.CORTEX_STREAM || "CORTEX";
@@ -73,6 +92,19 @@ export async function handleStatusMessage(envelope, client) {
     throw new Error(`paperclip_patch_failed status=${res.status}`);
   }
   await updateStatus(runId, status, costUsdCents ?? null);
+  await safeAuditAppend({
+    event_type: "cortex.paperclip.status.outbound",
+    source: "cortex-paperclip-bridge-worker",
+    subject: issueId,
+    actor: "bridge-worker",
+    payload: {
+      runId,
+      issueId,
+      status,
+      comment: comment || "",
+      costUsdCents: costUsdCents ?? 0,
+    },
+  });
   return { runId, status };
 }
 
