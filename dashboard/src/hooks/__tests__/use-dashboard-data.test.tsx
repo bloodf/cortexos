@@ -139,11 +139,11 @@ describe("useDashboardData", () => {
 		expect(result.current.services).toEqual([{ id: 2, name: "Live Service" }]);
 	});
 
-	it("does not fall back to SWR when connected but socket data empty", () => {
+	it("falls back to SWR when connected but socket data empty", () => {
 		mockSocket = createMockSocket(true);
 		const { result } = renderHook(() => useDashboardData());
 		expect(result.current.connected).toBe(true);
-		expect(result.current.services).toBeUndefined();
+		expect(result.current.services).toEqual([{ id: 1, name: "SWR Service" }]);
 	});
 
 	it("exposes isLoading when no data available", () => {

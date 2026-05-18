@@ -1,6 +1,6 @@
 services:
   opik-backend:
-    image: comet/opik-backend:latest
+    image: ghcr.io/comet-ml/opik/opik-backend:latest
     restart: unless-stopped
     environment:
       - OPIK_POSTGRES_HOST=opik-db
@@ -25,7 +25,7 @@ services:
       - opik
 
   opik-frontend:
-    image: comet/opik-frontend:latest
+    image: ghcr.io/comet-ml/opik/opik-frontend:latest
     restart: unless-stopped
     environment:
       - OPIK_BACKEND_URL=http://opik-backend:8080
@@ -44,7 +44,7 @@ services:
       - opik
 
   opik-db:
-    image: postgres:latest
+    image: postgres:17-alpine
     restart: unless-stopped
     environment:
       - POSTGRES_DB=opik

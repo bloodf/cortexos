@@ -39,11 +39,33 @@ function writePanelStorage(value: PanelState): void {
   localStorage.setItem(PANEL_STORAGE_KEY, JSON.stringify(value))
 }
 
+function createSessionId(): string {
+  if (typeof crypto !== "undefined") {
+    if (typeof crypto.randomUUID === "function") {
+      try {
+        return crypto.randomUUID()
+      } catch {
+        // fall through
+      }
+    }
+    if (typeof crypto.getRandomValues === "function") {
+      try {
+        const bytes = new Uint8Array(16)
+        crypto.getRandomValues(bytes)
+        return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("")
+      } catch {
+        // fall through
+      }
+    }
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`
+}
+
 function ensureSessionId(): string {
   if (typeof window === "undefined") return ""
   let id = localStorage.getItem(SESSION_STORAGE_KEY)
   if (!id) {
-    id = crypto.randomUUID()
+    id = createSessionId()
     localStorage.setItem(SESSION_STORAGE_KEY, id)
   }
   return id
