@@ -7,6 +7,9 @@ paperclip:
   adapterType:      "http"
   adapterPath:      "/paperclip/heartbeat"
   routine:          "0 */15 * * * *"
+# V7 opt-in: route this role through cortex-graph LangGraph sidecar
+# when cortex-consumer has CORTEX_GRAPH_URL set. See docs/AGENT-GRAPH.md.
+graphEnabled: false
 ---
 # Engineer Agent — {repo}
 

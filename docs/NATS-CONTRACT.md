@@ -264,9 +264,60 @@ Paperclip work durable (`cortex-consumer-paperclip-work`) on `CORTEX_PAPERCLIP_W
 
 `max_ack_pending=32` caps inflight executor budget — JetStream stops dispatching new work once 32 messages are unacked, preventing executor overload during a slowdown.
 
+## `cortex.graph.*` namespace (V7)
+
+> Reserved namespace for the `cortex-graph` LangGraph sidecar. Same V2
+> envelope shape — CloudEvents 1.0 wrapped in `{ data, sig }` with
+> `sig = HMAC-SHA256(CORTEX_NATS_HMAC, JCS(data))`.
+
+### `cortex.graph.invoke.<role>`
+
+- **Direction**: consumer → sidecar (NATS bridge, optional path).
+- **Producer**: `cortex-consumer` when the role has
+  `graphEnabled: true` AND `CORTEX_GRAPH_NATS_ENABLED=1` is set on the
+  consumer host. Default V7 path is HTTP (`POST /graph/runs`) so most
+  deployments will not see this subject.
+- **`data` shape** (CE inner data):
+
+  ```json
+  {
+    "role": "PM",
+    "issueId": "string",
+    "runId": "string",
+    "input": { "...": "opaque role payload" }
+  }
+  ```
+
+### `cortex.graph.state.<runId>`
+
+- **Direction**: sidecar → bus.
+- **Producer**: `cortex-graph` after every node lifecycle transition.
+- **Consumer**: dashboard run-viewer, observability stack.
+- **Subject**: parameterized by `runId` so subscribers can filter to a
+  single run. Schema: `schemas/cortex-graph-state-v1.json`.
+- **`data` shape** (CE inner data):
+
+  ```json
+  {
+    "runId": "string",
+    "nodeName": "planner|executor|human_review|verifier",
+    "status": "pending|running|completed|failed|awaiting_human",
+    "output": { "...": "node output or empty object" },
+    "error": null,
+    "ts": "RFC3339",
+    "checkpoint": "ckpt_..."
+  }
+  ```
+
+- **Awaiting human**: `status=awaiting_human` is published when the
+  graph interrupts before `human_review`. Operators resume via
+  `POST /graph/runs/{thread_id}/resume`. See
+  [AGENT-GRAPH.md](AGENT-GRAPH.md#resume-semantics).
+
 ## Related docs
 
 - [Documentation index](README.md)
 - [Architecture](ARCHITECTURE.md)
+- [Agent Graph](AGENT-GRAPH.md)
 - [Security](SECURITY.md)
 - [Schema registry](../schemas/README.md)

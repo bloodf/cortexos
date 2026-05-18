@@ -31,6 +31,17 @@ const execFileP = promisify(execFile);
 
 const CORTEX_REQUIRE_ENVELOPE = process.env.CORTEX_REQUIRE_ENVELOPE === "1";
 
+// V7 — optional dispatch through the cortex-graph LangGraph sidecar. When
+// `CORTEX_GRAPH_URL` is set AND the role's frontmatter advertises
+// `graphEnabled: true`, paperclip work is POST'd to the sidecar in addition
+// to the existing accept/in_progress emit path. The sidecar owns resumable
+// state via Postgres checkpoints; failure to reach it must not block the
+// legacy path so a misconfigured sidecar cannot stall the consumer.
+const CORTEX_GRAPH_URL = (process.env.CORTEX_GRAPH_URL || "").replace(/\/$/, "");
+const CORTEX_GRAPH_API_TOKEN = process.env.CORTEX_GRAPH_API_TOKEN || "";
+const CORTEX_GRAPH_ROLES_FILE = process.env.CORTEX_GRAPH_ROLES_FILE
+  || "/opt/cortexos/templates/agent-roles/.graph-enabled.json";
+
 // ---------------------------------------------------------------------------
 // Config + env
 // ---------------------------------------------------------------------------
@@ -534,6 +545,76 @@ function buildDefaultBlocks(slug, stage, data) {
   };
 }
 
+// V7 — Graph dispatch helpers. Kept inline (no separate module) to avoid
+// reshaping the test surface; existing consumer tests don't import these
+// symbols and remain green when `CORTEX_GRAPH_URL` is unset.
+
+let __graphRolesCache = null;
+
+function loadGraphEnabledRoles() {
+  if (__graphRolesCache !== null) return __graphRolesCache;
+  try {
+    const raw = JSON.parse(readFileSync(CORTEX_GRAPH_ROLES_FILE, "utf8"));
+    __graphRolesCache = Array.isArray(raw)
+      ? new Set(raw.map((r) => String(r).toUpperCase()))
+      : new Set();
+  } catch {
+    __graphRolesCache = new Set();
+  }
+  return __graphRolesCache;
+}
+
+function shouldDispatchToGraph(role) {
+  if (!CORTEX_GRAPH_URL) return false;
+  if (!CORTEX_GRAPH_API_TOKEN) {
+    process.stderr.write("[graph] CORTEX_GRAPH_URL set but CORTEX_GRAPH_API_TOKEN missing — skipping graph dispatch\n");
+    return false;
+  }
+  const roles = loadGraphEnabledRoles();
+  if (roles.size === 0) return false;
+  return roles.has(String(role).toUpperCase());
+}
+
+async function dispatchToGraph({ role, issueId, runId, payload }) {
+  // CloudEvents envelope mirroring `publishPaperclipStatus`. The sidecar
+  // verifies the inner CE shape but the HTTP path uses bearer auth only —
+  // HMAC envelope is reserved for the NATS bridge.
+  const ce = buildCloudEvent({
+    type: `cortex.graph.invoke.${role}.v1`,
+    source: "cortex-consumer",
+    subject: issueId,
+    data: { role, issueId, runId, input: payload || {} },
+  });
+  try {
+    validateCloudEvent(ce);
+  } catch (e) {
+    process.stderr.write(`[graph] cloudevents build invalid: ${e.message}\n`);
+    if (CORTEX_REQUIRE_ENVELOPE) throw e;
+  }
+  const url = `${CORTEX_GRAPH_URL}/graph/runs`;
+  const body = JSON.stringify({ role, issueId, input: payload || {} });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15_000);
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${CORTEX_GRAPH_API_TOKEN}`,
+        "X-Cortex-CloudEvent-Id": ce.id,
+      },
+      body,
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      throw new Error(`graph http ${res.status}: ${await res.text().catch(() => "")}`);
+    }
+    return await res.json().catch(() => ({}));
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function handlePaperclipWork(subject, envelope) {
   // Envelope shape: { data: <payload>, sig: <hex> }. Verify HMAC like approval path.
   if (!envelope || typeof envelope !== "object" || !envelope.data || !envelope.sig) {
@@ -569,6 +650,19 @@ async function handlePaperclipWork(subject, envelope) {
   if (DRY_RUN) {
     process.stdout.write(`[paperclip.work] dry-run run=${data.runId} role=${role}\n`);
     return;
+  }
+  // V7 — gated dispatch to the cortex-graph sidecar. Only fires when:
+  //   - CORTEX_GRAPH_URL + CORTEX_GRAPH_API_TOKEN are configured, AND
+  //   - the role appears in the graph-enabled roster file.
+  // Failures are logged but do not block the legacy accept/in_progress
+  // emit path — V7 ships behind a feature flag.
+  if (shouldDispatchToGraph(role)) {
+    try {
+      const resp = await dispatchToGraph({ role, issueId: data.issueId, runId: data.runId, payload: data.payload });
+      process.stdout.write(`[graph] dispatched run=${data.runId} role=${role} thread=${resp.threadId || "?"}\n`);
+    } catch (e) {
+      process.stderr.write(`[graph] dispatch failed run=${data.runId} role=${role}: ${e.message}\n`);
+    }
   }
   // P2 scope: re-emit a `received` event for downstream OMC executor wiring.
   // Terminal-state publication (cortex.paperclip.status.<role>) happens once
