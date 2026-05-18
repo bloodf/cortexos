@@ -30,9 +30,11 @@
 
 ## Overview
 
-CortexOS turns one Ubuntu VPS into managed AI operations environment. Instead of opaque installer, repository ships audited Markdown setup modules, service templates, role definitions, dashboard, and event-driven orchestration stack. Human operator keeps control at explicit checkpoints while AI coding agents execute repeatable infrastructure work.
+CortexOS turns one Linux VPS into managed AI operations environment. Instead of opaque installer, repository ships audited Markdown setup modules, service templates, role definitions, dashboard, and event-driven orchestration stack. Human operator keeps control at explicit checkpoints while AI coding agents execute repeatable infrastructure work.
 
-Target end state: Docker-backed services, secure credential storage, observability, NATS event bus, Slack-centered operations log, OpenClaw agent dispatch, and Next.js dashboard for daily administration.
+Supported host distros: Ubuntu 22.04 / 24.04, Fedora 40 / 41 / 42, RHEL 9 / 10, Rocky Linux 9 / 10, AlmaLinux 9 / 10. Operator selects family in `prompts/os/00-os-selection.md`; all subsequent prompts dispatch via `scripts/pkg.sh`.
+
+Target end state: Docker-backed services, secure credential storage, observability, NATS event bus, Slack-centered operations log, OpenClaw agent dispatch, Next.js dashboard for daily administration, and optional Paperclip governance plane for cross-agent goals, approvals, and monthly budgets.
 
 ## What CortexOS provides
 
@@ -43,6 +45,8 @@ Target end state: Docker-backed services, secure credential storage, observabili
 - **Human-readable audit trail**: Slack threads record decisions, build results, dispatches, and review outcomes.
 - **Secure secrets lifecycle**: Host `.secrets/` files feed encrypted dashboard storage, rotation procedures, and allowlisted reads.
 - **Observability stack**: Prometheus, Loki, Grafana, Fluent Bit, exporters, and health checks cover host and services.
+- **Multi-distro install path**: Ubuntu, Fedora, RHEL, Rocky, and AlmaLinux supported via `scripts/pkg.sh` dispatcher and `prompts/os/` selection step.
+- **Paperclip governance plane (optional)**: Bridge service connects CortexOS to [Paperclip](https://paperclip.ing) for goals, monthly budgets, approval gates, and audit trail. CortexOS keeps execution authority; Paperclip owns governance. See [docs/PAPERCLIP.md](docs/PAPERCLIP.md).
 
 ## What CortexOS is not
 
@@ -141,6 +145,9 @@ scripts/                  Host utility scripts
 | NATS contract | [docs/NATS-CONTRACT.md](docs/NATS-CONTRACT.md) |
 | Messaging | [docs/MESSAGING.md](docs/MESSAGING.md) |
 | Troubleshooting | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) |
+| Paperclip governance | [docs/PAPERCLIP.md](docs/PAPERCLIP.md) |
+| Fedora support | [docs/FEDORA-SUPPORT.md](docs/FEDORA-SUPPORT.md) |
+| RHEL / Rocky / Alma support | [docs/RHEL-FAMILY-SUPPORT.md](docs/RHEL-FAMILY-SUPPORT.md) |
 
 ## Screenshots
 
