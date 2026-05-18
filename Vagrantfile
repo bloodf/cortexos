@@ -7,8 +7,8 @@
 #   fedora-41    generic/fedora41   (active)
 #   ubuntu-2404  generic/ubuntu2404 (active)
 #   ubuntu-2204  generic/ubuntu2204 (active)
-#   rocky-9      generic/rocky9     (P6 placeholder, disabled)
-#   alma-9       generic/alma9      (P6 placeholder, disabled)
+#   rocky-9      generic/rocky9     (active, P6)
+#   alma-9       generic/alma9      (active, P6)
 #
 # Provider: libvirt. macOS host runs x86_64 boxes under QEMU-TCG (slow on
 # Apple Silicon). See vagrant/README.md for the aarch64 migration note.
@@ -20,10 +20,11 @@ Vagrant.configure("2") do |config|
     { name: "fedora-41",   box: "generic/fedora41",   ip: "192.168.121.11", active: true  },
     { name: "ubuntu-2404", box: "generic/ubuntu2404", ip: "192.168.121.12", active: true  },
     { name: "ubuntu-2204", box: "generic/ubuntu2204", ip: "192.168.121.13", active: true  },
-    # enabled in P6
-    { name: "rocky-9",     box: "generic/rocky9",     ip: "192.168.121.14", active: false },
-    # enabled in P6
-    { name: "alma-9",      box: "generic/alma9",      ip: "192.168.121.15", active: false },
+    { name: "rocky-9",     box: "generic/rocky9",     ip: "192.168.121.14", active: true  },
+    { name: "alma-9",      box: "generic/alma9",      ip: "192.168.121.15", active: true  },
+    # RHEL proper requires a Red Hat subscription; not bootable via `generic/*`.
+    # Provision a RHEL VM out-of-band (`subscription-manager register`) and
+    # rehearse via `scripts/local-prompt-runner.sh --family rhel` over SSH.
   ]
 
   boxes.each do |b|
