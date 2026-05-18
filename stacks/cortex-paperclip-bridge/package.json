@@ -1,0 +1,26 @@
+{
+  "name": "cortex-paperclip-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node server.js & node worker.js",
+    "start:server": "node server.js",
+    "start:worker": "node worker.js",
+    "test": "vitest run",
+    "test:integration": "RUN_INTEGRATION=1 vitest run __tests__/integration.test.js"
+  },
+  "dependencies": {
+    "express": "^5.0.0",
+    "nats": "^2.29.0",
+    "pg": "^8.13.0",
+    "undici": "^7.0.0"
+  },
+  "devDependencies": {
+    "msw": "^2.0.0",
+    "vitest": "^3.0.0"
+  }
+}

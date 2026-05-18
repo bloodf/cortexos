@@ -48,6 +48,7 @@ const DURABLES = {
   factoryCreated: process.env.DURABLE_FACTORY_CREATED || "cortex-consumer-factory-created",
   factoryWorkflow: process.env.DURABLE_FACTORY_WORKFLOW || "cortex-consumer-factory-workflow",
   openclawReceived: process.env.DURABLE_OPENCLAW_RECEIVED || "cortex-consumer-openclaw-received",
+  paperclipWork: process.env.DURABLE_PAPERCLIP_WORK || "cortex-consumer-paperclip-work",
 };
 
 const STREAM_NAMES = {
@@ -501,6 +502,53 @@ function buildDefaultBlocks(slug, stage, data) {
   };
 }
 
+async function handlePaperclipWork(subject, envelope) {
+  // Envelope shape: { data: <payload>, sig: <hex> }. Verify HMAC like approval path.
+  if (!envelope || typeof envelope !== "object" || !envelope.data || !envelope.sig) {
+    metrics.hmac_reject_total++;
+    throw new Error("paperclip envelope missing data/sig");
+  }
+  const expected = hmacSha256(NATS_HMAC, jcs(envelope.data));
+  if (!NATS_HMAC || expected !== envelope.sig) {
+    metrics.hmac_reject_total++;
+    throw new Error("paperclip envelope HMAC invalid");
+  }
+  const data = envelope.data;
+  const parts = subject.split(".");
+  const role = parts[3] || data.role || "unknown";
+  if (DRY_RUN) {
+    process.stdout.write(`[paperclip.work] dry-run run=${data.runId} role=${role}\n`);
+    return;
+  }
+  // P2 scope: re-emit a `received` event for downstream OMC executor wiring.
+  // Terminal-state publication (cortex.paperclip.status.<role>) happens once
+  // the executor pipeline reports done|failed|cancelled. Until P3, we emit a
+  // best-effort `accepted` status so end-to-end pipes are testable.
+  publish(`cortex.paperclip.accepted.${role}`, {
+    runId: data.runId,
+    issueId: data.issueId,
+    role,
+    ts: new Date().toISOString(),
+  });
+  publishPaperclipStatus(role, {
+    runId: data.runId,
+    issueId: data.issueId,
+    status: "in_progress",
+    comment: "CortexOS picked up the run",
+    costUsdCents: 0,
+  });
+  process.stdout.write(`[paperclip.work] run=${data.runId} role=${role} accepted\n`);
+}
+
+function publishPaperclipStatus(role, payload) {
+  if (!NATS_HMAC) {
+    process.stderr.write("[paperclip.status] CORTEX_NATS_HMAC missing — skipping signed publish\n");
+    return;
+  }
+  const sig = hmacSha256(NATS_HMAC, jcs(payload));
+  publish(`cortex.paperclip.status.${role}`, { data: payload, sig });
+}
+
 async function handleOpenclawReceived(data) {
   await validatePayload("openclaw.message.received", data);
   const { envelope, signature, stage } = data;
@@ -689,6 +737,8 @@ async function processMessage(m, cfg) {
       await handleFactoryWorkflow(subject, data, cfg);
     } else if (subject === "openclaw.message.received") {
       await handleOpenclawReceived(data);
+    } else if (subject.startsWith("cortex.paperclip.work.")) {
+      await handlePaperclipWork(subject, data);
     } else {
       process.stdout.write(`[skip] unhandled: ${subject}\n`);
     }
@@ -797,6 +847,7 @@ async function main() {
   await ensureConsumer(jsm, STREAM, DURABLES.factoryCreated, "cortex.factory.created");
   await ensureConsumer(jsm, STREAM, DURABLES.factoryWorkflow, "cortex.factory.workflow.>");
   await ensureConsumer(jsm, STREAM, DURABLES.openclawReceived, "openclaw.message.received");
+  await ensureConsumer(jsm, STREAM, DURABLES.paperclipWork, "cortex.paperclip.work.>");
 
   kvBucket = await ensureKV(js);
 
@@ -804,6 +855,7 @@ async function main() {
     js.consumers.get(STREAM, DURABLES.factoryCreated),
     js.consumers.get(STREAM, DURABLES.factoryWorkflow),
     js.consumers.get(STREAM, DURABLES.openclawReceived),
+    js.consumers.get(STREAM, DURABLES.paperclipWork),
   ]);
 
   startHeartbeat();
