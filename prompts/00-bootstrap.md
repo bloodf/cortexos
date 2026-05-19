@@ -4,6 +4,8 @@
 
 ## Todo
 
+- [ ] RTK installed (`rtk --version`)
+- [ ] Caveman mode enabled in the AI agent
 - [ ] Local deps verified (`bootstrap_check_local_deps`)
 - [ ] sudo cached and keepalive running
 - [ ] Operator age key present
@@ -42,6 +44,38 @@ flow. Operator-laptop is now the source of truth:
   preferred. Confirm with `ssh "$CORTEX_USER@$CORTEX_HOST" true`.
 - A clone of this repository on your laptop. You are reading this prompt
   from that clone.
+
+### Operator AI-agent tooling
+
+The agent driving this bootstrap (Claude Code, Codex, Cursor, …) runs on the
+**laptop**, not the VPS. Two tools shrink agent token usage and noise:
+
+**1. RTK (Rust Token Killer).** Transparent CLI proxy that filters `git`,
+`gh`, `docker`, `ls`, etc. output to drop boilerplate. 60–90% savings on
+common dev commands.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh
+rtk --version
+rtk gain   # verify installation; should NOT say "command not found"
+```
+
+Once installed, the Claude Code hook auto-rewrites tool invocations
+(`git status` → `rtk git status`) — zero agent overhead. If `rtk gain`
+errors out you may have the reachingforthejack/rtk Rust Type Kit binary
+shadowing the real one; remove it from `$PATH` first.
+
+**2. Caveman mode.** Terse output protocol. The agent drops articles,
+pleasantries, and hedging while keeping technical substance exact. Activate
+it for the rest of the install by telling the agent:
+
+```text
+caveman mode
+```
+
+Code, commits, security warnings, and PR bodies stay in normal English —
+the protocol only compresses chat-style explanations. Turn it off later
+with `stop caveman` / `normal mode` if you prefer prose.
 
 ## Required environment variables
 
