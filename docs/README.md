@@ -17,6 +17,8 @@
 | [SETUP_GUIDE.md](SETUP_GUIDE.md) | Prerequisites, prompt execution, verification, FAQ |
 | [DASHBOARD.md](DASHBOARD.md) | Dashboard features, routes, APIs, operations |
 | [SECURITY.md](SECURITY.md) | Threat model, controls, hardening checklist |
+| [SECURITY-CHECKLIST.md](SECURITY-CHECKLIST.md) | Operator-facing summary of every defensive control (UFW, SSH, sysctl, fail2ban, AppArmor, auditd) |
+| [SERVICES.md](SERVICES.md) | Service inventory: ports, public URLs, default credentials, firewall posture |
 | [CREDENTIALS.md](CREDENTIALS.md) | Credential lifecycle, encryption, import, rotation |
 
 ## Agent and messaging manuals
