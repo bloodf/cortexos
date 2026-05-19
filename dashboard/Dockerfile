@@ -14,13 +14,15 @@
 FROM node:22-slim AS deps
 WORKDIR /repo
 ENV NODE_ENV=production
-COPY package.json package-lock.json ./
+COPY package.json ./
 COPY packages ./packages
 COPY stacks/cortex-paperclip-bridge/package.json ./stacks/cortex-paperclip-bridge/package.json
 COPY stacks/cortex-consumer/package.json ./stacks/cortex-consumer/package.json
 COPY dashboard/package.json ./dashboard/package.json
 # include devDependencies for the build stage; runtime drops them.
-RUN npm ci --include=dev --include=optional
+# regen lockfile because the host lockfile (mac) doesn't reliably carry
+# linux-x64-gnu optional bindings (npm/cli#4828).
+RUN npm install --include=dev --include=optional --no-audit --no-fund
 
 ############################
 # Stage 2 — builder
@@ -29,7 +31,7 @@ FROM node:22-slim AS builder
 WORKDIR /repo
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /repo/node_modules ./node_modules
-COPY package.json package-lock.json ./
+COPY --from=deps /repo/package.json /repo/package-lock.json ./
 COPY packages ./packages
 COPY dashboard ./dashboard
 
