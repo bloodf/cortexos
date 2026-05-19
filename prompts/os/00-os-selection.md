@@ -62,14 +62,9 @@ Cross-check the detected `<family> <version>` against the supported matrix above
 
 ## CHECKPOINT 1
 
-Operator: confirm the following before the agent proceeds.
+**STOP — operator question:** Does `bash scripts/os-detect.sh` print a supported `<family> <version>` (ubuntu 24.04, ubuntu 25.x, or debian 13), AND does `echo "$CORTEX_OS_FAMILY"` echo the same family in your current shell?
 
-1. `bash scripts/os-detect.sh` printed `ubuntu` or `debian` as the family.
-2. The printed version is present in the supported matrix above.
-3. `CORTEX_OS_FAMILY` and `CORTEX_OS_VERSION` are exported in the current shell.
-4. `echo "$CORTEX_OS_FAMILY"` returns the same family as Step 1.
-
-Type "confirmed" to proceed.
+Type `confirmed` to proceed.
 
 ## Next
 

@@ -49,14 +49,9 @@ Expected: every package shows `Status: install ok installed`.
 
 ## CHECKPOINT 1
 
-Operator: confirm the following before the agent proceeds.
+**STOP — operator question:** Did `apt-get update` exit cleanly, all five baseline packages report `install ok installed`, and `systemctl is-enabled unattended-upgrades` returns `enabled`?
 
-1. `apt-get update` exited cleanly.
-2. All five packages report `install ok installed`.
-3. `unattended-upgrades` is enabled (`systemctl is-enabled unattended-upgrades` returns `enabled`).
-4. `ufw` is installed (rules are configured later in `prompts/tools/10-os-hardening.md`).
-
-Type "confirmed" to proceed.
+Type `confirmed` to proceed.
 
 ## Next
 
