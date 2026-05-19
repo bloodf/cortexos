@@ -314,10 +314,55 @@ Paperclip work durable (`cortex-consumer-paperclip-work`) on `CORTEX_PAPERCLIP_W
   `POST /graph/runs/{thread_id}/resume`. See
   [AGENT-GRAPH.md](AGENT-GRAPH.md#resume-semantics).
 
+## `cortex.signals.*` namespace (V12)
+
+> Reserved namespace for human-in-the-loop resume signals against an in-flight LangGraph run. Same V2 envelope shape — CloudEvents 1.0 wrapped in `{ data, sig }`.
+
+### `cortex.signals.<runId>.<name>`
+
+- **Direction**: dashboard → bus (consumed by `cortex-graph`).
+- **Producer**: dashboard server action invoked from the approval UI; persists the decision in `pending_approvals` (migration `009`) and publishes the signal in the same transaction-and-publish step.
+- **Consumer**: `cortex-graph` resume listener; matches `<runId>` and dispatches to the awaiting node.
+- **`<runId>`**: the LangGraph thread id of the run being resumed.
+- **`<name>`**: signal name (`approve`, `reject`, `request-changes`, role-defined).
+- **`data` shape**: see `schemas/cortex-signal-v1.json`.
+
+  ```json
+  {
+    "runId": "string",
+    "name": "approve|reject|request-changes|...",
+    "actor": "string",
+    "decision": "string",
+    "rationale": "string|null",
+    "ts": "RFC3339"
+  }
+  ```
+
+- **Retention**: `CORTEX_PAPERCLIP_OPS` stream (limits, 120s dedup window). A signal is meaningful only while the matching run is awaiting human; stale signals are discarded by the sidecar.
+
+## Subject summary
+
+Every CortexOS subject in one table. Schema column references files under `schemas/`.
+
+| Subject | Direction | Schema | Stream | Retention |
+|---|---|---|---|---|
+| `cortex.paperclip.work.<role>` | bridge → consumer | `paperclip-work-v1.json` | `CORTEX_PAPERCLIP_WORK` | workqueue, 24h max age |
+| `cortex.paperclip.status.<role>` | consumer → bridge | `paperclip-status-v1.json` | `CORTEX_PAPERCLIP_OPS` | limits |
+| `cortex.paperclip.approval.<role>` | dashboard → bridge | `paperclip-approval-v1.json` | `CORTEX_PAPERCLIP_OPS` | limits |
+| `cortex.alerts.<severity>.<source>` | dashboard → bridge → Paperclip | `cortex-alerts-v1.json` | `CORTEX_PAPERCLIP_OPS` | limits |
+| `cortex.graph.invoke.<role>` | consumer → sidecar | role-payload (no fixed schema) | `CORTEX_PAPERCLIP_OPS` | limits |
+| `cortex.graph.state.<runId>` | sidecar → bus | `cortex-graph-state-v1.json` | `CORTEX_PAPERCLIP_OPS` | limits |
+| `cortex.signals.<runId>.<name>` | dashboard → sidecar | `cortex-signal-v1.json` | `CORTEX_PAPERCLIP_OPS` | limits, 120s dedup |
+| `cortex.dlq.<original-subject>` | consumer → bus | `cortex-dlq-v1.json` | `CORTEX_DLQ` | limits, 7d |
+
+Every event on the wire is `{ data: <CloudEvent>, sig: HMAC-SHA256(CORTEX_NATS_HMAC, JCS(<CloudEvent>)) }` with `Nats-Msg-Id = <CloudEvent.id>` for server-side dedup. CloudEvents base schema: `schemas/cloudevents-base.json`.
+
 ## Related docs
 
 - [Documentation index](README.md)
 - [Architecture](ARCHITECTURE.md)
 - [Agent Graph](AGENT-GRAPH.md)
+- [Sandbox](SANDBOX.md)
+- [Audit](AUDIT.md)
 - [Security](SECURITY.md)
 - [Schema registry](../schemas/README.md)

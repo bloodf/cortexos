@@ -32,9 +32,9 @@
 
 CortexOS turns one Linux VPS into managed AI operations environment. Instead of opaque installer, repository ships audited Markdown setup modules, service templates, role definitions, dashboard, and event-driven orchestration stack. Human operator keeps control at explicit checkpoints while AI coding agents execute repeatable infrastructure work.
 
-Supported host distros: Ubuntu 22.04 / 24.04, Fedora 40 / 41 / 42, RHEL 9 / 10, Rocky Linux 9 / 10, AlmaLinux 9 / 10. Operator selects family in `prompts/os/00-os-selection.md`; all subsequent prompts dispatch via `scripts/pkg.sh`.
+Supported host distros: Ubuntu 24.04 LTS, Ubuntu 25.x, Debian 13 (Trixie). Operator selects family in `prompts/os/00-os-selection.md`; all subsequent prompts dispatch via `scripts/pkg.sh`.
 
-Target end state: Docker-backed services, secure credential storage, observability, NATS event bus, Slack-centered operations log, OpenClaw agent dispatch, Next.js dashboard for daily administration, and optional Paperclip governance plane for cross-agent goals, approvals, and monthly budgets.
+Target end state: Docker-backed services, SOPS-encrypted secrets, CloudEvents-signed NATS bus, hash-chained TimescaleDB audit, gVisor-sandboxed tool execution, self-hosted Langfuse LLM observability, SLSA-L2-signed images, Next.js dashboard for daily administration, and optional Paperclip governance plane for cross-agent goals, approvals, and monthly budgets.
 
 ## What CortexOS provides
 
@@ -45,7 +45,7 @@ Target end state: Docker-backed services, secure credential storage, observabili
 - **Human-readable audit trail**: Slack threads record decisions, build results, dispatches, and review outcomes.
 - **Secure secrets lifecycle**: Host `.secrets/` files feed encrypted dashboard storage, rotation procedures, and allowlisted reads.
 - **Observability stack**: Prometheus, Loki, Grafana, Fluent Bit, exporters, and health checks cover host and services.
-- **Multi-distro install path**: Ubuntu, Fedora, RHEL, Rocky, and AlmaLinux supported via `scripts/pkg.sh` dispatcher and `prompts/os/` selection step.
+- **Debian-family install path**: Ubuntu 24.04 / 25.x and Debian 13 Trixie supported via `scripts/pkg.sh` dispatcher and `prompts/os/` selection step.
 - **Paperclip governance plane (optional)**: Bridge service connects CortexOS to [Paperclip](https://paperclip.ing) for goals, monthly budgets, approval gates, and audit trail. CortexOS keeps execution authority; Paperclip owns governance. See [docs/PAPERCLIP.md](docs/PAPERCLIP.md).
 
 ## What CortexOS is not
@@ -62,34 +62,30 @@ Target end state: Docker-backed services, secure credential storage, observabili
 
 ```text
 ┌──────────────────────────────────────────────────────────────────┐
-│                         Operator / Owner                         │
-│             Dashboard, Slack, SSH, Tailscale, GitHub             │
-└───────────────┬─────────────────────┬────────────────────────────┘
-                │                     │
-                v                     v
-┌──────────────────────────┐   ┌──────────────────────────┐
-│ Next.js Dashboard        │   │ Slack Operations Threads  │
-│ services, agents, creds  │   │ decisions, approvals      │
-└───────────────┬──────────┘   └──────────────┬───────────┘
-                │                             │
-                v                             v
+│ Operator laptop                                                  │
+│   prompts/00-bootstrap.md  ·  scripts/bootstrap.sh  ·  age key   │
+└────────────────────────────┬─────────────────────────────────────┘
+                             │ SSH dispatch (git archive | tar -x, scp .env)
+                             v
 ┌──────────────────────────────────────────────────────────────────┐
-│ NATS / JetStream: cortex.<domain>.<scope>.<verb>                 │
-└───────────────┬──────────────────────────────────────────────────┘
-                │
-                v
-┌──────────────────────────┐   HTTP   ┌──────────────────────────┐
-│ cortex-consumer          ├─────────▶│ OpenClaw Gateway          │
-│ routing, Slack, approval │          │ agent process dispatch    │
-└───────────────┬──────────┘          └──────────────┬───────────┘
-                │                                    │
-                v                                    v
-┌──────────────────────────────────────────────────────────────────┐
-│ Docker services, databases, monitoring, AI platform, home apps    │
+│ VPS  (Ubuntu 24/25 or Debian 13)                                 │
+│                                                                  │
+│  Next.js Dashboard  ──▶  NATS JetStream  (CloudEvents + HMAC)    │
+│        ▲                       │                                  │
+│        │                       ├─▶ cortex-consumer (durable)     │
+│        │                       ├─▶ cortex-graph   (LangGraph)    │
+│        │                       └─▶ cortex-sandbox-runner (gVisor)│
+│        │                                                          │
+│        └── PostgreSQL/Timescale (audit_log, langgraph_checkpoints,│
+│            pending_approvals, paperclip_ticket_link)              │
+│                                                                  │
+│  Langfuse + ClickHouse  (OpenLLMetry LLM traces)                 │
+│  Prometheus + Loki + Grafana  (host + service metrics)           │
+│  SOPS+age secrets  ·  cosign+syft attestations  ·  Rekor anchor  │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-See [Architecture](ARCHITECTURE.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for full design.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full v2 substrate.
 
 ## Quick start
 
@@ -173,8 +169,12 @@ scripts/                  Host utility scripts
 | Messaging | [docs/MESSAGING.md](docs/MESSAGING.md) |
 | Troubleshooting | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) |
 | Paperclip governance | [docs/PAPERCLIP.md](docs/PAPERCLIP.md) |
-| Fedora support | [docs/FEDORA-SUPPORT.md](docs/FEDORA-SUPPORT.md) |
-| RHEL / Rocky / Alma support | [docs/RHEL-FAMILY-SUPPORT.md](docs/RHEL-FAMILY-SUPPORT.md) |
+| Agent graph (LangGraph sidecar) | [docs/AGENT-GRAPH.md](docs/AGENT-GRAPH.md) |
+| LLM observability (Langfuse) | [docs/OBSERVABILITY-LLM.md](docs/OBSERVABILITY-LLM.md) |
+| Audit (hash chain + Rekor) | [docs/AUDIT.md](docs/AUDIT.md) |
+| Sandbox (gVisor tool exec) | [docs/SANDBOX.md](docs/SANDBOX.md) |
+| Secrets (SOPS+age) | [docs/SECRETS.md](docs/SECRETS.md) |
+| Supply chain (SLSA L2) | [docs/SUPPLY-CHAIN.md](docs/SUPPLY-CHAIN.md) |
 
 ## Screenshots
 
