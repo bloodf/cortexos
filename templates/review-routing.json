@@ -1,8 +1,8 @@
 {
   "description": "Cross-model antagonist review routing. All calls via 9Router API.",
   "api": {
-    "base_url": "http://localhost:20128/v1",
-    "auth_env": "NINEROUTER_KEY"
+    "base_url": "http://localhost:11434/v1",
+    "auth_env": "NINEROUTER_API_KEY"
   },
   "routing": {
     "gpt-5.5": {

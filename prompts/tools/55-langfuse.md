@@ -145,8 +145,12 @@ systemctl restart cortex-consumer cortex-paperclip-bridge cortex-graph || true
 ## 7. Smoke trace
 
 ```bash
-# Trigger a paperclip work event; observe a span land on Langfuse.
-curl -fsS -X POST http://127.0.0.1:8089/paperclip/run \
+# Trigger a paperclip work event; observe a span land on Langfuse. The
+# bridge exposes /paperclip/heartbeat at :8089 (see
+# stacks/cortex-paperclip-bridge/server.js). Payload shape matches the
+# real heartbeat handler: runId, agentId, cortexRole, context.{taskId,
+# wakeReason, commentId?}.
+curl -fsS -X POST http://127.0.0.1:8089/paperclip/heartbeat \
   -H "Authorization: Bearer ${PAPERCLIP_WEBHOOK_SECRET}" \
   -H "Content-Type: application/json" \
   -d '{"runId":"smoke-1","agentId":"smoke","cortexRole":"smoke","context":{"taskId":"smoke","wakeReason":"manual"}}'

@@ -374,6 +374,67 @@ Paperclip work durable (`cortex-consumer-paperclip-work`) on `CORTEX_PAPERCLIP_W
 
 - **Retention**: `CORTEX_PAPERCLIP_OPS` stream (limits, 120s dedup window). A signal is meaningful only while the matching run is awaiting human; stale signals are discarded by the sidecar.
 
+## `cortex.health.*` namespace (operational heartbeats)
+
+> Per-service heartbeat namespace. Each running service publishes a
+> lightweight liveness event on `cortex.health.<service>` (e.g.
+> `cortex.health.consumer`). Subscribers: dashboard, observability stack,
+> external watchdogs.
+
+### `cortex.health.<service>`
+
+- **Direction**: service → bus.
+- **Producer**: any long-lived CortexOS process (consumer, bridge, graph, sandbox).
+- **Frequency**: typically 10s.
+- **`data` shape** (CE inner data):
+
+  ```json
+  {
+    "service": "cortex-consumer",
+    "ts": "RFC3339",
+    "uptime_s": 1234,
+    "...service-specific fields": "..."
+  }
+  ```
+
+- **Stream**: `CORTEX_PAPERCLIP_OPS`. Schema reservation: `cortex-health-v1.json` (TBD — current consumers tolerate the absence under non-strict envelope mode).
+
+## `cortex.audit.*` namespace (audit-event fan-out)
+
+> Audit-event NATS fan-out. Producers that cannot append directly to the
+> Postgres `audit_log` table (e.g. the sandbox runner) publish a
+> CloudEvents-wrapped record on `cortex.audit.<scope>.<verb>`. A
+> downstream consumer (dashboard or `cortex-consumer`) calls
+> `@cortexos/audit.append()` to persist the row.
+
+### `cortex.audit.<scope>.<verb>`
+
+- **Direction**: service → bus → audit-writer.
+- **Producer**: `cortex-sandbox-runner` (`cortex.audit.sandbox.exec`), `cortex-graph` (`cortex.audit.graph.<verb>`), AgentGateway, etc.
+- **Consumer**: dashboard / `cortex-consumer` (whichever owns the DB write).
+- **`data` shape** (CE inner data):
+
+  ```json
+  {
+    "event_type": "cortex.sandbox.exec",
+    "source": "cortex-sandbox-runner",
+    "subject": "string|null",
+    "actor": "string|null",
+    "payload": { "...": "free-form, JCS-canonicalised on persist" },
+    "ts": "RFC3339"
+  }
+  ```
+
+- **Stream**: `CORTEX_PAPERCLIP_OPS`. Schema reservation: `cortex-audit-v1.json` (TBD).
+
+## `cortex.paperclip.status.accepted.<role>` (sub-namespace)
+
+Documented sub-subject of `cortex.paperclip.status.>`. Emitted by
+`cortex-consumer` once a `cortex.paperclip.work.<role>` is picked up
+and the role is past any approval gate. The pre-existing
+`cortex.paperclip.accepted.<role>` orphan subject has been migrated
+to this namespace so it lives on the documented OPS stream filter.
+
 ## Subject summary
 
 Every CortexOS subject in one table. Schema column references files under `schemas/`.
@@ -382,11 +443,16 @@ Every CortexOS subject in one table. Schema column references files under `schem
 |---|---|---|---|---|
 | `cortex.paperclip.work.<role>` | bridge → consumer | `paperclip-work-v1.json` | `CORTEX_PAPERCLIP_WORK` | workqueue, 24h max age |
 | `cortex.paperclip.status.<role>` | consumer → bridge | `paperclip-status-v1.json` | `CORTEX_PAPERCLIP_OPS` | limits |
+| `cortex.paperclip.status.accepted.<role>` | consumer → bus | `paperclip-status-v1.json` (TBD: dedicated accepted schema) | `CORTEX_PAPERCLIP_OPS` | limits |
 | `cortex.paperclip.approval.<role>` | dashboard → bridge | `paperclip-approval-v1.json` | `CORTEX_PAPERCLIP_OPS` | limits |
 | `cortex.alerts.<severity>.<source>` | dashboard → bridge → Paperclip | `cortex-alerts-v1.json` | `CORTEX_PAPERCLIP_OPS` | limits |
+| `cortex.alerts.error.audit-append-failed` | any service → bus | `cortex-alerts-v1.json` (TBD: dedicated audit-failure schema) | `CORTEX_PAPERCLIP_OPS` | limits |
 | `cortex.graph.invoke.<role>` | consumer → sidecar | role-payload (no fixed schema) | `CORTEX_PAPERCLIP_OPS` | limits |
 | `cortex.graph.state.<runId>` | sidecar → bus | `cortex-graph-state-v1.json` | `CORTEX_PAPERCLIP_OPS` | limits |
 | `cortex.signals.<runId>.<name>` | dashboard → sidecar | `cortex-signal-v1.json` | `CORTEX_PAPERCLIP_OPS` | limits, 120s dedup |
+| `cortex.signals.<runId>.approval` | consumer (openclaw-relay) → sidecar | `cortex-signal-v1.json` | `CORTEX_PAPERCLIP_OPS` | limits, 120s dedup |
+| `cortex.health.<service>` | service → bus | (TBD: `cortex-health-v1.json`) | `CORTEX_PAPERCLIP_OPS` | limits |
+| `cortex.audit.<scope>.<verb>` | service → bus | (TBD: `cortex-audit-v1.json`) | `CORTEX_PAPERCLIP_OPS` | limits |
 | `cortex.dlq.<original-subject>` | consumer → bus | `cortex-dlq-v1.json` | `CORTEX_DLQ` | limits, 7d |
 
 Every event on the wire is `{ data: <CloudEvent>, sig: HMAC-SHA256(CORTEX_NATS_HMAC, JCS(<CloudEvent>)) }` with `Nats-Msg-Id = <CloudEvent.id>` for server-side dedup. CloudEvents base schema: `schemas/cloudevents-base.json`.

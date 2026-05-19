@@ -30,7 +30,7 @@ ON CONFLICT (slug) DO UPDATE SET
 
 -- AI
 INSERT INTO services (slug, name, kind, category, health_url, health_type, open_url, env_source, icon_type, sort_order) VALUES
-  ('9router',        '9Router',        'docker',  'AI', 'http://host.docker.internal:20128/api/health',    'http',    '#', '/opt/cortexos/stacks/9router/.env',        'cloud',    1),
+  ('9router',        '9Router',        'docker',  'AI', 'http://host.docker.internal:11434/api/health',    'http',    '#', '/opt/cortexos/.secrets/9router.env',       'cloud',    1),
   ('openviking',     'OpenViking',     'docker',  'AI', 'http://host.docker.internal:1933/health',         'http',    '#', '/opt/cortexos/stacks/openviking/.env',     'cloud',    2),
   ('openclaw',       'OpenClaw',       'docker',  'AI', 'http://host.docker.internal:18789',               'http',    '#', '/opt/cortexos/stacks/openclaw/.env',       'brain',    3),
   ('agentgateway',   'AgentGateway',   'docker',  'AI', 'http://host.docker.internal:15021/healthz/ready', 'http',    '#', '/opt/cortexos/stacks/agentgateway/.env',   'cloud',    4),

@@ -45,16 +45,19 @@ Write `/opt/cortexos/.secrets/9router.env`:
 
 ```bash
 sudo tee /opt/cortexos/.secrets/9router.env <<EOF
-NINE_ROUTER_PORT=11434
-NINE_ROUTER_API_KEY={9ROUTER_API_KEY}
+NINEROUTER_BASE_URL=http://127.0.0.1:11434
+NINEROUTER_PORT=11434
+NINEROUTER_API_KEY={9ROUTER_API_KEY}
+NINEROUTER_NATS_URL=nats://127.0.0.1:4222
 OPENAI_API_KEY={OPENAI_API_KEY}
 ANTHROPIC_API_KEY={ANTHROPIC_API_KEY}
-NATS_URL=nats://127.0.0.1:4222
 EOF
 sudo chmod 600 /opt/cortexos/.secrets/9router.env
 ```
 
 Replace each `{placeholder}` with the actual value. Add or remove provider keys as needed.
+
+> **Canonical env contract.** All 9Router env vars use the `NINEROUTER_*` prefix (no underscore split). Canonical port is `11434`. Every downstream spoke that calls AI — dashboard, OpenClaw, OpenViking, LEANN, AgentGateway, consumer — receives `NINEROUTER_BASE_URL=http://127.0.0.1:11434` and `NINEROUTER_API_KEY={9ROUTER_API_KEY}` propagated from this spoke's env. Each spoke's own `.secrets/*.env` writes a copy; rotation of the 9Router master key requires re-running the propagation step.
 
 Install systemd unit from `templates/systemd/9router.service`. Substitute placeholders (`{VPS_USER}`, `{VPS_HOME}`, `{NODE_BIN}`, `{NODE_BIN_DIR}`, `{NPM_PREFIX}`) — typical Linuxbrew layout: `{NODE_BIN}=/home/linuxbrew/.linuxbrew/opt/node@24/bin/node`, `{NPM_PREFIX}=/home/linuxbrew/.linuxbrew`.
 
@@ -77,14 +80,19 @@ systemctl show 9router -p WantedBy   # → multi-user.target
 ## Verify
 
 ```bash
-curl -s http://localhost:11434/v1/models | jq '.data[].id' | head -5
+set -a
+source /opt/cortexos/.secrets/9router.env
+set +a
+curl -fsS -H "Authorization: Bearer $NINEROUTER_API_KEY" \
+  "${NINEROUTER_BASE_URL:-http://localhost:11434}/v1/models" \
+  | jq '.data[].id' | head -5
 ```
 
-Expected: model IDs listed (e.g. `gpt-4o`, `claude-sonnet-4-5`).
+Expected: model IDs listed (e.g. `gpt-4o`, `claude-sonnet-4-5`). HTTP 401 here means master-key wiring is broken — fix before continuing.
 
 ## CHECKPOINT 2
 
-Operator: confirm `curl localhost:11434/v1/models` returns a model list. Record the endpoint and API key in your notes — every subsequent spoke that calls AI uses this gateway. Type "confirmed" to proceed.
+Operator: confirm `curl -H "Authorization: Bearer $NINEROUTER_API_KEY" $NINEROUTER_BASE_URL/v1/models` returns a model list (HTTP 200, non-empty `data`). Record the endpoint and API key in your notes — every subsequent spoke that calls AI uses this gateway. Type "confirmed" to proceed.
 
 ## Next
 

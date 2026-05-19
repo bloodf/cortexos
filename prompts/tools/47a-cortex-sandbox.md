@@ -95,6 +95,22 @@ CORTEX_SANDBOX_URL=http://127.0.0.1:8091
 CORTEX_SANDBOX_API_TOKEN=<same value as sandbox.env>
 ```
 
+## Write the sandbox-required roster
+
+`consumer.js` only routes through the sandbox when the role appears in
+`/opt/cortexos/templates/agent-roles/.sandbox-required.json` (path
+override: `CORTEX_SANDBOX_ROLES_FILE`). Without this file (or with an
+empty array) dispatch is silently disabled. Seed a minimal roster —
+add roles whose tool execution MUST run under gVisor:
+
+```bash
+sudo install -d -o root -g root -m 0755 /opt/cortexos/templates/agent-roles
+sudo tee /opt/cortexos/templates/agent-roles/.sandbox-required.json <<'EOF'
+["eng-backend"]
+EOF
+sudo chmod 0644 /opt/cortexos/templates/agent-roles/.sandbox-required.json
+```
+
 Then restart:
 
 ```bash
@@ -102,8 +118,14 @@ sudo systemctl restart cortex-consumer
 journalctl -u cortex-consumer -n 50 --no-pager
 ```
 
-The consumer logs `[sandbox] dispatched ...` for each sandbox-eligible
-role on receipt of a `cortex.paperclip.work.<role>` event.
+The consumer logs `[sandbox] dispatched run=... role=... exit=...` for
+each sandbox-eligible role on receipt of a
+`cortex.paperclip.work.<role>` event. Failures log
+`[sandbox] dispatch failed ...`. Confirm via:
+
+```bash
+journalctl -u cortex-consumer -n 200 --no-pager | grep -E '\[sandbox\] (dispatched|dispatch failed)'
+```
 
 ## Rollback
 
@@ -120,7 +142,8 @@ docker compose -f /opt/cortexos/stacks/cortex-sandbox-runner/docker-compose.yml 
 - [ ] Unauthenticated `/exec` returns `401`.
 - [ ] `/exec` with a non-allow-listed image returns `400 policy_rejected`.
 - [ ] `/exec` with `alpine:3` returns `exitCode:0` and `stats.timedOut:false`.
-- [ ] Consumer logs show sandbox dispatch for `ENG-BACKEND` test event.
+- [ ] `/opt/cortexos/templates/agent-roles/.sandbox-required.json` exists and lists the test role.
+- [ ] Consumer logs show `[sandbox] dispatched` for the test role event.
 
 ## Next
 

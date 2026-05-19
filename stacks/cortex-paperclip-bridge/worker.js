@@ -26,7 +26,10 @@ async function safeAuditAppend(event) {
 }
 
 const sc = StringCodec();
-const STREAM = process.env.CORTEX_STREAM || "CORTEX";
+// Status echoes + alerts live in CORTEX_PAPERCLIP_OPS per docs/NATS-CONTRACT.md
+// and stacks/cortex-consumer/config.json. The legacy CORTEX default made
+// the worker subscribe to the wrong stream on fresh installs.
+const STREAM = process.env.CORTEX_STREAM || "CORTEX_PAPERCLIP_OPS";
 const DURABLE = process.env.DURABLE_BRIDGE_STATUS || "cortex-paperclip-bridge-status";
 const FILTER = "cortex.paperclip.status.>";
 const MAX_ATTEMPTS = 6;

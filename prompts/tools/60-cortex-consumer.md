@@ -24,16 +24,27 @@ Operator: confirm NATS is running and the `cortex_approvals_seen` KV bucket exis
 
 ## Install
 
-Consumer code lives in the repo at `stacks/cortex-consumer/`. Deploy it:
+Consumer code lives in the repo at `stacks/cortex-consumer/`. The runtime
+needs the full directory — `consumer.js` imports from `./lib/*.js` and
+the npm install step needs `package.json` + `package-lock.json` at the
+target. Deploy the whole tree:
 
 ```bash
-mkdir -p /opt/cortexos/stacks/cortex-consumer
-cp stacks/cortex-consumer/consumer.js /opt/cortexos/stacks/cortex-consumer/
-cp stacks/cortex-consumer/config.json /opt/cortexos/stacks/cortex-consumer/
-cp stacks/cortex-consumer/cortex-consumer.service /etc/systemd/system/
+sudo mkdir -p /opt/cortexos/stacks/cortex-consumer
+# `cp -a` preserves modes/symlinks; the trailing /. copies contents not
+# the directory itself so re-runs converge in place.
+sudo cp -a stacks/cortex-consumer/. /opt/cortexos/stacks/cortex-consumer/
+sudo cp stacks/cortex-consumer/cortex-consumer.service /etc/systemd/system/
+
+# Required tree at the target (validate before npm install):
+ls /opt/cortexos/stacks/cortex-consumer/consumer.js \
+   /opt/cortexos/stacks/cortex-consumer/config.json \
+   /opt/cortexos/stacks/cortex-consumer/package.json \
+   /opt/cortexos/stacks/cortex-consumer/package-lock.json \
+   /opt/cortexos/stacks/cortex-consumer/lib
 
 cd /opt/cortexos/stacks/cortex-consumer
-npm install --omit=dev
+sudo npm install --omit=dev
 ```
 
 ## Configure
