@@ -8,6 +8,16 @@ Define which CortexOS roles require human approval before executing
 destructive or irreversible operations, configure the Paperclip approval
 gate, set timeout + escalation, and wire timeouts into the NATS alert bus.
 
+## Sudo gate
+
+This spoke runs `sudo`. Authenticate **now** so the rest of the steps don't pause for a password mid-flow:
+
+```bash
+sudo -v
+```
+
+CortexOS never stores your password — only the kernel's sudo timestamp is used. Re-run if it expires.
+
 ## Todo
 
 - [ ] Threat model

@@ -19,6 +19,16 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 
 > **Python runtime.** LEANN's systemd unit invokes `uvicorn` from the system Python. Install Python deps with `pkg_install python3 python3-pip` (Ubuntu/Debian). The `uvicorn` binary itself comes from `pip install uvicorn` inside the LEANN tree or a venv.
 
+## Sudo gate
+
+This spoke runs `sudo`. Authenticate **now** so the rest of the steps don't pause for a password mid-flow:
+
+```bash
+sudo -v
+```
+
+CortexOS never stores your password — only the kernel's sudo timestamp is used. Re-run if it expires.
+
 ## Todo
 
 - [ ] CHECKPOINT 1 confirmed
