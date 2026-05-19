@@ -54,11 +54,44 @@ git clone --depth=1 https://github.com/zsh-users/zsh-completions \
 # 4c. Enable the plugins in ~/.zshrc (idempotent — only rewrites the plugins= line).
 sed -i 's/^plugins=(.*)$/plugins=(git docker docker-compose systemd ufw zsh-autosuggestions zsh-syntax-highlighting zsh-completions)/' "$HOME/.zshrc"
 
-# 4d. Make zsh the login shell for the current operator user.
+# 4d. CRITICAL — re-emit PATH + env from the prior bash environment.
+# oh-my-zsh installs a stock ~/.zshrc that does NOT source ~/.profile,
+# ~/.bashrc, /etc/profile.d/*, or Linuxbrew/nvm/cargo env. Without the
+# block below, switching login shell to zsh "loses" every tool the
+# operator installed under bash (brew, node via nvm, cargo, pyenv, etc.).
+# We append an idempotent guard block at the end of ~/.zshrc so future
+# spokes (Linuxbrew, Node, etc.) that write to ~/.profile or
+# /etc/profile.d/ are automatically picked up by zsh on next login.
+if ! grep -q '# >>> cortexos env bridge >>>' "$HOME/.zshrc"; then
+  cat >> "$HOME/.zshrc" <<'ZRC'
+
+# >>> cortexos env bridge >>>
+# Re-emit the same PATH + env that bash login shells get. Keeps zsh in
+# sync with anything later spokes drop into /etc/profile.d/ or ~/.profile.
+[ -r /etc/profile ]        && emulate sh -c '. /etc/profile'
+for f in /etc/profile.d/*.sh; do [ -r "$f" ] && emulate sh -c ". $f"; done
+[ -r "$HOME/.profile" ]    && emulate sh -c '. "$HOME/.profile"'
+# Linuxbrew (installed by a later spoke) — picked up automatically once present.
+if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
+  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+fi
+# nvm (if a later spoke installs it under ~/.nvm).
+export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+[ -s "$NVM_DIR/bash_completion" ] && . "$NVM_DIR/bash_completion"
+# cargo (if a later spoke installs rustup).
+[ -r "$HOME/.cargo/env" ]  && . "$HOME/.cargo/env"
+# <<< cortexos env bridge <<<
+ZRC
+fi
+
+# 4e. Make zsh the login shell for the current operator user.
 sudo chsh -s "$(command -v zsh)" "$USER"
 ```
 
 > **Note.** `chsh` does not affect the current SSH session — log out and back in (or `exec zsh -l`) to see the new shell. The CortexOS bootstrap dispatch (`ssh '<cmd>'`) explicitly runs commands under `bash -c` regardless of the login shell, so spoke execution is unaffected.
+>
+> **Why the env bridge in 4d matters.** Without it, switching login shell to zsh strips Linuxbrew / nvm / cargo / any `/etc/profile.d/` exports from interactive sessions — the operator opens a new SSH window and `brew`, `node`, `npm`, `cargo` all report `command not found` even though the binaries are still on disk. The bridge re-sources every bash-style env file on zsh startup and is idempotent (guard-grep skips re-append on re-run).
 
 ### Step 5 — Enable unattended upgrades
 
@@ -74,7 +107,13 @@ dpkg -s ca-certificates curl gnupg ufw unattended-upgrades zsh git \
 test -d "$HOME/.oh-my-zsh" && echo "oh-my-zsh: installed"
 test -d "$HOME/.oh-my-zsh/custom/plugins/zsh-autosuggestions"      && echo "autosuggestions: installed"
 test -d "$HOME/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"  && echo "syntax-highlighting: installed"
+grep -q '# >>> cortexos env bridge >>>' "$HOME/.zshrc" && echo "env bridge: installed"
 getent passwd "$USER" | awk -F: '{print "login shell: "$NF}'
+
+# Smoke-check that the env bridge re-emits PATH under zsh — should print the
+# same set of bin dirs you see under bash. If brew/node/cargo were installed
+# before this spoke ran, they MUST appear here.
+zsh -l -c 'echo "PATH under zsh: $PATH"'
 ```
 
 Expected: every apt package shows `Status: install ok installed`, both oh-my-zsh markers print `installed`, and the login shell is `/usr/bin/zsh` (or `/bin/zsh`).
@@ -88,6 +127,12 @@ Type `confirmed` to proceed.
 ## CHECKPOINT 2
 
 **STOP — operator question:** Did `test -d ~/.oh-my-zsh && echo ok` print `ok`, and do both `zsh-autosuggestions` + `zsh-syntax-highlighting` directories exist under `~/.oh-my-zsh/custom/plugins/`?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 2b
+
+**STOP — operator question:** Did `grep -q '# >>> cortexos env bridge >>>' ~/.zshrc && echo ok` print `ok`, AND does `zsh -l -c 'echo $PATH'` include the same `/usr/local/bin` + Linuxbrew + nvm dirs you see under `bash -l -c 'echo $PATH'` (i.e. zsh did NOT drop tools the operator already had)?
 
 Type `confirmed` to proceed.
 
