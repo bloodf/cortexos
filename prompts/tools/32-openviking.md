@@ -37,8 +37,8 @@ Write `/opt/cortexos/.secrets/openviking.env`:
 ```bash
 sudo tee /opt/cortexos/.secrets/openviking.env <<EOF
 DATABASE_URL=postgresql://dashboard:{DASHBOARD_DB_PASSWORD}@127.0.0.1:5432/cortex_dashboard
-NINE_ROUTER_BASE_URL=http://127.0.0.1:11434/v1
-NINE_ROUTER_API_KEY={9ROUTER_API_KEY}
+NINEROUTER_BASE_URL=http://127.0.0.1:11434
+NINEROUTER_API_KEY={9ROUTER_API_KEY}
 NATS_URL=nats://127.0.0.1:4222
 OPENVIKING_PORT=18790
 EOF

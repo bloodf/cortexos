@@ -112,7 +112,7 @@ sequenceDiagram
 | 3200 | Loki | Logs API |
 | 15021 | AgentGateway | Readiness endpoint |
 | 18789 | OpenClaw Gateway | Agent dispatch API |
-| 20128 | 9Router | Model routing API |
+| 11434 | 9Router | Model routing API (OpenAI-compatible) |
 
 ## Extension points
 

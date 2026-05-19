@@ -42,7 +42,12 @@ class RunOrchestrator:
         self._bridge = bridge
 
     async def _emit(self, run_id: str, node_id: str, state: NodeStatus) -> None:
+        # Lifecycle fan-out → NATS state subject (existing behavior) +
+        # audit-chain mirror via cortex.audit.graph.node-transition.
+        # Audit failures MUST NOT break the run; the legacy emit path is
+        # equally best-effort.
         if self._bridge is None:
+            await self._emit_audit(run_id, node_id, state)
             return
         try:
             await self._bridge.emit_lifecycle(
@@ -53,6 +58,53 @@ class RunOrchestrator:
             )
         except Exception:  # noqa: BLE001 — telemetry must never break a run
             log.exception("emit_lifecycle failed")
+        await self._emit_audit(run_id, node_id, state)
+
+    async def _emit_audit(self, run_id: str, node_id: str, state: NodeStatus) -> None:
+        """Best-effort audit-chain mirror.
+
+        Publishes a CloudEvents-shaped record on
+        `cortex.audit.graph.node-transition` via the NATS bridge so the
+        downstream audit-writer (dashboard / cortex-consumer) appends
+        the row to the hash-chained `audit_log` table. See
+        docs/NATS-CONTRACT.md → `cortex.audit.<scope>.<verb>`.
+        """
+        if self._bridge is None or getattr(self._bridge, "_nc", None) is None:
+            return
+        try:
+            import json as _json
+            from app.envelope import build_cloud_event, sign
+            from app.config import get_settings
+
+            secret = get_settings().nats_hmac
+            if not secret:
+                log.warning("audit append skipped: CORTEX_NATS_HMAC missing")
+                return
+            ce = build_cloud_event(
+                event_type="cortex.audit.graph.node-transition.v1",
+                source="cortex-graph",
+                subject=run_id,
+                data={
+                    "event_type": "cortex.graph.node-transition",
+                    "source": "cortex-graph",
+                    "subject": run_id,
+                    "actor": node_id,
+                    "payload": {
+                        "runId": run_id,
+                        "nodeId": node_id,
+                        "state": state.value if hasattr(state, "value") else str(state),
+                    },
+                    "ts": None,  # consumer stamps `occurred_at` on append
+                },
+            )
+            envelope = sign(ce, secret)
+            subject = f"cortex.audit.graph.node-transition.{run_id}"
+            await self._bridge._nc.publish(  # noqa: SLF001 — bridge owns the conn
+                subject,
+                _json.dumps(envelope).encode("utf-8"),
+            )
+        except Exception:  # noqa: BLE001 — audit must never break a run
+            log.exception("audit append failed")
 
     async def start(
         self,

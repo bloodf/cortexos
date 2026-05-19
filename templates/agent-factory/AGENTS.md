@@ -515,8 +515,8 @@ The agent factory runs a GitHub-label-driven pipeline. Respect it.
 Endpoints mirrored from `.shared/endpoints.md` (canonical).
 
 ```text
-Endpoint:    http://127.0.0.1:20128/v1/chat/completions
-Models list: http://127.0.0.1:20128/v1/models
+Endpoint:    http://127.0.0.1:11434/v1/chat/completions
+Models list: http://127.0.0.1:11434/v1/models
 ```
 
 Why:

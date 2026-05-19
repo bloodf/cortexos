@@ -40,7 +40,7 @@ export CORTEX_DOMAIN=""                 # e.g. cortex.tailXXXX.ts.net
 # 4. AI providers (default: 9Router handles all; add keys for providers you have)
 export OPENAI_API_KEY=""
 export ANTHROPIC_API_KEY=""
-export NINE_ROUTER_API_KEY=""          # Master key for 9Router (generate a random string)
+export NINEROUTER_API_KEY=""           # Master key for 9Router (generate a random string)
 
 # 5. Messaging platforms — deferred
 # Telegram, Slack, Discord, and WhatsApp tokens are NOT needed at setup time.
@@ -290,7 +290,7 @@ Plain Markdown fallback: every spoke can be read and executed manually in a term
 | `{VPS_USER}` | OS sudo user | `CORTEX_USER` |
 | `{DOMAIN}` | Public-facing domain | `CORTEX_DOMAIN` |
 | `{SSH_PORT}` | SSH port | `SSH_PORT` |
-| `{9ROUTER_API_KEY}` | 9Router master key | `NINE_ROUTER_API_KEY` |
+| `{9ROUTER_API_KEY}` | 9Router master key | `NINEROUTER_API_KEY` |
 | `{DASHBOARD_DB_PASSWORD}` | PG dashboard password | `DASHBOARD_DB_PASSWORD` |
 | `{REDIS_PASSWORD}` | Redis password | `REDIS_PASSWORD` |
 | `{GRAFANA_ADMIN_PASSWORD}` | Grafana admin password | `GRAFANA_ADMIN_PASSWORD` |

@@ -12,11 +12,59 @@
 
 import express from "express";
 import { spawn as defaultSpawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { ExecRequestSchema, decide, buildPodmanArgs } from "./policy.js";
 
 const PORT = Number(process.env.PORT || 8091);
 const API_TOKEN = process.env.CORTEX_SANDBOX_API_TOKEN || "";
 const PODMAN_BIN = process.env.CORTEX_SANDBOX_PODMAN_BIN || "podman";
+
+// Audit fan-out: the sandbox runner cannot write directly to the
+// Postgres audit_log (no DB connection by design — minimal attack
+// surface). Instead it POSTs a CloudEvents-shaped record to an internal
+// audit-write endpoint when CORTEX_AUDIT_URL is configured; the
+// dashboard / consumer subscribes and calls `@cortexos/audit.append`.
+// See docs/NATS-CONTRACT.md → `cortex.audit.<scope>.<verb>`.
+const CORTEX_AUDIT_URL = (process.env.CORTEX_AUDIT_URL || "").replace(/\/$/, "");
+const CORTEX_AUDIT_TOKEN = process.env.CORTEX_AUDIT_TOKEN || "";
+const CORTEX_AUDIT_ENABLED = process.env.CORTEX_AUDIT_ENABLED !== "0";
+
+async function emitAuditEvent(payload) {
+  if (!CORTEX_AUDIT_ENABLED) return;
+  const event = {
+    specversion: "1.0",
+    id: randomUUID(),
+    type: "cortex.audit.sandbox.exec.v1",
+    source: "cortex-sandbox-runner",
+    time: new Date().toISOString(),
+    datacontenttype: "application/json",
+    data: {
+      event_type: "cortex.sandbox.exec",
+      source: "cortex-sandbox-runner",
+      subject: payload.role ?? null,
+      actor: null,
+      payload,
+      ts: new Date().toISOString(),
+    },
+  };
+  if (!CORTEX_AUDIT_URL) {
+    // No collector configured — best-effort log so an operator/tailer
+    // still has the event. Stays a one-line JSON record.
+    process.stdout.write(`[audit] ${JSON.stringify(event)}\n`);
+    return;
+  }
+  try {
+    const headers = { "content-type": "application/json" };
+    if (CORTEX_AUDIT_TOKEN) headers.authorization = `Bearer ${CORTEX_AUDIT_TOKEN}`;
+    await fetch(`${CORTEX_AUDIT_URL}/cortex.audit.sandbox.exec.v1`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(event),
+    });
+  } catch (e) {
+    process.stderr.write(`[audit] sandbox exec append failed: ${e.message}\n`);
+  }
+}
 
 const metrics = {
   exec_total: 0,
@@ -133,6 +181,20 @@ export function buildApp(opts = {}) {
       if (result.stats?.timedOut) metrics.exec_timeout_total++;
       if (result.exitCode === 0) metrics.exec_ok_total++;
       else metrics.exec_fail_total++;
+      // Fire-and-forget audit fan-out. Failure here MUST NOT impact the
+      // /exec response — sandbox SLA beats completeness of the audit
+      // mirror; gaps are observable via `verifyChain` downstream.
+      emitAuditEvent({
+        role: parsed.data.role ?? null,
+        request: {
+          image: parsed.data.image,
+          cmd: parsed.data.cmd,
+          timeoutSec: parsed.data.timeoutSec,
+          networkMode: parsed.data.networkMode ?? null,
+        },
+        exitCode: result.exitCode,
+        stats: result.stats ?? {},
+      }).catch(() => { /* already logged */ });
       return res.status(200).json(result);
     } catch (e) {
       metrics.exec_fail_total++;

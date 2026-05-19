@@ -23,6 +23,20 @@ done
 
 DASHBOARD_DB_PASSWORD="${DASHBOARD_DB_PASSWORD:-}"
 CORTEX_INTERNAL_TOKEN="${CORTEX_INTERNAL_TOKEN:-${CORTEX_MASTER_KEY:-}}"
+# 9Router bearer (non-fatal if unset)
+NINEROUTER_API_KEY="${NINEROUTER_API_KEY:-}"
+for f in "$CORTEX_ROOT/.secrets/9router.env"; do
+  if [[ -r "$f" ]]; then
+    set -a
+    # shellcheck disable=SC1090
+    source "$f"
+    set +a
+  fi
+done
+NINEROUTER_AUTH=()
+if [[ -n "${NINEROUTER_API_KEY:-}" ]]; then
+  NINEROUTER_AUTH=(-H "Authorization: Bearer ${NINEROUTER_API_KEY}")
+fi
 
 ok() { echo "✓ $*"; PASS=$((PASS + 1)); }
 bad() { echo "✗ $*"; FAIL=$((FAIL + 1)); }
@@ -58,7 +72,7 @@ check_agent() {
   local model
   model="$(jq -r --arg id "$agent" '.agents.list[]? | select(.id == $id) | if (.model|type) == "object" then (.model.primary // empty) else (.model // empty) end' "$config" 2>/dev/null | head -1 || true)"
   if [[ -n "$model" ]]; then
-    check_cmd curl -fsS --max-time 10 http://127.0.0.1:20128/v1/models && ok "$label model endpoint reachable $model" || bad "$label model endpoint reachable $model"
+    check_cmd curl -fsS --max-time 10 "${NINEROUTER_AUTH[@]}" http://127.0.0.1:11434/v1/models && ok "$label model endpoint reachable $model" || bad "$label model endpoint reachable $model"
   else
     bad "$label model configured $agent"
   fi
@@ -79,7 +93,7 @@ fi
 check_cmd curl -fsSk --max-time 5 -H "x-cortex-internal-token: $CORTEX_INTERNAL_TOKEN" http://localhost:3080/api/system && ok "cortex-dashboard health http://localhost:3080/api/system" || bad "cortex-dashboard health http://localhost:3080/api/system"
 check_systemd openclaw-gateway.service http://localhost:18789
 check_systemd caddy.service https://127.0.0.1:443/
-check_systemd 9router.service http://localhost:20128/api/health
+check_systemd 9router.service http://localhost:11434/api/health
 check_systemd cortex-consumer.service http://localhost:3099/health
 
 echo "[docker containers]"
@@ -99,7 +113,11 @@ else
 fi
 
 echo "[ai platform]"
-check_cmd bash -c 'curl -fsS --max-time 10 http://127.0.0.1:20128/v1/models | jq -e ".data | length > 0"' && ok "9Router models available" || bad "9Router models available"
+if [[ -n "${NINEROUTER_API_KEY:-}" ]]; then
+  check_cmd bash -c 'curl -fsS --max-time 10 -H "Authorization: Bearer '"$NINEROUTER_API_KEY"'" http://127.0.0.1:11434/v1/models | jq -e ".data | length > 0"' && ok "9Router models available" || bad "9Router models available"
+else
+  check_cmd bash -c 'curl -fsS --max-time 10 http://127.0.0.1:11434/v1/models | jq -e ".data | length > 0"' && ok "9Router models available" || bad "9Router models available"
+fi
 check_cmd curl -fsS --max-time 5 http://127.0.0.1:18789 && ok "OpenClaw gateway" || bad "OpenClaw gateway"
 check_cmd curl -fsS --max-time 5 http://127.0.0.1:1933/health && ok "OpenViking API" || bad "OpenViking API"
 check_cmd curl -fsS --max-time 5 http://127.0.0.1:8889/health && ok "Hindsight API" || bad "Hindsight API"

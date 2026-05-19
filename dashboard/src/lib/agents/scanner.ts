@@ -71,9 +71,18 @@ async function getMarkdownFiles(dir: string): Promise<AgentFile[]> {
 
 async function isModelEndpointReachable(model: string): Promise<boolean> {
   if (!model || model === "unknown") return false;
-  const base = process.env.ROUTER_BASE_URL || "http://127.0.0.1:20128";
+  const base =
+    process.env.NINEROUTER_BASE_URL ||
+    process.env.ROUTER_BASE_URL ||
+    "http://127.0.0.1:11434";
+  const apiKey = process.env.NINEROUTER_API_KEY;
+  const headers: Record<string, string> = {};
+  if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
   try {
-    const res = await fetch(`${base}/v1/models`, { cache: "no-store" });
+    const res = await fetch(`${base}/v1/models`, {
+      cache: "no-store",
+      headers,
+    });
     return res.ok;
   } catch {
     return false;

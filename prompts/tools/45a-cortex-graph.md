@@ -115,11 +115,44 @@ Restart `cortex-consumer`. Roles with `graphEnabled: true` will now
 dispatch via the sidecar; roles without the flag keep the legacy
 direct path.
 
+## Write the graph-enabled roster
+
+`consumer.js` only dispatches to the sidecar when the role appears in
+`/opt/cortexos/templates/agent-roles/.graph-enabled.json` (path
+override: `CORTEX_GRAPH_ROLES_FILE`). Without this file (or with an
+empty array) dispatch is silently disabled. Seed a minimal roster —
+add roles you actually want graph-routed:
+
+```bash
+sudo install -d -o root -g root -m 0755 /opt/cortexos/templates/agent-roles
+sudo tee /opt/cortexos/templates/agent-roles/.graph-enabled.json <<'EOF'
+["eng-backend"]
+EOF
+sudo chmod 0644 /opt/cortexos/templates/agent-roles/.graph-enabled.json
+```
+
+Restart the consumer so the cached roster is reloaded:
+
+```bash
+sudo systemctl restart cortex-consumer
+```
+
+Publish a sandbox-eligible role event and verify dispatch in
+`journalctl`. The real log strings emitted by `consumer.js` are
+`[graph] dispatched run=...` on success and
+`[graph] dispatch failed ...` on error — match those exactly:
+
+```bash
+journalctl -u cortex-consumer -n 200 --no-pager | grep -E '\[graph\] (dispatched|dispatch failed)'
+```
+
 ## CHECKPOINT 2
 
 Operator: confirm `/healthz` returns 200, a smoke run returns
-`status=interrupted`, and `cortex-consumer` logs show
-`graph dispatch ok` for at least one role. Type "confirmed" to proceed.
+`status=interrupted`, the roster file at
+`/opt/cortexos/templates/agent-roles/.graph-enabled.json` contains
+the role(s) you want routed, and `cortex-consumer` logs show
+`[graph] dispatched` for at least one role. Type "confirmed" to proceed.
 
 ## Rollback
 

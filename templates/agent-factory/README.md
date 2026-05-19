@@ -49,7 +49,7 @@ Supplementary (not in REQUIRED_FILES):
 
 ## Key Concepts
 
-- **9Router**: All AI model calls route through 9Router at `127.0.0.1:20128`. No direct provider calls.
+- **9Router**: All AI model calls route through 9Router at `127.0.0.1:11434`. No direct provider calls.
 - **Antagonist Review**: Cross-model review before pipeline stage transitions. BLOCK/PASS verdicts.
 - **Quality Gates**: gstack skill pipeline — office → ceo → eng → dev → review → qa → ship → retro.
 - **Agent Routing Tokens**: `@pm` is not a GitHub account; `templates/workflows/agent-mention-router.yml` should be installed as `.github/workflows/agent-mention-router.yml` and converts it into `agent:pm` + `needs-clarification` labels for PM polling.

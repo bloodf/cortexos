@@ -18,6 +18,9 @@ Restart=always
 RestartSec=5
 Environment=HOME={VPS_HOME}
 Environment=PATH={NODE_BIN_DIR}:/home/linuxbrew/.linuxbrew/bin:/usr/local/bin:/usr/bin:/bin
+# 9Router binds to the port set in NINEROUTER_PORT (canonical: 11434) loaded
+# from the EnvironmentFile below. The CLI does not take an explicit --port flag;
+# NINEROUTER_PORT in the env file is the single source of truth.
 EnvironmentFile=-/opt/cortexos/.secrets/9router.env
 
 [Install]

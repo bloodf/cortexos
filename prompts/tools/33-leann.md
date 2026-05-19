@@ -49,8 +49,8 @@ Write `/opt/cortexos/.secrets/leann.env`:
 ```bash
 sudo tee /opt/cortexos/.secrets/leann.env <<EOF
 LEANN_PORT=18791
-NINE_ROUTER_BASE_URL=http://127.0.0.1:11434/v1
-NINE_ROUTER_API_KEY={9ROUTER_API_KEY}
+NINEROUTER_BASE_URL=http://127.0.0.1:11434
+NINEROUTER_API_KEY={9ROUTER_API_KEY}
 LEANN_DATA_DIR=/opt/cortexos/stacks/leann/data
 EOF
 sudo chmod 600 /opt/cortexos/.secrets/leann.env

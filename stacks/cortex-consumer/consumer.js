@@ -44,13 +44,20 @@ async function safeAuditAppend(event) {
   } catch (e) {
     process.stderr.write(`[audit] append failed type=${event.event_type}: ${e.message}\n`);
     try {
-      publish("cortex.alerts.error.audit-append-failed", {
-        event_type: event.event_type,
-        source: event.source,
-        subject: event.subject ?? null,
-        reason: e.message,
-        ts: new Date().toISOString(),
-      });
+      // Wrapped via the shared CloudEvents publisher; `publishEnvelope` is
+      // hoisted (declared as a function above) so this reference resolves
+      // at call time even though it appears earlier in source order.
+      publishEnvelope(
+        "cortex.alerts.error.audit-append-failed",
+        "cortex.alerts.error.audit-append-failed.v1",
+        {
+          event_type: event.event_type,
+          source: event.source,
+          subject: event.subject ?? null,
+          reason: e.message,
+          ts: new Date().toISOString(),
+        },
+      );
     } catch { /* publish failures already logged elsewhere */ }
   }
 }
@@ -497,18 +504,71 @@ function publish(subject, payload) {
   }
 }
 
+/**
+ * Shared helper: wrap `data` in a CloudEvents 1.0 envelope, validate it,
+ * HMAC-sign with CORTEX_NATS_HMAC (when present), and publish on `subject`
+ * with `Nats-Msg-Id = <CloudEvent.id>` for JetStream dedup.
+ *
+ * Returns the published CloudEvent id (or null when NATS is down/HMAC unset
+ * under strict mode). Failure modes are non-fatal: validation issues are
+ * logged and propagate only when CORTEX_REQUIRE_ENVELOPE=1.
+ */
+function publishEnvelope(subject, type, data, opts = {}) {
+  if (!nc || nc.isClosed()) return null;
+  let ce;
+  try {
+    ce = buildCloudEvent({
+      type,
+      source: opts.source || "cortex-consumer",
+      subject: opts.subject,
+      data,
+    });
+    validateCloudEvent(ce);
+  } catch (e) {
+    process.stderr.write(`[publish] cloudevents build/validate failed type=${type}: ${e.message}\n`);
+    if (CORTEX_REQUIRE_ENVELOPE) {
+      if (e instanceof EnvelopeValidationError) throw e;
+      return null;
+    }
+  }
+  if (!ce) return null;
+  // Per docs/NATS-CONTRACT.md the wire shape is `{ data: <CE>, sig }` so
+  // the publish() helper's CE-id extraction stamps Nats-Msg-Id correctly.
+  if (!NATS_HMAC) {
+    process.stderr.write(`[publish] CORTEX_NATS_HMAC unset — emitting unsigned envelope on ${subject}\n`);
+    publish(subject, { data: ce });
+    return ce?.id || null;
+  }
+  const sig = hmacSha256(NATS_HMAC, jcs(ce));
+  publish(subject, { data: ce, sig });
+  return ce?.id || null;
+}
+
 async function publishAlert(kind, data) {
-  publish(`cortex.alert.${kind}`, { kind, ts: new Date().toISOString(), ...data });
+  // Subject migrated: cortex.alert.<kind> → cortex.alerts.<kind> (canonical
+  // plural per docs/NATS-CONTRACT.md and schemas/cortex-alerts-v1.json).
+  publishEnvelope(
+    `cortex.alerts.${kind}`,
+    `cortex.alerts.${kind}.v1`,
+    { kind, ts: new Date().toISOString(), ...data },
+  );
 }
 
 async function publishDLQ(subject, data, reason) {
   metrics.messages_dlq_total++;
-  publish("cortex.consumer.errors", {
-    original_subject: subject,
-    reason,
-    ts: new Date().toISOString(),
-    payload: data,
-  });
+  // Best-effort fallback DLQ record on the legacy core subject. The
+  // JetStream DLQ path in processMessage() uses publishToDlq() and the
+  // documented `cortex.dlq.<original>` namespace.
+  publishEnvelope(
+    "cortex.dlq.cortex.consumer.errors",
+    "cortex.dlq.errors.v1",
+    {
+      originalSubject: subject,
+      reason,
+      ts: new Date().toISOString(),
+      payload: data,
+    },
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -926,12 +986,21 @@ async function handlePaperclipWork(subject, envelope) {
   // Terminal-state publication (cortex.paperclip.status.<role>) happens once
   // the executor pipeline reports done|failed|cancelled. Until P3, we emit a
   // best-effort `accepted` status so end-to-end pipes are testable.
-  publish(`cortex.paperclip.accepted.${role}`, {
-    runId: data.runId,
-    issueId: data.issueId,
-    role,
-    ts: new Date().toISOString(),
-  });
+  // Subject migrated: cortex.paperclip.accepted.<role> →
+  // cortex.paperclip.status.accepted.<role> (sub-namespace under the
+  // documented cortex.paperclip.status.> umbrella).
+  publishEnvelope(
+    `cortex.paperclip.status.accepted.${role}`,
+    `cortex.paperclip.status.accepted.${role}.v1`,
+    {
+      runId: data.runId,
+      issueId: data.issueId,
+      role,
+      status: "accepted",
+      ts: new Date().toISOString(),
+    },
+    { subject: data.issueId },
+  );
   publishPaperclipStatus(role, {
     runId: data.runId,
     issueId: data.issueId,
@@ -1025,8 +1094,25 @@ async function handleOpenclawReceived(data) {
 
   const approvalStage = stage || parsed.stage || "unknown";
   clearApprovalTimer(parsed.approval_id);
-  publish(`cortex.approval.${approvalStage}`, { ...parsed, ts: new Date().toISOString() });
-  process.stdout.write(`[openclaw.received] re-emitted cortex.approval.${approvalStage}\n`);
+  // Subject migrated: cortex.approval.<stage> →
+  // cortex.signals.<runId>.approval (V12 design — human-in-the-loop
+  // resume signals against an in-flight run).
+  const runId = parsed.run_id || parsed.runId || parsed.approval_id || "unknown";
+  publishEnvelope(
+    `cortex.signals.${runId}.approval`,
+    `cortex.signal.approval.${runId}.v1`,
+    {
+      runId,
+      name: "approval",
+      stage: approvalStage,
+      actor: parsed.actor || parsed.approver || "openclaw",
+      decision: parsed.decision || approvalStage,
+      rationale: parsed.reason || parsed.rationale || null,
+      ts: new Date().toISOString(),
+    },
+    { subject: runId },
+  );
+  process.stdout.write(`[openclaw.received] re-emitted cortex.signals.${runId}.approval (stage=${approvalStage})\n`);
 }
 
 // ---------------------------------------------------------------------------
@@ -1200,12 +1286,19 @@ let heartbeatTimer = null;
 function startHeartbeat() {
   heartbeatTimer = setInterval(() => {
     try {
-      publish("cortex.health.consumer", {
-        ts: new Date().toISOString(),
-        circuit: cb.state,
-        pending_approvals: pendingApprovals.size,
-        uptime_s: Math.floor(process.uptime()),
-      });
+      // Subject: cortex.health.<service> — documented in docs/NATS-CONTRACT.md
+      // as a per-service heartbeat namespace.
+      publishEnvelope(
+        "cortex.health.consumer",
+        "cortex.health.consumer.heartbeat.v1",
+        {
+          service: "cortex-consumer",
+          ts: new Date().toISOString(),
+          circuit: cb.state,
+          pending_approvals: pendingApprovals.size,
+          uptime_s: Math.floor(process.uptime()),
+        },
+      );
     } catch (e) {
       process.stderr.write(`[heartbeat] failed: ${e.message}\n`);
     }

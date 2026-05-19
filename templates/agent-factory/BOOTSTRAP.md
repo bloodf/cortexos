@@ -39,8 +39,8 @@ All AI calls go through 9Router. Never call provider APIs directly.
 Endpoints are mirrored from `.shared/endpoints.md` (canonical). Update there first if they change.
 
 ```text
-Endpoint:      http://127.0.0.1:20128/v1/chat/completions
-Models list:   http://127.0.0.1:20128/v1/models
+Endpoint:      http://127.0.0.1:11434/v1/chat/completions
+Models list:   http://127.0.0.1:11434/v1/models
 Default model: 9router/cx/gpt-5.5
 Fast model:    9router/cx/gpt-5.5 (with max_tokens reduced)
 Review model:  {review_model} (for antagonist cross-reviews)
