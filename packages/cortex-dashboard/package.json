@@ -16,8 +16,8 @@
     "test:e2e:list": "playwright test --list"
   },
   "dependencies": {
-    "@cortexos/audit": "workspace:*",
-    "@cortexos/events": "workspace:*",
+    "@cortexos/audit": "file:../cortex-audit",
+    "@cortexos/events": "file:../cortex-events",
     "@ai-sdk/openai-compatible": "^2.0.47",
     "@ai-sdk/react": "^3.0.185",
     "@base-ui/react": "^1.4.1",
