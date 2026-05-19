@@ -1,54 +1,58 @@
-import { Pool } from "pg";
+import * as pg from "pg";
+import type { Pool as PoolType, QueryResult } from "pg";
 
-let pool: Pool | null = null;
+let cachedPool: PoolType | null = null;
 
-function getPool(): Pool {
-	if (!pool) {
+type PgModuleShape = {
+	Pool?: new (...args: any[]) => PoolType;
+	default?: { Pool?: new (...args: any[]) => PoolType };
+};
+
+function getPoolCtor() {
+	const mod = pg as unknown as PgModuleShape;
+	const ctor = mod.Pool ?? mod.default?.Pool;
+	if (!ctor) {
+		throw new TypeError("pg.Pool constructor unavailable");
+	}
+	return ctor;
+}
+
+export function getPool() {
+	if (!cachedPool) {
 		if (!process.env.DB_PASSWORD) {
 			throw new Error("DB_PASSWORD environment variable is required");
 		}
-		pool = new Pool({
+		const PoolCtor = getPoolCtor();
+		cachedPool = new PoolCtor({
 			host: process.env.DB_HOST || "127.0.0.1",
 			port: parseInt(process.env.DB_PORT || "5432", 10),
 			database: process.env.DB_NAME || "cortex_dashboard",
 			user: process.env.DB_USER || "dashboard",
 			password: process.env.DB_PASSWORD,
-		});
-		pool.on("error", (error) => {
-			console.error("[postgres-pool] unexpected idle client error", error);
+			max: 20,
+			idleTimeoutMillis: 30000,
+			connectionTimeoutMillis: 5000,
 		});
 	}
-	return pool;
+	return cachedPool;
 }
 
-export async function query<T = unknown>(
-	text: string,
-	params?: unknown[],
-): Promise<T[]> {
-	const client = await getPool().connect();
-	try {
-		const result = await client.query(text, params);
-		return result.rows as T[];
-	} finally {
-		client.release();
-	}
+export const pool = getPool;
+
+export async function query<T = Record<string, unknown>>(text: string, params?: unknown[]): Promise<T[]> {
+	const result = await getPool().query(text, params as any[] | undefined);
+	return result.rows as T[];
 }
 
-export async function queryOne<T = unknown>(
-	text: string,
-	params?: unknown[],
-): Promise<T | null> {
+export async function queryResult(text: string, params?: unknown[]): Promise<QueryResult> {
+	return getPool().query(text, params as any[] | undefined);
+}
+
+export async function queryOne<T = Record<string, unknown>>(text: string, params?: unknown[]): Promise<T | null> {
 	const rows = await query<T>(text, params);
 	return rows[0] ?? null;
 }
 
 export async function execute(text: string, params?: unknown[]): Promise<void> {
-	const client = await getPool().connect();
-	try {
-		await client.query(text, params);
-	} finally {
-		client.release();
-	}
+	await queryResult(text, params);
 }
-
-export { getPool as pool };
