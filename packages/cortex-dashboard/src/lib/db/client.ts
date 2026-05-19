@@ -4,8 +4,8 @@ import type { Pool as PoolType, QueryResult } from "pg";
 let cachedPool: PoolType | null = null;
 
 type PgModuleShape = {
-	Pool?: new (...args: any[]) => PoolType;
-	default?: { Pool?: new (...args: any[]) => PoolType };
+	Pool?: new (...args: unknown[]) => PoolType;
+	default?: { Pool?: new (...args: unknown[]) => PoolType };
 };
 
 function getPoolCtor() {
@@ -40,12 +40,12 @@ export function getPool() {
 export const pool = getPool;
 
 export async function query<T = Record<string, unknown>>(text: string, params?: unknown[]): Promise<T[]> {
-	const result = await getPool().query(text, params as any[] | undefined);
+	const result = await getPool().query(text, params as unknown[] | undefined);
 	return result.rows as T[];
 }
 
 export async function queryResult(text: string, params?: unknown[]): Promise<QueryResult> {
-	return getPool().query(text, params as any[] | undefined);
+	return getPool().query(text, params as unknown[] | undefined);
 }
 
 export async function queryOne<T = Record<string, unknown>>(text: string, params?: unknown[]): Promise<T | null> {
