@@ -41,10 +41,14 @@ scrape_configs:
       - targets: ["host.docker.internal:9100"]
 
   - job_name: cadvisor
+    # cAdvisor is bound to 8081 on the host (Caddy owns 8080).
+    # See prompts/tools/24-cadvisor.md.
+    metrics_path: /cadvisor/metrics
     static_configs:
-      - targets: ["host.docker.internal:8080"]
+      - targets: ["host.docker.internal:8081"]
 
   - job_name: prometheus
+    metrics_path: /prometheus/metrics
     static_configs:
       - targets: ["localhost:9090"]
 EOF
@@ -65,6 +69,13 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.retention.time=30d'
+      # Sub-path mount: Caddy serves Prometheus at /prometheus/ and
+      # does NOT strip the prefix, so Prometheus must own the prefix
+      # and emit absolute URLs that include it.
+      - '--web.external-url=https://${CORTEX_DOMAIN}/prometheus/'
+      - '--web.route-prefix=/prometheus'
+    environment:
+      CORTEX_DOMAIN: ${CORTEX_DOMAIN}
     ports:
       - "127.0.0.1:9090:9090"
     extra_hosts:
@@ -75,22 +86,35 @@ volumes:
 EOF
 ```
 
+Export `CORTEX_DOMAIN` (your MagicDNS FQDN from `13-caddy.md`) before
+bringing the stack up — `docker compose` reads it at compose-time and
+bakes it into the Prometheus `--web.external-url` flag:
+
 ```bash
+: "${CORTEX_DOMAIN:?export CORTEX_DOMAIN to your Tailscale MagicDNS FQDN}"
 cd /opt/cortexos/stacks/monitoring
 docker compose up -d prometheus
 ```
 
+> Caddy forwards the `/prometheus` prefix to this backend without
+> stripping it. Do NOT change `--web.route-prefix` here without
+> updating `prompts/tools/13-caddy.md` to match.
+
 ## Verify
 
 ```bash
-curl -s http://localhost:9090/-/healthy
+# Local smoke probe (no Tailscale required):
+curl -s http://localhost:9090/prometheus/-/healthy
+
+# Through the tailnet:
+curl -sS "https://${CORTEX_DOMAIN}/prometheus/-/healthy"
 ```
 
 Expected: `Prometheus Server is Healthy.`
 
 ## CHECKPOINT 2
 
-Operator: confirm Prometheus is healthy and the UI is accessible at `http://localhost:9090` (or via Caddy proxy). Type "confirmed" to proceed.
+Operator: confirm Prometheus is healthy at `https://${CORTEX_DOMAIN}/prometheus/` with no broken assets and the `cadvisor` + `node` targets are `UP`. Type "confirmed" to proceed.
 
 ## Next
 

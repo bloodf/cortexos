@@ -83,17 +83,26 @@ cd /opt/cortexos/stacks/monitoring
 docker compose up -d loki
 ```
 
+> Caddy forwards `/loki/*` to this backend and **strips** the prefix
+> (Loki's HTTP API is path-agnostic). Do NOT add a `path_prefix` /
+> `http_path_prefix` to Loki's config without also removing
+> `uri strip_prefix /loki` in `prompts/tools/13-caddy.md`.
+
 ## Verify
 
 ```bash
+# Local smoke probe (no Tailscale required):
 curl -s http://localhost:3100/ready
+
+# Through the tailnet (Caddy strips the /loki prefix):
+curl -sS "https://${CORTEX_DOMAIN}/loki/ready"
 ```
 
 Expected: `ready`.
 
 ## CHECKPOINT 2
 
-Operator: confirm Loki returns `ready`. Type "confirmed" to proceed.
+Operator: confirm Loki returns `ready` on both probes. Type "confirmed" to proceed.
 
 ## Next
 
