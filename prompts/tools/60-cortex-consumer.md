@@ -46,16 +46,21 @@ nano /opt/cortexos/stacks/cortex-consumer/config.json
 # Verify: nats_url, openclaw_url, agentgateway_url fields
 ```
 
-Write env:
+Write env (canonical path `/opt/cortexos/.secrets/consumer.env` — matches
+the `EnvironmentFile=` directive in the systemd unit and the path other
+spokes `cat >>` into):
 
 ```bash
-sudo tee /opt/cortexos/.secrets/cortex-consumer.env <<EOF
+sudo tee /opt/cortexos/.secrets/consumer.env <<EOF
 NATS_URL=nats://127.0.0.1:4222
-OPENCLAW_BASE=http://127.0.0.1:18789
-AGENTGATEWAY_BASE=http://127.0.0.1:18800
+OPENCLAW_BASE_URL=http://127.0.0.1:18789
+AGENTGATEWAY_BASE_URL=http://127.0.0.1:18800
 EOF
-sudo chmod 600 /opt/cortexos/.secrets/cortex-consumer.env
+sudo chmod 600 /opt/cortexos/.secrets/consumer.env
 ```
+
+`consumer.js` reads `OPENCLAW_BASE_URL` (not `OPENCLAW_BASE`) at startup;
+the older name is a no-op.
 
 Substitute placeholders in the installed unit (template ships with `{VPS_USER}` + `{VPS_HOME}` — must be replaced before enable):
 

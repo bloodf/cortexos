@@ -55,6 +55,11 @@ const SPOKE_TO_SERVICES = Object.freeze({
   "40-openclaw":            ["openclaw"],
   "50-agentgateway":        ["agentgateway"],
   "55-langfuse":            ["langfuse"],
+  "45a-cortex-graph":       ["cortex-graph"],
+  "47a-cortex-sandbox":     ["cortex-sandbox-runner"],
+  "60-cortex-consumer":     ["cortex-consumer"],
+  // 61-smoke-tests: cron job, no catalog row.
+  "61-smoke-tests":         [],
   "70-dashboard":           ["cortex-dashboard"],
 });
 
@@ -222,6 +227,19 @@ async function applyToDatabase(enabledSlugs) {
         [disabled],
       );
     }
+
+    // Refresh open_url paths via the path-based URL function shipped by
+    // migration 011. Older DBs may not have it yet — degrade gracefully.
+    try {
+      await client.query("SELECT cortex_set_service_urls($1)", [
+        process.env.CORTEX_DOMAIN || "",
+      ]);
+    } catch (err) {
+      console.log(
+        `  cortex_set_service_urls skipped: ${err.message || err}`,
+      );
+    }
+
     return { enabled, disabled };
   } finally {
     await client.end();

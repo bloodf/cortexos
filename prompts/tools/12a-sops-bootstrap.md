@@ -1,9 +1,15 @@
 # 12a — SOPS + age bootstrap (operator-laptop model)
 
-**Goal**: hold the operator age private key on the laptop only, register
-its public recipient in `.sops.yaml`, decrypt secrets locally during
-bootstrap, and ship plaintext `.env` files to the VPS at
-`/opt/cortexos/.secrets/`. **No private age key ever lives on the VPS.**
+**Goal**: hold the canonical operator age private key on the laptop
+(`~/.config/sops/age/keys.txt`), register its public recipient in
+`.sops.yaml`, and use it to decrypt secrets during bootstrap. The laptop
+ships plaintext `.env` files to the VPS at `/opt/cortexos/.secrets/` and
+also pushes a copy of the age private key to the VPS at
+`/opt/cortexos/.age/host.key` (mode `0600`, owner `$CORTEX_USER`) so
+spoke prompts that invoke `scripts/secrets-decrypt.sh` on the host can
+re-decrypt deterministically. **The age private key is never in Git.**
+The canonical copy stays on the laptop; the VPS copy is treated as a
+deployment artifact and may be rotated/wiped at any time.
 
 **Run order**: invoked as Step 1 of `prompts/00-bootstrap.md`. The laptop
 must complete this prompt before `bootstrap_push_secrets` runs.
@@ -63,8 +69,11 @@ creation_rules:
 Commit `.sops.yaml`. Multiple operators authoring on different laptops
 each add their own pubkey.
 
-The VPS does **not** appear in this list. The host never decrypts; the
-laptop decrypts and ships plaintext to the host.
+The VPS does **not** appear in `.sops.yaml` as a distinct recipient —
+the VPS reuses the operator age key pushed by `bootstrap_push_secrets`
+to `/opt/cortexos/.age/host.key`. The Git side of the recipient set
+stays operator-laptop + recovery-custodian only; the host key is a
+runtime artifact, not a Git-tracked identity.
 
 ## 4. Re-encrypt every secrets file for the new recipient set
 
@@ -114,6 +123,14 @@ The laptop temp dir is wiped on exit. Plaintext lives only in
 `/opt/cortexos/.secrets/<name>.env` on the VPS, mode `0600`, owned by
 `$CORTEX_USER`.
 
+`bootstrap_push_secrets` additionally `scp`s
+`~/.config/sops/age/keys.txt` to `/opt/cortexos/.age/host.key` on the
+VPS (mode `0600`, owned by `$CORTEX_USER`) so downstream spokes that
+re-run `scripts/secrets-decrypt.sh` on the host (e.g. rotation,
+emergency re-decrypt) succeed without round-tripping through the
+laptop. The host copy is never committed to Git and can be wiped/rotated
+independently of the laptop key.
+
 ## 7. CHECKPOINT
 
 ```bash
@@ -122,7 +139,15 @@ ssh "$CORTEX_USER@$CORTEX_HOST" 'stat -c "%a %U %n" /opt/cortexos/.secrets/*.env
 
 Every line must read `600 <CORTEX_USER> /opt/cortexos/.secrets/<name>.env`.
 Expected files: `paperclip.env`, `dashboard.env`, `consumer.env`,
-`graph.env`, `langfuse.env`, `nats.env`.
+`graph.env`, `langfuse.env`, `nats.env`, `sandbox.env`, `agentgateway.env`.
+
+Also verify the host age key was pushed:
+
+```bash
+ssh "$CORTEX_USER@$CORTEX_HOST" 'stat -c "%a %U %n" /opt/cortexos/.age/host.key'
+```
+
+Must read `600 <CORTEX_USER> /opt/cortexos/.age/host.key`.
 
 ---
 

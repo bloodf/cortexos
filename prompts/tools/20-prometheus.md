@@ -114,7 +114,13 @@ Expected: `Prometheus Server is Healthy.`
 
 ## CHECKPOINT 2
 
-Operator: confirm Prometheus is healthy at `https://${CORTEX_DOMAIN}/prometheus/` with no broken assets and the `cadvisor` + `node` targets are `UP`. Type "confirmed" to proceed.
+Operator: confirm Prometheus is healthy at `https://${CORTEX_DOMAIN}/prometheus/` with no broken assets. Type "confirmed" to proceed.
+
+> Per [prompts/CHECKPOINT-PATTERN.md](../CHECKPOINT-PATTERN.md), the
+> `cadvisor` and `node` target-UP checks are verified by `24-cadvisor.md`
+> and `25-node-exporter.md` (each spoke proves its own Prometheus target)
+> and again in `99-final-validation.md`. Do not block this checkpoint on
+> exporters that have not been installed yet.
 
 ## Next
 

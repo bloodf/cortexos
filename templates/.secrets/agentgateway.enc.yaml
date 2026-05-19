@@ -1,0 +1,11 @@
+# SOPS-encrypted secrets for cortex-agentgateway.
+# Before commit: `sops -e -i templates/.secrets/agentgateway.enc.yaml`
+# After commit: only encrypted form should land in git.
+# This file is committed in plaintext as a TEMPLATE — operators
+# encrypt with their real age key set.
+# TODO(operator): replace placeholders and run `sops -e -i` before committing real values.
+AGENTGATEWAY_BEARER_TOKEN: "<replace-me>"
+AGENTGATEWAY_PORT: "18800"
+AGENTGATEWAY_DATABASE_URL: "postgres://cortex:<replace-me>@127.0.0.1:5432/cortex"
+AGENTGATEWAY_NATS_URL: "nats://127.0.0.1:4222"
+CONFIRMATION_TOKEN_SECRET: "<replace-me>"

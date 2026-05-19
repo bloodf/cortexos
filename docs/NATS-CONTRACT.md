@@ -164,6 +164,40 @@ until the approval workflow lands.
 
 - **Kill switch**: bridge env `BRIDGE_ALERTS_ENABLED=0` skips the subscription.
 
+## AgentGateway audit
+
+> Reserved namespace for `stacks/cortex-agentgateway` tool-invoke audit
+> emission. Same `{ data: <CloudEvent>, sig }` HMAC-wrapped CloudEvents
+> envelope as every other CortexOS subject. JetStream dedup via
+> `Nats-Msg-Id = <CloudEvent.id>`.
+
+### `cortex.audit.agentgateway.tool-invoke.v1`
+
+- **Direction**: cortex-agentgateway → NATS (durable consumers TBD).
+- **Producer**: `stacks/cortex-agentgateway/index.js` (`POST /tool/invoke`
+  handler), publishing on every accept/deny decision.
+- **Schema URL**: `https://cortexos/schemas/cortex-audit-agentgateway-v1.json`
+  (placeholder; schema file lands in a follow-up — consumers should treat
+  unknown extra fields as forward-compatible until then).
+- **`data` shape**:
+
+  ```json
+  {
+    "runId": "string",
+    "agentId": "string",
+    "role": "string",
+    "tool": "string",
+    "toolClass": "safe|privileged|destructive",
+    "args": { "...": "tool-specific JSON or null" },
+    "result": { "...": "executor result or null" },
+    "error": "string | null",
+    "occurredAt": "RFC3339"
+  }
+  ```
+
+- **Audit chain**: same event is appended to the Postgres `audit_log` table
+  via `@cortexos/audit.append()` for hash-chain anchoring.
+
 ## Envelope (v2)
 
 Starting with V2, **every** NATS publish, inbound webhook payload, and audit row body
