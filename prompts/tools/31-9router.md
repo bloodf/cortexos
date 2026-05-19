@@ -7,7 +7,8 @@ Install 9Router, the OpenAI-compatible model gateway that proxies AI provider AP
 ## Prerequisites
 
 - `30-nats.md` completed (9Router publishes metrics to NATS).
-- AI provider API keys available (at least one: OpenAI, Anthropic, or other).
+- `13-caddy.md` completed (operator reaches the 9Router WebUI through the Tailscale-served reverse proxy).
+- AI provider API keys available (at least one: OpenAI, Anthropic, or other). These are entered in the 9Router WebUI later — NOT pasted into prompts or env files.
 
 ## Distro selection
 
@@ -34,12 +35,14 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 - [ ] CHECKPOINT 1 confirmed
 - [ ] Install
 - [ ] Configure
+- [ ] Start service
+- [ ] Configure providers in 9Router WebUI (operator pastes API keys into UI, not into prompts)
 - [ ] Verify
 - [ ] CHECKPOINT 2 confirmed
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** You have at least one AI provider API key ready?
+**STOP — operator question:** You have at least one AI provider API key in hand AND you understand that you will paste it into the 9Router WebUI (not into any prompt or env file)?
 
 Type `confirmed` to proceed.
 
@@ -61,21 +64,20 @@ Snapshot upstream install docs:
 
 ## Configure
 
-Write `/opt/cortexos/.secrets/9router.env`:
+Write `/opt/cortexos/.secrets/9router.env` with the master admin key only — provider API keys (OpenAI, Anthropic, etc.) are NOT written here; they live in the 9Router WebUI's encrypted store:
 
 ```bash
+NINEROUTER_API_KEY="$(openssl rand -hex 32)"
 sudo tee /opt/cortexos/.secrets/9router.env <<EOF
 NINEROUTER_BASE_URL=http://127.0.0.1:11434
 NINEROUTER_PORT=11434
-NINEROUTER_API_KEY={9ROUTER_API_KEY}
+NINEROUTER_API_KEY=${NINEROUTER_API_KEY}
 NINEROUTER_NATS_URL=nats://127.0.0.1:4222
-OPENAI_API_KEY={OPENAI_API_KEY}
-ANTHROPIC_API_KEY={ANTHROPIC_API_KEY}
 EOF
 sudo chmod 600 /opt/cortexos/.secrets/9router.env
 ```
 
-Replace each `{placeholder}` with the actual value. Add or remove provider keys as needed.
+`NINEROUTER_API_KEY` is the master bearer the rest of CortexOS uses to call `/v1/*` AND the admin token for the WebUI session. Record it somewhere you can paste it back later.
 
 > **Canonical env contract.** All 9Router env vars use the `NINEROUTER_*` prefix (no underscore split). Canonical port is `11434`. Every downstream spoke that calls AI — dashboard, OpenClaw, OpenViking, LEANN, AgentGateway, consumer — receives `NINEROUTER_BASE_URL=http://127.0.0.1:11434` and `NINEROUTER_API_KEY={9ROUTER_API_KEY}` propagated from this spoke's env. Each spoke's own `.secrets/*.env` writes a copy; rotation of the 9Router master key requires re-running the propagation step.
 
@@ -97,6 +99,30 @@ systemctl is-enabled 9router   # → enabled
 systemctl show 9router -p WantedBy   # → multi-user.target
 ```
 
+## Configure providers in 9Router WebUI
+
+Provider API keys (OpenAI, Anthropic, Mistral, Groq, etc.) are entered in the 9Router WebUI — never pasted into prompts, shell history, or `.env` files.
+
+Print the URL the operator should open:
+
+```bash
+: "${CORTEX_DOMAIN:?CORTEX_DOMAIN unset — re-run prompts/00-bootstrap.md so the Tailscale FQDN is exported}"
+echo
+echo "Open 9Router WebUI:    https://${CORTEX_DOMAIN}/9router/"
+echo "Master admin token:    (NINEROUTER_API_KEY from /opt/cortexos/.secrets/9router.env)"
+echo
+```
+
+Operator steps (in the browser, on the laptop):
+
+1. Open the URL above.
+2. Sign in with the master admin token (`NINEROUTER_API_KEY`).
+3. Add each provider key in the WebUI's **Providers** / **API Keys** view (OpenAI, Anthropic, Mistral, Groq, …).
+4. Save. 9Router persists the keys to its own encrypted store on the VPS; nothing is written back into the prompts.
+5. Confirm the **Models** view lists at least one model from a provider you just added — the gateway is live.
+
+Do **not** continue to Verify until the operator has added at least one provider key in the WebUI. Step `Verify` proves the keys took effect.
+
 ## Verify
 
 ```bash
@@ -108,11 +134,11 @@ curl -fsS -H "Authorization: Bearer $NINEROUTER_API_KEY" \
   | jq '.data[].id' | head -5
 ```
 
-Expected: model IDs listed (e.g. `gpt-4o`, `claude-sonnet-4-5`). HTTP 401 here means master-key wiring is broken — fix before continuing.
+Expected: model IDs listed (e.g. `gpt-4o`, `claude-sonnet-4-5`). An **empty** `data` array means the operator did not add provider keys in the WebUI yet — go back, add them, re-run. HTTP 401 means master-key wiring is broken — fix before continuing.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** `curl -H "Authorization: Bearer $NINEROUTER_API_KEY" $NINEROUTER_BASE_URL/v1/models` returns a model list (HTTP 200, non-empty `data`). Record the endpoint a...?
+**STOP — operator question:** You added at least one provider's API key inside the 9Router WebUI at `https://${CORTEX_DOMAIN}/9router/`, AND `curl -H "Authorization: Bearer $NINEROUTER_API_KEY" $NINEROUTER_BASE_URL/v1/models` returns HTTP 200 with a non-empty `data` array?
 
 Type `confirmed` to proceed.
 
