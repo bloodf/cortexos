@@ -32,12 +32,13 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN corepack enable && corepack prepare pnpm@10 --activate
 COPY --from=deps /repo/package.json /repo/pnpm-workspace.yaml ./
 COPY --from=deps /repo/pnpm-lock.yaml* ./
-COPY packages ./packages
-# pnpm workspace bins live under per-package node_modules/.bin (e.g.
-# packages/cortex-dashboard/node_modules/.bin/next). Copy deps-stage
-# node_modules AFTER local sources so the per-package symlinks survive.
+# pnpm workspaces resolve transitive deps via per-package node_modules
+# (e.g. packages/cortex-events/node_modules/ajv). Pull the full packages
+# tree from the deps stage so every workspace dep + bin symlink is
+# present, then layer local sources on top.
 COPY --from=deps /repo/node_modules ./node_modules
-COPY --from=deps /repo/packages/cortex-dashboard/node_modules ./packages/cortex-dashboard/node_modules
+COPY --from=deps /repo/packages ./packages
+COPY packages ./packages
 
 WORKDIR /repo/packages/cortex-dashboard
 
