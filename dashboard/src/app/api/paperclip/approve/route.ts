@@ -7,7 +7,6 @@
  */
 import { NextResponse } from "next/server";
 import { createHmac } from "node:crypto";
-// @ts-expect-error — workspace JS package
 import { envelope as buildCloudEvent, validate as validateCloudEvent } from "@cortexos/events";
 import { requireAdmin } from "@/lib/auth";
 import { query } from "@/lib/db/client";

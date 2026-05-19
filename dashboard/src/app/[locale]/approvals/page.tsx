@@ -6,7 +6,7 @@
  * form that calls the `decideApproval` server action.
  */
 import { EmptyState } from "@/components/ui/empty-state";
-import { decideApproval, loadPendingApprovals } from "./actions";
+import { decideApprovalForm, loadPendingApprovals } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -83,7 +83,7 @@ export default async function ApprovalsPage() {
 									)}
 								</div>
 								<div className="flex gap-2">
-									<form action={decideApproval}>
+									<form action={decideApprovalForm}>
 										<input
 											type="hidden"
 											name="runId"
@@ -106,7 +106,7 @@ export default async function ApprovalsPage() {
 											Approve
 										</button>
 									</form>
-									<form action={decideApproval}>
+									<form action={decideApprovalForm}>
 										<input
 											type="hidden"
 											name="runId"

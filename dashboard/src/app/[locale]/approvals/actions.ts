@@ -10,7 +10,6 @@
 
 import { revalidatePath } from "next/cache";
 import { createHmac } from "node:crypto";
-// @ts-expect-error — workspace JS package
 import { envelope as buildCloudEvent, validate as validateCloudEvent } from "@cortexos/events";
 import { query } from "@/lib/db/client";
 import { getCurrentSession } from "@/lib/auth";
@@ -207,4 +206,13 @@ export async function decideApproval(
 
 	revalidatePath("/[locale]/approvals", "page");
 	return { ok: true, subject };
+}
+
+/**
+ * Void-returning wrapper for use as a `<form action>` prop. Next.js form
+ * actions must return `void | Promise<void>`; this discards the structured
+ * result and only triggers revalidation.
+ */
+export async function decideApprovalForm(formData: FormData): Promise<void> {
+	await decideApproval(formData);
 }
