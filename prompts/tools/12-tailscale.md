@@ -7,7 +7,9 @@ Join the VPS to the operator's Tailscale tailnet so all inter-service traffic ca
 ## Prerequisites
 
 - `11-docker.md` completed.
-- A Tailscale auth key from <https://login.tailscale.com/admin/settings/keys> (one-time, reusable, or ephemeral — your choice).
+- A Tailscale account (free tier is fine). No pre-generated auth key required —
+  this prompt uses the interactive browser-login flow (`tailscale up`) so the
+  operator authenticates on first run.
 
 ## Distro selection
 
@@ -19,13 +21,9 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 
 ## CHECKPOINT 1
 
-Operator: confirm you have a valid Tailscale auth key ready. Set it in your shell:
-
-```bash
-export TAILSCALE_AUTHKEY="tskey-auth-<your-key>"
-```
-
-Type "confirmed" to proceed.
+Operator: confirm you have access to your Tailscale account in a browser.
+No token needs to be pre-set — the install uses Tailscale's interactive
+login flow. Type "confirmed" to proceed.
 
 ## Install
 
@@ -42,15 +40,18 @@ dpkg -s tailscale >/dev/null
 
 ## Configure
 
+Run `tailscale up` without `--authkey`. Tailscale prints a one-time URL;
+open it in any browser, sign in, and approve the node.
+
 ```bash
 sudo tailscale up \
-  --authkey="${TAILSCALE_AUTHKEY}" \
-  --hostname="{VPS_HOSTNAME}" \
+  --hostname="${CORTEX_HOSTNAME:-cortex}" \
   --advertise-tags=tag:cortex \
   --ssh
 ```
 
-Replace `{VPS_HOSTNAME}` with the short hostname for this VPS (e.g. `cortex`).
+`${CORTEX_HOSTNAME}` comes from the `SETUP.md` questionnaire (defaults to
+`cortex`).
 
 Enable IP forwarding (required if you plan to use subnet routing):
 
