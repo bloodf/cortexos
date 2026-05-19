@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
  * Compiled migration runner. Self-contained — does not import from src/.
- * Preferred by deploy.sh over the TS variant.
- * Logic mirrors src/lib/db/migrate.ts.
+ * Invoked by the dashboard container entrypoint (`docker-entrypoint.sh`)
+ * before the Next.js server boots; mirrors `src/lib/db/migrate.ts`.
  */
 const { readdirSync, readFileSync } = require("fs");
 const { join } = require("path");

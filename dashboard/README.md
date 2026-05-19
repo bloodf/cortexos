@@ -20,23 +20,18 @@ npm run build
 npm start
 ```
 
-For a fresh VPS:
+For a fresh VPS (run on the VPS, dispatched by `scripts/bootstrap.sh`
+from the operator laptop, or invoked directly):
 
 ```bash
-# On the VPS, as the SSH user with sudo
-./scripts/provision-vps.sh             # node 24 + postgres + role/DB + secrets
-
-# From your workstation
-export CORTEX_HOSTNAME=<vps-host>
-export CORTEX_USER=<ssh-user>
-./deploy.sh
+./scripts/provision-vps.sh                 # docker engine, postgres, role+DB, secrets dir, compose up
+./scripts/provision-vps.sh --with-caddy    # also install Caddy
 ```
 
-Docker Compose:
+Subsequent rebuilds happen entirely on the VPS via Docker Compose:
 
 ```bash
-export DASHBOARD_DB_PASSWORD='<strong-password>'
-export CORTEX_MASTER_KEY='<32-byte-or-longer-secret>'
+cd /opt/cortexos/stacks/cortex-dashboard
 docker compose up -d --build
 ```
 
@@ -245,25 +240,32 @@ Docker page renders container action buttons per row: start, stop, restart.
 
 `docker-compose.yml` runs PostgreSQL 17 Alpine and dashboard on port `3080`. Dashboard container mounts host proc/sys data, Docker socket, hostname, and OpenClaw base.
 
-`deploy.sh` builds/deploys to VPS. Set expected environment first:
+Production deploy runs **on the VPS** via Docker Compose. The image is
+built from `dashboard/Dockerfile` against the materialized repo tree at
+`/opt/cortexos` — no laptop-side build, no rsync, no systemd unit. The
+operator laptop dispatches via `scripts/bootstrap.sh`.
 
 ```bash
-export CORTEX_IP='<vps-ip>'
-export CORTEX_USER='<ssh-user>'
-export DASHBOARD_DB_PASSWORD='<strong-password>'
-export CORTEX_MASTER_KEY='<secret>'
-./deploy.sh
+# On the VPS
+cd /opt/cortexos/stacks/cortex-dashboard
+docker compose up -d --build
+docker compose logs -f cortex-dashboard
+curl -fsS http://127.0.0.1:3080/api/health
 ```
 
-Caddy example:
+Required env (loaded from `/opt/cortexos/.secrets/dashboard.env`,
+mode `0600`):
+
+- `DASHBOARD_DB_PASSWORD`
+- `CORTEX_MASTER_KEY` (≥ 32 bytes)
+
+Caddy reverse proxy (see `prompts/tools/13-caddy.md` for the full Caddyfile):
 
 ```caddy
 :80 {
   reverse_proxy localhost:3080
 }
 ```
-
-If running under systemd, point service ExecStart at `npm start` or `docker compose up` wrapper, and provide same environment variables.
 
 ## i18n
 

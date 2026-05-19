@@ -69,4 +69,4 @@ Operator: confirm the browser API responds with version JSON. Type "confirmed" t
 
 ## Next
 
-→ `prompts/tools/35a-langfuse.md`
+→ `prompts/tools/40-openclaw.md`

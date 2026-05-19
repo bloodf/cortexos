@@ -94,10 +94,6 @@ spokes:
     deps: [11-docker, 31-9router]
     optional: false
 
-  35a-langfuse:
-    deps: [14-postgresql, 11-docker]
-    optional: false      # placeholder bring-up; full operator install lives at 55-langfuse
-
   40-openclaw:
     deps: [31-9router, 32-openviking]
     optional: false
@@ -147,7 +143,7 @@ spokes:
     optional: false
 
   55-langfuse:
-    deps: [14-postgresql, 11-docker, 35a-langfuse, 50-agentgateway]
+    deps: [14-postgresql, 11-docker, 50-agentgateway]
     optional: false      # full Langfuse operator install + OpenLLMetry wiring
 
   60-cortex-consumer:
@@ -193,7 +189,6 @@ spokes:
       - 70-dashboard
       - 80-agent-factory
       - 81-projects
-      - 35a-langfuse
       - 12a-sops-bootstrap
       - 45a-cortex-graph
     optional: false

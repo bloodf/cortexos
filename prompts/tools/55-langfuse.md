@@ -3,8 +3,7 @@
 > Operator-facing install prompt. Run as the privileged operator on the
 > CortexOS host. Requires `sops`, `age`, `docker compose`, the core
 > Postgres stack (prompt `14-postgresql.md`), and the `cortex-net` Docker
-> network (created by `11-docker.md`). Supersedes the placeholder
-> `35a-langfuse.md`.
+> network (created by `11-docker.md`).
 
 ## 0. Preconditions
 
