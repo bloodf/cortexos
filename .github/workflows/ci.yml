@@ -21,9 +21,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
-          cache-dependency-path: dashboard/package-lock.json
-      - run: npm ci
+      - name: Install (regenerate lockfile for linux-x64 optional bindings)
+        run: |
+          rm -f package-lock.json
+          rm -rf node_modules
+          npm install --include=optional --no-audit --no-fund
       - run: npm run lint
       - run: npx tsc --noEmit
       - run: npm test -- --reporter=verbose
