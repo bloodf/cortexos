@@ -91,9 +91,9 @@ COPY --from=builder --chown=node:node /repo/dashboard/scripts ./scripts
 COPY --from=builder --chown=node:node /repo/dashboard/docker-entrypoint.sh ./docker-entrypoint.sh
 
 # Native deps not bundled by Next standalone (from hoisted root modules).
+# cpu-features + nan are optional native deps of ssh2; if absent ssh2
+# falls back to its pure-JS cipher, so we skip them.
 COPY --from=builder --chown=node:node /repo/node_modules/ssh2 ./node_modules/ssh2
-COPY --from=builder --chown=node:node /repo/node_modules/cpu-features ./node_modules/cpu-features
-COPY --from=builder --chown=node:node /repo/node_modules/nan ./node_modules/nan
 COPY --from=builder --chown=node:node /repo/node_modules/bcryptjs ./node_modules/bcryptjs
 
 RUN chmod +x docker-entrypoint.sh \
