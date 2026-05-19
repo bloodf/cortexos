@@ -1,8 +1,12 @@
 name: Request AI PR Reviews
 
+# Manual-trigger only per CortexOS policy: E2E GitHub workflows are never automated.
 on:
-  pull_request:
-    types: [opened, reopened, synchronize, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to request reviews on'
+        required: true
 
 permissions:
   contents: read

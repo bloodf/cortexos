@@ -2,15 +2,14 @@
 # Kept for repos that opt in via bootstrap-project.sh --include-gh-workflows.
 name: Agent Mention Router
 
+# Manual-trigger only per CortexOS policy: E2E GitHub workflows are never automated.
+# Workflow itself is DEPRECATED — canonical mention routing is NATS+Slack thread SoT.
 on:
-  issues:
-    types: [opened, edited]
-  issue_comment:
-    types: [created, edited]
-  pull_request:
-    types: [opened, edited, synchronize]
-  pull_request_review_comment:
-    types: [created, edited]
+  workflow_dispatch:
+    inputs:
+      event_target:
+        description: 'Issue or PR number to route'
+        required: true
 
 permissions:
   contents: read
