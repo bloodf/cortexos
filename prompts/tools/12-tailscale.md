@@ -76,4 +76,4 @@ Operator: confirm the VPS appears in your Tailscale admin console as online and 
 
 ## Next
 
-→ `prompts/tools/13-caddy.md`
+→ `prompts/tools/12a-sops-bootstrap.md`

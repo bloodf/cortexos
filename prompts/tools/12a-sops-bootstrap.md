@@ -151,3 +151,7 @@ ssh "$CORTEX_USER@$CORTEX_HOST" 'sudo rm -rf /opt/cortexos/.secrets'
 
 Re-run `bootstrap_push_secrets` to repopulate. Secrets in Git are
 unchanged.
+
+## Next
+
+→ `prompts/tools/13-caddy.md`

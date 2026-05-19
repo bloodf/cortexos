@@ -3,8 +3,8 @@
 > Operator-facing install prompt. Run as the privileged operator on the
 > CortexOS host. Requires `sops`, `age`, `docker compose`, the core
 > Postgres stack (prompt `14-postgresql.md`), and the `cortex-net` Docker
-> network (created by `11-docker.md`). Supersedes `35-opik.md` and the
-> placeholder `35a-langfuse.md`.
+> network (created by `11-docker.md`). Supersedes the placeholder
+> `35a-langfuse.md`.
 
 ## 0. Preconditions
 
@@ -167,3 +167,7 @@ docker compose down
 - `docs/OBSERVABILITY-LLM.md`
 - `packages/cortex-telemetry/README.md`
 - `templates/.secrets/langfuse.enc.yaml`
+
+## Next
+
+→ `prompts/tools/60-cortex-consumer.md`

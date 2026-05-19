@@ -80,4 +80,4 @@ operator gateway auth token). Re-run after every fresh clone.
 
 ## Next
 
-→ `prompts/tools/46-openclaw-codex-watchdog.md`
+→ `prompts/tools/45a-cortex-graph.md`
