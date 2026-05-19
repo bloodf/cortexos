@@ -85,6 +85,10 @@ Write `/etc/caddy/Caddyfile`:
 }
 
 :8080 {
+  handle /healthz {
+    respond 200
+  }
+
   # Dashboard at root
   handle /api/* {
     reverse_proxy localhost:3080
@@ -132,6 +136,16 @@ Write `/etc/caddy/Caddyfile`:
     reverse_proxy localhost:8222
   }
 
+  # 9Router WebUI and OpenAI-compatible API — Caddy strips /9router so the
+  # upstream sees its native root paths.
+  handle_path /9router {
+    redir /9router/ permanent
+  }
+  handle /9router/* {
+    uri strip_prefix /9router
+    reverse_proxy localhost:11434
+  }
+
   # Langfuse — Langfuse v3 does not natively support a sub-path
   # (no BASE_PATH / basePath env). NEXTAUTH_URL is set to the full
   # /langfuse URL and links are rewritten where possible, but some
@@ -159,7 +173,7 @@ Reload:
 ```bash
 sudo systemctl enable caddy
 sudo systemctl restart caddy
-curl -sS http://127.0.0.1:8080/ -o /dev/null -w "caddy: %{http_code}\n"
+curl -fsS http://127.0.0.1:8080/healthz -o /dev/null -w "caddy-healthz: %{http_code}\n"
 ```
 
 ## Publish over Tailscale (HTTPS, auto cert)

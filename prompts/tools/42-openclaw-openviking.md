@@ -2,12 +2,13 @@
 
 ## Purpose
 
-Install the `@openclaw/openviking` plugin so OpenClaw routes all memory reads/writes through the OpenViking backend.
+Install the OpenViking plugin so OpenClaw routes memory reads/writes through the
+OpenViking backend.
 
 ## Prerequisites
 
 - `40-openclaw.md` completed.
-- `32-openviking.md` completed (OpenViking running at `localhost:18790`).
+- `32-openviking.md` completed (`http://127.0.0.1:18790/health` returns OK).
 
 ## Distro selection
 
@@ -19,70 +20,70 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 
 ## Sudo gate
 
-This spoke runs `sudo`. Authenticate **now** so the rest of the steps don't pause for a password mid-flow:
-
 ```bash
 sudo -v
 ```
 
-CortexOS never stores your password — only the kernel's sudo timestamp is used. Re-run if it expires.
-
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed — OpenViking `/health` returns ok
-- [ ] `npm install -g @openclaw/openviking@latest`
-- [ ] Verify `docs/external/openclaw-openviking-install.snapshot.md` exists
-- [ ] `openclaw plugins install @openclaw/openviking --config '{"url":"http://127.0.0.1:18790"}'`
-- [ ] `sudo systemctl reload openclaw`
-- [ ] Confirm `openclaw memory ping` returns success
-- [ ] CHECKPOINT 2 confirmed — memory ping reports OK
+- [ ] CHECKPOINT 1 confirmed
+- [ ] Install
+- [ ] Configure
+- [ ] Verify
+- [ ] CHECKPOINT 2 confirmed
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** Does `curl -s http://localhost:18790/health` return `{"status":"ok"}` (not `connection refused`, not HTTP 502)?
+**STOP — operator question:** OpenViking is healthy?
 
 Type `confirmed` to proceed.
 
 ## Install
 
-```bash
-npm install -g @openclaw/openviking@latest
-```
-
-Snapshot upstream README:
+Current upstream plugin package is `@openviking/openclaw-plugin`.
 
 ```bash
-# Already captured as docs/external/openclaw-openviking-install.snapshot.md by 00-preflight.md
-# Verify it exists:
-test -f docs/external/openclaw-openviking-install.snapshot.md && echo "OK" || echo "MISSING"
+npm install -g @openviking/openclaw-plugin@latest
+openclaw plugins install @openviking/openclaw-plugin
+test -f docs/external/openclaw-openviking-install.snapshot.md && echo "OK"
 ```
 
 ## Configure
 
-Register plugin with OpenClaw:
+Use the plugin's dedicated CLI rather than the older generic plugin configure surface:
 
 ```bash
-openclaw plugins install @openclaw/openviking \
-  --config '{"url": "http://127.0.0.1:18790"}'
-```
+OV_KEY=$(python3 - <<'PY'
+from pathlib import Path
+import shlex
+for line in Path('/opt/cortexos/.secrets/openviking.env').read_text().splitlines():
+    if line.startswith('OPENVIKING_ROOT_API_KEY='):
+        print(shlex.split(line.split('=',1)[1])[0])
+        break
+PY
+)
 
-Reload:
+openclaw openviking setup \
+  --base-url http://127.0.0.1:18790 \
+  --api-key "$OV_KEY" \
+  --account-id cortex \
+  --user-id cortex \
+  --json
 
-```bash
-sudo systemctl reload openclaw
+sudo systemctl restart openclaw-gateway
 ```
 
 ## Verify
 
 ```bash
-openclaw memory ping
+openclaw openviking status
 ```
 
-Expected: `OpenViking backend: OK` (or equivalent success response from the plugin).
+Expected: configured, slot active, and server reachable.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** Did `openclaw memory ping` print `OpenViking backend: OK` (or equivalent success) — not an error, not silence?
+**STOP — operator question:** `openclaw openviking status` reports the plugin configured and healthy?
 
 Type `confirmed` to proceed.
 

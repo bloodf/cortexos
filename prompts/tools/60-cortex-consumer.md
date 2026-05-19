@@ -167,7 +167,7 @@ Type `confirmed` to proceed.
 
 Verify the V13 wiring by publishing a paperclip work event with a
 `tool_invocation` block for a role in the AgentGateway roster (default:
-`ENG-BACKEND`) and confirming the consumer hands it to AgentGateway:
+`cortex` or any role you explicitly mapped in `templates/agentgateway/tools.json`) and confirming the consumer hands it to AgentGateway:
 
 ```bash
 # Build a minimal payload — replace the HMAC + CloudEvents helpers with
@@ -190,7 +190,7 @@ journalctl -u cortex-consumer --since '60s ago' \
 
 Pass criteria:
 
-- Consumer journal contains `[agentgateway] dispatched run=<RUN_ID> role=ENG-BACKEND tool=<name>`.
+- Consumer journal contains `[agentgateway] dispatched run=<RUN_ID> role=<role> tool=<name>`.
 - Audit subscriber observed a single `cortex.audit.agentgateway.tool-invoke.v1` event for the run.
 - No `[agentgateway] dispatch failed` lines for the run.
 

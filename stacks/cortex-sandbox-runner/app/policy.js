@@ -3,14 +3,10 @@
 // Keep the surface tiny. Every field that ever ends up on the podman
 // CLI gets validated here so the HTTP handler never has to second-
 // guess input. Network modes are constrained to a small allow-list;
-// `host` is explicitly forbidden (would defeat gVisor isolation).
+// `host` is explicitly forbidden (would defeat sandbox isolation).
 
 import { z } from "zod";
 
-// Base images that may be requested. Anything outside this list is
-// rejected at the policy gate. Pin tags to major version only — the
-// service pulls on first use and caches under rootless podman's
-// per-user storage, so callers should not chase "latest".
 export const DEFAULT_ALLOWED_IMAGES = Object.freeze([
   "alpine:3",
   "node:22-slim",
@@ -18,11 +14,6 @@ export const DEFAULT_ALLOWED_IMAGES = Object.freeze([
   "debian:13-slim",
 ]);
 
-// Per-role quota ceilings. The HTTP request may request lower values;
-// requests above the ceiling are clamped (not rejected) so a buggy
-// caller doesn't trip a hard error for asking for "too many" cores.
-//
-// Roles are uppercased on lookup. Unknown roles fall back to DEFAULT.
 export const DEFAULT_ROLE_LIMITS = Object.freeze({
   DEFAULT:        { cpuMillis: 1000, memMB: 512,  timeoutSec: 30 },
   "ENG-BACKEND":  { cpuMillis: 2000, memMB: 1024, timeoutSec: 60 },
@@ -34,8 +25,6 @@ export const DEFAULT_ROLE_LIMITS = Object.freeze({
 
 export const ALLOWED_NETWORK_MODES = Object.freeze(["none", "bridge"]);
 
-// Zod schema for /exec input. Keep coercions tight — every value
-// flows into argv for podman; loose typing is a foot-gun.
 export const ExecRequestSchema = z.object({
   image:       z.string().min(1).max(256),
   cmd:         z.array(z.string().min(1).max(4096)).min(1).max(64),
@@ -48,12 +37,6 @@ export const ExecRequestSchema = z.object({
   stdin:       z.string().max(64 * 1024).optional(),
 });
 
-/**
- * Build the effective policy decision for a parsed request. Returns
- * `{ ok: true, plan }` on success and `{ ok: false, reason }` on
- * rejection. Quotas are clamped to the per-role ceiling; explicit
- * image / network rejections fail closed.
- */
 export function decide(parsed, opts = {}) {
   const allowedImages = opts.allowedImages || DEFAULT_ALLOWED_IMAGES;
   const roleLimits = opts.roleLimits || DEFAULT_ROLE_LIMITS;
@@ -88,26 +71,32 @@ export function decide(parsed, opts = {}) {
 }
 
 /**
- * Translate a decided plan into the argv for
- * `podman --runtime=runsc run --rm ...`. Returns the full argv
- * including the leading `podman` binary so callers can swap the
- * spawn target for tests.
+ * Translate a decided plan into argv for `podman run`.
+ * Runtime is configurable so the operator can prefer `runsc` and fall back to
+ * `crun` on kernels/hosts where nested gVisor is not viable.
  */
 export function buildPodmanArgs(plan, opts = {}) {
-  const bin = opts.podmanBin || "podman";
+  const bin = opts.podmanBin || process.env.CORTEX_SANDBOX_PODMAN_BIN || "podman";
+  const runtime = process.env.CORTEX_SANDBOX_OCI_RUNTIME || "runsc";
+  const disableCgroups = process.env.CORTEX_SANDBOX_DISABLE_CGROUPS === "1";
   const args = [
-    "--runtime=runsc",
+    `--runtime=${runtime}`,
     "run",
     "--rm",
     "--read-only",
     "--cap-drop=ALL",
     "--security-opt=no-new-privileges",
     `--network=${plan.networkMode}`,
-    `--memory=${plan.memMB}m`,
-    `--cpus=${(plan.cpuMillis / 1000).toFixed(3)}`,
-    "--pids-limit=128",
     "--tmpfs=/tmp:rw,nosuid,nodev,size=64m",
+    "--user=65532:65532",
   ];
+  if (disableCgroups) {
+    args.push("--cgroups=disabled");
+  } else {
+    args.push(`--memory=${plan.memMB}m`);
+    args.push(`--cpus=${(plan.cpuMillis / 1000).toFixed(3)}`);
+    args.push("--pids-limit=128");
+  }
   for (const [k, v] of Object.entries(plan.env)) {
     args.push("-e", `${k}=${v}`);
   }

@@ -57,14 +57,13 @@ AgentGateway is vendored in this repo under `stacks/cortex-agentgateway/`.
 Copy it to the host install root and build the container — no external clone.
 
 ```bash
-sudo mkdir -p /opt/cortexos/stacks
-sudo rsync -a --delete stacks/cortex-agentgateway/ /opt/cortexos/stacks/cortex-agentgateway/
+sudo mkdir -p /opt/cortexos/stacks /opt/cortexos/packages /opt/cortexos/schemas
+sudo cp -a stacks/cortex-agentgateway/. /opt/cortexos/stacks/cortex-agentgateway/
 # Workspace packages and schemas are needed by the Docker build context.
-sudo rsync -a --delete packages/cortex-events/ /opt/cortexos/packages/cortex-events/
-sudo rsync -a --delete packages/cortex-audit/  /opt/cortexos/packages/cortex-audit/
-sudo rsync -a --delete packages/cortex-telemetry/ /opt/cortexos/packages/cortex-telemetry/
-sudo rsync -a --delete schemas/ /opt/cortexos/schemas/
-sudo cp package.json package-lock.json /opt/cortexos/
+sudo cp -a packages/cortex-events /opt/cortexos/packages/
+sudo cp -a packages/cortex-audit  /opt/cortexos/packages/
+sudo cp -a packages/cortex-telemetry /opt/cortexos/packages/
+sudo cp -a schemas/. /opt/cortexos/schemas/
 ```
 
 ## Configure
@@ -75,9 +74,13 @@ Write `/opt/cortexos/.secrets/agentgateway.env`:
 sudo tee /opt/cortexos/.secrets/agentgateway.env <<EOF
 AGENTGATEWAY_PORT=18800
 AGENTGATEWAY_BEARER_TOKEN={AGENTGATEWAY_BEARER_TOKEN}
-NATS_URL=nats://127.0.0.1:4222
+NATS_URL=nats://nats:4222
 CORTEX_NATS_HMAC={CORTEX_NATS_HMAC}
-DATABASE_URL=postgresql://dashboard:{DASHBOARD_DB_PASSWORD}@127.0.0.1:5432/cortex_dashboard
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_NAME=cortex_dashboard
+DB_USER=dashboard
+DB_PASSWORD={DASHBOARD_DB_PASSWORD}
 CORTEX_AUDIT_ENABLED=1
 EOF
 sudo chmod 600 /opt/cortexos/.secrets/agentgateway.env
@@ -91,6 +94,9 @@ The tool taxonomy ships inside the image at
 
 ```bash
 docker network create cortex-net 2>/dev/null || true
+# AgentGateway publishes audit events over the docker network, so ensure the
+# NATS container is attached to `cortex-net` with the service name `nats`.
+cd /opt/cortexos/stacks/nats && docker compose up -d
 cd /opt/cortexos/stacks/cortex-agentgateway
 docker compose up -d --build
 ```
@@ -127,7 +133,7 @@ Audit subject pinned to `cortex.audit.agentgateway.tool-invoke.v1`. Watch in
 another terminal while invoking the tool above:
 
 ```bash
-nats sub --count=1 'cortex.audit.agentgateway.>'
+nats sub --count=1 'cortex.audit.agentgateway.tool-invoke.v1'
 ```
 
 ## CHECKPOINT 2

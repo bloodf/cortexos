@@ -65,6 +65,23 @@ sudo -u postgres createdb -O langfuse langfuse || true
 Replace `:pw` with the value of `LANGFUSE_DB_PASSWORD` from the decrypted
 secrets bundle (next step).
 
+
+### 1.1 Host reachability for containerised Postgres + Redis clients
+
+Langfuse web/worker reach Postgres through the Docker host-gateway mapping. On
+Ubuntu/Debian, ensure Postgres listens beyond loopback and UFW allows the
+`cortex-net` subnet to reach `5432` (and `6379` if Langfuse reuses the local
+Redis instance):
+
+```bash
+sudo -u postgres psql -At -c "show listen_addresses;"
+# if still `localhost`, set `listen_addresses='*'` in postgresql.conf and restart
+
+CORTEX_NET_SUBNET=$(docker network inspect cortex-net --format '{{(index .IPAM.Config 0).Subnet}}')
+sudo ufw allow from "$CORTEX_NET_SUBNET" to any port 5432 proto tcp
+sudo ufw allow from "$CORTEX_NET_SUBNET" to any port 6379 proto tcp
+```
+
 ## 2. Decrypt secrets
 
 ```bash
@@ -79,6 +96,10 @@ Sanity check (no plaintext leaves the host):
 grep -E '^LANGFUSE_(HOST|PUBLIC_KEY|SECRET_KEY|DATABASE_URL|NEXTAUTH_SECRET|SALT|ENCRYPTION_KEY)=' \
   /opt/cortexos/.secrets/langfuse.env | wc -l
 # expect: 7
+
+# Single-node ClickHouse deployments MUST disable clustered migrations.
+grep -q '^CLICKHOUSE_CLUSTER_ENABLED=false' /opt/cortexos/.secrets/langfuse.env \
+  || echo 'CLICKHOUSE_CLUSTER_ENABLED=false' | sudo tee -a /opt/cortexos/.secrets/langfuse.env
 ```
 
 ## 3. Generate project keys
@@ -104,6 +125,13 @@ to git.
 : "${CORTEX_DOMAIN:?export CORTEX_DOMAIN to your Tailscale MagicDNS FQDN}"
 cd /opt/cortexos/stacks/cortex-langfuse
 set -a; . /opt/cortexos/.secrets/langfuse.env; set +a
+python3 - <<'PY'
+from pathlib import Path
+env = Path('/opt/cortexos/.secrets/langfuse.env').read_text().splitlines()
+if not any(line.startswith('CORTEX_DOMAIN=') for line in env):
+    env.append('CORTEX_DOMAIN=${CORTEX_DOMAIN}')
+Path('.env').write_text("\n".join(env)+"\n")
+PY
 docker compose pull
 docker compose up -d
 ```
@@ -126,7 +154,7 @@ port `3000` over the `cortex-net` docker network.
 
 ```bash
 for i in 1 2 3 4 5 6 7 8 9 10; do
-  curl -fsS http://127.0.0.1:3001/api/public/health && break
+  curl -fsS http://${TAILSCALE_IP:-127.0.0.1}:3001/api/public/health && break
   sleep 10
 done
 ```
@@ -167,6 +195,10 @@ EOF
 done
 
 systemctl restart cortex-consumer cortex-paperclip-bridge cortex-graph || true
+
+# Services that do not share the `cortex-net` Docker network (for example a
+# host-networked `cortex-graph`) must use a host-reachable Langfuse URL such as
+# `http://${TAILSCALE_IP}:3001` instead of `http://langfuse-web:3000`.
 ```
 
 ## 7. Test trace

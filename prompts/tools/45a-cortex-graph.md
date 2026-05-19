@@ -18,8 +18,7 @@ for the developer surface.
   publishes `cortex.graph.state.<runId>`.
 - `12a-sops-bootstrap.md` completed — `graph.env` must be decryptable
   via `scripts/secrets-decrypt.sh`.
-- `60-cortex-consumer.md` completed — V7 consumer routes work into the
-  sidecar when `CORTEX_GRAPH_URL` is exported.
+- `60-cortex-consumer.md` is required only for the consumer wiring + dispatch-log verification block later in this prompt. The sidecar itself can be deployed before the consumer.
 
 ## Distro selection
 
@@ -82,8 +81,13 @@ Migrations are dashboard-driven; the dashboard entrypoint replays
 `migrations/*.sql` in lexical order on boot. Force-replay on the VPS:
 
 ```bash
-docker compose -f /opt/cortexos/stacks/cortex-dashboard/docker-compose.yml \
-  exec cortex-dashboard node scripts/migrate.js
+if docker ps --format "{{.Names}}" | grep -qx cortex-dashboard; then
+  docker compose -f /opt/cortexos/stacks/cortex-dashboard/docker-compose.yml \
+    exec -T cortex-dashboard node scripts/migrate.js
+else
+  psql -v ON_ERROR_STOP=1 -U dashboard -h 127.0.0.1 cortex_dashboard \
+    < packages/cortex-dashboard/migrations/007_langgraph_checkpoints.sql
+fi
 ```
 
 Verify:
@@ -98,10 +102,7 @@ Expected: one row.
 ## Decrypt graph.env
 
 ```bash
-sudo CORTEXOS_SOPS_KEY="$(cat /opt/cortexos/.secrets/age.key)" \
-  bash /opt/cortexos/scripts/secrets-decrypt.sh \
-    /opt/cortexos/templates/.secrets/graph.enc.yaml \
-    /opt/cortexos/.secrets/graph.env
+bash /opt/cortexos/scripts/secrets-decrypt.sh graph
 sudo chmod 600 /opt/cortexos/.secrets/graph.env
 ```
 
@@ -115,6 +116,18 @@ CORTEX_NATS_HMAC=<same key as cortex-consumer>
 CORTEX_GRAPH_NATS_ENABLED=1
 OTEL_EXPORTER_OTLP_ENDPOINT=<optional>
 ```
+
+
+If Postgres and NATS are only exposed on the host loopback interface (the
+common CortexOS default), the container cannot reach them over `cortex-net`. In
+that case either:
+
+1. publish those services onto `cortex-net`, or
+2. switch `cortex-graph` to `network_mode: host` and keep `PG_DSN` / `NATS_URL`
+   on `127.0.0.1`.
+
+Document whichever path you choose — both are valid, but the stock compose file
+assumes network reachability that may not exist on every host.
 
 ## Build + boot
 
@@ -153,9 +166,7 @@ CORTEX_GRAPH_URL=http://127.0.0.1:8090
 CORTEX_GRAPH_API_TOKEN=<same as graph.env>
 ```
 
-Restart `cortex-consumer`. Roles with `graphEnabled: true` will now
-dispatch via the sidecar; roles without the flag keep the legacy
-direct path.
+If `cortex-consumer` is already installed, restart it. Roles with `graphEnabled: true` will now dispatch via the sidecar; roles without the flag keep the legacy direct path. If `60-cortex-consumer.md` has not run yet, apply the env + roster now and defer the dispatch-log verification until that later spoke.
 
 ## Write the graph-enabled roster
 

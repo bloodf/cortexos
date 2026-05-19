@@ -94,7 +94,7 @@ After=network.target nats.service cortex-consumer.service
 
 [Service]
 Type=oneshot
-User=bloodf
+User=${CORTEX_USER:-$USER}
 ExecStart=/usr/local/bin/cortex-synthetic-publish.sh %i
 EOF
 ```

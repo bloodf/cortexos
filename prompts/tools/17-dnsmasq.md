@@ -79,6 +79,10 @@ sudo tee /etc/dnsmasq.d/cortex.conf <<'EOF'
 listen-address=127.0.0.1
 bind-interfaces
 no-resolv
+# Preserve Tailscale MagicDNS while still caching public DNS. The /ts.net/
+# route hands MagicDNS names to the Tailscale resolver; public names use
+# normal upstream resolvers.
+server=/ts.net/100.100.100.100
 server=1.1.1.1
 server=8.8.8.8
 cache-size=1000
@@ -107,7 +111,7 @@ sudo systemctl restart dnsmasq
 dig +short google.com @127.0.0.1
 ```
 
-Expected: one or more IP addresses returned.
+Expected: one or more IP addresses returned. If `CORTEX_DOMAIN` is already set to the node's Tailscale MagicDNS name, also verify `dig +short ${CORTEX_DOMAIN} @127.0.0.1` returns the node's `100.x.y.z` address.
 
 ## CHECKPOINT 2
 
