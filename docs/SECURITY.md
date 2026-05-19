@@ -66,7 +66,7 @@ CortexOS keeps an append-only, hash-chained audit log in a TimescaleDB
 hypertable (`audit_log`). Every paperclip state transition and bridge
 inbound/outbound emit appends one row via the `@cortexos/audit` package:
 
-```
+```text
 payload_hash = SHA-256( JCS(payload) )
 chain_hash   = SHA-256( prev_hash || payload_hash )
 ```

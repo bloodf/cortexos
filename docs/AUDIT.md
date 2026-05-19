@@ -18,7 +18,7 @@ Rekor anchoring. Introduced in V9.
 
 Migration: `dashboard/migrations/008_audit_log.sql`.
 
-```
+```text
 audit_log (
   id              BIGSERIAL,
   occurred_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -56,17 +56,17 @@ Rollback (`008_audit_log.rollback.sql`) drops the table and indexes but does
 
 ## Hash-chain construction
 
-```
+```text
 payload_hash = SHA-256( JCS(payload) )           // bytes
 chain_hash   = SHA-256( prev_hash || payload_hash ) // raw hex-decoded bytes
 ```
 
-* `JCS` follows the same canonicalization the consumer already uses for
+- `JCS` follows the same canonicalization the consumer already uses for
   NATS HMAC envelopes (`stacks/cortex-consumer/consumer.js#jcs`). Stable
   lexicographic key order; no number-format normalisation needed because
   payloads originate from CloudEvents envelopes that never contain
   NaN/Inf.
-* `prev_hash` of the genesis row is `0` repeated 64 times.
+- `prev_hash` of the genesis row is `0` repeated 64 times.
 
 ### Concurrency
 
@@ -90,7 +90,7 @@ duplicate or branched chain segments.
 Production code wraps `append()` in `safeAuditAppend()` which catches all
 errors, logs them, and emits a NATS alert:
 
-```
+```text
 cortex.alerts.error.audit-append-failed
 ```
 
@@ -114,7 +114,7 @@ the chain.
 Anchor cadence: hourly (`scripts/audit-anchor-cron.sh`). Operator hooks the
 script into systemd via:
 
-```
+```ini
 [Service]
 Type=oneshot
 ExecStart=/opt/cortexos/scripts/audit-anchor-cron.sh
@@ -166,17 +166,17 @@ requires that the signature verifies against the supplied public key.
 
 ## API surface
 
-* `@cortexos/audit` package (`packages/cortex-audit`):
-  * `append(event, opts?)` — transactional row insert.
-  * `verifyChain(fromTs?, toTs?, opts?)` — recompute + diagnose.
-  * `anchorToRekor(batchSinceTs?, opts?)` — anchor latest tip.
-  * `payloadHashOf(payload)`, `chainHashOf(prev, payload)` — primitives.
-  * CLI `cortex-audit verify|anchor`.
-* `GET /api/audit/verify?from=&to=` — admin-gated verification endpoint.
-* `/<locale>/audit` — paginated viewer with live chain-verify badge.
+- `@cortexos/audit` package (`packages/cortex-audit`):
+  - `append(event, opts?)` — transactional row insert.
+  - `verifyChain(fromTs?, toTs?, opts?)` — recompute + diagnose.
+  - `anchorToRekor(batchSinceTs?, opts?)` — anchor latest tip.
+  - `payloadHashOf(payload)`, `chainHashOf(prev, payload)` — primitives.
+  - CLI `cortex-audit verify|anchor`.
+- `GET /api/audit/verify?from=&to=` — admin-gated verification endpoint.
+- `/<locale>/audit` — paginated viewer with live chain-verify badge.
 
 ## See also
 
-* `docs/SECURITY.md` § audit immutability.
-* `docs/NATS-CONTRACT.md` for the alert subject schema.
-* `docs/POSTGRES-LAYOUT.md` for hypertable placement.
+- `docs/SECURITY.md` § audit immutability.
+- `docs/NATS-CONTRACT.md` for the alert subject schema.
+- `docs/POSTGRES-LAYOUT.md` for hypertable placement.

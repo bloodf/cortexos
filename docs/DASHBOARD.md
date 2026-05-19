@@ -6,7 +6,8 @@
 
 - [Overview](#overview)
 - [Feature map](#feature-map)
-- [Runtime](#runtime)
+- [Local development](#local-development)
+- [Production deployment](#production-deployment)
 - [API surfaces](#api-surfaces)
 - [Security controls](#security-controls)
 - [Screenshots](#screenshots)

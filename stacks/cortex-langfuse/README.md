@@ -1,7 +1,7 @@
 # cortex-langfuse — LLM observability stack
 
-Self-hosted [Langfuse](https://langfuse.com) v3 + [ClickHouse](https://clickhouse.com)
-+ [MinIO](https://min.io) (internal blob store). Ingests OpenLLMetry traces
+Self-hosted [Langfuse](https://langfuse.com) v3 with [ClickHouse](https://clickhouse.com)
+and [MinIO](https://min.io) (internal blob store). Ingests OpenLLMetry traces
 from every CortexOS service that imports `@cortexos/telemetry` (Node) or
 `cortex_telemetry` (Python).
 
@@ -12,32 +12,43 @@ Postgres container. ClickHouse and MinIO are internal-only compose services
 ## Bring-up
 
 1. Decrypt secrets:
+
    ```bash
    bash scripts/secrets-decrypt.sh langfuse
    # writes /opt/cortexos/.secrets/langfuse.env
    ```
+
 2. Provision Postgres database/role (from the host Postgres):
+
    ```bash
    sudo -u postgres psql <<'SQL'
    CREATE ROLE langfuse LOGIN PASSWORD '<LANGFUSE_DB_PASSWORD>';
    CREATE DATABASE langfuse OWNER langfuse;
    SQL
    ```
+
 3. Set `LANGFUSE_DATABASE_URL` in `/opt/cortexos/.secrets/langfuse.env`:
-   ```
+
+   ```text
    LANGFUSE_DATABASE_URL=postgresql://langfuse:<password>@host.docker.internal:5432/langfuse
    ```
+
 4. Ensure the external network exists:
+
    ```bash
    docker network ls | grep cortex-net || docker network create cortex-net
    ```
+
 5. Start the stack:
+
    ```bash
    cd /opt/cortexos/stacks/cortex-langfuse
    set -a; . /opt/cortexos/.secrets/langfuse.env; set +a
    docker compose up -d
    ```
+
 6. Verify:
+
    ```bash
    curl -s http://127.0.0.1:3000/api/public/health | jq .
    ```
@@ -47,7 +58,7 @@ Postgres container. ClickHouse and MinIO are internal-only compose services
 Langfuse v3 supports headless org/project/user bootstrap via env vars
 (`LANGFUSE_INIT_*`). Set in `/opt/cortexos/.secrets/langfuse.env`:
 
-```
+```text
 LANGFUSE_INIT_ORG_ID=cortexos
 LANGFUSE_INIT_ORG_NAME=CortexOS
 LANGFUSE_INIT_PROJECT_ID=cortexos

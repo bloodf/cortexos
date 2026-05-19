@@ -22,9 +22,11 @@ See `templates/.secrets/paperclip.env.example`. Critical:
 - `PAPERCLIP_API_URL`, `PAPERCLIP_API_KEY` — outbound Paperclip mutating calls.
 - `PAPERCLIP_WEBHOOK_SECRET` — inbound bearer (constant-time compared).
 - `CORTEX_NATS_HMAC` — **must** match `cortex-consumer`. Envelope shape:
+
   ```json
-  { "data": <payload>, "sig": "<sha256(JCS(data), key)>" }
+  { "data": "<payload>", "sig": "<sha256(JCS(data), key)>" }
   ```
+
 - `PG_DSN` — Postgres DSN for the link table.
 
 ## Run modes

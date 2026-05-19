@@ -12,7 +12,7 @@ For top-level namespaces (e.g. alerts) the convention collapses to `cortex-<name
 
 CloudEvents `type` MUST follow:
 
-```
+```text
 cortex.<namespace>.<verb>.<scope>.v<N>
 ```
 
