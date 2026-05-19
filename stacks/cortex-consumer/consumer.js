@@ -1466,13 +1466,16 @@ function startHeartbeat() {
       // as a per-service heartbeat namespace.
       publishEnvelope(
         "cortex.health.consumer",
-        "cortex.health.consumer.heartbeat.v1",
+        "cortex.health.consumer.v1",
         {
           service: "cortex-consumer",
+          status: "ok",
           ts: new Date().toISOString(),
-          circuit: cb.state,
-          pending_approvals: pendingApprovals.size,
-          uptime_s: Math.floor(process.uptime()),
+          uptime_sec: Math.floor(process.uptime()),
+          details: {
+            circuit: cb.state,
+            pending_approvals: pendingApprovals.size,
+          },
         },
       );
     } catch (e) {
