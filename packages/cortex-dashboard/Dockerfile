@@ -98,8 +98,9 @@ COPY --from=builder --chown=node:node /repo/packages/cortex-dashboard/docker-ent
 # Native deps not bundled by Next standalone (from hoisted root modules).
 # cpu-features + nan are optional native deps of ssh2; if absent ssh2
 # falls back to its pure-JS cipher, so we skip them.
-COPY --from=builder --chown=node:node /repo/node_modules/ssh2 ./node_modules/ssh2
-COPY --from=builder --chown=node:node /repo/node_modules/bcryptjs ./node_modules/bcryptjs
+# pnpm keeps these under the dashboard's own node_modules (per-package).
+COPY --from=builder --chown=node:node /repo/packages/cortex-dashboard/node_modules/ssh2 ./node_modules/ssh2
+COPY --from=builder --chown=node:node /repo/packages/cortex-dashboard/node_modules/bcryptjs ./node_modules/bcryptjs
 
 RUN chmod +x docker-entrypoint.sh \
  && (chmod +x scripts/*.sh 2>/dev/null || true) \
