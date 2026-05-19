@@ -19,6 +19,16 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 
 > **Ubuntu/Debian note.** MongoDB is installed via the Docker-Compose stack below. If you need the `mongosh` CLI on the host, install via the official MongoDB apt repo or use `docker run --rm -it mongo:7 mongosh ...`.
 
+## Sudo gate
+
+This spoke runs `sudo`. Authenticate **now** so the rest of the steps don't pause for a password mid-flow:
+
+```bash
+sudo -v
+```
+
+CortexOS never stores your password — only the kernel's sudo timestamp is used. Re-run if it expires.
+
 ## Todo
 
 - [ ] CHECKPOINT 1 confirmed

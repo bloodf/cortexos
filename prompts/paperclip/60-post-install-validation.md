@@ -54,6 +54,16 @@ Optional:
 | `SMOKE_SKIP_DISTRO`       | `0`           | `1` to skip steps 22–28 (CI staging mode)  |
 | `SMOKE_DASHBOARD_URL`     | `http://127.0.0.1:3080/en/login` | Used in step 25      |
 
+## Sudo gate
+
+This spoke runs `sudo`. Authenticate **now** so the rest of the steps don't pause for a password mid-flow:
+
+```bash
+sudo -v
+```
+
+CortexOS never stores your password — only the kernel's sudo timestamp is used. Re-run if it expires.
+
 ## Todo
 
 - [ ] CHECKPOINT 6.A confirmed

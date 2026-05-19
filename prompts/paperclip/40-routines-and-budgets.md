@@ -9,6 +9,16 @@ Tune the per-role heartbeat cadence (`routine`) and monthly budget
 frontmatter in `templates/agent-roles/*.md` and re-running the registration
 script.
 
+## Sudo gate
+
+This spoke runs `sudo`. Authenticate **now** so the rest of the steps don't pause for a password mid-flow:
+
+```bash
+sudo -v
+```
+
+CortexOS never stores your password — only the kernel's sudo timestamp is used. Re-run if it expires.
+
 ## Todo
 
 - [ ] Defaults

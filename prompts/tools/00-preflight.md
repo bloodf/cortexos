@@ -2,6 +2,16 @@
 
 Run this prompt before any other `prompts/tools/` spoke. It verifies the OpenClaw HTTP gateway is live, confirms every required endpoint is reachable, and captures upstream documentation snapshots into `docs/external/` as read-only guides for implementors. Nothing in Phase 4c may proceed until this prompt exits cleanly.
 
+## Sudo gate
+
+This spoke runs `sudo`. Authenticate **now** so the rest of the steps don't pause for a password mid-flow:
+
+```bash
+sudo -v
+```
+
+CortexOS never stores your password — only the kernel's sudo timestamp is used. Re-run if it expires.
+
 ## Todo
 
 - [ ] Distro family detected (`CORTEX_OS_FAMILY` set)

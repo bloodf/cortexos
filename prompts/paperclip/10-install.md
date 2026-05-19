@@ -2,6 +2,16 @@
 
 > Stage 1. Run after `00-overview.md` checkpoint passes. Operator-facing.
 
+## Sudo gate
+
+This spoke runs `sudo`. Authenticate **now** so the rest of the steps don't pause for a password mid-flow:
+
+```bash
+sudo -v
+```
+
+CortexOS never stores your password — only the kernel's sudo timestamp is used. Re-run if it expires.
+
 ## Todo
 
 - [ ] 1. Install Paperclip via onboard CLI

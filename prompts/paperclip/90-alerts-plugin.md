@@ -6,6 +6,16 @@ This prompt wires `cortex.alerts.<severity>.<source>` events emitted by the
 dashboard into Paperclip notifications. Skip this prompt if you do not want
 Paperclip to receive operational alerts.
 
+## Sudo gate
+
+This spoke runs `sudo`. Authenticate **now** so the rest of the steps don't pause for a password mid-flow:
+
+```bash
+sudo -v
+```
+
+CortexOS never stores your password — only the kernel's sudo timestamp is used. Re-run if it expires.
+
 ## Todo
 
 - [ ] What you get

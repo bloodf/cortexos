@@ -16,6 +16,16 @@ must complete this prompt before `bootstrap_push_secrets` runs.
 
 ---
 
+## Sudo gate
+
+This spoke runs `sudo`. Authenticate **now** so the rest of the steps don't pause for a password mid-flow:
+
+```bash
+sudo -v
+```
+
+CortexOS never stores your password — only the kernel's sudo timestamp is used. Re-run if it expires.
+
 ## Todo
 
 - [ ] sops + age installed on laptop
