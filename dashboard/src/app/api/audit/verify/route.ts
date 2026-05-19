@@ -19,8 +19,13 @@ import { verifyChain, setPool } from "@cortexos/audit";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Reuse the dashboard pool across hot reloads.
-setPool(dashboardPool());
+let poolBound = false;
+function ensurePoolBound() {
+	if (!poolBound) {
+		setPool(dashboardPool());
+		poolBound = true;
+	}
+}
 
 const isoDate = z
 	.string()
@@ -35,6 +40,8 @@ const querySchema = z.object({
 export async function GET(request: Request) {
 	const auth = await requireAdmin(request, { tool: "audit.verify" });
 	if (auth.error) return auth.error;
+
+	ensurePoolBound();
 
 	const { searchParams } = new URL(request.url);
 	const parsed = querySchema.safeParse(Object.fromEntries(searchParams.entries()));
