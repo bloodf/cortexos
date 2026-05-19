@@ -1,6 +1,6 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "child_process";
-import { existsSync } from "fs";
 import { NextRequest, NextResponse } from "next/server";
+import { IN_CONTAINER } from "@/lib/host-exec";
 
 interface Session {
 	process: ChildProcessWithoutNullStreams;
@@ -39,23 +39,18 @@ function shellCommand() {
 
 function createSession(id: string): Session {
 	const shell = shellCommand();
-	const useScript = existsSync("/usr/bin/script") || existsSync("/bin/script");
-	const scriptBin = existsSync("/usr/bin/script")
-		? "/usr/bin/script"
-		: "/bin/script";
-	const cwd = process.env.HOME || "/root";
 	const env = {
 		...process.env,
 		TERM: "xterm-256color",
 		COLORTERM: "truecolor",
 	};
 
-	const child = useScript
-		? spawn(scriptBin, ["-q", "-f", "-c", `${shell} -l`, "/dev/null"], {
-				cwd,
+	const child = IN_CONTAINER
+		? spawn("nsenter", ["--target", "1", "--mount", "--pid", "--uts", "--ipc", "--net", "--wd=/root", "--", shell, "-l"], {
+				cwd: "/",
 				env,
 			})
-		: spawn(shell, ["-l"], { cwd, env });
+		: spawn(shell, ["-l"], { cwd: process.env.HOME || "/root", env });
 
 	const session: Session = {
 		process: child,

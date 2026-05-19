@@ -92,6 +92,7 @@ function DataTable<TData>({
     manualPagination: isServerSide,
     pageCount: isServerSide ? (pageCount ?? -1) : undefined,
     enableRowSelection: !!onRowSelectionChange,
+    autoResetPageIndex: false,
   })
 
   const { pageIndex, pageSize } = table.getState().pagination

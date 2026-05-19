@@ -14,7 +14,7 @@ const CATEGORIES = [
 	"Media",
 	"Database",
 ];
-const CHECK_TYPES = ["http", "tcp", "docker", "process"] as const;
+const CHECK_TYPES = ["http", "tcp", "docker", "process", "systemd"] as const;
 const MAX_IMAGE_BYTES = 256 * 1024;
 
 function readFileAsDataUri(file: File): Promise<string> {
@@ -38,7 +38,7 @@ export interface Service {
 	name: string;
 	open_url: string;
 	health_url: string;
-	health_type: "http" | "tcp" | "docker" | "process";
+	health_type: "http" | "tcp" | "docker" | "process" | "systemd";
 	category: string;
 	is_active: boolean;
 	icon_color: string | null;

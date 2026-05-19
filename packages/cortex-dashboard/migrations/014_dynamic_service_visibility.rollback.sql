@@ -1,15 +1,6 @@
--- Extend cortex_set_service_urls(base_url) with every tool that has a web UI
--- routed through Caddy. Keeps 004's contract (idempotent UPSERT of open_url
--- by slug) but adds the routes added in prompts/tools/13-caddy.md:
---   /9router, /prometheus, /loki, /cadvisor, /langfuse, /nats
---
--- Slugs absent from this list either have no web UI (OpenClaw, AgentGateway,
--- OpenViking, LEANN, kernel-browser, cortex-graph, cortex-sandbox-runner,
--- fluent-bit, paperclip bridge) or are already wired by 004
--- (cortex-dashboard, grafana, jellyfin, home-assistant, dockhand).
---
--- Re-running this migration overwrites previous open_url values — safe by
--- design.
+-- 014_dynamic_service_visibility.rollback.sql
+-- Restore the 011 helper shape. Data touched by dynamic-seed is intentionally
+-- not rolled back; service visibility is derived from install state on restart.
 
 CREATE OR REPLACE FUNCTION cortex_set_service_urls(base_url text)
 RETURNS integer
@@ -25,7 +16,6 @@ BEGIN
   base_url := regexp_replace(base_url, '/+$', '');
 
   UPDATE services SET open_url = base_url                        WHERE slug = 'cortex-dashboard';
-  UPDATE services SET open_url = base_url || '/9router/'        WHERE slug = '9router';
   UPDATE services SET open_url = base_url || '/dockhand'         WHERE slug = 'dockhand';
   UPDATE services SET open_url = base_url || '/grafana/'         WHERE slug = 'grafana';
   UPDATE services SET open_url = base_url || '/prometheus/'      WHERE slug = 'prometheus';
@@ -36,10 +26,8 @@ BEGIN
   UPDATE services SET open_url = base_url || '/jellyfin'         WHERE slug = 'jellyfin';
   UPDATE services SET open_url = base_url || '/ha'               WHERE slug = 'home-assistant';
 
-  -- Backend-only services: keep open_url pinned to '#'. Listed explicitly so
-  -- prior runs against a stale base get cleaned up.
   UPDATE services SET open_url = '#' WHERE slug IN (
-    'openviking','openclaw','agentgateway','kernel-browser','leann'
+    '9router','openviking','openclaw','agentgateway','kernel-browser','leann'
   );
 
   GET DIAGNOSTICS affected = ROW_COUNT;
@@ -47,5 +35,4 @@ BEGIN
 END;
 $$;
 
-INSERT INTO migrations (name) VALUES ('011_services_open_url_paths')
-ON CONFLICT (name) DO NOTHING;
+DELETE FROM migrations WHERE name = '014_dynamic_service_visibility';

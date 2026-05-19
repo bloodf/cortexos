@@ -1,7 +1,7 @@
 import { query, queryOne, execute } from "./client";
 
 export type ServiceKind = "app" | "service" | "docker" | "process";
-export type HealthType = "http" | "tcp" | "docker" | "process";
+export type HealthType = "http" | "tcp" | "docker" | "process" | "systemd";
 
 export interface Service {
 	id: number;

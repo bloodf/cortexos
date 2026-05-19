@@ -14,7 +14,7 @@ const CATEGORIES = [
 	"Media",
 	"Database",
 ];
-const CHECK_TYPES = ["http", "tcp", "docker", "process"] as const;
+const CHECK_TYPES = ["http", "tcp", "docker", "process", "systemd"] as const;
 
 const EMPTY_FORM = {
 	slug: "",
