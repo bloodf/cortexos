@@ -14,11 +14,8 @@ COPY packages ./packages
 COPY stacks/cortex-paperclip-bridge/package.json ./stacks/cortex-paperclip-bridge/package.json
 COPY stacks/cortex-consumer/package.json ./stacks/cortex-consumer/package.json
 COPY stacks/cortex-agentgateway/package.json ./stacks/cortex-agentgateway/package.json
-# Install package-local workspace deps directly so unpublished internal packages
-# do not hit the public npm registry during VPS builds.
-RUN cd packages/cortex-events && npm install --omit=dev --no-audit --no-fund
-RUN cd packages/cortex-audit && npm install --omit=dev --no-audit --no-fund
-RUN cd packages/cortex-dashboard && npm install --no-audit --no-fund
+# Use pnpm with workspace protocol — npm cannot resolve "workspace:*".
+RUN pnpm install --frozen-lockfile --filter @cortexos/dashboard...
 
 ############################
 # Stage 2 — builder
@@ -27,7 +24,9 @@ FROM node:22-slim AS builder
 WORKDIR /repo
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN corepack enable && corepack prepare pnpm@10 --activate
+COPY --from=deps /repo/node_modules ./node_modules
 COPY --from=deps /repo/packages ./packages
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* ./
 COPY packages ./packages
 WORKDIR /repo/packages/cortex-dashboard
 RUN pnpm exec next build --turbopack
