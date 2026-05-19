@@ -170,7 +170,7 @@ Attach `/tmp/smoke.json` to the change ticket. If FAIL, attach the
 
 ## Related
 
-- `prompts/paperclip/70-rollback.md` — rollback drill if smoke fails post-deploy.
+- `prompts/operations/paperclip-rollback.md` — rollback drill if smoke fails post-deploy.
 - `docs/PAPERCLIP.md` — architecture + ops runbook.
 - `scripts/paperclip-smoke-test.sh` — the orchestrator itself.
 - `.github/workflows/paperclip-smoke.yml` — manual-trigger CI workflow.

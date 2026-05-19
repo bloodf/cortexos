@@ -154,7 +154,7 @@ phase before relying on it in prod.
 
 ## Related
 
-- `prompts/paperclip/60-post-install-validation.md` — run immediately after rollback
+- `prompts/operations/paperclip-validation.md` — run immediately after rollback
   to confirm the bridge surface is genuinely gone (steps 1–6 must FAIL,
   which is the *correct* outcome here).
 - `docs/PAPERCLIP.md` — full ops runbook + long-form rollback table.
