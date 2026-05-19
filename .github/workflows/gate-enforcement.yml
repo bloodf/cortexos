@@ -1,0 +1,67 @@
+# DEPRECATED under CortexOS doctrine — superseded by husky-as-CI.
+# Kept for repos that opt in via bootstrap-project.sh --include-gh-workflows.
+# Canonical surface: local husky hooks + NATS event bus + Slack thread SoT.
+name: Gate Enforcement
+
+on:
+  pull_request:
+    types: [labeled, unlabeled, synchronize]
+
+jobs:
+  check-gates:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check required gates
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const labels = pr.labels.map(l => l.name);
+
+            const stage = labels.find(l => l.startsWith('stage:'));
+            if (!stage) {
+              core.info('No stage label found, skipping gate check');
+              return;
+            }
+
+            const gates = {
+              'stage:antagonist-review': ['gate:staff-reviewed'],
+              'stage:qa': ['gate:cto-approved', 'gate:security-reviewed'],
+              'stage:ready-to-merge': ['gate:qa-passed', 'gate:qa-video-attached', 'gate:visual-approved', 'gate:po-accepted'],
+            };
+
+            const required = gates[stage] || [];
+            const missing = required.filter(g => !labels.includes(g));
+
+            if (missing.length > 0) {
+              core.setFailed(`Missing gates for ${stage}: ${missing.join(', ')}`);
+            } else {
+              core.info(`All gates satisfied for ${stage}`);
+            }
+
+  block-merge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prevent merge without gates
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const labels = pr.labels.map(l => l.name);
+
+            const mergeReady = labels.includes('stage:ready-to-merge');
+            const allGates = [
+              'gate:staff-reviewed',
+              'gate:cto-approved',
+              'gate:security-reviewed',
+              'gate:qa-passed',
+              'gate:visual-approved',
+              'gate:po-accepted'
+            ];
+
+            if (mergeReady) {
+              const missing = allGates.filter(g => !labels.includes(g));
+              if (missing.length > 0) {
+                core.setFailed(`Cannot merge. Missing: ${missing.join(', ')}`);
+              }
+            }
