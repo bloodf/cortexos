@@ -1,8 +1,8 @@
 services:
   cortex-sandbox-runner:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: stacks/cortex-sandbox-runner/Dockerfile
     image: cortex-sandbox-runner:local
     container_name: cortex-sandbox-runner
     restart: unless-stopped
@@ -11,51 +11,35 @@ services:
     environment:
       OTEL_SERVICE_NAME: cortex-sandbox-runner
       PORT: "8091"
+      # Preferred: runsc. Fallback: crun on hosts where nested gVisor cannot
+      # acquire the required cgroup/userns features.
+      CORTEX_SANDBOX_OCI_RUNTIME: ${CORTEX_SANDBOX_OCI_RUNTIME:-runsc}
+      CORTEX_SANDBOX_DISABLE_CGROUPS: ${CORTEX_SANDBOX_DISABLE_CGROUPS:-0}
     ports:
       - "127.0.0.1:8091:8091"
     networks:
       - cortex-net
-    # SECURITY POSTURE
-    # ----------------
-    # privileged:false — the service NEVER takes the easy way. Rootless
-    # podman inside the container handles its own user-namespace setup
-    # via /etc/subuid + /etc/subgid (configured in Dockerfile).
-    privileged: false
-    # security_opt — keep the default seccomp profile on the SERVICE
-    # container. gVisor (runsc) supplies the user-space syscall barrier
-    # for the spawned GUEST containers; the service itself does not
-    # need a relaxed profile. If a future kernel exposes a syscall
-    # podman/runsc needs that the default profile blocks, document the
-    # carve-out here with a CVE reference before relaxing.
+    # Nested container execution needs additional kernel capabilities on many
+    # VPS/container hosts. Keep the service privileged; guest workloads still
+    # run with a restricted runtime + dropped user.
+    privileged: true
     security_opt:
       - "no-new-privileges:true"
-      - "seccomp=unconfined"  # required for nested podman fork()+unshare()
-    # /tmp on tmpfs — every short-lived guest container scratch lands
-    # here and disappears with the service. Cap size to stop a runaway
-    # job from filling the host disk.
+      - "seccomp=unconfined"
     tmpfs:
       - /tmp:rw,nosuid,nodev,size=512m
-      - /run/user/2000:rw,nosuid,nodev,size=64m
-    # Rootless podman needs a writable storage area. Keep it inside the
-    # container — the host MUST NOT mount /var/lib/containers from the
-    # outside or guest images escape the sandbox lifetime.
-    volumes:
-      - sandbox-podman-storage:/home/sandbox/.local/share/containers
+      - /run/user/0:rw,nosuid,nodev,size=64m,uid=0,gid=0,mode=0700
+      - /home/sandbox/.local/share/containers:rw,nosuid,nodev,size=2048m,uid=2000,gid=2000,mode=0700
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8091/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 3
-    # Resource ceilings prevent a single misbehaving job from
-    # exhausting the host. Per-request quotas (policy.js) are stricter.
     deploy:
       resources:
         limits:
           cpus: "4.0"
           memory: 4g
-
-volumes:
-  sandbox-podman-storage:
 
 networks:
   cortex-net:

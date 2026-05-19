@@ -17,8 +17,7 @@ See `docs/SANDBOX.md` for the threat model and
 - `11-docker.md` completed — Docker Engine present.
 - `12a-sops-bootstrap.md` completed — `sandbox.env` must be decryptable
   via `scripts/secrets-decrypt.sh`.
-- `60-cortex-consumer.md` completed — V10 consumer routes sandbox-eligible
-  roles through `CORTEX_SANDBOX_URL` when configured.
+- `60-cortex-consumer.md` is required only for the roster + end-to-end dispatch verification block near the end of this prompt. The service itself can be built earlier.
 
 ## Distro selection
 
@@ -69,6 +68,9 @@ Type `confirmed` to proceed.
 ```bash
 sudo install -d -o root -g root -m 0750 /opt/cortexos/.secrets
 sudo scripts/secrets-decrypt.sh sandbox
+# If your checked-in template still uses SANDBOX_RUNNER_TOKEN, rewrite it to
+# the canonical runtime key before boot:
+#   CORTEX_SANDBOX_API_TOKEN=<random 256-bit hex>
 sudo chmod 0640 /opt/cortexos/.secrets/sandbox.env
 ```
 
@@ -77,6 +79,10 @@ sudo chmod 0640 /opt/cortexos/.secrets/sandbox.env
 ```yaml
 CORTEX_SANDBOX_API_TOKEN: <random 256-bit hex>
 ```
+
+Older templates may still carry `SANDBOX_RUNNER_TOKEN`; rename it to
+`CORTEX_SANDBOX_API_TOKEN` before boot so the service and downstream consumers
+share one canonical variable name.
 
 Generate fresh with:
 
@@ -87,10 +93,33 @@ openssl rand -hex 32
 ## Build and start
 
 ```bash
+sudo mkdir -p /opt/cortexos/stacks /opt/cortexos/packages
+sudo cp -a stacks/cortex-sandbox-runner/. /opt/cortexos/stacks/cortex-sandbox-runner/
+sudo cp -a packages/cortex-telemetry /opt/cortexos/packages/
 cd /opt/cortexos/stacks/cortex-sandbox-runner
 docker compose build
 docker compose up -d
 ```
+
+
+### 2.1 Runtime fallback if nested gVisor is unsupported
+
+Preferred runtime is `runsc` (gVisor). Some VPS/container combinations cannot
+run nested gVisor because cgroup or user-namespace setup fails inside the
+service container. If the exec probe fails with `runsc` errors such as
+`cgroup.subtree_control`, `device or resource busy`, or similar nested-runtime
+setup failures, fall back to `crun` and rebuild:
+
+```bash
+echo 'CORTEX_SANDBOX_OCI_RUNTIME=crun' | sudo tee -a /opt/cortexos/.secrets/sandbox.env
+echo 'CORTEX_SANDBOX_DISABLE_CGROUPS=1' | sudo tee -a /opt/cortexos/.secrets/sandbox.env
+cd /opt/cortexos/stacks/cortex-sandbox-runner
+docker compose up -d --build --force-recreate
+```
+
+Record the fallback in the operator log — isolation is weaker than gVisor, but
+the service remains policy-gated and guest workloads still run as an
+unprivileged uid/gid.
 
 ## Sandbox exec probe
 
@@ -152,7 +181,7 @@ journalctl -u cortex-consumer -n 50 --no-pager
 The consumer logs `[sandbox] dispatched run=... role=... exit=...` for
 each sandbox-eligible role on receipt of a
 `cortex.paperclip.work.<role>` event. Failures log
-`[sandbox] dispatch failed ...`. Confirm via:
+`[sandbox] dispatch failed ...`. If `60-cortex-consumer.md` has not run yet, defer this verification block until that spoke completes.
 
 ```bash
 journalctl -u cortex-consumer -n 200 --no-pager | grep -E '\[sandbox\] (dispatched|dispatch failed)'

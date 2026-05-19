@@ -2,7 +2,8 @@
 
 ## Purpose
 
-Configure OpenClaw's memory-core module: enable `dream` mode for background consolidation, set retention policies, and wire up the memory graph.
+Enable OpenClaw's bundled `memory-core` plugin, turn on nightly dreaming, and
+keep active memory wired through the current runtime surfaces.
 
 ## Prerequisites
 
@@ -18,51 +19,73 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed — `openclaw memory ping` returns OK
-- [ ] `npm install -g @openclaw/memory-core@latest`
-- [ ] `openclaw plugins install @openclaw/memory-core --config-file templates/openclaw/config.memory-core.json`
-- [ ] `openclaw memory dream --enable --schedule "0 3 * * *"`
-- [ ] Confirm `openclaw memory status` shows dream enabled
-- [ ] CHECKPOINT 2 confirmed — dream + retention active
+- [ ] CHECKPOINT 1 confirmed
+- [ ] Configure
+- [ ] Verify
+- [ ] CHECKPOINT 2 confirmed
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** Does `openclaw memory ping` print `OpenViking backend: OK` (not `connection refused`, not `error`)?
+**STOP — operator question:** The OpenViking plugin is configured and healthy?
 
 Type `confirmed` to proceed.
 
-## Install
-
-```bash
-npm install -g @openclaw/memory-core@latest
-```
-
 ## Configure
 
-Apply memory-core configuration from the repo template:
+`memory-core` is bundled in current OpenClaw releases; do not install a separate npm package. Patch the config directly:
 
 ```bash
-openclaw plugins install @openclaw/memory-core \
-  --config-file templates/openclaw/config.memory-core.json
-```
+python3 - <<'PY' >/tmp/memory-core.json
+import json
+print(json.dumps({
+  'plugins': {
+    'entries': {
+      'memory-core': {
+        'enabled': True,
+        'config': {
+          'dreaming': {
+            'enabled': True,
+            'frequency': '0 3 * * *',
+            'timezone': 'UTC'
+          }
+        }
+      },
+      'active-memory': {
+        'enabled': True,
+        'config': {
+          'enabled': True,
+          'queryMode': 'recent',
+          'promptStyle': 'balanced'
+        }
+      }
+    },
+    'slots': {
+      'memory': 'memory-core'
+    }
+  }
+}, indent=2))
+PY
 
-Enable `dream` consolidation (runs nightly at 03:00 local time):
-
-```bash
-openclaw memory dream --enable --schedule "0 3 * * *"
+openclaw config patch --file /tmp/memory-core.json
+sudo systemctl restart openclaw-gateway
 ```
 
 ## Verify
 
 ```bash
-openclaw memory status
+openclaw status
+openclaw cron list
+openclaw plugins inspect memory-core --runtime --json
 ```
 
-Expected: shows `dream` mode enabled with next scheduled run, retention policy active.
+Expected:
+- `openclaw status` shows Memory enabled.
+- `openclaw cron list` includes the dreaming cron.
+- `memory-core` is enabled at runtime.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** Does `openclaw memory status` show `dream: enabled` with a `next run:` timestamp (not `disabled`, not empty)?
+**STOP — operator question:** Memory is enabled, the dreaming cron exists, and `memory-core` is active?
 
 Type `confirmed` to proceed.
 

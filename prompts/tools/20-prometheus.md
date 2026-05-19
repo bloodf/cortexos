@@ -56,7 +56,7 @@ scrape_configs:
     # See prompts/tools/24-cadvisor.md.
     metrics_path: /cadvisor/metrics
     static_configs:
-      - targets: ["host.docker.internal:8081"]
+      - targets: ["cadvisor:8080"]
 
   - job_name: prometheus
     metrics_path: /prometheus/metrics

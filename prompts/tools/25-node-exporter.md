@@ -68,6 +68,13 @@ curl -s http://localhost:9100/metrics | grep 'node_cpu_seconds_total' | head -3
 
 Expected: metric lines printed.
 
+Because node-exporter uses `network_mode: host`, allow the `cortex-net` subnet to reach port `9100` on the host before verifying:
+
+```bash
+CORTEX_NET_SUBNET=$(docker network inspect cortex-net --format '{{(index .IPAM.Config 0).Subnet}}')
+sudo ufw allow from "$CORTEX_NET_SUBNET" to any port 9100 proto tcp
+```
+
 Then verify Prometheus is scraping this exporter:
 
 ```bash

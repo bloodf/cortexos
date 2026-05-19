@@ -8,9 +8,9 @@
     "test": "node --test \"__tests__/**/*.test.js\""
   },
   "dependencies": {
-    "@cortexos/audit": "workspace:*",
-    "@cortexos/events": "workspace:*",
-    "@cortexos/telemetry": "workspace:*",
+    "@cortexos/audit": "file:../../packages/cortex-audit",
+    "@cortexos/events": "file:../../packages/cortex-events",
+    "@cortexos/telemetry": "file:../../packages/cortex-telemetry",
     "ajv": "^8.17.1",
     "nats": "^2.28.0",
     "pg": "^8.13.0",

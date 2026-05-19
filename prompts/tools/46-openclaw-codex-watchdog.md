@@ -2,12 +2,13 @@
 
 ## Purpose
 
-Install the `ThisIsJeron/openclaw-codex-watchdog` plugin to monitor stale Codex worker processes and auto-restart them when they exceed idle or error thresholds.
+Install the `ThisIsJeron/openclaw-codex-watchdog` plugin to block older Codex
+text-only narrative-loop replies when no tool calls were made.
 
 ## Prerequisites
 
 - `40-openclaw.md` completed.
-- `30-nats.md` completed (watchdog publishes alerts to NATS).
+- `30-nats.md` completed.
 
 ## Distro selection
 
@@ -19,99 +20,52 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 
 ## Sudo gate
 
-This spoke runs `sudo`. Authenticate **now** so the rest of the steps don't pause for a password mid-flow:
-
 ```bash
 sudo -v
 ```
 
-CortexOS never stores your password — only the kernel's sudo timestamp is used. Re-run if it expires.
-
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed — `systemctl is-active openclaw-gateway` returns active
-- [ ] CHECKPOINT 1b confirmed — NATS reachable on 127.0.0.1:4222
-- [ ] `git clone https://github.com/ThisIsJeron/openclaw-codex-watchdog /tmp/openclaw-codex-watchdog && npm install`
-- [ ] Confirm `docs/external/openclaw-codex-watchdog.snapshot.md` exists
-- [ ] `openclaw plugins install /tmp/openclaw-codex-watchdog`
-- [ ] `openclaw plugins configure openclaw-codex-watchdog --idle-timeout 300 --error-threshold 3 ...`
-- [ ] `sudo systemctl reload openclaw`
-- [ ] Confirm `openclaw plugins list | grep codex-watchdog` shows active
-- [ ] CHECKPOINT 2 confirmed — plugin listed active
-- [ ] Review Known Limitations (discovery silent-skip)
+- [ ] CHECKPOINT 1 confirmed
+- [ ] Install
+- [ ] Verify
+- [ ] CHECKPOINT 2 confirmed
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** Does `systemctl is-active openclaw-gateway` print `active` (not `inactive`, not `failed`)?
-
-Type `confirmed` to proceed.
-
-## CHECKPOINT 1b
-
-**STOP — operator question:** Does `nc -zv 127.0.0.1 4222` print `succeeded` (not `Connection refused`)?
+**STOP — operator question:** OpenClaw is running and NATS is reachable?
 
 Type `confirmed` to proceed.
 
 ## Install
 
 ```bash
+rm -rf /tmp/openclaw-codex-watchdog
 git clone https://github.com/ThisIsJeron/openclaw-codex-watchdog /tmp/openclaw-codex-watchdog
 cd /tmp/openclaw-codex-watchdog
-npm install
+# Current upstream already ships dist/index.js + openclaw.plugin.json.
+openclaw plugins install --link /tmp/openclaw-codex-watchdog || openclaw plugins install /tmp/openclaw-codex-watchdog --force
+test -f docs/external/openclaw-codex-watchdog.snapshot.md && echo "OK"
 ```
 
-Snapshot upstream README:
-
-```bash
-test -f docs/external/openclaw-codex-watchdog.snapshot.md && echo "OK" || \
-  (curl -fsSL https://raw.githubusercontent.com/ThisIsJeron/openclaw-codex-watchdog/HEAD/README.md \
-    > docs/external/openclaw-codex-watchdog.snapshot.md && \
-   sed -i '1s/^/<!-- Snapshot of upstream openclaw-codex-watchdog at probe time. NOT a version pin. Operator reinstalls latest upstream on each fresh install. -->\n/' \
-    docs/external/openclaw-codex-watchdog.snapshot.md)
-```
-
-Register:
-
-```bash
-openclaw plugins install /tmp/openclaw-codex-watchdog
-```
-
-## Configure
-
-```bash
-openclaw plugins configure openclaw-codex-watchdog \
-  --idle-timeout 300 \
-  --error-threshold 3 \
-  --nats-url "nats://127.0.0.1:4222" \
-  --alert-subject "cortex.alerts.watchdog"
-sudo systemctl reload openclaw
-```
+The current plugin does not expose a runtime config schema; there is no stable
+`openclaw plugins configure` step for it. If the gateway does not auto-load the
+linked install, add it to the plugin allow/install metadata and restart the gateway.
 
 ## Verify
 
 ```bash
-openclaw plugins list | grep codex-watchdog
+sudo systemctl restart openclaw-gateway
+openclaw plugins list --enabled --verbose | grep -E 'openclaw-codex-watchdog|Codex Watchdog'
 ```
 
 Expected: `openclaw-codex-watchdog` listed as active.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** Does `openclaw plugins list | grep codex-watchdog` print a line containing `active` (not `disabled`, not empty)?
+**STOP — operator question:** Watchdog plugin is active?
 
 Type `confirmed` to proceed.
-
-## Known Limitations
-
-### Discovery silent-skip (Phase H blocker #2)
-
-Dropping the cloned tree into
-`~/.openclaw/extensions/openclaw-codex-watchdog/` with valid
-`openclaw.activation` + `openclaw.contributes` blocks is **not**
-sufficient — verified absent from `openclaw plugins list` on
-2026-05-16 with no diagnostic emitted. Use the
-`openclaw plugins install /tmp/openclaw-codex-watchdog` step above
-(requires operator gateway auth token). Re-run after every fresh clone.
 
 ## Next
 
