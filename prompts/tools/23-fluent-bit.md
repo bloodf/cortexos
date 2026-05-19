@@ -17,18 +17,19 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
-
 ## Todo
 
 - [ ] CHECKPOINT 1 confirmed
 - [ ] Install
 - [ ] Verify
 - [ ] CHECKPOINT 2 confirmed
+
 ## CHECKPOINT 1
 
 **STOP — operator question:** Loki is running (`curl -s http://localhost:3100/ready` returns `ready`)?
 
 Type `confirmed` to proceed.
+
 ## Install
 
 ```bash
@@ -124,6 +125,7 @@ Operator: confirm the Loki query above returns `> 0` and `docker compose
 > API.
 
 Type `confirmed` to proceed.
+
 ## Next
 
 → `prompts/tools/24-cadvisor.md`

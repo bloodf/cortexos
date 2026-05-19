@@ -19,7 +19,6 @@ of the integration plan.
   `result=fail` with a `failure.tag` in the SECURITY tier
   (`*-not-401`, `approval-bypass`).
 
-
 ## Todo
 
 - [ ] Pre-flight (2 min)
@@ -27,6 +26,7 @@ of the integration plan.
 - [ ] Post-rollback verification (3 min)
 - [ ] Verification checklist
 - [ ] Time budget
+
 ## Pre-flight (2 min)
 
 1. Open two terminals on the target host.

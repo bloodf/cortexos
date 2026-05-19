@@ -17,7 +17,6 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
-
 ## Todo
 
 - [ ] CHECKPOINT 1 confirmed
@@ -25,11 +24,13 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 - [ ] Configure
 - [ ] Verify
 - [ ] CHECKPOINT 2 confirmed
+
 ## CHECKPOINT 1
 
 **STOP — operator question:** OpenViking is healthy (`curl -s http://localhost:18790/health`)?
 
 Type `confirmed` to proceed.
+
 ## Install
 
 ```bash
@@ -72,6 +73,7 @@ Expected: `OpenViking backend: OK` (or equivalent success response from the plug
 **STOP — operator question:** `openclaw memory ping` returns success?
 
 Type `confirmed` to proceed.
+
 ## Next
 
 → `prompts/tools/43-openclaw-memory-core.md`

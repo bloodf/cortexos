@@ -28,7 +28,6 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
-
 ## Todo
 
 - [ ] CHECKPOINT 1 confirmed
@@ -39,6 +38,7 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 - [ ] Wire into the consumer
 - [ ] Write the sandbox-required roster
 - [ ] Verification checklist
+
 ## CHECKPOINT 1
 
 **STOP — operator question:** The VPS kernel exposes user namespaces?
@@ -48,6 +48,7 @@ Operator: confirm the VPS kernel exposes user namespaces
 and Docker daemon is running.
 
 Type `confirmed` to proceed.
+
 ## Decrypt the secret
 
 ```bash
@@ -103,6 +104,7 @@ Type "confirmed"
 to proceed.
 
 Type `confirmed` to proceed.
+
 ## Wire into the consumer
 
 Append to `/opt/cortexos/.secrets/consumer.env`:

@@ -16,7 +16,6 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
-
 ## Todo
 
 - [ ] CHECKPOINT 1 confirmed
@@ -24,11 +23,13 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 - [ ] Configure
 - [ ] Verify
 - [ ] CHECKPOINT 2 confirmed
+
 ## CHECKPOINT 1
 
 **STOP — operator question:** `openclaw memory ping` returns OK from the previous spoke?
 
 Type `confirmed` to proceed.
+
 ## Install
 
 ```bash
@@ -63,6 +64,7 @@ Expected: shows `dream` mode enabled with next scheduled run, retention policy a
 **STOP — operator question:** `openclaw memory status` shows dream enabled and retention policy configured?
 
 Type `confirmed` to proceed.
+
 ## Next
 
 → `prompts/tools/44-openclaw-a2a-gateway.md`

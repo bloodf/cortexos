@@ -54,10 +54,10 @@ Optional:
 | `SMOKE_SKIP_DISTRO`       | `0`           | `1` to skip steps 22–28 (CI staging mode)  |
 | `SMOKE_DASHBOARD_URL`     | `http://127.0.0.1:3080/en/login` | Used in step 25      |
 
-
 ## Todo
 
 - [ ] CHECKPOINT 6.A confirmed
+
 ## Run
 
 ```bash
@@ -156,6 +156,7 @@ Attach `/tmp/smoke.json` to the change ticket. If FAIL, attach the
 `/tmp/smoke.log` for triage.
 
 Type `confirmed` to proceed.
+
 ## Related
 
 - `prompts/paperclip/70-rollback.md` — rollback drill if smoke fails post-deploy.

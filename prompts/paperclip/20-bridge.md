@@ -96,6 +96,7 @@ sudo -u postgres psql -d cortex -c "SELECT paperclip_run_id, cortex_role, status
 - [ ] `journalctl -u cortex-paperclip-bridge -n 50` (or `docker compose logs`) shows no errors.
 
 Type `confirmed` to proceed.
+
 ## Rollback
 
 ```bash

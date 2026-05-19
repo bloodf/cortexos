@@ -16,7 +16,6 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
-
 ## Todo
 
 - [ ] CHECKPOINT 1 confirmed
@@ -24,11 +23,13 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 - [ ] Configure
 - [ ] Verify
 - [ ] CHECKPOINT 2 confirmed
+
 ## CHECKPOINT 1
 
 **STOP — operator question:** `systemd-resolved` is the current stub resolver (`resolvectl status | head -5`) and port 53 is not already bound by another service?
 
 Type `confirmed` to proceed.
+
 ## Install
 
 ```bash
@@ -94,6 +95,7 @@ Expected: one or more IP addresses returned.
 **STOP — operator question:** DNS resolution works (`dig +short google.com @127.0.0.1` returns IPs)?
 
 Type `confirmed` to proceed.
+
 ## Next
 
 → `prompts/tools/18-fail2ban.md`

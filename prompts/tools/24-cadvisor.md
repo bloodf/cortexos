@@ -16,18 +16,19 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
-
 ## Todo
 
 - [ ] CHECKPOINT 1 confirmed
 - [ ] Install
 - [ ] Verify
 - [ ] CHECKPOINT 2 confirmed
+
 ## CHECKPOINT 1
 
 **STOP — operator question:** Port **8081** is free (`ss -tlnp | grep 8081`). cAdvisor is bound to 8081 — port 8080 is owned by Caddy (`13-caddy.md`)?
 
 Type `confirmed` to proceed.
+
 ## Install
 
 Append cAdvisor to monitoring compose:
@@ -103,6 +104,7 @@ local configurations, fall back to `http://127.0.0.1:9090/api/v1/targets`.
 > Grafana dashboard view is verified in `99-final-validation.md`.
 
 Type `confirmed` to proceed.
+
 ## Next
 
 → `prompts/tools/25-node-exporter.md`

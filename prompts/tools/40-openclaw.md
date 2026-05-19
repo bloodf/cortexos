@@ -20,7 +20,6 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 
 > **Node bootstrap.** Ubuntu/Debian install Node via NodeSource or Linuxbrew. Verify `node --version` is ≥ 20 before continuing.
 
-
 ## Todo
 
 - [ ] CHECKPOINT 1 confirmed
@@ -29,11 +28,13 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 - [ ] Verify
 - [ ] CHECKPOINT 2 confirmed
 - [ ] Known Limitations
+
 ## CHECKPOINT 1
 
 **STOP — operator question:** Node.js ≥ 20 is installed (`node --version`) and 9Router is running?
 
 Type `confirmed` to proceed.
+
 ## Install
 
 ```bash
@@ -107,6 +108,7 @@ Expected: gateway health OK (used by `00-preflight.md` probe script).
 **STOP — operator question:** OpenClaw gateway is healthy?
 
 Type `confirmed` to proceed.
+
 ## Known Limitations
 
 ### Gateway is WebSocket RPC, not HTTP REST

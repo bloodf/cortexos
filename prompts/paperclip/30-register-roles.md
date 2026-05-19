@@ -12,7 +12,6 @@ Role definitions live in `templates/agent-roles/*.md` as YAML frontmatter under
 the `paperclip:` key. The registration script is the only supported path —
 do **not** click through the Paperclip UI for routine hires.
 
-
 ## Todo
 
 - [ ] 1. Pre-flight
@@ -20,6 +19,7 @@ do **not** click through the Paperclip UI for routine hires.
 - [ ] 3. Verify the key file
 - [ ] 4. Verify in Paperclip UI
 - [ ] CHECKPOINT 3.A confirmed
+
 ## 1. Pre-flight
 
 ```bash

@@ -9,13 +9,13 @@ Tune the per-role heartbeat cadence (`routine`) and monthly budget
 frontmatter in `templates/agent-roles/*.md` and re-running the registration
 script.
 
-
 ## Todo
 
 - [ ] Defaults
 - [ ] When to tune
 - [ ] Procedure
 - [ ] CHECKPOINT 4.A confirmed
+
 ## Defaults
 
 | Role            | Routine (cron)     | Monthly budget (USD) |

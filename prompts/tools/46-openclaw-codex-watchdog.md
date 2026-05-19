@@ -17,7 +17,6 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
-
 ## Todo
 
 - [ ] CHECKPOINT 1 confirmed
@@ -26,11 +25,13 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 - [ ] Verify
 - [ ] CHECKPOINT 2 confirmed
 - [ ] Known Limitations
+
 ## CHECKPOINT 1
 
 **STOP — operator question:** OpenClaw is running and NATS is reachable?
 
 Type `confirmed` to proceed.
+
 ## Install
 
 ```bash
@@ -79,6 +80,7 @@ Expected: `openclaw-codex-watchdog` listed as active.
 **STOP — operator question:** Watchdog plugin is active?
 
 Type `confirmed` to proceed.
+
 ## Known Limitations
 
 ### Discovery silent-skip (Phase H blocker #2)

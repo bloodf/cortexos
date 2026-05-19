@@ -20,7 +20,6 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 
 > **NATS CLI.** Static binary release at `https://github.com/nats-io/natscli/releases/latest` works on Ubuntu and Debian — prefer it over `brew` on Linux. Pin the version inline (operator pins each run).
 
-
 ## Todo
 
 - [ ] CHECKPOINT 1 confirmed
@@ -29,11 +28,13 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 - [ ] Verify
 - [ ] CHECKPOINT 2 confirmed
 - [ ] Known Limitations
+
 ## CHECKPOINT 1
 
 **STOP — operator question:** Port 4222 is free (`ss -tlnp | grep 4222`) and `nats` CLI is installed (`nats --version`)?
 
 Type `confirmed` to proceed.
+
 ## Install
 
 ```bash
@@ -101,6 +102,7 @@ Expected: server info shows JetStream enabled; KV bucket info shows `cortex_appr
 **STOP — operator question:** NATS is running with JetStream and the `cortex_approvals_seen` KV bucket exists?
 
 Type `confirmed` to proceed.
+
 ## Known Limitations
 
 ### `nats.js` setTimeout overflow
