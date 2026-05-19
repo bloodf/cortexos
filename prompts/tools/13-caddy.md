@@ -1,14 +1,24 @@
-# Caddy (latest)
+# Caddy + Tailscale TLS (latest)
 
 ## Purpose
 
-Install Caddy as the HTTPS reverse proxy; configure automatic TLS for `{DOMAIN}` and route traffic to CortexOS services.
+Run Caddy as a localhost-only HTTP reverse proxy for CortexOS services,
+then publish it over the tailnet on HTTPS using **Tailscale Serve**.
+Tailscale issues and rotates certificates automatically for the node's
+MagicDNS FQDN — **no public DNS, no Let's Encrypt, no ports 80/443
+exposed to the internet**.
+
+`CORTEX_DOMAIN` for a Tailscale-only install is the node's MagicDNS
+FQDN, e.g. `cortex.tailXXXX.ts.net` (printed by `tailscale status`).
 
 ## Prerequisites
 
-- `12-tailscale.md` completed.
-- DNS A record for `{DOMAIN}` pointing to the VPS public IP (or Tailscale IP if Tailscale-only).
-- Ports 80 and 443 open in the host firewall.
+- `12-tailscale.md` completed — node is online in your tailnet.
+- MagicDNS + HTTPS certs enabled in your Tailscale admin console
+  (`Admin → DNS → MagicDNS = on`, `Admin → DNS → HTTPS Certificates = on`).
+- `${CORTEX_DOMAIN}` exported and set to the tailnet FQDN (or a public
+  domain if you have one pointed at the Tailscale IP — both work the
+  same here).
 
 ## Distro selection
 
@@ -20,7 +30,9 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 
 ## CHECKPOINT 1
 
-Operator: confirm DNS is propagated (`dig +short {DOMAIN}` returns the correct IP) and ports 80/443 are open. Type "confirmed" to proceed.
+Operator: confirm Tailscale HTTPS certificates are enabled in your
+admin console and `tailscale status` shows the node online with a
+MagicDNS name. Type "confirmed" to proceed.
 
 ## Install
 
@@ -32,32 +44,40 @@ curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | \
   sudo tee /etc/apt/sources.list.d/caddy-stable.list
 sudo apt-get update -y -qq
 pkg_install caddy
-```
-
-Verify package install:
-
-```bash
 dpkg -s caddy >/dev/null
 ```
 
-## Configure
+## Configure Caddy (localhost only, path-based routing)
+
+MagicDNS issues exactly one hostname per node, so subdomain routing
+(`grafana.<host>`) is not available on a Tailscale-only install. Use
+**path-based** routing instead.
 
 Write `/etc/caddy/Caddyfile`:
 
 ```caddyfile
-{DOMAIN} {
-  reverse_proxy /api/* localhost:3080
-  reverse_proxy localhost:3080
+{
+  # Localhost-only; Tailscale Serve terminates TLS in front.
+  auto_https off
+  admin off
 }
 
-# Grafana
-grafana.{DOMAIN} {
-  reverse_proxy localhost:3000
-}
-
-# Prometheus (internal only — restrict by IP or Tailscale)
-prometheus.{DOMAIN} {
-  reverse_proxy localhost:9090
+:8080 {
+  # Dashboard at root
+  handle /api/* {
+    reverse_proxy localhost:3080
+  }
+  handle /grafana/* {
+    uri strip_prefix /grafana
+    reverse_proxy localhost:3000
+  }
+  handle /prometheus/* {
+    uri strip_prefix /prometheus
+    reverse_proxy localhost:9090
+  }
+  handle {
+    reverse_proxy localhost:3080
+  }
 }
 ```
 
@@ -65,27 +85,52 @@ Reload:
 
 ```bash
 sudo systemctl enable caddy
-sudo systemctl reload caddy
+sudo systemctl restart caddy
+curl -sS http://127.0.0.1:8080/ -o /dev/null -w "caddy: %{http_code}\n"
 ```
 
-Open firewall ports:
+## Publish over Tailscale (HTTPS, auto cert)
 
 ```bash
-firewall_open 80 tcp
-firewall_open 443 tcp
+# Issue the node cert on first call (idempotent, refreshes on its own)
+sudo tailscale cert "${CORTEX_DOMAIN}"
+
+# Background serve: HTTPS on 443 → Caddy on localhost:8080
+sudo tailscale serve --bg --https=443 http://localhost:8080
+sudo tailscale serve status
 ```
+
+Do **not** open ports 80/443 in the host firewall — Tailscale Serve
+listens on the tailnet interface only.
 
 ## Verify
 
 ```bash
-curl -sSo /dev/null -w "%{http_code}" https://{DOMAIN}/
+curl -sS "https://${CORTEX_DOMAIN}/" -o /dev/null -w "ts-serve: %{http_code}\n"
+curl -sS "https://${CORTEX_DOMAIN}/grafana/" -o /dev/null -w "grafana: %{http_code}\n"
 ```
 
-Expected: `200` (or `302`/`301` depending on app). Certificate auto-provisioned by Caddy via Let's Encrypt.
+Expected: `200`/`302` with no certificate errors. The browser should
+trust the cert (issued by Let's Encrypt via Tailscale's ACME proxy
+against the `*.ts.net` zone).
 
 ## CHECKPOINT 2
 
-Operator: confirm HTTPS is working at `https://{DOMAIN}/` and no certificate errors appear. Type "confirmed" to proceed.
+Operator: from a second tailnet device, confirm `https://${CORTEX_DOMAIN}/`
+loads the dashboard with a valid certificate and no warnings. Type
+"confirmed" to proceed.
+
+## Public-domain override (optional)
+
+If you have a real domain pointed at the VPS public IP **and** want it
+served publicly (not just over Tailscale):
+
+1. Re-enable Caddy's auto-HTTPS block in the Caddyfile with
+   `${CORTEX_DOMAIN}` and remove the `:8080` block.
+2. Open `firewall_open 80 tcp` and `firewall_open 443 tcp`.
+3. Skip the `tailscale serve` step.
+
+For a homelab the Tailscale path is preferred — zero public surface.
 
 ## Next
 

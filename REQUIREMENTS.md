@@ -129,11 +129,25 @@ type gh >/dev/null 2>&1 || sudo apt-get install -y gh
 
 ---
 
-## 7. Optional but recommended
+## 7. Tailscale MagicDNS + HTTPS (default — no public domain needed)
 
-- **A public domain** with DNS pointing to the VPS, if you want Caddy
-  to serve the dashboard with a real TLS cert (otherwise the Tailscale
-  FQDN works fine).
+CortexOS publishes the dashboard over the tailnet using **Tailscale
+Serve** with auto-issued Let's Encrypt certs against your `*.ts.net`
+zone. Enable both toggles in your Tailscale admin console before
+running setup:
+
+- **Admin → DNS → MagicDNS**: on
+- **Admin → DNS → HTTPS Certificates**: on (provision certs)
+
+Your `CORTEX_DOMAIN` is then the node's MagicDNS FQDN
+(`tailscale status` → the `<host>.<tailnet>.ts.net` line). No public
+DNS record, no ports 80/443 exposed, no Let's Encrypt account needed.
+
+## 8. Optional but recommended
+
+- **A public domain** with DNS pointing to the VPS — only if you want
+  the dashboard reachable from the open internet. The Tailscale path
+  above is preferred for homelab installs (zero public surface).
 - **A GitHub account with `gh` logged in** (`gh auth login`) — only
   required once a tagged release exists for `bloodf/cortexos`; the
   preflight prompt now skips artifact verification when none exists.

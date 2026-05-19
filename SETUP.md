@@ -24,8 +24,13 @@ export CORTEX_IP=""                     # VPS public or LAN IP
 export SSH_PORT="22"                    # SSH port (default 22)
 
 # 2. Domain
-export CORTEX_DOMAIN=""                 # Public domain (e.g. cortex.example.com)
-                                        # Can be a Tailscale FQDN or custom DNS
+# Default: use the Tailscale MagicDNS FQDN of this node — e.g.
+#   cortex.tailXXXX.ts.net  (read from `tailscale status` after 12-tailscale.md)
+# Tailscale Serve terminates HTTPS with auto-issued certs; no public DNS or
+# Let's Encrypt account needed. Set a real public domain ONLY if you want the
+# dashboard exposed on the open internet (see 13-caddy.md "Public-domain
+# override").
+export CORTEX_DOMAIN=""                 # e.g. cortex.tailXXXX.ts.net
 
 # 3. Tailscale
 # No token needed at setup time — `prompts/tools/12-tailscale.md` runs
@@ -102,21 +107,31 @@ If installed: confirm version is from upstream HEAD (no pinned older version).
 
 The agent computes topological sort from `prompts/tools/_order.md`. Enabled spokes only (skip `16-mongodb` unless `INSTALL_MONGODB=yes`).
 
-Default linear order (no optional services):
+Default linear order (no optional services). This is the authoritative
+sequence the agent MUST follow; it matches `prompts/tools/_order.md`
+and includes every required spoke present on disk:
 
 ```text
-00-preflight → 10-os-hardening → 11-docker → 12-tailscale → 13-caddy
+00-preflight
+→ 10-os-hardening → 11-docker → 12-tailscale → 12a-sops-bootstrap → 13-caddy
 → 14-postgresql → 15-redis → 17-dnsmasq → 18-fail2ban
 → 20-prometheus → 21-loki → 22-grafana → 23-fluent-bit → 24-cadvisor → 25-node-exporter
-→ 30-nats → 31-9router → 32-openviking → 33-leann → 34-kernel-browser → 35-opik
+→ 30-nats → 31-9router → 32-openviking → 33-leann → 34-kernel-browser → 35a-langfuse
 → 40-openclaw → 41-openclaw-channels → 42-openclaw-openviking → 43-openclaw-memory-core
-→ 44-openclaw-a2a-gateway → 45-openclaw-compaction → 46-openclaw-codex-watchdog
-→ 47-openclaw-foundry → 48-openclaw-opik → 49-openclaw-account-ops
-→ 50-agentgateway → 60-cortex-consumer → 70-dashboard → 80-agent-factory → 81-projects
+→ 44-openclaw-a2a-gateway → 45-openclaw-compaction → 45a-cortex-graph
+→ 46-openclaw-codex-watchdog → 47-openclaw-foundry → 47a-cortex-sandbox
+→ 49-openclaw-account-ops
+→ 50-agentgateway → 55-langfuse → 60-cortex-consumer → 61-smoke-tests
+→ 70-dashboard → 80-agent-factory → 81-projects
 → 99-final-validation
 ```
 
 If `INSTALL_MONGODB=yes`, insert `16-mongodb` after `15-redis`.
+
+Spokes intentionally skipped from the linear flow:
+
+- `35-opik` — DEPRECATED (MySQL backend); replaced by `35a-langfuse`.
+- `48-openclaw-opik` — depends on `35-opik`; skipped with it.
 
 ---
 
@@ -142,6 +157,109 @@ State file format:
 ```
 
 If interrupted, re-run from the last incomplete spoke. The state file prevents double-execution.
+
+---
+
+## Checkpoint & Resume Protocol
+
+Every spoke contains one or more `## CHECKPOINT N` markers. The agent
+treats each as a hard barrier: it stops, prints its current step + a
+short status summary, and waits for the operator to type `confirmed`
+before continuing. This is what lets you safely interrupt and resume
+the install.
+
+### What gets written, per checkpoint
+
+At every checkpoint the agent appends a record to
+`.secrets/.setup-state.json` on the VPS BEFORE asking the operator to
+confirm:
+
+```json
+{
+  "schema": 1,
+  "started_at": "2026-05-18T22:00:00Z",
+  "last_updated": "2026-05-18T22:14:09Z",
+  "completed_spokes": ["00-preflight", "10-os-hardening"],
+  "current_spoke": "11-docker",
+  "last_checkpoint": 2,
+  "checkpoints": [
+    {
+      "spoke": "11-docker",
+      "n": 2,
+      "ts": "2026-05-18T22:14:09Z",
+      "status": "awaiting_operator",
+      "evidence": {
+        "cmd": "docker version --format '{{.Server.Version}}'",
+        "output": "27.4.1"
+      }
+    }
+  ]
+}
+```
+
+The file is in `.secrets/` so it is gitignored and never leaves the
+host. `mode 0600`, owner `${CORTEX_USER}`.
+
+### How to interrupt safely
+
+You can stop the agent at any time at a `CHECKPOINT N` prompt:
+
+1. The current spoke is left as `current_spoke`, the last reached
+   checkpoint as `last_checkpoint`, status `awaiting_operator` or
+   `interrupted` (set by `Ctrl+C` handler).
+2. Nothing destructive runs after a CHECKPOINT until you type
+   `confirmed`, so the host is in a known-good state.
+3. Note the values of `current_spoke` and `last_checkpoint` in the
+   state file before closing the session.
+
+### How to resume
+
+Open `SETUP.md` again in your AI agent and tell it:
+
+```text
+Resume install from .secrets/.setup-state.json. Re-read the file,
+re-enter the spoke listed in `current_spoke`, jump to step
+`last_checkpoint + 1`, and continue.
+```
+
+The agent MUST:
+
+1. `jq .` the state file to confirm it is well-formed.
+2. Skip every spoke in `completed_spokes`.
+3. For `current_spoke`, replay any read-only verification commands
+   listed in the spoke up to `last_checkpoint`, but DO NOT re-run
+   any package install, file write, or service-restart step that
+   appears before that checkpoint — those have already happened.
+4. Resume linear execution from the first step AFTER
+   `last_checkpoint`.
+
+### Marking a spoke complete
+
+When a spoke's final checkpoint is confirmed, the agent updates the
+state file in a single atomic write:
+
+```json
+{
+  "completed_spokes": [..., "11-docker"],
+  "current_spoke": "12-tailscale",
+  "last_checkpoint": 0
+}
+```
+
+### Hard rules
+
+- The agent NEVER edits `.secrets/.setup-state.json` by hand mid-step;
+  always whole-file replace with `mktemp && mv` to keep it atomic.
+- The agent NEVER skips a checkpoint, even if a spoke looks
+  "obviously successful" from logs. Operator confirmation is the
+  contract.
+- If the state file is missing or corrupted, the agent halts and
+  asks the operator which spoke to resume from — it does NOT guess.
+- A spoke that fails mid-step records `status: "failed"` with the
+  failing command + stderr, then halts. The operator either fixes
+  the underlying problem and re-runs the spoke from the top
+  (idempotent prompts are written to support this), or restores
+  from a prior snapshot.
 
 ---
 
