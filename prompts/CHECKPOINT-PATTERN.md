@@ -12,7 +12,7 @@
 A good checkpoint question is **specific, single-claim, and evidence-bound**. The operator must be able to answer yes/no in seconds by looking at terminal output they just produced.
 
 1. **One claim per checkpoint.** Do NOT chain checks with "AND … AND … AND". If you have three things to verify, you have three checkpoints — or the checks fold into a single, named probe (`scripts/validate-<spoke>.sh`) whose pass/fail is the single claim.
-2. **Cite the exact probe.** Inline-quote the command the operator just ran (`\`curl -fsS http://127.0.0.1:18790/health\``) and the exact expected output (`\`{"status":"ok"}\``). No vague "service is up" wording.
+2. **Cite the exact probe.** Inline-quote the command the operator just ran (e.g. `curl -fsS <http://127.0.0.1:18790/health>`) and the exact expected output (e.g. `{"status":"ok"}`). No vague "service is up" wording.
 3. **Express the failure mode, not the success mode, when failure is easy to misread.** Empty arrays, HTTP 200 with an error body, status `active (exited)` — call these out by name so a tired operator does not nod past them.
 4. **Yes/no answerable from one terminal screen.** If the operator has to scroll, reformat, or run extra commands to answer, the checkpoint is too broad. Split it.
 5. **No forward references.** A checkpoint may NOT depend on a downstream service the operator has not installed yet (see "The rule" below).

@@ -39,6 +39,7 @@ sudo -v
 **STOP — operator question:** You have credentials for the channels you want to enable now?
 
 Examples:
+
 - Telegram bot token
 - Slack bot token (+ app token or signing secret, depending on mode)
 - Discord bot token + application ID

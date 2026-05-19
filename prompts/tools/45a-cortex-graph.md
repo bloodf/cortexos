@@ -117,7 +117,6 @@ CORTEX_GRAPH_NATS_ENABLED=1
 OTEL_EXPORTER_OTLP_ENDPOINT=<optional>
 ```
 
-
 If Postgres and NATS are only exposed on the host loopback interface (the
 common CortexOS default), the container cannot reach them over `cortex-net`. In
 that case either:
