@@ -83,9 +83,8 @@ Filesystem layout under `CORTEX_ROOT` (default `/opt/cortexos`):
 ```text
 /opt/cortexos
   ├─ .secrets/              host-only env files (mode 0600, owned by cortex)
-  ├─ secrets/               dashboard + service env files
-  ├─ stacks/                docker compose stacks (dashboard, nats, langfuse, graph, sandbox)
-  ├─ packages/              @cortexos/{events,audit,telemetry} build artifacts
+  ├─ stacks/                docker compose stacks (databases, langfuse, sandbox, watchtower)
+  ├─ packages/              @cortexos/{events,audit,telemetry} build artifacts; dashboard Next.js standalone
   ├─ schemas/               JSON Schema registry (CloudEvents + payloads)
   ├─ data/                  postgres, nats, clickhouse, langfuse volumes
   └─ templates/             role files, scripts, systemd units
@@ -119,6 +118,7 @@ Streams (JetStream):
 | `CORTEX_PAPERCLIP_WORK` | `cortex.paperclip.work.>` | `workqueue` | 120s |
 | `CORTEX_PAPERCLIP_OPS` | `cortex.paperclip.status.>`, `cortex.paperclip.approval.>`, `cortex.alerts.>`, `cortex.signals.>` | `limits` | 120s |
 | `CORTEX_DLQ` | `cortex.dlq.>` | `limits`, 7d | 120s |
+| `CORTEX_AUDIT` | `cortex.audit.>` | `limits`, 30d | 120s |
 
 Producers build events via `@cortexos/events.envelope()` and call `validate()`; consumers `parse()` (or `validate()`) every inbound message. `CORTEX_REQUIRE_ENVELOPE=1` enforces strict mode once all producers have rolled. Dedup uses `Nats-Msg-Id: <CloudEvents.id>`. Failures route to `cortex.dlq.<original-subject>` with full error chain. Full taxonomy in [NATS-CONTRACT.md](NATS-CONTRACT.md).
 
@@ -155,7 +155,7 @@ CortexOS targets SLSA Level 2:
 - Images are signed keylessly with [cosign](https://github.com/sigstore/cosign).
 - SBOMs are generated with [syft](https://github.com/anchore/syft) and attached as attestations.
 - Provenance attestations follow the SLSA v1.0 provenance schema.
-- The on-VPS dashboard build runs `docker compose build` directly on the host (no `rsync` of source); image references are verified before promotion.
+- The dashboard is built natively on the VPS (`scripts/native-build.sh` in `packages/cortex-dashboard`) and runs as a systemd service; Docker is not used for the dashboard.
 
 Verification protocol, threat model, and operator commands are in [SUPPLY-CHAIN.md](SUPPLY-CHAIN.md).
 
@@ -180,7 +180,7 @@ Two stacks live side-by-side:
 
 ## Extension guide
 
-Add a new service: extend `templates/compose/`, register a dashboard seed row, scrape config, schema file under `schemas/`, docs index entry, and a troubleshooting runbook. Add a new agent role: create a role file under `templates/agent-roles/`, declare `graphEnabled` if it should run under LangGraph, register a label mapping, dispatch rule, NATS subject (in [NATS-CONTRACT.md](NATS-CONTRACT.md)), and approval gate if needed.
+Add a new service: prefer a systemd unit under `templates/systemd/`, register a dashboard seed row, scrape config, schema file under `schemas/`, docs index entry, and a troubleshooting runbook. Use Docker Compose only for database, admin-tool, isolation, cAdvisor, Langfuse, or Watchtower workloads. Add a new agent role: create a role file under `templates/agent-roles/`, declare `graphEnabled` if it should run under LangGraph, register a label mapping, dispatch rule, NATS subject (in [NATS-CONTRACT.md](NATS-CONTRACT.md)), and approval gate if needed.
 
 ## Related docs
 

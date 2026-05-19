@@ -9,6 +9,7 @@
 > `prompts/tools/10-os-hardening.md`).
 
 ## Conventions
+- **Deployment mode**: how the service runs in production. `native` = systemd service on the host; `docker` = Docker Compose stack. Native-first means Docker is used only for databases, admin tools, isolation services, cAdvisor, Langfuse, and Watchtower.
 
 - **Internal port**: bound to `127.0.0.1` (loopback) or to a Docker bridge.
   Never exposed publicly.
@@ -20,40 +21,41 @@
 
 ## Web UIs (operator-facing)
 
-| Service          | Spoke                                  | Internal port | Public URL                                    | Default admin / password           |
-|------------------|----------------------------------------|---------------|-----------------------------------------------|------------------------------------|
-| Cortex Dashboard | `70-dashboard.md`                      | 3080          | `https://${CORTEX_DOMAIN}/`                   | `admin` / `12345678` (rotate via `/admin/account`) |
-| 9Router          | `31-9router.md`                        | 11434         | `https://${CORTEX_DOMAIN}/9router/`           | bearer = `NINEROUTER_API_KEY` (from `/opt/cortexos/.secrets/9router.env`) |
-| Grafana          | `22-grafana.md`                        | 3000          | `https://${CORTEX_DOMAIN}/grafana/`           | `admin` / `GRAFANA_ADMIN_PASSWORD` (from `/opt/cortexos/.secrets/grafana.env`) |
-| Prometheus       | `20-prometheus.md`                     | 9090          | `https://${CORTEX_DOMAIN}/prometheus/`        | none (read-only)                   |
-| Loki             | `21-loki.md`                           | 3100          | `https://${CORTEX_DOMAIN}/loki/`              | none (read-only API)               |
-| cAdvisor         | `24-cadvisor.md`                       | 8081          | `https://${CORTEX_DOMAIN}/cadvisor/`          | none                               |
-| NATS monitor     | `30-nats.md`                           | 8222          | `https://${CORTEX_DOMAIN}/nats/`              | none (read-only)                   |
-| Langfuse         | `55-langfuse.md`                       | 3001          | `https://${CORTEX_DOMAIN}/langfuse/`          | first-admin bootstrap on first visit |
+| Service          | Spoke                                  | Internal port | Mode   | Public URL                                    | Default admin / password           |
+|------------------|----------------------------------------|---------------|--------|-----------------------------------------------|------------------------------------|
+| Cortex Dashboard | `70-dashboard.md`                      | 3080          | native | `https://${CORTEX_DOMAIN}/`                   | `admin` / `12345678` (rotate via `/admin/account`) |
+| 9Router          | `31-9router.md`                        | 11434         | native | `https://${CORTEX_DOMAIN}/9router/`           | bearer = `NINEROUTER_API_KEY` (from `/opt/cortexos/.secrets/9router.env`) |
+| Grafana          | `22-grafana.md`                        | 3000          | native | `https://${CORTEX_DOMAIN}/grafana/`           | `admin` / `GRAFANA_ADMIN_PASSWORD` (from `/opt/cortexos/.secrets/grafana.env`) |
+| Prometheus       | `20-prometheus.md`                     | 9090          | native | `https://${CORTEX_DOMAIN}/prometheus/`        | none (read-only)                   |
+| Loki             | `21-loki.md`                           | 3100          | native | `https://${CORTEX_DOMAIN}/loki/`              | none (read-only API)               |
+| cAdvisor         | `24-cadvisor.md`                       | 8081          | docker | `https://${CORTEX_DOMAIN}/cadvisor/`          | none                               |
+| NATS monitor     | `30-nats.md`                           | 8222          | native | `https://${CORTEX_DOMAIN}/nats/`              | none (read-only)                   |
+| OpenViking Console | `32-openviking.md`                  | 8020          | native | `https://${CORTEX_DOMAIN}/openviking/`        | root key in `openviking.env`       |
+| Langfuse         | `55-langfuse.md`                       | 3001          | docker | `https://${CORTEX_DOMAIN}/langfuse/`          | first-admin bootstrap on first visit |
 
 ## Backend services (no UI)
 
-| Service                | Spoke                              | Internal port | Notes                                       |
-|------------------------|------------------------------------|---------------|---------------------------------------------|
-| Caddy (reverse proxy)  | `13-caddy.md`                      | 8080          | Tailscale-served on `:443`; not on the public internet. |
-| PostgreSQL             | `14-postgresql.md`                 | 5432          | `dashboard` DB role; password in `dashboard.env`. |
-| Redis                  | `15-redis.md`                      | 6379          | Loopback only; no auth required.            |
-| MongoDB                | `16-mongodb.md`                    | 27017         | Loopback only.                              |
-| dnsmasq                | `17-dnsmasq.md`                    | 53            | Loopback DNS resolver.                      |
-| node_exporter          | `25-node-exporter.md`              | 9100          | Prometheus scrape target.                   |
-| fluent-bit             | `23-fluent-bit.md`                 | 24224         | Forwarder; loopback only.                   |
-| NATS (JetStream)       | `30-nats.md`                       | 4222          | mTLS over loopback; bus for CortexOS events.|
-| OpenViking             | `32-openviking.md`                 | 18790         | Memory backend; root API key in `openviking.env`. |
-| Ollama                 | `32-openviking.md`                 | 11435         | Local LLM runtime; **not** port 11434 (9Router owns that). |
-| LEANN                  | `33-leann.md`                      | 18791         | Vector store sidecar.                       |
-| Kernel browser         | `34-kernel-browser.md`             | 7081          | Headless browser tool.                      |
-| OpenClaw gateway       | `40-openclaw.md`                   | 18789         | Internal A2A surface.                       |
-| AgentGateway           | `50-agentgateway.md`               | 18800         | MCP / tool invocation.                      |
-| cortex-graph           | `45a-cortex-graph.md`              | 8090          | LangGraph sidecar (FastAPI).                |
-| cortex-sandbox-runner  | `47a-cortex-sandbox.md`            | 8091          | gVisor tool sandbox.                        |
-| cortex-paperclip-bridge| `prompts/paperclip/20-bridge.md`   | 8089          | Webhook receiver + JetStream worker.        |
-| cortex-consumer        | `60-cortex-consumer.md`            | n/a (NATS)    | JetStream consumer daemon.                  |
-| Foundry / weekly       | `47-openclaw-foundry.md`, `61-…`   | varies        | Scheduled jobs; no listener.                |
+| Service                | Spoke                              | Internal port | Mode   | Notes                                       |
+|------------------------|------------------------------------|---------------|--------|---------------------------------------------|
+| Caddy (reverse proxy)  | `13-caddy.md`                      | 8080          | native | Tailscale-served on `:443`; not on the public internet. |
+| PostgreSQL             | `14-postgresql.md`                 | 5432          | docker | `dashboard` DB role; password in `dashboard.env`. |
+| Redis                  | `15-redis.md`                      | 6379          | docker | Loopback only; no auth required.            |
+| MongoDB                | `16-mongodb.md`                    | 27017         | docker | Loopback only.                              |
+| dnsmasq                | `17-dnsmasq.md`                    | 53            | native | Loopback DNS resolver.                      |
+| node_exporter          | `25-node-exporter.md`              | 9100          | native | Prometheus scrape target.                   |
+| fluent-bit             | `23-fluent-bit.md`                 | 24224         | native | Forwarder; loopback only.                   |
+| NATS (JetStream)       | `30-nats.md`                       | 4222          | native | mTLS over loopback; bus for CortexOS events.|
+| OpenViking             | `32-openviking.md`                 | 18790         | native | Memory backend; root API key in `openviking.env`. |
+| Ollama                 | `32-openviking.md`                 | 11435         | native | Local LLM runtime; **not** port 11434 (9Router owns that). |
+| LEANN                  | `33-leann.md`                      | 18791         | native | Vector store sidecar.                       |
+| Kernel browser         | `34-kernel-browser.md`             | 7081          | native | Headless browser tool.                      |
+| OpenClaw gateway       | `40-openclaw.md`                   | 18789         | native | Internal A2A surface.                       |
+| AgentGateway           | `50-agentgateway.md`               | 18800         | native | MCP / tool invocation.                      |
+| cortex-graph           | `45a-cortex-graph.md`              | 8090          | native | LangGraph sidecar (FastAPI).                |
+| cortex-sandbox-runner  | `47a-cortex-sandbox.md`            | 8091          | docker | gVisor tool sandbox.                        |
+| cortex-paperclip-bridge| `62-paperclip.md`                  | 8089          | native | Webhook receiver + JetStream worker.        |
+| cortex-consumer        | `60-cortex-consumer.md`            | n/a (NATS)    | native | JetStream consumer daemon.                  |
+| Foundry / weekly       | `47-openclaw-foundry.md`, `61-…`   | varies        | native | Scheduled jobs; no listener.                |
 
 ## Default-credential rotation checklist
 
@@ -62,7 +64,7 @@ Run after first bootstrap of each service:
 1. **Cortex Dashboard** — log in at `https://${CORTEX_DOMAIN}/admin/login` with
    `admin` / `12345678`, then `/admin/account` → set new password
    (`POST /api/auth/password`). Lost password fallback:
-   `docker compose exec cortex-dashboard ./scripts/change-admin-password.sh <new-pw>`.
+   `sudo /opt/cortexos/packages/cortex-dashboard/scripts/change-admin-password.sh <new-pw>`.
 2. **Grafana** — first login at `/grafana/` with `admin` /
    `GRAFANA_ADMIN_PASSWORD`; Grafana forces a rotation flow on first sign-in.
 3. **9Router** — admin token equals `NINEROUTER_API_KEY`. Rotate by editing

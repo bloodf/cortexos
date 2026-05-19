@@ -146,6 +146,24 @@ Write `/etc/caddy/Caddyfile`:
     reverse_proxy localhost:11434
   }
 
+  # OpenViking built-in web console/API
+  handle_path /openviking {
+    redir /openviking/ permanent
+  }
+  handle /openviking/* {
+    uri strip_prefix /openviking
+    reverse_proxy localhost:18790
+  }
+
+  # LEANN document-RAG API
+  handle_path /leann {
+    redir /leann/ permanent
+  }
+  handle /leann/* {
+    uri strip_prefix /leann
+    reverse_proxy localhost:18791
+  }
+
   # Langfuse — Langfuse v3 does not natively support a sub-path
   # (no BASE_PATH / basePath env). NEXTAUTH_URL is set to the full
   # /langfuse URL and links are rewritten where possible, but some

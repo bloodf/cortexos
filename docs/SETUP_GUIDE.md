@@ -9,6 +9,7 @@
 > step from the laptop to the VPS via `scripts/bootstrap.sh`. The
 > operator age **private** key lives only on the laptop; the VPS never
 > sees it.
+> **Native-first deployment.** CortexOS services run as native systemd units wherever possible. Docker is reserved for databases, admin tools, isolation services (gVisor / cAdvisor), Langfuse, and Watchtower.
 
 ## Contents
 
@@ -99,33 +100,22 @@ The bootstrap dispatches every step under `prompts/os/*` and `prompts/tools/*`. 
 | `prompts/tools/18-fail2ban.md` | fail2ban |
 | `prompts/tools/20-prometheus.md` ... `25-node-exporter.md` | Prometheus / Loki / Grafana / Fluent Bit / cAdvisor / node-exporter |
 | `prompts/tools/30-nats.md` | NATS JetStream with the streams listed in [NATS-CONTRACT.md](NATS-CONTRACT.md) |
-| `prompts/tools/45a-cortex-graph.md` | Deploy `stacks/cortex-graph` (LangGraph sidecar + PG checkpointer) |
+| `prompts/tools/45a-cortex-graph.md` | Deploy `stacks/cortex-graph` natively (LangGraph sidecar + PG checkpointer) |
 | `prompts/tools/47a-cortex-sandbox.md` | Deploy `stacks/cortex-sandbox-runner` (gVisor / `runsc`) |
 | `prompts/tools/55-langfuse.md` | Deploy self-hosted Langfuse + ClickHouse for LLM traces |
 | `prompts/tools/60-cortex-consumer.md` | Deploy the durable consumer with envelope validation enabled |
-| `prompts/tools/70-dashboard.md` | Build the dashboard on the VPS via `docker compose build` (no rsync) |
+| `prompts/tools/70-dashboard.md` | Build the dashboard natively on the VPS (`scripts/native-build.sh`) and install the systemd unit |
 | `prompts/tools/99-final-validation.md` | End-to-end validation + credential export |
 
 ## Paperclip governance plane (required)
 
-After module 13, every operator runs the Paperclip prompts in order.
-Paperclip is the governance plane for CortexOS — goals, approvals, and
-budgets flow through it — and is **not optional**:
+Paperclip is integrated into the mandatory install order as `62-paperclip` and
+`63-paperclip-alerts` in `prompts/tools/_order.md`. There is no separate
+post-install Paperclip phase; bootstrap includes the governance plane directly.
 
-| Prompt                                         | Stage                            |
-|------------------------------------------------|----------------------------------|
-| `prompts/paperclip/00-overview.md`             | Authority split + decision gate  |
-| `prompts/paperclip/10-install.md`              | Install bridge dependencies      |
-| `prompts/paperclip/20-bridge.md`               | Bring up the bridge service      |
-| `prompts/paperclip/30-register-roles.md`       | Register CortexOS roles          |
-| `prompts/paperclip/40-routines-and-budgets.md` | Configure routines + budgets     |
-| `prompts/paperclip/50-approval-gates.md`       | Wire approval gates              |
-| `prompts/paperclip/60-post-install-validation.md` | Run end-to-end 28-step validation |
-| `prompts/paperclip/70-rollback.md`             | Practice rollback drill          |
-
-The Paperclip layer is mandatory. Bootstrap is not complete until these
-prompts have been run and validated. See [PAPERCLIP.md](PAPERCLIP.md)
-for architecture and ops runbook.
+Operational Paperclip prompts for validation, rollback, and historic backfill live
+under `prompts/operations/`. See [PAPERCLIP.md](PAPERCLIP.md) for architecture
+and ops runbook.
 
 ## Verification
 
@@ -133,7 +123,7 @@ After each checkpoint, confirm service health, file ownership, logs, dashboard r
 
 ## FAQ
 
-**Can existing PostgreSQL be used?** Yes. Skip install commands and set `DATABASE_URL` in `/opt/cortexos/secrets/dashboard.env`.
+**Can existing PostgreSQL be used?** Yes. Skip install commands and set `DATABASE_URL` in `/opt/cortexos/.secrets/dashboard.env`.
 
 **Can agent factory be skipped?** Yes. Dashboard and infrastructure can run without modules 06, 09, and 11.
 

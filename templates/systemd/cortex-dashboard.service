@@ -1,0 +1,19 @@
+[Unit]
+Description=Cortex Dashboard (Next.js standalone)
+After=network-online.target postgresql.service redis.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=cortex
+Group=cortex
+WorkingDirectory=/opt/cortexos/packages/cortex-dashboard
+Environment=NODE_ENV=production
+Environment=PORT=3080
+EnvironmentFile=/opt/cortexos/.secrets/dashboard.env
+ExecStart=/usr/bin/env node .next/standalone/server.js
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

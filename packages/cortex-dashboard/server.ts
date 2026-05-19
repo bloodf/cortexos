@@ -2,10 +2,12 @@ import { createServer } from "http";
 import next from "next";
 import { Server } from "socket.io";
 import { initSocketServer } from "./src/lib/socket-server";
+import { initAiStores } from "./src/lib/ai/init";
 
 const dev = process.env.NODE_ENV !== "production";
 const port = parseInt(process.env.PORT || "3000", 10);
 const hostname = process.env.HOSTNAME || "0.0.0.0";
+initAiStores();
 
 const app = next({ dev, port, hostname, turbopack: dev });
 const handle = app.getRequestHandler();

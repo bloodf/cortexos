@@ -18,7 +18,7 @@
 | Container          | Image          | Bind                       | Role                                                      |
 |--------------------|----------------|----------------------------|-----------------------------------------------------------|
 | `cortex-dashboard-db` | `postgres:17`  | `127.0.0.1:5432`            | Dashboard data only (users, sessions, projects, audit).   |
-| `cortex-postgresql`   | `postgres:18`  | internal docker network    | Shared backend store: OpenViking memory + Langfuse v2.    |
+| `cortex-postgresql`   | `postgres:18`  | internal docker network    | Shared backend store: OpenViking memory + Langfuse v3.    |
 
 Both containers are managed by docker compose under
 `stacks/postgresql/`. Neither container exposes a public port; access
@@ -46,7 +46,7 @@ is via loopback or via the `cortex-internal` docker network only.
 - **Databases:**
   - `openviking` — episodic and semantic memory for OpenClaw
     (`32-openviking.md`).
-  - `langfuse`  — Langfuse v2 traces, prompts, eval scores
+  - `langfuse`  — Langfuse v3 traces, prompts, eval scores
     (`55-langfuse.md`, full install in `55-langfuse.md`).
 - **Trust boundary:** only services on the `cortex-internal`
   network can resolve the host; secrets live under

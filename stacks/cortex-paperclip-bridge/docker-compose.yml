@@ -1,3 +1,9 @@
+# cortex-paperclip-bridge — LEGACY Docker Compose build.
+#
+# This file is preserved for reference and local experimentation only.
+# Production deployments use the native systemd service at
+# templates/systemd/cortex-paperclip-bridge.service, running the Node.js
+# entrypoint directly on the host.
 services:
   cortex-paperclip-bridge:
     build:

@@ -15,7 +15,8 @@
 
 ## Overview
 
-Dashboard is Next.js 16 application in `dashboard/`. It runs on port 3080 behind Caddy, uses PostgreSQL for state, and probes local/host services through configured health checks.
+Dashboard is a Next.js 16 application in `packages/cortex-dashboard/`. It runs on port 3080 behind Caddy, uses PostgreSQL for state, and probes local/host services through configured health checks.
+The legacy Docker Compose file at `stacks/cortex-dashboard/docker-compose.yml` is deprecated and preserved only for reference.
 
 ## Feature map
 
@@ -39,35 +40,25 @@ pnpm run dev          # custom server on PORT=3000
 
 ## Production deployment
 
-Production runs as a Docker Compose service built **on the VPS** from
-the repo tree materialized by the bootstrap flow (`git archive | ssh
-tar -x`). No rsync, no laptop-side Next.js build, no systemd unit.
+Production runs as a native systemd service from the Next.js standalone build. Docker is not used for the dashboard.
 
 ```bash
-# On the VPS:
-cd /opt/cortexos/stacks/cortex-dashboard
-docker compose up -d --build
+cd /opt/cortexos/packages/cortex-dashboard
+bash scripts/native-build.sh
+sudo install -m 0644 /opt/cortexos/templates/systemd/cortex-dashboard.service /etc/systemd/system/cortex-dashboard.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now cortex-dashboard
 curl -fsS http://127.0.0.1:3080/api/health
 ```
 
 Key facts:
 
-- Image base: `node:22-slim`. Runtime user: non-root `node`. PID 1:
-  `dumb-init`.
-- Compose file: `stacks/cortex-dashboard/docker-compose.yml`
-  (build context `../../dashboard`).
-- Runtime env: `/opt/cortexos/.secrets/dashboard.env`
-  (`DB_*`, `CORTEX_MASTER_KEY`, `OPENCLAW_BASE`, ...).
-- Network: joins the `cortex-net` external Docker network. Postgres
-  and NATS are reached through that network (or `host.docker.internal`
-  for host-installed Postgres).
-- Migrations: container entrypoint waits on Postgres, then runs
-  `node scripts/migrate.js` (idempotent).
-- Port: `3080:3080`. Caddy continues to reverse-proxy in front.
+- Runtime: `node .next/standalone/server.js` under `cortex-dashboard.service`.
+- Runtime env: `/opt/cortexos/.secrets/dashboard.env`.
+- Port: loopback `3080`; Caddy reverse-proxies root and `/api/*`.
+- Migrations: run by `scripts/migrate.js`; dynamic catalog hydration runs via `scripts/dynamic-seed.js`.
 
-See [stacks/cortex-dashboard/README.md](../stacks/cortex-dashboard/README.md)
-and [prompts/tools/70-dashboard.md](../prompts/tools/70-dashboard.md)
-for the full operator flow.
+See [prompts/tools/70-dashboard.md](../prompts/tools/70-dashboard.md) for the full operator flow.
 
 ## API surfaces
 
@@ -85,10 +76,6 @@ for the full operator flow.
 - Confirmation tokens for sensitive tools.
 - Path allowlist in `packages/cortex-dashboard/src/lib/secrets/allowlist.ts`.
 - Audit logging for reveal, write, and dispatch operations.
-
-## Screenshots
-
-> Placeholder: add service grid, credential import, agent timeline, and observability cards after production capture.
 
 ## Related docs
 

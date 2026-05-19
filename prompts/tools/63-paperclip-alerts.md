@@ -1,10 +1,9 @@
-# 90 — Paperclip alerts plugin
+# 63 — Paperclip alerts plugin
 
 > Operator setup for the dashboard-alerts → Paperclip-notifications bridge.
 
 This prompt wires `cortex.alerts.<severity>.<source>` events emitted by the
-dashboard into Paperclip notifications. Skip this prompt if you do not want
-Paperclip to receive operational alerts.
+dashboard into Paperclip notifications. This prompt is mandatory; Paperclip receives operational alerts from CortexOS.
 
 ## Sudo gate
 
@@ -47,7 +46,7 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Configuration
 
-Set on the bridge host (e.g. `/opt/cortexos/secrets/bridge.env`):
+Set on the bridge host (e.g. `/opt/cortexos/.secrets/paperclip.env`):
 
 | Variable | Default | Purpose |
 |---|---|---|
@@ -59,7 +58,7 @@ Set on the bridge host (e.g. `/opt/cortexos/secrets/bridge.env`):
 | `PAPERCLIP_API_KEY` | _(required)_ | Bearer token for Paperclip API. |
 | `CORTEX_NATS_HMAC` | _(required)_ | Shared secret used by HMAC envelope verification. Must match dashboard. |
 
-Set on the dashboard host (`/opt/cortexos/secrets/dashboard.env`):
+Set on the dashboard host (`/opt/cortexos/.secrets/dashboard.env`):
 
 | Variable | Default | Purpose |
 |---|---|---|

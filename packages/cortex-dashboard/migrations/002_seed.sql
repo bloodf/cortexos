@@ -30,12 +30,12 @@ ON CONFLICT (slug) DO UPDATE SET
 
 -- AI
 INSERT INTO services (slug, name, kind, category, health_url, health_type, open_url, env_source, icon_type, sort_order) VALUES
-  ('9router',        '9Router',        'docker',  'AI', 'http://host.docker.internal:11434/api/health',    'http',    '#', '/opt/cortexos/.secrets/9router.env',       'cloud',    1),
-  ('openviking',     'OpenViking',     'docker',  'AI', 'http://host.docker.internal:1933/health',         'http',    '#', '/opt/cortexos/stacks/openviking/.env',     'cloud',    2),
-  ('openclaw',       'OpenClaw',       'docker',  'AI', 'http://host.docker.internal:18789',               'http',    '#', '/opt/cortexos/stacks/openclaw/.env',       'brain',    3),
-  ('agentgateway',   'AgentGateway',   'docker',  'AI', 'http://host.docker.internal:15021/healthz/ready', 'http',    '#', '/opt/cortexos/stacks/agentgateway/.env',   'cloud',    4),
-  ('kernel-browser', 'Kernel Browser', 'docker',  'AI', 'http://host.docker.internal:9222/json/version',   'http',    '#', '/opt/cortexos/stacks/kernel-browser/.env', 'browser',  5),
-  ('leann',          'LEANN',          'process', 'AI', 'leann',                                           'process', '#', NULL,                                     'database', 6)
+  ('9router',        '9Router',        'service', 'AI', 'http://127.0.0.1:11434/api/health',    'http',    '#', '/opt/cortexos/.secrets/9router.env',       'cloud',    1),
+  ('openviking',     'OpenViking',     'service', 'AI', 'http://127.0.0.1:18790/health',                    'http',    '#', '/opt/cortexos/.secrets/openviking.env',     'cloud',    2),
+  ('openclaw',       'OpenClaw',       'service', 'AI', 'http://127.0.0.1:18789/health',                    'http',    '#', '/opt/cortexos/.secrets/openclaw-gateway.env',       'brain',    3),
+  ('agentgateway',   'AgentGateway',   'service', 'AI', 'http://127.0.0.1:18800/health',                    'http',    '#', '/opt/cortexos/.secrets/agentgateway.env',   'cloud',    4),
+  ('kernel-browser', 'Kernel Browser', 'docker',  'AI', 'http://127.0.0.1:9222/json/version',              'http',    '#', '/opt/cortexos/.secrets/kernel-browser.env', 'browser',  5),
+  ('leann',          'LEANN',          'service', 'AI', 'http://127.0.0.1:18791/health',                    'http',    '#', '/opt/cortexos/.secrets/leann.env',                                     'database', 6)
 ON CONFLICT (slug) DO UPDATE SET
   name = EXCLUDED.name,
   kind = EXCLUDED.kind,
@@ -50,7 +50,7 @@ ON CONFLICT (slug) DO UPDATE SET
 
 -- Infrastructure
 INSERT INTO services (slug, name, kind, category, health_url, health_type, open_url, env_source, icon_type, sort_order) VALUES
-  ('caddy',      'Caddy',      'docker',  'Infrastructure', 'tcp://host.docker.internal:80',                       'tcp',     '#', '/opt/cortexos/stacks/caddy/.env',  'caddy',   1),
+  ('caddy',      'Caddy',      'service', 'Infrastructure', 'tcp://127.0.0.1:8080',                       'tcp',     '#', '/opt/cortexos/stacks/caddy/.env',  'caddy',   1),
   ('floci',      'Floci',      'docker',  'Infrastructure', 'http://host.docker.internal:4566/_localstack/health', 'http',    '#', '/opt/cortexos/stacks/floci/.env',  'cloud',   2),
   ('cockpit',    'Cockpit',    'service', 'Infrastructure', 'tcp://host.docker.internal:9093',                     'tcp',     '#', NULL,                             'server',  3),
   ('webmin',     'Webmin',     'service', 'Infrastructure', 'tcp://host.docker.internal:10000',                    'tcp',     '#', NULL,                             'server',  4),
@@ -72,10 +72,10 @@ ON CONFLICT (slug) DO UPDATE SET
 
 -- Database (MySQL excluded per policy; MongoDB retained pending questionnaire flag)
 INSERT INTO services (slug, name, kind, category, health_url, health_type, open_url, env_source, icon_type, sort_order) VALUES
-  ('postgresql', 'PostgreSQL', 'docker',  'Database', 'tcp://host.docker.internal:5432',          'tcp',  '#', '/opt/cortexos/stacks/postgres/.env', 'postgresql', 1),
-  ('redis',      'Redis',      'docker',  'Database', 'tcp://host.docker.internal:6379',          'tcp',  '#', '/opt/cortexos/stacks/redis/.env',    'redis',      2),
-  ('mongodb',    'MongoDB',    'docker',  'Database', 'tcp://host.docker.internal:27017',         'tcp',  '#', '/opt/cortexos/stacks/mongodb/.env',  'database',   3),
-  ('nats',       'NATS',       'docker',  'Database', 'http://host.docker.internal:8222/healthz', 'http', '#', '/opt/cortexos/stacks/nats/.env',     'database',   4)
+  ('postgresql', 'PostgreSQL', 'docker',  'Database', 'tcp://host.docker.internal:5432',          'tcp',  '#', '/opt/cortexos/.secrets/postgres.env', 'postgresql', 1),
+  ('redis',      'Redis',      'docker',  'Database', 'tcp://host.docker.internal:6379',          'tcp',  '#', '/opt/cortexos/.secrets/redis.env',    'redis',      2),
+  ('mongodb',    'MongoDB',    'docker',  'Database', 'tcp://host.docker.internal:27017',         'tcp',  '#', '/opt/cortexos/.secrets/mongodb.env',  'database',   3),
+  ('nats',       'NATS',       'docker',  'Database', 'http://host.docker.internal:8222/healthz', 'http', '#', '/opt/cortexos/.secrets/nats.env',     'database',   4)
 ON CONFLICT (slug) DO UPDATE SET
   name = EXCLUDED.name,
   kind = EXCLUDED.kind,
@@ -120,18 +120,18 @@ ON CONFLICT (slug) DO UPDATE SET
 
 -- Monitoring (MySQL exporter excluded with MySQL)
 INSERT INTO services (slug, name, kind, category, health_url, health_type, open_url, env_source, icon_type, sort_order) VALUES
-  ('dockhand',       'Dockhand',       'docker',  'Monitoring', 'http://host.docker.internal:3420',            'http',    '#', '/opt/cortexos/stacks/dockhand/.env',       'monitor', 1),
-  ('grafana',        'Grafana',        'docker',  'Monitoring', 'http://host.docker.internal:3100/api/health', 'http',    '#', '/opt/cortexos/stacks/grafana/.env',        'monitor', 2),
-  ('prometheus',     'Prometheus',     'docker',  'Monitoring', 'http://host.docker.internal:9090/-/healthy',  'http',    '#', '/opt/cortexos/stacks/prometheus/.env',     'monitor', 3),
-  ('loki',           'Loki',           'docker',  'Monitoring', 'http://host.docker.internal:3200/ready',      'http',    '#', '/opt/cortexos/stacks/loki/.env',           'monitor', 4),
-  ('fluent-bit',     'Fluent Bit',     'docker',  'Monitoring', 'cortex-fluent-bit',                           'docker',  '#', '/opt/cortexos/stacks/fluent-bit/.env',     'monitor', 5),
+  ('dockhand',       'Dockhand',       'docker',  'Monitoring', 'http://127.0.0.1:3420',            'http',    '#', '/opt/cortexos/stacks/dockhand/.env',       'monitor', 1),
+  ('grafana',        'Grafana',        'service', 'Monitoring', 'http://127.0.0.1:3000/api/health', 'http',    '#', '/opt/cortexos/stacks/grafana/.env',        'monitor', 2),
+  ('prometheus',     'Prometheus',     'service', 'Monitoring', 'http://127.0.0.1:9090/prometheus/-/healthy',  'http',    '#', '/opt/cortexos/stacks/prometheus/.env',     'monitor', 3),
+  ('loki',           'Loki',           'service', 'Monitoring', 'http://127.0.0.1:3100/ready',      'http',    '#', '/opt/cortexos/stacks/loki/.env',           'monitor', 4),
+  ('fluent-bit',     'Fluent Bit',     'service', 'Monitoring', 'fluent-bit',                                  'process',  '#', '/opt/cortexos/stacks/fluent-bit/.env',     'monitor', 5),
   ('promtail',       'Promtail',       'process', 'Monitoring', 'promtail',                                    'process', '#', NULL,                                     'monitor', 6),
-  ('cadvisor',       'cAdvisor',       'docker',  'Monitoring', 'http://host.docker.internal:9081/healthz',    'http',    '#', NULL,                                     'monitor', 7),
-  ('node-exporter',  'Node Exporter',  'docker',  'Monitoring', 'http://host.docker.internal:9100/metrics',    'http',    '#', NULL,                                     'monitor', 8),
+  ('cadvisor',       'cAdvisor',       'docker',  'Monitoring', 'http://127.0.0.1:8081/cadvisor/healthz',    'http',    '#', NULL,                                     'monitor', 7),
+  ('node-exporter',  'Node Exporter',  'service', 'Monitoring', 'http://127.0.0.1:9100/metrics',    'http',    '#', NULL,                                     'monitor', 8),
   ('otel-collector', 'OTel Collector', 'docker',  'Monitoring', 'tcp://host.docker.internal:4317',             'tcp',     '#', '/opt/cortexos/stacks/otel/.env',           'monitor', 9),
-  ('pg-exporter',    'PG Exporter',    'docker',  'Monitoring', 'http://host.docker.internal:9187/metrics',    'http',    '#', '/opt/cortexos/stacks/pg-exporter/.env',    'monitor', 10),
-  ('redis-exporter', 'Redis Exporter', 'docker',  'Monitoring', 'http://host.docker.internal:9121/metrics',    'http',    '#', '/opt/cortexos/stacks/redis-exporter/.env', 'monitor', 11),
-  ('mongo-exporter', 'Mongo Exporter', 'docker',  'Monitoring', 'http://host.docker.internal:9216/metrics',    'http',    '#', '/opt/cortexos/stacks/mongo-exporter/.env', 'monitor', 12)
+  ('pg-exporter',    'PG Exporter',    'docker',  'Monitoring', 'http://127.0.0.1:9187/metrics',    'http',    '#', '/opt/cortexos/stacks/pg-exporter/.env',    'monitor', 10),
+  ('redis-exporter', 'Redis Exporter', 'docker',  'Monitoring', 'http://127.0.0.1:9121/metrics',    'http',    '#', '/opt/cortexos/stacks/redis-exporter/.env', 'monitor', 11),
+  ('mongo-exporter', 'Mongo Exporter', 'docker',  'Monitoring', 'http://127.0.0.1:9216/metrics',    'http',    '#', '/opt/cortexos/stacks/mongo-exporter/.env', 'monitor', 12)
 ON CONFLICT (slug) DO UPDATE SET
   name = EXCLUDED.name,
   kind = EXCLUDED.kind,
@@ -146,7 +146,7 @@ ON CONFLICT (slug) DO UPDATE SET
 
 -- Dashboard (self)
 INSERT INTO services (slug, name, kind, category, health_url, health_type, open_url, env_source, icon_type, sort_order) VALUES
-  ('cortex-dashboard', 'Cortex Dashboard', 'service', 'Infrastructure', 'http://host.docker.internal:3080/api/system', 'http', '#', '/opt/cortexos/secrets/dashboard.env', 'server', 9)
+  ('cortex-dashboard', 'Cortex Dashboard', 'service', 'Infrastructure', 'http://127.0.0.1:3080/api/health', 'http', '#', '/opt/cortexos/.secrets/dashboard.env', 'server', 9)
 ON CONFLICT (slug) DO UPDATE SET
   name = EXCLUDED.name,
   kind = EXCLUDED.kind,

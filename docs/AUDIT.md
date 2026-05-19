@@ -175,6 +175,21 @@ requires that the signature verifies against the supplied public key.
 - `GET /api/audit/verify?from=&to=` — admin-gated verification endpoint.
 - `/<locale>/audit` — paginated viewer with live chain-verify badge.
 
+## Audit producers
+
+The following services emit signed CloudEvents audit envelopes
+(`{ data, sig }` where `sig = HMAC-SHA256(JCS(data), CORTEX_NATS_HMAC)`)
+that downstream consumers append to the `audit_log` table.
+
+| Service | Event type | NATS subject / HTTP endpoint | Notes |
+|---|---|---|---|
+| `cortex-agentgateway` | `cortex.audit.agentgateway.tool-invoke.v1` | `cortex.audit.agentgateway.tool-invoke.v1` | Also calls `@cortexos/audit.append` best-effort. |
+| `cortex-graph` | `cortex.audit.graph.node-transition.v1` | `cortex.audit.graph.node-transition.{runId}` | Emitted per node transition via NATS bridge. |
+| `cortex-sandbox-runner` | `cortex.audit.sandbox.exec.v1` | `POST ${CORTEX_AUDIT_URL}/cortex.audit.sandbox.exec.v1` | Signed when `CORTEX_NATS_HMAC` is set; unsigned fallback otherwise. |
+
+All producers follow the non-blocking failure contract: audit gaps are
+observable via `verifyChain`, but the calling operation never stalls.
+
 ## See also
 
 - `docs/SECURITY.md` § audit immutability.

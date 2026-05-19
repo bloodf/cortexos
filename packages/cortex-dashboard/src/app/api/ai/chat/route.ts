@@ -2,8 +2,7 @@
  * /api/ai/chat — Cortex chat streaming endpoint.
  *
  * - Admin gate via requireAuth (admin_users is the only kind).
- * - In-memory rate limiting: 60 req / 15min per user, 300 / 15min global.
- *   TODO: swap for Redis/Valkey-backed store once cortex-consumer is wired.
+ * - Shared rate limiting via injectable RateLimitStore: 60 req / 15min per user, 300 / 15min global.
  * - Streams via Vercel AI SDK `streamText` against 9Router (openai-compatible).
  * - Persists messages to `chat_sessions.messages` jsonb via `appendChatMessages`.
  */
@@ -18,6 +17,7 @@ import {
 } from "@/lib/ai/provider-resolver";
 import { getAllTools } from "@/lib/ai/tools";
 import { deriveCortexSessionId } from "@/lib/ai/session-binding";
+import { getRateLimitStore } from "@/lib/ai/rate-limit-store";
 import { insertAuditRow } from "@/lib/db/agent-gateway-audit";
 import {
 	appendChatMessages,
@@ -28,27 +28,13 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // ---------------------------------------------------------------------------
-// Rate limiter — in-memory, per-user + global.
-//
-// LIMITATION (v1.0, single-node systemd deploy): buckets are module-scope and
-// per-process. Counts reset on dashboard restart, on Next.js route-segment
-// hot-reload, and are NOT shared across multiple worker processes. The
-// "global 300/15min" cap is therefore per-process, not per-cluster.
-// Multi-node deployments must front-end this with Redis/Valkey.
-// Tracked as v1.1 follow-up.
+// Rate limiter — injectable store (memory by default; Redis/Valkey adapter can
+// be installed at process startup with setRateLimitStore).
 // ---------------------------------------------------------------------------
 
 const PER_USER_LIMIT = 60;
 const GLOBAL_LIMIT = 300;
 const WINDOW_MS = 15 * 60 * 1000;
-
-interface Bucket {
-	count: number;
-	windowStart: number;
-}
-
-const userBuckets = new Map<number, Bucket>();
-const globalBucket: Bucket = { count: 0, windowStart: Date.now() };
 
 interface RateCheck {
 	allowed: boolean;
@@ -56,27 +42,12 @@ interface RateCheck {
 	scope?: "user" | "global";
 }
 
-function checkRate(userId: number): RateCheck {
-	const now = Date.now();
-	if (now - globalBucket.windowStart > WINDOW_MS) {
-		globalBucket.count = 0;
-		globalBucket.windowStart = now;
-	}
-	let ub = userBuckets.get(userId);
-	if (!ub || now - ub.windowStart > WINDOW_MS) {
-		ub = { count: 0, windowStart: now };
-		userBuckets.set(userId, ub);
-	}
-	if (ub.count >= PER_USER_LIMIT) {
-		const retry = Math.ceil((ub.windowStart + WINDOW_MS - now) / 1000);
-		return { allowed: false, retryAfterSec: Math.max(retry, 1), scope: "user" };
-	}
-	if (globalBucket.count >= GLOBAL_LIMIT) {
-		const retry = Math.ceil((globalBucket.windowStart + WINDOW_MS - now) / 1000);
-		return { allowed: false, retryAfterSec: Math.max(retry, 1), scope: "global" };
-	}
-	ub.count += 1;
-	globalBucket.count += 1;
+async function checkRate(userId: number): Promise<RateCheck> {
+	const store = getRateLimitStore();
+	const user = await store.check(`ai-chat:user:${userId}`, PER_USER_LIMIT, WINDOW_MS);
+	if (!user.allowed) return { ...user, scope: "user" };
+	const global = await store.check("ai-chat:global", GLOBAL_LIMIT, WINDOW_MS);
+	if (!global.allowed) return { ...global, scope: "global" };
 	return { allowed: true, retryAfterSec: 0 };
 }
 
@@ -136,7 +107,7 @@ export async function POST(request: Request) {
 	}
 
 	// Rate limit
-	const rl = checkRate(userId);
+	const rl = await checkRate(userId);
 	if (!rl.allowed) {
 		return new Response(
 			JSON.stringify({

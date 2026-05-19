@@ -43,7 +43,8 @@ The upstream plugin ships TypeScript sources; transpile them before install.
 
 ```bash
 rm -rf /tmp/openclaw-a2a-gateway
-git clone https://github.com/win4r/openclaw-a2a-gateway /tmp/openclaw-a2a-gateway
+# Version pin: shallow clone current default branch; update this prompt when pinning a commit/tag.
+git clone --depth 1 https://github.com/win4r/openclaw-a2a-gateway /tmp/openclaw-a2a-gateway
 cd /tmp/openclaw-a2a-gateway
 npm install
 npx tsc -p tsconfig.json || npx esbuild index.ts --platform=node --format=esm --target=node20 --outfile=dist/index.js

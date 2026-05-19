@@ -16,7 +16,7 @@ INSERT INTO services
    icon_type, sort_order, is_active, has_webui, show_in_webui)
 VALUES
   ('langfuse', 'Langfuse', 'docker', 'Monitoring',
-   'http://host.docker.internal:3001/api/public/health', 'http', '#',
+   'http://127.0.0.1:3001/api/public/health', 'http', '#',
    '/opt/cortexos/.secrets/langfuse.env',
    'monitor', 20, FALSE, TRUE, FALSE)
 ON CONFLICT (slug) DO UPDATE SET
@@ -37,8 +37,8 @@ INSERT INTO services
    icon_type, sort_order, is_active, has_webui, show_in_webui)
 VALUES
   ('nats-monitor', 'NATS Monitor', 'docker', 'Monitoring',
-   'http://host.docker.internal:8222/healthz', 'http', '#',
-   '/opt/cortexos/stacks/nats/.env',
+   'http://127.0.0.1:8222/healthz', 'http', '#',
+   '/opt/cortexos/.secrets/nats.env',
    'monitor', 21, FALSE, TRUE, FALSE)
 ON CONFLICT (slug) DO UPDATE SET
   name = EXCLUDED.name,

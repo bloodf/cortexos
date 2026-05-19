@@ -45,7 +45,8 @@ hooks.
 
 ```bash
 rm -rf /tmp/openclaw-foundry
-git clone https://github.com/0xRyanLucci/openclaw-foundry /tmp/openclaw-foundry
+# Version pin: shallow clone current default branch; update this prompt when pinning a commit/tag.
+git clone --depth 1 https://github.com/0xRyanLucci/openclaw-foundry /tmp/openclaw-foundry
 cd /tmp/openclaw-foundry
 npm install
 openclaw plugins install /tmp/openclaw-foundry --dangerously-force-unsafe-install --force

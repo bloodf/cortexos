@@ -25,7 +25,7 @@ A non-root sudo user (e.g. `cortexos`). SSH access from your laptop.
 ## 2. Node.js 24.x
 
 CortexOS runtime (dashboard, NATS consumer, paperclip bridge, sandbox
-runner) targets Node 24. Install on the VPS before setup:
+runner, graph sidecar) targets Node 24. Install on the VPS before setup:
 
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
@@ -38,9 +38,9 @@ sudo corepack prepare pnpm@10 --activate
 pnpm -v   # 10.x
 ```
 
-Why pre-install? The Docker images bundle their own Node, but the
-operator-side scripts (`scripts/secrets-decrypt.sh`, smoke tests,
-`scripts/migrate.js` in standalone mode) all need a host Node 24
+Why pre-install? Native services run Node directly on the host via
+systemd. Operator-side scripts (`scripts/secrets-decrypt.sh`, smoke tests,
+`scripts/migrate.js` in standalone mode) also need a host Node 24
 and pnpm (>= 9, 10 preferred).
 
 > `scripts/preflight-tools.sh` enforces the full required-tool list
@@ -166,11 +166,13 @@ DNS record, no ports 80/443 exposed, no Let's Encrypt account needed.
 ## What you do NOT need at setup time
 
 - Telegram / Slack / Discord / WhatsApp tokens — these go in only when
-  each integration is enabled via its own prompt under
-  `prompts/integrations/`.
+  channel wiring is handled by `prompts/tools/41-openclaw-channels.md` during install and by the OpenClaw CLI after install.
 - A Tailscale auth key — the install uses interactive `tailscale up`
   browser login.
-- Paperclip credentials — wired up later via `prompts/paperclip/*`.
+- Paperclip credentials — wired during mandatory spokes `62-paperclip` and `63-paperclip-alerts`.
 
 Once items 1–6 are in place, open `SETUP.md` (or `prompts/00-bootstrap.md`
 if you prefer the laptop-driven push install) and follow the questionnaire.
+
+- Homebrew for Linux — mandatory native-first package source.
+- Python 3.13 with venv support for native Python services where available.

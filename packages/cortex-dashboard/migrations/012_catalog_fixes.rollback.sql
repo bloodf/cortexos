@@ -3,14 +3,14 @@
 -- values originally seeded by 002_seed.sql.
 
 UPDATE services
-   SET health_url = 'http://host.docker.internal:20128/api/health',
-       env_source = '/opt/cortexos/stacks/9router/.env',
+   SET health_url = 'http://127.0.0.1:11434/api/health',
+       env_source = '/opt/cortexos/.secrets/9router.env',
        updated_at = NOW()
  WHERE slug = '9router';
 
 UPDATE services
-   SET health_url = 'http://host.docker.internal:15021/healthz/ready',
-       env_source = '/opt/cortexos/stacks/agentgateway/.env',
+   SET health_url = 'http://127.0.0.1:18800/health',
+       env_source = '/opt/cortexos/.secrets/agentgateway.env',
        updated_at = NOW()
  WHERE slug = 'agentgateway';
 

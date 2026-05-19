@@ -13,7 +13,7 @@ export default async function PaperclipPage() {
 				</h1>
 				<EmptyState
 					title="Paperclip integration disabled"
-					description="Set PAPERCLIP_API_URL in /opt/cortexos/secrets/dashboard.env to enable the Paperclip panel."
+					description="Set PAPERCLIP_API_URL in /opt/cortexos/.secrets/dashboard.env to enable the Paperclip panel."
 				/>
 			</div>
 		);

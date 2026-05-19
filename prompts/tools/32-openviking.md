@@ -255,28 +255,15 @@ sudo chown -R "$USER:$USER" /opt/cortexos/openviking
 Systemd unit:
 
 ```bash
-sudo tee /etc/systemd/system/openviking.service <<'EOF'
-[Unit]
-Description=OpenViking memory backend
-After=network-online.target ollama.service
-Wants=network-online.target ollama.service
-
-[Service]
-Type=simple
-User=cortexos
-WorkingDirectory=/opt/cortexos/stacks/openviking
-Environment=HOME=/home/cortexos
-EnvironmentFile=/opt/cortexos/.secrets/openviking.env
-ExecStart=/opt/cortexos/stacks/openviking/.venv/bin/openviking-server --config /opt/cortexos/openviking/ov.conf --host 127.0.0.1 --port 18790
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
+sudo install -m 0644 templates/systemd/openviking.service /etc/systemd/system/openviking.service
+sudo sed -i "s|{VPS_USER}|$USER|g; s|{VPS_HOME}|$HOME|g" /etc/systemd/system/openviking.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now openviking
+
+sudo install -m 0644 templates/systemd/openviking-console.service /etc/systemd/system/openviking-console.service
+sudo sed -i "s|User=cortex|User=$USER|g; s|Group=cortex|Group=$USER|g" /etc/systemd/system/openviking-console.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now openviking-console
 ```
 
 ## Verify

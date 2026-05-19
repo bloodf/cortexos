@@ -1,14 +1,14 @@
-# AgentGateway (latest)
+# AgentGateway (native)
 
 ## Purpose
 
-Deploy AgentGateway to enforce the tool taxonomy, per-role allow-lists, confirmation tokens, rate limits, and cooldowns defined in `templates/agentgateway/tools.json`. All destructive-class tool calls from AI agents must pass through AgentGateway.
+Deploy the vendored `stacks/cortex-agentgateway/` Node.js service natively under systemd. AgentGateway enforces the tool taxonomy, per-role allow-lists, confirmation tokens, rate limits, and cooldowns defined in `templates/agentgateway/tools.json`.
 
 ## Prerequisites
 
 - `40-openclaw.md` completed.
-- `30-nats.md` completed (AgentGateway publishes audit events to NATS).
-- `14-postgresql.md` completed (audit log columns stored in PostgreSQL).
+- `30-nats.md` completed.
+- `14-postgresql.md` completed.
 
 ## Distro selection
 
@@ -20,173 +20,99 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 
 ## Sudo gate
 
-This spoke runs `sudo`. Authenticate **now** so the rest of the steps don't pause for a password mid-flow:
-
 ```bash
 sudo -v
 ```
 
-CortexOS never stores your password — only the kernel's sudo timestamp is used. Re-run if it expires.
-
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed — `templates/agentgateway/tools.json` exists
-- [ ] rsync `stacks/cortex-agentgateway/` + workspace packages + schemas to `/opt/cortexos/`
-- [ ] Write `/opt/cortexos/.secrets/agentgateway.env` (mode 0600)
-- [ ] `docker network create cortex-net` (idempotent)
-- [ ] `docker compose up -d --build` in `stacks/cortex-agentgateway`
-- [ ] Confirm `curl http://127.0.0.1:18800/health` returns ok
-- [ ] Confirm unauthenticated `/tool/invoke` returns 401
-- [ ] Confirm authenticated safe-tool invoke returns 200
-- [ ] Confirm audit event appears on `cortex.audit.agentgateway.tool-invoke.v1`
-- [ ] CHECKPOINT 2 confirmed — /health 200
-- [ ] CHECKPOINT 2b confirmed — missing-bearer 401
-- [ ] CHECKPOINT 2c confirmed — safe-tool 200
-- [ ] CHECKPOINT 2d confirmed — audit subject received
-- [ ] Write `.agentgateway-required.json` roster
+- [ ] CHECKPOINT 1 confirmed — local implementation and tools taxonomy exist
+- [ ] Copy `stacks/cortex-agentgateway/`, workspace packages, schemas, and templates to `/opt/cortexos`
+- [ ] Install production dependencies with pnpm
+- [ ] Write `/opt/cortexos/.secrets/agentgateway.env`
+- [ ] Install `stacks/cortex-agentgateway/cortex-agentgateway.service`
+- [ ] Confirm `/health` returns ok, missing bearer returns 401, safe tool returns 200
+- [ ] Confirm audit subject `cortex.audit.agentgateway.tool-invoke.v1` receives event
+- [ ] Write AgentGateway required-role roster
+- [ ] CHECKPOINT 2 confirmed
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** Does `test -s templates/agentgateway/tools.json && jq -e '.tools | length > 0' templates/agentgateway/tools.json` exit 0 (not `parse error`, not `file not found`)?
+**STOP — operator question:** Does `test -s stacks/cortex-agentgateway/index.js && jq -e '.tools | length > 0' templates/agentgateway/tools.json` exit 0?
 
 Type `confirmed` to proceed.
 
 ## Install
 
-AgentGateway is vendored in this repo under `stacks/cortex-agentgateway/`.
-Copy it to the host install root and build the container — no external clone.
-
 ```bash
-sudo mkdir -p /opt/cortexos/stacks /opt/cortexos/packages /opt/cortexos/schemas
+sudo install -d -m 0755 /opt/cortexos/stacks /opt/cortexos/packages /opt/cortexos/schemas /opt/cortexos/templates/agentgateway
 sudo cp -a stacks/cortex-agentgateway/. /opt/cortexos/stacks/cortex-agentgateway/
-# Workspace packages and schemas are needed by the Docker build context.
-sudo cp -a packages/cortex-events /opt/cortexos/packages/
-sudo cp -a packages/cortex-audit  /opt/cortexos/packages/
-sudo cp -a packages/cortex-telemetry /opt/cortexos/packages/
+sudo cp -a packages/cortex-events packages/cortex-audit packages/cortex-telemetry /opt/cortexos/packages/
 sudo cp -a schemas/. /opt/cortexos/schemas/
+sudo cp -a templates/agentgateway/. /opt/cortexos/templates/agentgateway/
+cd /opt/cortexos/stacks/cortex-agentgateway
+pnpm install --prod
 ```
 
 ## Configure
 
-Write `/opt/cortexos/.secrets/agentgateway.env`:
-
 ```bash
 sudo tee /opt/cortexos/.secrets/agentgateway.env <<EOF
 AGENTGATEWAY_PORT=18800
-AGENTGATEWAY_BEARER_TOKEN={AGENTGATEWAY_BEARER_TOKEN}
-NATS_URL=nats://nats:4222
-CORTEX_NATS_HMAC={CORTEX_NATS_HMAC}
+AGENTGATEWAY_BEARER_TOKEN=${AGENTGATEWAY_BEARER_TOKEN}
+NATS_URL=nats://127.0.0.1:4222
+CORTEX_NATS_HMAC=${CORTEX_NATS_HMAC}
 DB_HOST=127.0.0.1
 DB_PORT=5432
 DB_NAME=cortex_dashboard
 DB_USER=dashboard
-DB_PASSWORD={DASHBOARD_DB_PASSWORD}
+DB_PASSWORD=${DASHBOARD_DB_PASSWORD}
 CORTEX_AUDIT_ENABLED=1
 EOF
 sudo chmod 600 /opt/cortexos/.secrets/agentgateway.env
-```
 
-The tool taxonomy ships inside the image at
-`/app/stacks/cortex-agentgateway/config/tools.json` (a verbatim copy of
-`templates/agentgateway/tools.json`). No host-side copy is needed.
-
-## Build and start
-
-```bash
-docker network create cortex-net 2>/dev/null || true
-# AgentGateway publishes audit events over the docker network, so ensure the
-# NATS container is attached to `cortex-net` with the service name `nats`.
-cd /opt/cortexos/stacks/nats && docker compose up -d
-cd /opt/cortexos/stacks/cortex-agentgateway
-docker compose up -d --build
+sudo install -m 0644 /opt/cortexos/stacks/cortex-agentgateway/cortex-agentgateway.service /etc/systemd/system/cortex-agentgateway.service
+sudo sed -i "s|User=cortexos|User=$USER|g; s|Group=cortexos|Group=$USER|g" /etc/systemd/system/cortex-agentgateway.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now cortex-agentgateway
 ```
 
 ## Verify
 
-Health (no auth):
-
 ```bash
 curl -fsS http://127.0.0.1:18800/health
-```
-
-Expected: `{"status":"ok","service":"cortex-agentgateway",...}`.
-
-Missing bearer → 401:
-
-```bash
 curl -s -o /dev/null -w "%{http_code}\n" -X POST http://127.0.0.1:18800/tool/invoke \
   -H "Content-Type: application/json" \
   -d '{"tool":"propose_role","runId":"r1","agentId":"a1","role":"factory_agent"}'
-# expect: 401
-```
-
-Bearer + safe tool → 200:
-
-```bash
 curl -fsS -X POST http://127.0.0.1:18800/tool/invoke \
   -H "Authorization: Bearer ${AGENTGATEWAY_BEARER_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{"tool":"propose_role","args":{"description":"summarizer"},"runId":"r1","agentId":"a1","role":"factory_agent"}'
 ```
 
-Audit subject pinned to `cortex.audit.agentgateway.tool-invoke.v1`. Watch in
-another terminal while invoking the tool above:
+Expected: health OK, then `401`, then HTTP 200.
+
+Audit subject pinned to `cortex.audit.agentgateway.tool-invoke.v1`; watch while invoking the safe tool:
 
 ```bash
 nats sub --count=1 'cortex.audit.agentgateway.tool-invoke.v1'
 ```
 
-## CHECKPOINT 2
-
-**STOP — operator question:** Does `curl -fsS http://127.0.0.1:18800/health` return a body containing `"status":"ok"` (not `connection refused`, not 502)?
-
-Type `confirmed` to proceed.
-
-## CHECKPOINT 2b
-
-**STOP — operator question:** Does the unauthenticated `POST /tool/invoke` curl print HTTP status `401` (not 200, not 500)?
-
-Type `confirmed` to proceed.
-
-## CHECKPOINT 2c
-
-**STOP — operator question:** Does the bearer-authenticated `POST /tool/invoke` with `propose_role` return HTTP 200 (not 401, not 403, not 500)?
-
-Type `confirmed` to proceed.
-
-## CHECKPOINT 2d
-
-**STOP — operator question:** Did `nats sub --count=1 'cortex.audit.agentgateway.>'` print one event with subject `cortex.audit.agentgateway.tool-invoke.v1` (not time out, not error)?
-
-Type `confirmed` to proceed.
-
-## Roster (which roles route tool calls through AgentGateway)
-
-`stacks/cortex-consumer/consumer.js` reads a roster file to decide which
-roles must POST `tool_invocation` blocks through `/tool/invoke` instead of
-executing tools inline. Default roster matches the sandbox roster
-(`["ENG-BACKEND"]`) so destructive backend tool calls are permission-gated
-and audited centrally. Operators opt additional roles in by appending here.
+## Roster
 
 ```bash
 sudo install -d -m 0755 /opt/cortexos/templates/agent-roles
 sudo tee /opt/cortexos/templates/agent-roles/.agentgateway-required.json <<'EOF'
-[
-  "ENG-BACKEND"
-]
+["ENG-BACKEND"]
 EOF
+sudo chmod 0644 /opt/cortexos/templates/agent-roles/.agentgateway-required.json
 ```
 
-If `cortex-consumer` is already running, reload roster caches without
-restarting the process:
+## CHECKPOINT 2
 
-```bash
-sudo systemctl kill -s HUP cortex-consumer 2>/dev/null \
-  || sudo pkill -HUP -f 'cortex-consumer/consumer.js'
-journalctl -u cortex-consumer --since '30s ago' | grep -F '[sighup] roster caches cleared'
-```
+**STOP — operator question:** Did health return OK, unauthenticated invoke return 401, authenticated safe-tool invoke return 200, and NATS receive `cortex.audit.agentgateway.tool-invoke.v1`?
 
-Otherwise the next consumer start picks the roster up automatically.
+Type `confirmed` to proceed.
 
 ## Next
 

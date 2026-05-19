@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Deploy the `stacks/cortex-consumer/` NATS subscriber that processes approval events, forwards them to OpenClaw, and deduplicates via the `cortex_approvals_seen` JetStream KV bucket.
+Deploy the `stacks/cortex-consumer/` NATS subscriber (streams include `CORTEX_PAPERCLIP_WORK` for work queue and `CORTEX_PAPERCLIP_OPS` for status/approval/alerts) that processes approval events, forwards them to OpenClaw, and deduplicates via the `cortex_approvals_seen` JetStream KV bucket.
 
 ## Prerequisites
 
@@ -43,7 +43,7 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 - [ ] CHECKPOINT 2 confirmed — service active + subscribed
 - [ ] Publish paperclip work event with tool_invocation for ENG-BACKEND role
 - [ ] CHECKPOINT 3 confirmed — `[agentgateway] dispatched` logged
-- [ ] Review Known Limitations (WatchdogSec, INT32_MAX shim, CLI shellout)
+- [ ] Review Known Limitations (WatchdogSec, INT32_MAX shim, OpenClaw delivery paths)
 
 ## CHECKPOINT 1
 
@@ -132,7 +132,7 @@ Substitute placeholders in the installed unit (template ships with `{VPS_USER}` 
 sudo sed -i "s|{VPS_USER}|$USER|g; s|{VPS_HOME}|$HOME|g" /etc/systemd/system/cortex-consumer.service
 ```
 
-Enable systemd unit. Unit declares `After=network-online.target docker.service` + `Wants=network-online.target` so consumer waits for routable network AND docker before launch (NATS is docker-backed):
+Enable systemd unit. Unit declares `After=network-online.target docker.service` + `Wants=network-online.target` so consumer waits for routable network; Docker remains a dependency only because NATS is Docker-backed:
 
 ```bash
 sudo systemctl daemon-reload
@@ -232,21 +232,18 @@ client (some heartbeat intervals are advertised as months-in-ms). Removing
 the shim re-introduces `TimeoutOverflowWarning` and silent reconnect stalls.
 See repo commit `ca98e1c`.
 
-### OpenClaw delivery is CLI-shellout, not HTTP REST
+### OpenClaw delivery paths are implemented
 
-The OpenClaw gateway at `:18789` exposes a WebSocket RPC surface, not a
-REST API — legacy `/sendMessage` and `/registerRoute` HTTP routes were
-never implemented upstream (404 on `2026.5.12` and later). `consumer.js`
-therefore delivers via the CLI: `openclaw message send --json …` and
-`openclaw agents bind …` (option #2 from the prior operator-decision
-matrix). `OPENCLAW_BIN` and `OPENCLAW_CLI_TIMEOUT_MS` tune the shellout;
-errors increment `openclaw_http_errors_total` and trip the circuit
-breaker as before.
+`consumer.js` supports both delivery modes. The default `cli` mode uses
+`openclaw message send --json …` and `openclaw agents bind …`, which remains the
+verified native-install path for the WebSocket-backed gateway. `OPENCLAW_BIN` and
+`OPENCLAW_CLI_TIMEOUT_MS` tune the shellout; errors increment
+`openclaw_http_errors_total` and trip the circuit breaker as before.
 
-An experimental HTTP path is gated behind `OPENCLAW_DELIVERY_API_VERSION=v1`
-(default `cli`) and targets `POST ${OPENCLAW_BASE}/v1/channels/<channel>/messages`
-with bearer `OPENCLAW_API_KEY`. Off by default until the upstream REST
-surface is published — see `docs/MESSAGING.md`.
+The HTTP v1 path is production-ready but opt-in: set
+`OPENCLAW_DELIVERY_API_VERSION=v1` and `OPENCLAW_API_KEY` to deliver with
+`POST ${OPENCLAW_BASE}/v1/channels/<channel>/messages`. Legacy `/sendMessage` and
+`/registerRoute` routes are intentionally not used.
 
 ## Next
 

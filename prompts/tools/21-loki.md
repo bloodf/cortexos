@@ -1,12 +1,12 @@
-# Loki (latest)
+# Loki (native)
 
 ## Purpose
 
-Run Grafana Loki as a Docker container to aggregate logs from Fluent Bit and make them queryable in Grafana.
+Run Grafana Loki as a native systemd service to aggregate logs from Fluent Bit and make them queryable in Grafana.
 
 ## Prerequisites
 
-- `20-prometheus.md` completed (monitoring stack compose file exists).
+- `20-prometheus.md` completed.
 
 ## Distro selection
 
@@ -16,14 +16,20 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
+## Sudo gate
+
+```bash
+sudo -v
+```
+
 ## Todo
 
 - [ ] CHECKPOINT 1 confirmed — port 3100 is free
-- [ ] Write `/opt/cortexos/stacks/monitoring/loki/loki-config.yml` (filesystem storage, tsdb v13)
-- [ ] Append `loki` service to monitoring `docker-compose.yml`
-- [ ] `docker compose up -d loki`
-- [ ] Confirm `curl http://localhost:3100/ready` prints `ready`
-- [ ] CHECKPOINT 2 confirmed — both local and tailnet `/ready` probes return `ready`
+- [ ] Install Loki binary or package
+- [ ] Install `templates/monitoring/loki-config.yml` to `/etc/loki/loki-config.yml`
+- [ ] Install `templates/systemd/loki.service`
+- [ ] Confirm `curl http://127.0.0.1:3100/ready` prints `ready`
+- [ ] CHECKPOINT 2 confirmed
 
 ## CHECKPOINT 1
 
@@ -34,78 +40,26 @@ Type `confirmed` to proceed.
 ## Install
 
 ```bash
-mkdir -p /opt/cortexos/stacks/monitoring/loki
-tee /opt/cortexos/stacks/monitoring/loki/loki-config.yml <<'EOF'
-auth_enabled: false
+sudo useradd --system --no-create-home --shell /usr/sbin/nologin loki 2>/dev/null || true
+sudo install -d -o loki -g loki -m 0755 /etc/loki /var/lib/loki
 
-server:
-  http_listen_port: 3100
-  grpc_listen_port: 9096
+if ! command -v loki >/dev/null 2>&1; then
+  tmp=$(mktemp -d)
+  curl -fsSL -o "$tmp/loki.zip" https://github.com/grafana/loki/releases/download/v3.5.7/loki-linux-amd64.zip
+  unzip -o "$tmp/loki.zip" -d "$tmp"
+  sudo install -m 0755 "$tmp/loki-linux-amd64" /usr/local/bin/loki
+fi
 
-common:
-  instance_addr: 127.0.0.1
-  path_prefix: /loki
-  storage:
-    filesystem:
-      chunks_directory: /loki/chunks
-      rules_directory: /loki/rules
-  replication_factor: 1
-  ring:
-    kvstore:
-      store: inmemory
-
-schema_config:
-  configs:
-    - from: 2020-10-24
-      store: tsdb
-      object_store: filesystem
-      schema: v13
-      index:
-        prefix: index_
-        period: 24h
-
-limits_config:
-  retention_period: 30d
-EOF
+sudo install -m 0644 templates/monitoring/loki-config.yml /etc/loki/loki-config.yml
+sudo install -m 0644 templates/systemd/loki.service /etc/systemd/system/loki.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now loki
 ```
-
-Append Loki service to `/opt/cortexos/stacks/monitoring/docker-compose.yml`:
-
-```bash
-cat >> /opt/cortexos/stacks/monitoring/docker-compose.yml <<'EOF'
-
-  loki:
-    image: grafana/loki
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:3100:3100"
-    volumes:
-      - ./loki/loki-config.yml:/etc/loki/local-config.yaml:ro
-      - loki_data:/loki
-    command: -config.file=/etc/loki/local-config.yaml
-
-volumes:
-  loki_data:
-EOF
-```
-
-```bash
-cd /opt/cortexos/stacks/monitoring
-docker compose up -d loki
-```
-
-> Caddy forwards `/loki/*` to this backend and **strips** the prefix
-> (Loki's HTTP API is path-agnostic). Do NOT add a `path_prefix` /
-> `http_path_prefix` to Loki's config without also removing
-> `uri strip_prefix /loki` in `prompts/tools/13-caddy.md`.
 
 ## Verify
 
 ```bash
-# Local health probe (no Tailscale required):
-curl -s http://localhost:3100/ready
-
-# Through the tailnet (Caddy strips the /loki prefix):
+curl -fsS http://127.0.0.1:3100/ready
 curl -sS "https://${CORTEX_DOMAIN}/loki/ready"
 ```
 
@@ -113,7 +67,7 @@ Expected: `ready`.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** Did `curl -s http://localhost:3100/ready` print `ready` AND `curl -sS "https://${CORTEX_DOMAIN}/loki/ready"` also print `ready` (not `Ingester not ready`, not HTTP 503)?
+**STOP — operator question:** Did `curl -s http://127.0.0.1:3100/ready` print `ready` AND `curl -sS "https://${CORTEX_DOMAIN}/loki/ready"` also print `ready`?
 
 Type `confirmed` to proceed.
 

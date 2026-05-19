@@ -12,7 +12,7 @@
 
 import express from "express";
 import { spawn as defaultSpawn } from "node:child_process";
-import { randomUUID } from "node:crypto";
+import { createHmac, randomUUID } from "node:crypto";
 import { instrument as instrumentTelemetry } from "@cortexos/telemetry";
 import { ExecRequestSchema, decide, buildPodmanArgs } from "./policy.js";
 
@@ -35,9 +35,27 @@ const PODMAN_BIN = process.env.CORTEX_SANDBOX_PODMAN_BIN || "podman";
 // dashboard / consumer subscribes and calls `@cortexos/audit.append`.
 // See docs/NATS-CONTRACT.md → `cortex.audit.<scope>.<verb>`.
 const CORTEX_AUDIT_URL = (process.env.CORTEX_AUDIT_URL || "").replace(/\/$/, "");
+// When CORTEX_NATS_HMAC is configured, the CloudEvent is wrapped in the
+// standard signed envelope `{ data, sig }` (sig = HMAC-SHA256 over JCS
+// canonicalised data). This lets downstream verifiers confirm integrity
+// without trusting the transport. If the secret is absent the event is
+// still emitted but logged as unsigned.
 const CORTEX_AUDIT_TOKEN = process.env.CORTEX_AUDIT_TOKEN || "";
 const CORTEX_AUDIT_ENABLED = process.env.CORTEX_AUDIT_ENABLED !== "0";
+function getCortexNatsHmac() { return process.env.CORTEX_NATS_HMAC || ""; }
 
+function jcs(value) {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(jcs).join(",")}]`;
+  const keys = Object.keys(value).sort();
+  return `{${keys.map((k) => `${JSON.stringify(k)}:${jcs(value[k])}`).join(",")}}`;
+}
+
+function signEnvelope(data, secret) {
+  if (!secret) throw new Error("CORTEX_NATS_HMAC not configured");
+  const sig = createHmac("sha256", secret).update(jcs(data)).digest("hex");
+  return { data, sig };
+}
 async function emitAuditEvent(payload) {
   if (!CORTEX_AUDIT_ENABLED) return;
   const event = {
@@ -56,10 +74,24 @@ async function emitAuditEvent(payload) {
       ts: new Date().toISOString(),
     },
   };
+
+  let envelope;
+  const hmacSecret = getCortexNatsHmac();
+  if (hmacSecret) {
+    try {
+      envelope = signEnvelope(event, hmacSecret);
+    } catch (e) {
+      process.stderr.write(`[audit] sandbox exec sign failed: ${e.message}\n`);
+      envelope = event;
+    }
+  } else {
+    envelope = event;
+  }
+
   if (!CORTEX_AUDIT_URL) {
     // No collector configured — best-effort log so an operator/tailer
     // still has the event. Stays a one-line JSON record.
-    process.stdout.write(`[audit] ${JSON.stringify(event)}\n`);
+    process.stdout.write(`[audit] ${JSON.stringify(envelope)}\n`);
     return;
   }
   try {
@@ -68,7 +100,7 @@ async function emitAuditEvent(payload) {
     await fetch(`${CORTEX_AUDIT_URL}/cortex.audit.sandbox.exec.v1`, {
       method: "POST",
       headers,
-      body: JSON.stringify(event),
+      body: JSON.stringify(envelope),
     });
   } catch (e) {
     process.stderr.write(`[audit] sandbox exec append failed: ${e.message}\n`);
@@ -214,8 +246,8 @@ export function buildApp(opts = {}) {
   return app;
 }
 
-// Export metrics view for tests.
 export function _snapshotMetrics() { return { ...metrics }; }
+export { jcs, signEnvelope };
 
 // Boot only when run directly, not when imported by tests.
 const isDirect = import.meta.url === `file://${process.argv[1]}`;

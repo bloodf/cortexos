@@ -177,8 +177,7 @@ until the approval workflow lands.
 - **Producer**: `stacks/cortex-agentgateway/index.js` (`POST /tool/invoke`
   handler), publishing on every accept/deny decision.
 - **Schema URL**: `https://cortexos/schemas/cortex-audit-agentgateway-v1.json`
-  (placeholder; schema file lands in a follow-up — consumers should treat
-  unknown extra fields as forward-compatible until then).
+; consumers must ignore unknown extra fields for forward compatibility.
 - **`data` shape**:
 
   ```json
@@ -256,6 +255,7 @@ The flag is read by `stacks/cortex-paperclip-bridge/worker.js` and `stacks/corte
 | `CORTEX_PAPERCLIP_WORK` | `cortex.paperclip.work.>` | `workqueue` | 120s | 24h |
 | `CORTEX_PAPERCLIP_OPS` | `cortex.paperclip.status.>`, `cortex.paperclip.approval.>`, `cortex.alerts.>` | `limits` | 120s | — |
 | `CORTEX_DLQ` | `cortex.dlq.>` | `limits` | 120s | 7d |
+| `CORTEX_AUDIT` | `cortex.audit.>` | `limits` | 120s | 30d |
 | `CORTEX` (legacy) | `cortex.factory.>`, `openclaw.>` | `limits` | server default | — |
 
 WorkQueue retention on `CORTEX_PAPERCLIP_WORK` guarantees single-consumer dispatch semantics: a delivered message is removed from the stream once acked, so two parallel durables on the same filter cannot both process the same event.

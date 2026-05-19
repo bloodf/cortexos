@@ -102,3 +102,29 @@ test("GET /metrics emits prom-text counters", async () => {
   assert.equal(r.status, 200);
   assert.match(r.text, /sandbox_exec_total/);
 });
+test("POST /exec emits signed audit envelope when CORTEX_NATS_HMAC is set", async () => {
+  const lines = [];
+  const origWrite = process.stdout.write.bind(process.stdout);
+  process.stdout.write = (chunk) => { lines.push(chunk.toString()); };
+
+  try {
+    process.env.CORTEX_NATS_HMAC = "test-hmac";
+    const app = buildApp({ skipAuth: true, spawn: fakeSpawn(0, "ok\n") });
+    const r = await request(app, "POST", "/exec", {
+      body: { image: "alpine:3", cmd: ["echo", "ok"] },
+    });
+    assert.equal(r.status, 200);
+    // Wait for the fire-and-forget audit emit.
+    await new Promise((res) => setTimeout(res, 50));
+    const auditLine = lines.find((l) => l.startsWith("[audit] "));
+    assert.ok(auditLine, "expected an [audit] line");
+    const envelope = JSON.parse(auditLine.replace("[audit] ", ""));
+    assert.ok(envelope.data, "expected envelope.data");
+    assert.ok(envelope.sig, "expected envelope.sig");
+    assert.equal(envelope.data.type, "cortex.audit.sandbox.exec.v1");
+    assert.equal(envelope.data.source, "cortex-sandbox-runner");
+  } finally {
+    process.stdout.write = origWrite;
+    delete process.env.CORTEX_NATS_HMAC;
+  }
+});

@@ -1,0 +1,17 @@
+[Unit]
+Description=Cortex Graph LangGraph sidecar
+After=network-online.target postgresql.service nats.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=cortex
+Group=cortex
+WorkingDirectory=/opt/cortexos/stacks/cortex-graph
+EnvironmentFile=/opt/cortexos/.secrets/graph.env
+ExecStart=/opt/cortexos/stacks/cortex-graph/.venv/bin/uvicorn server:app --host 127.0.0.1 --port 8090
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

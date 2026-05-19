@@ -3,11 +3,9 @@
  * HMAC-SHA256 confirmation tokens for privileged/destructive tool calls.
  * Plan §4a: issue → UI echo → verify → execute.
  *
- * TODO §4g: swap InMemoryConsumedStore for JetStream KV bucket
- * `cortex_approvals_seen` once cortex-consumer is wired. Call
- * `setTokenConsumedStore(jetStreamKVStore)` at server startup.
- * The KV put provides cross-process atomicity; the in-memory store
- * is single-process only and has a TOCTOU window under concurrent load.
+ * Token consumption is abstracted behind TokenConsumedStore. Deployments can
+ * install a JetStream KV implementation with `setTokenConsumedStore(...)` at
+ * server startup; the built-in store is the safe single-node fallback.
  */
 
 import { createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
@@ -93,7 +91,7 @@ export interface TokenConsumedStore {
 }
 
 // ---------------------------------------------------------------------------
-// In-memory default implementation (single-process only)
+// Default implementation (single-process fallback)
 // TTL eviction: sweep runs every SWEEP_INTERVAL_MS; entries expire at expiresAt.
 // ---------------------------------------------------------------------------
 

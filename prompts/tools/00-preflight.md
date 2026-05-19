@@ -184,7 +184,7 @@ Replace `<project>` with the project name from the table below.
 |---|---|---|
 | `docs/external/openclaw-channels.snapshot.md` | OpenClaw channels/platform docs | Per-platform button and rich-block capabilities |
 | `docs/external/openclaw-dreaming.snapshot.md` | OpenClaw memory-core docs | `dream` command, status flags |
-| `docs/external/openclaw-openviking-install.snapshot.md` | `@openclaw/openviking` npm README | Install instructions for `npm install @openclaw/openviking@latest` |
+| `docs/external/openclaw-openviking-install.snapshot.md` | `@openviking/openclaw-plugin` README | Install instructions for `openclaw plugins install @openviking/openclaw-plugin` |
 | `docs/external/openclaw-gateway-api.snapshot.md` | Output of probe script (Step 2) | Already written by probe script — verify file exists |
 | `docs/external/openclaw-a2a-gateway.snapshot.md` | `win4r/openclaw-a2a-gateway` GitHub README | Install and permissions |
 | `docs/external/openclaw-compaction-context.snapshot.md` | `robertcuadra/compaction-context` GitHub README | Install instructions |

@@ -41,7 +41,8 @@ Type `confirmed` to proceed.
 
 ```bash
 rm -rf /tmp/openclaw-codex-watchdog
-git clone https://github.com/ThisIsJeron/openclaw-codex-watchdog /tmp/openclaw-codex-watchdog
+# Version pin: shallow clone current default branch; update this prompt when pinning a commit/tag.
+git clone --depth 1 https://github.com/ThisIsJeron/openclaw-codex-watchdog /tmp/openclaw-codex-watchdog
 cd /tmp/openclaw-codex-watchdog
 # Current upstream already ships dist/index.js + openclaw.plugin.json.
 openclaw plugins install --link /tmp/openclaw-codex-watchdog || openclaw plugins install /tmp/openclaw-codex-watchdog --force

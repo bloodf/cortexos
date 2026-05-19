@@ -83,6 +83,15 @@ describe("cortex-agentgateway HTTP surface", () => {
     expect(published[0].subject).toBe("cortex.audit.agentgateway.tool-invoke.v1");
     expect(published[0].payload.type).toBe("cortex.audit.agentgateway.tool-invoke.v1");
     expect(audited).toHaveLength(1);
+    expect(audited[0].type).toBe("cortex.audit.agentgateway.tool-invoke.v1");
+    expect(audited[0].source).toBe("cortexos://cortex-agentgateway");
+    expect(audited[0].data).toMatchObject({
+      runId: "run-2",
+      agentId: "agent-2",
+      role: "factory_agent",
+      tool: "propose_role",
+      toolClass: "safe",
+    });
   });
 
   it("POST /tool/invoke for destructive tool without confirmationToken returns 403", async () => {

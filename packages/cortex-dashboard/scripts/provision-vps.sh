@@ -17,7 +17,7 @@
 #
 # Idempotent: safe to re-run. Installs Node 24 (via linuxbrew), PostgreSQL 17,
 # creates the dashboard role + database, scaffolds /opt/cortexos directory tree,
-# and seeds /opt/cortexos/secrets/dashboard.env from the template.
+# and seeds /opt/cortexos/.secrets/dashboard.env from the template.
 #
 # Run as the SSH user with sudo (NOT as root directly — linuxbrew rejects root).
 #

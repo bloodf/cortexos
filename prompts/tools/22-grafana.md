@@ -1,8 +1,8 @@
-# Grafana (latest)
+# Grafana (native)
 
 ## Purpose
 
-Run Grafana as a Docker container; provision Prometheus and Loki as data sources and import the CortexOS dashboard template.
+Run Grafana as a native systemd service, provision Prometheus and Loki datasources, and import the CortexOS dashboard template.
 
 ## Prerequisites
 
@@ -18,24 +18,21 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 
 ## Sudo gate
 
-This spoke runs `sudo`. Authenticate **now** so the rest of the steps don't pause for a password mid-flow:
-
 ```bash
 sudo -v
 ```
 
-CortexOS never stores your password — only the kernel's sudo timestamp is used. Re-run if it expires.
-
 ## Todo
 
 - [ ] CHECKPOINT 1 confirmed — port 3000 is free
-- [ ] Append `grafana` service to monitoring compose (sub-path mount, `GF_SERVER_SERVE_FROM_SUB_PATH=true`)
-- [ ] Write `grafana/provisioning/datasources/cortex.yml` (Prometheus + Loki)
+- [ ] Install Grafana from official apt repository
+- [ ] Configure sub-path serving at `/grafana/`
+- [ ] Provision Prometheus and Loki datasources
 - [ ] Write `/opt/cortexos/.secrets/grafana.env` (mode 0600) with `GRAFANA_ADMIN_PASSWORD`
-- [ ] `docker compose --env-file /opt/cortexos/.secrets/grafana.env up -d grafana`
+- [ ] `systemctl enable --now grafana-server`
 - [ ] Import `templates/grafana/cortex-v1.json` via API
-- [ ] Confirm `curl https://${CORTEX_DOMAIN}/grafana/login` returns HTTP 200
-- [ ] CHECKPOINT 2 confirmed — UI loads, datasources green, CortexOS dashboard visible
+- [ ] Confirm `https://${CORTEX_DOMAIN}/grafana/login` returns HTTP 200
+- [ ] CHECKPOINT 2 confirmed
 
 ## CHECKPOINT 1
 
@@ -45,94 +42,69 @@ Type `confirmed` to proceed.
 
 ## Install
 
-Append Grafana service to `/opt/cortexos/stacks/monitoring/docker-compose.yml`:
-
 ```bash
-cat >> /opt/cortexos/stacks/monitoring/docker-compose.yml <<'EOF'
-
-  grafana:
-    image: grafana/grafana
-    restart: unless-stopped
-    environment:
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
-      GF_USERS_ALLOW_SIGN_UP: "false"
-      # Sub-path mount: Caddy serves Grafana at /grafana/ and does NOT
-      # strip the prefix, so Grafana must own the prefix and emit
-      # absolute URLs that include it.
-      GF_SERVER_ROOT_URL: "https://${CORTEX_DOMAIN}/grafana/"
-      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
-    ports:
-      - "127.0.0.1:3000:3000"
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-
-volumes:
-  grafana_data:
-EOF
+sudo install -d -m 0755 /etc/apt/keyrings
+curl -fsSL https://apt.grafana.com/gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/grafana.gpg
+echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" \
+  | sudo tee /etc/apt/sources.list.d/grafana.list
+sudo apt-get update
+pkg_install grafana
 ```
 
-Write provisioning files:
+## Configure
 
 ```bash
-mkdir -p /opt/cortexos/stacks/monitoring/grafana/provisioning/datasources
+sudo tee /opt/cortexos/.secrets/grafana.env <<EOF
+GRAFANA_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+EOF
+sudo chmod 600 /opt/cortexos/.secrets/grafana.env
 
-tee /opt/cortexos/stacks/monitoring/grafana/provisioning/datasources/cortex.yml <<'EOF'
+sudo install -d -m 0755 /etc/grafana/provisioning/datasources
+sudo tee /etc/grafana/provisioning/datasources/cortex.yml <<'EOF'
 apiVersion: 1
 datasources:
   - name: Prometheus
     type: prometheus
-    # Prometheus runs with --web.route-prefix=/prometheus, so even
-    # in-cluster the API lives under /prometheus.
-    url: http://prometheus:9090/prometheus
+    url: http://127.0.0.1:9090/prometheus
     isDefault: true
   - name: Loki
     type: loki
-    # Loki is path-agnostic in-cluster — service-to-service URL
-    # does NOT carry the /loki prefix (Caddy strips it for tailnet
-    # traffic only).
-    url: http://loki:3100
+    url: http://127.0.0.1:3100
 EOF
+
+sudo tee /etc/grafana/grafana.ini.d/cortexos.ini >/dev/null <<EOF
+[server]
+http_addr = 127.0.0.1
+http_port = 3000
+root_url = https://${CORTEX_DOMAIN}/grafana/
+serve_from_sub_path = true
+
+[security]
+admin_password = ${GRAFANA_ADMIN_PASSWORD}
+
+[users]
+allow_sign_up = false
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now grafana-server
 ```
 
-Write env and start:
-
-```bash
-sudo tee /opt/cortexos/.secrets/grafana.env <<EOF
-GRAFANA_ADMIN_PASSWORD={GRAFANA_ADMIN_PASSWORD}
-# CORTEX_DOMAIN flows into GF_SERVER_ROOT_URL at compose-time.
-CORTEX_DOMAIN=${CORTEX_DOMAIN}
-EOF
-sudo chmod 600 /opt/cortexos/.secrets/grafana.env
-
-: "${CORTEX_DOMAIN:?export CORTEX_DOMAIN to your Tailscale MagicDNS FQDN}"
-cd /opt/cortexos/stacks/monitoring
-docker compose --env-file /opt/cortexos/.secrets/grafana.env up -d grafana
-```
-
-> Caddy forwards the `/grafana` prefix to this backend without
-> stripping it. Do NOT change `GF_SERVER_SERVE_FROM_SUB_PATH` or
-> `GF_SERVER_ROOT_URL` here without updating `prompts/tools/13-caddy.md`
-> to match.
+If your Grafana package does not load `/etc/grafana/grafana.ini.d/*.ini`, merge the same stanzas into `/etc/grafana/grafana.ini` and restart `grafana-server`.
 
 Import CortexOS Grafana dashboard:
 
 ```bash
-# Dashboard JSON lives at templates/grafana/cortex-v1.json
-curl -s -X POST http://admin:{GRAFANA_ADMIN_PASSWORD}@localhost:3000/grafana/api/dashboards/import \
-  -H "Content-Type: application/json" \
-  -d "{\"dashboard\": $(cat templates/grafana/cortex-v1.json), \"overwrite\": true, \"folderId\": 0}"
+jq -n --argjson dashboard "$(cat templates/grafana/cortex-v1.json)" '{dashboard: $dashboard, overwrite: true, folderId: 0}' \
+  | curl -fsS -X POST "http://admin:${GRAFANA_ADMIN_PASSWORD}@127.0.0.1:3000/grafana/api/dashboards/import" \
+      -H "Content-Type: application/json" \
+      -d @-
 ```
 
 ## Verify
 
 ```bash
-# Local health probe (no Tailscale required) — note the /grafana prefix:
-curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/grafana/login
-
-# Through the tailnet:
+curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3000/grafana/login
 curl -sS "https://${CORTEX_DOMAIN}/grafana/login" -o /dev/null -w "%{http_code}\n"
 ```
 
@@ -140,19 +112,13 @@ Expected: `200` on both.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** Does `curl -sS "https://${CORTEX_DOMAIN}/grafana/login" -o /dev/null -w "%{http_code}\n"` print `200` (not `404`, not `502`)?
+**STOP — operator question:** Does `curl -sS "https://${CORTEX_DOMAIN}/grafana/login" -o /dev/null -w "%{http_code}"` print `200`?
 
 Type `confirmed` to proceed.
 
 ## CHECKPOINT 3
 
-**STOP — operator question:** In the Grafana UI, do both the `Prometheus` and `Loki` datasources display a green "Data source is working" tick (not red "Bad Gateway")?
-
-Type `confirmed` to proceed.
-
-## CHECKPOINT 4
-
-**STOP — operator question:** Is the `CortexOS v1` dashboard visible in the Dashboards list (proving the import POST succeeded)?
+**STOP — operator question:** In the Grafana UI, do both the `Prometheus` and `Loki` datasources display a green "Data source is working" tick?
 
 Type `confirmed` to proceed.
 

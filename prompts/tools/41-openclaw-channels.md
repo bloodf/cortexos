@@ -47,11 +47,7 @@ Type `confirmed` to proceed.
 
 ## Install
 
-Use the current OpenClaw CLI channel surface. Some older package names are stale.
-
-```bash
-npm install -g @openclaw/slack@latest || true
-```
+No separate channel plugin package is installed here. Use the channel support exposed by the installed OpenClaw CLI; stale package names such as `@openclaw/slack` are intentionally not used.
 
 ## Configure
 

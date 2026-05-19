@@ -1,15 +1,25 @@
 import { fetch } from "undici";
-import { HttpAdapter } from "@cortexos/paperclip-adapter";
-
 const DEFAULT_TIMEOUT_MS = 10_000;
-const httpAdapter = new HttpAdapter();
+const DEFAULT_EVENTS = Object.freeze(["issue.created", "issue.updated", "issue.assigned"]);
 
 /**
  * Build a Paperclip HTTP webhook registration payload.
- * Delegates to @cortexos/paperclip-adapter so the shape stays in one place.
  */
 export function buildWebhookConfig(role, webhookUrl, secret, events) {
-  return httpAdapter.register(role, webhookUrl, secret, events);
+  if (!role || typeof role !== "string") throw new TypeError("role must be a non-empty string");
+  if (!secret || typeof secret !== "string") throw new TypeError("secret must be a non-empty string");
+  const parsed = new URL(webhookUrl);
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new TypeError(`webhookUrl protocol must be http or https, got ${parsed.protocol}`);
+  }
+  return Object.freeze({
+    kind: "http",
+    role,
+    webhookUrl,
+    secret,
+    events: Object.freeze([...(events ?? DEFAULT_EVENTS)]),
+    registeredAt: new Date().toISOString(),
+  });
 }
 
 function sleep(ms) {

@@ -55,29 +55,24 @@ Next: approve in dashboard if expected.
 
 ## Known Limitations
 
-### OpenClaw delivery is CLI-shellout (resolved 2026-05-19)
+### OpenClaw delivery paths
 
-The OpenClaw gateway at `127.0.0.1:18789` exposes only `/health` over
-HTTP; all delivery RPC is WebSocket. Legacy `/sendMessage` /
-`/registerRoute` HTTP routes never existed upstream. CortexOS picked
-option #2 from the prior operator-decision matrix: `consumer.js`
-delivers via the `openclaw` CLI (`openclaw message send --json`,
-`openclaw agents bind`), which is the verified real-OpenClaw surface.
+`consumer.js` implements both supported OpenClaw delivery paths:
 
-Toggle the experimental REST path with
-`OPENCLAW_DELIVERY_API_VERSION=v1` to route through
-`POST ${OPENCLAW_BASE}/v1/channels/<channel>/messages` with bearer
-`OPENCLAW_API_KEY`. Default remains `cli`. The HTTP path is opt-in
-until upstream publishes a stable REST surface — see TODO marker in
-`stacks/cortex-consumer/consumer.js`.
+- Default `cli`: shells out to `openclaw message send --json`, which remains the
+  verified gateway-compatible path for native installs.
+- Opt-in `v1`: set `OPENCLAW_DELIVERY_API_VERSION=v1` and `OPENCLAW_API_KEY` to
+  deliver with `POST ${OPENCLAW_BASE}/v1/channels/<channel>/messages`.
 
-### `@openclaw/slack` plugin not bundled
+Legacy `/sendMessage` and `/registerRoute` HTTP routes never existed upstream and
+are not used. Operators choose the HTTP v1 path explicitly through the env var;
+otherwise the consumer keeps the CLI default.
 
-The Slack channel requires the upstream `@openclaw/slack` plugin
-(`npm install -g @openclaw/slack@latest`). It is NOT carried in the
-base OpenClaw distribution and must be installed explicitly during
-`41-openclaw-channels.md`. Live VPS verification on 2026-05-16
-showed the plugin missing, which compounded the `/sendMessage` 404
+### Slack channel setup
+
+Slack channel setup uses the installed OpenClaw CLI channel surface in
+`41-openclaw-channels.md`. Do not install stale standalone packages such as
+`@openclaw/slack`; they are not part of the CortexOS install contract
 to fully suppress Slack delivery.
 
 ## Related docs

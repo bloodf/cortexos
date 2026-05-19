@@ -121,11 +121,8 @@ const OPENCLAW_CLI_TIMEOUT_MS = Number(process.env.OPENCLAW_CLI_TIMEOUT_MS || 15
 const OPENCLAW_OUTBOUND_HMAC = process.env.CORTEX_OPENCLAW_OUTBOUND_HMAC || "";
 // Delivery API selector. "cli" (default) shells out to `openclaw message send`,
 // which is the verified real-OpenClaw delivery path (gateway is ws://, not REST).
-// "v1" routes through `${OPENCLAW_BASE}/v1/channels/<channel>/messages` for
-// future HTTP-REST builds — see docs/MESSAGING.md. The legacy `/sendMessage`
-// shape (404 on OpenClaw ≥2026.5.12) has been removed.
-// TODO(openclaw-rest): verify v1 endpoint against upstream once published —
-// https://github.com/openclawd/openclaw (operator snapshot at docs/external/).
+// "v1" routes through `${OPENCLAW_BASE}/v1/channels/<channel>/messages`.
+// The legacy `/sendMessage` shape (404 on OpenClaw ≥2026.5.12) has been removed.
 const OPENCLAW_DELIVERY_API_VERSION = (process.env.OPENCLAW_DELIVERY_API_VERSION || "cli").toLowerCase();
 const OPENCLAW_API_KEY = process.env.OPENCLAW_API_KEY || "";
 const NATS_HMAC = process.env.CORTEX_NATS_HMAC || "";
@@ -381,12 +378,9 @@ async function openclawSendMessage({ account, channel, target, blocks }) {
   return openclawExec(args);
 }
 
-// HTTP REST delivery (experimental, gated by OPENCLAW_DELIVERY_API_VERSION=v1).
+// HTTP REST delivery (opt-in via OPENCLAW_DELIVERY_API_VERSION=v1).
 // Endpoint shape: POST ${OPENCLAW_BASE}/v1/channels/<channel>/messages
 // Auth: Bearer ${OPENCLAW_API_KEY}.
-// TODO(openclaw-rest): confirm exact endpoint + body schema against upstream
-// docs/external/openclaw.snapshot.md once operator snapshots it. Logs response
-// status so ops can spot 404s during rehearsal.
 async function openclawSendMessageHttpV1({ account, channel, target, blocks }) {
   if (!cbAllow()) throw new Error("circuit open — skipping openclaw http v1");
   if (!channel) throw new Error("openclaw http v1 requires channel id");

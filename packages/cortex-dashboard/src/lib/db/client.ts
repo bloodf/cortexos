@@ -17,11 +17,24 @@ function getPoolCtor() {
 	return ctor;
 }
 
+let warnedAboutDsnConflict = false;
+
+function warnIfDsnConflictsWithDbHost(): void {
+	if (warnedAboutDsnConflict || !process.env.DB_HOST) return;
+	const dsnName = process.env.PG_DSN ? "PG_DSN" : process.env.DATABASE_URL ? "DATABASE_URL" : "";
+	if (!dsnName) return;
+	warnedAboutDsnConflict = true;
+	process.stderr.write(
+		`[dashboard-db] ${dsnName} is set but dashboard ignores DSN values when DB_HOST is configured; remove ${dsnName} or DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD to avoid operator confusion.\n`,
+	);
+}
+
 export function getPool() {
 	if (!cachedPool) {
 		if (!process.env.DB_PASSWORD) {
 			throw new Error("DB_PASSWORD environment variable is required");
 		}
+		warnIfDsnConflictsWithDbHost();
 		const PoolCtor = getPoolCtor();
 		cachedPool = new PoolCtor({
 			host: process.env.DB_HOST || "127.0.0.1",

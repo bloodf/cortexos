@@ -17,6 +17,7 @@ import {
 	verifyAndConsume,
 } from "./confirmation-token";
 import { insertAuditRow } from "@/lib/db/agent-gateway-audit";
+import { getRateLimitStore } from "./rate-limit-store";
 import { getAllServices } from "@/lib/db/service";
 import { readEnvFile } from "@/lib/secrets/vps-reader";
 import {
@@ -39,20 +40,10 @@ interface PolicyToolEntry {
 }
 
 // ---------------------------------------------------------------------------
-// Per-tool sliding-window rate limit (M-9)
-//
-// In-memory map keyed by `${userId}|${toolName}` -> timestamps (ms) of recent
-// calls. Each `checkRateLimit` call drops entries older than 15min, then
-// compares the remaining length against the policy's `rate_limit_per_15min`.
-//
-// Mirrors the per-user/global limiter in /api/ai/chat: module-scope, per
-// process, lost on restart. Acceptable for v1.0 single-node systemd deploy.
-// TODO(v1.1): swap for a Redis/Valkey-backed sliding window once a shared KV
-// is available so multi-worker deploys cannot bypass per-tool caps.
+// Per-tool sliding-window rate limit via injectable RateLimitStore.
 // ---------------------------------------------------------------------------
 
 const RATE_WINDOW_MS = 15 * 60 * 1_000;
-const rateBuckets = new Map<string, number[]>();
 
 function rateLimitOf(name: string): number | undefined {
 	return POLICY_BY_NAME.get(name)?.rate_limit_per_15min;
@@ -64,39 +55,23 @@ interface RateLimitDecision {
 	retryAfterSeconds?: number;
 }
 
-function rateBucketKey(userId: number, toolName: string): string {
-	return `${userId}|${toolName}`;
-}
-
-function checkAndRecordRateLimit(
+async function checkAndRecordRateLimit(
 	userId: number,
 	toolName: string,
-	now = Date.now(),
-): RateLimitDecision {
+): Promise<RateLimitDecision> {
 	const limit = rateLimitOf(toolName);
 	if (limit === undefined || limit <= 0) return { allowed: true };
-	const key = rateBucketKey(userId, toolName);
-	const cutoff = now - RATE_WINDOW_MS;
-	const previous = rateBuckets.get(key) ?? [];
-	const within = previous.filter((t) => t > cutoff);
-	if (within.length >= limit) {
-		const oldest = within[0] ?? now;
-		const retryAfterSeconds = Math.max(
-			1,
-			Math.ceil((oldest + RATE_WINDOW_MS - now) / 1_000),
-		);
-		// Persist trimmed window so we don't keep stale entries forever.
-		rateBuckets.set(key, within);
-		return { allowed: false, limit, retryAfterSeconds };
-	}
-	within.push(now);
-	rateBuckets.set(key, within);
-	return { allowed: true, limit };
+	const result = await getRateLimitStore().check(`tool:${userId}:${toolName}`, limit, RATE_WINDOW_MS);
+	return {
+		allowed: result.allowed,
+		limit,
+		retryAfterSeconds: result.retryAfterSec,
+	};
 }
 
 /** Test-only reset of all per-tool rate-limit buckets. */
 export function _resetToolRateLimits(): void {
-	rateBuckets.clear();
+	getRateLimitStore().reset?.();
 }
 
 interface Policy {
@@ -200,7 +175,7 @@ async function ensureApproval(
 	// including safe — so noisy callers cannot bypass the cap with read-only
 	// tools. Tools without a `rate_limit_per_15min` policy entry are
 	// unrestricted (preserves current behavior).
-	const rate = checkAndRecordRateLimit(ctx.userId, toolName);
+	const rate = await checkAndRecordRateLimit(ctx.userId, toolName);
 	if (!rate.allowed) {
 		const argsHashForAudit = sha256(canonicalJson(args));
 		await writeAudit({

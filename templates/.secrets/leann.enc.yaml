@@ -1,0 +1,5 @@
+# Encrypt with sops before committing real values.
+LEANN_PORT: "18791"
+NINEROUTER_BASE_URL: http://127.0.0.1:11434
+NINEROUTER_API_KEY: CHANGE_ME
+LEANN_DATA_DIR: /opt/cortexos/stacks/leann/data

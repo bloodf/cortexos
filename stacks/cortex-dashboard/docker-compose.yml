@@ -1,4 +1,9 @@
-# Cortex Dashboard — on-VPS Docker Compose build.
+# Cortex Dashboard — LEGACY Docker Compose build.
+#
+# This file is preserved for reference and local experimentation only.
+# Production deployments use the native systemd service at
+# templates/systemd/cortex-dashboard.service, built via
+# packages/cortex-dashboard/scripts/native-build.sh.
 #
 # Build context is the packages/cortex-dashboard/ source tree (materialized on the VPS by the
 # operator-laptop bootstrap via `git archive | ssh tar -x`). No rsync, no
@@ -42,4 +47,3 @@ services:
       timeout: 5s
       retries: 3
       start_period: 30s
-

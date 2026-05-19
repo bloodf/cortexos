@@ -24,7 +24,7 @@ DRY_RUN=0
 [[ "${1:-}" == "--dry-run" ]] && DRY_RUN=1
 
 BACKUP_ROOT="${BACKUP_ROOT:-/opt/cortexos/backups}"
-DASHBOARD_DIR="${DASHBOARD_DIR:-/opt/cortexos/dashboard}"
+DASHBOARD_DIR="${DASHBOARD_DIR:-/opt/cortexos/packages/cortex-dashboard}"
 STACKS_DIR="${STACKS_DIR:-/opt/cortexos/stacks}"
 SYSTEMD_BACKUP="${BACKUP_ROOT}/systemd"
 DB_BACKUP_DIR="${BACKUP_ROOT}/dashboard"

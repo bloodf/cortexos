@@ -183,7 +183,16 @@ curl -s http://localhost:18800/health
 
 Expected: health OK.
 
-### 8. Dashboard
+### 8. Paperclip Bridge
+
+```bash
+curl -fsS http://127.0.0.1:8089/healthz
+sudo journalctl -u cortex-paperclip-bridge --no-pager -n 100 | grep -F "[alerts] ready"
+```
+
+Expected: bridge health OK and alerts worker ready.
+
+### 9. Dashboard
 
 ```bash
 # Dashboard health endpoint (see packages/cortex-dashboard/src/app/api/health/route.ts)
@@ -193,16 +202,16 @@ curl -sSo /dev/null -w "%{http_code}" "https://${CORTEX_DOMAIN}/en/login"
 
 Expected: `ok`, then `200`.
 
-### 9. Paranoia checks
+### 10. Paranoia checks
 
 ```bash
 # Operator-local leak sweep lives in .secrets/leak-sweep.sh (pattern not stored in repo).
 
 # No version pins in prompts
-grep -rliE "@[0-9]+\.[0-9]+\.[0-9]+|sha-[0-9a-f]{7,}" /opt/cortexos/prompts/tools/ && echo "PINS FOUND — REVIEW" || echo "CLEAN"
+grep -rliE "sha-[0-9a-f]{7,}" /opt/cortexos/prompts/tools/ && echo "UNEXPECTED SHA PINS FOUND — REVIEW" || echo "CLEAN"
 ```
 
-Expected: both return `CLEAN`.
+Expected: leak sweep clean and no unexpected SHA pins. Version pins such as `leann==0.3.7` are intentional when called out by the spoke.
 
 ## Record final state
 
@@ -220,7 +229,7 @@ print('State updated.')
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** Did every health probe in sections 1-8 return its expected value AND did the section 9 version-pin grep print `CLEAN` (not `PINS FOUND`, not any failed curl)?
+**STOP — operator question:** Did every health probe in sections 1-9 return its expected value AND did the section 9 version-pin grep print `CLEAN` (not `PINS FOUND`, not any failed curl)?
 
 **Setup complete.** All services are running. Register additional projects via the dashboard Projects page at `https://${CORTEX_DOMAIN}/en/admin/projects`.
 

@@ -12,7 +12,7 @@ Orchestrator prompt for hub-and-spoke VPS configuration. This file drives the fu
 > pre-install checklist.
 >
 > The full required-tool list is enforced automatically by
-> `scripts/preflight-tools.sh`, which runs on the VPS before any spoke
+> `scripts/preflight-tools.sh`, which runs after `prompts/os/10-ubuntu-prereqs.md` on the VPS before any spoke
 > executes. If anything is missing it prints a numbered remediation list
 > and exits 2 — install the items and re-run.
 
@@ -52,7 +52,7 @@ export NINEROUTER_API_KEY=""           # Master key for 9Router (generate a rand
 # Telegram, Slack, Discord, and WhatsApp tokens are NOT needed at setup time.
 # Add each platform's secrets to /opt/cortexos/.secrets/<platform>.env (or via
 # the encrypted templates under templates/.secrets/) only when you actually
-# wire that integration up via its dedicated prompt under `prompts/integrations/`.
+# enable that channel through `prompts/tools/41-openclaw-channels.md` or the OpenClaw CLI after install.
 
 # 6. Optional services
 export INSTALL_MONGODB="no"            # yes|no
@@ -132,7 +132,7 @@ and includes every required spoke present on disk:
 
 ```text
 00-preflight
-→ 10-os-hardening → 11-docker → 12-tailscale → 12a-sops-bootstrap → 13-caddy
+→ 10-os-hardening → 09-homebrew → 11-docker → 12-tailscale → 12a-sops-bootstrap → 13-caddy
 → 14-postgresql → 15-redis → 17-dnsmasq → 18-fail2ban
 → 20-prometheus → 21-loki → 22-grafana → 23-fluent-bit → 24-cadvisor → 25-node-exporter
 → 30-nats → 31-9router → 32-openviking → 33-leann → 34-kernel-browser
@@ -140,17 +140,14 @@ and includes every required spoke present on disk:
 → 44-openclaw-a2a-gateway → 45-openclaw-compaction → 45a-cortex-graph
 → 46-openclaw-codex-watchdog → 47-openclaw-foundry → 47a-cortex-sandbox
 → 49-openclaw-account-ops
-→ 50-agentgateway → 55-langfuse → 60-cortex-consumer → 61-smoke-tests
-→ 70-dashboard → 80-agent-factory → 81-projects
+→ 50-agentgateway → 55-langfuse → 60-cortex-consumer → 61-weekly-synthetic-traffic
+→ 62-paperclip → 63-paperclip-alerts → 70-dashboard → 80-agent-factory → 81-projects
 → 99-final-validation
 ```
 
 If `INSTALL_MONGODB=yes`, insert `16-mongodb` after `15-redis`.
 
-Legacy Opik spokes (`35-opik`, `48-openclaw-opik`) and the placeholder
-`35a-langfuse` have been removed — LLM observability now runs entirely
-through `55-langfuse` with OpenLLMetry instrumentation in
-`packages/cortex-telemetry`.
+LLM observability runs through `55-langfuse` with OpenLLMetry instrumentation in `packages/cortex-telemetry`. Paperclip install and alert wiring are mandatory install spokes (`62-paperclip`, `63-paperclip-alerts`).
 
 ---
 

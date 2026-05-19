@@ -25,13 +25,13 @@
 | Location | Purpose |
 |---|---|
 | `/opt/cortexos/.secrets/*.env` | Service and stack credentials |
-| `/opt/cortexos/secrets/dashboard.env` | Dashboard runtime secrets |
+| `/opt/cortexos/.secrets/dashboard.env` | Dashboard runtime secrets |
 | `~/.openclaw/openclaw.json` | OpenClaw account config |
 | PostgreSQL credentials tables | Encrypted dashboard credential store |
 
 ## Encryption model
 
-Dashboard uses `CORTEX_MASTER_KEY` from `/opt/cortexos/secrets/dashboard.env`. Each credential field is encrypted with AES-256-GCM and stored as ciphertext, IV, and authentication tag. Master key compromise enables decryption, so host file permissions and backups matter.
+Dashboard uses `CORTEX_MASTER_KEY` from `/opt/cortexos/.secrets/dashboard.env`. Each credential field is encrypted with AES-256-GCM and stored as ciphertext, IV, and authentication tag. Master key compromise enables decryption, so host file permissions and backups matter.
 
 ## Import flow
 

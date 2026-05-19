@@ -1,0 +1,35 @@
+[Unit]
+Description=Cortex NATS Consumer — subscribes cortex.> and dispatches to agents + Slack
+After=network-online.target docker.service
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User={VPS_USER}
+WorkingDirectory=/opt/cortexos/stacks/cortex-consumer
+ExecStart=/usr/bin/env node consumer.js
+# Runtime secrets (NATS_URL, OPENCLAW_BASE_URL, AGENTGATEWAY_BASE_URL,
+# CORTEX_NATS_HMAC, CORTEX_OPENCLAW_OUTBOUND_HMAC, etc.) come from the
+# SOPS-decrypted env file written by `bootstrap_push_secrets` /
+# `scripts/secrets-decrypt.sh`. Inline `Environment=` below stays only
+# for deployment-invariant paths and ports.
+EnvironmentFile=/opt/cortexos/.secrets/consumer.env
+Environment=OPENCLAW_CONFIG={VPS_HOME}/.openclaw/openclaw.json
+Environment=ROUTING_CONFIG=/opt/cortexos/stacks/cortex-consumer/config.json
+Environment=THREAD_STATE_FILE=/opt/cortexos/state/consumer-threads.json
+Environment=HEALTH_PORT=3099
+Environment=METRICS_PORT=7091
+ExecStartPre=/usr/bin/mkdir -p /opt/cortexos/state
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+StandardOutput=journal
+StandardError=journal
+MemoryHigh=256M
+MemoryMax=512M
+
+[Install]
+WantedBy=multi-user.target

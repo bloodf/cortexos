@@ -1,3 +1,9 @@
+# cortex-graph — LEGACY Docker Compose build.
+#
+# This file is preserved for reference and local experimentation only.
+# Production deployments use the native systemd service at
+# templates/systemd/cortex-graph.service, running a Python venv with
+# uvicorn directly on the host.
 services:
   cortex-graph:
     build:

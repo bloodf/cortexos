@@ -18,7 +18,7 @@ CortexOS uses the **Sigstore public-good instance** with no custom CA pinning:
 | Fulcio | `https://fulcio.sigstore.dev` | Short-lived (≈10 min) signing certs bound to OIDC identity |
 | Rekor | `https://rekor.sigstore.dev` | Append-only transparency log for every signature |
 | OIDC issuer (CortexOS releases) | `https://token.actions.githubusercontent.com` | GitHub Actions OIDC provider |
-| Expected identity | `https://github.com/bloodf/cortexos/.github/workflows/release.yml@<ref>` | Workflow + ref that produced the signature |
+| Expected identity | `https://github.com/${CORTEX_VERIFY_REPO:-cortexos/cortexos}/.github/workflows/${CORTEX_VERIFY_WORKFLOW:-release.yml}@<ref>` | Workflow + ref that produced the signature |
 
 The operator MUST pin the OIDC identity. A valid Sigstore signature with the wrong identity proves nothing about CortexOS.
 
@@ -44,7 +44,9 @@ Artifacts in scope:
 - `cortex-consumer`
 - `dashboard`
 - `paperclip-adapter`
-- `cortex-graph` *(included when present; V7 placeholder)*
+- `cortex-graph` *(included when present)*
+
+All artifact references above use `$CORTEX_VERIFY_REPO` so forks can override the source repository without editing this file.
 
 SLSA L2 build-provenance attestations are attached via the GitHub Attestations API (`actions/attest-build-provenance@v2`). Verify with `gh attestation verify`.
 
@@ -54,7 +56,7 @@ Run **before** pushing artifacts to a VPS. Do not skip on "trusted" networks.
 
 ```bash
 # 1. Download tarball + all sidecars from the GitHub release.
-gh release download vX.Y.Z --repo bloodf/cortexos --pattern 'dashboard-*'
+gh release download vX.Y.Z --repo "$CORTEX_VERIFY_REPO" --pattern 'dashboard-*'
 
 # 2. Verify (hard-fails on any mismatch).
 scripts/verify-artifact.sh dashboard-vX.Y.Z.tar.gz --ref refs/tags/vX.Y.Z
@@ -102,7 +104,7 @@ L3 (isolated, signed build service) is **out of scope** — it requires reusable
 `scripts/verify-artifact.sh` is invoked from:
 
 - `prompts/tools/00-preflight.md` — preflight installs cosign + syft + gh and pins identity.
-- `prompts/tools/70-dashboard.md` — verify dashboard tarball before build.
+- `prompts/tools/70-dashboard.md` — verify dashboard tarball before native build.
 - `templates/cortex-orchestration/install.sh` — verify orchestration tarball before install.
 
 ## Rotating trust roots

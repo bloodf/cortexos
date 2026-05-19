@@ -1,18 +1,18 @@
 #!/bin/bash
 # Reset an admin password directly in PostgreSQL.
-# Run on the VPS inside ${CORTEX_DASHBOARD_DIR} (default /opt/cortexos/dashboard).
+# Run on the VPS inside ${CORTEX_DASHBOARD_DIR} (default /opt/cortexos/packages/cortex-dashboard).
 #
 # Usage:
 #   sudo ./scripts/change-admin-password.sh <new-password> [username]
 #
 # Loads DB credentials from ${CORTEX_DASHBOARD_ENV_FILE} (default
-# /opt/cortexos/secrets/dashboard.env). Uses bundled bcryptjs from the
+# /opt/cortexos/.secrets/dashboard.env). Uses bundled bcryptjs from the
 # deployed node_modules. Username defaults to "admin".
 set -euo pipefail
 
 NEW_PW="${1:?Usage: $0 <new-password> [username]}"
 USERNAME="${2:-admin}"
-ENV_FILE="${CORTEX_DASHBOARD_ENV_FILE:-/opt/cortexos/secrets/dashboard.env}"
+ENV_FILE="${CORTEX_DASHBOARD_ENV_FILE:-/opt/cortexos/.secrets/dashboard.env}"
 
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "Missing env file: $ENV_FILE" >&2

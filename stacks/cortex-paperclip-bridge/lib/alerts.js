@@ -4,7 +4,7 @@ import { getConnection, verifyEnvelope } from "./nats-publisher.js";
 
 const sc = StringCodec();
 
-const STREAM = process.env.CORTEX_STREAM || "CORTEX";
+const STREAM = process.env.CORTEX_ALERTS_STREAM || process.env.CORTEX_STREAM || "CORTEX_PAPERCLIP_OPS";
 const DURABLE = process.env.DURABLE_BRIDGE_ALERTS || "cortex-paperclip-bridge-alerts";
 const FILTER = "cortex.alerts.>";
 const MAX_ATTEMPTS = 6;

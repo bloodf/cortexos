@@ -13,8 +13,12 @@ spokes:
     deps: [00-preflight]
     optional: false
 
-  11-docker:
+  09-homebrew:
     deps: [10-os-hardening]
+    optional: false
+
+  11-docker:
+    deps: [09-homebrew]
     optional: false
 
   12-tailscale:
@@ -153,11 +157,11 @@ spokes:
 
   56-pgadmin:
     deps: [14-postgresql]
-    optional: true       # enabled only if INSTALL_PGADMIN=yes
+    optional: false      # questionnaire default yes; mandatory in native-first install
 
   57-redisinsight:
     deps: [15-redis]
-    optional: true       # enabled only if INSTALL_REDISINSIGHT=yes
+    optional: false      # questionnaire default yes; mandatory in native-first install
 
   58-mongo-express:
     deps: [16-mongodb]
@@ -174,8 +178,16 @@ spokes:
     deps: [60-cortex-consumer]
     optional: false
 
+  62-paperclip:
+    deps: [40-openclaw, 60-cortex-consumer]
+    optional: false
+
+  63-paperclip-alerts:
+    deps: [62-paperclip]
+    optional: false
+
   70-dashboard:
-    deps: [14-postgresql, 13-caddy, 40-openclaw]
+    deps: [14-postgresql, 13-caddy, 40-openclaw, 62-paperclip, 63-paperclip-alerts]
     optional: false
 
   80-agent-factory:
@@ -206,6 +218,8 @@ spokes:
       - 55-langfuse
       - 60-cortex-consumer
       - 61-weekly-synthetic-traffic
+      - 62-paperclip
+      - 63-paperclip-alerts
       - 70-dashboard
       - 80-agent-factory
       - 81-projects

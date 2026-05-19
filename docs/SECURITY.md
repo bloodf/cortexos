@@ -46,7 +46,7 @@ has an explicit control:
 
 ## Secrets
 
-Secrets belong in `/opt/cortexos/.secrets` or `/opt/cortexos/secrets`. Dashboard encrypts imported values with AES-256-GCM. Never paste real values into issues, docs, or screenshots.
+Secrets belong in `/opt/cortexos/.secrets` or `/opt/cortexos/.secrets`. Dashboard encrypts imported values with AES-256-GCM. Never paste real values into issues, docs, or screenshots.
 
 ## Agents
 

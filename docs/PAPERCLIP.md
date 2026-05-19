@@ -163,7 +163,7 @@ scripts/paperclip-smoke-test.sh --phase P4 > /tmp/smoke.json 2> /tmp/smoke.log
 jq '.result, .failure' /tmp/smoke.json
 ```
 
-See `prompts/paperclip/60-smoke-test.md` for the full operator script.
+See `prompts/operations/paperclip-validation.md` for the full operator script.
 
 ### Common queries
 
@@ -185,7 +185,7 @@ ORDER BY updated_at DESC;
 ## Troubleshooting
 
 Failure tags from `scripts/paperclip-smoke-test.sh` (full list in
-`prompts/paperclip/60-smoke-test.md`):
+`prompts/operations/paperclip-validation.md`):
 
 | Tag                          | Triage                                                            |
 | ---------------------------- | ----------------------------------------------------------------- |
@@ -207,7 +207,7 @@ Failure tags from `scripts/paperclip-smoke-test.sh` (full list in
 
 ## Rollback procedures
 
-Long-form drill in `prompts/paperclip/70-rollback.md`. Summary by phase:
+Long-form drill in `prompts/operations/paperclip-rollback.md`. Summary by phase:
 
 | Phase | What rolls back                                    | Time target |
 | ----- | -------------------------------------------------- | ----------- |
@@ -226,7 +226,7 @@ Phase 7 ports archived OMC task records into Paperclip with
 `status="done"` and anchors each one in `paperclip_ticket_link` via a
 new `omc_task_id` column added by migration
 `006_paperclip_omc_backfill.sql`. Full operator walkthrough:
-[`prompts/paperclip/80-historic-backfill.md`](../prompts/paperclip/80-historic-backfill.md).
+[`prompts/operations/paperclip-backfill.md`](../prompts/operations/paperclip-backfill.md).
 
 Mechanics:
 
@@ -267,5 +267,5 @@ ORDER BY rows DESC;
 - [Security](SECURITY.md)
 - [NATS contract](NATS-CONTRACT.md)
 - [Setup guide](SETUP_GUIDE.md)
-- [Smoke prompt](../prompts/paperclip/60-smoke-test.md)
-- [Rollback prompt](../prompts/paperclip/70-rollback.md)
+- [Validation prompt](../prompts/operations/paperclip-validation.md)
+- [Rollback prompt](../prompts/operations/paperclip-rollback.md)

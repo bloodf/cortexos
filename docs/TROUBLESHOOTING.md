@@ -34,7 +34,7 @@
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| Login fails | Bad session secret or DB connection | Check `/opt/cortexos/secrets/dashboard.env` |
+| Login fails | Bad session secret or DB connection | Check `/opt/cortexos/.secrets/dashboard.env` |
 | Build fails | Next.js or TypeScript error | Run dashboard tests locally |
 | Env read denied | Path outside allowlist | Use documented roots only |
 | Health tile stale | Seed mismatch or service down | Check migrations and service endpoint |
