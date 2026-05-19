@@ -116,7 +116,7 @@ and includes every required spoke present on disk:
 → 10-os-hardening → 11-docker → 12-tailscale → 12a-sops-bootstrap → 13-caddy
 → 14-postgresql → 15-redis → 17-dnsmasq → 18-fail2ban
 → 20-prometheus → 21-loki → 22-grafana → 23-fluent-bit → 24-cadvisor → 25-node-exporter
-→ 30-nats → 31-9router → 32-openviking → 33-leann → 34-kernel-browser → 35a-langfuse
+→ 30-nats → 31-9router → 32-openviking → 33-leann → 34-kernel-browser
 → 40-openclaw → 41-openclaw-channels → 42-openclaw-openviking → 43-openclaw-memory-core
 → 44-openclaw-a2a-gateway → 45-openclaw-compaction → 45a-cortex-graph
 → 46-openclaw-codex-watchdog → 47-openclaw-foundry → 47a-cortex-sandbox
@@ -128,9 +128,10 @@ and includes every required spoke present on disk:
 
 If `INSTALL_MONGODB=yes`, insert `16-mongodb` after `15-redis`.
 
-Legacy Opik spokes (`35-opik`, `48-openclaw-opik`) have been removed —
-LLM observability runs on Langfuse v2 via `35a-langfuse` + `55-langfuse`
-with OpenLLMetry instrumentation in `packages/cortex-telemetry`.
+Legacy Opik spokes (`35-opik`, `48-openclaw-opik`) and the placeholder
+`35a-langfuse` have been removed — LLM observability now runs entirely
+through `55-langfuse` with OpenLLMetry instrumentation in
+`packages/cortex-telemetry`.
 
 ---
 

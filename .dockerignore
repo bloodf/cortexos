@@ -45,6 +45,5 @@ docs/plans
 dashboard/e2e
 dashboard/playwright.config.ts
 
-# Lima / Vagrant / VM
+# Lima / VM
 lima
-vagrant

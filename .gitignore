@@ -149,3 +149,7 @@ docker-compose.override.yml
 !.github/assets/*.png
 REVIEW.md
 .tmp-validation/
+
+# sandbox-runner app deps are installed fresh inside the container
+stacks/cortex-sandbox-runner/app/node_modules/
+stacks/cortex-sandbox-runner/app/package-lock.json

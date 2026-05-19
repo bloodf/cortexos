@@ -40,11 +40,6 @@ dashboard.env*
 .secrets
 .secrets/**
 
-# Legacy deploy / systemd (replaced by Compose)
-deploy.sh
-cortex-dashboard.service
-Caddyfile.snippet
-
 # Docs (not needed at runtime)
 *.md
 docs

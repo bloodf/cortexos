@@ -15,7 +15,7 @@ summary, and decide PASS / FAIL with evidence.
 | -------------------------------------- | ---------------------------------------- |
 | Pre-merge CI (every PR)                | Steps 1–6 + 15–18 (no real Paperclip)    |
 | Nightly CI (`paperclip-smoke.yml`)     | Full 1–21 against staging                |
-| Vagrant rehearsal (`make vm-rehearse`) | 22–28 + 1–6 (Paperclip mocked)           |
+| Lima rehearsal (`make vm-rehearse`)    | 22–28 + 1–6 (Paperclip mocked)           |
 | Manual operator (this prompt)          | Full 1–28                                |
 | Phase gate (P2..P8 "done" check)       | Full 1–28                                |
 

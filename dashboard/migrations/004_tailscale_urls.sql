@@ -1,10 +1,11 @@
 -- Public URL resolver.
 --
 -- After install, services seeded by 002_seed.sql have open_url = '#'. This migration
--- defines a helper function the deploy script (or the dashboard admin UI)
+-- defines a helper function the provisioner (or the dashboard admin UI)
 -- calls to bulk-assign service URLs against the chosen public base.
 --
--- Example invocation (run by deploy.sh once CORTEX_DOMAIN is known):
+-- Example invocation (run by `provision-vps.sh` / dashboard admin UI once
+-- CORTEX_DOMAIN is known):
 --   SELECT cortex_set_service_urls('https://cortex.example.ts.net');
 --
 -- Idempotent: rerunning rewrites all matched URLs to the new base.

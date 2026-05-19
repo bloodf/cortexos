@@ -14,7 +14,7 @@
 # `/opt/cortexos/.secrets/langfuse.env` from
 # `templates/.secrets/langfuse.enc.yaml` before `docker compose up -d`.
 #
-# Tailscale-only binding is enforced via `TAILSCALE_IP` (matches V6 opik).
+# Tailscale-only binding is enforced via `TAILSCALE_IP`.
 
 name: cortex-langfuse
 

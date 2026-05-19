@@ -80,10 +80,10 @@ Expected: NATS server info shows JetStream, KV bucket present, consumer active.
 curl -s http://localhost:11434/v1/models | jq '.data | length'
 curl -s http://localhost:18790/health
 curl -s http://localhost:18791/health
-curl -s http://localhost:5000/api/v1/health
+curl -s http://localhost:3000/api/public/health
 ```
 
-Expected: model count ≥ 1 (9Router), OpenViking OK, LEANN OK, Opik OK.
+Expected: model count ≥ 1 (9Router), OpenViking OK, LEANN OK, Langfuse OK.
 
 ### 6. OpenClaw
 

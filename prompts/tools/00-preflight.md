@@ -148,7 +148,6 @@ Replace `<project>` with the project name from the table below.
 | `docs/external/openclaw-compaction-context.snapshot.md` | `robertcuadra/compaction-context` GitHub README | Install instructions |
 | `docs/external/openclaw-codex-watchdog.snapshot.md` | `ThisIsJeron/openclaw-codex-watchdog` GitHub README | Install instructions |
 | `docs/external/openclaw-foundry.snapshot.md` | `0xRyanLucci/openclaw-foundry` GitHub README | Install instructions |
-| `docs/external/opik-openclaw.snapshot.md` | `comet-ml/opik-openclaw` GitHub README | Install instructions |
 | `docs/external/9router-models.snapshot.md` | Output of `test-9router.sh` | Placeholder — captured later when 9Router is provisioned |
 | `docs/external/ai-elements.snapshot.md` | Vercel AI Elements README | Component list and `npm install ai-elements@latest` instructions |
 
@@ -176,7 +175,6 @@ Append (or create) `.secrets/.setup-state.json` with the following structure. Me
       "docs/external/openclaw-compaction-context.snapshot.md",
       "docs/external/openclaw-codex-watchdog.snapshot.md",
       "docs/external/openclaw-foundry.snapshot.md",
-      "docs/external/opik-openclaw.snapshot.md",
       "docs/external/9router-models.snapshot.md",
       "docs/external/ai-elements.snapshot.md"
     ]
@@ -193,7 +191,7 @@ Replace `{PROBE_EXIT_CODE}` with the integer exit code from Step 2. Replace `{IS
 Pause. Verify:
 
 1. Step 2 exited with code **0** (all endpoints present).
-2. All 11 snapshot files exist under `docs/external/`.
+2. All 10 snapshot files exist under `docs/external/`.
 3. Each snapshot file starts with the required header line.
 4. `.secrets/.setup-state.json` contains the `preflight` key.
 
@@ -215,7 +213,6 @@ Files created or updated by this prompt:
 - `docs/external/openclaw-compaction-context.snapshot.md`
 - `docs/external/openclaw-codex-watchdog.snapshot.md`
 - `docs/external/openclaw-foundry.snapshot.md`
-- `docs/external/opik-openclaw.snapshot.md`
 - `docs/external/9router-models.snapshot.md`
 - `docs/external/ai-elements.snapshot.md`
 - `.secrets/.setup-state.json` (gitignored)

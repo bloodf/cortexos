@@ -3,7 +3,7 @@
 #
 # Drives a sequence of markdown prompts by extracting fenced ```bash blocks
 # and executing them. Intended to run INSIDE a rehearsal VM (or any Linux
-# host) under `vagrant ssh`.
+# host) — typically reached via `limactl shell <vm>` (see `lima/README.md`).
 #
 # Flags:
 #   --family <ubuntu|debian>        sets CORTEX_OS_FAMILY for the run.
