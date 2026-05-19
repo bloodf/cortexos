@@ -17,10 +17,18 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
+
+## Todo
+
+- [ ] CHECKPOINT 1 confirmed
+- [ ] Install
+- [ ] Verify
+- [ ] CHECKPOINT 2 confirmed
 ## CHECKPOINT 1
 
-Operator: confirm Loki is running (`curl -s http://localhost:3100/ready` returns `ready`). Type "confirmed" to proceed.
+**STOP — operator question:** Loki is running (`curl -s http://localhost:3100/ready` returns `ready`)?
 
+Type `confirmed` to proceed.
 ## Install
 
 ```bash
@@ -106,15 +114,16 @@ failure.
 
 ## CHECKPOINT 2
 
-Operator: confirm the Loki query above returns `> 0` and `docker compose
--p monitoring logs fluent-bit` shows no errors. Type "confirmed" to proceed.
+**STOP — operator question:** The Loki query above returns `> 0` and `docker compose?
 
-> Grafana dashboard confirmation belongs to `22-grafana.md` and the
+Operator: confirm the Loki query above returns `> 0` and `docker compose
+-p monitoring logs fluent-bit` shows no errors. > Grafana dashboard confirmation belongs to `22-grafana.md` and the
 > consolidated pass in `99-final-validation.md`. Per
 > [prompts/CHECKPOINT-PATTERN.md](../CHECKPOINT-PATTERN.md), this spoke
 > verifies only the Fluent Bit → Loki ingest contract via the Loki HTTP
 > API.
 
+Type `confirmed` to proceed.
 ## Next
 
 → `prompts/tools/24-cadvisor.md`

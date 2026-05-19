@@ -21,16 +21,12 @@ flow. Operator-laptop is now the source of truth:
   `ssh "$CORTEX_HOST" 'cd "$CORTEX_ROOT" && bash -c "<step>"'` commands from
   the laptop. Checkpoints still pause the agent until the operator confirms.
 
-If you want to dry-run the entire flow without a real VPS, use the Lima
-rehearsal path documented at the bottom of this file.
-
 ---
 
 ## Prerequisites on your laptop
 
-- macOS or Linux with `bash`, `ssh`, `scp`, `git`.
-- `sops` and `age` installed locally (`brew install sops age` or distro
-  equivalent).
+- Linux with `bash`, `ssh`, `scp`, `git`.
+- `sops` and `age` installed locally via distro package manager.
 - SSH access to the target VPS as a sudo-capable user — public-key auth
   preferred. Confirm with `ssh "$CORTEX_USER@$CORTEX_HOST" true`.
 - A clone of this repository on your laptop. You are reading this prompt
@@ -69,13 +65,13 @@ It exits non-zero on any miss.
 
 ### CHECKPOINT 0
 
-Confirm with the operator:
+**STOP — operator question:** Did SSH key auth, SOPS/age versions, and required env vars all verify?
 
 1. `ssh "$CORTEX_USER@$CORTEX_HOST" true` succeeds (no password prompt).
 2. `sops --version` and `age --version` print versions.
 3. The four env vars are exported and non-empty.
 
-Operator types "confirmed" before proceeding.
+Type `confirmed` to proceed.
 
 ---
 
@@ -112,12 +108,14 @@ loss-of-key recovery.
 
 ### CHECKPOINT 1
 
+**STOP — operator question:** Does the laptop age key match `.sops.yaml` and successfully decrypt a secrets file?
+
 - `age-keygen -y ~/.config/sops/age/keys.txt` prints the same pubkey listed
   in `.sops.yaml`.
 - `sops --decrypt templates/.secrets/dashboard.enc.yaml > /dev/null` works
   on the laptop (proves the key is authorized).
 
-Operator types "confirmed".
+Type `confirmed` to proceed.
 
 ---
 
@@ -140,10 +138,12 @@ If the family is not `ubuntu` or `debian`, HALT. See
 
 ### CHECKPOINT 2
 
+**STOP — operator question:** Is the detected remote OS family and version inside the supported matrix?
+
 - `CORTEX_OS_FAMILY` is `ubuntu` or `debian`.
 - `CORTEX_OS_VERSION` is in the supported matrix.
 
-Operator types "confirmed".
+Type `confirmed` to proceed.
 
 ---
 
@@ -164,12 +164,14 @@ This:
 
 ### CHECKPOINT 3
 
+**STOP — operator question:** Is the repo materialized at `/opt/cortexos` on the VPS and matches the laptop tree?
+
 - `ssh "$CORTEX_USER@$CORTEX_HOST" 'test -f /opt/cortexos/scripts/pkg.sh'`
   returns 0.
 - `ssh "$CORTEX_USER@$CORTEX_HOST" 'cat /opt/cortexos/VERSION 2>/dev/null || git -C /opt/cortexos rev-parse HEAD'`
   matches the laptop tree (or prints the same commit if you used Git).
 
-Operator types "confirmed".
+Type `confirmed` to proceed.
 
 ---
 
@@ -226,13 +228,15 @@ This:
 
 ### CHECKPOINT 5
 
+**STOP — operator question:** Are all plaintext `.env` files on the VPS owned by `$CORTEX_USER` with mode `600`?
+
 ```bash
 ssh "$CORTEX_USER@$CORTEX_HOST" 'stat -c "%a %U %n" /opt/cortexos/.secrets/*.env'
 ```
 
 Every line must read `600 <CORTEX_USER> /opt/cortexos/.secrets/<name>.env`.
 
-Operator types "confirmed".
+Type `confirmed` to proceed.
 
 ---
 
@@ -251,29 +255,6 @@ bootstrap_run_remote 'cd "$CORTEX_ROOT" && bash dashboard/scripts/provision-vps.
 
 `provision-vps.sh` is idempotent and self-contained on the VPS side; the
 bootstrap wrapper merely SSH-dispatches it.
-
----
-
-## Alternative — rehearse locally via Lima
-
-To dry-run the entire flow on a macOS-native Linux VM with zero risk to
-real infrastructure:
-
-```bash
-make vm-debian-up           # or vm-ubuntu24-up / vm-ubuntu25-up
-make vm-rehearse FAMILY=debian
-```
-
-`lima/provision.sh` and `scripts/local-prompt-runner.sh` perform the
-in-guest rehearsal. The laptop→Lima boundary and the laptop→VPS boundary
-share the same `bootstrap.sh` helpers; the only difference is that Lima
-mounts the repo into the guest instead of being seeded over SSH.
-
-When done:
-
-```bash
-make vm-down
-```
 
 ---
 

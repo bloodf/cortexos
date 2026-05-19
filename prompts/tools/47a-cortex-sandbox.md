@@ -28,12 +28,26 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
+
+## Todo
+
+- [ ] CHECKPOINT 1 confirmed
+- [ ] Decrypt the secret
+- [ ] Build and start
+- [ ] Smoke test
+- [ ] CHECKPOINT 2 confirmed
+- [ ] Wire into the consumer
+- [ ] Write the sandbox-required roster
+- [ ] Verification checklist
 ## CHECKPOINT 1
+
+**STOP — operator question:** The VPS kernel exposes user namespaces?
 
 Operator: confirm the VPS kernel exposes user namespaces
 (`sysctl kernel.unprivileged_userns_clone` reports `1` on Debian/Ubuntu)
-and Docker daemon is running. Type "confirmed" to proceed.
+and Docker daemon is running.
 
+Type `confirmed` to proceed.
 ## Decrypt the secret
 
 ```bash
@@ -83,9 +97,12 @@ unprivileged identity inside the sandbox.
 
 ## CHECKPOINT 2
 
-Operator: confirm the smoke test returned `exitCode: 0`. Type "confirmed"
+**STOP — operator question:** The smoke test returned `exitCode: 0`?
+
+Type "confirmed"
 to proceed.
 
+Type `confirmed` to proceed.
 ## Wire into the consumer
 
 Append to `/opt/cortexos/.secrets/consumer.env`:

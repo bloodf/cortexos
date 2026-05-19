@@ -16,10 +16,20 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
+
+## Todo
+
+- [ ] CHECKPOINT 1 confirmed
+- [ ] Install
+- [ ] Configure
+- [ ] Verify
+- [ ] CHECKPOINT 2 confirmed
+- [ ] Known Limitations
 ## CHECKPOINT 1
 
-Operator: confirm OpenClaw is running. Type "confirmed" to proceed.
+**STOP — operator question:** OpenClaw is running?
 
+Type `confirmed` to proceed.
 ## Install
 
 ```bash
@@ -65,8 +75,9 @@ Expected: `compaction-context` listed as active.
 
 ## CHECKPOINT 2
 
-Operator: confirm compaction-context is listed as active. Type "confirmed" to proceed.
+**STOP — operator question:** Compaction-context is listed as active?
 
+Type `confirmed` to proceed.
 ## Known Limitations
 
 ### Discovery silent-skip (Phase H blocker #2)

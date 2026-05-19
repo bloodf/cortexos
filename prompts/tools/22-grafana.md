@@ -16,10 +16,18 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
+
+## Todo
+
+- [ ] CHECKPOINT 1 confirmed
+- [ ] Install
+- [ ] Verify
+- [ ] CHECKPOINT 2 confirmed
 ## CHECKPOINT 1
 
-Operator: confirm port 3000 is free. Type "confirmed" to proceed.
+**STOP — operator question:** Port 3000 is free?
 
+Type `confirmed` to proceed.
 ## Install
 
 Append Grafana service to `/opt/cortexos/stacks/monitoring/docker-compose.yml`:
@@ -117,8 +125,9 @@ Expected: `200` on both.
 
 ## CHECKPOINT 2
 
-Operator: confirm Grafana UI loads at `https://${CORTEX_DOMAIN}/grafana/`, both datasources show green, and the CortexOS dashboard is visible. Type "confirmed" to proceed.
+**STOP — operator question:** Grafana UI loads at `https://${CORTEX_DOMAIN}/grafana/`, both datasources show green, and the CortexOS dashboard is visible?
 
+Type `confirmed` to proceed.
 ## Next
 
 → `prompts/tools/23-fluent-bit.md`

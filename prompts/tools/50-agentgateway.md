@@ -18,10 +18,21 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
+
+## Todo
+
+- [ ] CHECKPOINT 1 confirmed
+- [ ] Install
+- [ ] Configure
+- [ ] Build and start
+- [ ] Verify
+- [ ] CHECKPOINT 2 confirmed
+- [ ] Roster (which roles route tool calls through AgentGateway)
 ## CHECKPOINT 1
 
-Operator: confirm `templates/agentgateway/tools.json` exists and contains the tool taxonomy. Type "confirmed" to proceed.
+**STOP — operator question:** `templates/agentgateway/tools.json` exists and contains the tool taxonomy?
 
+Type `confirmed` to proceed.
 ## Install
 
 AgentGateway is vendored in this repo under `stacks/cortex-agentgateway/`.
@@ -103,10 +114,13 @@ nats sub --count=1 'cortex.audit.agentgateway.>'
 
 ## CHECKPOINT 2
 
+**STOP — operator question:** `/health` returns 200, missing-bearer returns 401, safe-tool?
+
 Operator: confirm `/health` returns 200, missing-bearer returns 401, safe-tool
 invoke returns 200, and the audit event appears on
-`cortex.audit.agentgateway.tool-invoke.v1`. Type "confirmed" to proceed.
+`cortex.audit.agentgateway.tool-invoke.v1`.
 
+Type `confirmed` to proceed.
 ## Roster (which roles route tool calls through AgentGateway)
 
 `stacks/cortex-consumer/consumer.js` reads a roster file to decide which

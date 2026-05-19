@@ -16,21 +16,24 @@ must complete this prompt before `bootstrap_push_secrets` runs.
 
 ---
 
+## Todo
+
+- [ ] sops + age installed on laptop
+- [ ] Operator age key generated
+- [ ] Pubkey registered in `.sops.yaml`
+- [ ] Secrets re-encrypted for recipient set
+- [ ] `bootstrap_push_secrets` pushed plaintext + host key to VPS
+- [ ] CHECKPOINT confirmed
+
 ## 1. Install sops + age on your laptop
-
-macOS:
-
-```bash
-brew install sops age
-sops --version
-age --version
-```
 
 Linux laptop (Ubuntu/Debian):
 
 ```bash
 sudo apt-get update
 sudo apt-get install -y sops age
+sops --version
+age --version
 ```
 
 `sops` ≥ 3.8 is required for first-class age recipient support.
@@ -131,7 +134,9 @@ emergency re-decrypt) succeed without round-tripping through the
 laptop. The host copy is never committed to Git and can be wiped/rotated
 independently of the laptop key.
 
-## 7. CHECKPOINT
+## CHECKPOINT 1
+
+**STOP — operator question:** Are all VPS `.secrets/*.env` files and `/opt/cortexos/.age/host.key` present with mode `600` owned by `$CORTEX_USER`?
 
 ```bash
 ssh "$CORTEX_USER@$CORTEX_HOST" 'stat -c "%a %U %n" /opt/cortexos/.secrets/*.env'
@@ -148,6 +153,8 @@ ssh "$CORTEX_USER@$CORTEX_HOST" 'stat -c "%a %U %n" /opt/cortexos/.age/host.key'
 ```
 
 Must read `600 <CORTEX_USER> /opt/cortexos/.age/host.key`.
+
+Type `confirmed` to proceed.
 
 ---
 

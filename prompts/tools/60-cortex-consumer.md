@@ -18,10 +18,21 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
+
+## Todo
+
+- [ ] CHECKPOINT 1 confirmed
+- [ ] Install
+- [ ] Configure
+- [ ] Verify
+- [ ] CHECKPOINT 2 confirmed
+- [ ] CHECKPOINT 3 confirmed
+- [ ] Known Limitations
 ## CHECKPOINT 1
 
-Operator: confirm NATS is running and the `cortex_approvals_seen` KV bucket exists (`nats kv info cortex_approvals_seen --server nats://127.0.0.1:4222`). Type "confirmed" to proceed.
+**STOP — operator question:** NATS is running and the `cortex_approvals_seen` KV bucket exists (`nats kv info cortex_approvals_seen --server nats://127.0.0.1:4222`)?
 
+Type `confirmed` to proceed.
 ## Install
 
 Consumer code lives in the repo at `stacks/cortex-consumer/`. The runtime
@@ -129,9 +140,12 @@ Expected: service active, log shows `Connected to NATS` and `Subscribed to corte
 
 ## CHECKPOINT 2
 
-Operator: confirm cortex-consumer is active and subscribed to the NATS approval subject. Type "confirmed" to proceed.
+**STOP — operator question:** Cortex-consumer is active and subscribed to the NATS approval subject?
 
+Type `confirmed` to proceed.
 ## CHECKPOINT 3 — AgentGateway dispatch end-to-end
+
+**STOP — operator question:** AgentGateway dispatch end-to-end?
 
 Verify the V13 wiring by publishing a paperclip work event with a
 `tool_invocation` block for a role in the AgentGateway roster (default:
@@ -168,6 +182,7 @@ Failure modes:
 - `agentgateway http 401` → bearer mismatch between consumer.env and agentgateway.env; rotate both from the SOPS-encrypted source.
 - `agentgateway http 403` → tool not allowed for the role in `templates/agentgateway/tools.json`; expected for destructive tools missing a confirmationToken.
 
+Type `confirmed` to proceed.
 ## Known Limitations
 
 ### WatchdogSec intentionally absent

@@ -1,4 +1,4 @@
-# Weekly Smoke Tests (latest)
+# Weekly Smoke Tests (latest) (VPS-only post-install validation)
 
 ## Purpose
 
@@ -29,11 +29,22 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 pkg_install jq uuid-runtime  # uuidgen for smoke fixtures
 ```
 
+
+## Todo
+
+- [ ] CHECKPOINT 1 confirmed
+- [ ] Install
+- [ ] Verify
+- [ ] Known Limitations
+- [ ] CHECKPOINT 2 confirmed
 ## CHECKPOINT 1
 
-Operator: confirm `nats --version` works and `cortex-consumer.service`
-is active. Type "confirmed" to proceed.
+**STOP — operator question:** `nats --version` works and `cortex-consumer.service`?
 
+service`
+is active.
+
+Type `confirmed` to proceed.
 ## Install
 
 Publisher script:
@@ -128,9 +139,12 @@ opt-in `v1` HTTP path both feed the same counters).
 
 ## CHECKPOINT 2
 
-Operator: confirm timers list-timers shows the four enabled slugs and
-the next-fire timestamp is in the future. Type "confirmed" to proceed.
+**STOP — operator question:** Timers list-timers shows the four enabled slugs and?
 
+Operator: confirm timers list-timers shows the four enabled slugs and
+the next-fire timestamp is in the future.
+
+Type `confirmed` to proceed.
 ## Next
 
 → `prompts/tools/70-dashboard.md`

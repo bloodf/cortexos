@@ -18,10 +18,19 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
+
+## Todo
+
+- [ ] CHECKPOINT 1 confirmed
+- [ ] Install
+- [ ] Configure
+- [ ] Verify
+- [ ] CHECKPOINT 2 confirmed
 ## CHECKPOINT 1
 
-Operator: confirm PostgreSQL is running and the `cortex_dashboard` database is accessible. Type "confirmed" to proceed.
+**STOP — operator question:** PostgreSQL is running and the `cortex_dashboard` database is accessible?
 
+Type `confirmed` to proceed.
 ## Install
 
 ```bash
@@ -87,8 +96,9 @@ Expected: `{"status":"ok"}` or similar health response.
 
 ## CHECKPOINT 2
 
-Operator: confirm OpenViking health endpoint returns OK. Type "confirmed" to proceed.
+**STOP — operator question:** OpenViking health endpoint returns OK?
 
+Type `confirmed` to proceed.
 ## Next
 
 → `prompts/tools/33-leann.md`

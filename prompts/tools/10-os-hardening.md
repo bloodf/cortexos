@@ -19,10 +19,19 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
+
+## Todo
+
+- [ ] CHECKPOINT 1 confirmed
+- [ ] Install
+- [ ] Configure
+- [ ] Verify
+- [ ] CHECKPOINT 2 confirmed
 ## CHECKPOINT 1
 
-Operator: confirm you are connected as a non-root sudo user and that `/etc/ssh/sshd_config` is not managed by another tool (e.g. Ansible). Type "confirmed" to proceed.
+**STOP — operator question:** You are connected as a non-root sudo user and that `/etc/ssh/sshd_config` is not managed by another tool (e.g. Ansible)?
 
+Type `confirmed` to proceed.
 ## Install
 
 ```bash
@@ -95,8 +104,9 @@ Expected: `sshd config OK`, UFW status shows `Status: active`, syncookies = 1.
 
 ## CHECKPOINT 2
 
-Operator: confirm SSH is still accessible, UFW shows the expected rules, and `sshd -t` returned OK. Type "confirmed" to proceed.
+**STOP — operator question:** SSH is still accessible, UFW shows the expected rules, and `sshd -t` returned OK?
 
+Type `confirmed` to proceed.
 ## Next
 
 → `prompts/tools/11-docker.md`

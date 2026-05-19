@@ -6,6 +6,14 @@ This prompt wires `cortex.alerts.<severity>.<source>` events emitted by the
 dashboard into Paperclip notifications. Skip this prompt if you do not want
 Paperclip to receive operational alerts.
 
+## Todo
+
+- [ ] What you get
+- [ ] Configuration
+- [ ] Apply
+- [ ] Smoke test
+- [ ] Troubleshooting
+
 ## What you get
 
 - Dashboard `lib/alerts.publishAlert` publishes each alert to NATS subject

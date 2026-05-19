@@ -12,6 +12,14 @@ Role definitions live in `templates/agent-roles/*.md` as YAML frontmatter under
 the `paperclip:` key. The registration script is the only supported path —
 do **not** click through the Paperclip UI for routine hires.
 
+
+## Todo
+
+- [ ] 1. Pre-flight
+- [ ] 2. Run the registration script
+- [ ] 3. Verify the key file
+- [ ] 4. Verify in Paperclip UI
+- [ ] CHECKPOINT 3.A confirmed
 ## 1. Pre-flight
 
 ```bash
@@ -70,8 +78,12 @@ Open `${PAPERCLIP_API_URL}/board` and confirm:
 
 ## CHECKPOINT 3.A
 
+**STOP — operator question:** Verify this checkpoint's preconditions are met?
+
 - [ ] `paperclip-keys.json` exists with mode `0600` and contains 18 entries.
 - [ ] Paperclip UI shows all 18 agents under the CortexOS company.
 - [ ] Re-running the script reports `minted=0 skipped=18`.
 
 Proceed to `40-routines-and-budgets.md` once 3.A passes.
+
+Type `confirmed` to proceed.

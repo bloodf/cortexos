@@ -16,10 +16,18 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
+
+## Todo
+
+- [ ] CHECKPOINT 1 confirmed
+- [ ] Validation Steps
+- [ ] Record final state
+- [ ] CHECKPOINT 2 confirmed
 ## CHECKPOINT 1
 
-Operator: confirm all prior spokes completed successfully and `.secrets/.setup-state.json` exists. Type "confirmed" to proceed.
+**STOP — operator question:** All prior spokes completed successfully and `.secrets/.setup-state.json` exists?
 
+Type `confirmed` to proceed.
 ## Validation Steps
 
 ### 1. Infrastructure
@@ -193,6 +201,8 @@ print('State updated.')
 
 ## CHECKPOINT 2
 
-Operator: confirm all health checks returned expected values and both paranoia greps returned `CLEAN`. CortexOS v1.0 setup is complete.
+**STOP — operator question:** All health checks returned expected values and both paranoia greps returned `CLEAN`. CortexOS v1.0 setup is complete?
 
 **Setup complete.** All services are running. Register additional projects via the dashboard Projects page at `https://${CORTEX_DOMAIN}/en/admin/projects`.
+
+Type `confirmed` to proceed.
