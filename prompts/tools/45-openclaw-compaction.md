@@ -28,16 +28,19 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install
-- [ ] Configure
-- [ ] Verify
-- [ ] CHECKPOINT 2 confirmed
-- [ ] Known Limitations
+- [ ] CHECKPOINT 1 confirmed — `systemctl is-active openclaw-gateway` returns active
+- [ ] `git clone https://github.com/robertcuadra/compaction-context /tmp/compaction-context && npm install`
+- [ ] Confirm `docs/external/openclaw-compaction-context.snapshot.md` exists
+- [ ] `openclaw plugins install /tmp/compaction-context`
+- [ ] `openclaw plugins configure compaction-context --threshold 0.80 --strategy summarize`
+- [ ] `sudo systemctl reload openclaw`
+- [ ] Confirm `openclaw plugins list | grep compaction-context` shows active
+- [ ] CHECKPOINT 2 confirmed — plugin listed active
+- [ ] Review Known Limitations (discovery silent-skip)
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** OpenClaw is running?
+**STOP — operator question:** Does `systemctl is-active openclaw-gateway` print `active` (not `inactive`, not `failed`)?
 
 Type `confirmed` to proceed.
 
@@ -86,7 +89,7 @@ Expected: `compaction-context` listed as active.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** Compaction-context is listed as active?
+**STOP — operator question:** Does `openclaw plugins list | grep compaction-context` print a line containing `active` (not `disabled`, not empty)?
 
 Type `confirmed` to proceed.
 

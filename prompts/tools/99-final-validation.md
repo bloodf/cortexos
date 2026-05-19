@@ -28,14 +28,22 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Validation Steps
-- [ ] Record final state
-- [ ] CHECKPOINT 2 confirmed
+- [ ] CHECKPOINT 1 confirmed — `.secrets/.setup-state.json` exists
+- [ ] Run section 1 (infra: UFW, fail2ban, docker, tailscale, caddy)
+- [ ] Run section 2 (psql + redis PING)
+- [ ] Run section 3 (monitoring stack local + tailnet probes)
+- [ ] Run section 4 (NATS + cortex-consumer)
+- [ ] Run section 5 (9Router, OpenViking, LEANN, Langfuse)
+- [ ] Run section 6 (OpenClaw gateway, plugins, memory ping)
+- [ ] Run section 7 (AgentGateway /health)
+- [ ] Run section 8 (Dashboard /api/health + tailnet /en/login)
+- [ ] Run section 9 (paranoia: leak sweep + version-pin grep)
+- [ ] Append `final_validation` timestamp to `.setup-state.json`
+- [ ] CHECKPOINT 2 confirmed — every section returned expected values
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** All prior spokes completed successfully and `.secrets/.setup-state.json` exists?
+**STOP — operator question:** Does `test -s /opt/cortexos/.secrets/.setup-state.json && echo OK` print `OK` (not `No such file`, not empty)?
 
 Type `confirmed` to proceed.
 
@@ -212,7 +220,7 @@ print('State updated.')
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** All health checks returned expected values and both paranoia greps returned `CLEAN`. CortexOS v1.0 setup is complete?
+**STOP — operator question:** Did every health probe in sections 1-8 return its expected value AND did the section 9 version-pin grep print `CLEAN` (not `PINS FOUND`, not any failed curl)?
 
 **Setup complete.** All services are running. Register additional projects via the dashboard Projects page at `https://${CORTEX_DOMAIN}/en/admin/projects`.
 

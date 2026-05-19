@@ -28,12 +28,12 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] sops + age installed on laptop
-- [ ] Operator age key generated
-- [ ] Pubkey registered in `.sops.yaml`
-- [ ] Secrets re-encrypted for recipient set
-- [ ] `bootstrap_push_secrets` pushed plaintext + host key to VPS
-- [ ] CHECKPOINT confirmed
+- [ ] `apt-get install -y sops age` on laptop (sops ≥ 3.8)
+- [ ] Generate operator age key via `age-keygen -o ~/.config/sops/age/keys.txt` (mode 600)
+- [ ] Add operator pubkey to `.sops.yaml` under `templates/.secrets/.*\.enc\.yaml$`
+- [ ] Run `sops updatekeys` on every `templates/.secrets/*.enc.yaml` and commit
+- [ ] Run `bootstrap_push_secrets` to scp plaintext `.env` + `host.key` to VPS
+- [ ] CHECKPOINT 1 confirmed — every `.env` is 600 + `host.key` exists on VPS
 
 ## 1. Install sops + age on your laptop
 
@@ -146,23 +146,13 @@ independently of the laptop key.
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** Are all VPS `.secrets/*.env` files and `/opt/cortexos/.age/host.key` present with mode `600` owned by `$CORTEX_USER`?
+**STOP — operator question:** Does every line of `ssh "$CORTEX_USER@$CORTEX_HOST" 'stat -c "%a %U %n" /opt/cortexos/.secrets/*.env'` read `600 <CORTEX_USER> /opt/cortexos/.secrets/<name>.env` (not `644`, not `root` owner) — covering `paperclip.env`, `dashboard.env`, `consumer.env`, `graph.env`, `langfuse.env`, `nats.env`, `sandbox.env`, `agentgateway.env`?
 
-```bash
-ssh "$CORTEX_USER@$CORTEX_HOST" 'stat -c "%a %U %n" /opt/cortexos/.secrets/*.env'
-```
+Type `confirmed` to proceed.
 
-Every line must read `600 <CORTEX_USER> /opt/cortexos/.secrets/<name>.env`.
-Expected files: `paperclip.env`, `dashboard.env`, `consumer.env`,
-`graph.env`, `langfuse.env`, `nats.env`, `sandbox.env`, `agentgateway.env`.
+## CHECKPOINT 2
 
-Also verify the host age key was pushed:
-
-```bash
-ssh "$CORTEX_USER@$CORTEX_HOST" 'stat -c "%a %U %n" /opt/cortexos/.age/host.key'
-```
-
-Must read `600 <CORTEX_USER> /opt/cortexos/.age/host.key`.
+**STOP — operator question:** Does `ssh "$CORTEX_USER@$CORTEX_HOST" 'stat -c "%a %U %n" /opt/cortexos/.age/host.key'` print `600 <CORTEX_USER> /opt/cortexos/.age/host.key` (not `No such file or directory`)?
 
 Type `confirmed` to proceed.
 

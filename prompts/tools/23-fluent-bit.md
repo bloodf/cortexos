@@ -19,14 +19,16 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install
-- [ ] Verify
-- [ ] CHECKPOINT 2 confirmed
+- [ ] CHECKPOINT 1 confirmed — Loki `/ready` returns `ready`
+- [ ] Write `/opt/cortexos/stacks/monitoring/fluent-bit/fluent-bit.conf` (systemd input → loki output)
+- [ ] Append `fluent-bit` service to monitoring compose
+- [ ] `docker compose up -d fluent-bit`
+- [ ] Sleep 15s, then query Loki `{service="fluent-bit"}` and confirm result count > 0
+- [ ] CHECKPOINT 2 confirmed — Loki query returns > 0 streams and compose logs show no errors
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** Loki is running (`curl -s http://localhost:3100/ready` returns `ready`)?
+**STOP — operator question:** Does `curl -s http://localhost:3100/ready` print `ready` (not `Ingester not ready`, not connection refused)?
 
 Type `confirmed` to proceed.
 
@@ -115,10 +117,15 @@ failure.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** The Loki query above returns `> 0` and `docker compose?
+**STOP — operator question:** Did the Loki LogQL `{service="fluent-bit"}` query (above) print an integer **> 0** (not `0`, proving Fluent Bit records reached Loki)?
 
-Operator: confirm the Loki query above returns `> 0` and `docker compose
--p monitoring logs fluent-bit` shows no errors. > Grafana dashboard confirmation belongs to `22-grafana.md` and the
+Type `confirmed` to proceed.
+
+## CHECKPOINT 3
+
+**STOP — operator question:** Does `docker compose -p monitoring logs fluent-bit --tail 20` show **no `[error]` lines** (only `[info]` / `flush OK`)?
+
+> Grafana dashboard confirmation belongs to `22-grafana.md` and the
 > consolidated pass in `99-final-validation.md`. Per
 > [prompts/CHECKPOINT-PATTERN.md](../CHECKPOINT-PATTERN.md), this spoke
 > verifies only the Fluent Bit → Loki ingest contract via the Loki HTTP

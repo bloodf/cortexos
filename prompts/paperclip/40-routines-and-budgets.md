@@ -21,10 +21,14 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] Defaults
-- [ ] When to tune
-- [ ] Procedure
-- [ ] CHECKPOINT 4.A confirmed
+- [ ] Review defaults table (per-role cron + USD/month)
+- [ ] Review tightening/loosening guidelines
+- [ ] Edit `paperclip:` frontmatter block in target role file
+- [ ] Re-run `tsx scripts/paperclip-register-roles.ts` (idempotent path)
+- [ ] Confirm Paperclip UI shows new cadence/budget
+- [ ] Commit frontmatter changes to repo (audit trail)
+- [ ] CHECKPOINT 4.A confirmed — UI reflects new values
+- [ ] CHECKPOINT 4.B confirmed — re-run reported `minted=0`
 
 ## Defaults
 
@@ -84,10 +88,12 @@ CFO/CEO sign-off recorded in the project Slack thread.
 
 ## CHECKPOINT 4.A
 
-**STOP — operator question:** Verify this checkpoint's preconditions are met?
+**STOP — operator question:** Does `git status templates/agent-roles/ --porcelain` print no output (i.e. all frontmatter edits are committed; not a list of `M` lines)?
 
-- [ ] Frontmatter changes committed to the cortexos repo (audit trail).
-- [ ] Paperclip UI reflects the new cadence/budget for every edited role.
-- [ ] No unexpected `minted=N` for N > 0 after a routine-only change.
+Type `confirmed` to proceed.
+
+## CHECKPOINT 4.B
+
+**STOP — operator question:** Did the registration script's final line print `minted=0` (not any positive integer, not an error)?
 
 Type `confirmed` to proceed.

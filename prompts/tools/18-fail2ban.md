@@ -29,11 +29,12 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install
-- [ ] Configure
-- [ ] Verify
-- [ ] CHECKPOINT 2 confirmed
+- [ ] CHECKPOINT 1 confirmed — recent sshd log entries visible via journalctl
+- [ ] `pkg_install fail2ban`
+- [ ] Write `/etc/fail2ban/jail.d/cortex.conf` (bantime 1h, sshd enabled on `{SSH_PORT}`)
+- [ ] `sudo systemctl enable fail2ban` + `sudo systemctl restart fail2ban`
+- [ ] Confirm `fail2ban-client status sshd` shows jail active
+- [ ] CHECKPOINT 2 confirmed — sshd jail active with filter listed
 
 ## CHECKPOINT 1
 
@@ -84,7 +85,7 @@ Expected: `sshd` jail is active, filter listed.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** `fail2ban-client status sshd` shows the jail as active with 0 or more banned IPs?
+**STOP — operator question:** Does `sudo fail2ban-client status sshd` print `Currently failed:` and `Currently banned:` lines (jail active, not `Sorry but the jail 'sshd' does not exist`)?
 
 Type `confirmed` to proceed.
 

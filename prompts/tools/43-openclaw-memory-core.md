@@ -18,15 +18,16 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install
-- [ ] Configure
-- [ ] Verify
-- [ ] CHECKPOINT 2 confirmed
+- [ ] CHECKPOINT 1 confirmed — `openclaw memory ping` returns OK
+- [ ] `npm install -g @openclaw/memory-core@latest`
+- [ ] `openclaw plugins install @openclaw/memory-core --config-file templates/openclaw/config.memory-core.json`
+- [ ] `openclaw memory dream --enable --schedule "0 3 * * *"`
+- [ ] Confirm `openclaw memory status` shows dream enabled
+- [ ] CHECKPOINT 2 confirmed — dream + retention active
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** `openclaw memory ping` returns OK from the previous spoke?
+**STOP — operator question:** Does `openclaw memory ping` print `OpenViking backend: OK` (not `connection refused`, not `error`)?
 
 Type `confirmed` to proceed.
 
@@ -61,7 +62,7 @@ Expected: shows `dream` mode enabled with next scheduled run, retention policy a
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** `openclaw memory status` shows dream enabled and retention policy configured?
+**STOP — operator question:** Does `openclaw memory status` show `dream: enabled` with a `next run:` timestamp (not `disabled`, not empty)?
 
 Type `confirmed` to proceed.
 

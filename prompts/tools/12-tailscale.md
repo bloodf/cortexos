@@ -31,15 +31,17 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install
-- [ ] Configure
-- [ ] Verify
-- [ ] CHECKPOINT 2 confirmed
+- [ ] CHECKPOINT 1 confirmed — Tailscale account reachable in browser
+- [ ] Install Tailscale via `curl ... install.sh | sh`
+- [ ] `sudo systemctl enable --now tailscaled`
+- [ ] Run `sudo tailscale up --hostname --advertise-tags=tag:cortex --ssh` and approve in browser
+- [ ] Append IPv4 + IPv6 forwarding to `/etc/sysctl.d/99-cortex.conf` and `sudo sysctl --system`
+- [ ] Confirm `tailscale ip -4` prints a `100.x.x.x` address
+- [ ] CHECKPOINT 2 confirmed — node visible in admin console + tailnet IP reachable
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** You have access to your Tailscale account in a browser.?
+**STOP — operator question:** Can you currently sign into the Tailscale admin console in a browser on your laptop (so the `tailscale up` interactive flow can be approved)?
 
 No token needs to be pre-set — the install uses Tailscale's interactive
 login flow.
@@ -93,7 +95,7 @@ Expected: node shows as `online`, a `100.x.x.x` IP is printed.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** The VPS appears in your Tailscale admin console as online and the Tailscale IP is reachable from another device on your tailnet?
+**STOP — operator question:** Does `tailscale status` print this node as `online` with a `100.x.x.x` address, AND can another tailnet device `ping` that `100.x.x.x` (not `offline`, not `host unreachable`)?
 
 Type `confirmed` to proceed.
 

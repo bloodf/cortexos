@@ -41,21 +41,38 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Apply migration 007
-- [ ] Decrypt graph.env
-- [ ] Build + boot
-- [ ] Verify
-- [ ] Wire cortex-consumer
-- [ ] Write the graph-enabled roster
-- [ ] CHECKPOINT 2 confirmed
+- [ ] CHECKPOINT 1 confirmed — Postgres reachable at 127.0.0.1:5432
+- [ ] CHECKPOINT 1b confirmed — NATS reachable at 127.0.0.1:4222
+- [ ] CHECKPOINT 1c confirmed — Docker daemon up
+- [ ] Replay migration 007 via dashboard `migrate.js`
+- [ ] Verify `007_langgraph_checkpoints` row in migrations table
+- [ ] Decrypt `templates/.secrets/graph.enc.yaml` to `/opt/cortexos/.secrets/graph.env` (mode 0600)
+- [ ] `docker compose up -d --build` in `stacks/cortex-graph`
+- [ ] Confirm `curl http://127.0.0.1:8090/healthz` returns `{"status":"ok"}`
+- [ ] Confirm bearer-protected probe run returns `status=interrupted`
+- [ ] Export `CORTEX_GRAPH_URL` + `CORTEX_GRAPH_API_TOKEN` to cortex-consumer, restart
+- [ ] Write `/opt/cortexos/templates/agent-roles/.graph-enabled.json` roster
+- [ ] Verify `[graph] dispatched` appears in consumer journal
+- [ ] CHECKPOINT 2 confirmed — /healthz returns 200
+- [ ] CHECKPOINT 2b confirmed — probe run returns status=interrupted
+- [ ] CHECKPOINT 2c confirmed — roster file contains routed role(s)
+- [ ] CHECKPOINT 2d confirmed — consumer journal shows `[graph] dispatched`
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** Postgres reachable at `127.0.0.1:5432`, NATS at?
+**STOP — operator question:** Does `pg_isready -h 127.0.0.1 -p 5432` print `accepting connections` (not `no response`, not `command not found`)?
 
-1:5432`, NATS at
-`127.0.0.1:4222`, and Docker daemon up.
+Type `confirmed` to proceed.
+
+## CHECKPOINT 1b
+
+**STOP — operator question:** Does `nc -zv 127.0.0.1 4222` print `succeeded` (not `Connection refused`)?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 1c
+
+**STOP — operator question:** Does `docker info >/dev/null 2>&1 && echo ok` print `ok` (not `Cannot connect to the Docker daemon`)?
 
 Type `confirmed` to proceed.
 
@@ -173,13 +190,25 @@ journalctl -u cortex-consumer -n 200 --no-pager | grep -E '\[graph\] (dispatched
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** `/healthz` returns 200, a probe run returns?
+**STOP — operator question:** Does `curl -fsS http://127.0.0.1:8090/healthz` return `{"status":"ok"}` (not `connection refused`, not HTTP 502)?
 
-Operator: confirm `/healthz` returns 200, a probe run returns
-`status=interrupted`, the roster file at
-`/opt/cortexos/templates/agent-roles/.graph-enabled.json` contains
-the role(s) you want routed, and `cortex-consumer` logs show
-`[graph] dispatched` for at least one role.
+Type `confirmed` to proceed.
+
+## CHECKPOINT 2b
+
+**STOP — operator question:** Did the bearer-protected probe POST to `/graph/runs` return a body containing `"status":"interrupted"` (not 401, not 500)?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 2c
+
+**STOP — operator question:** Does `cat /opt/cortexos/templates/agent-roles/.graph-enabled.json` print a non-empty JSON array containing the role names you want graph-routed (not `[]`, not `No such file`)?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 2d
+
+**STOP — operator question:** Does `journalctl -u cortex-consumer -n 200 --no-pager | grep -E '\[graph\] dispatched'` print at least one matching line (not empty, not `dispatch failed`)?
 
 Type `confirmed` to proceed.
 

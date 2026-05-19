@@ -29,16 +29,19 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install
-- [ ] Configure
-- [ ] Verify
-- [ ] CHECKPOINT 2 confirmed
-- [ ] Known Limitations
+- [ ] CHECKPOINT 1 confirmed — OpenClaw gateway `/health` returns OK
+- [ ] `git clone https://github.com/win4r/openclaw-a2a-gateway /tmp/openclaw-a2a-gateway && npm install`
+- [ ] Confirm `docs/external/openclaw-a2a-gateway.snapshot.md` exists
+- [ ] `openclaw plugins install /tmp/openclaw-a2a-gateway`
+- [ ] `openclaw plugins configure openclaw-a2a-gateway --gateway-url ... --nats-url ...`
+- [ ] `sudo systemctl reload openclaw`
+- [ ] Confirm `openclaw plugins list | grep a2a-gateway` shows active
+- [ ] CHECKPOINT 2 confirmed — plugin listed active
+- [ ] Review Known Limitations (discovery silent-skip)
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** OpenClaw gateway is running (`curl -s http://127.0.0.1:18789/health`)?
+**STOP — operator question:** Does `curl -fsS http://127.0.0.1:18789/health` return an OK response (not `connection refused`, not HTTP 502)?
 
 Type `confirmed` to proceed.
 
@@ -86,7 +89,7 @@ Expected: `openclaw-a2a-gateway` listed as active.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** The A2A gateway plugin is listed as active?
+**STOP — operator question:** Does `openclaw plugins list | grep a2a-gateway` print a line containing `active` (not `disabled`, not empty)?
 
 Type `confirmed` to proceed.
 

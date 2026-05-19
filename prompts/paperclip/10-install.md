@@ -14,10 +14,14 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] 1. Install Paperclip via onboard CLI
-- [ ] 2. Capture identifiers
-- [ ] 3. Create the bridge agent in Paperclip
-- [ ] CHECKPOINT 1.A confirmed
+- [ ] Pin `PAPERCLIP_SHA` to audited commit
+- [ ] `npx paperclipai@<SHA> onboard --yes` (company `CortexOS`)
+- [ ] Record onboarder-emitted company ID + board token
+- [ ] Install `/opt/cortexos/.secrets/paperclip.env` from template (mode 0600, owner cortex:cortex)
+- [ ] Fill `PAPERCLIP_API_URL`, `PAPERCLIP_API_KEY`, `PAPERCLIP_WEBHOOK_SECRET`, `CORTEX_NATS_HMAC`, `PG_DSN`
+- [ ] Create `cortexos-bridge` agent in Paperclip + mint API key
+- [ ] CHECKPOINT 1.A confirmed — env file present + permissions correct
+- [ ] CHECKPOINT 1.B confirmed — `CORTEX_NATS_HMAC` matches cortex-consumer
 
 ## 1. Install Paperclip via onboard CLI
 
@@ -78,13 +82,14 @@ Place the returned token into `PAPERCLIP_API_KEY` in the env file.
 
 ## CHECKPOINT 1.A
 
-**STOP — operator question:** Verify this checkpoint's preconditions are met?
-
-- [ ] `paperclipai onboard` completed; company `CortexOS` exists.
-- [ ] `/opt/cortexos/.secrets/paperclip.env` present, mode 0600, owner cortex:cortex.
-- [ ] All required env vars populated.
-- [ ] `CORTEX_NATS_HMAC` byte-matches the value used by `cortex-consumer`.
-
-Proceed to `20-bridge.md`.
+**STOP — operator question:** Does `stat -c '%a %U:%G' /opt/cortexos/.secrets/paperclip.env` print `600 cortex:cortex` (not `644`, not `root:root`)?
 
 Type `confirmed` to proceed.
+
+## CHECKPOINT 1.B
+
+**STOP — operator question:** Does `diff <(sudo grep -E '^CORTEX_NATS_HMAC=' /opt/cortexos/.secrets/paperclip.env) <(sudo grep -E '^CORTEX_NATS_HMAC=' /opt/cortexos/.secrets/consumer.env)` print no output (not a `<`/`>` diff line)?
+
+Type `confirmed` to proceed.
+
+Proceed to `20-bridge.md`.

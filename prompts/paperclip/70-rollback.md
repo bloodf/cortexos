@@ -31,11 +31,14 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] Pre-flight (2 min)
-- [ ] Per-phase rollback
-- [ ] Post-rollback verification (3 min)
-- [ ] Verification checklist
-- [ ] Time budget
+- [ ] Pre-flight: capture systemd, link-row counts, HEAD SHA
+- [ ] Confirm recent dashboard DB backup exists (≤ 24h)
+- [ ] Execute per-phase rollback table for target phase (P2/P3/P4/…)
+- [ ] Run post-rollback verification block (each line must echo `OK`)
+- [ ] Run verification checklist items
+- [ ] Record rollback duration; post sign-off to `cortex.alerts.info.rollback`
+- [ ] CHECKPOINT 7.A confirmed — bridge service stopped + migration reverted
+- [ ] CHECKPOINT 7.B confirmed — dashboard reachable + paperclip secrets removed
 
 ## Pre-flight (2 min)
 
@@ -130,6 +133,18 @@ test ! -f /opt/cortexos/.secrets/paperclip-keys.json && echo OK || { echo FAIL; 
       from `auditd` since rollback start.
 - [ ] Rollback duration recorded in `/tmp/pre-rollback.*` artefacts.
 - [ ] Sign-off entry posted to `cortex.alerts.info.rollback` topic.
+
+## CHECKPOINT 7.A
+
+**STOP — operator question:** Does `systemctl is-active cortex-paperclip-bridge` print `inactive` AND does `psql "$PG_DSN" -tAc "SELECT to_regclass('public.paperclip_ticket_link')"` print an empty line (not `active`, not the table OID)?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 7.B
+
+**STOP — operator question:** Does `curl -fsS -o /dev/null -w "%{http_code}" http://127.0.0.1:3080/en/login` print `200` AND does `ls /opt/cortexos/.secrets/paperclip*.{env,json} 2>/dev/null | wc -l` print `0`?
+
+Type `confirmed` to proceed.
 
 ## Time budget
 

@@ -28,14 +28,18 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install
-- [ ] Verify
-- [ ] CHECKPOINT 2 confirmed
+- [ ] CHECKPOINT 1 confirmed — port 3000 is free
+- [ ] Append `grafana` service to monitoring compose (sub-path mount, `GF_SERVER_SERVE_FROM_SUB_PATH=true`)
+- [ ] Write `grafana/provisioning/datasources/cortex.yml` (Prometheus + Loki)
+- [ ] Write `/opt/cortexos/.secrets/grafana.env` (mode 0600) with `GRAFANA_ADMIN_PASSWORD`
+- [ ] `docker compose --env-file /opt/cortexos/.secrets/grafana.env up -d grafana`
+- [ ] Import `templates/grafana/cortex-v1.json` via API
+- [ ] Confirm `curl https://${CORTEX_DOMAIN}/grafana/login` returns HTTP 200
+- [ ] CHECKPOINT 2 confirmed — UI loads, datasources green, CortexOS dashboard visible
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** Port 3000 is free?
+**STOP — operator question:** Does `ss -tlnp | grep 3000` print no output (port 3000 free)?
 
 Type `confirmed` to proceed.
 
@@ -136,7 +140,19 @@ Expected: `200` on both.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** Grafana UI loads at `https://${CORTEX_DOMAIN}/grafana/`, both datasources show green, and the CortexOS dashboard is visible?
+**STOP — operator question:** Does `curl -sS "https://${CORTEX_DOMAIN}/grafana/login" -o /dev/null -w "%{http_code}\n"` print `200` (not `404`, not `502`)?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 3
+
+**STOP — operator question:** In the Grafana UI, do both the `Prometheus` and `Loki` datasources display a green "Data source is working" tick (not red "Bad Gateway")?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 4
+
+**STOP — operator question:** Is the `CortexOS v1` dashboard visible in the Dashboards list (proving the import POST succeeded)?
 
 Type `confirmed` to proceed.
 

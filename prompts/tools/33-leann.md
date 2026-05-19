@@ -31,15 +31,24 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install
-- [ ] Configure
-- [ ] Verify
-- [ ] CHECKPOINT 2 confirmed
+- [ ] CHECKPOINT 1 confirmed — OpenViking up + 9Router serving embedding models
+- [ ] `git clone https://github.com/leann-rag/leann /opt/cortexos/stacks/leann` + `npm install`
+- [ ] Snapshot upstream README to `docs/external/leann.snapshot.md` with header
+- [ ] Write `/opt/cortexos/.secrets/leann.env` (mode 0600, port 18791)
+- [ ] Write `/etc/systemd/system/leann.service` with `uvicorn leann.server:app`
+- [ ] `sudo systemctl daemon-reload && sudo systemctl enable --now leann`
+- [ ] Confirm `curl http://localhost:18791/health` returns OK
+- [ ] CHECKPOINT 2 confirmed — `/health` returns ok
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** OpenViking is running and 9Router is serving embedding models?
+**STOP — operator question:** Does `curl -fsS http://localhost:18790/health` return `{"status":"ok"}` (proving OpenViking is up)?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 1b
+
+**STOP — operator question:** Does `curl -H "Authorization: Bearer $NINEROUTER_API_KEY" http://127.0.0.1:11434/v1/models | jq '.data | length'` print an integer > 0 (proving 9Router serves at least one embedding-capable model)?
 
 Type `confirmed` to proceed.
 
@@ -117,7 +126,7 @@ Expected: health OK response.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** LEANN health endpoint returns OK?
+**STOP — operator question:** Does `curl -s http://localhost:18791/health` print a JSON OK response (not `connection refused`, not HTTP 502)?
 
 Type `confirmed` to proceed.
 

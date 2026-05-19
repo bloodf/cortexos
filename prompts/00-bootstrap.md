@@ -4,16 +4,22 @@
 
 ## Todo
 
-- [ ] RTK installed (`rtk --version`)
-- [ ] Caveman mode enabled in the AI agent
-- [ ] Local deps verified (`bootstrap_check_local_deps`)
-- [ ] sudo cached and keepalive running
-- [ ] Operator age key present
-- [ ] Remote OS family detected
-- [ ] Repo materialized at `/opt/cortexos`
-- [ ] `preflight-tools.sh` passes (exit 0)
-- [ ] Secrets pushed to `/opt/cortexos/.secrets/`
-- [ ] Tool spokes dispatched per `prompts/tools/_order.md`
+- [ ] Install RTK via `curl ... install.sh | sh` and confirm `rtk --version`
+- [ ] Activate caveman mode in the AI agent
+- [ ] Run `bootstrap_check_local_deps` (ssh/scp/git/sops/age + 4 CORTEX env vars)
+- [ ] CHECKPOINT 0 confirmed — SSH key-auth + sops/age versions + env vars verified
+- [ ] Run `bootstrap_ensure_operator_age_key` and add public key to `.sops.yaml`
+- [ ] `sops updatekeys` every `templates/.secrets/*.enc.yaml`
+- [ ] CHECKPOINT 1 confirmed — laptop age key decrypts `dashboard.enc.yaml`
+- [ ] Run `bootstrap_detect_remote_os` and export `CORTEX_OS_FAMILY` / `CORTEX_OS_VERSION`
+- [ ] CHECKPOINT 2 confirmed — detected family/version inside supported matrix
+- [ ] Run `bootstrap_push_repo` to materialize repo at `/opt/cortexos` via `git archive | ssh tar -x`
+- [ ] CHECKPOINT 3 confirmed — `/opt/cortexos/scripts/pkg.sh` present on VPS
+- [ ] Run `bootstrap_run_remote 'bash scripts/preflight-tools.sh'` (exit 0)
+- [ ] CHECKPOINT 3b confirmed — preflight-tools.sh exited 0 on VPS
+- [ ] Run `bootstrap_push_secrets` to scp decrypted `.env` files to `/opt/cortexos/.secrets/`
+- [ ] CHECKPOINT 5 confirmed — every `.env` file is mode `600` owned by `$CORTEX_USER`
+- [ ] Dispatch tool spokes in order from `prompts/tools/_order.md`
 
 ## Mental model — read carefully
 
@@ -121,11 +127,7 @@ timestamp. The trap on `EXIT INT TERM` reaps the keepalive PID.
 
 ### CHECKPOINT 0
 
-**STOP — operator question:** Did SSH key auth, SOPS/age versions, and required env vars all verify?
-
-1. `ssh "$CORTEX_USER@$CORTEX_HOST" true` succeeds (no password prompt).
-2. `sops --version` and `age --version` print versions.
-3. The four env vars are exported and non-empty.
+**STOP — operator question:** Did `bootstrap_check_local_deps` exit 0 — meaning `ssh "$CORTEX_USER@$CORTEX_HOST" true` connects without prompting, `sops --version` + `age --version` both print, and the four `CORTEX_*` env vars are all non-empty (not "unbound variable")?
 
 Type `confirmed` to proceed.
 
@@ -164,12 +166,7 @@ loss-of-key recovery.
 
 ### CHECKPOINT 1
 
-**STOP — operator question:** Does the laptop age key match `.sops.yaml` and successfully decrypt a secrets file?
-
-- `age-keygen -y ~/.config/sops/age/keys.txt` prints the same pubkey listed
-  in `.sops.yaml`.
-- `sops --decrypt templates/.secrets/dashboard.enc.yaml > /dev/null` works
-  on the laptop (proves the key is authorized).
+**STOP — operator question:** Does `sops --decrypt templates/.secrets/dashboard.enc.yaml > /dev/null` exit 0 on the laptop (not `FAILED to decrypt` and not `no matching creation rules`) — proving the age pubkey from `age-keygen -y ~/.config/sops/age/keys.txt` is listed in `.sops.yaml`?
 
 Type `confirmed` to proceed.
 
@@ -194,10 +191,7 @@ If the family is not `ubuntu` or `debian`, HALT. See
 
 ### CHECKPOINT 2
 
-**STOP — operator question:** Is the detected remote OS family and version inside the supported matrix?
-
-- `CORTEX_OS_FAMILY` is `ubuntu` or `debian`.
-- `CORTEX_OS_VERSION` is in the supported matrix.
+**STOP — operator question:** Did `printf 'family=%s version=%s\n' "$CORTEX_OS_FAMILY" "$CORTEX_OS_VERSION"` print a family of `ubuntu` or `debian` with a supported version (24.04 / 25.x / 13) — not `unsupported` and not empty?
 
 Type `confirmed` to proceed.
 
@@ -220,12 +214,7 @@ This:
 
 ### CHECKPOINT 3
 
-**STOP — operator question:** Is the repo materialized at `/opt/cortexos` on the VPS and matches the laptop tree?
-
-- `ssh "$CORTEX_USER@$CORTEX_HOST" 'test -f /opt/cortexos/scripts/pkg.sh'`
-  returns 0.
-- `ssh "$CORTEX_USER@$CORTEX_HOST" 'cat /opt/cortexos/VERSION 2>/dev/null || git -C /opt/cortexos rev-parse HEAD'`
-  matches the laptop tree (or prints the same commit if you used Git).
+**STOP — operator question:** Does `ssh "$CORTEX_USER@$CORTEX_HOST" 'test -f /opt/cortexos/scripts/pkg.sh && echo ok'` print `ok` (not `No such file or directory`) — proving the repo materialized at `/opt/cortexos`?
 
 Type `confirmed` to proceed.
 
@@ -251,10 +240,7 @@ curl-installer execution) and re-runs `bootstrap_run_remote` until exit 0.
 
 ### CHECKPOINT 3b
 
-**STOP — operator question:** Did `scripts/preflight-tools.sh` exit 0 on the VPS?
-
-- Exit code 0 means every required tool is present at the minimum version.
-- Exit code 2 means halt and install missing items before continuing.
+**STOP — operator question:** Did `bootstrap_run_remote 'cd "$CORTEX_ROOT" && bash scripts/preflight-tools.sh'` exit 0 (not exit 2 with a remediation list)?
 
 Type `confirmed` to proceed.
 
@@ -313,13 +299,7 @@ This:
 
 ### CHECKPOINT 5
 
-**STOP — operator question:** Are all plaintext `.env` files on the VPS owned by `$CORTEX_USER` with mode `600`?
-
-```bash
-ssh "$CORTEX_USER@$CORTEX_HOST" 'stat -c "%a %U %n" /opt/cortexos/.secrets/*.env'
-```
-
-Every line must read `600 <CORTEX_USER> /opt/cortexos/.secrets/<name>.env`.
+**STOP — operator question:** Does every line of `ssh "$CORTEX_USER@$CORTEX_HOST" 'stat -c "%a %U %n" /opt/cortexos/.secrets/*.env'` read `600 <CORTEX_USER> /opt/cortexos/.secrets/<name>.env` (no `644`, no `root` owner)?
 
 Type `confirmed` to proceed.
 

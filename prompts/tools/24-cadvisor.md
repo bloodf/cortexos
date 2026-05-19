@@ -18,14 +18,16 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install
-- [ ] Verify
-- [ ] CHECKPOINT 2 confirmed
+- [ ] CHECKPOINT 1 confirmed — port 8081 is free (8080 owned by Caddy)
+- [ ] Append `cadvisor` service to monitoring compose (host 8081 → container 8080, `--url_base_prefix=/cadvisor`)
+- [ ] `docker compose up -d cadvisor`
+- [ ] Confirm `curl http://localhost:8081/cadvisor/metrics | grep container_cpu_usage_seconds_total` prints metric lines
+- [ ] Query `http://127.0.0.1:9090/prometheus/api/v1/targets` and confirm `cadvisor` health is `up`
+- [ ] CHECKPOINT 2 confirmed — UI loads via tailnet AND Prometheus target `up`
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** Port **8081** is free (`ss -tlnp | grep 8081`). cAdvisor is bound to 8081 — port 8080 is owned by Caddy (`13-caddy.md`)?
+**STOP — operator question:** Does `ss -tlnp | grep 8081` print no output (port 8081 free)? Note: cAdvisor binds 8081 because Caddy already owns 8080.
 
 Type `confirmed` to proceed.
 
@@ -96,7 +98,13 @@ local configurations, fall back to `http://127.0.0.1:9090/api/v1/targets`.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** CAdvisor UI loads at `https://${CORTEX_DOMAIN}/cadvisor/` **and** the Prometheus targets API above returned `up` for `job="cadvisor"`?
+**STOP — operator question:** Did `curl -sS "https://${CORTEX_DOMAIN}/cadvisor/"` return HTTP `200` or `302` (not `502`, not `connection refused`)?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 3
+
+**STOP — operator question:** Did `curl -fsS "http://127.0.0.1:9090/prometheus/api/v1/targets" | jq -r '.data.activeTargets[] | select(.labels.job=="cadvisor") | .health'` print `up` (not `down`, not empty)?
 
 > Per [prompts/CHECKPOINT-PATTERN.md](../CHECKPOINT-PATTERN.md), this
 > spoke owns the cAdvisor container, its local listener, and the

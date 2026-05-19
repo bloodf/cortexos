@@ -29,16 +29,26 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install
-- [ ] Configure
-- [ ] Verify
-- [ ] CHECKPOINT 2 confirmed
-- [ ] Known Limitations
+- [ ] CHECKPOINT 1 confirmed — `systemctl is-active openclaw-gateway` returns active
+- [ ] CHECKPOINT 1b confirmed — NATS reachable on 127.0.0.1:4222
+- [ ] `git clone https://github.com/ThisIsJeron/openclaw-codex-watchdog /tmp/openclaw-codex-watchdog && npm install`
+- [ ] Confirm `docs/external/openclaw-codex-watchdog.snapshot.md` exists
+- [ ] `openclaw plugins install /tmp/openclaw-codex-watchdog`
+- [ ] `openclaw plugins configure openclaw-codex-watchdog --idle-timeout 300 --error-threshold 3 ...`
+- [ ] `sudo systemctl reload openclaw`
+- [ ] Confirm `openclaw plugins list | grep codex-watchdog` shows active
+- [ ] CHECKPOINT 2 confirmed — plugin listed active
+- [ ] Review Known Limitations (discovery silent-skip)
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** OpenClaw is running and NATS is reachable?
+**STOP — operator question:** Does `systemctl is-active openclaw-gateway` print `active` (not `inactive`, not `failed`)?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 1b
+
+**STOP — operator question:** Does `nc -zv 127.0.0.1 4222` print `succeeded` (not `Connection refused`)?
 
 Type `confirmed` to proceed.
 
@@ -87,7 +97,7 @@ Expected: `openclaw-codex-watchdog` listed as active.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** Watchdog plugin is active?
+**STOP — operator question:** Does `openclaw plugins list | grep codex-watchdog` print a line containing `active` (not `disabled`, not empty)?
 
 Type `confirmed` to proceed.
 

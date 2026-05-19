@@ -32,16 +32,26 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install
-- [ ] Configure
-- [ ] Verify
-- [ ] CHECKPOINT 2 confirmed
-- [ ] Known Limitations
+- [ ] CHECKPOINT 1 confirmed — Node ≥ 20 + 9Router up
+- [ ] `npm install -g openclaw@latest`
+- [ ] Confirm `openclaw --version` prints a version
+- [ ] Write `~/.openclaw/openclaw.json` (account=cortex, gateway 18789, OV 18790, 9Router 11434)
+- [ ] `chmod 600 ~/.openclaw/openclaw.json`
+- [ ] Copy `templates/openclaw/roles/cortex.json` to `~/.openclaw/roles/cortex.json`
+- [ ] Install + enable `openclaw-gateway.service` from `templates/systemd/`
+- [ ] Confirm `curl http://127.0.0.1:18789/health` returns OK
+- [ ] CHECKPOINT 2 confirmed — gateway `/health` returns OK
+- [ ] Review Known Limitations (WebSocket RPC, plugin discovery silent-skip)
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** Node.js ≥ 20 is installed (`node --version`) and 9Router is running?
+**STOP — operator question:** Does `node --version` print `v20.x` or higher (not `v18.x`, not `command not found`)?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 1b
+
+**STOP — operator question:** Does `systemctl is-active 9router` print `active` (not `inactive` and not `failed`)?
 
 Type `confirmed` to proceed.
 
@@ -115,7 +125,7 @@ Expected: gateway health OK (used by `00-preflight.md` probe script).
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** OpenClaw gateway is healthy?
+**STOP — operator question:** Does `curl -fsS http://127.0.0.1:18789/health` return an OK response (not `connection refused`, not HTTP 502) AND does `systemctl is-active openclaw-gateway` print `active` (not `active (exited)`)?
 
 Type `confirmed` to proceed.
 

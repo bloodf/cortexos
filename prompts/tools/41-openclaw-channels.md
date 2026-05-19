@@ -29,22 +29,19 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install
-- [ ] Configure
-- [ ] Verify
-- [ ] CHECKPOINT 2 confirmed
+- [ ] CHECKPOINT 1 confirmed — all 4 platform creds (Telegram/Slack/Discord/WhatsApp) in hand
+- [ ] `npm install -g @openclaw/channels@latest @openclaw/slack@latest`
+- [ ] `openclaw config channels set telegram --token ...`
+- [ ] `openclaw config channels set slack --token ... --signing-secret ...`
+- [ ] `openclaw config channels set discord --token ... --application-id ...`
+- [ ] `openclaw config channels set whatsapp --access-token ... --phone-number-id ...`
+- [ ] `sudo systemctl reload openclaw`
+- [ ] Run `openclaw channels test <each>` and confirm each platform received the message
+- [ ] CHECKPOINT 2 confirmed — all four channels delivered, emoji rendered, no API errors
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** Verify this checkpoint's preconditions are met?
-
-Operator: gather and confirm you have:
-
-- Telegram bot token (from @BotFather)
-- Slack bot OAuth token + signing secret
-- Discord bot token + application ID
-- WhatsApp Business API access token + phone number ID
+**STOP — operator question:** Do you have **all four** of these credentials in hand right now: Telegram bot token (BotFather), Slack OAuth token + signing secret, Discord bot token + application ID, and WhatsApp Business API access token + phone number ID?
 
 Type `confirmed` to proceed.
 
@@ -100,7 +97,7 @@ Expected: probe message received on each platform with no errors.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** All four channel test messages were received, emoji rendered correctly, and no API errors were reported?
+**STOP — operator question:** Did each of `openclaw channels test {telegram,slack,discord,whatsapp}` exit 0 (not print `API error` / `unauthorized`), AND did the probe message land in every one of the four target chats with `🤖` rendered as the actual emoji (not as `:robot:` or `?`)?
 
 Type `confirmed` to proceed.
 

@@ -42,7 +42,7 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** Is `/opt/cortexos/dashboard/` populated with `cortex-net` Docker network and `dashboard.env` secrets in place?
+**STOP — operator question:** Does `docker network inspect cortex-net >/dev/null 2>&1 && test -f /opt/cortexos/.secrets/dashboard.env && echo OK` print `OK` (not `network not found`, not empty)?
 
 ```bash
 docker network inspect cortex-net >/dev/null 2>&1 \
@@ -116,7 +116,13 @@ Expected: HTTP 200 with a JSON health payload.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** Does `curl localhost:3080/api/health` return 200 and `docker compose ps` show `cortex-dashboard` healthy?
+**STOP — operator question:** Does `curl -fsS -o /dev/null -w "%{http_code}" http://127.0.0.1:3080/api/health` print `200` (not `000`, not `5xx`)?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 2b
+
+**STOP — operator question:** Does `docker compose ps cortex-dashboard --format json | jq -r .Health` print `healthy` (not `starting`, not `unhealthy`)?
 
 Type `confirmed` to proceed.
 
@@ -130,7 +136,7 @@ Expected: `200`.
 
 ## CHECKPOINT 3
 
-**STOP — operator question:** Does `https://{DOMAIN}/en/login` load without certificate errors and the OpenClaw chat panel connect?
+**STOP — operator question:** Does `curl -sS -o /dev/null -w "%{http_code}" https://${CORTEX_DOMAIN}/en/login` print `200` with no TLS error (not `000 (SSL certificate problem)`, not `502`)?
 
 Type `confirmed` to proceed.
 
