@@ -134,7 +134,10 @@ export async function awaitSignal({ nc, runId, signalName, timeoutSec, alertFn }
       await cleanup();
       reject(new Error(`awaitSignal timed out after ${timeoutSec}s for ${subject}`));
     }, timeoutMs);
-    if (typeof timer.unref === "function") timer.unref();
+    // NOTE: do NOT unref this timer. The timeout is the load-bearing path that
+    // settles the returned promise when no signal arrives; unref'ing it lets
+    // the event loop drain (when mock iterators finish synchronously, e.g. in
+    // tests) before the timer fires, leaving the promise unresolved.
 
     (async () => {
       try {
