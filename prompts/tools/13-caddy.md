@@ -158,6 +158,13 @@ Write `/etc/caddy/Caddyfile`:
   handle_path /langfuse {
     redir /langfuse/ permanent
   }
+  # Langfuse v3 lacks a full sub-path mode. Keep the general UI route
+  # unstripped, but strip the prefix for the public health endpoint so
+  # tailnet verification can still hit `/langfuse/api/public/health`.
+  handle /langfuse/api/public/health {
+    uri strip_prefix /langfuse
+    reverse_proxy localhost:3001
+  }
   handle /langfuse/* {
     reverse_proxy localhost:3001
   }
