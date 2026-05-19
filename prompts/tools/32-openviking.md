@@ -29,8 +29,13 @@ sudo -v
 ## Todo
 
 - [ ] CHECKPOINT 1 confirmed
-- [ ] Install Ollama
-- [ ] Pull local models
+- [ ] Detect GPU (A0) and export `CORTEX_OLLAMA_GPU`
+- [ ] Install GPU driver if needed (A1)
+- [ ] CHECKPOINT 1b confirmed
+- [ ] Install Ollama (A2)
+- [ ] Write per-backend systemd drop-in (A3)
+- [ ] Pull embedding + chat models matched to backend (A4)
+- [ ] Verify backend (A5)
 - [ ] Install OpenViking from upstream
 - [ ] Configure service
 - [ ] Verify
@@ -42,38 +47,141 @@ sudo -v
 
 Type `confirmed` to proceed.
 
-## Step A — Install Ollama
+## Step A — Install Ollama with GPU auto-detect
 
-Use Ollama as the local model runtime. Keep the port off `11434` because 9Router owns that port.
+Ollama port stays on `11435` (9Router owns `11434`). Backend is picked
+from detected hardware; CPU fallback is always safe.
+
+### A0 — Detect GPU
+
+```bash
+sudo apt-get install -y pciutils
+GPU_LINE=$(lspci -nn | grep -Ei 'vga|3d|display' || true)
+echo "$GPU_LINE"
+
+if echo "$GPU_LINE" | grep -qi nvidia; then
+  export CORTEX_OLLAMA_GPU=nvidia
+elif echo "$GPU_LINE" | grep -qiE 'amd|ati|advanced micro devices'; then
+  export CORTEX_OLLAMA_GPU=amd
+else
+  export CORTEX_OLLAMA_GPU=none
+fi
+echo "CORTEX_OLLAMA_GPU=$CORTEX_OLLAMA_GPU"
+```
+
+### A1 — Install GPU driver if missing
+
+NVIDIA path:
+
+```bash
+if [ "$CORTEX_OLLAMA_GPU" = "nvidia" ] && ! command -v nvidia-smi >/dev/null 2>&1; then
+  sudo apt-get install -y ubuntu-drivers-common
+  sudo ubuntu-drivers install --gpgpu
+  echo "NVIDIA driver installed. REBOOT REQUIRED before continuing."
+  echo "Run: sudo reboot, then re-enter this prompt at Step A2."
+  exit 0
+fi
+```
+
+AMD path:
+
+```bash
+if [ "$CORTEX_OLLAMA_GPU" = "amd" ] && ! command -v rocminfo >/dev/null 2>&1; then
+  sudo apt-get install -y wget gnupg
+  wget -qO - https://repo.radeon.com/rocm/rocm.gpg.key | sudo gpg --dearmor -o /usr/share/keyrings/rocm.gpg
+  UBU_CODENAME=$(. /etc/os-release && echo "$UBUNTU_CODENAME")
+  echo "deb [arch=amd64 signed-by=/usr/share/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/latest ${UBU_CODENAME} main" | sudo tee /etc/apt/sources.list.d/rocm.list
+  sudo apt-get update
+  sudo apt-get install -y rocm-hip-runtime rocminfo
+  sudo usermod -aG render,video "$USER"
+  echo "ROCm installed. REBOOT REQUIRED before continuing."
+  echo "Run: sudo reboot, then re-enter this prompt at Step A2."
+  exit 0
+fi
+```
+
+### CHECKPOINT 1b
+
+**STOP — operator question:** `CORTEX_OLLAMA_GPU` is set and (if `nvidia`) `nvidia-smi` reports the GPU, or (if `amd`) `rocminfo` reports an Agent, or (if `none`) the host has no discrete GPU?
+
+Type `confirmed` to proceed.
+
+### A2 — Install Ollama
 
 ```bash
 curl -fsSL https://ollama.com/install.sh | sh
-
 sudo install -d -m 0755 /etc/systemd/system/ollama.service.d
-sudo tee /etc/systemd/system/ollama.service.d/override.conf <<'EOF'
+```
+
+### A3 — Per-backend systemd drop-in
+
+```bash
+case "$CORTEX_OLLAMA_GPU" in
+  nvidia)
+    sudo tee /etc/systemd/system/ollama.service.d/override.conf <<'EOF'
 [Service]
 Environment=OLLAMA_HOST=127.0.0.1:11435
-# CPU-only fallback is always safe. Remove these lines only after explicitly
-# validating a GPU-capable host/runtime.
+Environment=OLLAMA_NUM_PARALLEL=2
+Environment=OLLAMA_KEEP_ALIVE=10m
+EOF
+    ;;
+  amd)
+    sudo tee /etc/systemd/system/ollama.service.d/override.conf <<'EOF'
+[Service]
+Environment=OLLAMA_HOST=127.0.0.1:11435
+Environment=HSA_OVERRIDE_GFX_VERSION=10.3.0
+Environment=OLLAMA_NUM_PARALLEL=2
+Environment=OLLAMA_KEEP_ALIVE=10m
+EOF
+    ;;
+  none|*)
+    sudo tee /etc/systemd/system/ollama.service.d/override.conf <<'EOF'
+[Service]
+Environment=OLLAMA_HOST=127.0.0.1:11435
 Environment=CUDA_VISIBLE_DEVICES=
 Environment=HIP_VISIBLE_DEVICES=
 Environment=OLLAMA_NUM_GPU=0
 Environment=OLLAMA_NUM_PARALLEL=2
 Environment=OLLAMA_KEEP_ALIVE=10m
 EOF
+    ;;
+esac
 
 sudo systemctl daemon-reload
 sudo systemctl enable --now ollama
 ```
 
-Pull at least one embedding model and one small chat model:
+### A4 — Pull models matched to backend
+
+GPU-capable hosts pull `llama3.2:3b`; CPU-only stays on `:1b`.
 
 ```bash
+if [ "$CORTEX_OLLAMA_GPU" = "none" ]; then
+  CORTEX_OLLAMA_CHAT_MODEL=${CORTEX_OLLAMA_CHAT_MODEL:-llama3.2:1b}
+else
+  CORTEX_OLLAMA_CHAT_MODEL=llama3.2:3b
+fi
+echo "Chat model: $CORTEX_OLLAMA_CHAT_MODEL"
+
 OLLAMA_HOST=127.0.0.1:11435 ollama pull nomic-embed-text
-OLLAMA_HOST=127.0.0.1:11435 ollama pull llama3.2:1b
+OLLAMA_HOST=127.0.0.1:11435 ollama pull "$CORTEX_OLLAMA_CHAT_MODEL"
 OLLAMA_HOST=127.0.0.1:11435 ollama list
-curl -fsS http://127.0.0.1:11435/api/tags | jq '.models[].name'
 ```
+
+### A5 — Verify backend
+
+```bash
+sudo journalctl -u ollama -n 200 --no-pager | grep -Ei 'cuda|rocm|gpu|cpu' || true
+curl -fsS http://127.0.0.1:11435/api/generate \
+  -d "{\"model\":\"${CORTEX_OLLAMA_CHAT_MODEL}\",\"prompt\":\"ok\",\"stream\":false}" \
+  | jq '{eval_duration, eval_count}'
+```
+
+Expected:
+
+- NVIDIA backend: journal mentions `cuda` / `nvidia`; `eval_duration` low.
+- AMD backend: journal mentions `rocm` / `hip`.
+- CPU backend: journal mentions `cpu`; `eval_duration` higher, still completes.
 
 ## Step B — Install OpenViking
 
@@ -100,7 +208,7 @@ OPENVIKING_ROOT_API_KEY=$(openssl rand -hex 32)
 OPENVIKING_CONFIG_FILE=/opt/cortexos/openviking/ov.conf
 OLLAMA_BASE_URL=http://127.0.0.1:11435
 OLLAMA_EMBED_MODEL=nomic-embed-text
-OLLAMA_CHAT_MODEL=llama3.2:1b
+OLLAMA_CHAT_MODEL=${CORTEX_OLLAMA_CHAT_MODEL:-llama3.2:1b}
 EOF
 sudo chmod 600 /opt/cortexos/.secrets/openviking.env
 ```
@@ -136,7 +244,7 @@ sudo tee /opt/cortexos/openviking/ov.conf <<EOF
     "api_base": "http://127.0.0.1:11435/v1",
     "api_key": "ollama",
     "provider": "openai",
-    "model": "llama3.2:1b"
+    "model": "${OLLAMA_CHAT_MODEL}"
   }
 }
 EOF

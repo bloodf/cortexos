@@ -10,7 +10,12 @@ intentionally disabled and be added later.
 ## Prerequisites
 
 - `40-openclaw.md` completed.
-- Credentials ready for the channels you want to enable now.
+- Credentials ready for the channels you want to enable now (optional —
+  this step can be skipped entirely and revisited later).
+
+> All channels are **optional**. You may skip every channel in this
+> step. We **recommend registering at least one channel** so OpenClaw
+> can deliver agent output somewhere reachable.
 
 ## Distro selection
 
@@ -36,14 +41,7 @@ sudo -v
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** You have credentials for the channels you want to enable now?
-
-Examples:
-
-- Telegram bot token
-- Slack bot token (+ app token or signing secret, depending on mode)
-- Discord bot token + application ID
-- WhatsApp Business access token + phone number ID
+**STOP — operator question:** Did you decide which channels (if any) to register now — knowing every channel is optional and the step can be skipped entirely?
 
 Type `confirmed` to proceed.
 
@@ -57,18 +55,46 @@ npm install -g @openclaw/slack@latest || true
 
 ## Configure
 
-Examples:
+Run only the stanzas for channels you want to enable now. Skip the
+rest. All four channels are optional.
+
+### Telegram (optional)
+
+Skip unless you have a Telegram bot token from `@BotFather`.
 
 ```bash
 openclaw channels add --channel telegram --token "<telegram-bot-token>"
+```
+
+### Slack (optional)
+
+Skip unless you have a Slack bot token (and an app token or signing
+secret depending on mode).
+
+```bash
 openclaw channels add --channel slack --bot-token "<slack-bot-token>" --app-token "<slack-app-token>"
+```
+
+### Discord (optional)
+
+Skip unless you have a Discord bot token and application ID.
+
+```bash
 openclaw channels add --channel discord --token "<discord-bot-token>" --application-id "<discord-app-id>"
+```
+
+### WhatsApp (optional)
+
+Skip unless you have a WhatsApp Business access token and phone number ID.
+
+```bash
 openclaw channels add --channel whatsapp --access-token "<whatsapp-access-token>" --phone-number-id "<whatsapp-phone-id>"
 ```
 
 ## Verify
 
-Probe only the channels you enabled:
+Probe only the channels you enabled. If you skipped every channel,
+skip this verify block too.
 
 ```bash
 openclaw channels status --channel telegram --probe --json || true
@@ -77,11 +103,13 @@ openclaw channels status --channel discord --probe --json || true
 openclaw channels status --channel whatsapp --probe --json || true
 ```
 
-Expected: each enabled channel reports successful auth/probe status.
+Expected: each **enabled** channel reports successful auth/probe
+status. Channels you skipped will report not-configured; that is
+fine.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** All enabled channel probes succeeded and no API errors were reported?
+**STOP — operator question:** All enabled channel probes succeeded with no API errors (or you intentionally skipped every channel)?
 
 Type `confirmed` to proceed.
 
