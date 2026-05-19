@@ -1,0 +1,15 @@
+{
+  "$id": "https://cortexos/schemas/cortex-audit-sandbox-v1.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cortex.audit.sandbox.<verb>.v1 data payload",
+  "description": "Stub schema for cortex-sandbox-runner exec audit events. Field surface is TBD-strict — subject + timestamp are the only required keys so CORTEX_REQUIRE_ENVELOPE=1 has a target to validate against. Tighten before enforcing strict mode in production. See stacks/cortex-sandbox-runner/app/server.js → emitAuditEvent.",
+  "type": "object",
+  "required": ["subject", "ts"],
+  "additionalProperties": true,
+  "properties": {
+    "subject": { "type": ["string", "null"] },
+    "ts": { "type": "string", "format": "date-time" },
+    "actor": { "type": ["string", "null"] },
+    "payload": { "type": "object" }
+  }
+}

@@ -2,6 +2,8 @@
 
 Stateless HTTP webhook receiver + JetStream status worker that bridges Paperclip and CortexOS.
 
+> **Compose prerequisites.** This stack assumes the external `cortex-net` docker network exists and that NATS + Postgres are already reachable on it — bring them up via `prompts/tools/30-nats.md` + `prompts/tools/14-postgresql.md` before `docker compose up -d`.
+
 ## What it does
 
 - `POST /paperclip/heartbeat` — Paperclip-initiated wake. Bridge persists the run in `paperclip_ticket_link`, publishes an HMAC-signed envelope to `cortex.paperclip.work.<role>`, and replies `202 { runId, status: "queued" }` in < 200ms.

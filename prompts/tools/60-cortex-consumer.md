@@ -52,9 +52,9 @@ sudo npm install --omit=dev
 Edit `/opt/cortexos/stacks/cortex-consumer/config.json` for your environment:
 
 ```bash
-# Set NATS URL, OpenClaw gateway URL, and AgentGateway URL
+# Set NATS URL and OpenClaw gateway URL
 nano /opt/cortexos/stacks/cortex-consumer/config.json
-# Verify: nats_url, openclaw_url, agentgateway_url fields
+# Verify: nats_url, openclaw_url fields
 ```
 
 Write env (canonical path `/opt/cortexos/.secrets/consumer.env` — matches
@@ -65,13 +65,19 @@ spokes `cat >>` into):
 sudo tee /opt/cortexos/.secrets/consumer.env <<EOF
 NATS_URL=nats://127.0.0.1:4222
 OPENCLAW_BASE_URL=http://127.0.0.1:18789
-AGENTGATEWAY_BASE_URL=http://127.0.0.1:18800
 EOF
 sudo chmod 600 /opt/cortexos/.secrets/consumer.env
 ```
 
 `consumer.js` reads `OPENCLAW_BASE_URL` (not `OPENCLAW_BASE`) at startup;
 the older name is a no-op.
+
+> **FUTURE WORK — AgentGateway integration.** `consumer.js` does NOT invoke
+> AgentGateway today. The `AGENTGATEWAY_BASE_URL` env and `agentgateway_url`
+> config field have been removed from this prompt to avoid implying a wiring
+> that doesn't exist. Real consumer → AgentGateway dispatch (tool-invoke
+> requests, audit fan-out via `cortex.audit.agentgateway.*`) is deferred to a
+> follow-up phase tracked alongside `prompts/tools/50-agentgateway.md`.
 
 Substitute placeholders in the installed unit (template ships with `{VPS_USER}` + `{VPS_HOME}` — must be replaced before enable):
 

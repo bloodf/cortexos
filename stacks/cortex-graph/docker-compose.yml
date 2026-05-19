@@ -12,9 +12,9 @@ services:
       OTEL_SERVICE_NAME: cortex-graph
     ports:
       - "127.0.0.1:8090:8090"
-    depends_on:
-      - nats
-      - postgres
+    # No `depends_on`: NATS + Postgres are brought up by their own spokes
+    # (prompts/tools/30-nats.md, prompts/tools/14-postgresql.md) and reached
+    # over the external `cortex-net` network. Operator must start those first.
     networks:
       - cortex-net
     healthcheck:

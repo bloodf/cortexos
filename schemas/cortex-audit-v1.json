@@ -1,0 +1,15 @@
+{
+  "$id": "https://cortexos/schemas/cortex-audit-v1.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cortex.audit.<scope>.<verb>.v1 data payload (generic)",
+  "description": "Stub schema for the shared audit envelope wrapped by every cortex.audit.* CloudEvent. Field surface is TBD-strict — subject + timestamp are the only required keys so CORTEX_REQUIRE_ENVELOPE=1 has a target to validate against. Tighten before enforcing strict mode in production. Per-scope schemas (cortex-audit-agentgateway, -graph, -sandbox) inherit this shape.",
+  "type": "object",
+  "required": ["subject", "ts"],
+  "additionalProperties": true,
+  "properties": {
+    "subject": { "type": "string", "minLength": 1 },
+    "ts": { "type": "string", "format": "date-time" },
+    "actor": { "type": ["string", "null"] },
+    "payload": {}
+  }
+}

@@ -113,6 +113,9 @@ log "encrypted backup: $ENCRYPTED"
 
 # ---------------------------------------------------------------------------
 # Off-host copy
+# rsync is the intentional transport for off-host account backups. Install
+# pipeline does NOT use rsync — that constraint applies to dashboard/code
+# deployment only (see dashboard/AGENTS.md → "no rsync, no laptop-side build").
 # ---------------------------------------------------------------------------
 if [[ -n "$OFFHOST_DEST" ]]; then
   log "copying to $OFFHOST_DEST"

@@ -1,0 +1,16 @@
+{
+  "$id": "https://cortexos/schemas/cortex-audit-graph-v1.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cortex.audit.graph.<verb>.v1 data payload",
+  "description": "Stub schema for cortex-graph (LangGraph sidecar) audit events covering node lifecycle, human_review interrupts, and resume decisions. Field surface is TBD-strict — subject + timestamp are the only required keys so CORTEX_REQUIRE_ENVELOPE=1 has a target to validate against. Tighten before enforcing strict mode in production.",
+  "type": "object",
+  "required": ["subject", "ts"],
+  "additionalProperties": true,
+  "properties": {
+    "subject": { "type": "string", "minLength": 1 },
+    "ts": { "type": "string", "format": "date-time" },
+    "runId": { "type": "string" },
+    "threadId": { "type": "string" },
+    "node": { "type": "string" }
+  }
+}

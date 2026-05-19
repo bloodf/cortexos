@@ -267,7 +267,10 @@ export function createApp(opts = {}) {
 }
 
 export async function start() {
-  instrumentTelemetry({ service: "cortex-agentgateway" });
+  instrumentTelemetry({
+    service: "cortex-agentgateway",
+    env: process.env.NODE_ENV || "production",
+  });
   const app = createApp();
   const port = Number(process.env.AGENTGATEWAY_PORT || 18800);
   await new Promise((resolveListen) => {

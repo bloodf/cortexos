@@ -13,7 +13,16 @@
 import express from "express";
 import { spawn as defaultSpawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { instrument as instrumentTelemetry } from "@cortexos/telemetry";
 import { ExecRequestSchema, decide, buildPodmanArgs } from "./policy.js";
+
+// Boot OpenLLMetry + Langfuse at import time so any side-effect emission
+// inside this module is captured. Safe no-op when LANGFUSE_HOST is unset
+// (see packages/cortex-telemetry/src/index.js).
+instrumentTelemetry({
+  service: "cortex-sandbox-runner",
+  env: process.env.NODE_ENV || "production",
+});
 
 const PORT = Number(process.env.PORT || 8091);
 const API_TOKEN = process.env.CORTEX_SANDBOX_API_TOKEN || "";
