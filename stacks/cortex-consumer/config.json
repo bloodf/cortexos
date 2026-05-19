@@ -1,6 +1,7 @@
 {
   "routes": {},
   "approval_timeout_minutes": 30,
+  "approval_timeout_sec": 86400,
   "openclaw": {
     "account_ref": "cortex",
     "base_url": "http://127.0.0.1:18789"
@@ -44,6 +45,14 @@
       "retention": "limits",
       "duplicate_window_ns": 120000000000,
       "max_age_ns": 604800000000000
+    },
+    {
+      "name": "CORTEX_SIGNALS",
+      "subjects": ["cortex.signals.>"],
+      "retention": "limits",
+      "duplicate_window_ns": 120000000000,
+      "max_age_ns": 86400000000000,
+      "max_msgs_per_subject": 1
     }
   ],
   "paperclip_work_consumer": {

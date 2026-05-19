@@ -29,6 +29,8 @@ import { envelope as buildCloudEvent, validate as validateCloudEvent, EnvelopeVa
 import { instrument as instrumentTelemetry, traceLLMCall, shutdown as shutdownTelemetry } from "@cortexos/telemetry";
 import { append as auditAppend } from "@cortexos/audit";
 import { publishToDlq } from "./lib/dlq.js";
+import { awaitSignal as awaitNatsSignal } from "./lib/signals.js";
+import { recordPending as recordPendingApproval, resolvePending as resolvePendingApproval } from "./lib/pending-approvals.js";
 
 // V9 — hash-chained audit log. Failures here MUST NOT block production
 // transitions; they raise `cortex.alerts.error.audit-append-failed` and
@@ -76,6 +78,19 @@ const CORTEX_SANDBOX_URL = (process.env.CORTEX_SANDBOX_URL || "").replace(/\/$/,
 const CORTEX_SANDBOX_API_TOKEN = process.env.CORTEX_SANDBOX_API_TOKEN || "";
 const CORTEX_SANDBOX_ROLES_FILE = process.env.CORTEX_SANDBOX_ROLES_FILE
   || "/opt/cortexos/templates/agent-roles/.sandbox-required.json";
+
+// V12 — NATS-signal approvals. When a role appears in the approval-required
+// roster file the consumer pauses dispatch and awaits a signed signal at
+// `cortex.signals.<runId>.approval`. Timeout defaults to 24h and is
+// overridable per-deploy via PAPERCLIP_APPROVAL_TIMEOUT_SEC. Misconfig
+// (missing roster) falls through to the non-gated path — the gate is a
+// safety net, not the only authorization mechanism.
+const PAPERCLIP_APPROVAL_TIMEOUT_SEC = Math.max(
+  1,
+  Number(process.env.PAPERCLIP_APPROVAL_TIMEOUT_SEC || 86_400),
+);
+const CORTEX_APPROVAL_ROLES_FILE = process.env.CORTEX_APPROVAL_ROLES_FILE
+  || "/opt/cortexos/templates/agent-roles/.approval-required.json";
 
 // ---------------------------------------------------------------------------
 // Config + env
@@ -736,6 +751,28 @@ async function dispatchToSandbox({ role, issueId, runId, payload }) {
   }
 }
 
+// V12 — approval-required roster loader. Mirrors the V7/V10 cache pattern so
+// the file is parsed once per process lifetime; restart picks up edits.
+let __approvalRolesCache = null;
+
+function loadApprovalRequiredRoles() {
+  if (__approvalRolesCache !== null) return __approvalRolesCache;
+  try {
+    const raw = JSON.parse(readFileSync(CORTEX_APPROVAL_ROLES_FILE, "utf8"));
+    __approvalRolesCache = Array.isArray(raw)
+      ? new Set(raw.map((r) => String(r).toUpperCase()))
+      : new Set();
+  } catch {
+    __approvalRolesCache = new Set();
+  }
+  return __approvalRolesCache;
+}
+
+export function isApprovalRequired(role) {
+  const roles = loadApprovalRequiredRoles();
+  return roles.has(String(role).toUpperCase());
+}
+
 async function handlePaperclipWork(subject, envelope) {
   // Envelope shape: { data: <payload>, sig: <hex> }. Verify HMAC like approval path.
   if (!envelope || typeof envelope !== "object" || !envelope.data || !envelope.sig) {
@@ -772,6 +809,95 @@ async function handlePaperclipWork(subject, envelope) {
     process.stdout.write(`[paperclip.work] dry-run run=${data.runId} role=${role}\n`);
     return;
   }
+
+  // V12 — NATS-signal approval gate. Destructive ops (roles flagged
+  // `approvalRequired: true` in the roster file) MUST be unblocked by a
+  // signed `cortex.signals.<runId>.approval` message before dispatch
+  // proceeds. Timeout publishes `cortex.alerts.warning.approval-timeout`
+  // and the run is abandoned; the JetStream message remains acked so the
+  // run does not redeliver indefinitely. Operators rerun via Paperclip
+  // if a timed-out run still needs to ship.
+  if (isApprovalRequired(role) && data.runId) {
+    const timeoutSec = Number(data.approvalTimeoutSec) > 0
+      ? Number(data.approvalTimeoutSec)
+      : PAPERCLIP_APPROVAL_TIMEOUT_SEC;
+    try {
+      await recordPendingApproval({
+        runId: data.runId,
+        signalName: "approval",
+        role,
+        issueId: data.issueId,
+        reason: data.approvalReason || null,
+        timeoutSec,
+      });
+    } catch (e) {
+      process.stderr.write(`[approval] record pending failed run=${data.runId}: ${e.message}\n`);
+    }
+    process.stdout.write(`[approval] awaiting signal run=${data.runId} role=${role} timeoutSec=${timeoutSec}\n`);
+    let decision;
+    try {
+      decision = await awaitNatsSignal({
+        nc,
+        runId: data.runId,
+        signalName: "approval",
+        timeoutSec,
+      });
+    } catch (e) {
+      try {
+        await resolvePendingApproval({
+          runId: data.runId,
+          signalName: "approval",
+          decision: "timeout",
+          approver: "system",
+        });
+      } catch { /* best-effort */ }
+      await safeAuditAppend({
+        event_type: `cortex.paperclip.work.${role}.approval-timeout`,
+        source: "cortex-consumer",
+        subject: data.issueId,
+        actor: role,
+        payload: { runId: data.runId, issueId: data.issueId, role, reason: e.message },
+      });
+      process.stderr.write(`[approval] timeout run=${data.runId} role=${role}: ${e.message}\n`);
+      return;
+    }
+    const approver = decision?.approver || "unknown";
+    const verdict = decision?.decision === "approve" ? "approve" : "deny";
+    try {
+      await resolvePendingApproval({
+        runId: data.runId,
+        signalName: "approval",
+        decision: verdict,
+        approver,
+      });
+    } catch { /* best-effort */ }
+    await safeAuditAppend({
+      event_type: `cortex.paperclip.work.${role}.approval-${verdict}`,
+      source: "cortex-consumer",
+      subject: data.issueId,
+      actor: approver,
+      payload: {
+        runId: data.runId,
+        issueId: data.issueId,
+        role,
+        decision: verdict,
+        reason: decision?.reason || null,
+      },
+    });
+    if (verdict !== "approve") {
+      process.stdout.write(`[approval] denied run=${data.runId} role=${role} approver=${approver}\n`);
+      publishPaperclipStatus(role, {
+        runId: data.runId,
+        issueId: data.issueId,
+        status: "cancelled",
+        comment: `Approval denied by ${approver}`,
+        costUsdCents: 0,
+      });
+      return;
+    }
+    process.stdout.write(`[approval] approved run=${data.runId} role=${role} approver=${approver}\n`);
+  }
+
   // V7 — gated dispatch to the cortex-graph sidecar. Only fires when:
   //   - CORTEX_GRAPH_URL + CORTEX_GRAPH_API_TOKEN are configured, AND
   //   - the role appears in the graph-enabled roster file.
@@ -951,6 +1077,7 @@ export async function ensureStreams(jsm, cfg) {
       duplicate_window: s.duplicate_window_ns,
     };
     if (s.max_age_ns) cfgOpts.max_age = s.max_age_ns;
+    if (s.max_msgs_per_subject) cfgOpts.max_msgs_per_subject = s.max_msgs_per_subject;
     try {
       await jsm.streams.info(s.name);
       // update in place to converge retention/dedup window if config changed.
