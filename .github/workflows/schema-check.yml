@@ -17,12 +17,17 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: pnpm
 
       - name: Install ajv-cli
-        run: npm install -g ajv-cli ajv-formats
+        run: pnpm add -g ajv-cli ajv-formats
 
       - name: Compile every schema
         run: |
@@ -32,11 +37,10 @@ jobs:
             echo "::endgroup::"
           done
 
-      - name: Install @cortexos/events deps + run unit tests
+      - name: Install workspace deps + run @cortexos/events unit tests
         run: |
-          cd packages/cortex-events
-          npm install
-          npm test
+          pnpm install --frozen-lockfile
+          pnpm --filter @cortexos/events test
 
       - name: Schema version-bump policy
         run: BASE_REF=origin/${{ github.base_ref }} node scripts/schema-version-check.js

@@ -38,7 +38,7 @@ the importer is a no-op via `ON CONFLICT (omc_task_id) DO NOTHING`.
   export PAPERCLIP_API_URL PAPERCLIP_API_KEY PG_DSN
   ```
 
-- `cd scripts && npm install` once.
+- `cd scripts && pnpm install` once.
 
 
 ## Todo
@@ -69,7 +69,7 @@ count.
 
 ```bash
 cd scripts
-npm run migrate-omc -- --dry-run --staging \
+pnpm run migrate-omc -- --dry-run --staging \
   | tee /tmp/omc-backfill.dry.json
 ```
 
@@ -86,7 +86,7 @@ Record these two numbers — they are the parity targets for step 3.
 Optional time-window scoping:
 
 ```bash
-npm run migrate-omc -- --dry-run \
+pnpm run migrate-omc -- --dry-run \
   --from-date 2026-01-01 --to-date 2026-03-31
 ```
 
@@ -109,7 +109,7 @@ Type `confirmed` to proceed.
 ## Step 2 — Apply
 
 ```bash
-npm run migrate-omc -- --apply \
+pnpm run migrate-omc -- --apply \
   | tee /tmp/omc-backfill.apply.json
 ```
 

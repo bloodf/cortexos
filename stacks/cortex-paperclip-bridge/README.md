@@ -54,9 +54,9 @@ Hardening matches `templates/systemd/cortex-dashboard.service` plus `Type=notify
 ## Tests
 
 ```bash
-npm install
-npm test                  # unit (vitest)
-RUN_INTEGRATION=1 npm run test:integration   # needs NATS + Postgres up
+pnpm install
+pnpm test                  # unit (vitest)
+RUN_INTEGRATION=1 pnpm run test:integration   # needs NATS + Postgres up
 ```
 
 Coverage target: ≥80% for `server.js`, `worker.js`, `lib/*`.

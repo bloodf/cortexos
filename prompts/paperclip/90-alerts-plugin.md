@@ -11,7 +11,7 @@ Paperclip to receive operational alerts.
 - [ ] What you get
 - [ ] Configuration
 - [ ] Apply
-- [ ] Smoke test
+- [ ] Alerts probe
 - [ ] Troubleshooting
 
 ## What you get
@@ -63,7 +63,7 @@ sudo journalctl -u cortex-paperclip-bridge.service -f
 
 Look for: `[alerts] ready durable=cortex-paperclip-bridge-alerts filter=cortex.alerts.> minSeverity=warning digest=false`.
 
-## Smoke test
+## Alerts probe
 
 From the dashboard host (admin session) or any host with `ADMIN_TOKEN`:
 
@@ -71,7 +71,7 @@ From the dashboard host (admin session) or any host with `ADMIN_TOKEN`:
 curl -sS -X POST \
   -H "X-Admin-Token: $ADMIN_TOKEN" \
   -H "content-type: application/json" \
-  -d '{"title":"plugin smoke test","body":"ignore","source":"smoke"}' \
+  -d '{"title":"alerts plugin probe","body":"ignore","source":"probe"}' \
   "$DASHBOARD_URL/api/paperclip/notify-test"
 ```
 

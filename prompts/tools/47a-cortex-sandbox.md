@@ -34,7 +34,7 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 - [ ] CHECKPOINT 1 confirmed
 - [ ] Decrypt the secret
 - [ ] Build and start
-- [ ] Smoke test
+- [ ] Sandbox exec probe
 - [ ] CHECKPOINT 2 confirmed
 - [ ] Wire into the consumer
 - [ ] Write the sandbox-required roster
@@ -76,7 +76,7 @@ docker compose build
 docker compose up -d
 ```
 
-## Smoke test
+## Sandbox exec probe
 
 ```bash
 TOKEN="$(grep -E '^CORTEX_SANDBOX_API_TOKEN=' /opt/cortexos/.secrets/sandbox.env | cut -d= -f2-)"
@@ -97,7 +97,7 @@ unprivileged identity inside the sandbox.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** The smoke test returned `exitCode: 0`?
+**STOP — operator question:** The sandbox exec probe returned `exitCode: 0`?
 
 Type "confirmed"
 to proceed.

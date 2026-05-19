@@ -8,7 +8,7 @@
 - [ ] 2A. Compose path
 - [ ] 2B. Systemd path (no Docker)
 - [ ] 3. Wire Caddy (public path)
-- [ ] 4. Smoke test
+- [ ] 4. Bridge probe
 - [ ] CHECKPOINT 2.A confirmed
 
 ## 1. Apply migration 005
@@ -40,7 +40,7 @@ Compose reads `/opt/cortexos/.secrets/paperclip.env`. The container listens on `
 
 ```bash
 cd /opt/cortexos/stacks/cortex-paperclip-bridge
-sudo -u cortex npm ci --omit=dev
+sudo -u cortex pnpm install --frozen-lockfile --prod
 sudo install -m 0644 cortex-paperclip-bridge.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now cortex-paperclip-bridge
@@ -59,7 +59,7 @@ handle /paperclip/heartbeat {
 
 Reload Caddy.
 
-## 4. Smoke test
+## 4. Bridge probe
 
 ```bash
 # Local healthz (no auth):
@@ -71,14 +71,14 @@ curl -fsS -X POST http://127.0.0.1:8089/paperclip/heartbeat \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
-    "runId":"smoke_1",
+    "runId":"probe_1",
     "agentId":"cortexos-bridge",
     "cortexRole":"ENG-BACKEND",
-    "context":{"taskId":"issue_smoke","wakeReason":"manual","commentId":null}
+    "context":{"taskId":"issue_probe","wakeReason":"manual","commentId":null}
   }'
 ```
 
-Expected: HTTP 202, body `{"runId":"smoke_1","status":"queued"}`.
+Expected: HTTP 202, body `{"runId":"probe_1","status":"queued"}`.
 
 Confirm the link row:
 
@@ -92,7 +92,7 @@ sudo -u postgres psql -d cortex -c "SELECT paperclip_run_id, cortex_role, status
 
 - [ ] Migration 005 applied (`\d paperclip_ticket_link` shows the table).
 - [ ] Bridge `/healthz` returns 200 OK.
-- [ ] Smoke heartbeat returns 202 and writes a row.
+- [ ] Probe heartbeat returns 202 and writes a row.
 - [ ] `journalctl -u cortex-paperclip-bridge -n 50` (or `docker compose logs`) shows no errors.
 
 Type `confirmed` to proceed.

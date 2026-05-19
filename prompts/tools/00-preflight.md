@@ -5,6 +5,7 @@ Run this prompt before any other `prompts/tools/` spoke. It verifies the OpenCla
 ## Todo
 
 - [ ] Distro family detected (`CORTEX_OS_FAMILY` set)
+- [ ] `scripts/preflight-tools.sh` exits 0 (all required tools present)
 - [ ] Supply-chain toolchain installed (cosign, syft, gh)
 - [ ] OIDC identity pins exported
 - [ ] CHECKPOINT 1 confirmed
@@ -22,6 +23,23 @@ source scripts/pkg.sh
 echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
+
+---
+
+## STOP — operator question: All required tools present on VPS?
+
+Before any other step in this spoke runs, the VPS must pass the tool
+preflight. Run:
+
+```bash
+bash scripts/preflight-tools.sh
+```
+
+If exit code is 2, **HALT**. Install the items listed in the script's
+output (or re-run with `--install-missing`) and return to
+`prompts/00-bootstrap.md` Step 3b before reattempting this spoke.
+
+Type `confirmed` to proceed only when exit code is 0.
 
 ---
 
@@ -62,7 +80,7 @@ export CORTEX_VERIFY_ISSUER="https://token.actions.githubusercontent.com"
 
 These pins are consumed by `scripts/verify-artifact.sh`. Forks MUST override `CORTEX_VERIFY_REPO`. See [docs/SUPPLY-CHAIN.md](../../docs/SUPPLY-CHAIN.md) for the threat model and full verification protocol.
 
-### Smoke-test the verifier (optional on first install)
+### Validate the verifier (optional on first install)
 
 If `${CORTEX_VERIFY_REPO}` already has a tagged release with a `dashboard-*`
 artifact, confirm the verifier end-to-end. On a brand-new repository there is

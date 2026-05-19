@@ -4,19 +4,22 @@
 
 FROM node:22-slim AS deps
 WORKDIR /app
+RUN corepack enable && corepack prepare pnpm@10 --activate
 
 # Workspace manifest + lockfile + workspace package manifests are enough to
 # resolve and install the gateway's dependency closure deterministically.
-COPY package.json package-lock.json* ./
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* ./
 COPY packages/cortex-events/package.json packages/cortex-events/package.json
 COPY packages/cortex-audit/package.json packages/cortex-audit/package.json
 COPY packages/cortex-telemetry/package.json packages/cortex-telemetry/package.json
+COPY packages/paperclip-adapter/package.json packages/paperclip-adapter/package.json
 COPY stacks/cortex-agentgateway/package.json stacks/cortex-agentgateway/package.json
+COPY stacks/cortex-paperclip-bridge/package.json stacks/cortex-paperclip-bridge/package.json
+COPY stacks/cortex-consumer/package.json stacks/cortex-consumer/package.json
 
-# Install only what the agentgateway workspace needs, omit dev deps.
-RUN npm install --omit=dev --workspaces=false --no-audit --no-fund \
-      --prefix stacks/cortex-agentgateway \
-  || npm install --omit=dev --no-audit --no-fund
+# Install agentgateway workspace deps (prod only).
+RUN pnpm install --filter cortex-agentgateway... --prod --frozen-lockfile \
+  || pnpm install --filter cortex-agentgateway... --prod
 
 # -----------------------------------------------------------------------------
 FROM node:22-slim AS runtime

@@ -8,10 +8,10 @@ They are not executed in any GitHub Actions workflow. The dedicated
 
 ```bash
 cd dashboard
-npm install
-npx playwright install --with-deps   # one-time
-npm run test:e2e                      # runs `playwright test`
-npm run test:e2e:list                 # lists discovered specs
+pnpm install
+pnpm dlx playwright install --with-deps   # one-time
+pnpm run test:e2e                      # runs `playwright test`
+pnpm run test:e2e:list                 # lists discovered specs
 ```
 
 ## Why local-only

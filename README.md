@@ -137,13 +137,6 @@ key, or any CortexOS code at the start — bootstrap pushes everything.
 
 5. Stop at every `CHECKPOINT`. Confirm results before continuing.
 
-To rehearse the entire flow on a macOS-native Linux VM with no real VPS:
-
-```bash
-make vm-debian-up
-make vm-rehearse FAMILY=debian
-```
-
 ## Repository layout
 
 ```text

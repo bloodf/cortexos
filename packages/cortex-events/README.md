@@ -4,7 +4,7 @@ CloudEvents 1.0 envelope builder and JSON Schema validator for CortexOS. Every N
 
 ## Install
 
-Workspace package. Reference via `"@cortexos/events": "*"` in your `package.json` and rely on npm workspaces (`npm install` at repo root).
+Workspace package. Reference via `"@cortexos/events": "workspace:*"` in your `package.json` and rely on pnpm workspaces (`pnpm install` at repo root).
 
 ## Usage
 

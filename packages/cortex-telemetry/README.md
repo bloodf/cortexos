@@ -43,8 +43,8 @@ process.on("SIGTERM", () => shutdown());
 ## Testing
 
 ```bash
-npm install
-npm test
+pnpm install
+pnpm test
 ```
 
 Tests cover the no-op path; live Langfuse integration is exercised in the

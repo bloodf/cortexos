@@ -2,6 +2,17 @@
 
 > **Read this first.** This is the single entry-point prompt for installing CortexOS.
 
+## Todo
+
+- [ ] Local deps verified (`bootstrap_check_local_deps`)
+- [ ] sudo cached and keepalive running
+- [ ] Operator age key present
+- [ ] Remote OS family detected
+- [ ] Repo materialized at `/opt/cortexos`
+- [ ] `preflight-tools.sh` passes (exit 0)
+- [ ] Secrets pushed to `/opt/cortexos/.secrets/`
+- [ ] Tool spokes dispatched per `prompts/tools/_order.md`
+
 ## Mental model — read carefully
 
 **You (the operator) and this AI agent are running on your laptop.** The VPS
@@ -62,6 +73,17 @@ bootstrap_check_local_deps
 `bootstrap_check_local_deps` verifies `ssh`, `scp`, `git`, `sops`, `age`,
 and that `CORTEX_HOST`/`CORTEX_USER`/`CORTEX_ROOT`/`CORTEX_DOMAIN` are set.
 It exits non-zero on any miss.
+
+### Sudo acquisition
+
+`scripts/bootstrap.sh` calls `ensure_sudo` at the top of every dispatch
+subcommand. It prompts ONCE for the operator's sudo password, validates
+the cache via `sudo -v`, then spawns a background keepalive that runs
+`sudo -n true` every 60 seconds until the bootstrap process exits.
+
+The password is NEVER written to a file, env var, or remote host. Only
+sudo's own credential cache is used; the keepalive merely refreshes the
+timestamp. The trap on `EXIT INT TERM` reaps the keepalive PID.
 
 ### CHECKPOINT 0
 
@@ -170,6 +192,35 @@ This:
   returns 0.
 - `ssh "$CORTEX_USER@$CORTEX_HOST" 'cat /opt/cortexos/VERSION 2>/dev/null || git -C /opt/cortexos rev-parse HEAD'`
   matches the laptop tree (or prints the same commit if you used Git).
+
+Type `confirmed` to proceed.
+
+---
+
+## Step 3b — VPS tool preflight (REQUIRED)
+
+Before any `prompts/os/*` or `prompts/tools/*` spoke runs, the VPS must
+have every required binary at or above its minimum version. Run the
+remote preflight script via the dispatcher:
+
+```bash
+bootstrap_run_remote 'cd "$CORTEX_ROOT" && bash scripts/preflight-tools.sh'
+```
+
+`scripts/preflight-tools.sh` checks: `node>=22`, `pnpm>=9`, `docker`,
+`git`, `sops`, `age`, `jq`, `curl`, `openssl`, `gh`, `tailscale`, `ssh`,
+`tar`. On any miss it prints a numbered remediation list and exits 2.
+
+If it exits 2, the operator installs the missing tools on the VPS (or
+re-runs the script with `--install-missing` to attempt automated apt /
+curl-installer execution) and re-runs `bootstrap_run_remote` until exit 0.
+
+### CHECKPOINT 3b
+
+**STOP — operator question:** Did `scripts/preflight-tools.sh` exit 0 on the VPS?
+
+- Exit code 0 means every required tool is present at the minimum version.
+- Exit code 2 means halt and install missing items before continuing.
 
 Type `confirmed` to proceed.
 

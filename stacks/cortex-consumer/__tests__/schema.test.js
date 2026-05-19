@@ -1,5 +1,5 @@
 // Unit test for consumer.js schema loader + dual-validation.
-// Run via: `npm test` inside stacks/cortex-consumer (uses node --test).
+// Run via: `pnpm test` inside stacks/cortex-consumer (uses node --test).
 //
 // Covers M-6: ensures the canonical block schema at templates/messages/schema.json
 // is loaded via the "messages.blocks" alias, accepts a well-formed blocks

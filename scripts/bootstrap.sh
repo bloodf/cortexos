@@ -34,6 +34,29 @@ __bs_log() {
   printf '[bootstrap] %s\n' "$*" >&2
 }
 
+# ---------------------------------------------------------------------------
+# Sudo acquisition + keepalive
+# ---------------------------------------------------------------------------
+# Validates sudo on the operator laptop once at the start of a dispatch run
+# and refreshes the sudo timestamp every 60s via a background keepalive loop.
+# The password is NEVER written to a file or env var — we rely entirely on
+# sudo's own credential cache (`sudo -v` to seed, `sudo -n true` to refresh).
+ensure_sudo() {
+  if ! sudo -v; then
+    __bs_die "sudo required on the operator laptop"
+    return 1
+  fi
+  # Refresh cached creds every 60s; exit when parent dies.
+  ( while true; do
+      sudo -n true 2>/dev/null || exit
+      sleep 60
+      kill -0 "$$" 2>/dev/null || exit
+    done ) &
+  SUDO_KEEPALIVE_PID=$!
+  trap 'kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true' EXIT INT TERM
+  __bs_log "sudo cached; keepalive pid=$SUDO_KEEPALIVE_PID"
+}
+
 __bs_die() {
   printf '[bootstrap] ERROR: %s\n' "$*" >&2
   return 1
@@ -220,6 +243,15 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
 
   sub="${1:-}"
   shift || true
+
+  # Acquire sudo once for any subcommand that may need privileged ops on
+  # the laptop (push-secrets writes to /tmp shred targets; future hooks).
+  # `help`/empty are skipped to keep `--help` a no-op.
+  case "$sub" in
+    "" | help | -h | --help) : ;;
+    *) ensure_sudo ;;
+  esac
+
   case "$sub" in
     check-local-deps)        bootstrap_check_local_deps "$@" ;;
     ensure-operator-age-key) bootstrap_ensure_operator_age_key "$@" ;;

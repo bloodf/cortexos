@@ -71,8 +71,8 @@ See `config/tools.json`. It is a verbatim copy of
 
 ```bash
 cd stacks/cortex-agentgateway
-npm install
-npm test
+pnpm install
+pnpm test
 ```
 
 The Vitest suite covers `/health` (no auth), missing bearer (`401`),

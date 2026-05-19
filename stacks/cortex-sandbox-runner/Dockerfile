@@ -63,8 +63,9 @@ RUN install -d -o sandbox -g sandbox /home/sandbox/.config/containers \
  && chown sandbox:sandbox /home/sandbox/.config/containers/containers.conf
 
 WORKDIR /app
+RUN corepack enable && corepack prepare pnpm@10 --activate
 COPY app/package.json ./app/package.json
-RUN cd app && npm install --omit=dev --no-audit --no-fund
+RUN cd app && pnpm install --prod
 
 COPY app ./app
 COPY README.md ./

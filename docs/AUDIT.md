@@ -47,7 +47,7 @@ back-compatible, so the swap is:
 
 1. Drain dashboard + bridge workloads.
 2. Stop Postgres, swap the image tag, restart.
-3. Re-run migrations (`npm run --workspace dashboard migrate` or operator
+3. Re-run migrations (`pnpm --filter @cortexos/dashboard run migrate` or operator
    wrapper). The 008 migration enables the extension and creates the
    hypertable in-place.
 

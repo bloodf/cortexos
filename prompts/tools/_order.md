@@ -150,7 +150,7 @@ spokes:
     deps: [30-nats, 40-openclaw, 50-agentgateway, 55-langfuse]
     optional: false
 
-  61-smoke-tests:
+  61-weekly-synthetic-traffic:
     deps: [60-cortex-consumer]
     optional: false
 
@@ -185,7 +185,7 @@ spokes:
       - 50-agentgateway
       - 55-langfuse
       - 60-cortex-consumer
-      - 61-smoke-tests
+      - 61-weekly-synthetic-traffic
       - 70-dashboard
       - 80-agent-factory
       - 81-projects

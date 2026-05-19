@@ -1,14 +1,16 @@
-# Paperclip ↔ CortexOS — End-to-End Smoke Test (VPS-only post-install validation)
+# Paperclip ↔ CortexOS — Post-Install Validation
 
-> Stage 6. Post-install validation run ON the VPS after Paperclip
-> stage 5 (`50-approval-gates.md`) completes, or any time the bridge,
-> consumer, or distro install path changes.
+> VPS-only post-install validation of the paperclip pipeline. Stage 6.
+> Run ON the VPS after Paperclip stage 5 (`50-approval-gates.md`)
+> completes, or any time the bridge, consumer, or distro install path
+> changes.
 
 ## Goal
 
-Drive the canonical 28-step smoke (`scripts/paperclip-smoke-test.sh`)
-end-to-end against the target environment, interpret the structured JSON
-summary, and decide PASS / FAIL with evidence.
+Drive the canonical 28-step end-to-end validator
+(`scripts/paperclip-smoke-test.sh`) against the target environment,
+interpret the structured JSON summary, and decide PASS / FAIL with
+evidence.
 
 ## When to run
 

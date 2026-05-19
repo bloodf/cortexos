@@ -14,7 +14,7 @@
 - [ ] 4. Bring the stack up
 - [ ] 5. Verify first-admin bootstrap
 - [ ] 6. Wire downstream services
-- [ ] 7. Smoke trace
+- [ ] 7. Test trace
 - [ ] 9. Checkpoint
 
 ## 0. Preconditions
@@ -126,7 +126,7 @@ docker logs --since 5m cortex-langfuse-langfuse-web-1 \
   | grep -E "initialised|bootstrap" || true
 ```
 
-Login at `https://${CORTEX_DOMAIN}/langfuse/` (or local smoke
+Login at `https://${CORTEX_DOMAIN}/langfuse/` (or local probe
 `http://127.0.0.1:3001/`) with
 `LANGFUSE_INIT_USER_EMAIL` + `LANGFUSE_INIT_USER_PASSWORD`. Confirm the
 `cortexos` org + project exist and the pre-minted key pair is listed under
@@ -154,7 +154,7 @@ done
 systemctl restart cortex-consumer cortex-paperclip-bridge cortex-graph || true
 ```
 
-## 7. Smoke trace
+## 7. Test trace
 
 ```bash
 # Trigger a paperclip work event; observe a span land on Langfuse. The
@@ -165,7 +165,7 @@ systemctl restart cortex-consumer cortex-paperclip-bridge cortex-graph || true
 curl -fsS -X POST http://127.0.0.1:8089/paperclip/heartbeat \
   -H "Authorization: Bearer ${PAPERCLIP_WEBHOOK_SECRET}" \
   -H "Content-Type: application/json" \
-  -d '{"runId":"smoke-1","agentId":"smoke","cortexRole":"smoke","context":{"taskId":"smoke","wakeReason":"manual"}}'
+  -d '{"runId":"probe-1","agentId":"probe","cortexRole":"probe","context":{"taskId":"probe","wakeReason":"manual"}}'
 
 # After ~5 s the trace appears under: Langfuse → Traces → cortex-consumer
 ```
@@ -189,7 +189,7 @@ docker compose down
 - [ ] `/api/public/health` returns HTTP 200.
 - [ ] First-admin login succeeds.
 - [ ] `cortexos` project lists the pre-minted public key.
-- [ ] Smoke trace visible in Langfuse Traces view.
+- [ ] Test trace visible in Langfuse Traces view.
 - [ ] All three downstream services log `[telemetry] enabled service=…`.
 
 ## Related

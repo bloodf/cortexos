@@ -14,14 +14,14 @@
 FROM node:22-slim AS deps
 WORKDIR /repo
 ENV NODE_ENV=production
-COPY package.json ./
+RUN corepack enable && corepack prepare pnpm@10 --activate
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* ./
 COPY packages ./packages
 COPY stacks/cortex-paperclip-bridge/package.json ./stacks/cortex-paperclip-bridge/package.json
 COPY stacks/cortex-consumer/package.json ./stacks/cortex-consumer/package.json
+COPY stacks/cortex-agentgateway/package.json ./stacks/cortex-agentgateway/package.json
 # include devDependencies for the build stage; runtime drops them.
-# regen lockfile because the host lockfile (mac) doesn't reliably carry
-# linux-x64-gnu optional bindings (npm/cli#4828).
-RUN npm install --include=dev --include=optional --no-audit --no-fund
+RUN pnpm install --frozen-lockfile || pnpm install
 
 ############################
 # Stage 2 — builder
@@ -29,18 +29,20 @@ RUN npm install --include=dev --include=optional --no-audit --no-fund
 FROM node:22-slim AS builder
 WORKDIR /repo
 ENV NEXT_TELEMETRY_DISABLED=1
+RUN corepack enable && corepack prepare pnpm@10 --activate
 COPY --from=deps /repo/node_modules ./node_modules
-COPY --from=deps /repo/package.json /repo/package-lock.json ./
+COPY --from=deps /repo/package.json /repo/pnpm-workspace.yaml ./
+COPY --from=deps /repo/pnpm-lock.yaml* ./
 COPY packages ./packages
 
 WORKDIR /repo/packages/cortex-dashboard
 
 # next build → emits .next/standalone (stock server) + .next/static.
-RUN npx next build --turbopack
+RUN pnpm exec next build --turbopack
 
 # Replace stock standalone server with our custom server (Socket.IO +
 # retention loop + alert engine). Bundle as CJS with external native deps.
-RUN npx esbuild server.ts \
+RUN pnpm exec esbuild server.ts \
     --bundle \
     --platform=node \
     --target=node22 \

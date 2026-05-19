@@ -15,8 +15,9 @@ of the integration plan.
 - After every meaningful change to bridge, consumer, or migration 005.
 - Before the first production deploy of each phase.
 - Quarterly, as a fire drill.
-- Immediately when `60-smoke-test.md` reports `result=fail` with a
-  `failure.tag` in the SECURITY tier (`*-not-401`, `approval-bypass`).
+- Immediately when `60-post-install-validation.md` reports
+  `result=fail` with a `failure.tag` in the SECURITY tier
+  (`*-not-401`, `approval-bypass`).
 
 
 ## Todo
@@ -68,7 +69,7 @@ Total: 8–10 min.
 Routines stay paused until P3 is re-deployed or the integration is
 abandoned.
 
-### P4 — Smoke + docs + nightly CI
+### P4 — Post-install validation + docs + nightly CI
 
 Docs and CI only. Revert the offending commit; no host state.
 
@@ -128,7 +129,7 @@ phase before relying on it in prod.
 
 ## Related
 
-- `prompts/paperclip/60-smoke-test.md` — run immediately after rollback
+- `prompts/paperclip/60-post-install-validation.md` — run immediately after rollback
   to confirm the bridge surface is genuinely gone (steps 1–6 must FAIL,
   which is the *correct* outcome here).
 - `docs/PAPERCLIP.md` — full ops runbook + long-form rollback table.

@@ -1,7 +1,7 @@
 /**
  * V11 — Playwright E2E config for CortexOS dashboard.
  *
- * Targets the local dev server on port 3080 (matches `npm run dev` +
+ * Targets the local dev server on port 3080 (matches `pnpm run dev` +
  * compose). `webServer` autostarts dev mode if not already running. CI
  * usage is manual-trigger only (see .github/workflows/e2e-dashboard.yml).
  */
@@ -34,7 +34,7 @@ export default defineConfig({
 	webServer: process.env.E2E_NO_WEBSERVER
 		? undefined
 		: {
-				command: "npm run dev",
+				command: "pnpm run dev",
 				port: PORT,
 				reuseExistingServer: true,
 				timeout: 120_000,

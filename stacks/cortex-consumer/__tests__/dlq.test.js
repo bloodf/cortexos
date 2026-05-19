@@ -1,6 +1,6 @@
 // Unit tests for the DLQ publisher (V3).
 //
-// Run via: `npm test` (node --test) inside stacks/cortex-consumer.
+// Run via: `pnpm test` (node --test) inside stacks/cortex-consumer.
 //
 // These tests mock the JetStream client — no embedded NATS server is needed.
 // Integration coverage (real max_deliver→DLQ flow) is documented in

@@ -69,7 +69,7 @@ docker compose up -d cadvisor
 ## Verify
 
 ```bash
-# Local smoke probe — note the /cadvisor prefix and the 8081 host port:
+# Local health probe — note the /cadvisor prefix and the 8081 host port:
 curl -s http://localhost:8081/cadvisor/metrics | grep 'container_cpu_usage_seconds_total' | head -3
 
 # Through the tailnet:

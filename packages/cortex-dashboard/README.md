@@ -7,8 +7,8 @@ Cortex Dashboard is Next.js 16 admin and observability UI for CortexOS VPS. It s
 ## Quick Start
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 ```
 
 Open `http://localhost:3000`.
@@ -16,8 +16,8 @@ Open `http://localhost:3000`.
 Production build (runs `next build --turbopack` then esbuilds `server.ts` over the standalone server):
 
 ```bash
-npm run build
-npm start
+pnpm run build
+pnpm start
 ```
 
 For a fresh VPS (run on the VPS, dispatched by `scripts/bootstrap.sh`
@@ -276,9 +276,9 @@ Locales: `en`, `es`, `pt-br`. Locale-aware pages live under `src/app/[locale]`. 
 Test runner: Vitest.
 
 ```bash
-npm test
-npm run test:watch
-npm run test:coverage
+pnpm test
+pnpm run test:watch
+pnpm run test:coverage
 ```
 
 Patterns:

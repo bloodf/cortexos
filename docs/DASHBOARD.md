@@ -32,9 +32,9 @@ Dashboard is Next.js 16 application in `dashboard/`. It runs on port 3080 behind
 
 ```bash
 cd dashboard
-npm install
-npm run test
-npm run dev          # custom server on PORT=3000
+pnpm install
+pnpm run test
+pnpm run dev          # custom server on PORT=3000
 ```
 
 ## Production deployment

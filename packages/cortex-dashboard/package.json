@@ -6,7 +6,7 @@
     "dev": "tsx server.ts",
     "build:next": "next build --turbopack",
     "build:server": "esbuild server.ts --bundle --platform=node --target=node22 --format=cjs --packages=external --outfile=.next/standalone/server.js",
-    "build": "npm run build:next && npm run build:server",
+    "build": "pnpm run build:next && pnpm run build:server",
     "start": "NODE_ENV=production node .next/standalone/server.js",
     "lint": "eslint",
     "test": "vitest run",
@@ -16,8 +16,8 @@
     "test:e2e:list": "playwright test --list"
   },
   "dependencies": {
-    "@cortexos/audit": "*",
-    "@cortexos/events": "*",
+    "@cortexos/audit": "workspace:*",
+    "@cortexos/events": "workspace:*",
     "@ai-sdk/openai-compatible": "^2.0.47",
     "@ai-sdk/react": "^3.0.185",
     "@base-ui/react": "^1.4.1",

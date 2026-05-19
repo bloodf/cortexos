@@ -111,7 +111,7 @@ docker compose up -d prometheus
 ## Verify
 
 ```bash
-# Local smoke probe (no Tailscale required):
+# Local health probe (no Tailscale required):
 curl -s http://localhost:9090/prometheus/-/healthy
 
 # Through the tailnet:

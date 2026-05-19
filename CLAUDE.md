@@ -30,9 +30,9 @@ CortexOS is prompt-driven self-hosted infrastructure and agent orchestration sys
 
 ```bash
 cd dashboard
-npm install
-npm run test
-npm run build
+pnpm install
+pnpm run test
+pnpm run build
 ```
 
 Use targeted tests when possible. Dashboard uses Next.js 16, TypeScript, Vitest, PostgreSQL migrations, and server routes.
