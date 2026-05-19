@@ -106,10 +106,11 @@ The bootstrap dispatches every step under `prompts/os/*` and `prompts/tools/*`. 
 | `prompts/tools/70-dashboard.md` | Build the dashboard on the VPS via `docker compose build` (no rsync) |
 | `prompts/tools/99-final-validation.md` | End-to-end validation + credential export |
 
-## Optional: Paperclip governance plane
+## Paperclip governance plane (required)
 
-After module 13, operators who want the Paperclip governance plane run
-the Paperclip prompts in order:
+After module 13, every operator runs the Paperclip prompts in order.
+Paperclip is the governance plane for CortexOS — goals, approvals, and
+budgets flow through it — and is **not optional**:
 
 | Prompt                                         | Stage                            |
 |------------------------------------------------|----------------------------------|
@@ -119,12 +120,12 @@ the Paperclip prompts in order:
 | `prompts/paperclip/30-register-roles.md`       | Register CortexOS roles          |
 | `prompts/paperclip/40-routines-and-budgets.md` | Configure routines + budgets     |
 | `prompts/paperclip/50-approval-gates.md`       | Wire approval gates              |
-| `prompts/paperclip/60-smoke-test.md`           | Run end-to-end 28-step smoke     |
+| `prompts/paperclip/60-post-install-validation.md` | Run end-to-end 28-step validation |
 | `prompts/paperclip/70-rollback.md`             | Practice rollback drill          |
 
-The Paperclip layer is fully optional: the dashboard, NATS, and consumer
-run unchanged when these prompts are skipped. See
-[PAPERCLIP.md](PAPERCLIP.md) for architecture and ops runbook.
+The Paperclip layer is mandatory. Bootstrap is not complete until these
+prompts have been run and validated. See [PAPERCLIP.md](PAPERCLIP.md)
+for architecture and ops runbook.
 
 ## Verification
 
