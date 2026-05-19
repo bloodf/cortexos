@@ -13,23 +13,21 @@ jobs:
   dashboard:
     name: Dashboard (lint • types • test • build)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: dashboard
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install (regenerate lockfile for linux-x64 optional bindings)
+      - name: Install workspace deps (root, regen lockfile for linux bindings)
         run: |
-          rm -f package-lock.json
-          rm -rf node_modules
+          rm -f package-lock.json dashboard/package-lock.json
+          rm -rf node_modules dashboard/node_modules
           npm install --include=optional --no-audit --no-fund
-      - run: npm run lint
+      - run: npm run lint -w dashboard
       - run: npx tsc --noEmit
-      - run: npm test -- --reporter=verbose
-      - run: npm run build
+        working-directory: dashboard
+      - run: npm test -w dashboard -- --reporter=verbose
+      - run: npm run build -w dashboard
         env:
           NEXT_TELEMETRY_DISABLED: '1'
 
