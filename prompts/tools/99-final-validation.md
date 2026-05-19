@@ -167,7 +167,7 @@ Expected: health OK.
 ### 8. Dashboard
 
 ```bash
-# Dashboard health endpoint (see dashboard/src/app/api/health/route.ts)
+# Dashboard health endpoint (see packages/cortex-dashboard/src/app/api/health/route.ts)
 curl -fsS http://127.0.0.1:3080/api/health | jq -r '.status'
 curl -sSo /dev/null -w "%{http_code}" "https://${CORTEX_DOMAIN}/en/login"
 ```

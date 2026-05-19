@@ -28,8 +28,8 @@ the importer is a no-op via `ON CONFLICT (omc_task_id) DO NOTHING`.
   psql "$PG_DSN" -c "\d paperclip_ticket_link" | grep -E 'omc_task_id|backfilled_at'
   ```
 
-  Must show both columns. If missing, run `dashboard/migrate.js` or
-  `psql -f dashboard/migrations/006_paperclip_omc_backfill.sql`.
+  Must show both columns. If missing, run `packages/cortex-dashboard/scripts/migrate.js` or
+  `psql -f packages/cortex-dashboard/migrations/006_paperclip_omc_backfill.sql`.
 
 - Env loaded (only required for `--apply`):
 
@@ -166,7 +166,7 @@ Paperclip + Postgres left off.
 Rollback is a database-level operation, owned by migration 006:
 
 ```bash
-psql "$PG_DSN" -f dashboard/migrations/006_paperclip_omc_backfill.rollback.sql
+psql "$PG_DSN" -f packages/cortex-dashboard/migrations/006_paperclip_omc_backfill.rollback.sql
 ```
 
 This drops the `omc_task_id` and `backfilled_at` columns. The

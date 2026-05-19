@@ -34,7 +34,7 @@ jobs:
             path: stacks/cortex-consumer
             required: true
           - name: dashboard
-            path: dashboard
+            path: packages/cortex-dashboard
             required: true
           - name: paperclip-adapter
             path: packages/paperclip-adapter

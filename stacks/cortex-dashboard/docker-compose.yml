@@ -1,6 +1,6 @@
 # Cortex Dashboard — on-VPS Docker Compose build.
 #
-# Build context is the dashboard/ source tree (materialized on the VPS by the
+# Build context is the packages/cortex-dashboard/ source tree (materialized on the VPS by the
 # operator-laptop bootstrap via `git archive | ssh tar -x`). No rsync, no
 # laptop-side Next.js build. The VPS builds the image locally with
 # `docker compose build`.
@@ -14,7 +14,7 @@ services:
   cortex-dashboard:
     build:
       context: ../..
-      dockerfile: dashboard/Dockerfile
+      dockerfile: packages/cortex-dashboard/Dockerfile
     image: cortex-dashboard:local
     container_name: cortex-dashboard
     restart: unless-stopped

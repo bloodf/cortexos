@@ -134,7 +134,7 @@ until the approval workflow lands.
 ### `cortex.alerts.<severity>.<source>`
 
 - **Direction**: dashboard → bridge → Paperclip.
-- **Producer**: `dashboard/src/lib/alerts.ts` (`publishAlert`).
+- **Producer**: `packages/cortex-dashboard/src/lib/alerts.ts` (`publishAlert`).
 - **Consumer**: `stacks/cortex-paperclip-bridge/alerts.js` durable
   `cortex-paperclip-bridge-alerts`, filter `cortex.alerts.>`.
 - **`<severity>`**: one of `info`, `warning`, `critical`. Bridge gates by

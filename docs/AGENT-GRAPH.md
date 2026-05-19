@@ -89,7 +89,7 @@ The compiled graph binds to one of two checkpointers, chosen by
 | `PG_DSN=""` | `langgraph.checkpoint.memory.MemorySaver` | Unit tests, ephemeral dev. |
 | `PG_DSN=<dsn>` | `langgraph.checkpoint.postgres.aio.AsyncPostgresSaver` | Production. |
 
-Production tables are provisioned by `dashboard/migrations/007_langgraph_checkpoints.sql`
+Production tables are provisioned by `packages/cortex-dashboard/migrations/007_langgraph_checkpoints.sql`
 (re-created by `AsyncPostgresSaver.setup()` if missing, but Git is the
 source of truth):
 

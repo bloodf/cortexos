@@ -83,7 +83,7 @@ for the full operator flow.
 
 - Admin-only privileged endpoints.
 - Confirmation tokens for sensitive tools.
-- Path allowlist in `dashboard/src/lib/secrets/allowlist.ts`.
+- Path allowlist in `packages/cortex-dashboard/src/lib/secrets/allowlist.ts`.
 - Audit logging for reveal, write, and dispatch operations.
 
 ## Screenshots

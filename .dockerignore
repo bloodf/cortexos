@@ -42,8 +42,8 @@ docs/plans
 **/*.test.js
 **/*.spec.ts
 **/*.spec.js
-dashboard/e2e
-dashboard/playwright.config.ts
+packages/cortex-dashboard/e2e
+packages/cortex-dashboard/playwright.config.ts
 
 # Lima / VM
 lima

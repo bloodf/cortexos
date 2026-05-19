@@ -8,7 +8,7 @@ updates:
     labels: [dependencies, ci]
 
   - package-ecosystem: npm
-    directory: /dashboard
+    directory: /packages/cortex-dashboard
     schedule:
       interval: weekly
     open-pull-requests-limit: 10
@@ -31,7 +31,7 @@ updates:
     labels: [dependencies, consumer]
 
   - package-ecosystem: docker
-    directory: /dashboard
+    directory: /packages/cortex-dashboard
     schedule:
       interval: weekly
     labels: [dependencies, docker]

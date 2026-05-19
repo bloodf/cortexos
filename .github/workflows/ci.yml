@@ -20,14 +20,14 @@ jobs:
           node-version: '22'
       - name: Install workspace deps (root, regen lockfile for linux bindings)
         run: |
-          rm -f package-lock.json dashboard/package-lock.json
-          rm -rf node_modules dashboard/node_modules
+          rm -f package-lock.json packages/cortex-dashboard/package-lock.json
+          rm -rf node_modules packages/cortex-dashboard/node_modules
           npm install --include=optional --no-audit --no-fund
-      - run: npm run lint -w dashboard
+      - run: npm run lint -w @cortexos/dashboard
       - run: npx tsc --noEmit
-        working-directory: dashboard
-      - run: npm test -w dashboard -- --reporter=verbose
-      - run: npm run build -w dashboard
+        working-directory: packages/cortex-dashboard
+      - run: npm test -w @cortexos/dashboard -- --reporter=verbose
+      - run: npm run build -w @cortexos/dashboard
         env:
           NEXT_TELEMETRY_DISABLED: '1'
 
@@ -69,7 +69,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: DASHBOARD_DB_PASSWORD=x CORTEX_MASTER_KEY=x docker compose -f dashboard/docker-compose.yml config >/dev/null
+      - run: DASHBOARD_DB_PASSWORD=x CORTEX_MASTER_KEY=x docker compose -f packages/cortex-dashboard/docker-compose.yml config >/dev/null
       - run: docker compose -f stacks/nats/docker-compose.yml config >/dev/null
 
   docker-image:
@@ -83,7 +83,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: dashboard/Dockerfile
+          file: packages/cortex-dashboard/Dockerfile
           push: false
           tags: cortexos-dashboard:ci
           cache-from: type=gha

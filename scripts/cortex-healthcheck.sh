@@ -132,7 +132,11 @@ echo "[dashboard db]"
 if [[ -n "$DASHBOARD_DB_PASSWORD" ]]; then
   check_cmd env PGPASSWORD="$DASHBOARD_DB_PASSWORD" pg_isready -h 127.0.0.1 -U dashboard -d cortex_dashboard && ok "PostgreSQL reachable" || bad "PostgreSQL reachable"
   migrations_dir=""
-  if [[ -d "$CORTEX_ROOT/dashboard/migrations" ]]; then
+  if [[ -d "$CORTEX_ROOT/packages/cortex-dashboard/migrations" ]]; then
+    migrations_dir="$CORTEX_ROOT/packages/cortex-dashboard/migrations"
+  elif [[ -d "$REPO_ROOT/packages/cortex-dashboard/migrations" ]]; then
+    migrations_dir="$REPO_ROOT/packages/cortex-dashboard/migrations"
+  elif [[ -d "$CORTEX_ROOT/dashboard/migrations" ]]; then
     migrations_dir="$CORTEX_ROOT/dashboard/migrations"
   elif [[ -d "$REPO_ROOT/dashboard/migrations" ]]; then
     migrations_dir="$REPO_ROOT/dashboard/migrations"
