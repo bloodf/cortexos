@@ -84,9 +84,36 @@ docker compose -p monitoring logs fluent-bit --tail 20
 
 Expected: no errors, Loki output plugin reports `flush OK`.
 
+Then query Loki's HTTP API directly to prove Fluent Bit is actually
+shipping records (no Grafana required — Loki is owned by `21-loki.md`,
+not by Grafana):
+
+```bash
+# Give Fluent Bit a moment to flush its first batch
+sleep 15
+
+# Loki LogQL: count of streams labelled service="fluent-bit" in the
+# last 5 minutes. Expect > 0.
+curl -fsS --get \
+  --data-urlencode 'query={service="fluent-bit"}' \
+  "http://127.0.0.1:3100/loki/api/v1/query" \
+  | jq '.data.result | length'
+```
+
+Expected: a number `> 0`. `0` means Fluent Bit is up but no records have
+reached Loki yet — re-run after `sleep 30` before treating it as a
+failure.
+
 ## CHECKPOINT 2
 
-Operator: confirm Fluent Bit container is running without errors and logs appear in Grafana → Loki datasource. Type "confirmed" to proceed.
+Operator: confirm the Loki query above returns `> 0` and `docker compose
+-p monitoring logs fluent-bit` shows no errors. Type "confirmed" to proceed.
+
+> Grafana dashboard confirmation belongs to `22-grafana.md` and the
+> consolidated pass in `99-final-validation.md`. Per
+> [prompts/CHECKPOINT-PATTERN.md](../CHECKPOINT-PATTERN.md), this spoke
+> verifies only the Fluent Bit → Loki ingest contract via the Loki HTTP
+> API.
 
 ## Next
 

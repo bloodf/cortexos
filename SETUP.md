@@ -107,6 +107,12 @@ If installed: confirm version is from upstream HEAD (no pinned older version).
 
 The agent computes topological sort from `prompts/tools/_order.md`. Enabled spokes only (skip `16-mongodb` unless `INSTALL_MONGODB=yes`).
 
+> **Checkpoint contract.** Every spoke's `CHECKPOINT N` verifies only state
+> owned by that spoke. A spoke MUST NOT verify a service installed by a
+> later spoke; if it detects pre-existing optional state, it records
+> `NOT_INSTALLED` and continues. Cross-service flows are verified once in
+> `99-final-validation`. See [prompts/CHECKPOINT-PATTERN.md](prompts/CHECKPOINT-PATTERN.md).
+
 Default linear order (no optional services). This is the authoritative
 sequence the agent MUST follow; it matches `prompts/tools/_order.md`
 and includes every required spoke present on disk:

@@ -24,78 +24,88 @@ Operator: confirm `templates/agentgateway/tools.json` exists and contains the to
 
 ## Install
 
+AgentGateway is vendored in this repo under `stacks/cortex-agentgateway/`.
+Copy it to the host install root and build the container — no external clone.
+
 ```bash
-git clone https://github.com/agentgateway/agentgateway /opt/cortexos/stacks/agentgateway
-cd /opt/cortexos/stacks/agentgateway
-npm install
+sudo mkdir -p /opt/cortexos/stacks
+sudo rsync -a --delete stacks/cortex-agentgateway/ /opt/cortexos/stacks/cortex-agentgateway/
+# Workspace packages and schemas are needed by the Docker build context.
+sudo rsync -a --delete packages/cortex-events/ /opt/cortexos/packages/cortex-events/
+sudo rsync -a --delete packages/cortex-audit/  /opt/cortexos/packages/cortex-audit/
+sudo rsync -a --delete packages/cortex-telemetry/ /opt/cortexos/packages/cortex-telemetry/
+sudo rsync -a --delete schemas/ /opt/cortexos/schemas/
+sudo cp package.json package-lock.json /opt/cortexos/
 ```
 
 ## Configure
-
-Copy tool taxonomy:
-
-```bash
-mkdir -p /opt/cortexos/stacks/agentgateway/config
-cp templates/agentgateway/tools.json /opt/cortexos/stacks/agentgateway/config/tools.json
-```
 
 Write `/opt/cortexos/.secrets/agentgateway.env`:
 
 ```bash
 sudo tee /opt/cortexos/.secrets/agentgateway.env <<EOF
 AGENTGATEWAY_PORT=18800
+AGENTGATEWAY_BEARER_TOKEN={AGENTGATEWAY_BEARER_TOKEN}
 NATS_URL=nats://127.0.0.1:4222
+CORTEX_NATS_HMAC={CORTEX_NATS_HMAC}
 DATABASE_URL=postgresql://dashboard:{DASHBOARD_DB_PASSWORD}@127.0.0.1:5432/cortex_dashboard
-CONFIRMATION_TOKEN_SECRET={AGENTGATEWAY_TOKEN_SECRET}
+CORTEX_AUDIT_ENABLED=1
 EOF
 sudo chmod 600 /opt/cortexos/.secrets/agentgateway.env
 ```
 
-Write systemd unit:
+The tool taxonomy ships inside the image at
+`/app/stacks/cortex-agentgateway/config/tools.json` (a verbatim copy of
+`templates/agentgateway/tools.json`). No host-side copy is needed.
+
+## Build and start
 
 ```bash
-sudo tee /etc/systemd/system/agentgateway.service <<'EOF'
-[Unit]
-Description=AgentGateway tool enforcement
-After=network.target nats.service postgresql.service
-
-[Service]
-Type=simple
-WorkingDirectory=/opt/cortexos/stacks/agentgateway
-EnvironmentFile=/opt/cortexos/.secrets/agentgateway.env
-ExecStart=/usr/bin/node index.js --config config/tools.json
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-sudo systemctl daemon-reload
-sudo systemctl enable agentgateway
-sudo systemctl start agentgateway
+docker network create cortex-net 2>/dev/null || true
+cd /opt/cortexos/stacks/cortex-agentgateway
+docker compose up -d --build
 ```
 
 ## Verify
 
+Health (no auth):
+
 ```bash
-curl -s http://localhost:18800/health
+curl -fsS http://127.0.0.1:18800/health
 ```
 
-Expected: health OK response.
+Expected: `{"status":"ok","service":"cortex-agentgateway",...}`.
+
+Missing bearer → 401:
 
 ```bash
-# Test that a deny-listed tool is rejected
-curl -s -X POST http://localhost:18800/tool/invoke \
+curl -s -o /dev/null -w "%{http_code}\n" -X POST http://127.0.0.1:18800/tool/invoke \
   -H "Content-Type: application/json" \
-  -d '{"tool": "shell_rm_rf", "role": "cortex"}'
+  -d '{"tool":"propose_role","runId":"r1","agentId":"a1","role":"factory_agent"}'
+# expect: 401
 ```
 
-Expected: `403 Forbidden` or `{"allowed": false, "reason": "deny-list"}`.
+Bearer + safe tool → 200:
+
+```bash
+curl -fsS -X POST http://127.0.0.1:18800/tool/invoke \
+  -H "Authorization: Bearer ${AGENTGATEWAY_BEARER_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{"tool":"propose_role","args":{"description":"summarizer"},"runId":"r1","agentId":"a1","role":"factory_agent"}'
+```
+
+Audit subject pinned to `cortex.audit.agentgateway.tool-invoke.v1`. Watch in
+another terminal while invoking the tool above:
+
+```bash
+nats sub --count=1 'cortex.audit.agentgateway.>'
+```
 
 ## CHECKPOINT 2
 
-Operator: confirm AgentGateway is healthy, audit events appear in NATS subject `cortex.audit.*`, and the deny-list test returns 403. Type "confirmed" to proceed.
+Operator: confirm `/health` returns 200, missing-bearer returns 401, safe-tool
+invoke returns 200, and the audit event appears on
+`cortex.audit.agentgateway.tool-invoke.v1`. Type "confirmed" to proceed.
 
 ## Next
 

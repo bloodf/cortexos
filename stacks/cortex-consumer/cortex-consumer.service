@@ -10,7 +10,12 @@ Type=simple
 User={VPS_USER}
 WorkingDirectory=/opt/cortexos/stacks/cortex-consumer
 ExecStart=/usr/bin/env node consumer.js
-Environment=NATS_URL=nats://127.0.0.1:4222
+# Runtime secrets (NATS_URL, OPENCLAW_BASE_URL, AGENTGATEWAY_BASE_URL,
+# CORTEX_NATS_HMAC, CORTEX_OPENCLAW_OUTBOUND_HMAC, etc.) come from the
+# SOPS-decrypted env file written by `bootstrap_push_secrets` /
+# `scripts/secrets-decrypt.sh`. Inline `Environment=` below stays only
+# for deployment-invariant paths and ports.
+EnvironmentFile=/opt/cortexos/.secrets/consumer.env
 Environment=OPENCLAW_CONFIG={VPS_HOME}/.openclaw/openclaw.json
 Environment=ROUTING_CONFIG=/opt/cortexos/stacks/cortex-consumer/config.json
 Environment=THREAD_STATE_FILE=/opt/cortexos/state/consumer-threads.json

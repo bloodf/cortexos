@@ -6,7 +6,15 @@ CortexOS uses **SOPS + age** to keep secrets encrypted at rest in Git. The host 
 
 - **Source of truth**: `templates/.secrets/*.enc.yaml` (committed encrypted).
 - **Authoring**: maintainers with an authorized age private key edit via `sops <file>`.
-- **Runtime**: host age key in `/opt/cortexos/.age/host.key` (chmod 600) decrypts at provision time.
+- **Canonical private key**: `~/.config/sops/age/keys.txt` on the operator
+  laptop. Never in Git.
+- **Runtime**: during `prompts/00-bootstrap.md`, `bootstrap_push_secrets`
+  decrypts on the laptop and `scp`s a copy of the operator age private
+  key to the VPS at `/opt/cortexos/.age/host.key` (mode `0600`, owner
+  `$CORTEX_USER`). Spoke prompts that invoke
+  `scripts/secrets-decrypt.sh` on the host (rotation, emergency
+  re-decrypt) read that file. The host copy is a deployment artifact —
+  it may be rotated or wiped without affecting the canonical laptop key.
 - **Output**: `/opt/cortexos/.secrets/<service>.env` (chmod 600, owner `cortex`, gitignored).
 
 ## Layout
@@ -27,6 +35,8 @@ CortexOS uses **SOPS + age** to keep secrets encrypted at rest in Git. The host 
 - `graph.enc.yaml` — cortex-graph (V7)
 - `langfuse.enc.yaml` — observability (V8)
 - `nats.enc.yaml` — NATS broker accounts
+- `sandbox.enc.yaml` — cortex-sandbox-runner (gVisor/runsc tool sandbox)
+- `agentgateway.enc.yaml` — cortex-agentgateway (tool dispatch + audit)
 
 ## Bootstrap
 
@@ -88,6 +98,9 @@ Encryption uses **multiple** age recipients. Loss of one private key still allow
 ## Anti-patterns (do NOT do)
 
 - Commit plaintext `.env` under `templates/.secrets/`.
-- Store the host age private key in Git or any chat / ticket system.
+- Store the age private key (`~/.config/sops/age/keys.txt` or
+  `/opt/cortexos/.age/host.key`) in Git, chat, tickets, or any
+  shared/synced storage. The laptop copy is the canonical source; the
+  VPS copy is a deployment artifact pushed by `bootstrap_push_secrets`.
 - Use a single age recipient — always include a recovery custodian.
 - Hand-edit `/opt/cortexos/.secrets/*.env` on the host — always rotate via `secrets-rotate.sh` and redecrypt.

@@ -154,27 +154,44 @@ sudo tailscale serve status
 Do **not** open ports 80/443 in the host firewall — Tailscale Serve
 listens on the tailnet interface only.
 
-## Verify
+## Verify — Caddy and Tailscale Serve only
+
+Per [prompts/CHECKPOINT-PATTERN.md](../CHECKPOINT-PATTERN.md), this spoke verifies **only state it owns**: the Caddy process, its localhost listener, and the Tailscale Serve route. Downstream service path probes (Grafana, Prometheus, Loki, cAdvisor, NATS, Langfuse) belong to each service's own spoke and to `99-final-validation`.
 
 ```bash
-curl -sS "https://${CORTEX_DOMAIN}/" -o /dev/null -w "ts-serve:   %{http_code}\n"
-curl -sS "https://${CORTEX_DOMAIN}/grafana/"    -o /dev/null -w "grafana:    %{http_code}\n"
-curl -sS "https://${CORTEX_DOMAIN}/prometheus/" -o /dev/null -w "prometheus: %{http_code}\n"
-curl -sS "https://${CORTEX_DOMAIN}/loki/ready"  -o /dev/null -w "loki:       %{http_code}\n"
-curl -sS "https://${CORTEX_DOMAIN}/cadvisor/"   -o /dev/null -w "cadvisor:   %{http_code}\n"
-curl -sS "https://${CORTEX_DOMAIN}/nats/varz"   -o /dev/null -w "nats:       %{http_code}\n"
-curl -sS "https://${CORTEX_DOMAIN}/langfuse/"   -o /dev/null -w "langfuse:   %{http_code}\n"
+# Caddy process is up
+systemctl is-active --quiet caddy && echo "caddy: active" || echo "caddy: INACTIVE"
+
+# Caddy is listening on the localhost reverse-proxy port
+ss -tlnp 2>/dev/null | grep -E '127\.0\.0\.1:8080|\*:8080|\[::1\]:8080' | head -1
+
+# Caddy's own healthz responds locally (the catch-all dashboard upstream
+# is not yet running, so probe Caddy's own /healthz endpoint, not a
+# service route).
+curl -fsS http://127.0.0.1:8080/healthz -o /dev/null -w "caddy-healthz: %{http_code}\n" || \
+  curl -fsS -o /dev/null -w "caddy-root: %{http_code}\n" http://127.0.0.1:8080/
+
+# Tailscale Serve route is published for this node
+sudo tailscale serve status
 ```
 
-Expected: `200`/`302` with no certificate errors. The browser should
-trust the cert (issued by Let's Encrypt via Tailscale's ACME proxy
-against the `*.ts.net` zone).
+Expected: `caddy: active`, a listener bound on `127.0.0.1:8080`, an HTTP
+response from Caddy (any `2xx`/`3xx`/`502` is fine — `502` only means
+upstream dashboard is not yet installed; Caddy itself is up), and
+`tailscale serve status` lists `https://${CORTEX_DOMAIN}` → `http://localhost:8080`.
+
+> Path probes for Grafana, Prometheus, Loki, cAdvisor, NATS, and Langfuse
+> are run by their owning spokes (`20-prometheus`, `21-loki`, `22-grafana`,
+> `23-fluent-bit`, `24-cadvisor`, `30-nats`, `55-langfuse`) and consolidated
+> in `99-final-validation`. Do not probe them here.
 
 ## CHECKPOINT 2
 
-Operator: from a second tailnet device, confirm `https://${CORTEX_DOMAIN}/`
-loads the dashboard with a valid certificate and no warnings. Type
-"confirmed" to proceed.
+Operator: confirm `systemctl is-active caddy` returns `active`, that
+`tailscale serve status` shows the `https=443 → http://localhost:8080`
+route for `${CORTEX_DOMAIN}`, and that a second tailnet device can reach
+`https://${CORTEX_DOMAIN}/` (a `502` is acceptable here — the dashboard
+upstream is installed later by `70-dashboard.md`). Type "confirmed" to proceed.
 
 ## Public-domain override (optional)
 

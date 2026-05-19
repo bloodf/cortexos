@@ -57,9 +57,26 @@ curl -s http://localhost:9100/metrics | grep 'node_cpu_seconds_total' | head -3
 
 Expected: metric lines printed.
 
+Then verify Prometheus is scraping this exporter:
+
+```bash
+# Prometheus listener — try the path-prefixed form first (matches
+# 20-prometheus.md --web.route-prefix=/prometheus), then fall back to
+# the bare API path if needed.
+curl -fsS "http://127.0.0.1:9090/prometheus/api/v1/targets" \
+  | jq -r '.data.activeTargets[] | select(.labels.job=="node-exporter" or .labels.job=="node") | .health'
+```
+
+Expected: `up`.
+
 ## CHECKPOINT 2
 
-Operator: confirm Node Exporter metrics appear and Prometheus target `node` shows `UP` at `http://localhost:9090/targets`. Type "confirmed" to proceed.
+Operator: confirm Node Exporter metrics appear locally **and** the Prometheus targets API above returned `up` for `job="node-exporter"` (or `job="node"`, depending on `prometheus.yml`). Type "confirmed" to proceed.
+
+> Per [prompts/CHECKPOINT-PATTERN.md](../CHECKPOINT-PATTERN.md), this
+> spoke owns the node-exporter container and the Prometheus target-up
+> evidence for its own job. The Grafana dashboard view is verified in
+> `99-final-validation.md`.
 
 ## Next
 

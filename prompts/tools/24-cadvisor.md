@@ -70,9 +70,29 @@ curl -sS "https://${CORTEX_DOMAIN}/cadvisor/" -o /dev/null -w "cadvisor: %{http_
 
 Expected: metric lines printed; tailnet probe returns `200`/`302`.
 
+Then verify Prometheus has discovered this exporter and is scraping it
+successfully. Prometheus is owned by `20-prometheus.md`, so query its
+API directly:
+
+```bash
+# Prometheus is bound on host 127.0.0.1:9090 and served under
+# --web.route-prefix=/prometheus (see 13-caddy.md and 20-prometheus.md).
+# Query the local listener directly — no Caddy round-trip required.
+curl -fsS "http://127.0.0.1:9090/prometheus/api/v1/targets" \
+  | jq -r '.data.activeTargets[] | select(.labels.job=="cadvisor") | .health'
+```
+
+Expected: `up`. If Prometheus binds without the path prefix in some
+local configurations, fall back to `http://127.0.0.1:9090/api/v1/targets`.
+
 ## CHECKPOINT 2
 
-Operator: confirm cAdvisor UI loads at `https://${CORTEX_DOMAIN}/cadvisor/` and Prometheus target `cadvisor` shows `UP` at `https://${CORTEX_DOMAIN}/prometheus/targets`. Type "confirmed" to proceed.
+Operator: confirm cAdvisor UI loads at `https://${CORTEX_DOMAIN}/cadvisor/` **and** the Prometheus targets API above returned `up` for `job="cadvisor"`. Type "confirmed" to proceed.
+
+> Per [prompts/CHECKPOINT-PATTERN.md](../CHECKPOINT-PATTERN.md), this
+> spoke owns the cAdvisor container, its local listener, and the
+> Prometheus target-up evidence for `job="cadvisor"`. The end-to-end
+> Grafana dashboard view is verified in `99-final-validation.md`.
 
 ## Next
 
