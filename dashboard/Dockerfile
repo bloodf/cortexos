@@ -11,7 +11,7 @@
 ############################
 # Stage 1 — deps
 ############################
-FROM node:22-slim AS deps
+FROM node:26-slim AS deps
 WORKDIR /repo
 ENV NODE_ENV=production
 COPY package.json ./
@@ -27,7 +27,7 @@ RUN npm install --include=dev --include=optional --no-audit --no-fund
 ############################
 # Stage 2 — builder
 ############################
-FROM node:22-slim AS builder
+FROM node:26-slim AS builder
 WORKDIR /repo
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /repo/node_modules ./node_modules
@@ -61,7 +61,7 @@ RUN cp -r public .next/standalone/dashboard/public 2>/dev/null || true \
 ############################
 # Stage 3 — runtime
 ############################
-FROM node:22-slim AS runtime
+FROM node:26-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production \
     PORT=3080 \
