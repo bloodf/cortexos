@@ -82,22 +82,29 @@ prompt steps themselves.
 
 ## Prompt sequence
 
+The bootstrap dispatches every step under `prompts/os/*` and `prompts/tools/*`. The canonical order is encoded in [`prompts/tools/_order.md`](../prompts/tools/_order.md). Key v2 steps:
+
 | Module | Purpose |
 |---|---|
-| 00 | Preflight checks |
-| 01 | VPS base, Docker, Tailscale, firewall |
-| 02 | Infrastructure databases and Caddy |
-| 03 | Monitoring stack |
-| 04 | Application services |
-| 05 | AI platform services |
-| 06 | Agent factory |
-| 07 | Skills and MCP tooling |
-| 08 | Dashboard deployment |
-| 09 | Antagonist review flow |
-| 10 | Floci file operations |
-| 11 | Manager agent |
-| 12 | AgentGateway |
-| 13 | Credential export and dashboard import |
+| `prompts/os/00-os-selection.md` | Detect / pick `CORTEX_OS_FAMILY` (Ubuntu 24 / 25 or Debian 13) |
+| `prompts/os/10-ubuntu-prereqs.md` | Apt-based prereqs for Debian-family hosts |
+| `prompts/tools/00-preflight.md` | Host preflight + invariants |
+| `prompts/tools/10-os-hardening.md` | Kernel + sysctl + auditd |
+| `prompts/tools/11-docker.md` | Docker engine + compose plugin |
+| `prompts/tools/12-tailscale.md` | Tailscale-first networking |
+| `prompts/tools/12a-sops-bootstrap.md` | Install `sops` + `age` on the VPS; register operator recipient |
+| `prompts/tools/13-caddy.md` | Caddy + TLS |
+| `prompts/tools/14-postgresql.md` | PostgreSQL + TimescaleDB extension |
+| `prompts/tools/15-redis.md` | Redis |
+| `prompts/tools/18-fail2ban.md` | fail2ban |
+| `prompts/tools/20-prometheus.md` ... `25-node-exporter.md` | Prometheus / Loki / Grafana / Fluent Bit / cAdvisor / node-exporter |
+| `prompts/tools/30-nats.md` | NATS JetStream with the streams listed in [NATS-CONTRACT.md](NATS-CONTRACT.md) |
+| `prompts/tools/45a-cortex-graph.md` | Deploy `stacks/cortex-graph` (LangGraph sidecar + PG checkpointer) |
+| `prompts/tools/47a-cortex-sandbox.md` | Deploy `stacks/cortex-sandbox-runner` (gVisor / `runsc`) |
+| `prompts/tools/55-langfuse.md` | Deploy self-hosted Langfuse + ClickHouse for LLM traces |
+| `prompts/tools/60-cortex-consumer.md` | Deploy the durable consumer with envelope validation enabled |
+| `prompts/tools/70-dashboard.md` | Build the dashboard on the VPS via `docker compose build` (no rsync) |
+| `prompts/tools/99-final-validation.md` | End-to-end validation + credential export |
 
 ## Optional: Paperclip governance plane
 

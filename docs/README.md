@@ -42,12 +42,13 @@ Supported host OS families: Ubuntu 24.04 LTS, Ubuntu 25.x, Debian 13 (Trixie). O
 |---|---|
 | [OBSERVABILITY.md](OBSERVABILITY.md) | Metrics, logs, alerts, dashboards, runbooks |
 | [OBSERVABILITY-LLM.md](OBSERVABILITY-LLM.md) | LLM-call traces via self-hosted Langfuse + ClickHouse + OpenLLMetry |
-| [MEMORY.md](MEMORY.md) | LEANN memory architecture and retrieval flow |
-| [POSTGRES-LAYOUT.md](POSTGRES-LAYOUT.md) | Topology of the two PostgreSQL instances (dashboard vs. shared analytics) |
+| [AUDIT.md](AUDIT.md) | Hash-chained audit hypertable + Sigstore Rekor anchoring, tamper-detection runbook |
+| [SANDBOX.md](SANDBOX.md) | gVisor (runsc) tool-exec sandbox runner: threat model, isolation guarantees, operational runbook |
+| [SECRETS.md](SECRETS.md) | SOPS+age encrypted-in-Git secret pipeline, operator age key lifecycle |
 | [SECRETS-ROTATION.md](SECRETS-ROTATION.md) | Rotation procedures and verification steps |
 | [SUPPLY-CHAIN.md](SUPPLY-CHAIN.md) | SLSA L2 verification protocol, cosign + syft + GH attestations, threat model |
-| [AUDIT.md](AUDIT.md) | V9 hash-chained audit hypertable + Sigstore Rekor anchoring, tamper-detection runbook |
-| [SANDBOX.md](SANDBOX.md) | V10 gVisor (runsc) tool-exec sandbox runner: threat model, isolation guarantees, operational runbook |
+| [MEMORY.md](MEMORY.md) | LEANN memory architecture and retrieval flow |
+| [POSTGRES-LAYOUT.md](POSTGRES-LAYOUT.md) | Topology of the two PostgreSQL instances (dashboard vs. shared analytics) |
 | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Failure catalog and remediation recipes |
 
 ## Documentation standards
