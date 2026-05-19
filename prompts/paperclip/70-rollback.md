@@ -49,7 +49,7 @@ of the integration plan.
 | ---- | ----------------------------------------------------------------------- | -------------------------------------------------------------- |
 | 1    | `systemctl stop cortex-paperclip-bridge`                                | `systemctl is-active cortex-paperclip-bridge` -> `inactive`    |
 | 1a   | (compose mode) `docker compose -f stacks/cortex-paperclip-bridge/docker-compose.yml stop` | `docker compose ps` shows the bridge stopped     |
-| 2    | `psql "$PG_DSN" -f dashboard/migrations/005_paperclip_ticket_link.rollback.sql` | `\dt paperclip_ticket_link` returns `Did not find any relation` |
+| 2    | `psql "$PG_DSN" -f packages/cortex-dashboard/migrations/005_paperclip_ticket_link.rollback.sql` | `\dt paperclip_ticket_link` returns `Did not find any relation` |
 | 3    | `git -C /opt/cortexos revert <consumer-paperclip-commit>`               | `consumer.js` no longer subscribes `cortex.paperclip.work.>`   |
 | 4    | `systemctl restart cortex-consumer`                                     | Consumer logs show only legacy subjects                        |
 | 5    | `rm /opt/cortexos/.secrets/paperclip.env /opt/cortexos/.secrets/paperclip-keys.json` | `ls /opt/cortexos/.secrets/` no paperclip-* entries  |
@@ -133,5 +133,5 @@ phase before relying on it in prod.
   which is the *correct* outcome here).
 - `docs/PAPERCLIP.md` — full ops runbook + long-form rollback table.
 - `docs/SECURITY.md` — incident response and secret rotation triggers.
-- `dashboard/migrations/005_paperclip_ticket_link.rollback.sql` — the
+- `packages/cortex-dashboard/migrations/005_paperclip_ticket_link.rollback.sql` — the
   authoritative rollback SQL.

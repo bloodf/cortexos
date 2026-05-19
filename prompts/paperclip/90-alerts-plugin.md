@@ -115,5 +115,5 @@ To roll back fully, remove `node alerts.js &` from `entrypoint.sh` and redeploy.
 
 - [`docs/NATS-CONTRACT.md`](../../docs/NATS-CONTRACT.md) — `cortex.alerts.<severity>.<source>` schema.
 - [`stacks/cortex-paperclip-bridge/lib/alerts.js`](../../stacks/cortex-paperclip-bridge/lib/alerts.js)
-- [`dashboard/src/lib/alerts.ts`](../../dashboard/src/lib/alerts.ts)
-- [`dashboard/src/app/api/paperclip/notify-test/route.ts`](../../dashboard/src/app/api/paperclip/notify-test/route.ts)
+- [`packages/cortex-dashboard/src/lib/alerts.ts`](../../packages/cortex-dashboard/src/lib/alerts.ts)
+- [`packages/cortex-dashboard/src/app/api/paperclip/notify-test/route.ts`](../../packages/cortex-dashboard/src/app/api/paperclip/notify-test/route.ts)

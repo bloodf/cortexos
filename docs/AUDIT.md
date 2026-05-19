@@ -16,7 +16,7 @@ Rekor anchoring. Introduced in V9.
 
 ## Schema
 
-Migration: `dashboard/migrations/008_audit_log.sql`.
+Migration: `packages/cortex-dashboard/migrations/008_audit_log.sql`.
 
 ```text
 audit_log (

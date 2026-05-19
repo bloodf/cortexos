@@ -246,11 +246,11 @@ Resume Step 4 dispatch from `prompts/tools/13-caddy.md`. Stop at every
 checkpoint. When `prompts/tools/99-final-validation.md` passes, CortexOS
 is installed.
 
-If the dashboard is in scope, run `dashboard/scripts/provision-vps.sh`
+If the dashboard is in scope, run `packages/cortex-dashboard/scripts/provision-vps.sh`
 through `bootstrap_run_remote`:
 
 ```bash
-bootstrap_run_remote 'cd "$CORTEX_ROOT" && bash dashboard/scripts/provision-vps.sh'
+bootstrap_run_remote 'cd "$CORTEX_ROOT" && bash packages/cortex-dashboard/scripts/provision-vps.sh'
 ```
 
 `provision-vps.sh` is idempotent and self-contained on the VPS side; the

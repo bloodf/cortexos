@@ -6,7 +6,7 @@ former laptop-side `rsync`/systemd deploy path.
 ## Pattern
 
 - **Build runs on the VPS.** The bootstrap flow materializes the repo at
-  `/opt/cortexos` via `git archive | ssh tar -x`, so `dashboard/` is
+  `/opt/cortexos` via `git archive | ssh tar -x`, so `packages/cortex-dashboard/` is
   already present. `docker compose build` consumes that source.
 - **No `depends_on` for postgres/nats.** Those run as sibling
   containers (or host services) and are joined through the
@@ -30,8 +30,8 @@ former laptop-side `rsync`/systemd deploy path.
    ```
 
 3. `/opt/cortexos/.secrets/dashboard.env` populated (see
-   `dashboard/dashboard.env.example` and
-   `dashboard/scripts/provision-vps.sh`). Must include `DB_HOST`,
+   `packages/cortex-dashboard/dashboard.env.example` and
+   `packages/cortex-dashboard/scripts/provision-vps.sh`). Must include `DB_HOST`,
    `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, and
    `CORTEX_MASTER_KEY`.
 4. PostgreSQL reachable from the dashboard container. When Postgres

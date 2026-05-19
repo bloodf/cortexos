@@ -4,7 +4,7 @@
 #   builder : Next.js standalone build + esbuild custom server
 #   runtime : node:22-slim, non-root (uid=1000 `node`), dumb-init as PID 1
 #
-# Build context is the **repo root** (not dashboard/) so workspace
+# Build context is the **repo root** (not packages/cortex-dashboard/) so workspace
 # packages under packages/* and stacks/* resolve. Built on the VPS via
 # `stacks/cortex-dashboard/docker-compose.yml`.
 
@@ -18,7 +18,6 @@ COPY package.json ./
 COPY packages ./packages
 COPY stacks/cortex-paperclip-bridge/package.json ./stacks/cortex-paperclip-bridge/package.json
 COPY stacks/cortex-consumer/package.json ./stacks/cortex-consumer/package.json
-COPY dashboard/package.json ./dashboard/package.json
 # include devDependencies for the build stage; runtime drops them.
 # regen lockfile because the host lockfile (mac) doesn't reliably carry
 # linux-x64-gnu optional bindings (npm/cli#4828).
@@ -33,9 +32,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /repo/node_modules ./node_modules
 COPY --from=deps /repo/package.json /repo/package-lock.json ./
 COPY packages ./packages
-COPY dashboard ./dashboard
 
-WORKDIR /repo/dashboard
+WORKDIR /repo/packages/cortex-dashboard
 
 # next build → emits .next/standalone (stock server) + .next/static.
 RUN npx next build --turbopack
@@ -48,15 +46,15 @@ RUN npx esbuild server.ts \
     --target=node22 \
     --format=cjs \
     --packages=external \
-    --outfile=.next/standalone/dashboard/server.js
+    --outfile=.next/standalone/packages/cortex-dashboard/server.js
 
-# Standalone places dashboard files under .next/standalone/dashboard/ in
+# Standalone places dashboard files under .next/standalone/packages/cortex-dashboard/ in
 # a workspace. Stage public/, static/, messages/, next.config alongside it.
-RUN cp -r public .next/standalone/dashboard/public 2>/dev/null || true \
- && mkdir -p .next/standalone/dashboard/.next \
- && cp -r .next/static .next/standalone/dashboard/.next/static \
- && cp -r messages .next/standalone/dashboard/messages 2>/dev/null || true \
- && cp next.config.ts .next/standalone/dashboard/next.config.ts
+RUN cp -r public .next/standalone/packages/cortex-dashboard/public 2>/dev/null || true \
+ && mkdir -p .next/standalone/packages/cortex-dashboard/.next \
+ && cp -r .next/static .next/standalone/packages/cortex-dashboard/.next/static \
+ && cp -r messages .next/standalone/packages/cortex-dashboard/messages 2>/dev/null || true \
+ && cp next.config.ts .next/standalone/packages/cortex-dashboard/next.config.ts
 
 ############################
 # Stage 3 — runtime
@@ -82,13 +80,13 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 # Copy the standalone bundle as the app root. Next places workspace apps
-# at /repo/dashboard/.next/standalone/dashboard, with hoisted node_modules
-# at /repo/dashboard/.next/standalone/node_modules.
-COPY --from=builder --chown=node:node /repo/dashboard/.next/standalone/dashboard ./
-COPY --from=builder --chown=node:node /repo/dashboard/.next/standalone/node_modules ./node_modules
-COPY --from=builder --chown=node:node /repo/dashboard/migrations ./migrations
-COPY --from=builder --chown=node:node /repo/dashboard/scripts ./scripts
-COPY --from=builder --chown=node:node /repo/dashboard/docker-entrypoint.sh ./docker-entrypoint.sh
+# at /repo/packages/cortex-dashboard/.next/standalone/packages/cortex-dashboard, with hoisted node_modules
+# at /repo/packages/cortex-dashboard/.next/standalone/node_modules.
+COPY --from=builder --chown=node:node /repo/packages/cortex-dashboard/.next/standalone/packages/cortex-dashboard ./
+COPY --from=builder --chown=node:node /repo/packages/cortex-dashboard/.next/standalone/node_modules ./node_modules
+COPY --from=builder --chown=node:node /repo/packages/cortex-dashboard/migrations ./migrations
+COPY --from=builder --chown=node:node /repo/packages/cortex-dashboard/scripts ./scripts
+COPY --from=builder --chown=node:node /repo/packages/cortex-dashboard/docker-entrypoint.sh ./docker-entrypoint.sh
 
 # Native deps not bundled by Next standalone (from hoisted root modules).
 # cpu-features + nan are optional native deps of ssh2; if absent ssh2

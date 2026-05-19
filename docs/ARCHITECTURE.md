@@ -126,7 +126,7 @@ Producers build events via `@cortexos/events.envelope()` and call `validate()`; 
 
 ## Graph execution layer
 
-`stacks/cortex-graph` is a Python LangGraph sidecar that runs any agent role whose template frontmatter declares `graphEnabled: true`. Checkpoints persist in the dashboard's Postgres instance (`dashboard/migrations/007_langgraph_checkpoints.sql`); a crash mid-run preserves state. `cortex-consumer` POSTs to `/graph/runs` when `CORTEX_GRAPH_URL` is set. Lifecycle events flow on `cortex.graph.state.<runId>`.
+`stacks/cortex-graph` is a Python LangGraph sidecar that runs any agent role whose template frontmatter declares `graphEnabled: true`. Checkpoints persist in the dashboard's Postgres instance (`packages/cortex-dashboard/migrations/007_langgraph_checkpoints.sql`); a crash mid-run preserves state. `cortex-consumer` POSTs to `/graph/runs` when `CORTEX_GRAPH_URL` is set. Lifecycle events flow on `cortex.graph.state.<runId>`.
 
 Human-in-the-loop: graphs interrupt before `human_review` and publish `status=awaiting_human`. Operators resume via the dashboard, which records the decision in `pending_approvals` (migration `009`) and publishes a signal on `cortex.signals.<runId>.<name>` that the sidecar listens for. See [AGENT-GRAPH.md](AGENT-GRAPH.md).
 

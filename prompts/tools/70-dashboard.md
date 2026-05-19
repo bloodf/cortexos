@@ -25,7 +25,7 @@ laptop-side build.
 - `13-caddy.md` completed (Caddy proxies `{DOMAIN}` → port 3080).
 - `40-openclaw.md` completed (dashboard chat panel connects to OpenClaw gateway).
 - Docker Engine + Compose plugin installed on the VPS
-  (`dashboard/scripts/provision-vps.sh` installs them when missing).
+  (`packages/cortex-dashboard/scripts/provision-vps.sh` installs them when missing).
 - Repo materialized at `/opt/cortexos` via the bootstrap flow
   (`prompts/00-bootstrap.md`).
 
@@ -77,7 +77,7 @@ Investigate before proceeding — see
 
 The compose stack lives at
 `/opt/cortexos/stacks/cortex-dashboard/docker-compose.yml`. Build
-context points at `../../dashboard` (the source tree materialized by
+context points at `../..` (the repo root materialized by
 bootstrap). The first `up --build` performs the full multi-stage build
 (`deps → builder → runtime`).
 
