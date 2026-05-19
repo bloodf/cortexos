@@ -1,7 +1,7 @@
 # cortex-graph — LangGraph sidecar
 
 > Resumable agent state with Postgres checkpoints. Owns the execution graph for any agent role with `graphEnabled: true` frontmatter.
-
+>
 > **Compose prerequisites.** This stack assumes the external `cortex-net` docker network exists and that NATS + Postgres are already reachable on it — bring them up via `prompts/tools/30-nats.md` + `prompts/tools/14-postgresql.md` before `docker compose up -d`.
 
 ## Overview

@@ -25,14 +25,13 @@ DASHBOARD_DB_PASSWORD="${DASHBOARD_DB_PASSWORD:-}"
 CORTEX_INTERNAL_TOKEN="${CORTEX_INTERNAL_TOKEN:-${CORTEX_MASTER_KEY:-}}"
 # 9Router bearer (non-fatal if unset)
 NINEROUTER_API_KEY="${NINEROUTER_API_KEY:-}"
-for f in "$CORTEX_ROOT/.secrets/9router.env"; do
-  if [[ -r "$f" ]]; then
-    set -a
-    # shellcheck disable=SC1090
-    source "$f"
-    set +a
-  fi
-done
+f="$CORTEX_ROOT/.secrets/9router.env"
+if [[ -r "$f" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "$f"
+  set +a
+fi
 NINEROUTER_AUTH=()
 if [[ -n "${NINEROUTER_API_KEY:-}" ]]; then
   NINEROUTER_AUTH=(-H "Authorization: Bearer ${NINEROUTER_API_KEY}")
