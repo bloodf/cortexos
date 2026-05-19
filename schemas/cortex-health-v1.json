@@ -1,0 +1,13 @@
+{
+  "$id": "https://cortexos/schemas/cortex-health-v1.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cortex.health.<scope>.v1 data payload",
+  "description": "Stub schema for service health heartbeats. Field surface is TBD-strict — currently only requires a subject + timestamp so CORTEX_REQUIRE_ENVELOPE=1 has a target to validate against. Tighten before enforcing strict mode in production.",
+  "type": "object",
+  "required": ["subject", "ts"],
+  "additionalProperties": true,
+  "properties": {
+    "subject": { "type": "string", "minLength": 1 },
+    "ts": { "type": "string", "format": "date-time" }
+  }
+}

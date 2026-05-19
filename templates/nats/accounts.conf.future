@@ -1,5 +1,10 @@
 # CortexOS NATS NKey Accounts Configuration
 # ---------------------------------------------------------------------------
+# DEFERRED — multi-account hardening is NOT consumed by prompts/tools/30-nats.md.
+# Localhost MVP runs no-auth via stacks/nats/config/nats-server.conf (loopback bind).
+# Promote this file back to `accounts.conf` and wire it through `30-nats.md` only
+# when CortexOS exposes NATS beyond 127.0.0.1.
+# ---------------------------------------------------------------------------
 # NKey provisioning: for each account, run on the VPS:
 #   nk -gen account              → outputs Account Seed + Public key
 #   nk -gen user -pubkey <APUB>  → outputs User Seed + Public key (per service)

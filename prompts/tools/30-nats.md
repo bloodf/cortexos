@@ -2,12 +2,13 @@
 
 ## Purpose
 
-Run NATS with JetStream enabled, NKey accounts, and create the `cortex_approvals_seen` KV bucket used for approval deduplication.
+Run NATS with JetStream enabled (no-auth, localhost MVP) and create the `cortex_approvals_seen` KV bucket used for approval deduplication.
+
+> **Auth model.** Localhost MVP runs **no-auth** bound to `127.0.0.1:4222` only. Multi-account NKey hardening (see `templates/nats/accounts.conf.future`) is deferred until NATS is exposed beyond the loopback interface.
 
 ## Prerequisites
 
 - `11-docker.md` completed.
-- `templates/nats/accounts.conf` present in repo.
 
 ## Distro selection
 
@@ -28,19 +29,20 @@ Operator: confirm port 4222 is free (`ss -tlnp | grep 4222`) and `nats` CLI is i
 ```bash
 mkdir -p /opt/cortexos/stacks/nats
 
-cp templates/nats/accounts.conf /opt/cortexos/stacks/nats/accounts.conf
-
 tee /opt/cortexos/stacks/nats/nats-server.conf <<'EOF'
-port: 4222
-http_port: 8222
+# Localhost MVP: no-auth, loopback bind, JetStream enabled.
+server_name: cortex-nats
+listen: 127.0.0.1:4222
+http: 127.0.0.1:8222
+
+max_connections: 1024
+max_payload: 1MB
 
 jetstream {
   store_dir: /data
   max_memory_store: 256MB
   max_file_store: 4GB
 }
-
-include accounts.conf
 EOF
 
 tee /opt/cortexos/stacks/nats/docker-compose.yml <<'EOF'
@@ -54,7 +56,6 @@ services:
       - "127.0.0.1:8222:8222"
     volumes:
       - ./nats-server.conf:/etc/nats/nats-server.conf:ro
-      - ./accounts.conf:/etc/nats/accounts.conf:ro
       - nats_data:/data
 
 volumes:
