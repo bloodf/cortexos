@@ -2,6 +2,17 @@
 
 Run this prompt before any other `prompts/tools/` spoke. It verifies the OpenClaw HTTP gateway is live, confirms every required endpoint is reachable, and captures upstream documentation snapshots into `docs/external/` as read-only guides for implementors. Nothing in Phase 4c may proceed until this prompt exits cleanly.
 
+## Todo
+
+- [ ] Distro family detected (`CORTEX_OS_FAMILY` set)
+- [ ] Supply-chain toolchain installed (cosign, syft, gh)
+- [ ] OIDC identity pins exported
+- [ ] CHECKPOINT 1 confirmed
+- [ ] OpenClaw gateway probe recorded
+- [ ] Upstream doc snapshots written under `docs/external/`
+- [ ] `.secrets/.setup-state.json` updated
+- [ ] CHECKPOINT 2 confirmed
+
 > **Distro pre-step.** If `CORTEX_OS_FAMILY` is not set in your shell, run `prompts/os/00-os-selection.md` FIRST. Every subsequent tool prompt assumes the distro family is detected.
 
 ## Distro selection
@@ -16,7 +27,7 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 
 ## Step 0 — Supply-chain verification toolchain
 
-The operator laptop must be able to verify CortexOS release artifacts before any artifact is pushed to the VPS. Install the toolchain and pin the OIDC identity once per workstation.
+The VPS must be able to verify CortexOS release artifacts. Install the toolchain and pin the OIDC identity once.
 
 ### Install cosign, syft, gh
 
@@ -37,12 +48,6 @@ syft version
 # gh CLI — required for SLSA build-provenance attestation verification
 type gh >/dev/null 2>&1 || pkg_install gh
 gh --version
-```
-
-macOS:
-
-```bash
-brew install cosign syft gh
 ```
 
 ### Pin the expected OIDC identity
@@ -83,15 +88,15 @@ supply-chain gate passes.
 
 ---
 
-## CHECKPOINT 1 — Operator: confirm preflight scope is understood
+## CHECKPOINT 1
 
-Pause. Confirm:
+**STOP — operator question:** Is preflight scope understood — that OpenClaw absence is non-blocking and installed later?
 
 1. OpenClaw is **not** required for preflight to pass. `prompts/tools/40-openclaw.md` installs it later in the graph; preflight only **detects** whether it already exists and records the result.
 2. The OpenClaw probe in Step 1 is informational only — `NOT_INSTALLED` is a valid outcome and does **not** halt the install.
 3. See [prompts/CHECKPOINT-PATTERN.md](../CHECKPOINT-PATTERN.md) — a spoke MUST NOT verify a service installed by a later spoke.
 
-Operator confirms, then signals the agent to continue.
+Type `confirmed` to proceed.
 
 ---
 
@@ -195,9 +200,9 @@ Replace `{OPENCLAW_STATUS}` with `present` or `NOT_INSTALLED`. Replace `{PROBE_E
 
 ---
 
-## CHECKPOINT 2 — Operator: confirm snapshots present and state recorded
+## CHECKPOINT 2
 
-Pause. Verify:
+**STOP — operator question:** Are all 10 snapshot files present with headers, and is preflight state recorded?
 
 1. All 10 snapshot files exist under `docs/external/`.
    - If OpenClaw was `NOT_INSTALLED`, `openclaw-gateway-api.snapshot.md` is regenerated later by `40-openclaw.md` — it may be a placeholder here.
@@ -207,7 +212,7 @@ Pause. Verify:
 
 If any condition is false: halt and fix before proceeding.
 
-Operator confirms, then signals the agent to continue.
+Type `confirmed` to proceed.
 
 ---
 

@@ -1,7 +1,8 @@
-# Paperclip ↔ CortexOS — End-to-End Smoke Test
+# Paperclip ↔ CortexOS — End-to-End Smoke Test (VPS-only post-install validation)
 
-> Stage 6. Run after `50-approval-gates.md` CHECKPOINT 5.A passes, or any
-> time the bridge, consumer, or distro install path changes.
+> Stage 6. Post-install validation run ON the VPS after Paperclip
+> stage 5 (`50-approval-gates.md`) completes, or any time the bridge,
+> consumer, or distro install path changes.
 
 ## Goal
 
@@ -15,7 +16,6 @@ summary, and decide PASS / FAIL with evidence.
 | -------------------------------------- | ---------------------------------------- |
 | Pre-merge CI (every PR)                | Steps 1–6 + 15–18 (no real Paperclip)    |
 | Nightly CI (`paperclip-smoke.yml`)     | Full 1–21 against staging                |
-| Lima rehearsal (`make vm-rehearse`)    | 22–28 + 1–6 (Paperclip mocked)           |
 | Manual operator (this prompt)          | Full 1–28                                |
 | Phase gate (P2..P8 "done" check)       | Full 1–28                                |
 
@@ -52,6 +52,10 @@ Optional:
 | `SMOKE_SKIP_DISTRO`       | `0`           | `1` to skip steps 22–28 (CI staging mode)  |
 | `SMOKE_DASHBOARD_URL`     | `http://127.0.0.1:3080/en/login` | Used in step 25      |
 
+
+## Todo
+
+- [ ] CHECKPOINT 6.A confirmed
 ## Run
 
 ```bash
@@ -136,6 +140,8 @@ negative path without re-creating an issue.
 
 ## CHECKPOINT 6.A
 
+**STOP — operator question:** Verify this checkpoint's preconditions are met?
+
 The smoke run is acceptable only when **all** of:
 
 - Summary JSON `result == "pass"`.
@@ -147,6 +153,7 @@ Attach `/tmp/smoke.json` to the change ticket. If FAIL, attach the
 `SMOKE-FAIL:<tag>` line and the surrounding `step_end` records from
 `/tmp/smoke.log` for triage.
 
+Type `confirmed` to proceed.
 ## Related
 
 - `prompts/paperclip/70-rollback.md` — rollback drill if smoke fails post-deploy.

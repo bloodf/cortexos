@@ -2,6 +2,13 @@
 
 > Stage 1. Run after `00-overview.md` checkpoint passes. Operator-facing.
 
+## Todo
+
+- [ ] 1. Install Paperclip via onboard CLI
+- [ ] 2. Capture identifiers
+- [ ] 3. Create the bridge agent in Paperclip
+- [ ] CHECKPOINT 1.A confirmed
+
 ## 1. Install Paperclip via onboard CLI
 
 Pin the commit SHA before running so the install is reproducible.
@@ -61,9 +68,13 @@ Place the returned token into `PAPERCLIP_API_KEY` in the env file.
 
 ## CHECKPOINT 1.A
 
+**STOP — operator question:** Verify this checkpoint's preconditions are met?
+
 - [ ] `paperclipai onboard` completed; company `CortexOS` exists.
 - [ ] `/opt/cortexos/.secrets/paperclip.env` present, mode 0600, owner cortex:cortex.
 - [ ] All required env vars populated.
 - [ ] `CORTEX_NATS_HMAC` byte-matches the value used by `cortex-consumer`.
 
 Proceed to `20-bridge.md`.
+
+Type `confirmed` to proceed.

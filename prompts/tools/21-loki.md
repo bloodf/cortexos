@@ -16,10 +16,18 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
+
+## Todo
+
+- [ ] CHECKPOINT 1 confirmed
+- [ ] Install
+- [ ] Verify
+- [ ] CHECKPOINT 2 confirmed
 ## CHECKPOINT 1
 
-Operator: confirm port 3100 is free (`ss -tlnp | grep 3100`). Type "confirmed" to proceed.
+**STOP — operator question:** Port 3100 is free (`ss -tlnp | grep 3100`)?
 
+Type `confirmed` to proceed.
 ## Install
 
 ```bash
@@ -102,8 +110,9 @@ Expected: `ready`.
 
 ## CHECKPOINT 2
 
-Operator: confirm Loki returns `ready` on both probes. Type "confirmed" to proceed.
+**STOP — operator question:** Loki returns `ready` on both probes?
 
+Type `confirmed` to proceed.
 ## Next
 
 → `prompts/tools/22-grafana.md`

@@ -17,10 +17,19 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
+
+## Todo
+
+- [ ] CHECKPOINT 1 confirmed
+- [ ] Install
+- [ ] Configure
+- [ ] Verify
+- [ ] CHECKPOINT 2 confirmed
 ## CHECKPOINT 1
 
-Operator: confirm the host matches a supported family/version (Ubuntu 24.04, Ubuntu 25.x, or Debian 13 Trixie) and no prior Docker installation exists (run `docker --version 2>/dev/null || echo "not installed"`). Type "confirmed" to proceed.
+**STOP — operator question:** The host matches a supported family/version (Ubuntu 24.04, Ubuntu 25.x, or Debian 13 Trixie) and no prior Docker installation exists (run `docker --version 2...?
 
+Type `confirmed` to proceed.
 ## Install
 
 ```bash
@@ -86,8 +95,9 @@ Expected: both version commands succeed; `hello-world` prints "Hello from Docker
 
 ## CHECKPOINT 2
 
-Operator: confirm `docker run --rm hello-world` succeeded and your user can run Docker without sudo (log out and back in if needed). Type "confirmed" to proceed.
+**STOP — operator question:** `docker run --rm hello-world` succeeded and your user can run Docker without sudo (log out and back in if needed)?
 
+Type `confirmed` to proceed.
 ## Next
 
 → `prompts/tools/12-tailscale.md`

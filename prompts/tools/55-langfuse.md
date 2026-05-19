@@ -5,6 +5,18 @@
 > Postgres stack (prompt `14-postgresql.md`), and the `cortex-net` Docker
 > network (created by `11-docker.md`).
 
+## Todo
+
+- [ ] 0. Preconditions
+- [ ] 1. Provision Postgres database
+- [ ] 2. Decrypt secrets
+- [ ] 3. Generate project keys
+- [ ] 4. Bring the stack up
+- [ ] 5. Verify first-admin bootstrap
+- [ ] 6. Wire downstream services
+- [ ] 7. Smoke trace
+- [ ] 9. Checkpoint
+
 ## 0. Preconditions
 
 ```bash

@@ -17,10 +17,22 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
+
+## Todo
+
+- [ ] CHECKPOINT 1 confirmed
+- [ ] Configure
+- [ ] Restore procedure
+- [ ] Automate (optional)
+- [ ] Verify
+- [ ] CHECKPOINT 2 confirmed
 ## CHECKPOINT 1
 
-Operator: decide which OpenClaw account slug you want to back up (e.g. the account name shown in `~/.openclaw/openclaw.json` → `"account"` field). Have the slug ready. Type "confirmed" to proceed.
+**STOP — operator question:** Verify this checkpoint's preconditions are met?
 
+Operator: decide which OpenClaw account slug you want to back up (e.g. the account name shown in `~/.openclaw/openclaw.json` → `"account"` field). Have the slug ready.
+
+Type `confirmed` to proceed.
 ## Configure
 
 ```bash
@@ -65,8 +77,9 @@ Expected: at least one `.tar.gz` archive for your account slug.
 
 ## CHECKPOINT 2
 
-Operator: confirm the backup archive exists and the restore script dry-run completes without errors. Type "confirmed" to proceed.
+**STOP — operator question:** The backup archive exists and the restore script dry-run completes without errors?
 
+Type `confirmed` to proceed.
 ## Next
 
 → `prompts/tools/50-agentgateway.md`

@@ -2,6 +2,15 @@
 
 > Stage 2. Run after `10-install.md` CHECKPOINT 1.A passes.
 
+## Todo
+
+- [ ] 1. Apply migration 005
+- [ ] 2A. Compose path
+- [ ] 2B. Systemd path (no Docker)
+- [ ] 3. Wire Caddy (public path)
+- [ ] 4. Smoke test
+- [ ] CHECKPOINT 2.A confirmed
+
 ## 1. Apply migration 005
 
 ```bash
@@ -79,11 +88,14 @@ sudo -u postgres psql -d cortex -c "SELECT paperclip_run_id, cortex_role, status
 
 ## CHECKPOINT 2.A
 
+**STOP — operator question:** Verify this checkpoint's preconditions are met?
+
 - [ ] Migration 005 applied (`\d paperclip_ticket_link` shows the table).
 - [ ] Bridge `/healthz` returns 200 OK.
 - [ ] Smoke heartbeat returns 202 and writes a row.
 - [ ] `journalctl -u cortex-paperclip-bridge -n 50` (or `docker compose logs`) shows no errors.
 
+Type `confirmed` to proceed.
 ## Rollback
 
 ```bash

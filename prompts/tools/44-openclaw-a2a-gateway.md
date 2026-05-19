@@ -17,10 +17,20 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
+
+## Todo
+
+- [ ] CHECKPOINT 1 confirmed
+- [ ] Install
+- [ ] Configure
+- [ ] Verify
+- [ ] CHECKPOINT 2 confirmed
+- [ ] Known Limitations
 ## CHECKPOINT 1
 
-Operator: confirm OpenClaw gateway is running (`curl -s http://127.0.0.1:18789/health`). Type "confirmed" to proceed.
+**STOP — operator question:** OpenClaw gateway is running (`curl -s http://127.0.0.1:18789/health`)?
 
+Type `confirmed` to proceed.
 ## Install
 
 ```bash
@@ -65,8 +75,9 @@ Expected: `openclaw-a2a-gateway` listed as active.
 
 ## CHECKPOINT 2
 
-Operator: confirm the A2A gateway plugin is listed as active. Type "confirmed" to proceed.
+**STOP — operator question:** The A2A gateway plugin is listed as active?
 
+Type `confirmed` to proceed.
 ## Known Limitations
 
 ### Discovery silent-skip (Phase H blocker #2)

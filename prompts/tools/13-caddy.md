@@ -28,12 +28,25 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
+
+## Todo
+
+- [ ] CHECKPOINT 1 confirmed
+- [ ] Install
+- [ ] Configure Caddy (localhost only, path-based routing)
+- [ ] Publish over Tailscale (HTTPS, auto cert)
+- [ ] Verify — Caddy and Tailscale Serve only
+- [ ] CHECKPOINT 2 confirmed
+- [ ] Public-domain override (optional)
 ## CHECKPOINT 1
+
+**STOP — operator question:** Tailscale HTTPS certificates are enabled in your?
 
 Operator: confirm Tailscale HTTPS certificates are enabled in your
 admin console and `tailscale status` shows the node online with a
-MagicDNS name. Type "confirmed" to proceed.
+MagicDNS name.
 
+Type `confirmed` to proceed.
 ## Install
 
 ```bash
@@ -187,12 +200,15 @@ upstream dashboard is not yet installed; Caddy itself is up), and
 
 ## CHECKPOINT 2
 
+**STOP — operator question:** `systemctl is-active caddy` returns `active`, that?
+
 Operator: confirm `systemctl is-active caddy` returns `active`, that
 `tailscale serve status` shows the `https=443 → http://localhost:8080`
 route for `${CORTEX_DOMAIN}`, and that a second tailnet device can reach
 `https://${CORTEX_DOMAIN}/` (a `502` is acceptable here — the dashboard
-upstream is installed later by `70-dashboard.md`). Type "confirmed" to proceed.
+upstream is installed later by `70-dashboard.md`).
 
+Type `confirmed` to proceed.
 ## Public-domain override (optional)
 
 If you have a real domain pointed at the VPS public IP **and** want it

@@ -17,10 +17,18 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
+
+## Todo
+
+- [ ] CHECKPOINT 1 confirmed
+- [ ] Install
+- [ ] Verify
+- [ ] CHECKPOINT 2 confirmed
 ## CHECKPOINT 1
 
-Operator: confirm port 9090 is free (`ss -tlnp | grep 9090`). Type "confirmed" to proceed.
+**STOP — operator question:** Port 9090 is free (`ss -tlnp | grep 9090`)?
 
+Type `confirmed` to proceed.
 ## Install
 
 ```bash
@@ -114,7 +122,7 @@ Expected: `Prometheus Server is Healthy.`
 
 ## CHECKPOINT 2
 
-Operator: confirm Prometheus is healthy at `https://${CORTEX_DOMAIN}/prometheus/` with no broken assets. Type "confirmed" to proceed.
+**STOP — operator question:** Prometheus is healthy at `https://${CORTEX_DOMAIN}/prometheus/` with no broken assets?
 
 > Per [prompts/CHECKPOINT-PATTERN.md](../CHECKPOINT-PATTERN.md), the
 > `cadvisor` and `node` target-UP checks are verified by `24-cadvisor.md`
@@ -122,6 +130,7 @@ Operator: confirm Prometheus is healthy at `https://${CORTEX_DOMAIN}/prometheus/
 > and again in `99-final-validation.md`. Do not block this checkpoint on
 > exporters that have not been installed yet.
 
+Type `confirmed` to proceed.
 ## Next
 
 → `prompts/tools/21-loki.md`

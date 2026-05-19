@@ -8,6 +8,15 @@ Define which CortexOS roles require human approval before executing
 destructive or irreversible operations, configure the Paperclip approval
 gate, set timeout + escalation, and wire timeouts into the NATS alert bus.
 
+
+## Todo
+
+- [ ] Threat model
+- [ ] Gate matrix
+- [ ] Configure the gates
+- [ ] Escalation
+- [ ] Verify
+- [ ] CHECKPOINT 5.A confirmed
 ## Threat model
 
 Roles in the `git-master` class can rewrite history, force-push, and delete
@@ -96,7 +105,11 @@ any git-master role). Observe:
 
 ## CHECKPOINT 5.A
 
+**STOP — operator question:** Verify this checkpoint's preconditions are met?
+
 - [ ] Approval policy POST returns `200` and lists all 8 gated roles.
 - [ ] Dashboard "Test gate" produces a visible Paperclip approval row.
 - [ ] Timeout fires `cortex.alerts.warning.approval-timeout` on NATS.
 - [ ] On-call Slack channel receives the timeout notification.
+
+Type `confirmed` to proceed.

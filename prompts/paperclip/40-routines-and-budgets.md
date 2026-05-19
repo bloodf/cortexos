@@ -9,6 +9,13 @@ Tune the per-role heartbeat cadence (`routine`) and monthly budget
 frontmatter in `templates/agent-roles/*.md` and re-running the registration
 script.
 
+
+## Todo
+
+- [ ] Defaults
+- [ ] When to tune
+- [ ] Procedure
+- [ ] CHECKPOINT 4.A confirmed
 ## Defaults
 
 | Role            | Routine (cron)     | Monthly budget (USD) |
@@ -67,6 +74,10 @@ CFO/CEO sign-off recorded in the project Slack thread.
 
 ## CHECKPOINT 4.A
 
+**STOP — operator question:** Verify this checkpoint's preconditions are met?
+
 - [ ] Frontmatter changes committed to the cortexos repo (audit trail).
 - [ ] Paperclip UI reflects the new cadence/budget for every edited role.
 - [ ] No unexpected `minted=N` for N > 0 after a routine-only change.
+
+Type `confirmed` to proceed.

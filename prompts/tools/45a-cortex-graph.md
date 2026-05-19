@@ -29,11 +29,25 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
+
+## Todo
+
+- [ ] CHECKPOINT 1 confirmed
+- [ ] Apply migration 007
+- [ ] Decrypt graph.env
+- [ ] Build + boot
+- [ ] Verify
+- [ ] Wire cortex-consumer
+- [ ] Write the graph-enabled roster
+- [ ] CHECKPOINT 2 confirmed
 ## CHECKPOINT 1
 
-Operator: confirm Postgres reachable at `127.0.0.1:5432`, NATS at
-`127.0.0.1:4222`, and Docker daemon up. Type "confirmed" to proceed.
+**STOP — operator question:** Postgres reachable at `127.0.0.1:5432`, NATS at?
 
+1:5432`, NATS at
+`127.0.0.1:4222`, and Docker daemon up.
+
+Type `confirmed` to proceed.
 ## Apply migration 007
 
 Migrations are dashboard-driven; the dashboard entrypoint replays
@@ -148,12 +162,15 @@ journalctl -u cortex-consumer -n 200 --no-pager | grep -E '\[graph\] (dispatched
 
 ## CHECKPOINT 2
 
+**STOP — operator question:** `/healthz` returns 200, a smoke run returns?
+
 Operator: confirm `/healthz` returns 200, a smoke run returns
 `status=interrupted`, the roster file at
 `/opt/cortexos/templates/agent-roles/.graph-enabled.json` contains
 the role(s) you want routed, and `cortex-consumer` logs show
-`[graph] dispatched` for at least one role. Type "confirmed" to proceed.
+`[graph] dispatched` for at least one role.
 
+Type `confirmed` to proceed.
 ## Rollback
 
 ```bash

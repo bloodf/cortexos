@@ -18,6 +18,14 @@ of the integration plan.
 - Immediately when `60-smoke-test.md` reports `result=fail` with a
   `failure.tag` in the SECURITY tier (`*-not-401`, `approval-bypass`).
 
+
+## Todo
+
+- [ ] Pre-flight (2 min)
+- [ ] Per-phase rollback
+- [ ] Post-rollback verification (3 min)
+- [ ] Verification checklist
+- [ ] Time budget
 ## Pre-flight (2 min)
 
 1. Open two terminals on the target host.

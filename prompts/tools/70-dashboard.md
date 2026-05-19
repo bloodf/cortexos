@@ -8,6 +8,17 @@ Compose service built **on the VPS** from the materialized repo at
 state — it does NOT import or store credentials. No rsync, no
 laptop-side build.
 
+## Todo
+
+- [ ] Prerequisites verified (DB, Caddy, OpenClaw, Docker)
+- [ ] CHECKPOINT 1 confirmed (network + secrets present)
+- [ ] Supply-chain gate passed for release tarball
+- [ ] `docker compose up -d --build` succeeded
+- [ ] `/api/health` returns 200
+- [ ] CHECKPOINT 2 confirmed
+- [ ] Public URL serves login page via Caddy
+- [ ] CHECKPOINT 3 confirmed
+
 ## Prerequisites
 
 - `14-postgresql.md` completed (schema already applied).
@@ -31,10 +42,7 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 
 ## CHECKPOINT 1
 
-Operator: confirm `/opt/cortexos/dashboard/` is populated, the
-`cortex-net` Docker network exists, and
-`/opt/cortexos/.secrets/dashboard.env` is present with `DB_*` and
-`CORTEX_MASTER_KEY`. Type "confirmed" to proceed.
+**STOP — operator question:** Is `/opt/cortexos/dashboard/` populated with `cortex-net` Docker network and `dashboard.env` secrets in place?
 
 ```bash
 docker network inspect cortex-net >/dev/null 2>&1 \
@@ -42,15 +50,17 @@ docker network inspect cortex-net >/dev/null 2>&1 \
 test -f /opt/cortexos/.secrets/dashboard.env && echo OK
 ```
 
+Type `confirmed` to proceed.
+
 ## Supply-chain gate (mandatory before build)
 
 Before building or deploying the dashboard, verify the signed release
-tarball on the operator laptop. The preflight prompt
+tarball on the VPS. The preflight prompt
 (`prompts/tools/00-preflight.md` → Step 0) must have already installed
 `cosign`, `syft`, and `gh`, and pinned `CORTEX_VERIFY_REPO`.
 
 ```bash
-# From repo root on the operator laptop:
+# From repo root on the VPS:
 TAG="$(git describe --tags --abbrev=0)"
 mkdir -p /tmp/cortex-release && cd /tmp/cortex-release
 gh release download "$TAG" --repo "$CORTEX_VERIFY_REPO" --pattern 'dashboard-*'
@@ -106,9 +116,9 @@ Expected: HTTP 200 with a JSON health payload.
 
 ## CHECKPOINT 2
 
-Operator: confirm `curl localhost:3080/api/health` returns 200 and
-`docker compose ps` shows `cortex-dashboard` as `healthy`. Type
-"confirmed" to proceed.
+**STOP — operator question:** Does `curl localhost:3080/api/health` return 200 and `docker compose ps` show `cortex-dashboard` healthy?
+
+Type `confirmed` to proceed.
 
 ## Public verification (through Caddy)
 
@@ -120,9 +130,9 @@ Expected: `200`.
 
 ## CHECKPOINT 3
 
-Operator: confirm the dashboard login page loads at
-`https://{DOMAIN}/en/login` with no certificate errors, and the
-OpenClaw chat panel connects successfully. Type "confirmed" to proceed.
+**STOP — operator question:** Does `https://{DOMAIN}/en/login` load without certificate errors and the OpenClaw chat panel connect?
+
+Type `confirmed` to proceed.
 
 ## Operations
 

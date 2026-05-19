@@ -40,6 +40,17 @@ the importer is a no-op via `ON CONFLICT (omc_task_id) DO NOTHING`.
 
 - `cd scripts && npm install` once.
 
+
+## Todo
+
+- [ ] Pre-flight (2 min)
+- [ ] Step 1 — Dry run (mandatory)
+- [ ] CHECKPOINT 8.A confirmed
+- [ ] Step 2 — Apply
+- [ ] Step 3 — Parity check
+- [ ] Step 4 — Resume / re-run
+- [ ] Failure tags
+- [ ] Done condition
 ## Pre-flight (2 min)
 
 Inventory the source corpus so the dry-run summary has something to
@@ -81,6 +92,8 @@ npm run migrate-omc -- --dry-run \
 
 ## CHECKPOINT 8.A — Dry-run review
 
+**STOP — operator question:** Dry-run review?
+
 STOP. Before continuing, confirm all of the following:
 
 1. `totalEvents` is plausible (within 10% of the line counts from
@@ -92,6 +105,7 @@ STOP. Before continuing, confirm all of the following:
 
 If any item fails, stop and investigate. Do not pass --apply.
 
+Type `confirmed` to proceed.
 ## Step 2 — Apply
 
 ```bash

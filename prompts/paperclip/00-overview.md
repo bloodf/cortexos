@@ -2,6 +2,14 @@
 
 > Stage 0 of the Paperclip integration. Read before running install or bridge prompts.
 
+## Todo
+
+- [ ] What is Paperclip
+- [ ] Why we use it
+- [ ] Bridge architecture
+- [ ] Subject reservations
+- [ ] CHECKPOINT 0.A confirmed
+
 ## What is Paperclip
 
 Paperclip is a self-hosted issue/run orchestration platform. It manages agent identity, issue assignments, run keys, approvals, and a structured inbox. CortexOS uses Paperclip as the **work source** and **status sink** for role-scoped agent runs (`ENG-BACKEND`, `ENG-FRONTEND`, `SECURITY`, `OPS`, etc.).
@@ -44,7 +52,11 @@ Before continuing to `10-install.md`:
 
 ## CHECKPOINT 0.A
 
+**STOP — operator question:** Verify this checkpoint's preconditions are met?
+
 - [ ] Tailscale up and Paperclip host reachable.
 - [ ] Postgres reachable, NATS reachable.
 - [ ] `cortex` user/group present.
 - [ ] `/opt/cortexos/.secrets/` exists, mode 0700.
+
+Type `confirmed` to proceed.
