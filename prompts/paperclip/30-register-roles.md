@@ -37,7 +37,7 @@ sudo -u cortex env $(sudo grep -v '^#' /opt/cortexos/.secrets/paperclip.env | xa
 
 Expected output:
 
-```
+```text
 paperclip-register-roles: minted=18 skipped=0
   keys file: /opt/cortexos/.secrets/paperclip-keys.json
 ```

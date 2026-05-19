@@ -39,7 +39,7 @@ const incoming = parse(msg.data); // throws on invalid envelope or data
 
 ## Event `type` convention
 
-```
+```text
 cortex.<namespace>.<verb>.<scope>.v<N>
 ```
 

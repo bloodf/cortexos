@@ -10,7 +10,7 @@ clients) and spawns one short-lived `podman --runtime=runsc` guest
 container per request. The guest's syscalls run through gVisor's
 user-space kernel rather than the host kernel.
 
-```
+```text
                 +----------------------+
  NATS event --> | cortex-consumer      |
                 +----------+-----------+

@@ -33,7 +33,7 @@ keyed by `thread_id`.
 
 ## Topology
 
-```
+```text
 START → planner → executor → human_review → verifier → END
                               ^                ^
                               |                |

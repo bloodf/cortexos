@@ -6,7 +6,7 @@
 
 `cortex-graph` is a FastAPI service that wraps a [LangGraph](https://langchain-ai.github.io/langgraph/) `StateGraph` whose checkpoint state persists in Postgres. The graph topology is intentionally minimal:
 
-```
+```text
 START -> planner -> executor -> human_review -> verifier -> END
 ```
 
@@ -29,7 +29,7 @@ All `/graph/*` endpoints require `Authorization: Bearer <CORTEX_GRAPH_API_TOKEN>
 
 Subscribes to `cortex.graph.invoke.>` (signed CloudEvents envelopes) and publishes lifecycle events on `cortex.graph.state.<scope>`. Envelope contract matches the rest of CortexOS:
 
-```
+```text
 { "data": <CloudEvent v1.0 object>, "sig": "<hex hmac-sha256 over JCS(data)>" }
 ```
 

@@ -100,7 +100,7 @@ The operator runs `prompts/00-bootstrap.md` on their laptop. `scripts/bootstrap.
 | `bootstrap_check_local_deps` | Verify `ssh`, `scp`, `git`, `sops`, `age` and the four `CORTEX_*` env vars on the laptop. |
 | `bootstrap_ensure_operator_age_key` | Create or discover `~/.config/sops/age/keys.txt`; print the public recipient for `.sops.yaml`. |
 | `bootstrap_detect_remote_os` | Pipe `scripts/os-detect.sh` to the VPS over SSH; export `CORTEX_OS_FAMILY` / `CORTEX_OS_VERSION` in the laptop shell. |
-| `bootstrap_push_repo` | Materialize the working tree at `/opt/cortexos` via `git archive | ssh tar -x`. |
+| `bootstrap_push_repo` | Materialize the working tree at `/opt/cortexos` via `git archive \| ssh tar -x`. |
 | `bootstrap_run_remote <cmd>` | Run `<cmd>` on the VPS with the CortexOS env exported; wrapper for every `prompts/os/*` and `prompts/tools/*` step. |
 | `bootstrap_push_secrets` | Decrypt every `templates/.secrets/*.enc.yaml` locally with the operator age key; scp plaintext `.env` files to `/opt/cortexos/.secrets/`; chmod `0600`. |
 
@@ -110,7 +110,7 @@ Rehearsal happens on the laptop with [Lima](../lima/README.md): `make vm-debian-
 
 Every NATS publish, inbound webhook, and audit row body is wrapped in a CloudEvents 1.0 envelope and HMAC-signed:
 
-```
+```text
 on-wire = { data: <CloudEvent>, sig: HMAC-SHA256(CORTEX_NATS_HMAC, JCS(<CloudEvent>)) }
 ```
 
@@ -142,7 +142,7 @@ SOPS+age encrypted YAML in Git is the source of truth. The operator age **privat
 
 `audit_log` is a TimescaleDB hypertable (migration `008`). Every paperclip state transition, bridge inbound/outbound, graph node transition, sandbox tool call, and approval decision appends one row via `@cortexos/audit`:
 
-```
+```text
 payload_hash = SHA-256( JCS(payload) )
 chain_hash   = SHA-256( prev_hash || payload_hash )
 ```

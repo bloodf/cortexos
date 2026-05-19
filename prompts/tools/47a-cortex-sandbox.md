@@ -90,7 +90,7 @@ to proceed.
 
 Append to `/opt/cortexos/.secrets/consumer.env`:
 
-```
+```ini
 CORTEX_SANDBOX_URL=http://127.0.0.1:8091
 CORTEX_SANDBOX_API_TOKEN=<same value as sandbox.env>
 ```

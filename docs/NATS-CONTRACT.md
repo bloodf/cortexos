@@ -170,7 +170,7 @@ Starting with V2, **every** NATS publish, inbound webhook payload, and audit row
 is wrapped in a **CloudEvents 1.0 envelope** before the existing HMAC envelope
 (`{ data, sig }`). On the wire the layering is therefore:
 
-```
+```text
 { data: <CloudEvent>, sig: <hex hmac over JCS(<CloudEvent>)> }
 ```
 

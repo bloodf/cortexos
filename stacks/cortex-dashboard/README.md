@@ -15,8 +15,8 @@ former laptop-side `rsync`/systemd deploy path.
 - **Non-root runtime.** Image runs as the `node` user with `dumb-init`
   as PID 1 for signal handling and zombie reaping.
 - **Standalone Next.js bundle.** `next.config.ts` has
-  `output: "standalone"`. The custom `server.ts` (Socket.IO + retention
-  + alerts) is bundled via esbuild and replaces the stock standalone
+  `output: "standalone"`. The custom `server.ts` (Socket.IO + retention,
+  alerts) is bundled via esbuild and replaces the stock standalone
   server.
 
 ## Prerequisites
