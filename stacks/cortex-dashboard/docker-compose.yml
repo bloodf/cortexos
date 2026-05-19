@@ -13,8 +13,8 @@
 services:
   cortex-dashboard:
     build:
-      context: ../../dashboard
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: dashboard/Dockerfile
     image: cortex-dashboard:local
     container_name: cortex-dashboard
     restart: unless-stopped

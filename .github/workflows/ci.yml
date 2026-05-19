@@ -82,7 +82,8 @@ jobs:
       - name: Build dashboard image
         uses: docker/build-push-action@v6
         with:
-          context: ./dashboard
+          context: .
+          file: dashboard/Dockerfile
           push: false
           tags: cortexos-dashboard:ci
           cache-from: type=gha

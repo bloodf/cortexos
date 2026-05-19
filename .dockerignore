@@ -1,0 +1,50 @@
+# Repo-root .dockerignore for dashboard image build (context = .).
+# Keep context lean — only files needed for the build remain.
+
+# Build artifacts / caches
+**/node_modules
+**/.next
+**/.turbo
+**/dist
+**/build
+**/coverage
+**/*.tsbuildinfo
+
+# Git / IDE / OS
+.git
+.gitignore
+.gitattributes
+.github
+.idea
+.vscode
+.DS_Store
+
+# Secrets
+**/.env
+**/.env.*
+!**/.env.example
+.secrets
+.sops.yaml
+templates/.secrets
+
+# Local-only tooling
+.omx
+.omc
+.husky
+.claude
+docs
+.planning
+docs/plans
+
+# Tests / fixtures
+**/__tests__
+**/*.test.ts
+**/*.test.js
+**/*.spec.ts
+**/*.spec.js
+dashboard/e2e
+dashboard/playwright.config.ts
+
+# Lima / Vagrant / VM
+lima
+vagrant
