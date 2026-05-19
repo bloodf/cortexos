@@ -32,13 +32,14 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install
-- [ ] Configure
-- [ ] Start service
-- [ ] Configure providers in 9Router WebUI (operator pastes API keys into UI, not into prompts)
-- [ ] Verify
-- [ ] CHECKPOINT 2 confirmed
+- [ ] CHECKPOINT 1 confirmed — provider API key in hand, will go into WebUI not into a prompt
+- [ ] Clone + `npm install` 9Router at `/opt/cortexos/stacks/9router`
+- [ ] Generate `NINEROUTER_API_KEY` via `openssl rand -hex 32`
+- [ ] Write `/opt/cortexos/.secrets/9router.env` (mode 0600, no provider keys inside)
+- [ ] Install systemd unit and `systemctl enable --now 9router`
+- [ ] Open WebUI at `https://${CORTEX_DOMAIN}/9router/`, sign in with master token
+- [ ] Add each provider key (OpenAI / Anthropic / …) in WebUI's API Keys view
+- [ ] CHECKPOINT 2 confirmed — `/v1/models` returns non-empty `data` (HTTP 200)
 
 ## CHECKPOINT 1
 
@@ -138,7 +139,7 @@ Expected: model IDs listed (e.g. `gpt-4o`, `claude-sonnet-4-5`). An **empty** `d
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** You added at least one provider's API key inside the 9Router WebUI at `https://${CORTEX_DOMAIN}/9router/`, AND `curl -H "Authorization: Bearer $NINEROUTER_API_KEY" $NINEROUTER_BASE_URL/v1/models` returns HTTP 200 with a non-empty `data` array?
+**STOP — operator question:** Did `curl -H "Authorization: Bearer $NINEROUTER_API_KEY" $NINEROUTER_BASE_URL/v1/models` return HTTP 200 with a **non-empty** `data` array (not an empty `data: []`, not HTTP 401)?
 
 Type `confirmed` to proceed.
 

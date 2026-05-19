@@ -81,9 +81,25 @@ Expected: every apt package shows `Status: install ok installed`, both oh-my-zsh
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** Did `apt-get update` exit cleanly, every baseline package (including `zsh` and `git`) report `install ok installed`, oh-my-zsh + autosuggestions + syntax-highlighting markers all print `installed`, the operator's login shell is now zsh, AND `systemctl is-enabled unattended-upgrades` returns `enabled`?
+**STOP — operator question:** Did every apt package in Step 3+4 print `Status: install ok installed` (zero `not installed`, zero apt errors)?
 
 Type `confirmed` to proceed.
+
+## CHECKPOINT 2
+
+**STOP — operator question:** Did `test -d ~/.oh-my-zsh && echo ok` print `ok`, and do both `zsh-autosuggestions` + `zsh-syntax-highlighting` directories exist under `~/.oh-my-zsh/custom/plugins/`?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 3
+
+**STOP — operator question:** Does `getent passwd "$USER" | awk -F: '{print $NF}'` print a path ending in `zsh` (e.g. `/usr/bin/zsh`)?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 4
+
+**STOP — operator question:** Does `systemctl is-enabled unattended-upgrades` print `enabled`?
 
 ## Next
 
