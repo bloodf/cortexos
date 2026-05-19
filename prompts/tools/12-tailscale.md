@@ -19,7 +19,6 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
-
 ## Todo
 
 - [ ] CHECKPOINT 1 confirmed
@@ -27,6 +26,7 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 - [ ] Configure
 - [ ] Verify
 - [ ] CHECKPOINT 2 confirmed
+
 ## CHECKPOINT 1
 
 **STOP — operator question:** You have access to your Tailscale account in a browser.?
@@ -35,6 +35,7 @@ No token needs to be pre-set — the install uses Tailscale's interactive
 login flow.
 
 Type `confirmed` to proceed.
+
 ## Install
 
 ```bash
@@ -85,6 +86,7 @@ Expected: node shows as `online`, a `100.x.x.x` IP is printed.
 **STOP — operator question:** The VPS appears in your Tailscale admin console as online and the Tailscale IP is reachable from another device on your tailnet?
 
 Type `confirmed` to proceed.
+
 ## Next
 
 → `prompts/tools/12a-sops-bootstrap.md`

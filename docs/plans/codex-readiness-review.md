@@ -1,6 +1,7 @@
 # CortexOS Local-VPS Readiness Review
 
 ## Critical (blocks install)
+
 - **Preflight deadlocks on OpenClaw** — `prompts/tools/00-preflight.md:86` — preflight requires OpenClaw running, but `SETUP.md:115` runs `00-preflight` before `40-openclaw`; `SETUP.md:101` says preflight should continue when OpenClaw is not installed — fix: make `00-preflight` record `NOT_INSTALLED` and defer the gateway probe to `40-openclaw` or reorder the install graph.
 - **Caddy checkpoint probes future services** — `prompts/tools/13-caddy.md:157` — the spoke verifies Grafana, Prometheus, Loki, cAdvisor, NATS, and Langfuse before those spokes run — fix: validate only Caddy/Tailscale routing here and move each downstream path probe to its owning spoke plus `99-final-validation`.
 - **NATS config cannot be cleanly installed** — `prompts/tools/30-nats.md:31` — the prompt copies `templates/nats/accounts.conf`, which still contains unreplaced NKey placeholders at `templates/nats/accounts.conf:19`, `:25`, `:46`, `:63`, `:81`; the tracked stack config uses no auth at `stacks/nats/config/nats-server.conf:15` — fix: choose one NATS deployment path; either remove account auth for localhost MVP or generate and inject real NKeys before `docker compose up`.
@@ -14,6 +15,7 @@
 - **Final validation is stale for Debian/local paths** — `prompts/tools/99-final-validation.md:29` — Debian runs `firewall-cmd` even though the install path uses UFW; the same file uses literal `{DOMAIN}` at `:41`, wrong Prometheus path at `:58`, wrong cAdvisor port at `:62`, and wrong Langfuse port at `:83` — fix: update final validation to the current path-based Caddy routes, ports, and Debian UFW behavior.
 
 ## High (install completes but feature broken)
+
 - **9router env and auth contract is split** — `prompts/tools/31-9router.md:47` — the spoke writes `NINE_ROUTER_*`, while dashboard requires `NINEROUTER_*` at `dashboard/src/lib/ai/provider-resolver.ts:41`; `templates/scripts/test-9router.sh:15` also requires `NINEROUTER_BASE_URL` and `NINEROUTER_API_KEY` — fix: standardize one env contract and update all prompts/templates.
 - **9router port is inconsistent** — `prompts/tools/31-9router.md:48` — the spoke uses `11434`, but `templates/systemd/openclaw-gateway.service:16`, `templates/review-routing.json:4`, and `scripts/cortex-healthcheck.sh:82` use `20128` — fix: pick one canonical 9router listener and update health checks, OpenClaw, dashboard, review routing, and final validation.
 - **9router auth is not verified** — `prompts/tools/31-9router.md:80` — the model-list probe omits `Authorization`, so it does not prove inbound LLM auth or master-key wiring — fix: verify `/v1/models` with `Authorization: Bearer $NINEROUTER_API_KEY` and propagate that key into dashboard, OpenClaw, OpenViking, LEANN, agentgateway, and consumer as needed.
@@ -30,6 +32,7 @@
 - **OpenClaw delivery is known broken** — `prompts/tools/60-cortex-consumer.md:123` — consumer still posts to `/sendMessage`, which the prompt says returns 404, so smoke publishes do not reach Telegram/Slack/Discord/WhatsApp — fix: build the adapter sidecar or migrate consumer delivery to the actual OpenClaw RPC API before treating the install as end-to-end.
 
 ## Medium (degraded operation, monitoring gaps, etc.)
+
 - **Prometheus checkpoint asks for future targets** — `prompts/tools/20-prometheus.md:115` — it asks for `cadvisor` and `node` targets before `24-cadvisor` and `25-node-exporter` run — fix: move target-UP checks to those spokes or final validation.
 - **Exporter spokes do not prove Prometheus target state** — `prompts/tools/24-cadvisor.md:73` and `prompts/tools/25-node-exporter.md:60` — local metrics are checked, but the checkpoint also asks for Prometheus target `UP` without a query command — fix: add Prometheus API checks for each target.
 - **Fluent Bit checkpoint lacks Loki query evidence** — `prompts/tools/23-fluent-bit.md:81` — it only tails container logs but asks the operator to confirm logs in Grafana/Loki at `:87` — fix: add a LogQL query against Loki’s HTTP API.
@@ -40,6 +43,7 @@
 - **`rsync` references remain as mixed messaging** — `templates/scripts/backup-openclaw-account.sh:119` — most install docs say no rsync, but the backup helper still uses rsync for off-host backup — fix: keep it only if intentional and document it as optional backup transport, otherwise replace with `scp`/`tar | ssh`.
 
 ## Per-spoke checkpoint verifiability
+
 | Spoke | Checkpoint verifiable? | Issue |
 |-------|------------------------|-------|
 | 00-preflight | NO | Requires OpenClaw before its installing spoke. |
@@ -85,6 +89,7 @@
 | 99-final-validation | NO | Uses stale ports, paths, literal `{DOMAIN}`, and Debian firewall command. |
 
 ## agentgateway deep-review
+
 - The requested `stacks/cortex-agentgateway/` integration does not exist locally; `50-agentgateway` clones `https://github.com/agentgateway/agentgateway` into `/opt/cortexos/stacks/agentgateway` at `prompts/tools/50-agentgateway.md:28`, so the install is not reproducible from the repo.
 - The systemd unit assumes `node index.js --config config/tools.json` at `prompts/tools/50-agentgateway.md:66`, but no pinned package, entrypoint, lockfile, or local health contract proves that command exists.
 - Tool taxonomy exists at `templates/agentgateway/tools.json:1`, with destructive controls at `templates/agentgateway/tools.json:129`, but enforcement is not connected to consumer dispatch; `stacks/cortex-consumer/config.json:1` has no AgentGateway URL, and consumer code does not call `/tool/invoke`.
@@ -94,6 +99,7 @@
 - Dashboard catalog does not match the prompt: seed uses `15021/healthz/ready` and `/opt/cortexos/stacks/agentgateway/.env` at `dashboard/migrations/002_seed.sql:36`, while the prompt uses `18800/health` and `/opt/cortexos/.secrets/agentgateway.env`.
 
 ## 9router deep-review
+
 - The install prompt writes `NINE_ROUTER_PORT` and `NINE_ROUTER_API_KEY` at `prompts/tools/31-9router.md:48`, but dashboard, the test script, and provider resolver use `NINEROUTER_BASE_URL` and `NINEROUTER_API_KEY` at `templates/scripts/test-9router.sh:15` and `dashboard/src/lib/ai/provider-resolver.ts:41`.
 - The service template reads `/opt/cortexos/.secrets/9router.env` at `templates/systemd/9router.service:21`, but passes no explicit port/base-url CLI flag at `templates/systemd/9router.service:16`; the prompt assumes `11434` without proving the process binds there.
 - Port references are split: `31-9router`, OpenViking, LEANN, and OpenClaw config use `11434` at `prompts/tools/31-9router.md:80`, `prompts/tools/32-openviking.md:40`, `prompts/tools/33-leann.md:52`, and `prompts/tools/40-openclaw.md:50`; OpenClaw systemd, healthcheck, and review routing use `20128` at `templates/systemd/openclaw-gateway.service:16`, `scripts/cortex-healthcheck.sh:82`, and `templates/review-routing.json:4`.
@@ -102,6 +108,7 @@
 - Downstream master-key wiring is incomplete: dashboard rejects AI chat without `NINEROUTER_*` at `dashboard/src/app/api/ai/chat/route.ts:158`, while AgentGateway and consumer do not receive a canonical 9router key/base URL from their prompts.
 
 ## Recommended fix order
+
 1. Fix the install graph blockers: `00-preflight`, `13-caddy`, `70-dashboard`, and `99-final-validation`.
 2. Normalize secrets: one decrypt model, one env filename per service, add missing `sandbox.env` and `agentgateway.env` templates.
 3. Normalize NATS: one compose/config path, generate or remove NKeys, and update `docs/NATS-CONTRACT.md` to match real subjects.

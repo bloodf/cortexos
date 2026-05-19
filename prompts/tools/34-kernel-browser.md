@@ -17,18 +17,19 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
-
 ## Todo
 
 - [ ] CHECKPOINT 1 confirmed
 - [ ] Install
 - [ ] Verify
 - [ ] CHECKPOINT 2 confirmed
+
 ## CHECKPOINT 1
 
 **STOP — operator question:** The VPS has at least 2 GB free RAM (browser processes are memory-intensive)?
 
 Type `confirmed` to proceed.
+
 ## Install
 
 ```bash
@@ -76,6 +77,7 @@ Expected: JSON with browser version information.
 **STOP — operator question:** The browser API responds with version JSON?
 
 Type `confirmed` to proceed.
+
 ## Next
 
 → `prompts/tools/40-openclaw.md`

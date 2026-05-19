@@ -16,18 +16,19 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
-
 ## Todo
 
 - [ ] CHECKPOINT 1 confirmed
 - [ ] Install
 - [ ] Verify
 - [ ] CHECKPOINT 2 confirmed
+
 ## CHECKPOINT 1
 
 **STOP — operator question:** Port 9100 is free?
 
 Type `confirmed` to proceed.
+
 ## Install
 
 Append Node Exporter to monitoring compose:
@@ -87,6 +88,7 @@ Expected: `up`.
 > `99-final-validation.md`.
 
 Type `confirmed` to proceed.
+
 ## Next
 
 → `prompts/tools/30-nats.md`

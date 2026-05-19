@@ -8,7 +8,6 @@ Define which CortexOS roles require human approval before executing
 destructive or irreversible operations, configure the Paperclip approval
 gate, set timeout + escalation, and wire timeouts into the NATS alert bus.
 
-
 ## Todo
 
 - [ ] Threat model
@@ -17,6 +16,7 @@ gate, set timeout + escalation, and wire timeouts into the NATS alert bus.
 - [ ] Escalation
 - [ ] Verify
 - [ ] CHECKPOINT 5.A confirmed
+
 ## Threat model
 
 Roles in the `git-master` class can rewrite history, force-push, and delete

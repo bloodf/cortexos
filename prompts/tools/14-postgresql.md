@@ -17,7 +17,6 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
-
 ## Todo
 
 - [ ] CHECKPOINT 1 confirmed
@@ -25,11 +24,13 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 - [ ] Configure
 - [ ] Verify
 - [ ] CHECKPOINT 2 confirmed
+
 ## CHECKPOINT 1
 
 **STOP — operator question:** No existing PostgreSQL instance is running on port 5432 (`ss -tlnp | grep 5432`)?
 
 Type `confirmed` to proceed.
+
 ## Install
 
 ```bash
@@ -91,6 +92,7 @@ Expected: tables listed including `services`, `migrations`.
 **STOP — operator question:** `\dt` lists the schema tables and the `.secrets/dashboard.env` file exists with mode 600?
 
 Type `confirmed` to proceed.
+
 ## Next
 
 → `prompts/tools/15-redis.md`

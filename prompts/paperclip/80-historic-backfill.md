@@ -40,7 +40,6 @@ the importer is a no-op via `ON CONFLICT (omc_task_id) DO NOTHING`.
 
 - `cd scripts && pnpm install` once.
 
-
 ## Todo
 
 - [ ] Pre-flight (2 min)
@@ -51,6 +50,7 @@ the importer is a no-op via `ON CONFLICT (omc_task_id) DO NOTHING`.
 - [ ] Step 4 — Resume / re-run
 - [ ] Failure tags
 - [ ] Done condition
+
 ## Pre-flight (2 min)
 
 Inventory the source corpus so the dry-run summary has something to
@@ -106,6 +106,7 @@ STOP. Before continuing, confirm all of the following:
 If any item fails, stop and investigate. Do not pass --apply.
 
 Type `confirmed` to proceed.
+
 ## Step 2 — Apply
 
 ```bash

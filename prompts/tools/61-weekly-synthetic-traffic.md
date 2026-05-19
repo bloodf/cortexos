@@ -29,7 +29,6 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 pkg_install jq uuid-runtime  # uuidgen for synthetic payload
 ```
 
-
 ## Todo
 
 - [ ] CHECKPOINT 1 confirmed
@@ -37,6 +36,7 @@ pkg_install jq uuid-runtime  # uuidgen for synthetic payload
 - [ ] Verify
 - [ ] Known Limitations
 - [ ] CHECKPOINT 2 confirmed
+
 ## CHECKPOINT 1
 
 **STOP — operator question:** `nats --version` works and `cortex-consumer.service`?
@@ -45,6 +45,7 @@ service`
 is active.
 
 Type `confirmed` to proceed.
+
 ## Install
 
 Publisher script:
@@ -145,6 +146,7 @@ Operator: confirm timers list-timers shows the four enabled slugs and
 the next-fire timestamp is in the future.
 
 Type `confirmed` to proceed.
+
 ## Next
 
 → `prompts/tools/70-dashboard.md`

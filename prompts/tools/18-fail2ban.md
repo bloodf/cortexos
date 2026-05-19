@@ -17,7 +17,6 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
-
 ## Todo
 
 - [ ] CHECKPOINT 1 confirmed
@@ -25,11 +24,13 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 - [ ] Configure
 - [ ] Verify
 - [ ] CHECKPOINT 2 confirmed
+
 ## CHECKPOINT 1
 
 **STOP — operator question:** `journalctl -u ssh --no-pager -n 5` shows recent SSH log entries (fail2ban reads these)?
 
 Type `confirmed` to proceed.
+
 ## Install
 
 ```bash
@@ -76,6 +77,7 @@ Expected: `sshd` jail is active, filter listed.
 **STOP — operator question:** `fail2ban-client status sshd` shows the jail as active with 0 or more banned IPs?
 
 Type `confirmed` to proceed.
+
 ## Next
 
 → `prompts/tools/20-prometheus.md`

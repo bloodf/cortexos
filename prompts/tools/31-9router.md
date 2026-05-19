@@ -19,7 +19,6 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 
 > **Node runtime.** Ubuntu/Debian provisioning uses NodeSource (or Linuxbrew Node 24). All `npm install -g` invocations below assume Node ≥ 20 is on `$PATH`.
 
-
 ## Todo
 
 - [ ] CHECKPOINT 1 confirmed
@@ -27,11 +26,13 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 - [ ] Configure
 - [ ] Verify
 - [ ] CHECKPOINT 2 confirmed
+
 ## CHECKPOINT 1
 
 **STOP — operator question:** You have at least one AI provider API key ready?
 
 Type `confirmed` to proceed.
+
 ## Install
 
 Clone and install the latest 9Router release:
@@ -104,6 +105,7 @@ Expected: model IDs listed (e.g. `gpt-4o`, `claude-sonnet-4-5`). HTTP 401 here m
 **STOP — operator question:** `curl -H "Authorization: Bearer $NINEROUTER_API_KEY" $NINEROUTER_BASE_URL/v1/models` returns a model list (HTTP 200, non-empty `data`). Record the endpoint a...?
 
 Type `confirmed` to proceed.
+
 ## Next
 
 → `prompts/tools/32-openviking.md`

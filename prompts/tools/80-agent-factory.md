@@ -18,7 +18,6 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
-
 ## Todo
 
 - [ ] CHECKPOINT 1 confirmed
@@ -26,11 +25,13 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 - [ ] Configure
 - [ ] Verify
 - [ ] CHECKPOINT 2 confirmed
+
 ## CHECKPOINT 1
 
 **STOP — operator question:** The target GitHub repository URL and that you have admin access (needed to create labels and secrets)?
 
 Type `confirmed` to proceed.
+
 ## Install
 
 Install the label state machine on the target GitHub repository:
@@ -90,6 +91,7 @@ Confirm the triage workflow triggers within 60 seconds (check Actions tab on Git
 **STOP — operator question:** The probe issue triggered the triage workflow and the issue label advanced to `stage/01-triage`. Close the test issue?
 
 Type `confirmed` to proceed.
+
 ## Next
 
 → `prompts/tools/81-projects.md`

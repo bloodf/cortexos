@@ -17,7 +17,6 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
-
 ## Todo
 
 - [ ] CHECKPOINT 1 confirmed
@@ -25,6 +24,7 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 - [ ] Configure
 - [ ] Verify
 - [ ] CHECKPOINT 2 confirmed
+
 ## CHECKPOINT 1
 
 **STOP — operator question:** Verify this checkpoint's preconditions are met?
@@ -37,6 +37,7 @@ Operator: gather and confirm you have:
 - WhatsApp Business API access token + phone number ID
 
 Type `confirmed` to proceed.
+
 ## Install
 
 ```bash
@@ -92,6 +93,7 @@ Expected: probe message received on each platform with no errors.
 **STOP — operator question:** All four channel test messages were received, emoji rendered correctly, and no API errors were reported?
 
 Type `confirmed` to proceed.
+
 ## Next
 
 → `prompts/tools/42-openclaw-openviking.md`

@@ -17,7 +17,6 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
-
 ## Todo
 
 - [ ] CHECKPOINT 1 confirmed
@@ -25,6 +24,7 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 - [ ] Configure
 - [ ] Verify
 - [ ] CHECKPOINT 2 confirmed
+
 ## CHECKPOINT 1
 
 **STOP — operator question:** Verify this checkpoint's preconditions are met?
@@ -32,6 +32,7 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 Operator: list the project slugs you want to register (one per line). Each project needs a slug (lowercase, hyphens OK), a GitHub repository URL, and optionally a messaging channel for notifications.
 
 Type `confirmed` to proceed.
+
 ## Install
 
 For each project `<slug>`:
@@ -92,6 +93,7 @@ Expected: env files exist for each slug; database rows match.
 **STOP — operator question:** All project env files exist and dashboard Projects page shows the registered projects?
 
 Type `confirmed` to proceed.
+
 ## Next
 
 → `prompts/tools/99-final-validation.md`

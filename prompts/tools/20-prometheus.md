@@ -17,18 +17,19 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
-
 ## Todo
 
 - [ ] CHECKPOINT 1 confirmed
 - [ ] Install
 - [ ] Verify
 - [ ] CHECKPOINT 2 confirmed
+
 ## CHECKPOINT 1
 
 **STOP — operator question:** Port 9090 is free (`ss -tlnp | grep 9090`)?
 
 Type `confirmed` to proceed.
+
 ## Install
 
 ```bash
@@ -131,6 +132,7 @@ Expected: `Prometheus Server is Healthy.`
 > exporters that have not been installed yet.
 
 Type `confirmed` to proceed.
+
 ## Next
 
 → `prompts/tools/21-loki.md`

@@ -16,7 +16,6 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
-
 ## Todo
 
 - [ ] CHECKPOINT 1 confirmed
@@ -24,11 +23,13 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 - [ ] Configure
 - [ ] Verify
 - [ ] CHECKPOINT 2 confirmed
+
 ## CHECKPOINT 1
 
 **STOP — operator question:** Port 6379 is not already in use (`ss -tlnp | grep 6379`)?
 
 Type `confirmed` to proceed.
+
 ## Install
 
 Create stack directory and compose file:
@@ -83,6 +84,7 @@ Expected: `PONG`.
 **STOP — operator question:** Redis responds `PONG` and the container is running (`docker compose -p redis ps`)?
 
 Type `confirmed` to proceed.
+
 ## Next
 
 → `prompts/tools/16-mongodb.md` (if MongoDB enabled) OR `prompts/tools/17-dnsmasq.md`

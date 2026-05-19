@@ -19,7 +19,6 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 
 > **Ubuntu/Debian note.** MongoDB is installed via the Docker-Compose stack below. If you need the `mongosh` CLI on the host, install via the official MongoDB apt repo or use `docker run --rm -it mongo:7 mongosh ...`.
 
-
 ## Todo
 
 - [ ] CHECKPOINT 1 confirmed
@@ -27,11 +26,13 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 - [ ] Configure
 - [ ] Verify
 - [ ] CHECKPOINT 2 confirmed
+
 ## CHECKPOINT 1
 
 **STOP — operator question:** MongoDB is required for your workloads and port 27017 is free (`ss -tlnp | grep 27017`). If MongoDB is not needed, skip this spoke and proceed to `17-dnsmasq...?
 
 Type `confirmed` to proceed.
+
 ## Install
 
 ```bash
@@ -86,6 +87,7 @@ Expected: `{ ok: 1 }`.
 **STOP — operator question:** MongoDB responds with `{ ok: 1 }` and the container is running?
 
 Type `confirmed` to proceed.
+
 ## Next
 
 → `prompts/tools/17-dnsmasq.md`
