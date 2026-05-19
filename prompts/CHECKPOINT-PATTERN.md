@@ -7,6 +7,48 @@
 
 **A prompt stops the operator only when there is an operator question to answer.** Every `## CHECKPOINT N` section MUST contain a `**STOP — operator question:** …` line followed by `Type \`confirmed\` to proceed.` Anything else (status banners, "ok proceed" markers, log-prints) is informational and does not halt execution. Status-only checkpoints are forbidden — convert them into a real yes/no question or delete them.
 
+## Question quality rules
+
+A good checkpoint question is **specific, single-claim, and evidence-bound**. The operator must be able to answer yes/no in seconds by looking at terminal output they just produced.
+
+1. **One claim per checkpoint.** Do NOT chain checks with "AND … AND … AND". If you have three things to verify, you have three checkpoints — or the checks fold into a single, named probe (`scripts/validate-<spoke>.sh`) whose pass/fail is the single claim.
+2. **Cite the exact probe.** Inline-quote the command the operator just ran (`\`curl -fsS http://127.0.0.1:18790/health\``) and the exact expected output (`\`{"status":"ok"}\``). No vague "service is up" wording.
+3. **Express the failure mode, not the success mode, when failure is easy to misread.** Empty arrays, HTTP 200 with an error body, status `active (exited)` — call these out by name so a tired operator does not nod past them.
+4. **Yes/no answerable from one terminal screen.** If the operator has to scroll, reformat, or run extra commands to answer, the checkpoint is too broad. Split it.
+5. **No forward references.** A checkpoint may NOT depend on a downstream service the operator has not installed yet (see "The rule" below).
+
+### Template
+
+```markdown
+## CHECKPOINT N
+
+**STOP — operator question:** Did `<exact probe command>` return `<exact expected output>` and not `<the common failure-mode output>`?
+
+Type `confirmed` to proceed.
+```
+
+## Todo quality rules
+
+`## Todo` is the operator's running checklist for the spoke — NOT a section index. Each entry is a thing the operator does or verifies, in execution order.
+
+1. **Verb-led, concrete.** `Install Ollama via curl|sh` not `Install`. `Pull nomic-embed-text + llama3.2:1b` not `Configure models`. `Confirm /health returns ok` not `Verify`.
+2. **One operator action per item.** If a line bundles two unrelated actions, split it.
+3. **Sequential order matches the prose below.** A reader skimming only the Todo should be able to reconstruct the install path.
+4. **CHECKPOINT items are explicit and numbered.** Use `[ ] CHECKPOINT N confirmed — <one-line of what was verified>` so the operator sees what each gate is actually for.
+5. **No filler entries.** Drop `Read this section`, `Understand the goal`, `Review prerequisites` — those are not work items.
+
+### Template
+
+```markdown
+## Todo
+
+- [ ] CHECKPOINT 1 confirmed — <preconditions met>
+- [ ] <verb-led action 1>
+- [ ] <verb-led action 2>
+- [ ] …
+- [ ] CHECKPOINT 2 confirmed — <post-install probe passes>
+```
+
 ## The rule
 
 **A spoke MUST NOT verify a service installed by a later spoke.**

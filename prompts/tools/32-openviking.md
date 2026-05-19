@@ -31,13 +31,17 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install Ollama (CPU-only LLM runtime)
-- [ ] Pull at least one CPU-friendly Ollama model
-- [ ] Install OpenViking
-- [ ] Configure
-- [ ] Verify
-- [ ] CHECKPOINT 2 confirmed
+- [ ] CHECKPOINT 1 confirmed — PostgreSQL up + `cortex_dashboard` reachable
+- [ ] Install Ollama via `curl https://ollama.com/install.sh | sh`
+- [ ] Drop in systemd override: `OLLAMA_HOST=127.0.0.1:11435`, CPU-only
+- [ ] `ollama pull nomic-embed-text`
+- [ ] `ollama pull llama3.2:1b`
+- [ ] Clone OpenViking into `/opt/cortexos/stacks/openviking`, `npm install`
+- [ ] Write `/opt/cortexos/.secrets/openviking.env` (mode 0600)
+- [ ] Run `npm run migrate`
+- [ ] Install + enable `openviking.service`
+- [ ] CHECKPOINT 2 confirmed — `/health` returns `{"status":"ok"}`
+- [ ] CHECKPOINT 3 confirmed — `/api/embeddings` returns positive vector length
 
 ## CHECKPOINT 1
 
@@ -174,7 +178,13 @@ Expected: an integer > 0 (vector length, typically 768 for `nomic-embed-text`).
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** OpenViking `/health` returns OK, `ollama list` shows `nomic-embed-text` and `llama3.2:1b`, AND the `/api/embeddings` curl above prints a positive integer (proving CPU embeddings work end-to-end)?
+**STOP — operator question:** Did `curl -fsS http://localhost:18790/health` return `{"status":"ok"}` (not 404, not connection refused)?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 3
+
+**STOP — operator question:** Did the `/api/embeddings` curl print a positive integer (typically 768) — proving the CPU embedding path through Ollama works, not an empty array or HTTP error?
 
 Type `confirmed` to proceed.
 
