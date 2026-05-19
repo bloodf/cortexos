@@ -99,9 +99,10 @@ docker compose logs -f cortex-dashboard
 
 The container entrypoint:
 
-1. Waits for PostgreSQL (`DB_HOST:DB_PORT` from the env file). For the default host-Postgres layout, set `DB_HOST=host.docker.internal` in `/opt/cortexos/.secrets/dashboard.env` and keep the compose `extra_hosts` mapping so the container can reach the host.
+1. Waits for PostgreSQL (`DB_HOST:DB_PORT`). The compose service runs with `network_mode: host` and overrides `DB_HOST=127.0.0.1` so dashboard probes, Docker inventory, systemd, process, network, storage, and terminal pages target the VPS, not an isolated bridge container.
 2. Runs idempotent migrations (`node scripts/migrate.js`).
-3. Starts the bundled Next.js standalone server on port 3080.
+3. Runs the dynamic service seed (`node scripts/dynamic-seed.js`). The compose file mounts `${CORTEXOS_ROOT:-/opt/cortexos}/.secrets/.setup-state.json` read-only at `/run/cortexos/setup-state.json`; the seed uses that completed-spoke list to mark installed services active, derive web UI visibility, and call `cortex_set_service_urls(...)` when `CORTEX_PUBLIC_BASE_URL`, `CORTEX_DASHBOARD_BASE_URL`, `PUBLIC_BASE_URL`, `CORTEX_DOMAIN`, or the setup-state Tailscale DNS evidence is available.
+4. Starts the bundled Next.js standalone server on port 3080.
 
 **Do not** paste credentials into the dashboard UI. All keys are
 sourced from VPS `.secrets/` files.
@@ -113,6 +114,57 @@ curl -fsS -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3080/en/login
 ```
 
 Expected: `200`. Current dashboard builds gate `/api/health` behind auth, so `/en/login` is the stable unauthenticated liveness probe.
+
+Verify the catalog was hydrated from the install state:
+
+```bash
+docker compose exec -T cortex-dashboard node -e '
+const pg = require("pg");
+const Client = pg.Client || pg.default?.Client;
+const c = new Client({
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT || 5432,
+  database: process.env.DB_NAME || "cortex_dashboard",
+  user: process.env.DB_USER || "dashboard",
+  password: process.env.DB_PASSWORD,
+});
+(async () => {
+  await c.connect();
+  const r = await c.query("select count(*)::int as n from services where is_active");
+  console.log(r.rows[0].n);
+  await c.end();
+})().catch((err) => { console.error(err); process.exit(1); });
+'
+```
+
+Expected after a normal full install: a non-zero count greater than the dashboard-only fallback (`1`). If it prints `1`, the setup-state mount or public-base inference is broken; copy the active `.secrets/.setup-state.json` into `${CORTEXOS_ROOT:-/opt/cortexos}/.secrets/.setup-state.json` and restart the dashboard before continuing.
+
+Verify host integrations are populated:
+
+```bash
+docker compose exec -T cortex-dashboard node - <<'NODE'
+const checks = [
+  ["/api/docker", (d) => d.containers.data.length > 0],
+  ["/api/system", (d) => d.mounts.length > 0 && d.drives.length > 0],
+  ["/api/processes", (d) => d.processes.length > 0],
+  ["/api/network", (d) => d.interfaces.length > 0],
+  ["/api/services?healthcheck=true", (d) => d.services.length > 0],
+];
+(async () => {
+  for (const [path, ok] of checks) {
+    const res = await fetch(`http://127.0.0.1:${process.env.PORT || 3080}${path}`, {
+      headers: { cookie: process.env.DASHBOARD_VERIFY_COOKIE || "" },
+    });
+    if (!res.ok) throw new Error(`${path} returned ${res.status}`);
+    const data = await res.json();
+    if (!ok(data)) throw new Error(`${path} returned an empty dashboard payload`);
+    console.log(`${path}: ok`);
+  }
+})().catch((err) => { console.error(err); process.exit(1); });
+NODE
+```
+
+For authenticated endpoints, set `DASHBOARD_VERIFY_COOKIE=session_token=<admin-session-token>` before running the check.
 
 ## CHECKPOINT 2
 

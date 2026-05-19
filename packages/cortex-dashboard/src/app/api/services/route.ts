@@ -71,6 +71,18 @@ async function checkProcess(pattern: string): Promise<boolean> {
 	}
 }
 
+async function checkSystemd(unit: string): Promise<boolean> {
+	if (!SAFE_NAME_RE.test(unit)) return false;
+	try {
+		const { stdout } = await hostExecFile("systemctl", ["is-active", unit], {
+			timeout: 3000,
+		});
+		return stdout.trim() === "active";
+	} catch {
+		return false;
+	}
+}
+
 function buildResult(svc: Service, status: ServiceCheck["status"], start: number): ServiceCheck {
 	return {
 		id: svc.id,
@@ -101,6 +113,11 @@ async function checkService(svc: Service): Promise<ServiceCheck> {
 
 	if (svc.health_type === "process") {
 		const ok = await checkProcess(svc.health_url);
+		return buildResult(svc, ok ? "online" : "offline", start);
+	}
+
+	if (svc.health_type === "systemd") {
+		const ok = await checkSystemd(svc.health_url);
 		return buildResult(svc, ok ? "online" : "offline", start);
 	}
 

@@ -27,7 +27,7 @@ export interface HealthcheckService {
 	responseTime: number;
 	icon_color: string | null;
 	icon_image: string | null;
-	health_type: "http" | "tcp" | "docker" | "process";
+	health_type: "http" | "tcp" | "docker" | "process" | "systemd";
 	health_url: string;
 }
 

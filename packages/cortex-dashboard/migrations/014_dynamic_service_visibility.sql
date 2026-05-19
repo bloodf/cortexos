@@ -1,15 +1,8 @@
--- Extend cortex_set_service_urls(base_url) with every tool that has a web UI
--- routed through Caddy. Keeps 004's contract (idempotent UPSERT of open_url
--- by slug) but adds the routes added in prompts/tools/13-caddy.md:
---   /9router, /prometheus, /loki, /cadvisor, /langfuse, /nats
---
--- Slugs absent from this list either have no web UI (OpenClaw, AgentGateway,
--- OpenViking, LEANN, kernel-browser, cortex-graph, cortex-sandbox-runner,
--- fluent-bit, paperclip bridge) or are already wired by 004
--- (cortex-dashboard, grafana, jellyfin, home-assistant, dockhand).
---
--- Re-running this migration overwrites previous open_url values — safe by
--- design.
+-- 014_dynamic_service_visibility.sql
+-- Keep the services catalog in sync with installed spokes after the dashboard
+-- container starts. Earlier installs may have applied 011 before /9router was
+-- routed and before dynamic-seed updated web UI flags, so recreate the helper
+-- and let scripts/dynamic-seed.js invoke it with the install's public base URL.
 
 CREATE OR REPLACE FUNCTION cortex_set_service_urls(base_url text)
 RETURNS integer
@@ -36,10 +29,12 @@ BEGIN
   UPDATE services SET open_url = base_url || '/jellyfin'         WHERE slug = 'jellyfin';
   UPDATE services SET open_url = base_url || '/ha'               WHERE slug = 'home-assistant';
 
-  -- Backend-only services: keep open_url pinned to '#'. Listed explicitly so
-  -- prior runs against a stale base get cleaned up.
   UPDATE services SET open_url = '#' WHERE slug IN (
-    'openviking','openclaw','agentgateway','kernel-browser','leann'
+    'openviking','openclaw','agentgateway','kernel-browser','leann',
+    'cortex-graph','cortex-sandbox-runner','cortex-consumer','fluent-bit',
+    'promtail','node-exporter','pg-exporter','redis-exporter','mongo-exporter',
+    'otel-collector','postgresql','redis','mongodb','nats','caddy','tailscale',
+    'dnsmasq','fail2ban'
   );
 
   GET DIAGNOSTICS affected = ROW_COUNT;
@@ -47,5 +42,5 @@ BEGIN
 END;
 $$;
 
-INSERT INTO migrations (name) VALUES ('011_services_open_url_paths')
+INSERT INTO migrations (name) VALUES ('014_dynamic_service_visibility')
 ON CONFLICT (name) DO NOTHING;

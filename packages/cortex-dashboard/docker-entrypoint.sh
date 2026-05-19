@@ -24,8 +24,8 @@ node scripts/migrate.js
 
 echo "=== Dynamic services-catalog seed ==="
 node scripts/dynamic-seed.js || {
-  # Never block dashboard startup on a probe failure — defaults from
-  # 002_seed.sql + 010_services_catalog_extras.sql are still safe.
+  # Never block dashboard startup on a probe failure — static catalog rows stay
+  # safe, but installed-spoke visibility may be stale until this succeeds.
   echo "  WARN: dynamic-seed.js failed (non-fatal); continuing" >&2
 }
 

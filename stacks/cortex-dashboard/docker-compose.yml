@@ -5,11 +5,10 @@
 # laptop-side Next.js build. The VPS builds the image locally with
 # `docker compose build`.
 #
-# Postgres and NATS are expected to run as sibling services on the
-# `cortex-net` external Docker network (see stacks/nats and the postgres
-# container brought up by provisioning). The dashboard does NOT manage
-# their lifecycle, hence no `depends_on` here — use the external network
-# as the integration seam.
+# Postgres, NATS, systemd, Docker, process, storage, network, and terminal
+# operations target the VPS host. The dashboard does NOT manage sibling
+# service lifecycles, hence no `depends_on` here — host networking and the
+# Docker socket are the integration seams.
 services:
   cortex-dashboard:
     build:
@@ -18,17 +17,25 @@ services:
     image: cortex-dashboard:local
     container_name: cortex-dashboard
     restart: unless-stopped
+    # Host administration pages intentionally inspect and operate on the VPS,
+    # not the dashboard container. Host networking keeps localhost probes pointed
+    # at the machine, while pid:host + privileged gives nsenter the namespace
+    # access required by systemctl, ps, df, network, and terminal.
+    network_mode: host
+    pid: host
+    privileged: true
+    user: root
     env_file:
       - /opt/cortexos/.secrets/dashboard.env
     environment:
       PORT: "3080"
       NODE_ENV: production
-    ports:
-      - "3080:3080"
-    networks:
-      - cortex-net
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      DB_HOST: 127.0.0.1
+      SETUP_STATE_PATH: /run/cortexos/setup-state.json
+      CORTEX_PUBLIC_BASE_URL: "${CORTEX_PUBLIC_BASE_URL:-}"
+    volumes:
+      - "${CORTEXOS_ROOT:-/opt/cortexos}/.secrets/.setup-state.json:/run/cortexos/setup-state.json:ro"
+      - /var/run/docker.sock:/var/run/docker.sock
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3080/en/login"]
       interval: 30s
@@ -36,6 +43,3 @@ services:
       retries: 3
       start_period: 30s
 
-networks:
-  cortex-net:
-    external: true

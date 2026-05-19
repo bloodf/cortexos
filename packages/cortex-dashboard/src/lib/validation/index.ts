@@ -13,7 +13,7 @@ export { z };
 
 // Legacy constants (formerly src/lib/validation.ts) — kept here so existing
 // `@/lib/validation` imports continue to resolve after V11.
-export const VALID_HEALTH_TYPES = new Set(["http", "tcp", "docker", "process"]);
+export const VALID_HEALTH_TYPES = new Set(["http", "tcp", "docker", "process", "systemd"]);
 export const SLUG_RE = /^[a-z0-9][a-z0-9._-]{0,62}$/;
 export const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
 export const DATA_IMAGE_PREFIX = "data:image/";

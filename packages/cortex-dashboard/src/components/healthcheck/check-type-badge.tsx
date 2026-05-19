@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 
 interface CheckTypeBadgeProps {
-	type: "http" | "tcp" | "docker" | "process";
+	type: "http" | "tcp" | "docker" | "process" | "systemd";
 }
 
 const TYPE_STYLES: Record<string, string> = {
@@ -11,6 +11,7 @@ const TYPE_STYLES: Record<string, string> = {
 	tcp: "bg-purple-500/10 text-purple-400 border-purple-500/20",
 	docker: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
 	process: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+	systemd: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -18,6 +19,7 @@ const TYPE_LABELS: Record<string, string> = {
 	tcp: "TCP",
 	docker: "Docker",
 	process: "Process",
+	systemd: "Systemd",
 };
 
 export function CheckTypeBadge({ type }: CheckTypeBadgeProps) {

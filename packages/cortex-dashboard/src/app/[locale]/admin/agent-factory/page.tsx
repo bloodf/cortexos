@@ -1,8 +1,5 @@
-// STUB for v1.0. Wizard wires fully in Phase 4 once /api/ai/chat is non-stub.
-// TODO: replace right-column "coming soon" with chat-driven wizard.
 
 import { listAgentFactories } from "@/lib/db/agent-factories";
-import { EmptyState } from "@/components/ui/empty-state";
 
 export default async function AdminAgentFactoryPage() {
 	const factories = await listAgentFactories({});
@@ -26,11 +23,29 @@ export default async function AdminAgentFactoryPage() {
 						</ul>
 					)}
 				</aside>
-				<div>
-					<EmptyState
-						title="Wizard coming soon"
-						description="The factory wizard runs through the Cortex chat panel on the right. Open it from the topbar to start."
-					/>
+				<div className="rounded-lg border border-border p-4">
+					<h2 className="text-lg font-semibold">Installed factory templates</h2>
+					<p className="mt-1 text-sm text-muted-foreground">
+						These records are hydrated from the generic templates installed by the Agent Factory spoke. Use the API to add, update, or delete custom factories; the dashboard keeps the registry visible so operators can confirm what is available on this host.
+					</p>
+					<div className="mt-4 grid gap-3 md:grid-cols-2">
+						{factories.map((f) => (
+							<div key={f.id} className="rounded-md border border-border p-3">
+								<div className="flex items-center justify-between gap-2">
+									<div className="font-medium">{f.name}</div>
+									<div className="rounded bg-muted px-2 py-0.5 text-xs uppercase text-muted-foreground">
+										{f.kind}
+									</div>
+								</div>
+								<div className="mt-2 font-mono text-xs text-muted-foreground">{f.slug}</div>
+								{"template" in f.definition && typeof f.definition.template === "string" ? (
+									<div className="mt-1 font-mono text-xs text-muted-foreground">
+										{f.definition.template}
+									</div>
+								) : null}
+							</div>
+						))}
+					</div>
 				</div>
 			</div>
 		</div>
