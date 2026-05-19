@@ -99,7 +99,7 @@ docker compose logs -f cortex-dashboard
 
 The container entrypoint:
 
-1. Waits for PostgreSQL (`DB_HOST:DB_PORT` from the env file).
+1. Waits for PostgreSQL (`DB_HOST:DB_PORT` from the env file). For the default host-Postgres layout, set `DB_HOST=host.docker.internal` in `/opt/cortexos/.secrets/dashboard.env` and keep the compose `extra_hosts` mapping so the container can reach the host.
 2. Runs idempotent migrations (`node scripts/migrate.js`).
 3. Starts the bundled Next.js standalone server on port 3080.
 

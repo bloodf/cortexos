@@ -27,6 +27,8 @@ services:
       - "3080:3080"
     networks:
       - cortex-net
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3080/en/login"]
       interval: 30s
