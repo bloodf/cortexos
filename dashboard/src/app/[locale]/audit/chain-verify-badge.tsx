@@ -37,7 +37,6 @@ export function AuditChainVerifyBadge({ from, to }: Props) {
 		// Bump `to` by 1ms so the verify window is inclusive of the most
 		// recent row (verifyChain treats `toTs` as exclusive).
 		params.set("to", new Date(new Date(to).getTime() + 1).toISOString());
-		// eslint-disable-next-line react-hooks/set-state-in-effect -- transitions to "loading" before async fetch; cancelled via AbortController on cleanup
 		setState({ status: "loading" });
 		const ctrl = new AbortController();
 		fetch(`/api/audit/verify?${params}`, { signal: ctrl.signal })
