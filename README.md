@@ -89,6 +89,12 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full v2 substrate.
 
 ## Quick start
 
+> **Before you begin:** read [REQUIREMENTS.md](REQUIREMENTS.md). The VPS
+> must have Node 24, an AI coding agent CLI (Claude Code / Codex /
+> Cursor), Tailscale joined to your tailnet, and a small set of CLI
+> tools (`sops`, `cosign`, `syft`, `gh`, `age`, `jq`, `git`, `curl`)
+> installed and authenticated before any install prompt is run.
+
 CortexOS installs are now **laptop-driven**: you clone the repo on your
 workstation, point an AI coding agent at the bootstrap prompt, and the
 prompt orchestrates the VPS over SSH. The VPS does not need Git, an age

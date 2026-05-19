@@ -3,6 +3,12 @@
 Orchestrator prompt for hub-and-spoke VPS configuration. This file drives the full install sequence: questionnaire → pre-flight → spoke execution → validation. Each spoke is a self-contained AI-agent prompt in `prompts/tools/`.
 
 > **Assumed starting state:** the operator already has this repository cloned on the target host (typically `/opt/cortexos` or the user's home). The agent must NOT re-clone or re-fetch the repository — it operates against the working tree it is invoked from. If the laptop-driven bootstrap path is preferred, see `prompts/00-bootstrap.md` instead.
+>
+> **Pre-install requirements:** before opening this file, the VPS must
+> have Node 24, an AI coding agent CLI (Claude Code / Codex / Cursor),
+> Tailscale joined to your tailnet, and the supporting CLI tools (`sops`,
+> `cosign`, `syft`, `gh`, `age`, `jq`, `git`, `curl`) installed. See
+> [REQUIREMENTS.md](REQUIREMENTS.md) for the full pre-install checklist.
 
 ---
 
