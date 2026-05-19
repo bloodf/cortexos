@@ -67,14 +67,58 @@ Write `/etc/caddy/Caddyfile`:
   handle /api/* {
     reverse_proxy localhost:3080
   }
+
+  # Grafana — configured with GF_SERVER_SERVE_FROM_SUB_PATH=true,
+  # so it expects /grafana in the URL. Do NOT strip_prefix.
+  handle_path /grafana {
+    redir /grafana/ permanent
+  }
   handle /grafana/* {
-    uri strip_prefix /grafana
     reverse_proxy localhost:3000
   }
+
+  # Prometheus — started with --web.route-prefix=/prometheus, so it
+  # expects /prometheus in the URL. Do NOT strip_prefix.
+  handle_path /prometheus {
+    redir /prometheus/ permanent
+  }
   handle /prometheus/* {
-    uri strip_prefix /prometheus
     reverse_proxy localhost:9090
   }
+
+  # Loki — HTTP API is path-agnostic. Strip the prefix.
+  handle /loki/* {
+    uri strip_prefix /loki
+    reverse_proxy localhost:3100
+  }
+
+  # cAdvisor — started with --url_base_prefix=/cadvisor, so it
+  # expects /cadvisor in the URL. Do NOT strip_prefix.
+  # NOTE: cAdvisor is bound to host port 8081 to avoid clashing with
+  # Caddy on 8080 (see prompts/tools/24-cadvisor.md).
+  handle_path /cadvisor {
+    redir /cadvisor/ permanent
+  }
+  handle /cadvisor/* {
+    reverse_proxy localhost:8081
+  }
+
+  # Langfuse — Langfuse v3 does not natively support a sub-path
+  # (no BASE_PATH / basePath env). NEXTAUTH_URL is set to the full
+  # /langfuse URL and links are rewritten where possible, but some
+  # absolute internal links (e.g. NextJS _next/static assets) may
+  # break under a sub-path. If that bites, expose Langfuse on a
+  # dedicated tailnet hostname instead. Do NOT strip_prefix here —
+  # NEXTAUTH_URL carries the prefix and Langfuse routes off it.
+  # Langfuse-web is bound to host port 3001 (see 55-langfuse.md)
+  # because Grafana already owns 3000.
+  handle_path /langfuse {
+    redir /langfuse/ permanent
+  }
+  handle /langfuse/* {
+    reverse_proxy localhost:3001
+  }
+
   handle {
     reverse_proxy localhost:3080
   }
@@ -106,8 +150,12 @@ listens on the tailnet interface only.
 ## Verify
 
 ```bash
-curl -sS "https://${CORTEX_DOMAIN}/" -o /dev/null -w "ts-serve: %{http_code}\n"
-curl -sS "https://${CORTEX_DOMAIN}/grafana/" -o /dev/null -w "grafana: %{http_code}\n"
+curl -sS "https://${CORTEX_DOMAIN}/" -o /dev/null -w "ts-serve:   %{http_code}\n"
+curl -sS "https://${CORTEX_DOMAIN}/grafana/"    -o /dev/null -w "grafana:    %{http_code}\n"
+curl -sS "https://${CORTEX_DOMAIN}/prometheus/" -o /dev/null -w "prometheus: %{http_code}\n"
+curl -sS "https://${CORTEX_DOMAIN}/loki/ready"  -o /dev/null -w "loki:       %{http_code}\n"
+curl -sS "https://${CORTEX_DOMAIN}/cadvisor/"   -o /dev/null -w "cadvisor:   %{http_code}\n"
+curl -sS "https://${CORTEX_DOMAIN}/langfuse/"   -o /dev/null -w "langfuse:   %{http_code}\n"
 ```
 
 Expected: `200`/`302` with no certificate errors. The browser should
