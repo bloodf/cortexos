@@ -98,15 +98,16 @@ Operator: confirm OpenClaw gateway is healthy. Type "confirmed" to proceed.
 
 ## Known Limitations
 
-### Missing HTTP routes in OpenClaw 2026.5.12 (Phase H blocker #1)
+### Gateway is WebSocket RPC, not HTTP REST
 
-The upstream OpenClaw `2026.5.12` gateway does **not** expose
-`/sendMessage` or `/registerRoute`. Any consumer (notably
-`stacks/cortex-consumer/consumer.js`) that posts to those endpoints
-will receive HTTP 404. See `docs/MESSAGING.md` → "Known Limitations"
-for the operator-decision matrix (adapter sidecar vs. RPC migration
-vs. dashboard re-route patch). All four channels remain INERT-BY-DESIGN
-until this is resolved.
+The OpenClaw `2026.5.12+` gateway exposes only `/health` over HTTP; all
+delivery RPC runs over WebSocket. The legacy `/sendMessage` /
+`/registerRoute` HTTP routes never existed upstream. CortexOS consumers
+deliver via the `openclaw` CLI (`openclaw message send`,
+`openclaw agents bind`) — see `stacks/cortex-consumer/consumer.js` and
+`docs/MESSAGING.md`. The experimental `v1` HTTP delivery path
+(`OPENCLAW_DELIVERY_API_VERSION=v1`) is opt-in and gated on upstream
+publishing the REST surface.
 
 ### Plugin discovery silent-skip (Phase H blocker #2)
 

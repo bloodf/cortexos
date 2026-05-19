@@ -2,12 +2,44 @@
   "$id": "https://cortexos/schemas/cortex-health-v1.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "cortex.health.<scope>.v1 data payload",
-  "description": "Stub schema for service health heartbeats. Field surface is TBD-strict — currently only requires a subject + timestamp so CORTEX_REQUIRE_ENVELOPE=1 has a target to validate against. Tighten before enforcing strict mode in production.",
+  "description": "Service health heartbeat payload. Emitted periodically by every CortexOS service so the dashboard and alert plugin can detect degradation or outages. Wrapped in the CloudEvents 1.0 envelope (see cloudevents-base.json).",
   "type": "object",
-  "required": ["subject", "ts"],
-  "additionalProperties": true,
+  "required": ["service", "status", "ts"],
+  "additionalProperties": false,
   "properties": {
-    "subject": { "type": "string", "minLength": 1 },
-    "ts": { "type": "string", "format": "date-time" }
+    "service": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Logical service name (e.g. cortex-consumer, paperclip-bridge, agentgateway)."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["ok", "degraded", "down"],
+      "description": "Coarse health state. 'degraded' means partial functionality; 'down' means the service is failing readiness."
+    },
+    "version": {
+      "type": "string",
+      "description": "Service version (semver, git SHA, or image tag)."
+    },
+    "uptime_sec": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Seconds since the service process started."
+    },
+    "subject": {
+      "type": "string",
+      "minLength": 1,
+      "description": "NATS subject this heartbeat was published on."
+    },
+    "ts": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when the heartbeat was produced."
+    },
+    "details": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Free-form service-specific diagnostic detail (queue depths, last error, dependency status, etc.)."
+    }
   }
 }

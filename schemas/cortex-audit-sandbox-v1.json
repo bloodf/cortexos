@@ -2,14 +2,85 @@
   "$id": "https://cortexos/schemas/cortex-audit-sandbox-v1.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "cortex.audit.sandbox.<verb>.v1 data payload",
-  "description": "Stub schema for cortex-sandbox-runner exec audit events. Field surface is TBD-strict — subject + timestamp are the only required keys so CORTEX_REQUIRE_ENVELOPE=1 has a target to validate against. Tighten before enforcing strict mode in production. See stacks/cortex-sandbox-runner/app/server.js → emitAuditEvent.",
+  "description": "cortex-sandbox-runner exec audit event. Inherits cortex-audit-v1 and constrains `payload` to a sandboxed container execution record. See stacks/cortex-sandbox-runner/app/server.js → emitAuditEvent.",
   "type": "object",
-  "required": ["subject", "ts"],
-  "additionalProperties": true,
+  "required": ["event_id", "event_type", "subject", "payload_hash", "ts", "payload"],
+  "additionalProperties": false,
   "properties": {
-    "subject": { "type": ["string", "null"] },
+    "event_id": { "type": "string", "format": "uuid" },
+    "event_type": {
+      "type": "string",
+      "pattern": "^cortex\\.audit\\.sandbox\\.[A-Za-z0-9_-]+\\.v[0-9]+$"
+    },
+    "actor": { "type": "string" },
+    "subject": { "type": "string", "minLength": 1 },
+    "payload_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "prev_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
     "ts": { "type": "string", "format": "date-time" },
-    "actor": { "type": ["string", "null"] },
-    "payload": { "type": "object" }
+    "runId": { "type": "string" },
+    "agentId": { "type": "string" },
+    "role": { "type": "string" },
+    "payload": {
+      "type": "object",
+      "required": ["exec_id", "image", "cmd", "exit_code", "network_mode"],
+      "additionalProperties": false,
+      "properties": {
+        "exec_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique sandbox execution identifier."
+        },
+        "image": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Container image (with digest, ideally) used for the execution."
+        },
+        "cmd": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "Argv array executed inside the sandbox."
+        },
+        "exit_code": {
+          "type": "integer",
+          "description": "Process exit code (negative for signal-terminated runs by convention)."
+        },
+        "stdout_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total bytes written to stdout by the sandboxed process."
+        },
+        "stderr_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total bytes written to stderr by the sandboxed process."
+        },
+        "cpu_millis_used": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "CPU time consumed, in milliseconds."
+        },
+        "mem_mb_peak": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Peak RSS in megabytes."
+        },
+        "wall_sec": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Wall-clock duration in seconds."
+        },
+        "network_mode": {
+          "type": "string",
+          "enum": ["none", "egress-only"],
+          "description": "Sandbox network policy applied to this execution."
+        },
+        "runtime": {
+          "type": "string",
+          "default": "runsc",
+          "description": "OCI runtime used (gVisor 'runsc' by default)."
+        }
+      }
+    }
   }
 }
