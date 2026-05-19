@@ -29,18 +29,25 @@ function getLanIp() {
   return candidates[0]?.ip;
 }
 
+function getClientCtor(pg) {
+  return pg.Client || pg.default?.Client;
+}
+
 async function main() {
-  // Resolve pg from the standalone bundle's node_modules.
   const pgPath = require.resolve("pg", {
     paths: [join(__dirname, "..", "node_modules")],
   });
   const pg = require(pgPath);
+  const ClientCtor = getClientCtor(pg);
+  if (!ClientCtor) {
+    throw new TypeError("pg.Client constructor unavailable");
+  }
 
   if (!process.env.DB_PASSWORD) {
     throw new Error("DB_PASSWORD environment variable is required");
   }
 
-  const client = new pg.Client({
+  const client = new ClientCtor({
     host: process.env.DB_HOST || "127.0.0.1",
     port: parseInt(process.env.DB_PORT || "5432", 10),
     database: process.env.DB_NAME || "cortex_dashboard",

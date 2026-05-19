@@ -1,50 +1,72 @@
 # syntax=docker/dockerfile:1.7
-# Cortex Dashboard — multi-stage build.
-# Build context is the repo root so local packages resolve without publishing.
+# Cortex Dashboard — multi-stage build from repo-root context.
+# Builds fully inside Docker from source; no host-prebuilt Next assets needed.
 
 ############################
-# Stage 1 — deps
-############################
-FROM node:22-slim AS deps
-WORKDIR /repo
-ENV NODE_ENV=production
-RUN corepack enable && corepack prepare pnpm@10 --activate
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* ./
-COPY packages ./packages
-COPY stacks/cortex-paperclip-bridge/package.json ./stacks/cortex-paperclip-bridge/package.json
-COPY stacks/cortex-consumer/package.json ./stacks/cortex-consumer/package.json
-COPY stacks/cortex-agentgateway/package.json ./stacks/cortex-agentgateway/package.json
-# Use pnpm with workspace protocol — npm cannot resolve "workspace:*".
-RUN pnpm install --frozen-lockfile --filter @cortexos/dashboard...
-
-############################
-# Stage 2 — builder
+# Stage 1 — builder
 ############################
 FROM node:22-slim AS builder
 WORKDIR /repo
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN corepack enable && corepack prepare pnpm@10 --activate
-COPY --from=deps /repo/node_modules ./node_modules
-COPY --from=deps /repo/packages ./packages
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* ./
+
 COPY packages ./packages
+
+RUN cd packages/cortex-events && npm install --no-audit --no-fund
+RUN cd packages/cortex-audit && npm install --no-audit --no-fund
+RUN cd packages/cortex-dashboard && npm install --no-audit --no-fund
+# Replace npm's local file symlinks with real directories so Turbopack resolves
+# the internal packages consistently inside Docker.
+RUN rm -rf /repo/packages/cortex-dashboard/node_modules/@cortexos/events /repo/packages/cortex-dashboard/node_modules/@cortexos/audit \
+ && mkdir -p /repo/packages/cortex-dashboard/node_modules/@cortexos/events \
+ && mkdir -p /repo/packages/cortex-dashboard/node_modules/@cortexos/audit \
+ && cp -a /repo/packages/cortex-events/. /repo/packages/cortex-dashboard/node_modules/@cortexos/events/ \
+ && cp -a /repo/packages/cortex-audit/. /repo/packages/cortex-dashboard/node_modules/@cortexos/audit/
+
 WORKDIR /repo/packages/cortex-dashboard
-RUN pnpm exec next build --turbopack
-RUN pnpm exec esbuild server.ts \
+RUN npm run build:next
+RUN npx esbuild server.ts \
     --bundle \
     --platform=node \
     --target=node22 \
     --format=cjs \
     --packages=external \
-    --outfile=.next/standalone/packages/cortex-dashboard/server.js
-RUN cp -r public .next/standalone/packages/cortex-dashboard/public 2>/dev/null || true \
- && mkdir -p .next/standalone/packages/cortex-dashboard/.next \
- && cp -r .next/static .next/standalone/packages/cortex-dashboard/.next/static \
- && cp -r messages .next/standalone/packages/cortex-dashboard/messages 2>/dev/null || true \
- && cp next.config.ts .next/standalone/packages/cortex-dashboard/next.config.ts
+    --outfile=server.js
+
+# Turbopack may externalize modules as <name>-<hash>. Generate generic shims.
+RUN node - <<'EOF'
+const fs = require('fs');
+const path = require('path');
+const root = process.cwd();
+const nextDir = path.join(root, '.next');
+const aliases = new Map();
+const aliasRe = /["']((?:@[^/"']+\/)?[^"'\/]+)-([a-f0-9]{8,})["']/g;
+function walk(dir) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) walk(full);
+    else if (entry.isFile() && entry.name.endsWith('.js')) {
+      const text = fs.readFileSync(full, 'utf8');
+      for (const m of text.matchAll(aliasRe)) {
+        const fullAlias = m[1];
+        const base = fullAlias.replace(/-[a-f0-9]{8,}$/, '');
+        if (!aliases.has(fullAlias)) aliases.set(fullAlias, base);
+      }
+    }
+  }
+}
+walk(nextDir);
+for (const [aliasName, base] of aliases.entries()) {
+  const dir = path.join(root, 'node_modules', aliasName);
+  const target = base === 'pg' ? 'pg/lib/index.js' : base;
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: aliasName, main: 'index.js' }, null, 2));
+  fs.writeFileSync(path.join(dir, 'index.js'), `module.exports = require(${JSON.stringify(target)});\n`);
+}
+console.log(`created ${aliases.size} external-module shim(s)`);
+EOF
 
 ############################
-# Stage 3 — runtime
+# Stage 2 — runtime
 ############################
 FROM node:22-slim AS runtime
 WORKDIR /app
@@ -52,6 +74,7 @@ ENV NODE_ENV=production \
     PORT=3080 \
     HOSTNAME=0.0.0.0 \
     NEXT_TELEMETRY_DISABLED=1
+
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       dumb-init \
@@ -59,19 +82,27 @@ RUN apt-get update \
       ca-certificates \
       postgresql-client \
  && rm -rf /var/lib/apt/lists/*
-COPY --from=builder --chown=node:node /repo/packages/cortex-dashboard/.next/standalone/packages/cortex-dashboard ./
-COPY --from=builder --chown=node:node /repo/packages/cortex-dashboard/.next/standalone/node_modules ./node_modules
-COPY --from=builder --chown=node:node /repo/packages/cortex-dashboard/migrations ./migrations
-COPY --from=builder --chown=node:node /repo/packages/cortex-dashboard/scripts ./scripts
-COPY --from=builder --chown=node:node /repo/packages/cortex-dashboard/docker-entrypoint.sh ./docker-entrypoint.sh
-COPY --from=builder --chown=node:node /repo/packages/cortex-dashboard/node_modules/ssh2 ./node_modules/ssh2
-COPY --from=builder --chown=node:node /repo/packages/cortex-dashboard/node_modules/bcryptjs ./node_modules/bcryptjs
-RUN chmod +x docker-entrypoint.sh \
+
+COPY --from=builder /repo/packages/cortex-dashboard/package.json ./package.json
+COPY --from=builder /repo/packages/cortex-dashboard/node_modules ./node_modules
+COPY --from=builder /repo/packages/cortex-dashboard/.next ./.next
+COPY --from=builder /repo/packages/cortex-dashboard/public ./public
+COPY --from=builder /repo/packages/cortex-dashboard/messages ./messages
+COPY --from=builder /repo/packages/cortex-dashboard/migrations ./migrations
+COPY --from=builder /repo/packages/cortex-dashboard/scripts ./scripts
+COPY --from=builder /repo/packages/cortex-dashboard/docker-entrypoint.sh ./docker-entrypoint.sh
+COPY --from=builder /repo/packages/cortex-dashboard/server.js ./server.js
+COPY --from=builder /repo/packages/cortex-dashboard/next.config.ts ./next.config.ts
+
+RUN printf '%s\n' "module.exports = require('./lib/index.js');" > /app/node_modules/pg/index.js \
+ && chmod +x docker-entrypoint.sh \
  && (chmod +x scripts/*.sh 2>/dev/null || true) \
  && chown -R node:node /app
+
 USER node
 EXPOSE 3080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD curl -fsS http://127.0.0.1:3080/api/health || exit 1
+  CMD curl -fsS http://127.0.0.1:3080/en/login || exit 1
+
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["./docker-entrypoint.sh"]
