@@ -44,7 +44,7 @@ const eslintConfig = defineConfig([
   },
   // Pre-compiled CJS migration runner ships with the standalone bundle.
   {
-    files: ["scripts/migrate.js"],
+    files: ["scripts/migrate.js", "scripts/dynamic-seed.js"],
     rules: {
       "@typescript-eslint/no-require-imports": "off",
     },
