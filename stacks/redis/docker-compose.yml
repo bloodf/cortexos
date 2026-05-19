@@ -1,0 +1,33 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: cortex-redis
+    restart: unless-stopped
+    env_file:
+      - ../../.secrets/redis.env
+    command: ["sh", "-c", "redis-server --save 60 1 --loglevel warning --requirepass \"$$REDIS_PASSWORD\""]
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      cortex-db:
+        aliases:
+          - redis
+      cortex-net:
+        aliases:
+          - redis
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD}\" ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  redis_data:
+
+networks:
+  cortex-db:
+    external: true
+  cortex-net:
+    external: true

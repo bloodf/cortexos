@@ -20,6 +20,7 @@ interface SystemdRow {
 	load: string;
 	active: string;
 	sub: string;
+	enabled: string;
 	description: string;
 }
 
@@ -84,6 +85,11 @@ export function AdminSystemdTable() {
 				),
 			},
 			{
+				accessorKey: "load",
+				header: "Load",
+				cell: ({ row }) => <span className="text-xs">{row.original.load}</span>,
+			},
+			{
 				id: "state",
 				header: "State",
 				cell: ({ row }) => (
@@ -91,6 +97,11 @@ export function AdminSystemdTable() {
 						{row.original.active}/{row.original.sub}
 					</span>
 				),
+			},
+			{
+				accessorKey: "enabled",
+				header: "Enabled",
+				cell: ({ row }) => <span className="text-xs">{row.original.enabled}</span>,
 			},
 			{
 				accessorKey: "description",

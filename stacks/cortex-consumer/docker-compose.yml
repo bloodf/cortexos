@@ -1,0 +1,23 @@
+services:
+  cortex-consumer:
+    build:
+      context: ../..
+      dockerfile: stacks/cortex-consumer/Dockerfile
+    image: cortex-consumer:local
+    container_name: cortex-consumer
+    restart: unless-stopped
+    env_file:
+      - /opt/cortexos/.secrets/consumer.env
+    environment:
+      NATS_URL: nats://host.docker.internal:4222
+      OPENCLAW_BASE_URL: http://host.docker.internal:18789
+      AGENTGATEWAY_BASE_URL: http://host.docker.internal:18800
+      CORTEX_GRAPH_URL: http://host.docker.internal:8090
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - cortex-net
+
+networks:
+  cortex-net:
+    external: true

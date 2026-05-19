@@ -42,6 +42,10 @@ spokes:
     deps: [11-docker]
     optional: true       # enabled only if questionnaire: mongodb=yes
 
+
+  16a-mysql:
+    deps: [11-docker]
+    optional: true       # enabled only if questionnaire: INSTALL_MYSQL=yes
   17-dnsmasq:
     deps: [10-os-hardening]
     optional: false
@@ -146,6 +150,22 @@ spokes:
     deps: [14-postgresql, 11-docker, 50-agentgateway]
     optional: false      # full Langfuse operator install + OpenLLMetry wiring
 
+
+  56-pgadmin:
+    deps: [14-postgresql]
+    optional: true       # enabled only if INSTALL_PGADMIN=yes
+
+  57-redisinsight:
+    deps: [15-redis]
+    optional: true       # enabled only if INSTALL_REDISINSIGHT=yes
+
+  58-mongo-express:
+    deps: [16-mongodb]
+    optional: true       # enabled only if INSTALL_MONGO_EXPRESS=yes
+
+  59-phpmyadmin:
+    deps: [16a-mysql]
+    optional: true       # enabled only if INSTALL_PHPMYADMIN=yes
   60-cortex-consumer:
     deps: [30-nats, 40-openclaw, 50-agentgateway, 55-langfuse]
     optional: false

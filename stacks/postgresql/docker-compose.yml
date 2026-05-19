@@ -1,0 +1,37 @@
+services:
+  postgresql:
+    image: postgres:17-alpine
+    container_name: cortex-postgresql
+    restart: unless-stopped
+    env_file:
+      - ../../.secrets/postgres.env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cortex_dashboard}
+      POSTGRES_USER: ${POSTGRES_USER:-dashboard}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      cortex-db:
+        aliases:
+          - postgresql
+      cortex-net:
+        aliases:
+          - cortex-postgresql
+          - postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-dashboard} -d $${POSTGRES_DB:-cortex_dashboard}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:
+
+networks:
+  cortex-db:
+    external: true
+  cortex-net:
+    external: true

@@ -55,9 +55,16 @@ export NINEROUTER_API_KEY=""           # Master key for 9Router (generate a rand
 # wire that integration up via its dedicated prompt under `prompts/integrations/`.
 
 # 6. Optional services
-export INSTALL_MONGODB="no"            # yes|no — default no
+export INSTALL_MONGODB="no"            # yes|no
+export INSTALL_MYSQL="no"              # yes|no
 export INSTALL_JELLYFIN="no"           # yes|no
 export INSTALL_HOME_ASSISTANT="no"     # yes|no
+export INSTALL_PGADMIN="yes"           # yes|no — PostgreSQL web admin
+export INSTALL_REDISINSIGHT="yes"      # yes|no — Redis GUI
+export INSTALL_MONGO_EXPRESS="no"      # yes|no — MongoDB web admin (requires INSTALL_MONGODB)
+export INSTALL_PHPMYADMIN="no"         # yes|no — MySQL web admin (requires INSTALL_MYSQL)
+export INSTALL_HOMEBREW="yes"          # yes|no — Homebrew for Linux
+export INSTALL_WATCHTOWER="yes"        # yes|no — Docker image auto-updates
 
 # 7. Generated secrets (fill these in or let the agent generate them)
 export DASHBOARD_DB_PASSWORD=""        # PostgreSQL password for dashboard role

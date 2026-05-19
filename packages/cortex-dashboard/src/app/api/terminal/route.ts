@@ -43,10 +43,11 @@ function createSession(id: string): Session {
 		...process.env,
 		TERM: "xterm-256color",
 		COLORTERM: "truecolor",
+		HOME: "/root",
 	};
 
 	const child = IN_CONTAINER
-		? spawn("nsenter", ["--target", "1", "--mount", "--pid", "--uts", "--ipc", "--net", "--wd=/root", "--", shell, "-l"], {
+		? spawn("nsenter", ["--target", "1", "--mount", "--pid", "--uts", "--ipc", "--net", "--", shell, "-l"], {
 				cwd: "/",
 				env,
 			})
