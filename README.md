@@ -34,7 +34,7 @@ CortexOS turns one Linux VPS into managed AI operations environment. Instead of 
 
 Supported host distros: Ubuntu 24.04 LTS, Ubuntu 25.x, Debian 13 (Trixie). Operator selects family in `prompts/os/00-os-selection.md`; all subsequent prompts dispatch via `scripts/pkg.sh`.
 
-Target end state: Docker-backed services, SOPS-encrypted secrets, CloudEvents-signed NATS bus, hash-chained TimescaleDB audit, gVisor-sandboxed tool execution, self-hosted Langfuse LLM observability, SLSA-L2-signed images, Next.js dashboard for daily administration, and optional Paperclip governance plane for cross-agent goals, approvals, and monthly budgets.
+Target end state: Docker-backed services, SOPS-encrypted secrets, CloudEvents-signed NATS bus, hash-chained TimescaleDB audit, gVisor-sandboxed tool execution, self-hosted Langfuse LLM observability, SLSA-L2-signed images, Next.js dashboard for daily administration, and the Paperclip governance plane for cross-agent goals, approvals, and monthly budgets.
 
 ## What CortexOS provides
 
@@ -46,7 +46,7 @@ Target end state: Docker-backed services, SOPS-encrypted secrets, CloudEvents-si
 - **Secure secrets lifecycle**: Host `.secrets/` files feed encrypted dashboard storage, rotation procedures, and allowlisted reads.
 - **Observability stack**: Prometheus, Loki, Grafana, Fluent Bit, exporters, and health checks cover host and services.
 - **Debian-family install path**: Ubuntu 24.04 / 25.x and Debian 13 Trixie supported via `scripts/pkg.sh` dispatcher and `prompts/os/` selection step.
-- **Paperclip governance plane (optional)**: Bridge service connects CortexOS to [Paperclip](https://paperclip.ing) for goals, monthly budgets, approval gates, and audit trail. CortexOS keeps execution authority; Paperclip owns governance. See [docs/PAPERCLIP.md](docs/PAPERCLIP.md).
+- **Paperclip governance plane (required)**: Bridge service connects CortexOS to [Paperclip](https://paperclip.ing) for goals, monthly budgets, approval gates, and audit trail. CortexOS keeps execution authority; Paperclip owns governance. Bootstrap is not complete until Paperclip is wired in. See [docs/PAPERCLIP.md](docs/PAPERCLIP.md).
 
 ## What CortexOS is not
 
