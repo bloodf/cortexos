@@ -8,7 +8,6 @@
  * and only attempted when NATS_URL is configured. Failures never throw.
  */
 import { createHmac } from "node:crypto";
-// @ts-expect-error — workspace JS package, no .d.ts shipped yet
 import { envelope as buildCloudEvent, validate as validateCloudEvent } from "@cortexos/events";
 
 export type AlertSeverity = "info" | "warning" | "critical";
