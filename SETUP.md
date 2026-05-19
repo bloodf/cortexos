@@ -2,6 +2,8 @@
 
 Orchestrator prompt for hub-and-spoke VPS configuration. This file drives the full install sequence: questionnaire → pre-flight → spoke execution → validation. Each spoke is a self-contained AI-agent prompt in `prompts/tools/`.
 
+> **Assumed starting state:** the operator already has this repository cloned on the target host (typically `/opt/cortexos` or the user's home). The agent must NOT re-clone or re-fetch the repository — it operates against the working tree it is invoked from. If the laptop-driven bootstrap path is preferred, see `prompts/00-bootstrap.md` instead.
+
 ---
 
 ## Questionnaire
@@ -20,22 +22,20 @@ export CORTEX_DOMAIN=""                 # Public domain (e.g. cortex.example.com
                                         # Can be a Tailscale FQDN or custom DNS
 
 # 3. Tailscale
-export TAILSCALE_AUTHKEY=""            # From https://login.tailscale.com/admin/settings/keys
+# No token needed at setup time — `prompts/tools/12-tailscale.md` runs
+# `tailscale up` interactively and you sign in through the browser URL it
+# prints. Skip this section.
 
 # 4. AI providers (default: 9Router handles all; add keys for providers you have)
 export OPENAI_API_KEY=""
 export ANTHROPIC_API_KEY=""
 export NINE_ROUTER_API_KEY=""          # Master key for 9Router (generate a random string)
 
-# 5. Messaging platforms (check all you want to enable)
-#    Telegram, Slack, Discord, WhatsApp are all mandatory for v1.0.
-export TELEGRAM_BOT_TOKEN=""
-export SLACK_BOT_TOKEN=""
-export SLACK_SIGNING_SECRET=""
-export DISCORD_BOT_TOKEN=""
-export DISCORD_APP_ID=""
-export WHATSAPP_ACCESS_TOKEN=""
-export WHATSAPP_PHONE_ID=""
+# 5. Messaging platforms — deferred
+# Telegram, Slack, Discord, and WhatsApp tokens are NOT needed at setup time.
+# Add each platform's secrets to /opt/cortexos/.secrets/<platform>.env (or via
+# the encrypted templates under templates/.secrets/) only when you actually
+# wire that integration up via its dedicated prompt under `prompts/integrations/`.
 
 # 6. Optional services
 export INSTALL_MONGODB="no"            # yes|no — default no

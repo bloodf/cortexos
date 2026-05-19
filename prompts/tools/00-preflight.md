@@ -57,17 +57,29 @@ export CORTEX_VERIFY_ISSUER="https://token.actions.githubusercontent.com"
 
 These pins are consumed by `scripts/verify-artifact.sh`. Forks MUST override `CORTEX_VERIFY_REPO`. See [docs/SUPPLY-CHAIN.md](../../docs/SUPPLY-CHAIN.md) for the threat model and full verification protocol.
 
-### Smoke-test the verifier
+### Smoke-test the verifier (optional on first install)
 
-Download the latest release artifact and confirm the verifier works end-to-end:
+If `${CORTEX_VERIFY_REPO}` already has a tagged release with a `dashboard-*`
+artifact, confirm the verifier end-to-end. On a brand-new repository there is
+no release yet, and this step is intentionally skipped — the dashboard image
+is built locally on the VPS via `docker compose build` (`stacks/cortex-dashboard`)
+and signed releases come later via `.github/workflows/release.yml`.
 
 ```bash
 mkdir -p /tmp/cortex-verify && cd /tmp/cortex-verify
-gh release download --repo "$CORTEX_VERIFY_REPO" --pattern 'dashboard-*'
-"$OLDPWD/scripts/verify-artifact.sh" dashboard-*.tar.gz
+if gh release view --repo "$CORTEX_VERIFY_REPO" >/dev/null 2>&1; then
+  gh release download --repo "$CORTEX_VERIFY_REPO" --pattern 'dashboard-*'
+  "$OLDPWD/scripts/verify-artifact.sh" dashboard-*.tar.gz
+else
+  echo "[preflight] no release yet on $CORTEX_VERIFY_REPO — skipping artifact verification"
+  echo "[preflight] this is expected on a fresh install; verification resumes once releases exist"
+fi
 ```
 
-Expected output ends with `[verify] OK: ... verified (checksum + cosign + SBOM + provenance)`. If verification fails: **HALT**. Do not proceed with any installation prompt until the supply-chain gate passes.
+Expected output (when a release exists) ends with
+`[verify] OK: ... verified (checksum + cosign + SBOM + provenance)`. If a
+release exists and verification fails: **HALT**. Do not proceed until the
+supply-chain gate passes.
 
 ---
 
