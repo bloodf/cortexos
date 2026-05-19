@@ -108,3 +108,27 @@ export type NotifyTestInput = z.infer<typeof notifyTestInputSchema>;
 export const paperclipRefreshInputSchema = z.object({}).strict();
 
 export type PaperclipRefreshInput = z.infer<typeof paperclipRefreshInputSchema>;
+
+/**
+ * V12 — POST /api/paperclip/approve.
+ *
+ * Operator decision payload. Subject pattern enforced server-side; we only
+ * validate the inputs we let the client send.
+ */
+export const approvalSignalInputSchema = z.object({
+	runId: z
+		.string()
+		.min(1)
+		.max(128)
+		.regex(/^[A-Za-z0-9._:-]+$/u, "runId must match [A-Za-z0-9._:-]"),
+	signalName: z
+		.string()
+		.min(1)
+		.max(64)
+		.regex(/^[A-Za-z0-9_-]+$/u, "signalName must match [A-Za-z0-9_-]")
+		.default("approval"),
+	decision: z.enum(["approve", "deny"]),
+	reason: z.string().trim().max(2000).optional(),
+});
+
+export type ApprovalSignalInput = z.infer<typeof approvalSignalInputSchema>;
