@@ -55,34 +55,21 @@ Next: approve in dashboard if expected.
 
 ## Known Limitations
 
-### Phase H FAIL — OpenClaw gateway `/sendMessage` 404 (operator decision pending)
+### OpenClaw delivery is CLI-shellout (resolved 2026-05-19)
 
-As of OpenClaw `2026.5.12`, the gateway running on `127.0.0.1:18789` does
-**not** implement the legacy HTTP endpoints `/sendMessage` or
-`/registerRoute`. Every outbound delivery routed through
-`stacks/cortex-consumer/consumer.js` therefore returns HTTP 404 and no
-message reaches Telegram, Slack, Discord, or WhatsApp end-points — even
-though the upstream NATS publish, schema validation, KV dedup, and
-consumer dispatch succeed.
+The OpenClaw gateway at `127.0.0.1:18789` exposes only `/health` over
+HTTP; all delivery RPC is WebSocket. Legacy `/sendMessage` /
+`/registerRoute` HTTP routes never existed upstream. CortexOS picked
+option #2 from the prior operator-decision matrix: `consumer.js`
+delivers via the `openclaw` CLI (`openclaw message send --json`,
+`openclaw agents bind`), which is the verified real-OpenClaw surface.
 
-Live evidence (2026-05-16 Phase H final run): smoke-test publishes to
-`cortex.factory.workflow.<slug>.weekly-smoke` for `3guns`, `mementry`,
-`celebrar`, `netbook` all reached the consumer; consumer POSTed to
-`http://127.0.0.1:18789/sendMessage` and received `404 Not Found` for
-every attempt.
-
-Operator must select one path before v1.0 sign-off:
-
-1. **Adapter sidecar.** Build a small translator service that exposes
-   `/sendMessage` and forwards to the actual OpenClaw RPC surface.
-2. **Migrate consumer.** Rewrite `consumer.js` outbound calls to use
-   the OpenClaw RPC client directly.
-3. **Patch dashboard re-route.** Add the legacy routes inside the
-   dashboard's request-translation layer.
-
-Until resolved, treat Telegram / Slack / Discord / WhatsApp delivery as
-**INERT-BY-DESIGN**. Repo prompts (`60-cortex-consumer.md`,
-`40-openclaw.md`, `41-openclaw-channels.md`) mirror this caveat.
+Toggle the experimental REST path with
+`OPENCLAW_DELIVERY_API_VERSION=v1` to route through
+`POST ${OPENCLAW_BASE}/v1/channels/<channel>/messages` with bearer
+`OPENCLAW_API_KEY`. Default remains `cli`. The HTTP path is opt-in
+until upstream publishes a stable REST surface — see TODO marker in
+`stacks/cortex-consumer/consumer.js`.
 
 ### `@openclaw/slack` plugin not bundled
 

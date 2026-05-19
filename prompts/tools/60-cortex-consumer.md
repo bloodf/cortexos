@@ -62,9 +62,14 @@ the `EnvironmentFile=` directive in the systemd unit and the path other
 spokes `cat >>` into):
 
 ```bash
+# Source AgentGateway bearer from its secrets file so consumer.env stays
+# the single env-file pointed to by the systemd unit.
+. /opt/cortexos/.secrets/agentgateway.env
 sudo tee /opt/cortexos/.secrets/consumer.env <<EOF
 NATS_URL=nats://127.0.0.1:4222
 OPENCLAW_BASE_URL=http://127.0.0.1:18789
+AGENTGATEWAY_BASE_URL=http://127.0.0.1:18800
+AGENTGATEWAY_BEARER_TOKEN=${AGENTGATEWAY_BEARER_TOKEN}
 EOF
 sudo chmod 600 /opt/cortexos/.secrets/consumer.env
 ```
@@ -72,12 +77,26 @@ sudo chmod 600 /opt/cortexos/.secrets/consumer.env
 `consumer.js` reads `OPENCLAW_BASE_URL` (not `OPENCLAW_BASE`) at startup;
 the older name is a no-op.
 
-> **FUTURE WORK — AgentGateway integration.** `consumer.js` does NOT invoke
-> AgentGateway today. The `AGENTGATEWAY_BASE_URL` env and `agentgateway_url`
-> config field have been removed from this prompt to avoid implying a wiring
-> that doesn't exist. Real consumer → AgentGateway dispatch (tool-invoke
-> requests, audit fan-out via `cortex.audit.agentgateway.*`) is deferred to a
-> follow-up phase tracked alongside `prompts/tools/50-agentgateway.md`.
+### AgentGateway dispatch (V13)
+
+`consumer.js` routes paperclip work to the AgentGateway tool broker when
+**all** of the following are true:
+
+1. `AGENTGATEWAY_BASE_URL` + `AGENTGATEWAY_BEARER_TOKEN` are set in `consumer.env`.
+2. The role appears in `/opt/cortexos/templates/agent-roles/.agentgateway-required.json` (written by `prompts/tools/50-agentgateway.md`).
+3. The inbound paperclip payload contains a `tool_invocation` block (`{ tool, args, confirmationToken? }`).
+
+On dispatch the consumer POSTs `{tool,args,runId,agentId,role,confirmationToken?}`
+to `${AGENTGATEWAY_BASE_URL}/tool/invoke` with `Authorization: Bearer …` and a
+`Nats-Msg-Id: <runId>:<tool>` header for server-side dedup. 401 → alert +
+DLQ fallback; 403 → DLQ fallback; 5xx / network errors rely on JetStream
+redelivery. Successful dispatches log `[agentgateway] dispatched run=… role=… tool=…`.
+
+`kill -HUP cortex-consumer` (or `systemctl kill -s HUP cortex-consumer`)
+reloads all roster files (`.agentgateway-required.json`,
+`.graph-enabled.json`, `.sandbox-required.json`, `.approval-required.json`)
+without restarting the process. Expect `[sighup] roster caches cleared` in
+the journal.
 
 Substitute placeholders in the installed unit (template ships with `{VPS_USER}` + `{VPS_HOME}` — must be replaced before enable):
 
@@ -112,6 +131,43 @@ Expected: service active, log shows `Connected to NATS` and `Subscribed to corte
 
 Operator: confirm cortex-consumer is active and subscribed to the NATS approval subject. Type "confirmed" to proceed.
 
+## CHECKPOINT 3 — AgentGateway dispatch end-to-end
+
+Verify the V13 wiring by publishing a paperclip work event with a
+`tool_invocation` block for a role in the AgentGateway roster (default:
+`ENG-BACKEND`) and confirming the consumer hands it to AgentGateway:
+
+```bash
+# Build a minimal payload — replace the HMAC + CloudEvents helpers with
+# scripts/publish-paperclip-test.sh in CI; this inline form is for the
+# operator-checkpoint path.
+. /opt/cortexos/.secrets/agentgateway.env
+. /opt/cortexos/.secrets/consumer.env || true
+RUN_ID="ckpt-$(date +%s)"
+ISSUE_ID="ckpt-issue"
+
+# Watch the audit subject AgentGateway publishes on (separate terminal):
+#   nats sub --count=1 'cortex.audit.agentgateway.>'
+
+# Publish a paperclip work event (envelope construction handled by the
+# test publisher; see stacks/cortex-paperclip-bridge/test-publish.sh
+# for the canonical builder). Then grep the consumer journal:
+journalctl -u cortex-consumer --since '60s ago' \
+  | grep -E '\[agentgateway\] dispatched.*'"$RUN_ID"
+```
+
+Pass criteria:
+
+- Consumer journal contains `[agentgateway] dispatched run=<RUN_ID> role=ENG-BACKEND tool=<name>`.
+- Audit subscriber observed a single `cortex.audit.agentgateway.tool-invoke.v1` event for the run.
+- No `[agentgateway] dispatch failed` lines for the run.
+
+Failure modes:
+
+- `[agentgateway] roster non-empty but AGENTGATEWAY_BEARER_TOKEN missing` → bearer not sourced into `consumer.env`; re-run the env-write block above.
+- `agentgateway http 401` → bearer mismatch between consumer.env and agentgateway.env; rotate both from the SOPS-encrypted source.
+- `agentgateway http 403` → tool not allowed for the role in `templates/agentgateway/tools.json`; expected for destructive tools missing a confirmationToken.
+
 ## Known Limitations
 
 ### WatchdogSec intentionally absent
@@ -142,21 +198,21 @@ client (some heartbeat intervals are advertised as months-in-ms). Removing
 the shim re-introduces `TimeoutOverflowWarning` and silent reconnect stalls.
 See repo commit `ca98e1c`.
 
-### OpenClaw gateway `/sendMessage` returns 404 (Phase H blocker)
+### OpenClaw delivery is CLI-shellout, not HTTP REST
 
-As of OpenClaw `2026.5.12`, the gateway at `:18789` does **not** expose
-`/sendMessage` nor `/registerRoute`. `consumer.js` still POSTs to those
-URLs and receives HTTP 404 for every outbound delivery. This is **Phase H
-blocker #1**, awaiting operator decision among:
+The OpenClaw gateway at `:18789` exposes a WebSocket RPC surface, not a
+REST API — legacy `/sendMessage` and `/registerRoute` HTTP routes were
+never implemented upstream (404 on `2026.5.12` and later). `consumer.js`
+therefore delivers via the CLI: `openclaw message send --json …` and
+`openclaw agents bind …` (option #2 from the prior operator-decision
+matrix). `OPENCLAW_BIN` and `OPENCLAW_CLI_TIMEOUT_MS` tune the shellout;
+errors increment `openclaw_http_errors_total` and trip the circuit
+breaker as before.
 
-1. Build a thin adapter sidecar that translates the legacy
-   `/sendMessage` shape to OpenClaw's actual RPC surface.
-2. Migrate `consumer.js` to the OpenClaw RPC client directly.
-3. Patch routes back in via the dashboard re-route layer.
-
-Until resolved, smoke-test publishes succeed at the NATS layer but the
-consumer's `openclaw.send()` returns 404 and no message reaches the
-configured channel. See `docs/MESSAGING.md` → "Known Limitations".
+An experimental HTTP path is gated behind `OPENCLAW_DELIVERY_API_VERSION=v1`
+(default `cli`) and targets `POST ${OPENCLAW_BASE}/v1/channels/<channel>/messages`
+with bearer `OPENCLAW_API_KEY`. Off by default until the upstream REST
+surface is published — see `docs/MESSAGING.md`.
 
 ## Next
 

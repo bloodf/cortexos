@@ -114,17 +114,17 @@ Mon 2026-05-18 09:01:43 UTC 1 day 23h -    -      cortex-smoke@mementry.timer
 
 ## Known Limitations
 
-### Phase H FAIL — channel deliveries silently dropped at OpenClaw
+### Channel delivery runs through the OpenClaw CLI
 
-Smoke-test publishes reach NATS and are consumed correctly. The
-downstream POST to `http://127.0.0.1:18789/sendMessage` returns
-HTTP 404 because OpenClaw `2026.5.12` does not expose that route — see
-`docs/MESSAGING.md` → "Known Limitations" and `60-cortex-consumer.md`
-→ "OpenClaw gateway `/sendMessage` returns 404".
+Smoke-test publishes reach NATS, get consumed, then `consumer.js` shells
+out to `openclaw message send --json --account … --channel … --target …`
+to fan out to Telegram / Slack / Discord / WhatsApp. The legacy
+`/sendMessage` HTTP path (404 on `2026.5.12`+) has been removed — see
+`docs/MESSAGING.md` and `60-cortex-consumer.md`.
 
-Until the operator resolves blocker #1, weekly smoke timers will fire
-and log a delivery failure, but no Telegram / Slack / Discord /
-WhatsApp message will reach the corresponding account.
+Per-platform delivery health is observable via `openclaw_http_ok_total`
+/ `openclaw_http_errors_total` on `:7081/metrics` (CLI shellouts and the
+opt-in `v1` HTTP path both feed the same counters).
 
 ## CHECKPOINT 2
 

@@ -107,6 +107,34 @@ Operator: confirm `/health` returns 200, missing-bearer returns 401, safe-tool
 invoke returns 200, and the audit event appears on
 `cortex.audit.agentgateway.tool-invoke.v1`. Type "confirmed" to proceed.
 
+## Roster (which roles route tool calls through AgentGateway)
+
+`stacks/cortex-consumer/consumer.js` reads a roster file to decide which
+roles must POST `tool_invocation` blocks through `/tool/invoke` instead of
+executing tools inline. Default roster matches the sandbox roster
+(`["ENG-BACKEND"]`) so destructive backend tool calls are permission-gated
+and audited centrally. Operators opt additional roles in by appending here.
+
+```bash
+sudo install -d -m 0755 /opt/cortexos/templates/agent-roles
+sudo tee /opt/cortexos/templates/agent-roles/.agentgateway-required.json <<'EOF'
+[
+  "ENG-BACKEND"
+]
+EOF
+```
+
+If `cortex-consumer` is already running, reload roster caches without
+restarting the process:
+
+```bash
+sudo systemctl kill -s HUP cortex-consumer 2>/dev/null \
+  || sudo pkill -HUP -f 'cortex-consumer/consumer.js'
+journalctl -u cortex-consumer --since '30s ago' | grep -F '[sighup] roster caches cleared'
+```
+
+Otherwise the next consumer start picks the roster up automatically.
+
 ## Next
 
 → `prompts/tools/55-langfuse.md`

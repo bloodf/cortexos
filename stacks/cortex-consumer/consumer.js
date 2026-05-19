@@ -86,6 +86,18 @@ const CORTEX_SANDBOX_API_TOKEN = process.env.CORTEX_SANDBOX_API_TOKEN || "";
 const CORTEX_SANDBOX_ROLES_FILE = process.env.CORTEX_SANDBOX_ROLES_FILE
   || "/opt/cortexos/templates/agent-roles/.sandbox-required.json";
 
+// V13 — optional dispatch through the cortex-agentgateway tool broker.
+// When `AGENTGATEWAY_BASE_URL` is set AND the role appears in the
+// agentgateway roster AND the inbound paperclip payload contains a
+// `tool_invocation` block, the consumer POSTs to `/tool/invoke` for
+// permission gating + audit fan-out. Missing bearer downgrades to a
+// fail-safe skip (logged once) so a half-configured gateway cannot
+// stall the consumer.
+const AGENTGATEWAY_BASE_URL = (process.env.AGENTGATEWAY_BASE_URL || "http://127.0.0.1:18800").replace(/\/$/, "");
+const AGENTGATEWAY_BEARER_TOKEN = process.env.AGENTGATEWAY_BEARER_TOKEN || "";
+const AGENTGATEWAY_ROLES_FILE = process.env.AGENTGATEWAY_ROLES_FILE
+  || "/opt/cortexos/templates/agent-roles/.agentgateway-required.json";
+
 // V12 — NATS-signal approvals. When a role appears in the approval-required
 // roster file the consumer pauses dispatch and awaits a signed signal at
 // `cortex.signals.<runId>.approval`. Timeout defaults to 24h and is
@@ -107,6 +119,15 @@ const OPENCLAW_BASE = (process.env.OPENCLAW_BASE_URL || "http://127.0.0.1:18789"
 const OPENCLAW_BIN = process.env.OPENCLAW_BIN || "openclaw";
 const OPENCLAW_CLI_TIMEOUT_MS = Number(process.env.OPENCLAW_CLI_TIMEOUT_MS || 15_000);
 const OPENCLAW_OUTBOUND_HMAC = process.env.CORTEX_OPENCLAW_OUTBOUND_HMAC || "";
+// Delivery API selector. "cli" (default) shells out to `openclaw message send`,
+// which is the verified real-OpenClaw delivery path (gateway is ws://, not REST).
+// "v1" routes through `${OPENCLAW_BASE}/v1/channels/<channel>/messages` for
+// future HTTP-REST builds — see docs/MESSAGING.md. The legacy `/sendMessage`
+// shape (404 on OpenClaw ≥2026.5.12) has been removed.
+// TODO(openclaw-rest): verify v1 endpoint against upstream once published —
+// https://github.com/openclawd/openclaw (operator snapshot at docs/external/).
+const OPENCLAW_DELIVERY_API_VERSION = (process.env.OPENCLAW_DELIVERY_API_VERSION || "cli").toLowerCase();
+const OPENCLAW_API_KEY = process.env.OPENCLAW_API_KEY || "";
 const NATS_HMAC = process.env.CORTEX_NATS_HMAC || "";
 const ROUTING_CONFIG = process.env.ROUTING_CONFIG || "/opt/cortexos/stacks/cortex-consumer/config.json";
 const STATE_FILE = process.env.THREAD_STATE_FILE || "/opt/cortexos/state/consumer-threads.json";
@@ -347,6 +368,10 @@ function renderBlocksToText(blocks) {
 }
 
 async function openclawSendMessage({ account, channel, target, blocks }) {
+  if (OPENCLAW_DELIVERY_API_VERSION === "v1") {
+    return openclawSendMessageHttpV1({ account, channel, target, blocks });
+  }
+  // Default: CLI shellout — verified real OpenClaw delivery path.
   const args = ["message", "send", "--json"];
   if (account) args.push("--account", account);
   if (channel) args.push("--channel", channel);
@@ -354,6 +379,47 @@ async function openclawSendMessage({ account, channel, target, blocks }) {
   args.push("-m", renderBlocksToText(blocks) || " ");
   args.push("--presentation", JSON.stringify(blocks || {}));
   return openclawExec(args);
+}
+
+// HTTP REST delivery (experimental, gated by OPENCLAW_DELIVERY_API_VERSION=v1).
+// Endpoint shape: POST ${OPENCLAW_BASE}/v1/channels/<channel>/messages
+// Auth: Bearer ${OPENCLAW_API_KEY}.
+// TODO(openclaw-rest): confirm exact endpoint + body schema against upstream
+// docs/external/openclaw.snapshot.md once operator snapshots it. Logs response
+// status so ops can spot 404s during rehearsal.
+async function openclawSendMessageHttpV1({ account, channel, target, blocks }) {
+  if (!cbAllow()) throw new Error("circuit open — skipping openclaw http v1");
+  if (!channel) throw new Error("openclaw http v1 requires channel id");
+  const url = `${OPENCLAW_BASE}/v1/channels/${encodeURIComponent(channel)}/messages`;
+  const body = {
+    account: account || undefined,
+    target: target ? String(target) : undefined,
+    text: renderBlocksToText(blocks) || " ",
+    presentation: blocks || {},
+  };
+  const headers = { "content-type": "application/json" };
+  if (OPENCLAW_API_KEY) headers.authorization = `Bearer ${OPENCLAW_API_KEY}`;
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+    });
+    process.stdout.write(`[openclaw.http] ${res.status} ${url}\n`);
+    if (!res.ok) {
+      metrics.openclaw_http_errors_total++;
+      cbRecord(false);
+      const text = await res.text().catch(() => "");
+      throw new Error(`openclaw http v1 ${res.status}: ${text.slice(0, 200)}`);
+    }
+    metrics.openclaw_http_ok_total++;
+    cbRecord(true);
+    return await res.text();
+  } catch (e) {
+    metrics.openclaw_http_errors_total++;
+    cbRecord(false);
+    throw new Error(`openclaw http v1 failed: ${e.message || e}`);
+  }
 }
 
 async function openclawBindRoute({ agent, channel, account }) {
@@ -811,6 +877,91 @@ async function dispatchToSandbox({ role, issueId, runId, payload }) {
   }
 }
 
+// V13 — AgentGateway dispatch helpers. Parallel to V7 (graph) and V10
+// (sandbox). The roster gates which roles must route tool calls through
+// the broker so permission gating + audit fan-out happens server-side.
+let __agentGatewayRolesCache = null;
+let __agentGatewayWarnedNoToken = false;
+
+function loadAgentGatewayRoster() {
+  if (__agentGatewayRolesCache !== null) return __agentGatewayRolesCache;
+  try {
+    const raw = JSON.parse(readFileSync(AGENTGATEWAY_ROLES_FILE, "utf8"));
+    __agentGatewayRolesCache = Array.isArray(raw)
+      ? new Set(raw.map((r) => String(r).toUpperCase()))
+      : new Set();
+  } catch {
+    __agentGatewayRolesCache = new Set();
+  }
+  return __agentGatewayRolesCache;
+}
+
+function shouldDispatchToAgentGateway(role) {
+  if (!AGENTGATEWAY_BASE_URL) return false;
+  const roles = loadAgentGatewayRoster();
+  if (roles.size === 0) return false;
+  if (!AGENTGATEWAY_BEARER_TOKEN) {
+    if (!__agentGatewayWarnedNoToken) {
+      process.stderr.write("[agentgateway] roster non-empty but AGENTGATEWAY_BEARER_TOKEN missing — skipping dispatch\n");
+      __agentGatewayWarnedNoToken = true;
+    }
+    return false;
+  }
+  return roles.has(String(role).toUpperCase());
+}
+
+// Extract the tool_invocation block from the paperclip payload. The bridge
+// places it at `payload.tool_invocation`; legacy emitters may inline at the
+// root. Either shape returns `{ tool, args, confirmationToken? }` or null.
+function extractToolInvocation(payload) {
+  if (!payload || typeof payload !== "object") return null;
+  const inv = payload.tool_invocation || payload.toolInvocation || null;
+  if (!inv || typeof inv !== "object" || !inv.tool) return null;
+  return {
+    tool: String(inv.tool),
+    args: inv.args && typeof inv.args === "object" ? inv.args : {},
+    confirmationToken: inv.confirmationToken || inv.confirmation_token || undefined,
+  };
+}
+
+export async function dispatchToAgentGateway({ role, issueId, runId, agentId, invocation }) {
+  const url = `${AGENTGATEWAY_BASE_URL}/tool/invoke`;
+  const body = {
+    tool: invocation.tool,
+    args: invocation.args,
+    runId,
+    agentId: agentId || role,
+    role,
+  };
+  if (invocation.confirmationToken) body.confirmationToken = invocation.confirmationToken;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15_000);
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${AGENTGATEWAY_BEARER_TOKEN}`,
+        "X-Cortex-Run-Id": runId || "",
+        "X-Cortex-Issue-Id": issueId || "",
+        "Nats-Msg-Id": runId ? `${runId}:${invocation.tool}` : "",
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    const status = res.status;
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      const err = new Error(`agentgateway http ${status}: ${text}`);
+      err.status = status;
+      throw err;
+    }
+    return await res.json().catch(() => ({}));
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 // V12 — approval-required roster loader. Mirrors the V7/V10 cache pattern so
 // the file is parsed once per process lifetime; restart picks up edits.
 let __approvalRolesCache = null;
@@ -980,6 +1131,37 @@ async function handlePaperclipWork(subject, envelope) {
       process.stdout.write(`[sandbox] dispatched run=${data.runId} role=${role} exit=${resp.exitCode ?? "?"}\n`);
     } catch (e) {
       process.stderr.write(`[sandbox] dispatch failed run=${data.runId} role=${role}: ${e.message}\n`);
+    }
+  }
+  // V13 — gated dispatch to the cortex-agentgateway tool broker. Fires
+  // when (1) role is in the agentgateway roster, AND (2) the payload
+  // carries a `tool_invocation` block. AgentGateway owns the permission
+  // gate (safe vs destructive), confirmation-token verification, and
+  // CloudEvents audit publish on `cortex.audit.agentgateway.tool-invoke.v1`.
+  // 401 → alert + DLQ-fallback. 403 → DLQ-fallback (caller denied).
+  // 5xx → log only; the broker retries internally and JetStream
+  // redelivery already covers the work message.
+  const invocation = extractToolInvocation(data.payload);
+  if (invocation && shouldDispatchToAgentGateway(role)) {
+    try {
+      const resp = await dispatchToAgentGateway({
+        role,
+        issueId: data.issueId,
+        runId: data.runId,
+        agentId: data.agentId,
+        invocation,
+      });
+      process.stdout.write(`[agentgateway] dispatched run=${data.runId} role=${role} tool=${invocation.tool} result=${resp.status || "ok"}\n`);
+    } catch (e) {
+      process.stderr.write(`[agentgateway] dispatch failed run=${data.runId} role=${role} tool=${invocation.tool}: ${e.message}\n`);
+      const status = e.status || 0;
+      if (status === 401) {
+        try { await publishAlert("error", { kind: "agentgateway-auth-failed", runId: data.runId, role, tool: invocation.tool }); } catch { /* best-effort */ }
+        try { await publishDLQ(subject, data, `agentgateway 401: ${e.message}`); } catch { /* best-effort */ }
+      } else if (status === 403) {
+        try { await publishDLQ(subject, data, `agentgateway 403: ${e.message}`); } catch { /* best-effort */ }
+      }
+      // 5xx and network errors: rely on existing JetStream redelivery; do not DLQ here.
     }
   }
   // P2 scope: re-emit a `received` event for downstream OMC executor wiring.
@@ -1478,6 +1660,18 @@ async function main() {
 
   process.on("SIGTERM", () => shutdown("SIGTERM", servers));
   process.on("SIGINT", () => shutdown("SIGINT", servers));
+  // SIGHUP — clear roster caches so a `systemctl reload` (or `kill -HUP`)
+  // picks up edits to `.graph-enabled.json`, `.sandbox-required.json`,
+  // `.agentgateway-required.json`, `.approval-required.json` without
+  // requiring a process restart.
+  process.on("SIGHUP", () => {
+    __graphRolesCache = null;
+    __sandboxRolesCache = null;
+    __agentGatewayRolesCache = null;
+    __agentGatewayWarnedNoToken = false;
+    __approvalRolesCache = null;
+    process.stdout.write("[sighup] roster caches cleared\n");
+  });
 
   nc = await connect({
     servers: NATS_URL,
