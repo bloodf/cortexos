@@ -103,6 +103,13 @@ Write `/etc/caddy/Caddyfile`:
     reverse_proxy localhost:8081
   }
 
+  # NATS — built-in HTTP monitoring endpoint on :8222 exposes JSON status
+  # pages (/varz, /connz, /jsz, /healthz). Path-agnostic — strip the prefix.
+  handle /nats/* {
+    uri strip_prefix /nats
+    reverse_proxy localhost:8222
+  }
+
   # Langfuse — Langfuse v3 does not natively support a sub-path
   # (no BASE_PATH / basePath env). NEXTAUTH_URL is set to the full
   # /langfuse URL and links are rewritten where possible, but some
@@ -155,6 +162,7 @@ curl -sS "https://${CORTEX_DOMAIN}/grafana/"    -o /dev/null -w "grafana:    %{h
 curl -sS "https://${CORTEX_DOMAIN}/prometheus/" -o /dev/null -w "prometheus: %{http_code}\n"
 curl -sS "https://${CORTEX_DOMAIN}/loki/ready"  -o /dev/null -w "loki:       %{http_code}\n"
 curl -sS "https://${CORTEX_DOMAIN}/cadvisor/"   -o /dev/null -w "cadvisor:   %{http_code}\n"
+curl -sS "https://${CORTEX_DOMAIN}/nats/varz"   -o /dev/null -w "nats:       %{http_code}\n"
 curl -sS "https://${CORTEX_DOMAIN}/langfuse/"   -o /dev/null -w "langfuse:   %{http_code}\n"
 ```
 
