@@ -31,10 +31,12 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 - [ ] CHECKPOINT 1 confirmed — recent sshd log entries visible via journalctl
 - [ ] `pkg_install fail2ban`
-- [ ] Write `/etc/fail2ban/jail.d/cortex.conf` (bantime 1h, sshd enabled on `{SSH_PORT}`)
-- [ ] `sudo systemctl enable fail2ban` + `sudo systemctl restart fail2ban`
+- [ ] Write `/etc/fail2ban/jail.d/cortex.conf` (bantime 1h, ignoreip = loopback + Tailscale + LAN, sshd + recidive + caddy-auth jails)
+- [ ] `sudo systemctl enable --now fail2ban` (idempotent — `10-os-hardening.md` already enabled it)
+- [ ] `sudo systemctl restart fail2ban`
 - [ ] Confirm `fail2ban-client status sshd` shows jail active
-- [ ] CHECKPOINT 2 confirmed — sshd jail active with filter listed
+- [ ] Confirm `fail2ban-client status recidive` shows recidive jail active
+- [ ] CHECKPOINT 2 confirmed — sshd + recidive jails active with filters listed
 
 ## CHECKPOINT 1
 
@@ -56,21 +58,58 @@ Write `/etc/fail2ban/jail.d/cortex.conf`:
 ```bash
 sudo tee /etc/fail2ban/jail.d/cortex.conf <<'EOF'
 [DEFAULT]
-bantime  = 1h
-findtime = 10m
-maxretry = 5
-backend  = systemd
+bantime   = 1h
+findtime  = 10m
+maxretry  = 5
+backend   = systemd
+banaction = ufw
+# Never ban our own networks: loopback, Tailscale CGNAT, RFC1918 LANs.
+ignoreip  = 127.0.0.1/8 ::1 100.64.0.0/10 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
 
 [sshd]
-enabled = true
-port    = {SSH_PORT}
+enabled  = true
+port     = {SSH_PORT}
+maxretry = 3
+bantime  = 2h
+
+# Repeat offender escalation — anyone banned in 3 jails within 1 day
+# gets a 1-week ban.
+[recidive]
+enabled  = true
+logpath  = /var/log/fail2ban.log
+maxretry = 3
+findtime = 1d
+bantime  = 1w
+
+# Caddy auth / 401 / 403 abuse. Filter ships with Caddy logs after
+# 13-caddy.md and 22-grafana.md are configured.
+[caddy-auth]
+enabled  = true
+backend  = systemd
+filter   = caddy-auth
+maxretry = 10
+findtime = 10m
+bantime  = 1h
 EOF
 ```
 
 Replace `{SSH_PORT}` with your SSH port (default `22`).
 
+Write the matching Caddy auth filter:
+
 ```bash
-sudo systemctl enable fail2ban
+sudo tee /etc/fail2ban/filter.d/caddy-auth.conf <<'EOF'
+[Definition]
+failregex = ^.*"remote_ip":"<HOST>".*"status":(401|403)
+ignoreregex =
+journalmatch = _SYSTEMD_UNIT=caddy.service
+EOF
+```
+
+Start and restart so the new jails load:
+
+```bash
+sudo systemctl enable --now fail2ban
 sudo systemctl restart fail2ban
 ```
 
@@ -79,13 +118,21 @@ sudo systemctl restart fail2ban
 ```bash
 sudo fail2ban-client status
 sudo fail2ban-client status sshd
+sudo fail2ban-client status recidive
+sudo fail2ban-client status caddy-auth
 ```
 
-Expected: `sshd` jail is active, filter listed.
+Expected: `sshd`, `recidive`, `caddy-auth` jails active with filters listed.
 
 ## CHECKPOINT 2
 
 **STOP — operator question:** Does `sudo fail2ban-client status sshd` print `Currently failed:` and `Currently banned:` lines (jail active, not `Sorry but the jail 'sshd' does not exist`)?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 3
+
+**STOP — operator question:** Does `sudo fail2ban-client status recidive` also print a `Status for the jail: recidive` block (recidive jail active and ready to escalate repeat offenders)?
 
 Type `confirmed` to proceed.
 
