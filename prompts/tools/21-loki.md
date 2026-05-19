@@ -99,7 +99,7 @@ docker compose up -d loki
 ## Verify
 
 ```bash
-# Local smoke probe (no Tailscale required):
+# Local health probe (no Tailscale required):
 curl -s http://localhost:3100/ready
 
 # Through the tailnet (Caddy strips the /loki prefix):

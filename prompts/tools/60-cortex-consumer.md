@@ -37,7 +37,7 @@ Type `confirmed` to proceed.
 
 Consumer code lives in the repo at `stacks/cortex-consumer/`. The runtime
 needs the full directory — `consumer.js` imports from `./lib/*.js` and
-the npm install step needs `package.json` + `package-lock.json` at the
+the pnpm install step needs `package.json` + `pnpm-lock.yaml` at the
 target. Deploy the whole tree:
 
 ```bash
@@ -47,15 +47,14 @@ sudo mkdir -p /opt/cortexos/stacks/cortex-consumer
 sudo cp -a stacks/cortex-consumer/. /opt/cortexos/stacks/cortex-consumer/
 sudo cp stacks/cortex-consumer/cortex-consumer.service /etc/systemd/system/
 
-# Required tree at the target (validate before npm install):
+# Required tree at the target (validate before pnpm install):
 ls /opt/cortexos/stacks/cortex-consumer/consumer.js \
    /opt/cortexos/stacks/cortex-consumer/config.json \
    /opt/cortexos/stacks/cortex-consumer/package.json \
-   /opt/cortexos/stacks/cortex-consumer/package-lock.json \
    /opt/cortexos/stacks/cortex-consumer/lib
 
 cd /opt/cortexos/stacks/cortex-consumer
-sudo npm install --omit=dev
+sudo pnpm install --prod
 ```
 
 ## Configure
@@ -231,4 +230,4 @@ surface is published — see `docs/MESSAGING.md`.
 
 ## Next
 
-→ `prompts/tools/61-smoke-tests.md`
+→ `prompts/tools/61-weekly-synthetic-traffic.md`

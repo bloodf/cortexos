@@ -104,13 +104,13 @@ curl -fsS http://127.0.0.1:8090/healthz
 
 Expected: `{"status":"ok"}`.
 
-Bearer-protected endpoint smoke (token from `graph.env`):
+Bearer-protected endpoint probe (token from `graph.env`):
 
 ```bash
 TOKEN=$(sudo grep '^CORTEX_GRAPH_API_TOKEN=' /opt/cortexos/.secrets/graph.env | cut -d= -f2-)
 curl -fsS -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
-  -d '{"role":"PM","issueId":"smoke-1","input":{"title":"smoke"}}' \
+  -d '{"role":"PM","issueId":"probe-1","input":{"title":"probe"}}' \
   http://127.0.0.1:8090/graph/runs
 ```
 
@@ -162,9 +162,9 @@ journalctl -u cortex-consumer -n 200 --no-pager | grep -E '\[graph\] (dispatched
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** `/healthz` returns 200, a smoke run returns?
+**STOP — operator question:** `/healthz` returns 200, a probe run returns?
 
-Operator: confirm `/healthz` returns 200, a smoke run returns
+Operator: confirm `/healthz` returns 200, a probe run returns
 `status=interrupted`, the roster file at
 `/opt/cortexos/templates/agent-roles/.graph-enabled.json` contains
 the role(s) you want routed, and `cortex-consumer` logs show

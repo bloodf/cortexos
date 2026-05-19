@@ -114,7 +114,7 @@ curl -s -X POST http://admin:{GRAFANA_ADMIN_PASSWORD}@localhost:3000/grafana/api
 ## Verify
 
 ```bash
-# Local smoke probe (no Tailscale required) — note the /grafana prefix:
+# Local health probe (no Tailscale required) — note the /grafana prefix:
 curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/grafana/login
 
 # Through the tailnet:

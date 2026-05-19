@@ -9,7 +9,7 @@ TypeScript adapter library for integrating CortexOS agents with [Paperclip](http
 ## Install
 
 ```bash
-npm install @cortexos/paperclip-adapter
+pnpm add @cortexos/paperclip-adapter
 ```
 
 Requires Node.js ≥ 22.
@@ -46,9 +46,9 @@ const blocks = parseTranscript({
 
 | Script | Purpose |
 |---|---|
-| `npm run build` | Compile TypeScript to `dist/` (ESM + `.d.ts`). |
-| `npm test` | Run vitest unit tests. |
-| `npm run test:coverage` | Run tests with coverage (≥ 80% required). |
+| `pnpm run build` | Compile TypeScript to `dist/` (ESM + `.d.ts`). |
+| `pnpm test` | Run vitest unit tests. |
+| `pnpm run test:coverage` | Run tests with coverage (≥ 80% required). |
 
 ## License
 

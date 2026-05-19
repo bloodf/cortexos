@@ -15,19 +15,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install workspace deps (root, regen lockfile for linux bindings)
-        run: |
-          rm -f package-lock.json packages/cortex-dashboard/package-lock.json
-          rm -rf node_modules packages/cortex-dashboard/node_modules
-          npm install --include=optional --no-audit --no-fund
-      - run: npm run lint -w @cortexos/dashboard
-      - run: npx tsc --noEmit
+          cache: pnpm
+      - name: Install workspace deps
+        run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @cortexos/dashboard run lint
+      - run: pnpm exec tsc --noEmit
         working-directory: packages/cortex-dashboard
-      - run: npm test -w @cortexos/dashboard -- --reporter=verbose
-      - run: npm run build -w @cortexos/dashboard
+      - run: pnpm --filter @cortexos/dashboard test -- --reporter=verbose
+      - run: pnpm --filter @cortexos/dashboard run build
         env:
           NEXT_TELEMETRY_DISABLED: '1'
 
@@ -39,13 +40,18 @@ jobs:
         working-directory: stacks/cortex-consumer
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
-          cache-dependency-path: stacks/cortex-consumer/package-lock.json
-      - run: npm ci || npm install
-      - run: npm test
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install workspace deps
+        working-directory: .
+        run: pnpm install --frozen-lockfile
+      - run: pnpm test
 
   shell:
     name: Shell scripts (shellcheck + bash -n)

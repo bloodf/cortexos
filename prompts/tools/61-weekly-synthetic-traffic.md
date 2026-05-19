@@ -1,14 +1,14 @@
-# Weekly Smoke Tests (latest) (VPS-only post-install validation)
+# Weekly Synthetic Traffic (VPS-only recurring health signal)
 
 ## Purpose
 
-Install the weekly smoke-test pipeline: a publisher script
-(`/usr/local/bin/cortex-smoke-publish.sh`) plus per-slug systemd
-templates (`cortex-smoke@.service` + `cortex-smoke@.timer`) that fire
-every Monday and publish a synthetic
-`cortex.factory.workflow.<slug>.weekly-smoke` envelope through NATS.
-Each envelope is consumed by `cortex-consumer` and is intended to
-verify the full deliver-to-channel chain.
+Install the weekly synthetic-traffic pipeline: a publisher script
+(`/usr/local/bin/cortex-synthetic-publish.sh`) plus per-slug systemd
+templates (`cortex-synthetic@.service` + `cortex-synthetic@.timer`) that
+fire every Monday and publish a synthetic
+`cortex.factory.workflow.<slug>.weekly-heartbeat` envelope through NATS.
+Each envelope is consumed by `cortex-consumer` and exercises the full
+deliver-to-channel chain on a recurring schedule.
 
 `cieucpb` is intentionally excluded — its daily Postgres-dump backup
 plus channel heartbeat already covers the same surface, and weekly
@@ -26,7 +26,7 @@ WhatsApp PMs to the operator are not desired.
 source scripts/pkg.sh
 echo "OS family: $(pkg_family) $(pkg_version)"
 : "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
-pkg_install jq uuid-runtime  # uuidgen for smoke fixtures
+pkg_install jq uuid-runtime  # uuidgen for synthetic payload
 ```
 
 
@@ -50,48 +50,48 @@ Type `confirmed` to proceed.
 Publisher script:
 
 ```bash
-sudo tee /usr/local/bin/cortex-smoke-publish.sh <<'EOF'
+sudo tee /usr/local/bin/cortex-synthetic-publish.sh <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 slug="${1:?missing slug}"
-subject="cortex.factory.workflow.${slug}.weekly-smoke"
+subject="cortex.factory.workflow.${slug}.weekly-heartbeat"
 payload=$(jq -nc \
   --arg slug  "$slug" \
   --arg ts    "$(date -u +%FT%TZ)" \
   --arg nonce "$(uuidgen)" \
-  '{slug:$slug, kind:"weekly-smoke", ts:$ts, nonce:$nonce}')
+  '{slug:$slug, kind:"weekly-heartbeat", ts:$ts, nonce:$nonce}')
 exec nats pub --server nats://127.0.0.1:4222 "$subject" "$payload"
 EOF
-sudo chmod 755 /usr/local/bin/cortex-smoke-publish.sh
+sudo chmod 755 /usr/local/bin/cortex-synthetic-publish.sh
 ```
 
 Systemd template service:
 
 ```bash
-sudo tee /etc/systemd/system/cortex-smoke@.service <<'EOF'
+sudo tee /etc/systemd/system/cortex-synthetic@.service <<'EOF'
 [Unit]
-Description=CortexOS weekly smoke publish for %i
+Description=CortexOS weekly synthetic publish for %i
 After=network.target nats.service cortex-consumer.service
 
 [Service]
 Type=oneshot
 User=bloodf
-ExecStart=/usr/local/bin/cortex-smoke-publish.sh %i
+ExecStart=/usr/local/bin/cortex-synthetic-publish.sh %i
 EOF
 ```
 
 Systemd template timer:
 
 ```bash
-sudo tee /etc/systemd/system/cortex-smoke@.timer <<'EOF'
+sudo tee /etc/systemd/system/cortex-synthetic@.timer <<'EOF'
 [Unit]
-Description=CortexOS weekly smoke timer for %i
+Description=CortexOS weekly synthetic timer for %i
 
 [Timer]
 OnCalendar=Mon *-*-* 09:00:00 UTC
 RandomizedDelaySec=120
 Persistent=true
-Unit=cortex-smoke@%i.service
+Unit=cortex-synthetic@%i.service
 
 [Install]
 WantedBy=timers.target
@@ -103,31 +103,31 @@ Enable per slug (excluding `cieucpb`):
 ```bash
 sudo systemctl daemon-reload
 for slug in 3guns mementry celebrar netbook; do
-  sudo systemctl enable --now "cortex-smoke@${slug}.timer"
+  sudo systemctl enable --now "cortex-synthetic@${slug}.timer"
 done
 ```
 
 ## Verify
 
 ```bash
-sudo systemctl list-timers 'cortex-smoke*' --all --no-pager
+sudo systemctl list-timers 'cortex-synthetic*' --all --no-pager
 ```
 
 Expected (sample evidence from live VPS 2026-05-16):
 
 ```text
 NEXT                             LEFT LAST PASSED UNIT
-Mon 2026-05-18 09:00:30 UTC 1 day 23h -    -      cortex-smoke@netbook.timer
-Mon 2026-05-18 09:01:09 UTC 1 day 23h -    -      cortex-smoke@celebrar.timer
-Mon 2026-05-18 09:01:21 UTC 1 day 23h -    -      cortex-smoke@3guns.timer
-Mon 2026-05-18 09:01:43 UTC 1 day 23h -    -      cortex-smoke@mementry.timer
+Mon 2026-05-18 09:00:30 UTC 1 day 23h -    -      cortex-synthetic@netbook.timer
+Mon 2026-05-18 09:01:09 UTC 1 day 23h -    -      cortex-synthetic@celebrar.timer
+Mon 2026-05-18 09:01:21 UTC 1 day 23h -    -      cortex-synthetic@3guns.timer
+Mon 2026-05-18 09:01:43 UTC 1 day 23h -    -      cortex-synthetic@mementry.timer
 ```
 
 ## Known Limitations
 
 ### Channel delivery runs through the OpenClaw CLI
 
-Smoke-test publishes reach NATS, get consumed, then `consumer.js` shells
+Synthetic publishes reach NATS, get consumed, then `consumer.js` shells
 out to `openclaw message send --json --account … --channel … --target …`
 to fan out to Telegram / Slack / Discord / WhatsApp. The legacy
 `/sendMessage` HTTP path (404 on `2026.5.12`+) has been removed — see

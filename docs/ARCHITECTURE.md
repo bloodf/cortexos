@@ -104,8 +104,6 @@ The operator runs `prompts/00-bootstrap.md` on their laptop. `scripts/bootstrap.
 | `bootstrap_run_remote <cmd>` | Run `<cmd>` on the VPS with the CortexOS env exported; wrapper for every `prompts/os/*` and `prompts/tools/*` step. |
 | `bootstrap_push_secrets` | Decrypt every `templates/.secrets/*.enc.yaml` locally with the operator age key; scp plaintext `.env` files to `/opt/cortexos/.secrets/`; chmod `0600`. |
 
-Rehearsal happens on the laptop with [Lima](../lima/README.md): `make vm-debian-up && make vm-rehearse FAMILY=debian` brings up a macOS-native Debian 13 VM and replays the install end-to-end without a real VPS.
-
 ## Event substrate
 
 Every NATS publish, inbound webhook, and audit row body is wrapped in a CloudEvents 1.0 envelope and HMAC-signed:

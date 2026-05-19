@@ -1,7 +1,8 @@
 FROM node:22-alpine AS deps
 WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm ci --omit=dev || npm install --omit=dev
+RUN corepack enable && corepack prepare pnpm@10 --activate
+COPY package.json pnpm-lock.yaml* ./
+RUN pnpm install --prod --frozen-lockfile || pnpm install --prod
 
 FROM node:22-alpine AS runtime
 WORKDIR /app

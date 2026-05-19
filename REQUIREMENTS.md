@@ -31,12 +31,21 @@ runner) targets Node 24. Install on the VPS before setup:
 curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
 sudo apt-get install -y nodejs
 node -v   # v24.x
-npm -v
+
+# pnpm 10+ is the canonical package manager for the monorepo.
+sudo corepack enable
+sudo corepack prepare pnpm@10 --activate
+pnpm -v   # 10.x
 ```
 
 Why pre-install? The Docker images bundle their own Node, but the
 operator-side scripts (`scripts/secrets-decrypt.sh`, smoke tests,
-`scripts/migrate.js` in standalone mode) all need a host Node 24.
+`scripts/migrate.js` in standalone mode) all need a host Node 24
+and pnpm (>= 9, 10 preferred).
+
+> `scripts/preflight-tools.sh` enforces the full required-tool list
+> (including `node >= 22` and `pnpm >= 9`) on the VPS before any
+> install spoke runs. See `prompts/00-bootstrap.md` Step 3b.
 
 ---
 
@@ -45,8 +54,8 @@ operator-side scripts (`scripts/secrets-decrypt.sh`, smoke tests,
 `SETUP.md` and `prompts/tools/*` are written as prompts that an AI
 coding agent executes. Pick **one** of:
 
-- **Claude Code** — `npm install -g @anthropic-ai/claude-code`
-- **Codex CLI** — `sudo npm install -g @openai/codex` then `codex login`
+- **Claude Code** — `pnpm add -g @anthropic-ai/claude-code`
+- **Codex CLI** — `sudo pnpm add -g @openai/codex` then `codex login`
   (or `export OPENAI_API_KEY=sk-…`)
 - **Cursor agent** / **OpenCode** / equivalent
 

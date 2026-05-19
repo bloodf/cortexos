@@ -79,7 +79,7 @@ revision — there is intentionally no runtime override.
 
 ```bash
 cd stacks/cortex-sandbox-runner/app
-npm install
+pnpm install
 node --test ../tests/**/*.test.js
 ```
 

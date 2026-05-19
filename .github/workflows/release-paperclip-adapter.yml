@@ -35,34 +35,38 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: "22"
           registry-url: "https://registry.npmjs.org"
-          cache: "npm"
-          cache-dependency-path: package-lock.json
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install workspace dependencies
         working-directory: .
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Build
-        run: npm run build
+        run: pnpm run build
 
       - name: Test
-        run: npm test
+        run: pnpm test
 
       - name: Coverage gate
-        run: npm run test:coverage
+        run: pnpm run test:coverage
 
       - name: npm publish (dry run)
-        run: npm publish --dry-run --access=public
+        run: pnpm publish --dry-run --access=public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: npm publish
         if: ${{ inputs.dry_run != 'true' }}
-        run: npm publish --provenance --access=public
+        run: pnpm publish --provenance --access=public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

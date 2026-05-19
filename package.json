@@ -2,12 +2,7 @@
   "name": "cortexos-monorepo",
   "version": "0.0.0",
   "private": true,
-  "workspaces": [
-    "packages/*",
-    "stacks/cortex-paperclip-bridge",
-    "stacks/cortex-consumer",
-    "stacks/cortex-agentgateway"
-  ],
+  "packageManager": "pnpm@10.12.1",
   "engines": {
     "node": ">=22"
   }

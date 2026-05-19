@@ -78,8 +78,8 @@ Create a test issue with label `stage/00-inbox` on the target repository:
 
 ```bash
 gh issue create --repo $AGENT_REPO \
-  --title "Agent Factory smoke test" \
-  --body "Automated smoke test — close after verifying pipeline triggers." \
+  --title "Agent Factory pipeline probe" \
+  --body "Automated pipeline probe — close after verifying pipeline triggers." \
   --label "stage/00-inbox"
 ```
 
@@ -87,7 +87,7 @@ Confirm the triage workflow triggers within 60 seconds (check Actions tab on Git
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** The smoke-test issue triggered the triage workflow and the issue label advanced to `stage/01-triage`. Close the test issue?
+**STOP — operator question:** The probe issue triggered the triage workflow and the issue label advanced to `stage/01-triage`. Close the test issue?
 
 Type `confirmed` to proceed.
 ## Next

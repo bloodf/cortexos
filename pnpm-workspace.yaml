@@ -1,0 +1,5 @@
+packages:
+  - 'packages/*'
+  - 'stacks/cortex-paperclip-bridge'
+  - 'stacks/cortex-consumer'
+  - 'stacks/cortex-agentgateway'

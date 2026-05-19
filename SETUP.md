@@ -7,8 +7,14 @@ Orchestrator prompt for hub-and-spoke VPS configuration. This file drives the fu
 > **Pre-install requirements:** before opening this file, the VPS must
 > have Node 24, an AI coding agent CLI (Claude Code / Codex / Cursor),
 > Tailscale joined to your tailnet, and the supporting CLI tools (`sops`,
-> `cosign`, `syft`, `gh`, `age`, `jq`, `git`, `curl`) installed. See
-> [REQUIREMENTS.md](REQUIREMENTS.md) for the full pre-install checklist.
+> `cosign`, `syft`, `gh`, `age`, `jq`, `git`, `curl`, `pnpm >= 9`)
+> installed. See [REQUIREMENTS.md](REQUIREMENTS.md) for the full
+> pre-install checklist.
+>
+> The full required-tool list is enforced automatically by
+> `scripts/preflight-tools.sh`, which runs on the VPS before any spoke
+> executes. If anything is missing it prints a numbered remediation list
+> and exits 2 — install the items and re-run.
 
 ---
 
