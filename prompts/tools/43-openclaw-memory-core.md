@@ -79,6 +79,7 @@ openclaw plugins inspect memory-core --runtime --json
 ```
 
 Expected:
+
 - `openclaw status` shows Memory enabled.
 - `openclaw cron list` includes the dreaming cron.
 - `memory-core` is enabled at runtime.

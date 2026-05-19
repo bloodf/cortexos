@@ -181,6 +181,7 @@ curl -fsS http://127.0.0.1:11435/api/embeddings \
 ```
 
 Expected:
+
 - OpenViking health returns OK.
 - Ollama embeddings return an integer `> 0`.
 

@@ -65,7 +65,6 @@ sudo -u postgres createdb -O langfuse langfuse || true
 Replace `:pw` with the value of `LANGFUSE_DB_PASSWORD` from the decrypted
 secrets bundle (next step).
 
-
 ### 1.1 Host reachability for containerised Postgres + Redis clients
 
 Langfuse web/worker reach Postgres through the Docker host-gateway mapping. On

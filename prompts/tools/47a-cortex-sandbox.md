@@ -101,7 +101,6 @@ docker compose build
 docker compose up -d
 ```
 
-
 ### 2.1 Runtime fallback if nested gVisor is unsupported
 
 Preferred runtime is `runsc` (gVisor). Some VPS/container combinations cannot

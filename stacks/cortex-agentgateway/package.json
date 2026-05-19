@@ -11,9 +11,9 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@cortexos/audit": "file:../../packages/cortex-audit",
-    "@cortexos/events": "file:../../packages/cortex-events",
-    "@cortexos/telemetry": "file:../../packages/cortex-telemetry",
+    "@cortexos/audit": "workspace:*",
+    "@cortexos/events": "workspace:*",
+    "@cortexos/telemetry": "workspace:*",
     "express": "^5.0.0",
     "nats": "^2.29.0",
     "pg": "^8.13.0"
