@@ -24,11 +24,15 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] 1. Pre-flight
-- [ ] 2. Run the registration script
-- [ ] 3. Verify the key file
-- [ ] 4. Verify in Paperclip UI
-- [ ] CHECKPOINT 3.A confirmed
+- [ ] Confirm `paperclip.env` has `PAPERCLIP_API_URL`, `PAPERCLIP_API_KEY`, `PAPERCLIP_COMPANY_ID`
+- [ ] Run `tsx scripts/paperclip-register-roles.ts` as `cortex` user
+- [ ] Confirm output reports `minted=18 skipped=0` (first run)
+- [ ] Confirm `paperclip-keys.json` mode 0600 owner cortex:cortex
+- [ ] Confirm 18 roles present in `paperclip-keys.json`
+- [ ] Confirm 18 agents visible in Paperclip UI board
+- [ ] Re-run script; confirm `minted=0 skipped=18`
+- [ ] CHECKPOINT 3.A confirmed — key file has 18 entries
+- [ ] CHECKPOINT 3.B confirmed — re-run is idempotent
 
 ## 1. Pre-flight
 
@@ -88,12 +92,14 @@ Open `${PAPERCLIP_API_URL}/board` and confirm:
 
 ## CHECKPOINT 3.A
 
-**STOP — operator question:** Verify this checkpoint's preconditions are met?
-
-- [ ] `paperclip-keys.json` exists with mode `0600` and contains 18 entries.
-- [ ] Paperclip UI shows all 18 agents under the CortexOS company.
-- [ ] Re-running the script reports `minted=0 skipped=18`.
-
-Proceed to `40-routines-and-budgets.md` once 3.A passes.
+**STOP — operator question:** Does `sudo jq '.keys | length' /opt/cortexos/.secrets/paperclip-keys.json` print `18` (not `0`, not a smaller number)?
 
 Type `confirmed` to proceed.
+
+## CHECKPOINT 3.B
+
+**STOP — operator question:** Does re-running `tsx scripts/paperclip-register-roles.ts` print `minted=0 skipped=18` (not any `minted=N` where N > 0, not error)?
+
+Type `confirmed` to proceed.
+
+Proceed to `40-routines-and-budgets.md` once 3.B passes.

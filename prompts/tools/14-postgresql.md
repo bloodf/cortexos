@@ -29,15 +29,18 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install
-- [ ] Configure
-- [ ] Verify
-- [ ] CHECKPOINT 2 confirmed
+- [ ] CHECKPOINT 1 confirmed — port 5432 is free (no existing PG instance)
+- [ ] Add PGDG apt repo and `pkg_install postgresql postgresql-contrib`
+- [ ] `service_enable postgresql`
+- [ ] `CREATE ROLE dashboard` + `CREATE DATABASE cortex_dashboard OWNER dashboard`
+- [ ] Write `/opt/cortexos/.secrets/dashboard.env` (mode 0600) with `DATABASE_URL`
+- [ ] Apply migrations `001_schema.sql` + `002_seed.sql`
+- [ ] Confirm `psql ... -c "\dt"` lists `services` + `migrations` tables
+- [ ] CHECKPOINT 2 confirmed — schema applied and `dashboard.env` is mode 600
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** No existing PostgreSQL instance is running on port 5432 (`ss -tlnp | grep 5432`)?
+**STOP — operator question:** Does `ss -tlnp | grep 5432` print no output (port 5432 free, no prior PostgreSQL instance)?
 
 Type `confirmed` to proceed.
 
@@ -99,7 +102,13 @@ Expected: tables listed including `services`, `migrations`.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** `\dt` lists the schema tables and the `.secrets/dashboard.env` file exists with mode 600?
+**STOP — operator question:** Does `psql -U dashboard -h 127.0.0.1 cortex_dashboard -c "\dt"` list `services` and `migrations` (not `Did not find any relations`)?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 3
+
+**STOP — operator question:** Does `stat -c "%a" /opt/cortexos/.secrets/dashboard.env` print `600` (not `644`)?
 
 Type `confirmed` to proceed.
 

@@ -31,15 +31,22 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install
-- [ ] Configure
-- [ ] Verify
-- [ ] CHECKPOINT 2 confirmed
+- [ ] CHECKPOINT 1 confirmed — MongoDB needed and port 27017 free
+- [ ] Write `/opt/cortexos/stacks/mongodb/docker-compose.yml` (image `mongo`, root user env)
+- [ ] Write `/opt/cortexos/.secrets/mongodb.env` (mode 0600)
+- [ ] `docker compose --env-file /opt/cortexos/.secrets/mongodb.env up -d`
+- [ ] Confirm `mongosh --eval "db.adminCommand('ping')"` returns `{ ok: 1 }`
+- [ ] CHECKPOINT 2 confirmed — ping returned `{ ok: 1 }`
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** MongoDB is required for your workloads and port 27017 is free (`ss -tlnp | grep 27017`). If MongoDB is not needed, skip this spoke and proceed to `17-dnsmasq...?
+**STOP — operator question:** Is `mongodb=yes` set in your SETUP.md questionnaire (i.e. MongoDB is required for this install)?
+
+Type `confirmed` to proceed. If `mongodb=no`, skip this spoke entirely and proceed to `17-dnsmasq.md`.
+
+## CHECKPOINT 1b
+
+**STOP — operator question:** Does `ss -tlnp | grep 27017` print no output (port 27017 free)?
 
 Type `confirmed` to proceed.
 
@@ -94,7 +101,7 @@ Expected: `{ ok: 1 }`.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** MongoDB responds with `{ ok: 1 }` and the container is running?
+**STOP — operator question:** Did `mongosh ... --eval "db.adminCommand('ping')"` print `{ ok: 1 }` (not an auth error, not connection refused) and `docker compose -p mongodb ps` show the service `running`?
 
 Type `confirmed` to proceed.
 

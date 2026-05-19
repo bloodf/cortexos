@@ -66,7 +66,15 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] CHECKPOINT 6.A confirmed
+- [ ] Source `paperclip.env`; confirm required vars are exported
+- [ ] Run `scripts/paperclip-smoke-test.sh --phase P4` (or current phase)
+- [ ] Capture `/tmp/smoke.json` summary + `/tmp/smoke.log` stream
+- [ ] Confirm exit code 0
+- [ ] Confirm summary `result == "pass"`
+- [ ] Confirm summary `failure == null`
+- [ ] Confirm wall-clock < `2 * SMOKE_TIMEOUT_SEC`
+- [ ] Attach `/tmp/smoke.json` to change ticket
+- [ ] CHECKPOINT 6.A confirmed — smoke run PASS
 
 ## Run
 
@@ -152,20 +160,13 @@ negative path without re-creating an issue.
 
 ## CHECKPOINT 6.A
 
-**STOP — operator question:** Verify this checkpoint's preconditions are met?
+**STOP — operator question:** Does `jq -r '.result' /tmp/smoke.json` print `pass` AND `jq -r '.failure' /tmp/smoke.json` print `null` (not `fail`, not a `SMOKE-FAIL:` tag object)?
 
-The smoke run is acceptable only when **all** of:
-
-- Summary JSON `result == "pass"`.
-- Exit code `0`.
-- `failure` is `null`.
-- Wall-clock under `2 * SMOKE_TIMEOUT_SEC` (default 10 min).
+Type `confirmed` to proceed.
 
 Attach `/tmp/smoke.json` to the change ticket. If FAIL, attach the
 `SMOKE-FAIL:<tag>` line and the surrounding `step_end` records from
 `/tmp/smoke.log` for triage.
-
-Type `confirmed` to proceed.
 
 ## Related
 

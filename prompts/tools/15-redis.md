@@ -28,15 +28,16 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install
-- [ ] Configure
-- [ ] Verify
-- [ ] CHECKPOINT 2 confirmed
+- [ ] CHECKPOINT 1 confirmed — port 6379 is free
+- [ ] Write `/opt/cortexos/stacks/redis/docker-compose.yml` (image `redis`, `--requirepass`)
+- [ ] Write `/opt/cortexos/.secrets/redis.env` (mode 0600) with `REDIS_PASSWORD`
+- [ ] `docker compose --env-file /opt/cortexos/.secrets/redis.env up -d`
+- [ ] Confirm `redis-cli -a $REDIS_PASSWORD ping` returns `PONG`
+- [ ] CHECKPOINT 2 confirmed — Redis container running, PONG returned
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** Port 6379 is not already in use (`ss -tlnp | grep 6379`)?
+**STOP — operator question:** Does `ss -tlnp | grep 6379` print no output (port 6379 free)?
 
 Type `confirmed` to proceed.
 
@@ -91,7 +92,7 @@ Expected: `PONG`.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** Redis responds `PONG` and the container is running (`docker compose -p redis ps`)?
+**STOP — operator question:** Did `redis-cli -a {REDIS_PASSWORD} ping` print `PONG` (not `NOAUTH` and not `Connection refused`), and does `docker compose -p redis ps` show the `redis` service as `running` (not `exited`)?
 
 Type `confirmed` to proceed.
 

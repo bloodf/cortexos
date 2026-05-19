@@ -62,7 +62,13 @@ Cross-check the detected `<family> <version>` against the supported matrix above
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** Does `bash scripts/os-detect.sh` print a supported `<family> <version>` (ubuntu 24.04, ubuntu 25.x, or debian 13), AND does `echo "$CORTEX_OS_FAMILY"` echo the same family in your current shell?
+**STOP — operator question:** Does `bash scripts/os-detect.sh` print a supported `<family> <version>` (one of `ubuntu 24.04`, `ubuntu 25.x`, `debian 13`) — not `unsupported` and not an empty line?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 2
+
+**STOP — operator question:** Does `echo "$CORTEX_OS_FAMILY"` print `ubuntu` or `debian` in your current shell (not empty, proving the `export` took)?
 
 Type `confirmed` to proceed.
 

@@ -18,14 +18,16 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install
-- [ ] Verify
-- [ ] CHECKPOINT 2 confirmed
+- [ ] CHECKPOINT 1 confirmed — port 3100 is free
+- [ ] Write `/opt/cortexos/stacks/monitoring/loki/loki-config.yml` (filesystem storage, tsdb v13)
+- [ ] Append `loki` service to monitoring `docker-compose.yml`
+- [ ] `docker compose up -d loki`
+- [ ] Confirm `curl http://localhost:3100/ready` prints `ready`
+- [ ] CHECKPOINT 2 confirmed — both local and tailnet `/ready` probes return `ready`
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** Port 3100 is free (`ss -tlnp | grep 3100`)?
+**STOP — operator question:** Does `ss -tlnp | grep 3100` print no output (port 3100 free)?
 
 Type `confirmed` to proceed.
 
@@ -111,7 +113,7 @@ Expected: `ready`.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** Loki returns `ready` on both probes?
+**STOP — operator question:** Did `curl -s http://localhost:3100/ready` print `ready` AND `curl -sS "https://${CORTEX_DOMAIN}/loki/ready"` also print `ready` (not `Ingester not ready`, not HTTP 503)?
 
 Type `confirmed` to proceed.
 

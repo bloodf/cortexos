@@ -30,17 +30,24 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install
-- [ ] Configure
-- [ ] Build and start
-- [ ] Verify
-- [ ] CHECKPOINT 2 confirmed
-- [ ] Roster (which roles route tool calls through AgentGateway)
+- [ ] CHECKPOINT 1 confirmed — `templates/agentgateway/tools.json` exists
+- [ ] rsync `stacks/cortex-agentgateway/` + workspace packages + schemas to `/opt/cortexos/`
+- [ ] Write `/opt/cortexos/.secrets/agentgateway.env` (mode 0600)
+- [ ] `docker network create cortex-net` (idempotent)
+- [ ] `docker compose up -d --build` in `stacks/cortex-agentgateway`
+- [ ] Confirm `curl http://127.0.0.1:18800/health` returns ok
+- [ ] Confirm unauthenticated `/tool/invoke` returns 401
+- [ ] Confirm authenticated safe-tool invoke returns 200
+- [ ] Confirm audit event appears on `cortex.audit.agentgateway.tool-invoke.v1`
+- [ ] CHECKPOINT 2 confirmed — /health 200
+- [ ] CHECKPOINT 2b confirmed — missing-bearer 401
+- [ ] CHECKPOINT 2c confirmed — safe-tool 200
+- [ ] CHECKPOINT 2d confirmed — audit subject received
+- [ ] Write `.agentgateway-required.json` roster
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** `templates/agentgateway/tools.json` exists and contains the tool taxonomy?
+**STOP — operator question:** Does `test -s templates/agentgateway/tools.json && jq -e '.tools | length > 0' templates/agentgateway/tools.json` exit 0 (not `parse error`, not `file not found`)?
 
 Type `confirmed` to proceed.
 
@@ -125,11 +132,25 @@ nats sub --count=1 'cortex.audit.agentgateway.>'
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** `/health` returns 200, missing-bearer returns 401, safe-tool?
+**STOP — operator question:** Does `curl -fsS http://127.0.0.1:18800/health` return a body containing `"status":"ok"` (not `connection refused`, not 502)?
 
-Operator: confirm `/health` returns 200, missing-bearer returns 401, safe-tool
-invoke returns 200, and the audit event appears on
-`cortex.audit.agentgateway.tool-invoke.v1`.
+Type `confirmed` to proceed.
+
+## CHECKPOINT 2b
+
+**STOP — operator question:** Does the unauthenticated `POST /tool/invoke` curl print HTTP status `401` (not 200, not 500)?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 2c
+
+**STOP — operator question:** Does the bearer-authenticated `POST /tool/invoke` with `propose_role` return HTTP 200 (not 401, not 403, not 500)?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 2d
+
+**STOP — operator question:** Did `nats sub --count=1 'cortex.audit.agentgateway.>'` print one event with subject `cortex.audit.agentgateway.tool-invoke.v1` (not time out, not error)?
 
 Type `confirmed` to proceed.
 

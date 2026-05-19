@@ -18,11 +18,16 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] What you get
-- [ ] Configuration
-- [ ] Apply
-- [ ] Alerts probe
-- [ ] Troubleshooting
+- [ ] Review architecture (dashboard → NATS → bridge → Paperclip)
+- [ ] Set bridge env: `BRIDGE_ALERTS_*`, `PAPERCLIP_API_URL/KEY`, `CORTEX_NATS_HMAC`
+- [ ] Set dashboard env: `NATS_URL`, `CORTEX_NATS_HMAC`, `ADMIN_TOKEN`
+- [ ] `systemctl restart cortex-paperclip-bridge.service`
+- [ ] Confirm journal shows `[alerts] ready durable=cortex-paperclip-bridge-alerts ...`
+- [ ] POST `/api/paperclip/notify-test` probe with admin token
+- [ ] Confirm probe response `{"ok":true,"subject":"cortex.alerts.critical.test"}`
+- [ ] Confirm bridge journal receipt + Paperclip board notification visible
+- [ ] CHECKPOINT 9.A confirmed — `[alerts] ready` in journal
+- [ ] CHECKPOINT 9.B confirmed — probe notification visible on Paperclip board
 
 ## What you get
 
@@ -97,6 +102,18 @@ Then verify:
 2. Notification appears on the Paperclip board with severity `critical`.
 3. If `BRIDGE_ALERTS_OPS_ISSUE_ID` is set and `/api/notifications` returned 404,
    confirm the comment landed on the ops issue with label `priority:high`.
+
+## CHECKPOINT 9.A
+
+**STOP — operator question:** Does `journalctl -u cortex-paperclip-bridge.service -n 100 --no-pager | grep -F '[alerts] ready'` print a matching line (not empty, not `[alerts] disabled`)?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 9.B
+
+**STOP — operator question:** After running the `notify-test` probe, did `jq -r '.ok' <response>` print `true` AND did a new notification appear on the Paperclip board with severity `critical` (not `false`, not `hmac_invalid`, not silent)?
+
+Type `confirmed` to proceed.
 
 ## Troubleshooting
 

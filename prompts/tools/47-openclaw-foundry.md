@@ -28,15 +28,20 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install
-- [ ] Configure
-- [ ] Verify
-- [ ] CHECKPOINT 2 confirmed
+- [ ] CHECKPOINT 1 confirmed — `systemctl is-active openclaw-gateway` returns active
+- [ ] `git clone https://github.com/0xRyanLucci/openclaw-foundry /tmp/openclaw-foundry && npm install`
+- [ ] Confirm `docs/external/openclaw-foundry.snapshot.md` exists
+- [ ] `openclaw plugins install /tmp/openclaw-foundry`
+- [ ] `openclaw plugins configure openclaw-foundry --templates-dir templates/openclaw/roles/`
+- [ ] `sudo systemctl reload openclaw`
+- [ ] Confirm `openclaw plugins list | grep foundry` shows active
+- [ ] Confirm `openclaw foundry list-templates` includes `cortex.json`
+- [ ] CHECKPOINT 2 confirmed — foundry plugin active
+- [ ] CHECKPOINT 2b confirmed — cortex.json template listed
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** OpenClaw is running?
+**STOP — operator question:** Does `systemctl is-active openclaw-gateway` print `active` (not `inactive`, not `failed`)?
 
 Type `confirmed` to proceed.
 
@@ -83,7 +88,13 @@ Expected: `openclaw-foundry` active; template list shows at least `cortex.json`.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** Foundry plugin is active and `cortex.json` template is listed?
+**STOP — operator question:** Does `openclaw plugins list | grep foundry` print a line containing `active` (not `disabled`, not empty)?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 2b
+
+**STOP — operator question:** Does `openclaw foundry list-templates` output include the line `cortex.json` (not empty, not `No templates found`)?
 
 Type `confirmed` to proceed.
 

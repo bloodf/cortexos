@@ -17,15 +17,20 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] 0. Preconditions
-- [ ] 1. Provision Postgres database
-- [ ] 2. Decrypt secrets
-- [ ] 3. Generate project keys
-- [ ] 4. Bring the stack up
-- [ ] 5. Verify first-admin bootstrap
-- [ ] 6. Wire downstream services
-- [ ] 7. Test trace
-- [ ] 9. Checkpoint
+- [ ] Create `cortex-net` docker network + sync stack to `/opt/cortexos/stacks/cortex-langfuse/`
+- [ ] Source `pkg.sh`; confirm `$CORTEX_OS_FAMILY` is set
+- [ ] Create `langfuse` Postgres role + database
+- [ ] Decrypt `langfuse.env` via SOPS (mode 0600)
+- [ ] Generate `pk-lf-*` + `sk-lf-*` project keys and patch env
+- [ ] `docker compose pull && docker compose up -d`
+- [ ] Poll `/api/public/health` until 200
+- [ ] Confirm first-admin login + `cortexos` project + pre-minted key listed
+- [ ] Append LANGFUSE_HOST/PUBLIC/SECRET to consumer.env + paperclip.env + graph.env
+- [ ] Restart cortex-consumer, cortex-paperclip-bridge, cortex-graph
+- [ ] Trigger paperclip heartbeat; confirm trace appears in Langfuse Traces
+- [ ] CHECKPOINT confirmed — all 4 containers `Up (healthy)`
+- [ ] CHECKPOINT confirmed — /api/public/health returns 200
+- [ ] CHECKPOINT confirmed — test trace visible in UI
 
 ## 0. Preconditions
 

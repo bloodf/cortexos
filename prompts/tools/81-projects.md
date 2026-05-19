@@ -29,17 +29,18 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install
-- [ ] Configure
-- [ ] Verify
-- [ ] CHECKPOINT 2 confirmed
+- [ ] CHECKPOINT 1 confirmed — project slug list in hand
+- [ ] `sudo mkdir -p /opt/cortexos/.secrets/projects`
+- [ ] Write per-slug `.env` files under `projects/` (mode 0600)
+- [ ] INSERT each project into `projects` table via psql
+- [ ] Confirm `ls /opt/cortexos/.secrets/projects/` lists each slug
+- [ ] Confirm `SELECT slug FROM projects` returns the registered slugs
+- [ ] CHECKPOINT 2 confirmed — env files present
+- [ ] CHECKPOINT 2b confirmed — DB rows present
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** Verify this checkpoint's preconditions are met?
-
-Operator: list the project slugs you want to register (one per line). Each project needs a slug (lowercase, hyphens OK), a GitHub repository URL, and optionally a messaging channel for notifications.
+**STOP — operator question:** Do you have a written list of project slugs (lowercase, hyphens OK) plus GitHub repo URL for each (not blank, not undecided)?
 
 Type `confirmed` to proceed.
 
@@ -100,7 +101,13 @@ Expected: env files exist for each slug; database rows match.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** All project env files exist and dashboard Projects page shows the registered projects?
+**STOP — operator question:** Does `ls /opt/cortexos/.secrets/projects/*.env 2>/dev/null | wc -l` print a count equal to the number of slugs you registered (not `0`)?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 2b
+
+**STOP — operator question:** Does `psql -U dashboard -h 127.0.0.1 cortex_dashboard -tAc 'SELECT count(*) FROM projects'` print a count equal to the number of slugs you registered (not `0`)?
 
 Type `confirmed` to proceed.
 

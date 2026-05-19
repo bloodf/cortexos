@@ -19,14 +19,16 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install
-- [ ] Verify
-- [ ] CHECKPOINT 2 confirmed
+- [ ] CHECKPOINT 1 confirmed — port 9090 is free
+- [ ] Write `/opt/cortexos/stacks/monitoring/prometheus/prometheus.yml` (node, cadvisor, prometheus jobs)
+- [ ] Write `/opt/cortexos/stacks/monitoring/docker-compose.yml` with `prom/prometheus` + `--web.route-prefix=/prometheus`
+- [ ] Export `CORTEX_DOMAIN` and `docker compose up -d prometheus`
+- [ ] Confirm `curl http://localhost:9090/prometheus/-/healthy` prints `Prometheus Server is Healthy.`
+- [ ] CHECKPOINT 2 confirmed — `/prometheus/-/healthy` returns healthy via tailnet
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** Port 9090 is free (`ss -tlnp | grep 9090`)?
+**STOP — operator question:** Does `ss -tlnp | grep 9090` print no output (port 9090 free)?
 
 Type `confirmed` to proceed.
 
@@ -123,7 +125,7 @@ Expected: `Prometheus Server is Healthy.`
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** Prometheus is healthy at `https://${CORTEX_DOMAIN}/prometheus/` with no broken assets?
+**STOP — operator question:** Does `curl -sS "https://${CORTEX_DOMAIN}/prometheus/-/healthy"` print `Prometheus Server is Healthy.` (not HTTP 404, not connection refused)?
 
 > Per [prompts/CHECKPOINT-PATTERN.md](../CHECKPOINT-PATTERN.md), the
 > `cadvisor` and `node` target-UP checks are verified by `24-cadvisor.md`

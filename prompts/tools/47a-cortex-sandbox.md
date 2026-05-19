@@ -40,22 +40,27 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Decrypt the secret
-- [ ] Build and start
-- [ ] Sandbox exec probe
-- [ ] CHECKPOINT 2 confirmed
-- [ ] Wire into the consumer
-- [ ] Write the sandbox-required roster
-- [ ] Verification checklist
+- [ ] CHECKPOINT 1 confirmed — `kernel.unprivileged_userns_clone = 1`
+- [ ] CHECKPOINT 1b confirmed — Docker daemon up
+- [ ] Decrypt `templates/.secrets/sandbox.enc.yaml` to `/opt/cortexos/.secrets/sandbox.env` (mode 0640)
+- [ ] `docker compose build` + `docker compose up -d` in `stacks/cortex-sandbox-runner`
+- [ ] Confirm `curl http://127.0.0.1:8091/healthz` returns ok
+- [ ] Run bearer-protected `/exec` probe with `alpine:3` and verify `exitCode: 0`
+- [ ] CHECKPOINT 2 confirmed — exec probe returns exitCode 0
+- [ ] Append `CORTEX_SANDBOX_URL` + token to `/opt/cortexos/.secrets/consumer.env`
+- [ ] Write `/opt/cortexos/templates/agent-roles/.sandbox-required.json` roster
+- [ ] Restart cortex-consumer
+- [ ] Confirm `[sandbox] dispatched` appears in journal for test role
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** The VPS kernel exposes user namespaces?
+**STOP — operator question:** Does `sysctl -n kernel.unprivileged_userns_clone` print `1` (not `0`, not `sysctl: cannot stat`)?
 
-Operator: confirm the VPS kernel exposes user namespaces
-(`sysctl kernel.unprivileged_userns_clone` reports `1` on Debian/Ubuntu)
-and Docker daemon is running.
+Type `confirmed` to proceed.
+
+## CHECKPOINT 1b
+
+**STOP — operator question:** Does `docker info >/dev/null 2>&1 && echo ok` print `ok` (not `Cannot connect to the Docker daemon`)?
 
 Type `confirmed` to proceed.
 
@@ -108,10 +113,7 @@ unprivileged identity inside the sandbox.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** The sandbox exec probe returned `exitCode: 0`?
-
-Type "confirmed"
-to proceed.
+**STOP — operator question:** Did the `/exec` probe with `alpine:3` return HTTP 200 and a JSON body containing `"exitCode":0` (not 401, not `policy_rejected`, not 500)?
 
 Type `confirmed` to proceed.
 

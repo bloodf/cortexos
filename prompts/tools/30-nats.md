@@ -22,16 +22,24 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install
-- [ ] Configure
-- [ ] Verify
-- [ ] CHECKPOINT 2 confirmed
-- [ ] Known Limitations
+- [ ] CHECKPOINT 1 confirmed — port 4222 free + `nats` CLI installed
+- [ ] Write `/opt/cortexos/stacks/nats/nats-server.conf` (loopback, JetStream enabled)
+- [ ] Write `/opt/cortexos/stacks/nats/docker-compose.yml` (image `nats`)
+- [ ] `docker compose up -d` in `/opt/cortexos/stacks/nats`
+- [ ] `nats kv add cortex_approvals_seen --ttl 24h --replicas 1`
+- [ ] Confirm `nats server info` shows JetStream enabled
+- [ ] CHECKPOINT 2 confirmed — JetStream up + `cortex_approvals_seen` bucket exists
+- [ ] Review Known Limitations (nats.js setTimeout overflow)
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** Port 4222 is free (`ss -tlnp | grep 4222`) and `nats` CLI is installed (`nats --version`)?
+**STOP — operator question:** Does `ss -tlnp | grep 4222` print no output (port 4222 free)?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 1b
+
+**STOP — operator question:** Does `nats --version` print a version string (not `command not found`)?
 
 Type `confirmed` to proceed.
 
@@ -99,7 +107,13 @@ Expected: server info shows JetStream enabled; KV bucket info shows `cortex_appr
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** NATS is running with JetStream and the `cortex_approvals_seen` KV bucket exists?
+**STOP — operator question:** Does `nats server info --server nats://127.0.0.1:4222` print `JetStream: enabled` (not `disabled`, not connection refused)?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 3
+
+**STOP — operator question:** Does `nats kv info cortex_approvals_seen --server nats://127.0.0.1:4222` print bucket info (not `bucket not found`)?
 
 Type `confirmed` to proceed.
 

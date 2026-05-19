@@ -30,17 +30,24 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install
-- [ ] Configure
-- [ ] Verify
-- [ ] CHECKPOINT 2 confirmed
-- [ ] CHECKPOINT 3 confirmed
-- [ ] Known Limitations
+- [ ] CHECKPOINT 1 confirmed — `cortex_approvals_seen` KV bucket exists
+- [ ] `cp -a stacks/cortex-consumer/. /opt/cortexos/stacks/cortex-consumer/`
+- [ ] Install `cortex-consumer.service` unit
+- [ ] `pnpm install --prod` in target tree
+- [ ] Edit `config.json` (nats_url, openclaw_url)
+- [ ] Write `/opt/cortexos/.secrets/consumer.env` (mode 0600) with AgentGateway bearer sourced
+- [ ] sed-substitute `{VPS_USER}` + `{VPS_HOME}` in installed unit
+- [ ] `systemctl daemon-reload && systemctl enable --now cortex-consumer`
+- [ ] Confirm `systemctl is-enabled cortex-consumer` is `enabled`
+- [ ] Confirm journal contains `Connected to NATS` + `Subscribed to cortex.approvals.*`
+- [ ] CHECKPOINT 2 confirmed — service active + subscribed
+- [ ] Publish paperclip work event with tool_invocation for ENG-BACKEND role
+- [ ] CHECKPOINT 3 confirmed — `[agentgateway] dispatched` logged
+- [ ] Review Known Limitations (WatchdogSec, INT32_MAX shim, CLI shellout)
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** NATS is running and the `cortex_approvals_seen` KV bucket exists (`nats kv info cortex_approvals_seen --server nats://127.0.0.1:4222`)?
+**STOP — operator question:** Does `nats kv info cortex_approvals_seen --server nats://127.0.0.1:4222 2>&1` print a body containing `Bucket Name: cortex_approvals_seen` (not `bucket not found`, not `connection refused`)?
 
 Type `confirmed` to proceed.
 
@@ -150,13 +157,13 @@ Expected: service active, log shows `Connected to NATS` and `Subscribed to corte
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** Cortex-consumer is active and subscribed to the NATS approval subject?
+**STOP — operator question:** Does `systemctl is-active cortex-consumer` print `active` AND does `journalctl -u cortex-consumer --no-pager -n 50 | grep -F 'Subscribed to cortex.approvals'` print a matching line (not `inactive`, not empty)?
 
 Type `confirmed` to proceed.
 
 ## CHECKPOINT 3 — AgentGateway dispatch end-to-end
 
-**STOP — operator question:** AgentGateway dispatch end-to-end?
+**STOP — operator question:** After publishing a paperclip work event with a `tool_invocation` block for `ENG-BACKEND`, does `journalctl -u cortex-consumer --since '60s ago' | grep '\[agentgateway\] dispatched'` print at least one line for the test run (not empty, not `dispatch failed`)?
 
 Verify the V13 wiring by publishing a paperclip work event with a
 `tool_invocation` block for a role in the AgentGateway roster (default:

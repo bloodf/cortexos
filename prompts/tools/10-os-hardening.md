@@ -31,11 +31,15 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install
-- [ ] Configure
-- [ ] Verify
-- [ ] CHECKPOINT 2 confirmed
+- [ ] CHECKPOINT 1 confirmed — connected as non-root sudo user, sshd_config not managed by Ansible
+- [ ] `pkg_install unattended-upgrades ufw fail2ban`
+- [ ] Write `/etc/ssh/sshd_config.d/99-cortex.conf` (PermitRootLogin no, PasswordAuthentication no)
+- [ ] `sudo systemctl reload sshd`
+- [ ] `sudo dpkg-reconfigure -plow unattended-upgrades`
+- [ ] `sudo ufw default deny incoming` + `firewall_open {SSH_PORT} tcp` + `sudo ufw --force enable`
+- [ ] Write `/etc/sysctl.d/99-cortex.conf` and run `sudo sysctl --system`
+- [ ] Confirm `sudo sshd -t` prints `sshd config OK`
+- [ ] CHECKPOINT 2 confirmed — `sshd -t` OK, UFW active, syncookies=1
 
 ## CHECKPOINT 1
 
@@ -115,7 +119,7 @@ Expected: `sshd config OK`, UFW status shows `Status: active`, syncookies = 1.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** SSH is still accessible, UFW shows the expected rules, and `sshd -t` returned OK?
+**STOP — operator question:** Did `sudo sshd -t` print `sshd config OK` and `sudo ufw status verbose` show `Status: active` with the expected `{SSH_PORT}/tcp` rule (not `Status: inactive`, not a syntax error)?
 
 Type `confirmed` to proceed.
 

@@ -29,15 +29,17 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install
-- [ ] Configure
-- [ ] Verify
-- [ ] CHECKPOINT 2 confirmed
+- [ ] CHECKPOINT 1 confirmed — OpenViking `/health` returns ok
+- [ ] `npm install -g @openclaw/openviking@latest`
+- [ ] Verify `docs/external/openclaw-openviking-install.snapshot.md` exists
+- [ ] `openclaw plugins install @openclaw/openviking --config '{"url":"http://127.0.0.1:18790"}'`
+- [ ] `sudo systemctl reload openclaw`
+- [ ] Confirm `openclaw memory ping` returns success
+- [ ] CHECKPOINT 2 confirmed — memory ping reports OK
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** OpenViking is healthy (`curl -s http://localhost:18790/health`)?
+**STOP — operator question:** Does `curl -s http://localhost:18790/health` return `{"status":"ok"}` (not `connection refused`, not HTTP 502)?
 
 Type `confirmed` to proceed.
 
@@ -80,7 +82,7 @@ Expected: `OpenViking backend: OK` (or equivalent success response from the plug
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** `openclaw memory ping` returns success?
+**STOP — operator question:** Did `openclaw memory ping` print `OpenViking backend: OK` (or equivalent success) — not an error, not silence?
 
 Type `confirmed` to proceed.
 

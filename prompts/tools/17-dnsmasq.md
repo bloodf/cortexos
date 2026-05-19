@@ -28,15 +28,24 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install
-- [ ] Configure
-- [ ] Verify
-- [ ] CHECKPOINT 2 confirmed
+- [ ] CHECKPOINT 1 confirmed — systemd-resolved is stub resolver and port 53 free
+- [ ] `pkg_install dnsmasq`
+- [ ] Set `DNSStubListener=no` in `/etc/systemd/resolved.conf` and restart `systemd-resolved`
+- [ ] `firewall_open 53 udp` + `firewall_open 53 tcp`
+- [ ] Write `/etc/dnsmasq.d/cortex.conf` (listen 127.0.0.1, upstreams 1.1.1.1 + 8.8.8.8)
+- [ ] Replace `/etc/resolv.conf` with `nameserver 127.0.0.1` and `chattr +i`
+- [ ] `sudo systemctl enable dnsmasq` + `sudo systemctl restart dnsmasq`
+- [ ] CHECKPOINT 2 confirmed — `dig +short google.com @127.0.0.1` returns IPs
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** `systemd-resolved` is the current stub resolver (`resolvectl status | head -5`) and port 53 is not already bound by another service?
+**STOP — operator question:** Does `resolvectl status | head -5` show `systemd-resolved` as the stub resolver?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 1b
+
+**STOP — operator question:** Does `ss -tlnp '( sport = :53 )'` print no output other than `systemd-resolved` (port 53 not bound by another DNS daemon)?
 
 Type `confirmed` to proceed.
 
@@ -102,7 +111,7 @@ Expected: one or more IP addresses returned.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** DNS resolution works (`dig +short google.com @127.0.0.1` returns IPs)?
+**STOP — operator question:** Does `dig +short google.com @127.0.0.1` print one or more IPv4 addresses (not empty output, not `connection refused`)?
 
 Type `confirmed` to proceed.
 

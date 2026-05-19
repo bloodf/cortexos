@@ -29,14 +29,16 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install
-- [ ] Verify
-- [ ] CHECKPOINT 2 confirmed
+- [ ] CHECKPOINT 1 confirmed — VPS has ≥ 2 GB free RAM
+- [ ] Write `/opt/cortexos/stacks/kernel-browser/docker-compose.yml` (image `browserless/chromium`)
+- [ ] Write `/opt/cortexos/.secrets/kernel-browser.env` (mode 0600) with `KERNEL_BROWSER_TOKEN`
+- [ ] `docker compose --env-file /opt/cortexos/.secrets/kernel-browser.env up -d`
+- [ ] Confirm `curl http://localhost:3333/json/version?token=...` returns version JSON
+- [ ] CHECKPOINT 2 confirmed — `/json/version` returns version JSON
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** The VPS has at least 2 GB free RAM (browser processes are memory-intensive)?
+**STOP — operator question:** Does `free -m | awk '/^Mem:/ {print $7}'` print a value ≥ `2000` (at least 2 GB available)?
 
 Type `confirmed` to proceed.
 
@@ -84,7 +86,7 @@ Expected: JSON with browser version information.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** The browser API responds with version JSON?
+**STOP — operator question:** Did `curl -s "http://localhost:3333/json/version?token={KERNEL_BROWSER_TOKEN}"` return a JSON body containing `Browser` and `WebKit-Version` keys (not `401 Unauthorized`, not empty)?
 
 Type `confirmed` to proceed.
 

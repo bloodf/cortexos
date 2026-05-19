@@ -20,12 +20,17 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] Threat model
-- [ ] Gate matrix
-- [ ] Configure the gates
-- [ ] Escalation
-- [ ] Verify
-- [ ] CHECKPOINT 5.A confirmed
+- [ ] Review threat model + gate matrix
+- [ ] POST approval-policy to `$PAPERCLIP_API_URL/api/companies/$PAPERCLIP_COMPANY_ID/approval-policy`
+- [ ] Confirm response 200 lists 8 gated roles
+- [ ] Trigger "Test gate" from dashboard; confirm approval row appears
+- [ ] Approve within 5s; confirm gate resolves
+- [ ] Let a second test gate time out; confirm `cortex.alerts.warning.approval-timeout` on NATS
+- [ ] Confirm Slack on-call channel receives timeout notification
+- [ ] CHECKPOINT 5.A confirmed — policy POST 200 + 8 gates
+- [ ] CHECKPOINT 5.B confirmed — dashboard test gate visible
+- [ ] CHECKPOINT 5.C confirmed — timeout alert fires on NATS
+- [ ] CHECKPOINT 5.D confirmed — Slack received timeout
 
 ## Threat model
 
@@ -115,11 +120,24 @@ any git-master role). Observe:
 
 ## CHECKPOINT 5.A
 
-**STOP — operator question:** Verify this checkpoint's preconditions are met?
+**STOP — operator question:** Does `curl -sS "$PAPERCLIP_API_URL/api/companies/$PAPERCLIP_COMPANY_ID/approval-policy" -H "authorization: Bearer $PAPERCLIP_API_KEY" | jq '.gates | length'` print `8` (not `0`, not `null`)?
 
-- [ ] Approval policy POST returns `200` and lists all 8 gated roles.
-- [ ] Dashboard "Test gate" produces a visible Paperclip approval row.
-- [ ] Timeout fires `cortex.alerts.warning.approval-timeout` on NATS.
-- [ ] On-call Slack channel receives the timeout notification.
+Type `confirmed` to proceed.
+
+## CHECKPOINT 5.B
+
+**STOP — operator question:** After clicking dashboard "Test gate" for a git-master role, does the Paperclip UI Approvals queue show a new row for that role within 5 seconds (not empty, not 5xx)?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 5.C
+
+**STOP — operator question:** Does `nats sub --count=1 'cortex.alerts.warning.approval-timeout' --timeout 5s` (run during a deliberate timeout) print one event (not time out, not `connection refused`)?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 5.D
+
+**STOP — operator question:** Did the on-call Slack channel referenced in `/opt/cortexos/.secrets/alerts.env` receive a new `approval-timeout` message in the same window (not silent, not API-error)?
 
 Type `confirmed` to proceed.

@@ -40,21 +40,19 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install
-- [ ] Configure Caddy (localhost only, path-based routing)
-- [ ] Publish over Tailscale (HTTPS, auto cert)
-- [ ] Verify — Caddy and Tailscale Serve only
-- [ ] CHECKPOINT 2 confirmed
-- [ ] Public-domain override (optional)
+- [ ] CHECKPOINT 1 confirmed — Tailscale HTTPS certs enabled + MagicDNS name resolves
+- [ ] `pkg_install caddy` via Cloudsmith apt repo
+- [ ] Write `/etc/caddy/Caddyfile` (localhost :8080, path-based routes)
+- [ ] `sudo systemctl enable caddy` + `sudo systemctl restart caddy`
+- [ ] `sudo tailscale cert "${CORTEX_DOMAIN}"`
+- [ ] `sudo tailscale serve --bg --https=443 http://localhost:8080`
+- [ ] Confirm `ss -tlnp` shows Caddy bound on `127.0.0.1:8080`
+- [ ] CHECKPOINT 2 confirmed — caddy active, tailscale serve route published
+- [ ] (Optional) Public-domain override if not running Tailscale-only
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** Tailscale HTTPS certificates are enabled in your?
-
-Operator: confirm Tailscale HTTPS certificates are enabled in your
-admin console and `tailscale status` shows the node online with a
-MagicDNS name.
+**STOP — operator question:** In the Tailscale admin console, are both `Admin → DNS → MagicDNS` and `Admin → DNS → HTTPS Certificates` toggled **on**, AND does `tailscale status` print this node as `online` with a MagicDNS FQDN (not `offline`, not blank)?
 
 Type `confirmed` to proceed.
 
@@ -211,13 +209,19 @@ upstream dashboard is not yet installed; Caddy itself is up), and
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** `systemctl is-active caddy` returns `active`, that?
+**STOP — operator question:** Does `systemctl is-active caddy` print `active` (not `inactive`, not `failed`)?
 
-Operator: confirm `systemctl is-active caddy` returns `active`, that
-`tailscale serve status` shows the `https=443 → http://localhost:8080`
-route for `${CORTEX_DOMAIN}`, and that a second tailnet device can reach
-`https://${CORTEX_DOMAIN}/` (a `502` is acceptable here — the dashboard
-upstream is installed later by `70-dashboard.md`).
+Type `confirmed` to proceed.
+
+## CHECKPOINT 3
+
+**STOP — operator question:** Does `sudo tailscale serve status` list a route `https=443 → http://localhost:8080` for `${CORTEX_DOMAIN}` (not empty output)?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 4
+
+**STOP — operator question:** From a second tailnet device, does `curl -kI https://${CORTEX_DOMAIN}/` return HTTP `2xx`, `3xx`, or `502` (a `502` is acceptable — dashboard not installed yet; a connection refused / DNS failure is NOT acceptable)?
 
 Type `confirmed` to proceed.
 

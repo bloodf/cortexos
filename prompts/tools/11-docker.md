@@ -29,15 +29,18 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install
-- [ ] Configure
-- [ ] Verify
-- [ ] CHECKPOINT 2 confirmed
+- [ ] CHECKPOINT 1 confirmed — supported family/version, no prior Docker install
+- [ ] Add Docker apt keyring + repo and `pkg_install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin`
+- [ ] `sudo usermod -aG docker $USER`
+- [ ] Write `/etc/docker/daemon.json` (json-file logging, live-restore)
+- [ ] `sudo systemctl enable docker` + `sudo systemctl restart docker`
+- [ ] Create `/opt/cortexos/stacks` owned by `$USER`
+- [ ] Confirm `docker run --rm hello-world` prints `Hello from Docker!`
+- [ ] CHECKPOINT 2 confirmed — hello-world succeeded as non-root user
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** The host matches a supported family/version (Ubuntu 24.04, Ubuntu 25.x, or Debian 13 Trixie) and no prior Docker installation exists (run `docker --version 2...?
+**STOP — operator question:** Does `docker --version 2>/dev/null` print nothing (no prior Docker install) on a host whose `pkg_family` is one of `ubuntu` / `debian`?
 
 Type `confirmed` to proceed.
 
@@ -106,7 +109,7 @@ Expected: both version commands succeed; `hello-world` prints "Hello from Docker
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** `docker run --rm hello-world` succeeded and your user can run Docker without sudo (log out and back in if needed)?
+**STOP — operator question:** Did `docker run --rm hello-world` (run as `$USER`, no `sudo`) print `Hello from Docker!` (not `permission denied while trying to connect to the Docker daemon socket`)?
 
 Type `confirmed` to proceed.
 

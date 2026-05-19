@@ -14,12 +14,16 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] 1. Apply migration 005
-- [ ] 2A. Compose path
-- [ ] 2B. Systemd path (no Docker)
-- [ ] 3. Wire Caddy (public path)
-- [ ] 4. Bridge probe
-- [ ] CHECKPOINT 2.A confirmed
+- [ ] Run `node scripts/migrate.js` from `/opt/cortexos/dashboard`
+- [ ] Verify `\d paperclip_ticket_link` shows the table
+- [ ] Bring bridge up via compose (2A) or systemd (2B)
+- [ ] Add `/paperclip/heartbeat` reverse_proxy block to Caddyfile + reload
+- [ ] `curl http://127.0.0.1:8089/healthz` returns 200
+- [ ] Send bearer-protected probe heartbeat; expect HTTP 202 + `status:queued`
+- [ ] Confirm new row in `paperclip_ticket_link`
+- [ ] CHECKPOINT 2.A confirmed — /healthz returns 200
+- [ ] CHECKPOINT 2.B confirmed — probe returns 202 + DB row
+- [ ] CHECKPOINT 2.C confirmed — no error lines in bridge logs
 
 ## 1. Apply migration 005
 
@@ -98,12 +102,19 @@ sudo -u postgres psql -d cortex -c "SELECT paperclip_run_id, cortex_role, status
 
 ## CHECKPOINT 2.A
 
-**STOP — operator question:** Verify this checkpoint's preconditions are met?
+**STOP — operator question:** Does `curl -fsS -o /dev/null -w "%{http_code}" http://127.0.0.1:8089/healthz` print `200` (not `000`, not `502`)?
 
-- [ ] Migration 005 applied (`\d paperclip_ticket_link` shows the table).
-- [ ] Bridge `/healthz` returns 200 OK.
-- [ ] Probe heartbeat returns 202 and writes a row.
-- [ ] `journalctl -u cortex-paperclip-bridge -n 50` (or `docker compose logs`) shows no errors.
+Type `confirmed` to proceed.
+
+## CHECKPOINT 2.B
+
+**STOP — operator question:** Did the bearer probe POST return HTTP 202 with body containing `"status":"queued"` AND `psql -tAc "SELECT count(*) FROM paperclip_ticket_link WHERE paperclip_run_id='probe_1'"` print `1` (not `0`, not 401, not 500)?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 2.C
+
+**STOP — operator question:** Does `journalctl -u cortex-paperclip-bridge -n 50 --no-pager 2>/dev/null | grep -Ei 'error|fatal' | wc -l` (or `docker compose logs` equivalent) print `0` (not a positive integer)?
 
 Type `confirmed` to proceed.
 

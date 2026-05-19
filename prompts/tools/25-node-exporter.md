@@ -18,14 +18,16 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install
-- [ ] Verify
-- [ ] CHECKPOINT 2 confirmed
+- [ ] CHECKPOINT 1 confirmed — port 9100 is free
+- [ ] Append `node-exporter` service to monitoring compose (host network, `--path.procfs=/host/proc`)
+- [ ] `docker compose up -d node-exporter`
+- [ ] Confirm `curl http://localhost:9100/metrics | grep node_cpu_seconds_total` prints metric lines
+- [ ] Query Prometheus targets API and confirm `node-exporter` (or `node`) health is `up`
+- [ ] CHECKPOINT 2 confirmed — local metrics present AND Prometheus target `up`
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** Port 9100 is free?
+**STOP — operator question:** Does `ss -tlnp | grep 9100` print no output (port 9100 free)?
 
 Type `confirmed` to proceed.
 
@@ -80,7 +82,13 @@ Expected: `up`.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** Node Exporter metrics appear locally **and** the Prometheus targets API above returned `up` for `job="node-exporter"` (or `job="node"`, depending on `prometh...?
+**STOP — operator question:** Did `curl -s http://localhost:9100/metrics | grep node_cpu_seconds_total` print metric lines (not empty output, not `connection refused`)?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 3
+
+**STOP — operator question:** Did the Prometheus targets API above return `up` for `job="node-exporter"` (or `job="node"`) — not `down`, not empty?
 
 > Per [prompts/CHECKPOINT-PATTERN.md](../CHECKPOINT-PATTERN.md), this
 > spoke owns the node-exporter container and the Prometheus target-up

@@ -4,11 +4,14 @@
 
 ## Todo
 
-- [ ] What is Paperclip
-- [ ] Why we use it
-- [ ] Bridge architecture
-- [ ] Subject reservations
-- [ ] CHECKPOINT 0.A confirmed
+- [ ] Read "What is Paperclip" + "Why we use it"
+- [ ] Review bridge architecture diagram
+- [ ] Review subject reservations table
+- [ ] CHECKPOINT 0.A confirmed — Tailscale up
+- [ ] CHECKPOINT 0.B confirmed — Postgres reachable
+- [ ] CHECKPOINT 0.C confirmed — NATS reachable
+- [ ] CHECKPOINT 0.D confirmed — `cortex` user/group exists
+- [ ] CHECKPOINT 0.E confirmed — `/opt/cortexos/.secrets/` mode 0700
 
 ## What is Paperclip
 
@@ -52,11 +55,30 @@ Before continuing to `10-install.md`:
 
 ## CHECKPOINT 0.A
 
-**STOP — operator question:** Verify this checkpoint's preconditions are met?
+**STOP — operator question:** Does `tailscale status | head -1` print a non-`Logged out` line containing the local hostname (not `failed to connect`, not `command not found`)?
 
-- [ ] Tailscale up and Paperclip host reachable.
-- [ ] Postgres reachable, NATS reachable.
-- [ ] `cortex` user/group present.
-- [ ] `/opt/cortexos/.secrets/` exists, mode 0700.
+Type `confirmed` to proceed.
+
+## CHECKPOINT 0.B
+
+**STOP — operator question:** Does `pg_isready -h 127.0.0.1 -p 5432` print `accepting connections` (not `no response`)?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 0.C
+
+**STOP — operator question:** Does `nc -zv 127.0.0.1 4222` print `succeeded` (not `Connection refused`)?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 0.D
+
+**STOP — operator question:** Does `getent passwd cortex && getent group cortex` print two non-empty lines (not empty, not exit 2)?
+
+Type `confirmed` to proceed.
+
+## CHECKPOINT 0.E
+
+**STOP — operator question:** Does `stat -c '%a' /opt/cortexos/.secrets` print `700` (not `755`, not `No such file`)?
 
 Type `confirmed` to proceed.

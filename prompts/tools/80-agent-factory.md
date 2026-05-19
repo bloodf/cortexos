@@ -20,15 +20,18 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install
-- [ ] Configure
-- [ ] Verify
-- [ ] CHECKPOINT 2 confirmed
+- [ ] CHECKPOINT 1 confirmed — admin access on target repo
+- [ ] Export `AGENT_REPO=<org>/<repo>`
+- [ ] Create 13 `stage/*` labels via `gh label create`
+- [ ] Copy `templates/agent-factory/*.yml` to target `.github/workflows/`
+- [ ] Set `CORTEX_DASHBOARD_URL`, `OPENCLAW_BASE`, `AGENTGATEWAY_BASE` repo secrets
+- [ ] Create probe issue with `stage/00-inbox` label
+- [ ] Confirm triage workflow fires within 60s
+- [ ] CHECKPOINT 2 confirmed — label advanced to `stage/01-triage`
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** The target GitHub repository URL and that you have admin access (needed to create labels and secrets)?
+**STOP — operator question:** Does `gh api repos/$AGENT_REPO --jq .permissions.admin` print `true` (not `false`, not `Not Found`)?
 
 Type `confirmed` to proceed.
 
@@ -88,7 +91,7 @@ Confirm the triage workflow triggers within 60 seconds (check Actions tab on Git
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** The probe issue triggered the triage workflow and the issue label advanced to `stage/01-triage`. Close the test issue?
+**STOP — operator question:** Does `gh issue view <probe-number> --repo $AGENT_REPO --json labels --jq '.labels[].name'` include the line `stage/01-triage` (not stuck on `stage/00-inbox`, not empty)?
 
 Type `confirmed` to proceed.
 

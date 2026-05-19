@@ -41,18 +41,26 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed
-- [ ] Install
-- [ ] Verify
-- [ ] Known Limitations
-- [ ] CHECKPOINT 2 confirmed
+- [ ] CHECKPOINT 1 confirmed — `nats --version` exits 0
+- [ ] CHECKPOINT 1b confirmed — cortex-consumer is active
+- [ ] Write `/usr/local/bin/cortex-synthetic-publish.sh` (mode 755)
+- [ ] Write `/etc/systemd/system/cortex-synthetic@.service` template
+- [ ] Write `/etc/systemd/system/cortex-synthetic@.timer` template
+- [ ] `systemctl daemon-reload`
+- [ ] `systemctl enable --now cortex-synthetic@{3guns,mementry,celebrar,netbook}.timer`
+- [ ] Confirm `systemctl list-timers 'cortex-synthetic*'` lists all four with future fire times
+- [ ] CHECKPOINT 2 confirmed — four timers enabled with future NEXT timestamps
+- [ ] Review Known Limitations (OpenClaw CLI delivery path)
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** `nats --version` works and `cortex-consumer.service`?
+**STOP — operator question:** Does `nats --version` exit 0 and print a version string (not `command not found`)?
 
-service`
-is active.
+Type `confirmed` to proceed.
+
+## CHECKPOINT 1b
+
+**STOP — operator question:** Does `systemctl is-active cortex-consumer` print `active` (not `inactive`, not `failed`)?
 
 Type `confirmed` to proceed.
 
@@ -150,10 +158,7 @@ opt-in `v1` HTTP path both feed the same counters).
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** Timers list-timers shows the four enabled slugs and?
-
-Operator: confirm timers list-timers shows the four enabled slugs and
-the next-fire timestamp is in the future.
+**STOP — operator question:** Does `systemctl list-timers 'cortex-synthetic*' --all --no-pager` list all four units (3guns, mementry, celebrar, netbook) with a `NEXT` timestamp in the future (not `n/a`, not missing)?
 
 Type `confirmed` to proceed.
 

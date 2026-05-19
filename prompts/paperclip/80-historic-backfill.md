@@ -42,14 +42,17 @@ the importer is a no-op via `ON CONFLICT (omc_task_id) DO NOTHING`.
 
 ## Todo
 
-- [ ] Pre-flight (2 min)
-- [ ] Step 1 — Dry run (mandatory)
-- [ ] CHECKPOINT 8.A confirmed
-- [ ] Step 2 — Apply
-- [ ] Step 3 — Parity check
-- [ ] Step 4 — Resume / re-run
-- [ ] Failure tags
-- [ ] Done condition
+- [ ] Confirm migration 006 columns (`omc_task_id`, `backfilled_at`) present
+- [ ] Inventory source corpus (`.omx/logs/*.jsonl` + `.omc/state/sessions/*.json`) line/file counts
+- [ ] Run dry-run: `pnpm run migrate-omc -- --dry-run --staging`
+- [ ] Record `totalEvents` + `totalTasks` + `byRole` from dry-run JSON
+- [ ] Confirm DB backup ≤ 24h
+- [ ] CHECKPOINT 8.A confirmed — dry-run plausible + backup verified
+- [ ] Run apply: `pnpm run migrate-omc -- --apply`
+- [ ] Confirm `result.failed == 0`
+- [ ] Parity check: link-row count = dry-run `totalTasks`
+- [ ] CHECKPOINT 8.B confirmed — apply zero-failures + parity match
+- [ ] Archive `/tmp/omc-backfill.dry.json` + `apply.json` to phase report
 
 ## Pre-flight (2 min)
 
@@ -92,20 +95,11 @@ pnpm run migrate-omc -- --dry-run \
 
 ## CHECKPOINT 8.A — Dry-run review
 
-**STOP — operator question:** Dry-run review?
-
-STOP. Before continuing, confirm all of the following:
-
-1. `totalEvents` is plausible (within 10% of the line counts from
-   pre-flight; jsonl lines that lack `sessionId`/`role` are skipped on
-   purpose).
-2. `totalTasks` is non-zero and `byRole` covers the roles you expect to
-   see (no surprise roles, no missing roles).
-3. A database backup taken in the last 24h is available and verified.
-
-If any item fails, stop and investigate. Do not pass --apply.
+**STOP — operator question:** Does `jq -r '.summary.totalTasks' /tmp/omc-backfill.dry.json` print a positive integer within 10% of the pre-flight line counts (not `0`, not `null`)?
 
 Type `confirmed` to proceed.
+
+If any item fails, stop and investigate. Do not pass --apply.
 
 ## Step 2 — Apply
 
@@ -201,3 +195,9 @@ queryable by `paperclip_run_id` (which still equals the original
   `result.failed = 0`.
 - Parity check (Step 3) matches.
 - `docs/PAPERCLIP.md` "Historic backfill" section reflects the run.
+
+## CHECKPOINT 8.B
+
+**STOP — operator question:** Does `jq -r '.result.failed' /tmp/omc-backfill.apply.json` print `0` AND does the parity SQL `SELECT COUNT(*) FROM paperclip_ticket_link WHERE omc_task_id IS NOT NULL` print a value equal to dry-run `totalTasks` (not a positive failed count, not a row-count mismatch)?
+
+Type `confirmed` to proceed.

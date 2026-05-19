@@ -14,15 +14,16 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## Todo
 
-- [ ] Distro family detected (`CORTEX_OS_FAMILY` set)
-- [ ] `scripts/preflight-tools.sh` exits 0 (all required tools present)
-- [ ] Supply-chain toolchain installed (cosign, syft, gh)
-- [ ] OIDC identity pins exported
-- [ ] CHECKPOINT 1 confirmed
-- [ ] OpenClaw gateway probe recorded
-- [ ] Upstream doc snapshots written under `docs/external/`
-- [ ] `.secrets/.setup-state.json` updated
-- [ ] CHECKPOINT 2 confirmed
+- [ ] Export `CORTEX_OS_FAMILY` via `source scripts/pkg.sh`
+- [ ] Run `bash scripts/preflight-tools.sh` (must exit 0)
+- [ ] Install cosign, syft, gh and confirm `cosign version` / `syft version` / `gh --version` print
+- [ ] Export `CORTEX_VERIFY_REPO`, `CORTEX_VERIFY_WORKFLOW`, `CORTEX_VERIFY_ISSUER`
+- [ ] CHECKPOINT 1 confirmed — preflight scope understood (OpenClaw absence is non-blocking)
+- [ ] Probe OpenClaw gateway via `curl --max-time 5 http://127.0.0.1:18789/health` (informational)
+- [ ] Run `templates/scripts/probe-openclaw-gateway.sh` only if OpenClaw is `present`
+- [ ] Write 10 snapshot files under `docs/external/` (each starting with `<!-- Snapshot of upstream ...`)
+- [ ] Append `preflight` block to `.secrets/.setup-state.json` with openclaw status + probe exit
+- [ ] CHECKPOINT 2 confirmed — all 10 snapshots present with headers, state recorded
 
 > **Distro pre-step.** If `CORTEX_OS_FAMILY` is not set in your shell, run `prompts/os/00-os-selection.md` FIRST. Every subsequent tool prompt assumes the distro family is detected.
 
