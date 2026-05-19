@@ -14,7 +14,7 @@ laptop-side build.
 - [ ] CHECKPOINT 1 confirmed (network + secrets present)
 - [ ] Supply-chain gate passed for release tarball
 - [ ] `docker compose up -d --build` succeeded
-- [ ] `/api/health` returns 200
+- [ ] `/en/login` returns 200 through the container and the public URL
 - [ ] CHECKPOINT 2 confirmed
 - [ ] Public URL serves login page via Caddy
 - [ ] CHECKPOINT 3 confirmed
@@ -109,14 +109,14 @@ sourced from VPS `.secrets/` files.
 ## Verify
 
 ```bash
-curl -fsS http://127.0.0.1:3080/api/health
+curl -fsS -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3080/en/login
 ```
 
-Expected: HTTP 200 with a JSON health payload.
+Expected: `200`. Current dashboard builds gate `/api/health` behind auth, so `/en/login` is the stable unauthenticated liveness probe.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** Does `curl -fsS -o /dev/null -w "%{http_code}" http://127.0.0.1:3080/api/health` print `200` (not `000`, not `5xx`)?
+**STOP — operator question:** Does `curl -sS -o /dev/null -w "%{http_code}" http://127.0.0.1:3080/en/login` print `200` (not `000`, not `5xx`)?
 
 Type `confirmed` to proceed.
 
