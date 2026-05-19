@@ -1,30 +1,39 @@
 # syntax=docker/dockerfile:1.7
-# Cortex Dashboard — multi-stage build.
-#   deps    : install npm deps with cache-friendly layer
+# Cortex Dashboard — multi-stage build (monorepo workspace aware).
+#   deps    : install workspace deps from repo root
 #   builder : Next.js standalone build + esbuild custom server
 #   runtime : node:22-slim, non-root (uid=1000 `node`), dumb-init as PID 1
 #
-# Built on the VPS via `stacks/cortex-dashboard/docker-compose.yml`. No
-# laptop-side build, no rsync.
+# Build context is the **repo root** (not dashboard/) so workspace
+# packages under packages/* and stacks/* resolve. Built on the VPS via
+# `stacks/cortex-dashboard/docker-compose.yml`.
 
 ############################
 # Stage 1 — deps
 ############################
 FROM node:22-slim AS deps
-WORKDIR /app
+WORKDIR /repo
 ENV NODE_ENV=production
 COPY package.json package-lock.json ./
-# include devDependencies for the build stage; runtime stage drops them.
-RUN npm ci --include=dev
+COPY packages ./packages
+COPY stacks/cortex-paperclip-bridge/package.json ./stacks/cortex-paperclip-bridge/package.json
+COPY stacks/cortex-consumer/package.json ./stacks/cortex-consumer/package.json
+COPY dashboard/package.json ./dashboard/package.json
+# include devDependencies for the build stage; runtime drops them.
+RUN npm ci --include=dev --include=optional
 
 ############################
 # Stage 2 — builder
 ############################
 FROM node:22-slim AS builder
-WORKDIR /app
+WORKDIR /repo
 ENV NEXT_TELEMETRY_DISABLED=1
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY --from=deps /repo/node_modules ./node_modules
+COPY package.json package-lock.json ./
+COPY packages ./packages
+COPY dashboard ./dashboard
+
+WORKDIR /repo/dashboard
 
 # next build → emits .next/standalone (stock server) + .next/static.
 RUN npx next build --turbopack
@@ -37,15 +46,15 @@ RUN npx esbuild server.ts \
     --target=node22 \
     --format=cjs \
     --packages=external \
-    --outfile=.next/standalone/server.js
+    --outfile=.next/standalone/dashboard/server.js
 
-# Standalone does not copy public/, static/, messages/, or next.config.ts —
-# stage them next to server.js so the custom server picks them up.
-RUN cp -r public .next/standalone/public 2>/dev/null || true \
- && mkdir -p .next/standalone/.next \
- && cp -r .next/static .next/standalone/.next/static \
- && cp -r messages .next/standalone/messages 2>/dev/null || true \
- && cp next.config.ts .next/standalone/next.config.ts
+# Standalone places dashboard files under .next/standalone/dashboard/ in
+# a workspace. Stage public/, static/, messages/, next.config alongside it.
+RUN cp -r public .next/standalone/dashboard/public 2>/dev/null || true \
+ && mkdir -p .next/standalone/dashboard/.next \
+ && cp -r .next/static .next/standalone/dashboard/.next/static \
+ && cp -r messages .next/standalone/dashboard/messages 2>/dev/null || true \
+ && cp next.config.ts .next/standalone/dashboard/next.config.ts
 
 ############################
 # Stage 3 — runtime
@@ -70,18 +79,20 @@ RUN apt-get update \
       postgresql-client \
  && rm -rf /var/lib/apt/lists/*
 
-# Standalone bundle ships its own minimal node_modules; only native deps
-# (ssh2 + bcryptjs for admin scripts) are copied separately.
-COPY --from=builder --chown=node:node /app/.next/standalone ./
-COPY --from=builder --chown=node:node /app/migrations ./migrations
-COPY --from=builder --chown=node:node /app/scripts ./scripts
-COPY --from=builder --chown=node:node /app/docker-entrypoint.sh ./docker-entrypoint.sh
+# Copy the standalone bundle as the app root. Next places workspace apps
+# at /repo/dashboard/.next/standalone/dashboard, with hoisted node_modules
+# at /repo/dashboard/.next/standalone/node_modules.
+COPY --from=builder --chown=node:node /repo/dashboard/.next/standalone/dashboard ./
+COPY --from=builder --chown=node:node /repo/dashboard/.next/standalone/node_modules ./node_modules
+COPY --from=builder --chown=node:node /repo/dashboard/migrations ./migrations
+COPY --from=builder --chown=node:node /repo/dashboard/scripts ./scripts
+COPY --from=builder --chown=node:node /repo/dashboard/docker-entrypoint.sh ./docker-entrypoint.sh
 
-# Native deps not bundled by Next standalone.
-COPY --from=builder --chown=node:node /app/node_modules/ssh2 ./node_modules/ssh2
-COPY --from=builder --chown=node:node /app/node_modules/cpu-features ./node_modules/cpu-features
-COPY --from=builder --chown=node:node /app/node_modules/nan ./node_modules/nan
-COPY --from=builder --chown=node:node /app/node_modules/bcryptjs ./node_modules/bcryptjs
+# Native deps not bundled by Next standalone (from hoisted root modules).
+COPY --from=builder --chown=node:node /repo/node_modules/ssh2 ./node_modules/ssh2
+COPY --from=builder --chown=node:node /repo/node_modules/cpu-features ./node_modules/cpu-features
+COPY --from=builder --chown=node:node /repo/node_modules/nan ./node_modules/nan
+COPY --from=builder --chown=node:node /repo/node_modules/bcryptjs ./node_modules/bcryptjs
 
 RUN chmod +x docker-entrypoint.sh \
  && (chmod +x scripts/*.sh 2>/dev/null || true) \
