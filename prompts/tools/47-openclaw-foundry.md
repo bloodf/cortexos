@@ -67,4 +67,4 @@ Operator: confirm foundry plugin is active and `cortex.json` template is listed.
 
 ## Next
 
-→ `prompts/tools/48-openclaw-opik.md`
+→ `prompts/tools/47a-cortex-sandbox.md`

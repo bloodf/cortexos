@@ -4,8 +4,7 @@
 
 Deploy Langfuse v2 as the CortexOS LLM observability platform: traces,
 prompt versioning, eval scores, and dashboards over every 9Router /
-OpenClaw call. Supersedes `35-opik.md` (Opik backend hardcodes MySQL —
-violates the PostgreSQL-only rule).
+OpenClaw call.
 
 ## Why v2, not v3
 

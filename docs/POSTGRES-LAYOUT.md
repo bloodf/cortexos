@@ -47,8 +47,7 @@ is via loopback or via the `cortex-internal` docker network only.
   - `openviking` — episodic and semantic memory for OpenClaw
     (`32-openviking.md`).
   - `langfuse`  — Langfuse v2 traces, prompts, eval scores
-    (`35a-langfuse.md`). Replaces the deprecated MySQL-bound Opik
-    backend (`35-opik.md`).
+    (`35a-langfuse.md`, full install in `55-langfuse.md`).
 - **Trust boundary:** only services on the `cortex-internal`
   network can resolve the host; secrets live under
   `/opt/cortexos/.secrets/{openviking.env,langfuse.env}`.

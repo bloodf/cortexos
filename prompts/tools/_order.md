@@ -21,8 +21,13 @@ spokes:
     deps: [11-docker]
     optional: false
 
-  13-caddy:
+  12a-sops-bootstrap:
     deps: [12-tailscale]
+    optional: false       # SOPS + age must be available before any service
+                          # that loads secrets — install before Caddy.
+
+  13-caddy:
+    deps: [12-tailscale, 12a-sops-bootstrap]
     optional: false
 
   14-postgresql:
@@ -89,13 +94,9 @@ spokes:
     deps: [11-docker, 31-9router]
     optional: false
 
-  35-opik:
-    deps: [14-postgresql, 11-docker]
-    optional: true       # DEPRECATED — superseded by 35a-langfuse; MySQL-backed
-
   35a-langfuse:
     deps: [14-postgresql, 11-docker]
-    optional: false
+    optional: false      # placeholder bring-up; full operator install lives at 55-langfuse
 
   40-openclaw:
     deps: [31-9router, 32-openviking]
@@ -121,6 +122,10 @@ spokes:
     deps: [40-openclaw]
     optional: false
 
+  45a-cortex-graph:
+    deps: [14-postgresql, 30-nats, 45-openclaw-compaction]
+    optional: false      # LangGraph sidecar (V7 substrate)
+
   46-openclaw-codex-watchdog:
     deps: [40-openclaw, 30-nats]
     optional: false
@@ -129,20 +134,24 @@ spokes:
     deps: [40-openclaw]
     optional: false
 
-  48-openclaw-opik:
-    deps: [40-openclaw, 35-opik]
-    optional: false
+  47a-cortex-sandbox:
+    deps: [11-docker, 12a-sops-bootstrap, 47-openclaw-foundry]
+    optional: false      # gVisor sandbox runner (V10 substrate)
 
   49-openclaw-account-ops:
-    deps: [40-openclaw]
+    deps: [40-openclaw, 47a-cortex-sandbox]
     optional: false
 
   50-agentgateway:
     deps: [40-openclaw, 30-nats, 14-postgresql]
     optional: false
 
+  55-langfuse:
+    deps: [14-postgresql, 11-docker, 35a-langfuse, 50-agentgateway]
+    optional: false      # full Langfuse operator install + OpenLLMetry wiring
+
   60-cortex-consumer:
-    deps: [30-nats, 40-openclaw, 50-agentgateway]
+    deps: [30-nats, 40-openclaw, 50-agentgateway, 55-langfuse]
     optional: false
 
   61-smoke-tests:
@@ -175,15 +184,18 @@ spokes:
       - 45-openclaw-compaction
       - 46-openclaw-codex-watchdog
       - 47-openclaw-foundry
-      - 48-openclaw-opik
+      - 47a-cortex-sandbox
       - 49-openclaw-account-ops
       - 50-agentgateway
+      - 55-langfuse
       - 60-cortex-consumer
       - 61-smoke-tests
       - 70-dashboard
       - 80-agent-factory
       - 81-projects
       - 35a-langfuse
+      - 12a-sops-bootstrap
+      - 45a-cortex-graph
     optional: false
 ```
 
@@ -192,8 +204,5 @@ spokes:
 - Agent computes topological sort of enabled spokes before execution.
 - Optional spokes are skipped unless the questionnaire enabled them.
 - `16-mongodb` is optional (questionnaire-gated).
-- `35-opik` is optional and DEPRECATED — replaced by `35a-langfuse`
-  because the Opik backend hardcodes MySQL, which violates the
-  CortexOS PostgreSQL-only rule.
 - All other spokes are required.
 - Spoke numbering has intentional gaps (e.g. 18→20, 35→40) to allow future insertion without renumbering.

@@ -128,10 +128,9 @@ and includes every required spoke present on disk:
 
 If `INSTALL_MONGODB=yes`, insert `16-mongodb` after `15-redis`.
 
-Spokes intentionally skipped from the linear flow:
-
-- `35-opik` — DEPRECATED (MySQL backend); replaced by `35a-langfuse`.
-- `48-openclaw-opik` — depends on `35-opik`; skipped with it.
+Legacy Opik spokes (`35-opik`, `48-openclaw-opik`) have been removed —
+LLM observability runs on Langfuse v2 via `35a-langfuse` + `55-langfuse`
+with OpenLLMetry instrumentation in `packages/cortex-telemetry`.
 
 ---
 

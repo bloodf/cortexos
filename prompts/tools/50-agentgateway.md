@@ -99,4 +99,4 @@ Operator: confirm AgentGateway is healthy, audit events appear in NATS subject `
 
 ## Next
 
-→ `prompts/tools/60-cortex-consumer.md`
+→ `prompts/tools/55-langfuse.md`
