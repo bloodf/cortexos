@@ -3,6 +3,10 @@
 > Operating contract for every spoke under `prompts/tools/`. Applies to all
 > CHECKPOINT blocks the operator confirms manually.
 
+## Stop-on-question rule
+
+**A prompt stops the operator only when there is an operator question to answer.** Every `## CHECKPOINT N` section MUST contain a `**STOP — operator question:** …` line followed by `Type \`confirmed\` to proceed.` Anything else (status banners, "ok proceed" markers, log-prints) is informational and does not halt execution. Status-only checkpoints are forbidden — convert them into a real yes/no question or delete them.
+
 ## The rule
 
 **A spoke MUST NOT verify a service installed by a later spoke.**
