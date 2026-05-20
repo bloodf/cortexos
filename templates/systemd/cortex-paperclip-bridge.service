@@ -6,22 +6,20 @@ StartLimitIntervalSec=60
 StartLimitBurst=5
 
 [Service]
-Type=notify
-NotifyAccess=all
-WatchdogSec=30
+Type=simple
 WorkingDirectory=/opt/cortexos/stacks/cortex-paperclip-bridge
 ExecStart=/opt/cortexos/stacks/cortex-paperclip-bridge/entrypoint.sh
 Restart=on-failure
 RestartSec=5
-User=cortex
-Group=cortex
+User=cortexos
+Group=cortexos
 EnvironmentFile=/opt/cortexos/.secrets/paperclip.env
 
 ProtectSystem=strict
 ProtectHome=true
 NoNewPrivileges=true
 PrivateTmp=true
-MemoryDenyWriteExecute=true
+MemoryDenyWriteExecute=false
 RestrictSUIDSGID=true
 LockPersonality=true
 ProtectKernelModules=true

@@ -20,6 +20,7 @@ name: cortex-langfuse
 
 services:
   langfuse-web:
+    container_name: cortex-langfuse-web
     image: docker.io/langfuse/langfuse:3
     restart: unless-stopped
     depends_on:
@@ -70,13 +71,14 @@ services:
     networks:
       - cortex-net
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:3000/api/public/health"]
+      test: ["CMD-SHELL", "node -e \"fetch('http://' + require('os').networkInterfaces().eth0[0].address + ':3000/api/public/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 60s
 
   langfuse-worker:
+    container_name: cortex-langfuse-worker
     image: docker.io/langfuse/langfuse-worker:3
     restart: unless-stopped
     depends_on:
@@ -105,6 +107,7 @@ services:
       - cortex-net
 
   clickhouse:
+    container_name: cortex-langfuse-clickhouse
     image: docker.io/clickhouse/clickhouse-server:24.12-alpine
     restart: unless-stopped
     environment:
@@ -129,6 +132,7 @@ services:
       start_period: 30s
 
   minio:
+    container_name: cortex-langfuse-minio
     image: docker.io/minio/minio:RELEASE.2025-01-20T14-49-07Z
     restart: unless-stopped
     command: ["server", "/data", "--console-address", ":9001"]
