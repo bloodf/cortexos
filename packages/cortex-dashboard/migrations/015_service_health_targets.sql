@@ -70,13 +70,6 @@ UPDATE services
        updated_at = NOW()
  WHERE slug = 'redis';
 
-
-UPDATE services
-   SET health_url = 'tcp://127.0.0.1:8080',
-       health_type = 'tcp',
-       updated_at = NOW()
- WHERE slug = 'caddy';
-
 UPDATE services
    SET health_url = 'http://127.0.0.1:3080/en/login',
        health_type = 'http',

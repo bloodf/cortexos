@@ -9,7 +9,6 @@ function getClientCtor(pg) {
 const SPOKE_TO_SERVICES = {
   "11-docker": ["docker"],
   "12-tailscale": ["tailscale"],
-  "13-caddy": ["caddy"],
   "14-postgresql": ["postgresql", "pg-exporter", "pgadmin"],
   "15-redis": ["redis", "redis-exporter", "redisinsight"],
   "16-mongodb": ["mongodb", "mongo-express", "mongo-exporter"],

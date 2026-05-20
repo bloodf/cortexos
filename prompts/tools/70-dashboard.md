@@ -7,7 +7,7 @@ Build and deploy the CortexOS Next.js dashboard as a native systemd service usin
 ## Prerequisites
 
 - `14-postgresql.md` completed.
-- `13-caddy.md` completed (Tailscale Serve publishes the dashboard root to port 3080).
+- `13-tailscale-serve.md` completed (Tailscale Serve publishes the dashboard root to port 3080).
 - `40-openclaw.md` completed.
 - Repo materialized at `/opt/cortexos`.
 

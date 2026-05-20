@@ -1,6 +1,6 @@
 [Unit]
 Description=OpenClaw Gateway
-After=network-online.target docker.service caddy.service
+After=network-online.target docker.service
 Wants=network-online.target docker.service
 StartLimitIntervalSec=60
 StartLimitBurst=5

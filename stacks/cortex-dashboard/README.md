@@ -82,7 +82,7 @@ docker compose down            # stop, keep image
 docker compose down --rmi local # also remove the built image
 ```
 
-## Caddy
+## Tailscale Serve
 
-Caddy continues to reverse-proxy port 3080. No change required when
-swapping systemd for compose — the listening port is identical.
+Tailscale Serve publishes the dashboard root to port 3080. No change required
+when swapping systemd for compose — the listening port is identical.

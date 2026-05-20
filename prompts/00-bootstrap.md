@@ -272,8 +272,8 @@ Authoritative sequence (laptop drives each line via `bootstrap_run_remote`):
 4. `prompts/tools/10-os-hardening.md`
 5. `prompts/tools/11-docker.md`
 6. `prompts/tools/12-tailscale.md`
-7. **Step 5 — secrets** (see below) before `prompts/tools/13-caddy.md`.
-8. `prompts/tools/13-caddy.md` through `prompts/tools/99-final-validation.md`
+7. **Step 5 — secrets** (see below) before `prompts/tools/13-tailscale-serve.md`.
+8. `prompts/tools/13-tailscale-serve.md` through `prompts/tools/99-final-validation.md`
    in the order listed in `prompts/tools/_order.md`.
 
 ---
@@ -307,7 +307,7 @@ Type `confirmed` to proceed.
 
 ## Step 6 — Continue with service prompts
 
-Resume Step 4 dispatch from `prompts/tools/13-caddy.md`. Stop at every
+Resume Step 4 dispatch from `prompts/tools/13-tailscale-serve.md`. Stop at every
 checkpoint. When `prompts/tools/99-final-validation.md` passes, CortexOS
 is installed.
 

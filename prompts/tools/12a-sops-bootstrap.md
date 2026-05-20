@@ -186,4 +186,4 @@ unchanged.
 
 ## Next
 
-→ `prompts/tools/13-caddy.md`
+→ `prompts/tools/13-tailscale-serve.md`

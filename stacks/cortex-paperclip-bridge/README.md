@@ -13,7 +13,7 @@ Stateless HTTP webhook receiver + JetStream status worker that bridges Paperclip
 
 | Item | Default | Notes |
 |---|---|---|
-| HTTP port | `8089` | Bind loopback; Caddy fronts public path. |
+| HTTP port | `8089` | Bind loopback; no public route by default. |
 | Env file | `/opt/cortexos/.secrets/paperclip.env` | `chmod 600`, owner `cortex:cortex`. |
 | Migration | `packages/cortex-dashboard/migrations/005_paperclip_ticket_link.sql` | Apply via `scripts/migrate.js`. |
 

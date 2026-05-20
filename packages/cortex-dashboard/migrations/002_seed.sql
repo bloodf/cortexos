@@ -50,7 +50,6 @@ ON CONFLICT (slug) DO UPDATE SET
 
 -- Infrastructure
 INSERT INTO services (slug, name, kind, category, health_url, health_type, open_url, env_source, icon_type, sort_order) VALUES
-  ('caddy',      'Caddy',      'service', 'Infrastructure', 'tcp://127.0.0.1:8080',                       'tcp',     '#', '/opt/cortexos/stacks/caddy/.env',  'caddy',   1),
   ('floci',      'Floci',      'docker',  'Infrastructure', 'http://host.docker.internal:4566/_localstack/health', 'http',    '#', '/opt/cortexos/stacks/floci/.env',  'cloud',   2),
   ('cockpit',    'Cockpit',    'service', 'Infrastructure', 'tcp://host.docker.internal:9093',                     'tcp',     '#', NULL,                             'server',  3),
   ('webmin',     'Webmin',     'service', 'Infrastructure', 'tcp://host.docker.internal:10000',                    'tcp',     '#', NULL,                             'server',  4),
@@ -204,13 +203,13 @@ ON CONFLICT (service_id, badge_id) DO NOTHING;
 -- Infrastructure
 INSERT INTO service_badges (service_id, badge_id)
 SELECT s.id, b.id FROM services s, badges b
-WHERE s.slug IN ('caddy','floci','cockpit','webmin','watchtower','tailscale','dnsmasq','fail2ban','cortex-dashboard')
+WHERE s.slug IN ('floci','cockpit','webmin','watchtower','tailscale','dnsmasq','fail2ban','cortex-dashboard')
   AND b.slug = 'infra'
 ON CONFLICT (service_id, badge_id) DO NOTHING;
 
 INSERT INTO service_badges (service_id, badge_id)
 SELECT s.id, b.id FROM services s, badges b
-WHERE s.slug IN ('caddy','tailscale','dnsmasq')
+WHERE s.slug IN ('tailscale','dnsmasq')
   AND b.slug = 'network'
 ON CONFLICT (service_id, badge_id) DO NOTHING;
 

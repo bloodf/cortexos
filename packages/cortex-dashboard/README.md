@@ -258,7 +258,7 @@ mode `0600`):
 - `DASHBOARD_DB_PASSWORD`
 - `CORTEX_MASTER_KEY` (≥ 32 bytes)
 
-Tailscale Serve publishes the dashboard root (see `prompts/tools/13-caddy.md` for the full routing flow):
+Tailscale Serve publishes the dashboard root (see `prompts/tools/13-tailscale-serve.md` for the full routing flow):
 
 ```bash
 sudo tailscale serve --bg --https=443 http://localhost:3080

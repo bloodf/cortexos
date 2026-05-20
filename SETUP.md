@@ -33,9 +33,7 @@ export SSH_PORT="22"                    # SSH port (default 22)
 # Default: use the Tailscale MagicDNS FQDN of this node — e.g.
 #   cortex.tailXXXX.ts.net  (read from `tailscale status` after 12-tailscale.md)
 # Tailscale Serve terminates HTTPS with auto-issued certs; no public DNS or
-# Let's Encrypt account needed. Set a real public domain ONLY if you want the
-# dashboard exposed on the open internet (see 13-caddy.md "Public-domain
-# override").
+# Let's Encrypt account needed. Use the node's MagicDNS FQDN.
 export CORTEX_DOMAIN=""                 # e.g. cortex.tailXXXX.ts.net
 
 # 3. Tailscale
@@ -132,7 +130,7 @@ and includes every required spoke present on disk:
 
 ```text
 00-preflight
-→ 10-os-hardening → 09-homebrew → 11-docker → 12-tailscale → 12a-sops-bootstrap → 13-caddy
+→ 10-os-hardening → 09-homebrew → 11-docker → 12-tailscale → 12a-sops-bootstrap → 13-tailscale-serve
 → 14-postgresql → 15-redis → 17-dnsmasq → 18-fail2ban
 → 20-prometheus → 21-loki → 22-grafana → 23-fluent-bit → 24-cadvisor → 25-node-exporter
 → 30-nats → 31-9router → 32-openviking → 33-leann → 34-kernel-browser

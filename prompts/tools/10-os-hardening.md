@@ -230,7 +230,7 @@ sudo systemctl enable --now auditd
 sudo systemctl enable --now fail2ban
 ```
 
-A full set of fail2ban jails (sshd, recidive, caddy auth) lands in
+A full set of fail2ban jails (sshd, recidive) lands in
 `prompts/tools/18-fail2ban.md`. This spoke only guarantees the
 service is **running** from the start so the sshd jail begins
 collecting evidence the moment SSH is reachable.

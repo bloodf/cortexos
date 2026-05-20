@@ -30,7 +30,7 @@ spokes:
     optional: false       # SOPS + age must be available before any service
                           # that loads secrets — install before Tailscale Serve routing.
 
-  13-caddy:
+  13-tailscale-serve:
     deps: [12-tailscale, 12a-sops-bootstrap]
     optional: false
 
@@ -59,7 +59,7 @@ spokes:
     optional: false
 
   20-prometheus:
-    deps: [11-docker, 13-caddy]
+    deps: [11-docker, 13-tailscale-serve]
     optional: false
 
   21-loki:
@@ -187,7 +187,7 @@ spokes:
     optional: false
 
   70-dashboard:
-    deps: [14-postgresql, 13-caddy, 40-openclaw, 62-paperclip, 63-paperclip-alerts]
+    deps: [14-postgresql, 13-tailscale-serve, 40-openclaw, 62-paperclip, 63-paperclip-alerts]
     optional: false
 
   80-agent-factory:

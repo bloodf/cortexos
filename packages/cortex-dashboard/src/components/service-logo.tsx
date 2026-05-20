@@ -40,7 +40,6 @@ function InitialAvatar({
 }
 
 const BRAND_COLORS: Record<string, string> = {
-	caddy: "#1f8dd6",
 	"9router": "#6366f1",
 	openviking: "#0ea5e9",
 	hindsight: "#f59e0b",

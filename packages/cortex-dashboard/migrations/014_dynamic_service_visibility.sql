@@ -31,7 +31,7 @@ BEGIN
     'dockhand','openviking','openclaw','agentgateway','kernel-browser','leann',
     'cortex-graph','cortex-sandbox-runner','cortex-consumer','fluent-bit',
     'promtail','node-exporter','pg-exporter','redis-exporter','mongo-exporter',
-    'otel-collector','postgresql','redis','mongodb','nats','caddy','tailscale',
+    'otel-collector','postgresql','redis','mongodb','nats','tailscale',
     'dnsmasq','fail2ban'
   );
 

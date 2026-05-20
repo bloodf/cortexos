@@ -99,10 +99,9 @@ sudo systemctl restart fail2ban
 sudo fail2ban-client status
 sudo fail2ban-client status sshd
 sudo fail2ban-client status recidive
-sudo fail2ban-client status caddy-auth
 ```
 
-Expected: `sshd`, `recidive`, `caddy-auth` jails active with filters listed.
+Expected: `sshd` and `recidive` jails active with filters listed.
 
 ## CHECKPOINT 2
 

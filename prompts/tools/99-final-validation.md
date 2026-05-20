@@ -29,7 +29,7 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 ## Todo
 
 - [ ] CHECKPOINT 1 confirmed — `.secrets/.setup-state.json` exists
-- [ ] Run section 1 (infra: UFW, fail2ban, docker, tailscale, caddy)
+- [ ] Run section 1 (infra: UFW, fail2ban, docker, tailscale)
 - [ ] Run section 2 (psql + redis PING)
 - [ ] Run section 3 (monitoring stack local + tailnet probes)
 - [ ] Run section 4 (NATS + cortex-consumer)
@@ -65,16 +65,12 @@ docker compose version
 tailscale status
 sudo tailscale serve status
 
-# Tailscale Serve (own state — tailnet routes published)
-systemctl is-active --quiet caddy && echo "caddy: active" || echo "caddy: INACTIVE"
-curl -fsS -o /dev/null -w "caddy-local: %{http_code}\n" http://127.0.0.1:8080/
-
 # Tailnet entry point (dashboard at root)
 curl -sSo /dev/null -w "ts-dashboard: %{http_code}\n" "https://${CORTEX_DOMAIN}/en/login"
 ```
 
 Expected: UFW active, sshd jail active, syncookies=1, Docker OK,
-Tailscale online with `serve status` showing `:443 → http://localhost:8080`,
+Tailscale online with `serve status` showing `:443 → http://localhost:3080`,
 Tailscale Serve configured, dashboard returns `200`.
 
 ### 2. Databases & caches

@@ -7,7 +7,7 @@ Install 9Router, the OpenAI-compatible model gateway that proxies AI provider AP
 ## Prerequisites
 
 - `30-nats.md` completed (9Router publishes metrics to NATS).
-- `13-caddy.md` completed (operator reaches the 9Router WebUI through Tailscale Serve on port `11434`).
+- `13-tailscale-serve.md` completed (operator reaches the 9Router WebUI through Tailscale Serve on port `11434`).
 - AI provider API keys available (at least one: OpenAI, Anthropic, or other). These are entered in the 9Router WebUI later — NOT pasted into prompts or env files.
 
 ## Distro selection

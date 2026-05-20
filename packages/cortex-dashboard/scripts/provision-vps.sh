@@ -15,17 +15,17 @@
 #   idempotent and self-contained so it can be re-run safely from either
 #   side.
 #
-# Idempotent: safe to re-run. Installs Node 24 (via linuxbrew), PostgreSQL 17,
-# creates the dashboard role + database, scaffolds /opt/cortexos directory tree,
-# and seeds /opt/cortexos/.secrets/dashboard.env from the template.
+# Idempotent: safe to re-run. Installs Docker and PostgreSQL, creates the
+# dashboard role + database, scaffolds /opt/cortexos directory tree, and seeds
+# /opt/cortexos/.secrets/dashboard.env from the template.
 #
 # Run as the SSH user with sudo (NOT as root directly — linuxbrew rejects root).
 #
 # Usage (laptop-driven; preferred):
-#   bootstrap_run_remote 'cd "$CORTEX_ROOT" && bash dashboard/scripts/provision-vps.sh [--with-caddy]'
+#   bootstrap_run_remote 'cd "$CORTEX_ROOT" && bash dashboard/scripts/provision-vps.sh'
 #
 # Usage (legacy, on-host):
-#   ./scripts/provision-vps.sh [--with-caddy]
+#   ./scripts/provision-vps.sh
 #
 # Env overrides:
 #   CORTEX_ROOT             /opt/cortexos
@@ -44,14 +44,11 @@ else
   echo "[provision] WARN: ${__repo_root}/scripts/pkg.sh not found; assuming Ubuntu" >&2
   pkg_install() { sudo apt-get install -y --no-install-recommends "$@"; }
   pkg_family()  { echo ubuntu; }
-  firewall_open() { sudo ufw allow "$1/${2:-tcp}" || true; }
 fi
 echo "[provision] OS family: $(pkg_family) $(pkg_version 2>/dev/null || echo unknown)"
 
-WITH_CADDY=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --with-caddy) WITH_CADDY=1; shift ;;
     *) echo "Unknown flag: $1" >&2; exit 2 ;;
   esac
 done
@@ -82,8 +79,7 @@ pkg_install \
   ufw git jq
 
 echo "=== [3/7] Installing Docker Engine + Compose plugin (idempotent) ==="
-# Dashboard now builds on the VPS via docker compose. We no longer need
-# linuxbrew Node — the image base (node:22-slim) carries Node 22.
+# Dashboard builds on the VPS via Docker Compose. The image base carries Node.
 if ! command -v docker >/dev/null 2>&1; then
   case "$(pkg_family)" in
     ubuntu|debian)
@@ -181,23 +177,6 @@ EOF
   echo "  Wrote $ENV_FILE (root:0600)"
 else
   echo "  $ENV_FILE already exists — leaving untouched"
-fi
-
-if [[ $WITH_CADDY -eq 1 ]]; then
-  echo "=== Installing Caddy ($(pkg_family)) ==="
-  if ! command -v caddy >/dev/null; then
-    pkg_install debian-keyring debian-archive-keyring apt-transport-https
-    curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/gpg.key \
-      | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-    curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt \
-      | sudo tee /etc/apt/sources.list.d/caddy-stable.list >/dev/null
-    sudo apt-get update -y
-    pkg_install caddy
-  fi
-  sudo systemctl enable --now caddy
-  # Open HTTP/HTTPS in firewall (no-op on UFW if rule already exists).
-  firewall_open 80  tcp
-  firewall_open 443 tcp
 fi
 
 echo "=== [7/7] Bringing up cortex-dashboard via Docker Compose ==="

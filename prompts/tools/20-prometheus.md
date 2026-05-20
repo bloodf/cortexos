@@ -6,7 +6,7 @@ Run Prometheus as a native systemd service scraping CortexOS metrics.
 
 ## Prerequisites
 
-- `13-caddy.md` completed.
+- `13-tailscale-serve.md` completed.
 
 ## Sudo gate
 

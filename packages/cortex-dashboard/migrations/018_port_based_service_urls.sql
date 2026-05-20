@@ -41,7 +41,7 @@ BEGIN
     'agentgateway','kernel-browser','cortex-sandbox-runner','cortex-consumer',
     'fluent-bit','promtail','node-exporter','pg-exporter','redis-exporter',
     'mongo-exporter','otel-collector','postgresql','redis','mongodb','mysql',
-    'nats','caddy','tailscale','dnsmasq','fail2ban','dockhand',
+    'nats','tailscale','dnsmasq','fail2ban','dockhand',
     'home-assistant','jellyfin','paperclip-bridge'
   );
 

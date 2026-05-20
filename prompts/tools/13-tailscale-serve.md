@@ -124,7 +124,7 @@ Expected: Serve status lists port handlers such as
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** Does `sudo tailscale serve status` list `https://${CORTEX_DOMAIN}:443/` forwarding to `http://localhost:3080`?
+**STOP — operator question:** Does `sudo tailscale serve status` list `https://${CORTEX_DOMAIN}` forwarding to `http://localhost:3080`?
 
 Type `confirmed` to proceed.
 

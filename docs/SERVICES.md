@@ -37,7 +37,7 @@
 
 | Service                | Spoke                              | Internal port | Mode   | Notes                                       |
 |------------------------|------------------------------------|---------------|--------|---------------------------------------------|
-| Tailscale Serve        | `13-caddy.md`                      | varies        | native | Publishes each loopback Web UI on its own tailnet HTTPS port. |
+| Tailscale Serve        | `13-tailscale-serve.md`                      | varies        | native | Publishes each loopback Web UI on its own tailnet HTTPS port. |
 | PostgreSQL             | `14-postgresql.md`                 | 5432          | docker | `dashboard` DB role; password in `dashboard.env`. |
 | Redis                  | `15-redis.md`                      | 6379          | docker | Loopback only; no auth required.            |
 | MongoDB                | `16-mongodb.md`                    | 27017         | docker | Loopback only.                              |
