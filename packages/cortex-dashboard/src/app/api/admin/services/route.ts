@@ -12,20 +12,22 @@ import { VALID_HEALTH_TYPES, SLUG_RE, HEX_COLOR_RE } from "@/lib/validation";
 
 const SAFE_NAME_RE = /^[a-zA-Z0-9._@:-]+$/;
 
-async function startRuntimeService(service: Service): Promise<void> {
+async function startRuntimeService(service: Service): Promise<string | null> {
 	const target = service.health_url || service.slug;
-	if (!SAFE_NAME_RE.test(target)) return;
+	if (!SAFE_NAME_RE.test(target)) return `Skipped runtime start: unsafe target ${target}`;
 	try {
 		if (service.health_type === "docker" || service.kind === "docker") {
 			await hostExecFile("docker", ["start", target], { timeout: 10000 });
-			return;
+			return null;
 		}
 		if (service.health_type === "systemd") {
 			await hostExecFile("systemctl", ["start", target], { timeout: 10000 });
+			return null;
 		}
-	} catch {
-		// Catalog activation should persist even when a runtime start command is
-		// not available for process/http/tcp services.
+		return null;
+	} catch (error) {
+		const message = error instanceof Error ? error.message : "unknown error";
+		return `Runtime start failed for ${target}: ${message}`;
 	}
 }
 
@@ -182,9 +184,9 @@ export async function PATCH(request: Request) {
 			return NextResponse.json({ error: "No fields to update" }, { status: 400 });
 		}
 
-		const service = await updateService(id, updates);
-		if (updates.is_active === true) await startRuntimeService(service);
-		return NextResponse.json({ service });
+			const service = await updateService(id, updates);
+			const warning = updates.is_active === true ? await startRuntimeService(service) : null;
+			return NextResponse.json(warning ? { service, warning } : { service });
 	} catch {
 		return NextResponse.json({ error: "Failed to update service" }, { status: 500 });
 	}

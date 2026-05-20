@@ -1,12 +1,14 @@
 import { readFileSync } from "fs";
 import { Client, type ClientChannel, type ConnectConfig } from "ssh2";
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
 
 interface Session {
 	client: Client;
 	stream: ClientChannel | null;
 	buffer: string[];
 	listeners: Set<(data: string) => void>;
+	closers: Set<() => void>;
 	connected: boolean;
 	lastActivity: number;
 }
@@ -15,6 +17,7 @@ const MAX_SESSIONS = 10;
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 const SESSION_ID_RE = /^[a-zA-Z0-9_-]{1,64}$/;
 const sessions = new Map<string, Session>();
+let cachedPrivateKey: Buffer | null | undefined;
 
 function publish(session: Session, data: string) {
 	session.buffer.push(data);
@@ -30,6 +33,8 @@ function closeSession(id: string, message?: string) {
 	session.connected = false;
 	session.stream?.close();
 	session.client.end();
+	session.closers.forEach((close) => close());
+	session.closers.clear();
 	sessions.delete(id);
 }
 
@@ -47,14 +52,17 @@ function sshConfig(): ConnectConfig {
 	const keyPath = process.env.TERMINAL_SSH_KEY;
 	const password = process.env.TERMINAL_SSH_PASSWORD;
 	const config: ConnectConfig = { host, port, username, readyTimeout: 15_000, keepaliveInterval: 15_000 };
-	if (keyPath) config.privateKey = readFileSync(keyPath);
+	if (keyPath) {
+		if (cachedPrivateKey === undefined) cachedPrivateKey = readFileSync(keyPath);
+		if (cachedPrivateKey) config.privateKey = cachedPrivateKey;
+	}
 	if (password) config.password = password;
 	return config;
 }
 
-function createSession(id: string): Session {
+function createSession(id: string): Session | { error: string } {
 	const client = new Client();
-	const session: Session = { client, stream: null, buffer: [], listeners: new Set(), connected: true, lastActivity: Date.now() };
+	const session: Session = { client, stream: null, buffer: [], listeners: new Set(), closers: new Set(), connected: true, lastActivity: Date.now() };
 
 	client.on("ready", () => {
 		client.shell({ term: "xterm-256color", cols: 120, rows: 30 }, (err, stream) => {
@@ -74,11 +82,19 @@ function createSession(id: string): Session {
 	client.on("close", () => {
 		if (sessions.has(id)) closeSession(id, "\r\n[ssh disconnected]\r\n");
 	});
-	client.connect(sshConfig());
+	try {
+		client.connect(sshConfig());
+	} catch (error) {
+		const message = error instanceof Error ? error.message : "Terminal SSH configuration failed";
+		client.end();
+		return { error: message };
+	}
 	return session;
 }
 
 export async function POST(request: NextRequest) {
+	const auth = await requireAdmin(request, { tool: "terminal" });
+	if (auth.error) return auth.error;
 	try {
 		const body = await request.json();
 		const { action, sessionId, data, cols, rows } = body;
@@ -89,7 +105,9 @@ export async function POST(request: NextRequest) {
 		if (action === "connect") {
 			if (sessions.has(sessionId)) return NextResponse.json({ success: true });
 			if (sessions.size >= MAX_SESSIONS) return NextResponse.json({ error: "Maximum session limit reached" }, { status: 429 });
-			sessions.set(sessionId, createSession(sessionId));
+			const session = createSession(sessionId);
+			if ("error" in session) return NextResponse.json({ error: "Terminal unavailable", detail: session.error }, { status: 503 });
+			sessions.set(sessionId, session);
 			return NextResponse.json({ success: true });
 		}
 
@@ -119,11 +137,14 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+	const auth = await requireAdmin(request, { tool: "terminal" });
+	if (auth.error) return auth.error;
 	const sessionId = request.nextUrl.searchParams.get("sessionId");
 	if (!sessionId || !SESSION_ID_RE.test(sessionId)) return NextResponse.json({ error: "Invalid sessionId" }, { status: 400 });
 	const encoder = new TextEncoder();
 	let removeListener: (() => void) | null = null;
 	let heartbeat: NodeJS.Timeout | null = null;
+	let closeController: (() => void) | null = null;
 	const stream = new ReadableStream({
 		start(controller) {
 			const enqueue = (payload: string) => {
@@ -140,10 +161,18 @@ export async function GET(request: NextRequest) {
 			session.listeners.add(send);
 			removeListener = () => session.listeners.delete(send);
 			heartbeat = setInterval(() => enqueue(": keepalive\n\n"), 15000);
+			closeController = () => {
+				if (removeListener) removeListener();
+				if (heartbeat) clearInterval(heartbeat);
+				try { controller.close(); } catch {}
+			};
+			session.closers.add(closeController);
 		},
 		cancel() {
 			if (removeListener) removeListener();
 			if (heartbeat) clearInterval(heartbeat);
+			const session = sessions.get(sessionId);
+			if (session && closeController) session.closers.delete(closeController);
 		},
 	});
 	return new Response(stream, { headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache, no-transform", Connection: "keep-alive" } });

@@ -52,8 +52,7 @@ CREATE INDEX IF NOT EXISTS idx_pending_approvals_run_id
   ON pending_approvals (run_id);
 
 UPDATE services
-   SET is_active = true,
-       show_in_healthcheck = true,
+   SET show_in_healthcheck = is_active,
        show_in_webui = has_webui AND open_url <> '#',
        updated_at = NOW();
 
@@ -81,7 +80,7 @@ INSERT INTO services (
   show_in_healthcheck, show_in_webui
 ) VALUES (
   'paperclip', 'Paperclip', 'app', 'AI', 'Paperclip company workspace and issue board',
-  'http://127.0.0.1:3033/api/health', 'http', 'https://cortexos.tailfd052e.ts.net:3032',
+  'http://127.0.0.1:3033/api/health', 'http', '#',
   'unknown', 'auto', '#6366f1', 120, true, true, true, true
 )
 ON CONFLICT (slug) DO UPDATE SET
@@ -91,11 +90,10 @@ ON CONFLICT (slug) DO UPDATE SET
   description = EXCLUDED.description,
   health_url = EXCLUDED.health_url,
   health_type = EXCLUDED.health_type,
-  open_url = EXCLUDED.open_url,
-  is_active = true,
+  open_url = CASE WHEN services.open_url = '#' THEN EXCLUDED.open_url ELSE services.open_url END,
   has_webui = true,
-  show_in_healthcheck = true,
-  show_in_webui = true,
+  show_in_healthcheck = services.is_active,
+  show_in_webui = services.is_active AND services.open_url <> '#',
   updated_at = NOW();
 
 INSERT INTO migrations (name) VALUES ('021_paperclip_service_readiness')

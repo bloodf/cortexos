@@ -116,16 +116,15 @@ async function main() {
       await client.query("SELECT cortex_set_service_urls($1)", [baseUrl]);
     }
 
-    await client.query(`
+    const visibility = await client.query(`
       UPDATE services
-         SET is_active = true,
-             has_webui = open_url <> '#',
-             show_in_webui = open_url <> '#',
-             show_in_healthcheck = true,
+         SET has_webui = open_url <> '#',
+             show_in_webui = is_active AND open_url <> '#',
+             show_in_healthcheck = is_active,
              updated_at = NOW()
     `);
     console.log(
-      `dynamic-seed enabled all services, detected completed count: ${detected.size}` +
+      `dynamic-seed refreshed ${visibility.rowCount} service rows, detected completed count: ${detected.size}` +
         (baseUrl ? `, public base: ${baseUrl}` : ", public base: unset"),
     );
   } finally {

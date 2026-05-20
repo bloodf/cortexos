@@ -112,10 +112,14 @@ interface OpenClawAgent {
   name?: string;
   workspace?: string;
   agentDir?: string;
+  kind?: string;
+  lane?: string;
+  tags?: string[];
   model?: string | { primary?: string };
   identity?: { name?: string; emoji?: string };
   identityName?: string;
   identityEmoji?: string;
+  metadata?: { factoryLane?: boolean; template?: boolean };
 }
 
 interface OpenClawConfig {
@@ -129,16 +133,20 @@ interface OpenClawListOutput {
 }
 
 function isFactoryLane(entry: OpenClawAgent): boolean {
-  const haystack = [
-    entry.id,
-    entry.name,
-    entry.identity?.name,
-    entry.workspace,
-  ].filter(Boolean).join(" ").toLowerCase();
-  return /\bfactory\b/.test(haystack) || /\btemplate\b/.test(haystack);
+  if (entry.metadata?.factoryLane || entry.metadata?.template) return true;
+  if (entry.kind === "factory" || entry.lane === "factory") return true;
+  if (entry.tags?.some((tag) => tag === "factory" || tag === "template")) return true;
+  const labels = [entry.id, entry.name, entry.identity?.name]
+    .filter(Boolean)
+    .map((value) => String(value).toLowerCase());
+  return labels.some((value) => value === "factory" || value === "template" || value.startsWith("factory-") || value.startsWith("template-"));
 }
 
+let cachedOpenClawAgents: { expiresAt: number; agents: OpenClawAgent[] | null } | null = null;
+
 async function listOpenClawAgents(): Promise<OpenClawAgent[] | null> {
+  const now = Date.now();
+  if (cachedOpenClawAgents && cachedOpenClawAgents.expiresAt > now) return cachedOpenClawAgents.agents;
   try {
     const { stdout } = await execFileAsync("openclaw", ["agents", "list", "--json"], {
       timeout: 5000,
@@ -146,8 +154,11 @@ async function listOpenClawAgents(): Promise<OpenClawAgent[] | null> {
     });
     const parsed = JSON.parse(stdout) as OpenClawListOutput | OpenClawAgent[];
     const agents = Array.isArray(parsed) ? parsed : parsed.agents;
-    return Array.isArray(agents) ? agents.filter((agent) => agent.id && !isFactoryLane(agent)) : null;
+    const filtered = Array.isArray(agents) ? agents.filter((agent) => agent.id && !isFactoryLane(agent)) : null;
+    cachedOpenClawAgents = { agents: filtered, expiresAt: now + 5000 };
+    return filtered;
   } catch {
+    cachedOpenClawAgents = { agents: null, expiresAt: now + 1000 };
     return null;
   }
 }

@@ -1,14 +1,12 @@
 -- 018_service_catalog_webui_fixes.sql
 -- Reconcile WebUI catalog entries with probed local services and Tailscale Serve ports.
 
-UPDATE services SET is_active = TRUE;
-
 UPDATE services
    SET health_type = 'http',
-       health_url = 'http://127.0.0.1:3333/json/version?token=-7P-GL5dr2lUT-Z5WiycyUbgE_3uJZCiuedeXjXZfws',
-       open_url = 'https://cortexos.tailfd052e.ts.net:3333/json/version?token=-7P-GL5dr2lUT-Z5WiycyUbgE_3uJZCiuedeXjXZfws',
-       has_webui = TRUE,
-       show_in_webui = TRUE
+       health_url = 'http://127.0.0.1:3333/json/version',
+       open_url = '#',
+       has_webui = FALSE,
+       show_in_webui = FALSE
  WHERE slug = 'kernel-browser';
 
 UPDATE services
@@ -40,5 +38,7 @@ UPDATE services SET open_url = 'https://cortexos.tailfd052e.ts.net:8083/' WHERE 
 UPDATE services SET open_url = 'https://cortexos.tailfd052e.ts.net:8082/' WHERE slug = 'phpmyadmin';
 UPDATE services SET open_url = 'https://cortexos.tailfd052e.ts.net:3001/' WHERE slug = 'langfuse';
 
-INSERT INTO migrations (name) VALUES ('018_service_catalog_webui_fixes')
+INSERT INTO migrations (name) VALUES
+  ('018_service_catalog_webui_fixes'),
+  ('028_service_catalog_webui_fixes')
 ON CONFLICT (name) DO NOTHING;

@@ -95,7 +95,8 @@ export function createApp() {
     const { runId, agentId, cortexRole, context } = req.body;
     const subject = `cortex.paperclip.work.${cortexRole}`;
     try {
-      const wakeReason = context.wakeReason === "issue_assigned" ? "new_issue" : context.wakeReason;
+      const originalWakeReason = context.wakeReason;
+      const wakeReason = originalWakeReason === "issue_assigned" ? "new_issue" : originalWakeReason;
       const { inserted } = await recordLink({
         issueId: context.taskId,
         runId,
@@ -109,6 +110,7 @@ export function createApp() {
         agentId,
         role: cortexRole,
         wakeReason,
+        originalWakeReason,
         payload: req.body,
       };
       if (context.commentId) data.requestedBy = context.commentId;
@@ -135,6 +137,7 @@ export function createApp() {
           role: cortexRole,
           replay: !inserted,
           wakeReason,
+          originalWakeReason,
         },
       });
       res.status(202).json({ runId, status: "queued" });

@@ -10,7 +10,7 @@ Group=cortexos
 WorkingDirectory=/opt/cortexos/stacks/cortex-a2a-gateway
 Environment=HOME=/home/cortexos
 Environment=PATH=/usr/local/bin:/usr/bin:/bin
-EnvironmentFile=-/opt/cortexos/.secrets/a2a-gateway.env
+EnvironmentFile=/opt/cortexos/.secrets/a2a-gateway.env
 ExecStart=/usr/bin/node server.js
 Restart=on-failure
 RestartSec=5

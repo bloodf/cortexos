@@ -110,7 +110,7 @@ describe("registerRole", () => {
 				return { status: 201, body: { apiKey: "pk_secret_existing" } };
 			},
 		});
-		const result = await registerRole(ROLE, { http, companyId: "c1" });
+		const result = await registerRole(ROLE, { http, companyId: "c1", boardToken: "tok" });
 		expect(result?.agentId).toBe("agent-1");
 		expect(result?.apiKey).toBe("pk_secret_existing");
 		expect(calls.map((c) => `${c.method} ${c.path}`)).toEqual([

@@ -44,5 +44,7 @@ ON CONFLICT (slug) DO UPDATE SET
   definition = EXCLUDED.definition,
   updated_at = NOW();
 
-INSERT INTO migrations (name) VALUES ('017_paperclip_agent_factory')
+INSERT INTO migrations (name) VALUES
+  ('017_paperclip_agent_factory'),
+  ('026_paperclip_agent_factory')
 ON CONFLICT (name) DO NOTHING;

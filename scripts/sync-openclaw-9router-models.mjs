@@ -1,6 +1,17 @@
 #!/usr/bin/env node
 import fs from "node:fs";
-import { MODELS } from "/usr/lib/node_modules/openclaw/node_modules/@earendil-works/pi-ai/dist/models.generated.js";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+const catalogPath = process.env.OPENCLAW_MODELS_CATALOG
+  || require.resolve("@earendil-works/pi-ai/dist/models.generated.js", {
+    paths: [
+      process.cwd(),
+      "/usr/lib/node_modules/openclaw",
+      "/usr/local/lib/node_modules/openclaw",
+    ],
+  });
+const { MODELS } = await import(catalogPath);
 
 const configPath = process.env.OPENCLAW_CONFIG || "/home/cortexos/.openclaw/openclaw.json";
 const baseUrl = (process.env.NINEROUTER_BASE_URL || "http://127.0.0.1:11434").replace(/\/$/, "");
@@ -118,7 +129,9 @@ config.models.providers["9router"] = {
   models: openclawModels,
 };
 
-fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+const tmpPath = `${configPath}.tmp-${process.pid}`;
+fs.writeFileSync(tmpPath, `${JSON.stringify(config, null, 2)}\n`);
+fs.renameSync(tmpPath, configPath);
 
 const matched = openclawModels.filter((model) => model.contextWindow !== 128000 || model.maxTokens !== 16384).length;
 console.log(JSON.stringify({ configPath, models: openclawModels.length, matchedOrEnhanced: matched }, null, 2));

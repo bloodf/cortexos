@@ -697,9 +697,12 @@ export function getAllTools(ctx: ToolContext): Record<string, Tool> {
 			if (approval.kind !== "ok") return approval;
 			const factory = await getAgentFactory(input.factory_slug);
 			if (!factory) return { kind: "not_found" as const, factory_slug: input.factory_slug };
-			const projectSlug = input.project_slug || slugify(factory.name);
-			const positions = projectPositions(factory.definition);
-			const written: string[] = [];
+				const projectSlug = input.project_slug || slugify(factory.name);
+				const positions = projectPositions(factory.definition);
+				if (positions.length === 0) {
+					return { kind: "empty" as const, factory_slug: factory.slug, reason: "factory definition has no Paperclip positions" };
+				}
+				const written: string[] = [];
 			const registered: string[] = [];
 			for (const position of positions) {
 				const seat = slugify(String(position.seat || position.paperclip_role || position.title || "agent"));

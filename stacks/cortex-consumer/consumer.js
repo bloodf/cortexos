@@ -477,6 +477,39 @@ function buildPaperclipAgentPrompt(role, data) {
   ].join("\n");
 }
 
+function summarizeOpenClawOutput(stdout) {
+  const raw = String(stdout || "").trim();
+  if (!raw) throw new Error("OpenClaw returned no output");
+  if (/Cannot read properties of null|uncaught|traceback|error:/i.test(raw)) {
+    throw new Error(raw.slice(0, 500));
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    const payloads = parsed?.result?.payloads;
+    if (Array.isArray(payloads)) {
+      const text = payloads
+        .map((payload) => payload?.text)
+        .filter((value) => typeof value === "string" && value.trim())
+        .join("\n")
+        .trim();
+      if (/Cannot read properties of null|uncaught|traceback|error:/i.test(text)) {
+        throw new Error(text.slice(0, 500));
+      }
+      if (text) return text;
+    }
+    const finalText = parsed?.result?.meta?.finalAssistantVisibleText
+      || parsed?.result?.meta?.finalAssistantRawText
+      || parsed?.finalAssistantVisibleText
+      || parsed?.finalAssistantRawText
+      || parsed?.summary;
+    if (typeof finalText === "string" && finalText.trim()) return finalText.trim();
+    throw new Error("OpenClaw JSON output did not include assistant text");
+  } catch (error) {
+    if (error instanceof SyntaxError) return raw;
+    throw error;
+  }
+}
+
 async function dispatchPaperclipOpenClawAgent(role, data, cfg) {
   const agentId = resolvePaperclipAgent(role, data, cfg);
   if (!agentId) return null;
@@ -491,7 +524,7 @@ async function dispatchPaperclipOpenClawAgent(role, data, cfg) {
     "--timeout",
     String(timeoutSec),
   ]);
-  return { agentId, stdout };
+  return { agentId, stdout, summary: summarizeOpenClawOutput(stdout) };
 }
 
 // ---------------------------------------------------------------------------
@@ -1277,7 +1310,7 @@ async function handlePaperclipWork(subject, envelope, cfg = {}) {
       runId: data.runId,
       issueId: data.issueId,
       status: "done",
-      comment: `CortexOS agent ${result.agentId} completed the run`,
+      comment: `CortexOS agent ${result.agentId} completed the run: ${result.summary.slice(0, 500)}`,
       costUsdCents: 0,
     });
     await safeAuditAppend({

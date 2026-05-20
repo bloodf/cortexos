@@ -44,12 +44,12 @@ services:
       TERMINAL_SSH_HOST: 127.0.0.1
       TERMINAL_SSH_PORT: "22"
       TERMINAL_SSH_USER: cortexos
-      TERMINAL_SSH_KEY: /home/cortexos/.ssh/id_ed25519
+      TERMINAL_SSH_KEY: /run/cortexos/terminal_id_ed25519
     volumes:
       - "${CORTEXOS_ROOT:-/opt/cortexos}/.secrets/.setup-state.json:/run/cortexos/setup-state.json:ro"
       - /var/run/docker.sock:/var/run/docker.sock
-      - /home/cortexos/.ssh:/home/cortexos/.ssh:ro
-      - /home/cortexos/.openclaw:/home/cortexos/.openclaw
+      - /opt/cortexos/.secrets/terminal_id_ed25519:/run/cortexos/terminal_id_ed25519:ro
+      - /home/cortexos/.openclaw:/home/cortexos/.openclaw:ro
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3080/en/login"]
       interval: 30s

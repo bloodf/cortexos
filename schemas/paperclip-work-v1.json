@@ -15,6 +15,7 @@
       "enum": ["scheduled", "comment", "new_issue", "manual"]
     },
     "payload": { "type": "object" },
+    "originalWakeReason": { "type": "string" },
     "requestedBy": { "type": "string" }
   }
 }

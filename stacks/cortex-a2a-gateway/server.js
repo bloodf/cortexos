@@ -6,8 +6,14 @@ import { randomUUID } from "node:crypto";
 const HOST = process.env.A2A_HOST || "0.0.0.0";
 const PORT = Number(process.env.A2A_PORT || 18802);
 const TOKEN = process.env.A2A_GATEWAY_TOKEN || "";
+const ALLOW_ANONYMOUS = process.env.A2A_ALLOW_ANONYMOUS === "1";
 const OPENCLAW_BIN = process.env.OPENCLAW_BIN || "openclaw";
 const PUBLIC_URL = process.env.A2A_PUBLIC_URL || `http://127.0.0.1:${PORT}/a2a/jsonrpc`;
+
+if (!TOKEN && !ALLOW_ANONYMOUS) {
+  console.error("A2A_GATEWAY_TOKEN is required. Set A2A_ALLOW_ANONYMOUS=1 only for isolated local development.");
+  process.exit(1);
+}
 
 const AGENTS = {
   "netbook-pm": "Netbook PM",
@@ -52,7 +58,7 @@ function readBody(req) {
 }
 
 function authorized(req) {
-  if (!TOKEN) return true;
+  if (!TOKEN) return ALLOW_ANONYMOUS;
   const header = req.headers.authorization || "";
   return header === `Bearer ${TOKEN}`;
 }

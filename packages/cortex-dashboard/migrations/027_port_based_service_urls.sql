@@ -36,6 +36,7 @@ BEGIN
   UPDATE services SET open_url = origin || ':5540/' WHERE slug = 'redisinsight';
   UPDATE services SET open_url = origin || ':8083/' WHERE slug = 'mongo-express';
   UPDATE services SET open_url = origin || ':8082/' WHERE slug = 'phpmyadmin';
+  UPDATE services SET open_url = origin || ':3032/' WHERE slug = 'paperclip';
 
   UPDATE services SET open_url = '#' WHERE slug IN (
     'agentgateway','kernel-browser','cortex-sandbox-runner','cortex-consumer',
@@ -55,5 +56,7 @@ BEGIN
 END;
 $$;
 
-INSERT INTO migrations (name) VALUES ('018_port_based_service_urls')
+INSERT INTO migrations (name) VALUES
+  ('018_port_based_service_urls'),
+  ('027_port_based_service_urls')
 ON CONFLICT (name) DO NOTHING;

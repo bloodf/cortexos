@@ -20,7 +20,8 @@ function parseCredentialJson(): Record<string, AppCredentials> {
 	try {
 		const parsed = JSON.parse(raw) as Record<string, AppCredentials>;
 		return parsed && typeof parsed === "object" ? parsed : {};
-	} catch {
+	} catch (error) {
+		console.warn("[apps] APP_CREDENTIALS_JSON parse failed:", error instanceof Error ? error.message : "invalid JSON");
 		return {};
 	}
 }
@@ -46,6 +47,17 @@ function credentialsFor(slug: string, isAdmin: boolean, fromJson: Record<string,
 	return { username, password };
 }
 
+function safeOpenUrl(openUrl: string, isAdmin: boolean): string {
+	if (isAdmin || openUrl === "#") return openUrl;
+	try {
+		const url = new URL(openUrl);
+		if (url.search) return `${url.origin}${url.pathname}${url.hash}`;
+		return openUrl;
+	} catch {
+		return openUrl.includes("?") ? openUrl.split("?")[0] : openUrl;
+	}
+}
+
 export default async function AppsPage() {
 	const rawServices = await getAllServices();
 	const session = await getCurrentSession();
@@ -61,7 +73,7 @@ export default async function AppsPage() {
 					id: s.id,
 					slug: s.slug,
 					name: s.name,
-					open_url: s.open_url,
+					open_url: safeOpenUrl(s.open_url, isAdmin),
 					category: s.category,
 					status: "unknown" as const,
 					responseTime: 0,

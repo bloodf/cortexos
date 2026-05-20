@@ -66,3 +66,8 @@ INSERT INTO service_badges (service_id, badge_id)
 SELECT s.id, b.id FROM services s, badges b
 WHERE s.slug IN ('pgadmin','redisinsight','mongo-express','mysql','phpmyadmin') AND b.slug = 'db'
 ON CONFLICT (service_id, badge_id) DO NOTHING;
+
+INSERT INTO migrations (name) VALUES
+  ('017_complete_service_catalog'),
+  ('025_complete_service_catalog')
+ON CONFLICT (name) DO NOTHING;

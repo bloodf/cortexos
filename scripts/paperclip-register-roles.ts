@@ -186,7 +186,9 @@ function paperclipRoleToAgentRole(role: string): string {
 	if (normalized === "QA") return "qa";
 	if (normalized === "UXUI") return "designer";
 	if (normalized.includes("ENG") || normalized === "ENGINEER" || normalized === "STAFF-ENG") return "engineer";
-	return "general";
+	if (normalized.startsWith("BOOK-")) return "researcher";
+	if (normalized === "CORTEX") return "general";
+	throw new Error(`unmapped Paperclip role: ${role}`);
 }
 
 function buildAdapterConfig(role: ParsedRole): Record<string, unknown> {
@@ -275,6 +277,11 @@ export async function registerRole(
 			}
 		}
 	} else {
+		if (!boardToken) {
+			throw new Error(
+				`BOARD_TOKEN required to update and mint a new key for existing role ${role.paperclip.role}`,
+			);
+		}
 		const patchRes = await http.patch(
 			`/api/agents/${encodeURIComponent(agentId)}`,
 			{

@@ -1,4 +1,4 @@
--- 019_restored_agents_netbook_cieucpb.sql
+-- 024_restored_agents_netbook_cieucpb.sql
 -- Register restored Netbook and CIEUCPB projects without embedding secrets.
 
 INSERT INTO projects (slug, name, repo_url, primary_pm_account, messaging_mode, settings)
@@ -97,5 +97,7 @@ ON CONFLICT (slug) DO UPDATE SET
   definition = EXCLUDED.definition,
   updated_at = NOW();
 
-INSERT INTO migrations (name) VALUES ('019_restored_agents_netbook_cieucpb')
+INSERT INTO migrations (name) VALUES
+  ('019_restored_agents_netbook_cieucpb'),
+  ('024_restored_agents_netbook_cieucpb')
 ON CONFLICT (name) DO NOTHING;
