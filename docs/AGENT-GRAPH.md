@@ -144,7 +144,7 @@ full taxonomy and producer/consumer obligations.
 
 | Area | Boundary | Control |
 |---|---|---|
-| HTTP API | `127.0.0.1:8090` bound only | Caddy reverse-proxies if external access is required |
+| HTTP API | `127.0.0.1:8090` bound only | Tailscale Serve publishes `:8090` when external tailnet access is required |
 | Bearer | `CORTEX_GRAPH_API_TOKEN` | `hmac.compare_digest` comparison; empty token = service refuses every request |
 | NATS envelope | `CORTEX_NATS_HMAC` | HMAC-SHA256 over JCS canonical bytes; constant-time verification |
 | Checkpoint DB | `dashboard` role on `cortex_dashboard` | Same blast radius as the dashboard service |

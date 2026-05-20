@@ -91,7 +91,7 @@ else
 fi
 check_cmd curl -fsSk --max-time 5 -H "x-cortex-internal-token: $CORTEX_INTERNAL_TOKEN" http://localhost:3080/api/system && ok "cortex-dashboard health http://localhost:3080/api/system" || bad "cortex-dashboard health http://localhost:3080/api/system"
 check_systemd openclaw-gateway.service http://localhost:18789
-check_systemd caddy.service https://127.0.0.1:443/
+check_cmd tailscale serve status && ok "tailscale serve configured" || bad "tailscale serve configured"
 check_systemd 9router.service http://localhost:11434/api/health
 check_systemd cortex-consumer.service http://localhost:3099/health
 

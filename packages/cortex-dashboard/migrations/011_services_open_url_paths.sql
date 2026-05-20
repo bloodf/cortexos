@@ -1,7 +1,6 @@
 -- Extend cortex_set_service_urls(base_url) with every tool that has a web UI
--- routed through Caddy. Keeps 004's contract (idempotent UPSERT of open_url
--- by slug) but adds the routes added in prompts/tools/13-caddy.md:
---   /9router, /prometheus, /loki, /cadvisor, /langfuse, /nats
+-- exposed by Tailscale Serve. Keeps 004's contract (idempotent UPSERT of
+-- open_url by slug) and assigns each UI to its own tailnet port.
 --
 -- Slugs absent from this list either have no web UI (OpenClaw, AgentGateway,
 -- OpenViking, LEANN, kernel-browser, cortex-graph, cortex-sandbox-runner,
@@ -24,22 +23,21 @@ BEGIN
 
   base_url := regexp_replace(base_url, '/+$', '');
 
-  UPDATE services SET open_url = base_url                        WHERE slug = 'cortex-dashboard';
-  UPDATE services SET open_url = base_url || '/9router/'        WHERE slug = '9router';
-  UPDATE services SET open_url = base_url || '/dockhand'         WHERE slug = 'dockhand';
-  UPDATE services SET open_url = base_url || '/grafana/'         WHERE slug = 'grafana';
-  UPDATE services SET open_url = base_url || '/prometheus/'      WHERE slug = 'prometheus';
-  UPDATE services SET open_url = base_url || '/loki/'            WHERE slug = 'loki';
-  UPDATE services SET open_url = base_url || '/cadvisor/'        WHERE slug = 'cadvisor';
-  UPDATE services SET open_url = base_url || '/langfuse/'        WHERE slug = 'langfuse';
-  UPDATE services SET open_url = base_url || '/nats/'            WHERE slug = 'nats-monitor';
-  UPDATE services SET open_url = base_url || '/jellyfin'         WHERE slug = 'jellyfin';
-  UPDATE services SET open_url = base_url || '/ha'               WHERE slug = 'home-assistant';
+  UPDATE services SET open_url = base_url || '/'                 WHERE slug = 'cortex-dashboard';
+  UPDATE services SET open_url = base_url || ':11434/dashboard'  WHERE slug = '9router';
+  UPDATE services SET open_url = base_url || ':3000/'            WHERE slug = 'grafana';
+  UPDATE services SET open_url = base_url || ':9090/'            WHERE slug = 'prometheus';
+  UPDATE services SET open_url = base_url || ':3100/'            WHERE slug = 'loki';
+  UPDATE services SET open_url = base_url || ':8081/'            WHERE slug = 'cadvisor';
+  UPDATE services SET open_url = base_url || ':3001/'            WHERE slug = 'langfuse';
+  UPDATE services SET open_url = base_url || ':8222/'            WHERE slug = 'nats-monitor';
+  UPDATE services SET open_url = base_url || ':8096/'            WHERE slug = 'jellyfin';
+  UPDATE services SET open_url = base_url || ':8123/'            WHERE slug = 'home-assistant';
 
   -- Backend-only services: keep open_url pinned to '#'. Listed explicitly so
   -- prior runs against a stale base get cleaned up.
   UPDATE services SET open_url = '#' WHERE slug IN (
-    'openviking','openclaw','agentgateway','kernel-browser','leann'
+    'dockhand','openviking','openclaw','agentgateway','kernel-browser','leann'
   );
 
   GET DIAGNOSTICS affected = ROW_COUNT;

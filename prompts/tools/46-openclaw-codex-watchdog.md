@@ -46,7 +46,6 @@ git clone --depth 1 https://github.com/ThisIsJeron/openclaw-codex-watchdog /tmp/
 cd /tmp/openclaw-codex-watchdog
 # Current upstream already ships dist/index.js + openclaw.plugin.json.
 openclaw plugins install --link /tmp/openclaw-codex-watchdog || openclaw plugins install /tmp/openclaw-codex-watchdog --force
-test -f docs/external/openclaw-codex-watchdog.snapshot.md && echo "OK"
 ```
 
 The current plugin does not expose a runtime config schema; there is no stable

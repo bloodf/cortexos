@@ -26,12 +26,12 @@ sudo -v
 
 - [ ] CHECKPOINT 1 confirmed — port 3000 is free
 - [ ] Install Grafana from official apt repository
-- [ ] Configure sub-path serving at `/grafana/`
+- [ ] Configure root serving on tailnet port `3000`
 - [ ] Provision Prometheus and Loki datasources
 - [ ] Write `/opt/cortexos/.secrets/grafana.env` (mode 0600) with `GRAFANA_ADMIN_PASSWORD`
 - [ ] `systemctl enable --now grafana-server`
 - [ ] Import `templates/grafana/cortex-v1.json` via API
-- [ ] Confirm `https://${CORTEX_DOMAIN}/grafana/login` returns HTTP 200
+- [ ] Confirm `https://${CORTEX_DOMAIN}:3000/login` returns HTTP 200
 - [ ] CHECKPOINT 2 confirmed
 
 ## CHECKPOINT 1
@@ -65,7 +65,7 @@ apiVersion: 1
 datasources:
   - name: Prometheus
     type: prometheus
-    url: http://127.0.0.1:9090/prometheus
+    url: http://127.0.0.1:9090
     isDefault: true
   - name: Loki
     type: loki
@@ -76,8 +76,8 @@ sudo tee /etc/grafana/grafana.ini.d/cortexos.ini >/dev/null <<EOF
 [server]
 http_addr = 127.0.0.1
 http_port = 3000
-root_url = https://${CORTEX_DOMAIN}/grafana/
-serve_from_sub_path = true
+root_url = https://${CORTEX_DOMAIN}:3000/
+serve_from_sub_path = false
 
 [security]
 admin_password = ${GRAFANA_ADMIN_PASSWORD}
@@ -96,7 +96,7 @@ Import CortexOS Grafana dashboard:
 
 ```bash
 jq -n --argjson dashboard "$(cat templates/grafana/cortex-v1.json)" '{dashboard: $dashboard, overwrite: true, folderId: 0}' \
-  | curl -fsS -X POST "http://admin:${GRAFANA_ADMIN_PASSWORD}@127.0.0.1:3000/grafana/api/dashboards/import" \
+  | curl -fsS -X POST "http://admin:${GRAFANA_ADMIN_PASSWORD}@127.0.0.1:3000/api/dashboards/import" \
       -H "Content-Type: application/json" \
       -d @-
 ```
@@ -104,15 +104,15 @@ jq -n --argjson dashboard "$(cat templates/grafana/cortex-v1.json)" '{dashboard:
 ## Verify
 
 ```bash
-curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3000/grafana/login
-curl -sS "https://${CORTEX_DOMAIN}/grafana/login" -o /dev/null -w "%{http_code}\n"
+curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3000/login
+curl -sS "https://${CORTEX_DOMAIN}:3000/login" -o /dev/null -w "%{http_code}\n"
 ```
 
 Expected: `200` on both.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** Does `curl -sS "https://${CORTEX_DOMAIN}/grafana/login" -o /dev/null -w "%{http_code}"` print `200`?
+**STOP — operator question:** Does `curl -sS "https://${CORTEX_DOMAIN}:3000/login" -o /dev/null -w "%{http_code}"` print `200`?
 
 Type `confirmed` to proceed.
 

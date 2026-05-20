@@ -1,7 +1,7 @@
 # CortexOS Services Inventory
 
 > Canonical map of every service installed by the `prompts/tools/*` spokes:
-> internal port, Caddy-fronted web URL, default credentials (if any), and the
+> internal port, tailnet URL, default credentials (if any), and the
 > spoke that installs it. Replace `${CORTEX_DOMAIN}` with the tailnet FQDN
 > you set in `prompts/tools/12-tailscale.md`. All web access reaches the VPS
 > over Tailscale (`100.64.0.0/10`) or LAN (`10.0.0.0/8`, `172.16.0.0/12`,
@@ -13,9 +13,9 @@
 
 - **Internal port**: bound to `127.0.0.1` (loopback) or to a Docker bridge.
   Never exposed publicly.
-- **Public URL**: served by Caddy on `:443` over the tailnet only. Caddy
-  listens on `127.0.0.1:8080` and the tailnet serves TLS at
-  `https://${CORTEX_DOMAIN}/...`.
+- **Public URL**: served by Tailscale Serve over HTTPS on the tailnet.
+  The dashboard remains on `https://${CORTEX_DOMAIN}/`; each other Web UI
+  uses its own tailnet port.
 - **Default admin**: present only where the upstream ships a seeded user.
   Operators MUST rotate every default credential on first login.
 
@@ -24,20 +24,20 @@
 | Service          | Spoke                                  | Internal port | Mode   | Public URL                                    | Default admin / password           |
 |------------------|----------------------------------------|---------------|--------|-----------------------------------------------|------------------------------------|
 | Cortex Dashboard | `70-dashboard.md`                      | 3080          | native | `https://${CORTEX_DOMAIN}/`                   | `admin` / `12345678` (rotate via `/admin/account`) |
-| 9Router          | `31-9router.md`                        | 11434         | native | `https://${CORTEX_DOMAIN}/9router/`           | bearer = `NINEROUTER_API_KEY` (from `/opt/cortexos/.secrets/9router.env`) |
-| Grafana          | `22-grafana.md`                        | 3000          | native | `https://${CORTEX_DOMAIN}/grafana/`           | `admin` / `GRAFANA_ADMIN_PASSWORD` (from `/opt/cortexos/.secrets/grafana.env`) |
-| Prometheus       | `20-prometheus.md`                     | 9090          | native | `https://${CORTEX_DOMAIN}/prometheus/`        | none (read-only)                   |
-| Loki             | `21-loki.md`                           | 3100          | native | `https://${CORTEX_DOMAIN}/loki/`              | none (read-only API)               |
-| cAdvisor         | `24-cadvisor.md`                       | 8081          | docker | `https://${CORTEX_DOMAIN}/cadvisor/`          | none                               |
-| NATS monitor     | `30-nats.md`                           | 8222          | native | `https://${CORTEX_DOMAIN}/nats/`              | none (read-only)                   |
-| OpenViking Console | `32-openviking.md`                  | 8020          | native | `https://${CORTEX_DOMAIN}/openviking/`        | root key in `openviking.env`       |
-| Langfuse         | `55-langfuse.md`                       | 3001          | docker | `https://${CORTEX_DOMAIN}/langfuse/`          | first-admin bootstrap on first visit |
+| 9Router          | `31-9router.md`                        | 11434         | native | `https://${CORTEX_DOMAIN}:11434/dashboard`    | bearer = `NINEROUTER_API_KEY` (from `/opt/cortexos/.secrets/9router.env`) |
+| Grafana          | `22-grafana.md`                        | 3000          | native | `https://${CORTEX_DOMAIN}:3000/`              | `admin` / `GRAFANA_ADMIN_PASSWORD` (from `/opt/cortexos/.secrets/grafana.env`) |
+| Prometheus       | `20-prometheus.md`                     | 9090          | native | `https://${CORTEX_DOMAIN}:9090/`              | none (read-only)                   |
+| Loki             | `21-loki.md`                           | 3100          | native | `https://${CORTEX_DOMAIN}:3100/`              | none (read-only API)               |
+| cAdvisor         | `24-cadvisor.md`                       | 8081          | docker | `https://${CORTEX_DOMAIN}:8081/`              | none                               |
+| NATS monitor     | `30-nats.md`                           | 8222          | native | `https://${CORTEX_DOMAIN}:8222/`              | none (read-only)                   |
+| OpenViking Console | `32-openviking.md`                  | 8020          | native | `https://${CORTEX_DOMAIN}:8020/`              | root key in `openviking.env`       |
+| Langfuse         | `55-langfuse.md`                       | 3001          | docker | `https://${CORTEX_DOMAIN}:3001/`              | first-admin bootstrap on first visit |
 
 ## Backend services (no UI)
 
 | Service                | Spoke                              | Internal port | Mode   | Notes                                       |
 |------------------------|------------------------------------|---------------|--------|---------------------------------------------|
-| Caddy (reverse proxy)  | `13-caddy.md`                      | 8080          | native | Tailscale-served on `:443`; not on the public internet. |
+| Tailscale Serve        | `13-caddy.md`                      | varies        | native | Publishes each loopback Web UI on its own tailnet HTTPS port. |
 | PostgreSQL             | `14-postgresql.md`                 | 5432          | docker | `dashboard` DB role; password in `dashboard.env`. |
 | Redis                  | `15-redis.md`                      | 6379          | docker | Loopback only; no auth required.            |
 | MongoDB                | `16-mongodb.md`                    | 27017         | docker | Loopback only.                              |
@@ -65,7 +65,7 @@ Run after first bootstrap of each service:
    `admin` / `12345678`, then `/admin/account` → set new password
    (`POST /api/auth/password`). Lost password fallback:
    `sudo /opt/cortexos/packages/cortex-dashboard/scripts/change-admin-password.sh <new-pw>`.
-2. **Grafana** — first login at `/grafana/` with `admin` /
+2. **Grafana** — first login at `https://${CORTEX_DOMAIN}:3000/` with `admin` /
    `GRAFANA_ADMIN_PASSWORD`; Grafana forces a rotation flow on first sign-in.
 3. **9Router** — admin token equals `NINEROUTER_API_KEY`. Rotate by editing
    `/opt/cortexos/.secrets/9router.env` then `systemctl restart 9router`;
@@ -100,6 +100,6 @@ and `default allow outgoing`. Inbound is allowed **only** from:
 - Tailscale CGNAT block `100.64.0.0/10`.
 - RFC1918 LAN ranges: `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`.
 
-No public ingress is allowed — including ports `80` and `443`. Caddy is
-reachable only over the tailnet; without a Tailscale identity (operator
-laptop or LAN host) the VPS rejects every connection at L3.
+No public ingress is allowed. Tailscale Serve is reachable only over the
+tailnet; without a Tailscale identity (operator laptop or LAN host) the VPS
+rejects every connection at L3.

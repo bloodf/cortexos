@@ -45,7 +45,6 @@ Current upstream plugin package is `@openviking/openclaw-plugin`.
 ```bash
 npm install -g @openviking/openclaw-plugin@latest
 openclaw plugins install @openviking/openclaw-plugin
-test -f docs/external/openclaw-openviking-install.snapshot.md && echo "OK"
 ```
 
 ## Configure

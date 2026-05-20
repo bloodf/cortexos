@@ -135,15 +135,9 @@ docker compose pull
 docker compose up -d
 ```
 
-> Caddy serves Langfuse at `https://${CORTEX_DOMAIN}/langfuse/` and
-> does **not** strip the prefix. Langfuse v3 has no first-class
-> sub-path (no `BASE_PATH` / `basePath` env), so we rely on
-> `NEXTAUTH_URL=https://${CORTEX_DOMAIN}/langfuse` for auth callbacks.
-> Most internal links resolve, but some Next.js absolute asset paths
-> (`/_next/...`) may 404 under a sub-path. If that bites in your
-> install, expose Langfuse on a dedicated tailnet hostname rather
-> than fighting Next.js. Do NOT change the host port (3001) or the
-> NEXTAUTH_URL without also updating `prompts/tools/13-caddy.md`.
+Tailscale Serve publishes Langfuse directly at
+`https://${CORTEX_DOMAIN}:3001/`. Langfuse v3 has no first-class sub-path
+support, so it must run at the root of its own port.
 
 Langfuse-web is bound to host port `3001` because Grafana already owns
 `3000`; in-cluster service-to-service traffic still uses the container
@@ -168,7 +162,7 @@ docker logs --since 5m cortex-langfuse-langfuse-web-1 \
   | grep -E "initialised|bootstrap" || true
 ```
 
-Login at `https://${CORTEX_DOMAIN}/langfuse/` (or local probe
+Login at `https://${CORTEX_DOMAIN}:3001/` (or local probe
 `http://127.0.0.1:3001/`) with
 `LANGFUSE_INIT_USER_EMAIL` + `LANGFUSE_INIT_USER_PASSWORD`. Confirm the
 `cortexos` org + project exist and the pre-minted key pair is listed under

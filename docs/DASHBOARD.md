@@ -15,7 +15,7 @@
 
 ## Overview
 
-Dashboard is a Next.js 16 application in `packages/cortex-dashboard/`. It runs on port 3080 behind Caddy, uses PostgreSQL for state, and probes local/host services through configured health checks.
+Dashboard is a Next.js 16 application in `packages/cortex-dashboard/`. It runs on loopback port 3080 behind Tailscale Serve, uses PostgreSQL for state, and probes local/host services through configured health checks.
 The legacy Docker Compose file at `stacks/cortex-dashboard/docker-compose.yml` is deprecated and preserved only for reference.
 
 ## Feature map
@@ -55,7 +55,7 @@ Key facts:
 
 - Runtime: `node .next/standalone/server.js` under `cortex-dashboard.service`.
 - Runtime env: `/opt/cortexos/.secrets/dashboard.env`.
-- Port: loopback `3080`; Caddy reverse-proxies root and `/api/*`.
+- Port: loopback `3080`; Tailscale Serve publishes `https://${CORTEX_DOMAIN}/`.
 - Migrations: run by `scripts/migrate.js`; dynamic catalog hydration runs via `scripts/dynamic-seed.js`.
 
 See [prompts/tools/70-dashboard.md](../prompts/tools/70-dashboard.md) for the full operator flow.

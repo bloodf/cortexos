@@ -154,7 +154,7 @@ sudo ufw allow from 192.168.0.0/16
 # above already cover SSH because UFW is stateful.
 sudo ufw limit in on tailscale0 to any port {SSH_PORT} proto tcp
 
-# Explicitly drop all public 80/443. Caddy is reachable only over Tailscale.
+# Explicitly drop all public 80/443. Web UIs are reachable only over Tailscale.
 sudo ufw deny in on $(ip -o route get 1.1.1.1 | awk '{print $5; exit}') to any port 80 proto tcp
 sudo ufw deny in on $(ip -o route get 1.1.1.1 | awk '{print $5; exit}') to any port 443 proto tcp
 

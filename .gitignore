@@ -146,6 +146,9 @@ docker-compose.override.yml
 # ============================================
 .dashboard_update/
 .playwright-mcp/
+.cache/
+docs/external/
+docs/plans/
 *.png
 !.github/assets/*.png
 REVIEW.md

@@ -32,11 +32,8 @@ services:
         condition: service_started
     environment:
       DATABASE_URL: ${LANGFUSE_DATABASE_URL}
-      # Caddy serves Langfuse at https://${CORTEX_DOMAIN}/langfuse/.
-      # Langfuse v3 has no first-class sub-path (no BASE_PATH env);
-      # NEXTAUTH_URL carries the prefix so NextAuth callbacks resolve.
-      # See prompts/tools/55-langfuse.md for the known caveats.
-      NEXTAUTH_URL: ${LANGFUSE_NEXTAUTH_URL:-https://${CORTEX_DOMAIN}/langfuse}
+      # Tailscale Serve exposes Langfuse directly at this dedicated port.
+      NEXTAUTH_URL: ${LANGFUSE_NEXTAUTH_URL:-https://${CORTEX_DOMAIN}:3001}
       NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET}
       SALT: ${LANGFUSE_SALT}
       ENCRYPTION_KEY: ${LANGFUSE_ENCRYPTION_KEY}
@@ -64,9 +61,7 @@ services:
       REDIS_PORT: ${LANGFUSE_REDIS_PORT:-6379}
       REDIS_AUTH: ${LANGFUSE_REDIS_AUTH:-}
     ports:
-      # Host 3001 → container 3000. Port 3000 on the host is Grafana
-      # (see prompts/tools/22-grafana.md). Caddy proxies /langfuse/*
-      # at https://${CORTEX_DOMAIN}/langfuse/ to host:3001.
+      # Host 3001 → container 3000. Port 3000 on the host is Grafana.
       - "${TAILSCALE_IP:-127.0.0.1}:3001:3000"
     networks:
       - cortex-net

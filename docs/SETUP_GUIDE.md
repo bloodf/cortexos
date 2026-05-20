@@ -94,7 +94,7 @@ The bootstrap dispatches every step under `prompts/os/*` and `prompts/tools/*`. 
 | `prompts/tools/11-docker.md` | Docker engine + compose plugin |
 | `prompts/tools/12-tailscale.md` | Tailscale-first networking |
 | `prompts/tools/12a-sops-bootstrap.md` | Install `sops` + `age` on the VPS; register operator recipient |
-| `prompts/tools/13-caddy.md` | Caddy + TLS |
+| `prompts/tools/13-caddy.md` | Tailscale Serve + TLS |
 | `prompts/tools/14-postgresql.md` | PostgreSQL + TimescaleDB extension |
 | `prompts/tools/15-redis.md` | Redis |
 | `prompts/tools/18-fail2ban.md` | fail2ban |

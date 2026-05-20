@@ -25,7 +25,6 @@ from the operator laptop, or invoked directly):
 
 ```bash
 ./scripts/provision-vps.sh                 # docker engine, postgres, role+DB, secrets dir, compose up
-./scripts/provision-vps.sh --with-caddy    # also install Caddy
 ```
 
 Subsequent rebuilds happen entirely on the VPS via Docker Compose:
@@ -259,12 +258,10 @@ mode `0600`):
 - `DASHBOARD_DB_PASSWORD`
 - `CORTEX_MASTER_KEY` (≥ 32 bytes)
 
-Caddy reverse proxy (see `prompts/tools/13-caddy.md` for the full Caddyfile):
+Tailscale Serve publishes the dashboard root (see `prompts/tools/13-caddy.md` for the full routing flow):
 
-```caddy
-:80 {
-  reverse_proxy localhost:3080
-}
+```bash
+sudo tailscale serve --bg --https=443 http://localhost:3080
 ```
 
 ## i18n

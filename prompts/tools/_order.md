@@ -28,7 +28,7 @@ spokes:
   12a-sops-bootstrap:
     deps: [12-tailscale]
     optional: false       # SOPS + age must be available before any service
-                          # that loads secrets — install before Caddy.
+                          # that loads secrets — install before Tailscale Serve routing.
 
   13-caddy:
     deps: [12-tailscale, 12a-sops-bootstrap]

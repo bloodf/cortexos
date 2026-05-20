@@ -27,15 +27,13 @@ BEGIN
   -- Slugs must match those seeded in 002_seed.sql. Retired services
   -- (openviking-ui, hindsight, hindsight-ui, agentgateway-mcp) are intentionally
   -- omitted — they no longer ship. Dashboard's own slug is 'cortex-dashboard'.
-  UPDATE services SET open_url = base_url                        WHERE slug = 'cortex-dashboard';
-  UPDATE services SET open_url = base_url || '/9router'          WHERE slug = '9router';
-  UPDATE services SET open_url = base_url || '/openviking'       WHERE slug = 'openviking';
-  UPDATE services SET open_url = base_url || '/dockhand'         WHERE slug = 'dockhand';
-  UPDATE services SET open_url = base_url || '/grafana'          WHERE slug = 'grafana';
-  UPDATE services SET open_url = base_url || '/jellyfin'         WHERE slug = 'jellyfin';
-  UPDATE services SET open_url = base_url || '/ha'               WHERE slug = 'home-assistant';
-  UPDATE services SET open_url = base_url || '/agentgateway'     WHERE slug = 'agentgateway';
-  UPDATE services SET open_url = base_url || '/kernel-browser'   WHERE slug = 'kernel-browser';
+  UPDATE services SET open_url = base_url || '/'                 WHERE slug = 'cortex-dashboard';
+  UPDATE services SET open_url = base_url || ':11434/dashboard'  WHERE slug = '9router';
+  UPDATE services SET open_url = base_url || ':8020/'            WHERE slug = 'openviking';
+  UPDATE services SET open_url = base_url || ':3000/'            WHERE slug = 'grafana';
+  UPDATE services SET open_url = base_url || ':8096/'            WHERE slug = 'jellyfin';
+  UPDATE services SET open_url = base_url || ':8123/'            WHERE slug = 'home-assistant';
+  UPDATE services SET open_url = '#'                             WHERE slug IN ('dockhand','agentgateway','kernel-browser');
 
   GET DIAGNOSTICS affected = ROW_COUNT;
   RETURN affected;

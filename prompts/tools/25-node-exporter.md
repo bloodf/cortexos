@@ -56,7 +56,7 @@ sudo systemctl restart prometheus-node-exporter
 
 ```bash
 curl -fsS http://127.0.0.1:9100/metrics | grep -m1 node_cpu_seconds_total
-curl -fsS "http://127.0.0.1:9090/prometheus/api/v1/targets" \
+curl -fsS "http://127.0.0.1:9090/api/v1/targets" \
   | jq -r '.data.activeTargets[] | select(.labels.job=="node" or .labels.job=="node-exporter") | .health'
 ```
 

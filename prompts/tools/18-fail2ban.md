@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Install and configure fail2ban to ban IPs with repeated SSH authentication failures and protect Caddy-proxied HTTP endpoints.
+Install and configure fail2ban to ban IPs with repeated SSH authentication failures.
 
 ## Prerequisites
 
@@ -31,7 +31,7 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 - [ ] CHECKPOINT 1 confirmed — recent sshd log entries visible via journalctl
 - [ ] `pkg_install fail2ban`
-- [ ] Write `/etc/fail2ban/jail.d/cortex.conf` (bantime 1h, ignoreip = loopback + Tailscale + LAN, sshd + recidive + caddy-auth jails)
+- [ ] Write `/etc/fail2ban/jail.d/cortex.conf` (bantime 1h, ignoreip = loopback + Tailscale + LAN, sshd + recidive jails)
 - [ ] `sudo systemctl enable --now fail2ban` (idempotent — `10-os-hardening.md` already enabled it)
 - [ ] `sudo systemctl restart fail2ban`
 - [ ] Confirm `fail2ban-client status sshd` shows jail active
@@ -81,30 +81,10 @@ maxretry = 3
 findtime = 1d
 bantime  = 1w
 
-# Caddy auth / 401 / 403 abuse. Filter ships with Caddy logs after
-# 13-caddy.md and 22-grafana.md are configured.
-[caddy-auth]
-enabled  = true
-backend  = systemd
-filter   = caddy-auth
-maxretry = 10
-findtime = 10m
-bantime  = 1h
 EOF
 ```
 
 Replace `{SSH_PORT}` with your SSH port (default `22`).
-
-Write the matching Caddy auth filter:
-
-```bash
-sudo tee /etc/fail2ban/filter.d/caddy-auth.conf <<'EOF'
-[Definition]
-failregex = ^.*"remote_ip":"<HOST>".*"status":(401|403)
-ignoreregex =
-journalmatch = _SYSTEMD_UNIT=caddy.service
-EOF
-```
 
 Start and restart so the new jails load:
 

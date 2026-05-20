@@ -90,7 +90,7 @@ UPDATE services
  WHERE slug = 'grafana';
 
 UPDATE services
-   SET health_url = 'http://127.0.0.1:9090/prometheus/-/healthy',
+   SET health_url = 'http://127.0.0.1:9090/-/healthy',
        health_type = 'http',
        updated_at = NOW()
  WHERE slug = 'prometheus';
@@ -108,7 +108,7 @@ UPDATE services
  WHERE slug = 'fluent-bit';
 
 UPDATE services
-   SET health_url = 'http://127.0.0.1:8081/cadvisor/healthz',
+   SET health_url = 'http://127.0.0.1:8081/metrics',
        health_type = 'http',
        updated_at = NOW()
  WHERE slug = 'cadvisor';

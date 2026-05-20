@@ -7,7 +7,7 @@ Build and deploy the CortexOS Next.js dashboard as a native systemd service usin
 ## Prerequisites
 
 - `14-postgresql.md` completed.
-- `13-caddy.md` completed (Caddy proxies root and `/api/*` to port 3080).
+- `13-caddy.md` completed (Tailscale Serve publishes the dashboard root to port 3080).
 - `40-openclaw.md` completed.
 - Repo materialized at `/opt/cortexos`.
 
@@ -25,7 +25,7 @@ sudo -v
 - [ ] Install `templates/systemd/cortex-dashboard.service`
 - [ ] `systemctl enable --now cortex-dashboard`
 - [ ] `/api/health` and `/en/login` return 200 locally
-- [ ] Public URL serves login page through Caddy
+- [ ] Public URL serves login page through Tailscale Serve
 - [ ] CHECKPOINT 2 confirmed
 
 ## CHECKPOINT 1

@@ -12,13 +12,13 @@
 #
 # Env vars:
 #   OPENCLAW_BASE     — gateway base URL (default: http://127.0.0.1:18789)
-#   SNAPSHOT_DIR      — directory for snapshot output (default: docs/external)
+#   SNAPSHOT_DIR      — directory for transient snapshot output (default: /opt/cortexos/.cache/external-docs)
 #   SNAPSHOT_FILE     — snapshot file path (default: $SNAPSHOT_DIR/openclaw-gateway-api.snapshot.md)
 
 set -euo pipefail
 
 OPENCLAW_BASE="${OPENCLAW_BASE:-http://127.0.0.1:18789}"
-SNAPSHOT_DIR="${SNAPSHOT_DIR:-docs/external}"
+SNAPSHOT_DIR="${SNAPSHOT_DIR:-/opt/cortexos/.cache/external-docs}"
 SNAPSHOT_FILE="${SNAPSHOT_FILE:-$SNAPSHOT_DIR/openclaw-gateway-api.snapshot.md}"
 
 # Required endpoints

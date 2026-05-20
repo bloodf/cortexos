@@ -7,7 +7,7 @@ Wants=network-online.target
 Type=simple
 User=prometheus
 Group=prometheus
-ExecStart=/usr/local/bin/prometheus --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/var/lib/prometheus --storage.tsdb.retention.time=30d --web.listen-address=127.0.0.1:9090 --web.route-prefix=/prometheus
+ExecStart=/usr/local/bin/prometheus --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/var/lib/prometheus --storage.tsdb.retention.time=30d --web.listen-address=127.0.0.1:9090
 Restart=always
 RestartSec=5
 

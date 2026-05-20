@@ -8,7 +8,7 @@ Install Paperclip, configure CortexOS bridge credentials, deploy the native `cor
 
 - Bridge runs via systemd, not Docker.
 - Dashboard migrations run from `packages/cortex-dashboard/`.
-- Paperclip path is Tailscale-only.
+- Paperclip webhook listener is loopback-only by default.
 - NATS stream is `CORTEX_PAPERCLIP_OPS`; do not rely on legacy `CORTEX`.
 
 ## Source: paperclip/00-overview.md
@@ -216,7 +216,6 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 - [ ] Run `node scripts/migrate.js` from `/opt/cortexos/packages/cortex-dashboard`
 - [ ] Verify `\d paperclip_ticket_link` shows the table
 - [ ] Bring bridge up via compose (2A) or systemd (2B)
-- [ ] Add `/paperclip/heartbeat` reverse_proxy block to Caddyfile + reload
 - [ ] `curl http://127.0.0.1:8089/healthz` returns 200
 - [ ] Send bearer-protected probe heartbeat; expect HTTP 202 + `status:queued`
 - [ ] Confirm new row in `paperclip_ticket_link`
@@ -260,19 +259,7 @@ sudo systemctl enable --now cortex-paperclip-bridge
 sudo systemctl status cortex-paperclip-bridge
 ```
 
-## 3. Wire Caddy (public path)
-
-Add to the existing Caddyfile, mirroring how the dashboard route is exposed:
-
-```caddy
-handle /paperclip/heartbeat {
-  reverse_proxy 127.0.0.1:8089
-}
-```
-
-Reload Caddy.
-
-## 4. Bridge probe
+## 3. Bridge probe
 
 ```bash
 # Local healthz (no auth):

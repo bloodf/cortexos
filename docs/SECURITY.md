@@ -25,7 +25,7 @@ CortexOS assumes operator controls VPS, GitHub repository, Slack workspace, and 
 | Path traversal | Normalized allowlist checks and tests |
 | Event forgery | HMAC for approvals and schema validation |
 | Agent overreach | Role scopes, dispatch rules, approval gates |
-| Public exposure | Caddy TLS, auth, Tailscale-first access |
+| Public exposure | Tailscale Serve TLS, auth, Tailscale-first access |
 | Undetected action | Dashboard audit log and Slack narrative |
 | Stolen Paperclip webhook secret | Rotation runbook, `chmod 600` on env file, Tailscale-only ingress |
 | Replayed Paperclip runId | `UNIQUE(paperclip_run_id)` on `paperclip_ticket_link` (migration 005) |
@@ -128,7 +128,7 @@ tamper-detection runbook.
 - [ ] Sandbox runner up; tool execution does not touch the host directly.
 - [ ] Audit chain verification job green; Rekor anchor cron running.
 - [ ] Operator age key backed up offline; recipient list reviewed.
-- [ ] Caddy and Tailscale routes verified.
+- [ ] Tailscale Serve routes verified.
 - [ ] Tests cover path allowlist and confirmation flows.
 
 ## Related docs

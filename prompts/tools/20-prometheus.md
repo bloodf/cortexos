@@ -20,7 +20,7 @@ sudo -v
 - [ ] Install Prometheus package or binary
 - [ ] Install `templates/monitoring/prometheus.yml`
 - [ ] Install `templates/systemd/prometheus.service`
-- [ ] Confirm `curl http://127.0.0.1:9090/prometheus/-/healthy` succeeds
+- [ ] Confirm `curl http://127.0.0.1:9090/-/healthy` succeeds
 - [ ] CHECKPOINT 2 confirmed
 
 ## CHECKPOINT 1
@@ -44,15 +44,15 @@ sudo systemctl enable --now prometheus
 ## Verify
 
 ```bash
-curl -fsS http://127.0.0.1:9090/prometheus/-/healthy
-curl -sS "https://${CORTEX_DOMAIN}/prometheus/-/healthy"
+curl -fsS http://127.0.0.1:9090/-/healthy
+curl -sS "https://${CORTEX_DOMAIN}:9090/-/healthy"
 ```
 
 Expected: `Prometheus Server is Healthy.`
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** Does `curl -sS "https://${CORTEX_DOMAIN}/prometheus/-/healthy"` print `Prometheus Server is Healthy.`?
+**STOP — operator question:** Does `curl -sS "https://${CORTEX_DOMAIN}:9090/-/healthy"` print `Prometheus Server is Healthy.`?
 
 Type `confirmed` to proceed.
 

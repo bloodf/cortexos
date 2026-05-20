@@ -122,11 +122,11 @@ ON CONFLICT (slug) DO UPDATE SET
 INSERT INTO services (slug, name, kind, category, health_url, health_type, open_url, env_source, icon_type, sort_order) VALUES
   ('dockhand',       'Dockhand',       'docker',  'Monitoring', 'http://127.0.0.1:3420',            'http',    '#', '/opt/cortexos/stacks/dockhand/.env',       'monitor', 1),
   ('grafana',        'Grafana',        'service', 'Monitoring', 'http://127.0.0.1:3000/api/health', 'http',    '#', '/opt/cortexos/stacks/grafana/.env',        'monitor', 2),
-  ('prometheus',     'Prometheus',     'service', 'Monitoring', 'http://127.0.0.1:9090/prometheus/-/healthy',  'http',    '#', '/opt/cortexos/stacks/prometheus/.env',     'monitor', 3),
+  ('prometheus',     'Prometheus',     'service', 'Monitoring', 'http://127.0.0.1:9090/-/healthy',  'http',    '#', '/opt/cortexos/stacks/prometheus/.env',     'monitor', 3),
   ('loki',           'Loki',           'service', 'Monitoring', 'http://127.0.0.1:3100/ready',      'http',    '#', '/opt/cortexos/stacks/loki/.env',           'monitor', 4),
   ('fluent-bit',     'Fluent Bit',     'service', 'Monitoring', 'fluent-bit',                                  'process',  '#', '/opt/cortexos/stacks/fluent-bit/.env',     'monitor', 5),
   ('promtail',       'Promtail',       'process', 'Monitoring', 'promtail',                                    'process', '#', NULL,                                     'monitor', 6),
-  ('cadvisor',       'cAdvisor',       'docker',  'Monitoring', 'http://127.0.0.1:8081/cadvisor/healthz',    'http',    '#', NULL,                                     'monitor', 7),
+  ('cadvisor',       'cAdvisor',       'docker',  'Monitoring', 'http://127.0.0.1:8081/metrics',    'http',    '#', NULL,                                     'monitor', 7),
   ('node-exporter',  'Node Exporter',  'service', 'Monitoring', 'http://127.0.0.1:9100/metrics',    'http',    '#', NULL,                                     'monitor', 8),
   ('otel-collector', 'OTel Collector', 'docker',  'Monitoring', 'tcp://host.docker.internal:4317',             'tcp',     '#', '/opt/cortexos/stacks/otel/.env',           'monitor', 9),
   ('pg-exporter',    'PG Exporter',    'docker',  'Monitoring', 'http://127.0.0.1:9187/metrics',    'http',    '#', '/opt/cortexos/stacks/pg-exporter/.env',    'monitor', 10),

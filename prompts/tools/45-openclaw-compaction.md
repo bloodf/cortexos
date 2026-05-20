@@ -72,7 +72,6 @@ text=text.replace('  });\n}\nexport {', '  }, { name: "compaction-context-before
 p.write_text(text)
 PY
 openclaw plugins install /tmp/compaction-context --force
-test -f docs/external/openclaw-compaction-context.snapshot.md && echo "OK"
 ```
 
 ## Verify

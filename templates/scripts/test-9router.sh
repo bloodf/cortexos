@@ -4,7 +4,7 @@ set -euo pipefail
 
 NINEROUTER_BASE_URL="${NINEROUTER_BASE_URL:-}"
 NINEROUTER_API_KEY="${NINEROUTER_API_KEY:-}"
-SNAPSHOT_OUT="${SNAPSHOT_OUT:-/opt/cortexos/docs/external/9router-models.snapshot.md}"
+SNAPSHOT_OUT="${SNAPSHOT_OUT:-/opt/cortexos/.cache/external-docs/9router-models.snapshot.md}"
 
 log() { printf '[test-9router] %s\n' "$*"; }
 die() { printf '[test-9router] ERROR: %s\n' "$*" >&2; exit 1; }

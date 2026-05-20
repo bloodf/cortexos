@@ -26,12 +26,12 @@
 ## Layer model
 
 ```text
-Layer 7  Dashboard and operator UX        Next.js, Caddy, Slack, Telegram
+Layer 7  Dashboard and operator UX        Next.js, Tailscale Serve, Slack, Telegram
 Layer 6  Agent factory                    role files, labels, dispatch state
 Layer 5  AI platform                      OpenClaw, 9Router, AgentGateway, LEANN
 Layer 4  Application services             Home Assistant, Jellyfin, project bots
 Layer 3  Observability                    Prometheus, Loki, Grafana, exporters
-Layer 2  Infrastructure                   PostgreSQL, Redis, MongoDB, NATS, Caddy
+Layer 2  Infrastructure                   PostgreSQL, Redis, MongoDB, NATS, Tailscale Serve
 Layer 1  VPS base                         Ubuntu, Docker, systemd, Tailscale, firewall
 ```
 
@@ -92,7 +92,7 @@ sequenceDiagram
 
 | Boundary | Control |
 |---|---|
-| Public internet to dashboard | Caddy, authentication, TLS, least exposed routes |
+| Public internet to dashboard | Tailscale Serve, authentication, TLS, least exposed routes |
 | Dashboard to host files | Path allowlist, masking, audit events, confirmation tokens |
 | Agent to privileged action | Role prompt, dispatch scope, human approval, logs |
 | Secrets at rest | `.secrets/` permissions and AES-256-GCM in dashboard DB |
@@ -102,7 +102,7 @@ sequenceDiagram
 
 | Port | Service | Notes |
 |---:|---|---|
-| 80 / 443 | Caddy | HTTP(S) ingress |
+| 443 and service ports | Tailscale Serve | Tailnet HTTPS ingress |
 | 3080 | Dashboard | Next.js production server |
 | 4222 / 8222 | NATS | Client and monitoring endpoints |
 | 5432 | PostgreSQL | Dashboard database |

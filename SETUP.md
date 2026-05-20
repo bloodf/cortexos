@@ -97,12 +97,12 @@ nproc && free -h && df -h /
 sudo whoami   # Must return: root
 ```
 
-### Step C — Snapshot external docs
+### Step C — Preflight state
 
 Run spoke `prompts/tools/00-preflight.md`. This probe:
 
 - Verifies OpenClaw gateway is reachable (or that `40-openclaw.md` will install it).
-- Snapshots all upstream documentation into `docs/external/*.snapshot.md`.
+- Writes any transient probe output under `/opt/cortexos/.cache/`.
 - Writes initial `.secrets/.setup-state.json`.
 
 ### Step D — OpenClaw version check

@@ -50,7 +50,6 @@ git clone --depth 1 https://github.com/0xRyanLucci/openclaw-foundry /tmp/opencla
 cd /tmp/openclaw-foundry
 npm install
 openclaw plugins install /tmp/openclaw-foundry --dangerously-force-unsafe-install --force
-test -f docs/external/openclaw-foundry.snapshot.md && echo "OK"
 ```
 
 ## Configure

@@ -1,4 +1,4 @@
--- Extra catalog rows for tools exposed through Caddy that were missing from
+-- Extra catalog rows for tools exposed through Tailscale Serve that were missing from
 -- 002_seed.sql. These rows are inserted with is_active = FALSE so they do not
 -- show up in the dashboard until the dynamic-seed step (scripts/dynamic-seed.js)
 -- confirms the backing spoke is installed (via .secrets/.setup-state.json,
@@ -10,7 +10,7 @@
 -- kernel-browser, cortex-graph, cortex-sandbox-runner, fluent-bit, paperclip
 -- bridge — see prompts/tools/40-openclaw.md, 50-agentgateway.md, etc.).
 
--- Langfuse v3 (observability for LLM calls). Sub-path /langfuse/ via Caddy.
+-- Langfuse v3 (observability for LLM calls).
 INSERT INTO services
   (slug, name, kind, category, health_url, health_type, open_url, env_source,
    icon_type, sort_order, is_active, has_webui, show_in_webui)

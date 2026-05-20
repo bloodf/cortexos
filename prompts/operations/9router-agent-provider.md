@@ -9,7 +9,7 @@ Use this when an agent should use a different model/provider through 9Router, fo
 ## Prerequisites
 
 - `prompts/tools/31-9router.md` completed.
-- 9Router WebUI reachable at `https://${CORTEX_DOMAIN}/9router/`.
+- 9Router WebUI reachable at `https://${CORTEX_DOMAIN}:11434/dashboard`.
 - The target agent role file exists under `templates/agent-roles/`.
 - Operator has the provider API key in hand.
 
@@ -56,14 +56,14 @@ Print the WebUI URL and retrieve the admin token path without echoing the token 
 
 ```bash
 : "${CORTEX_DOMAIN:?CORTEX_DOMAIN unset — source the CortexOS environment first}"
-echo "Open: https://${CORTEX_DOMAIN}/9router/"
+echo "Open: https://${CORTEX_DOMAIN}:11434/dashboard"
 echo "Admin token lives in: /opt/cortexos/.secrets/9router.env"
 echo "Read it locally with: sudo awk -F= '/^NINEROUTER_API_KEY=/{print \$2}' /opt/cortexos/.secrets/9router.env"
 ```
 
 In the browser:
 
-1. Open `https://${CORTEX_DOMAIN}/9router/`.
+1. Open `https://${CORTEX_DOMAIN}:11434/dashboard`.
 2. Sign in with `NINEROUTER_API_KEY` from `/opt/cortexos/.secrets/9router.env`.
 3. Add the provider API key in the WebUI **Providers / API Keys** view.
 4. Save.

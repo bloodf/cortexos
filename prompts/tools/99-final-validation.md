@@ -65,7 +65,7 @@ docker compose version
 tailscale status
 sudo tailscale serve status
 
-# Caddy (own state — process up, local listener, Tailscale route published)
+# Tailscale Serve (own state — tailnet routes published)
 systemctl is-active --quiet caddy && echo "caddy: active" || echo "caddy: INACTIVE"
 curl -fsS -o /dev/null -w "caddy-local: %{http_code}\n" http://127.0.0.1:8080/
 
@@ -75,7 +75,7 @@ curl -sSo /dev/null -w "ts-dashboard: %{http_code}\n" "https://${CORTEX_DOMAIN}/
 
 Expected: UFW active, sshd jail active, syncookies=1, Docker OK,
 Tailscale online with `serve status` showing `:443 → http://localhost:8080`,
-Caddy active, dashboard returns `200`.
+Tailscale Serve configured, dashboard returns `200`.
 
 ### 2. Databases & caches
 
@@ -93,29 +93,29 @@ Expected: row count ≥ 0, `PONG`.
 Local probes (each owned by its spoke; consolidated here):
 
 ```bash
-# Prometheus — bound on 127.0.0.1:9090, served under /prometheus/
-curl -fsS http://127.0.0.1:9090/prometheus/-/healthy
+# Prometheus — bound on 127.0.0.1:9090
+curl -fsS http://127.0.0.1:9090/-/healthy
 # Loki — bound on 127.0.0.1:3100
 curl -fsS http://127.0.0.1:3100/ready
-# Grafana — bound on 127.0.0.1:3000, served under /grafana/
-curl -fsS -o /dev/null -w "grafana: %{http_code}\n" http://127.0.0.1:3000/grafana/login
+# Grafana — bound on 127.0.0.1:3000
+curl -fsS -o /dev/null -w "grafana: %{http_code}\n" http://127.0.0.1:3000/login
 # Node exporter — 127.0.0.1:9100
 curl -fsS http://127.0.0.1:9100/metrics | grep -m1 node_cpu_seconds_total
-# cAdvisor — host port 8081 (8080 is Caddy), path prefix /cadvisor
-curl -fsS http://127.0.0.1:8081/cadvisor/metrics | grep -m1 container_cpu_usage_seconds_total
+# cAdvisor — host port 8081
+curl -fsS http://127.0.0.1:8081/metrics | grep -m1 container_cpu_usage_seconds_total
 
 # Exporter target health, end-to-end via Prometheus API
-curl -fsS http://127.0.0.1:9090/prometheus/api/v1/targets \
+curl -fsS http://127.0.0.1:9090/api/v1/targets \
   | jq -r '.data.activeTargets[] | "\(.labels.job)\t\(.health)"'
 ```
 
-Through the tailnet (Caddy path-routing):
+Through the tailnet (Tailscale Serve port routing):
 
 ```bash
-curl -sSo /dev/null -w "prometheus: %{http_code}\n" "https://${CORTEX_DOMAIN}/prometheus/-/healthy"
-curl -sSo /dev/null -w "grafana:    %{http_code}\n" "https://${CORTEX_DOMAIN}/grafana/"
-curl -sSo /dev/null -w "loki:       %{http_code}\n" "https://${CORTEX_DOMAIN}/loki/ready"
-curl -sSo /dev/null -w "cadvisor:   %{http_code}\n" "https://${CORTEX_DOMAIN}/cadvisor/"
+curl -sSo /dev/null -w "prometheus: %{http_code}\n" "https://${CORTEX_DOMAIN}:9090/-/healthy"
+curl -sSo /dev/null -w "grafana:    %{http_code}\n" "https://${CORTEX_DOMAIN}:3000/"
+curl -sSo /dev/null -w "loki:       %{http_code}\n" "https://${CORTEX_DOMAIN}:3100/ready"
+curl -sSo /dev/null -w "cadvisor:   %{http_code}\n" "https://${CORTEX_DOMAIN}:8081/"
 ```
 
 Expected: Prometheus healthy, Loki ready, Grafana 200, all exporter
@@ -139,8 +139,8 @@ nats server info --server nats://127.0.0.1:4222
 nats kv info cortex_approvals_seen --server nats://127.0.0.1:4222
 sudo systemctl status cortex-consumer --no-pager
 
-# NATS HTTP monitoring — owned by 30-nats.md, served via Caddy at /nats/
-curl -sSo /dev/null -w "nats-varz: %{http_code}\n" "https://${CORTEX_DOMAIN}/nats/varz"
+# NATS HTTP monitoring — owned by 30-nats.md, served on tailnet port 8222
+curl -sSo /dev/null -w "nats-varz: %{http_code}\n" "https://${CORTEX_DOMAIN}:8222/varz"
 ```
 
 Expected: NATS server info shows JetStream, KV bucket present, consumer active.
@@ -158,9 +158,8 @@ curl -fsS http://localhost:18790/health   # OpenViking
 curl -fsS http://localhost:18791/health   # LEANN
 
 # Langfuse v3 — bound on host 127.0.0.1:3001 (3000 is Grafana).
-# Served via Caddy at /langfuse/. See 55-langfuse.md and 13-caddy.md.
 curl -fsS -o /dev/null -w "langfuse-local: %{http_code}\n" http://127.0.0.1:3001/api/public/health
-curl -sSo /dev/null -w "langfuse-tailnet: %{http_code}\n" "https://${CORTEX_DOMAIN}/langfuse/api/public/health"
+curl -sSo /dev/null -w "langfuse-tailnet: %{http_code}\n" "https://${CORTEX_DOMAIN}:3001/api/public/health"
 ```
 
 Expected: model count ≥ 1 (9Router), OpenViking OK, LEANN OK, Langfuse OK.

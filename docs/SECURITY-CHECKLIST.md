@@ -11,8 +11,8 @@
   reachable only via Tailscale (`tailscale0` / `100.64.0.0/10`) and
   RFC1918 LAN ranges (`10.0.0.0/8`, `172.16.0.0/12`,
   `192.168.0.0/16`).
-- **No public HTTP/HTTPS.** Caddy listens on `127.0.0.1:8080` and is
-  served on `:443` by Tailscale serve. Public `:80` and `:443` are
+- **No public HTTP/HTTPS.** Tailscale Serve publishes tailnet-only HTTPS
+  routes to loopback services. Public `:80` and `:443` are
   explicitly UFW-denied on the WAN interface.
 - **SSH restricted.** `sshd` accepts inbound only from Tailscale + LAN
   (no `Anywhere` rule on `{SSH_PORT}/tcp`). UFW `limit in on tailscale0`
@@ -53,7 +53,7 @@
 - Jails enabled:
   - **sshd** — `maxretry 3`, `bantime 2h`.
   - **recidive** — anyone banned in 3 jails within 1 day → 1-week ban.
-  - **caddy-auth** — 401/403 abuse via Caddy `_SYSTEMD_UNIT=caddy.service`.
+  - **web-auth** — 401/403 abuse via the dashboard service logs.
 
 ## System services
 

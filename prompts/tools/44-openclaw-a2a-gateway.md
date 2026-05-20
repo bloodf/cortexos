@@ -49,7 +49,6 @@ cd /tmp/openclaw-a2a-gateway
 npm install
 npx tsc -p tsconfig.json || npx esbuild index.ts --platform=node --format=esm --target=node20 --outfile=dist/index.js
 openclaw plugins install /tmp/openclaw-a2a-gateway --force
-test -f docs/external/openclaw-a2a-gateway.snapshot.md && echo "OK"
 ```
 
 ## Configure

@@ -171,7 +171,7 @@ Two stacks live side-by-side:
 | Boundary | Surface | Control |
 |---|---|---|
 | Laptop ↔ VPS | SSH, scp | Key-based auth, age private key never leaves laptop |
-| Operator ↔ Dashboard | HTTPS via Caddy | Auth, Tailscale-only by default, server actions with zod |
+| Operator ↔ Dashboard | HTTPS via Tailscale Serve | Auth, Tailscale-only by default, server actions with zod |
 | NATS bus | Every subject | CloudEvents envelope + HMAC signature, JCS-canonical |
 | Inbound webhooks | Paperclip bridge | Bearer + `timingSafeEqual`, replay-safe via `paperclip_run_id UNIQUE` |
 | Tool execution | Sandbox runner | gVisor isolation, no host net, per-call caps, audit row per call |

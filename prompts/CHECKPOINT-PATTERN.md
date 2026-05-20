@@ -99,7 +99,7 @@ the probe is **informational, never blocking**:
 
 ## Consolidated end-to-end checks live in `99-final-validation`
 
-Cross-service flows (Caddy → Grafana, Prometheus → cAdvisor target UP,
+Cross-service flows (Tailscale Serve → Grafana, Prometheus → cAdvisor target UP,
 Fluent Bit → Loki query, Consumer → NATS → Sandbox dispatch) are
 verified once in `prompts/tools/99-final-validation.md` after every
 spoke has run. That is the only place where the full system is in

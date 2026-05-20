@@ -17,14 +17,14 @@ Docker. DB admin UIs are containerized.
 
 - [ ] CHECKPOINT 1 confirmed — MySQL enabled
 - [ ] Use `stacks/mysql/docker-compose.yml` with `phpmyadmin` service
-- [ ] Confirm `/phpmyadmin/` returns 200 through Caddy
+- [ ] Confirm `https://${CORTEX_DOMAIN}:8082/` returns 200 through Tailscale Serve
 
 ## Verify
 
 ```bash
-curl -fsS http://127.0.0.1:8080/phpmyadmin/ >/dev/null
+curl -fsS http://127.0.0.1:8082/ >/dev/null
 ```
 
 ## CHECKPOINT 2
 
-Confirm phpMyAdmin loads through `/phpmyadmin/`.
+Confirm phpMyAdmin loads through the tailnet port.

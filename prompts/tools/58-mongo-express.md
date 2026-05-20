@@ -17,16 +17,16 @@ Docker. DB admin UIs are containerized.
 
 - [ ] CHECKPOINT 1 confirmed — MongoDB enabled
 - [ ] Use `stacks/mongodb/docker-compose.yml` with `mongo-express` service
-- [ ] Confirm `/mongo-admin/` requires auth or loads UI
+- [ ] Confirm `https://${CORTEX_DOMAIN}:8083/` requires auth or loads UI
 
 ## Verify
 
 ```bash
-curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8083/mongo-admin/
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8083/
 ```
 
 Expected: `200` after basic auth or `401` before auth.
 
 ## CHECKPOINT 2
 
-Confirm Caddy `/mongo-admin/` reaches mongo-express.
+Confirm the tailnet port reaches mongo-express.

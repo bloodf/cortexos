@@ -1,5 +1,5 @@
 -- 012_catalog_fixes.sql
--- Codex readiness review (docs/plans/codex-readiness-review.md) flagged
+-- Catalog readiness review flagged
 -- stale health_url and env_source values on backend-only AI catalog rows
 -- seeded by 002_seed.sql. Reconcile them to match the actual spoke
 -- prompts (prompts/tools/31-9router.md, 50-agentgateway.md) and the

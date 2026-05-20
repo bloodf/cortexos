@@ -28,7 +28,7 @@
 | Docker stack unhealthy | `docker compose ps` | Inspect logs, env, ports |
 | Redis auth mismatch | `/opt/cortexos/init-scripts/redis.conf` | Align container env and restart |
 | Port conflict | `ss -tulpn` | Move service or stop host daemon |
-| Caddy route fails | Caddy logs and DNS | Verify upstream and TLS config |
+| Tailscale Serve route fails | `tailscale serve status` and service logs | Verify upstream port and tailnet TLS config |
 
 ## Dashboard
 
