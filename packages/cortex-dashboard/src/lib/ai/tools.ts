@@ -8,6 +8,8 @@
  */
 
 import { createHash } from "node:crypto";
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { z } from "zod";
 import { tool, type Tool } from "ai";
 
@@ -19,7 +21,10 @@ import {
 import { insertAuditRow } from "@/lib/db/agent-gateway-audit";
 import { getRateLimitStore } from "./rate-limit-store";
 import { getAllServices } from "@/lib/db/service";
+import { getAgentFactory, upsertAgentFactory } from "@/lib/db/agent-factories";
+import type { AgentFactoryKind } from "@/lib/db/agent-factories";
 import { readEnvFile } from "@/lib/secrets/vps-reader";
+import { hostExecFile } from "@/lib/host-exec";
 import {
 	systemdAction,
 	dockerAction as runDockerAction,
@@ -336,6 +341,44 @@ const confirmationField = z.string().optional().describe(
 	"Confirmation token returned by a previous call. Required for privileged or destructive tools.",
 );
 
+const factoryKindSchema = z.enum(["role", "workflow", "pipeline", "project"]);
+const jsonRecordSchema = z.record(z.string(), z.any());
+
+function openclawBase(): string {
+	return process.env.OPENCLAW_BASE || `${process.env.HOME || "/home/cortexos"}/.openclaw`;
+}
+
+function slugify(value: string): string {
+	return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "agent";
+}
+
+function projectPositions(definition: Record<string, unknown>): Array<Record<string, unknown>> {
+	const paperclip = definition.paperclip;
+	if (!paperclip || typeof paperclip !== "object") return [];
+	const p = paperclip as Record<string, unknown>;
+	return [
+		...(Array.isArray(p.required_positions) ? p.required_positions : []),
+		...(Array.isArray(p.optional_positions) ? p.optional_positions : []),
+	].filter((item): item is Record<string, unknown> => item !== null && typeof item === "object");
+}
+
+async function postPaperclipPromotion(factorySlug: string, payload: Record<string, unknown>) {
+	const apiUrl = process.env.PAPERCLIP_API_URL?.replace(/\/+$/, "");
+	const apiKey = process.env.PAPERCLIP_API_KEY;
+	if (!apiUrl || !apiKey) {
+		return { skipped: true, reason: "PAPERCLIP_API_URL/PAPERCLIP_API_KEY not configured" };
+	}
+	const res = await fetch(`${apiUrl}/api/cortex/factories/${encodeURIComponent(factorySlug)}/promote`, {
+		method: "POST",
+		headers: {
+			"content-type": "application/json",
+			authorization: `Bearer ${apiKey}`,
+		},
+		body: JSON.stringify(payload),
+	});
+	return { skipped: false, ok: res.ok, status: res.status, body: await res.text().catch(() => "") };
+}
+
 export function getAllTools(ctx: ToolContext): Record<string, Tool> {
 	const vpsStatus = tool({
 		description:
@@ -506,6 +549,200 @@ export function getAllTools(ctx: ToolContext): Record<string, Tool> {
 		},
 	});
 
+	const proposeRole = tool({
+		description: "Generate a role factory proposal for an OpenClaw/Paperclip agent.",
+		inputSchema: z.object({
+			title: z.string().min(1),
+			description: z.string().min(1),
+			role: z.string().optional(),
+			confirmationToken: confirmationField,
+		}),
+		execute: async (input) => {
+			const approval = await ensureApproval(ctx, "propose_role", input as Record<string, unknown>);
+			if (approval.kind !== "ok") return approval;
+			const role = input.role || slugify(input.title).toUpperCase();
+			return {
+				kind: "proposal" as const,
+				factory: {
+					slug: `role-${slugify(role)}`,
+					name: input.title,
+					kind: "role",
+					definition: {
+						role,
+						files: {
+							"ROLE.md": `# ${input.title}\n\n${input.description}\n`,
+							"WORKFLOW.md": `# ${input.title} Workflow\n\n- Review assigned Paperclip/OpenClaw work.\n- Produce concise status updates.\n- Escalate blocked or destructive actions.\n`,
+						},
+					},
+				},
+			};
+		},
+	});
+
+	const proposeWorkflow = tool({
+		description: "Generate a workflow proposal for an agent factory.",
+		inputSchema: z.object({
+			factory_slug: z.string().min(1),
+			goal: z.string().min(1).optional(),
+			confirmationToken: confirmationField,
+		}),
+		execute: async (input) => {
+			const approval = await ensureApproval(ctx, "propose_workflow", input as Record<string, unknown>);
+			if (approval.kind !== "ok") return approval;
+			return {
+				kind: "proposal" as const,
+				factory_slug: input.factory_slug,
+				workflow: {
+					"WORKFLOW.md": `# Workflow\n\nGoal: ${input.goal || "Create, validate, and promote the generated agent files."}\n\n1. Draft roles and project seats.\n2. Validate required Markdown files.\n3. Promote to OpenClaw and Paperclip.\n`,
+				},
+			};
+		},
+	});
+
+	const proposePipeline = tool({
+		description: "Generate a promotion pipeline proposal for an agent factory.",
+		inputSchema: z.object({
+			factory_slug: z.string().min(1),
+			confirmationToken: confirmationField,
+		}),
+		execute: async (input) => {
+			const approval = await ensureApproval(ctx, "propose_pipeline", input as Record<string, unknown>);
+			if (approval.kind !== "ok") return approval;
+			return {
+				kind: "proposal" as const,
+				factory_slug: input.factory_slug,
+				pipeline: ["validate_factory", "save_factory", "agent_factory_promote"],
+			};
+		},
+	});
+
+	const saveFactory = tool({
+		description: "Persist an agent factory definition to the database.",
+		inputSchema: z.object({
+			slug: z.string().min(1),
+			name: z.string().min(1),
+			kind: factoryKindSchema,
+			schema_version: z.number().int().positive().optional(),
+			definition: jsonRecordSchema.optional(),
+			confirmationToken: confirmationField,
+		}),
+		execute: async (input) => {
+			const approval = await ensureApproval(ctx, "save_factory", input as Record<string, unknown>);
+			if (approval.kind !== "ok") return approval;
+			const factory = await upsertAgentFactory({
+				slug: input.slug,
+				name: input.name,
+				kind: input.kind as AgentFactoryKind,
+				schema_version: input.schema_version,
+				definition: input.definition ?? {},
+				created_by: `user:${ctx.userId}`,
+			});
+			return { kind: "ok" as const, factory };
+		},
+	});
+
+	const validateFactory = tool({
+		description: "Validate a factory definition before promotion.",
+		inputSchema: z.object({
+			factory_slug: z.string().optional(),
+			definition: jsonRecordSchema.optional(),
+			confirmationToken: confirmationField,
+		}),
+		execute: async (input) => {
+			const approval = await ensureApproval(ctx, "validate_factory", input as Record<string, unknown>);
+			if (approval.kind !== "ok") return approval;
+			const factory = input.factory_slug ? await getAgentFactory(input.factory_slug) : null;
+			const definition = input.definition ?? factory?.definition ?? {};
+			const positions = projectPositions(definition);
+			const files = definition.files && typeof definition.files === "object" ? definition.files : null;
+			const errors: string[] = [];
+			if (!factory && !input.definition) errors.push("factory_slug or definition is required");
+			if (positions.length === 0 && !files) errors.push("definition must include paperclip positions or files");
+			return { kind: errors.length === 0 ? "valid" as const : "invalid" as const, errors, positions: positions.length };
+		},
+	});
+
+	const dryRunDispatch = tool({
+		description: "Simulate factory promotion without writing files.",
+		inputSchema: z.object({
+			factory_slug: z.string().min(1),
+			project_slug: z.string().optional(),
+			confirmationToken: confirmationField,
+		}),
+		execute: async (input) => {
+			const approval = await ensureApproval(ctx, "dry_run_dispatch", input as Record<string, unknown>);
+			if (approval.kind !== "ok") return approval;
+			const factory = await getAgentFactory(input.factory_slug);
+			if (!factory) return { kind: "not_found" as const, factory_slug: input.factory_slug };
+			const projectSlug = input.project_slug || slugify(factory.name);
+			const positions = projectPositions(factory.definition);
+			return {
+				kind: "dry_run" as const,
+				factory_slug: factory.slug,
+				targets: positions.map((position) => `${projectSlug}-${String(position.seat || position.paperclip_role || "agent")}`),
+			};
+		},
+	});
+
+	const promoteFactory = tool({
+		description: "Promote a saved factory to OpenClaw agent files and Paperclip.",
+		inputSchema: z.object({
+			factory_slug: z.string().min(1),
+			project_slug: z.string().optional(),
+			call_paperclip: z.boolean().optional(),
+			confirmationToken: confirmationField,
+		}),
+		execute: async (input) => {
+			const approval = await ensureApproval(ctx, "agent_factory_promote", input as Record<string, unknown>);
+			if (approval.kind !== "ok") return approval;
+			const factory = await getAgentFactory(input.factory_slug);
+			if (!factory) return { kind: "not_found" as const, factory_slug: input.factory_slug };
+			const projectSlug = input.project_slug || slugify(factory.name);
+			const positions = projectPositions(factory.definition);
+			const written: string[] = [];
+			const registered: string[] = [];
+			for (const position of positions) {
+				const seat = slugify(String(position.seat || position.paperclip_role || position.title || "agent"));
+				const agentSlug = `${projectSlug}-${seat}`;
+				const dir = join(openclawBase(), "agents", agentSlug, "agent");
+				await mkdir(dir, { recursive: true });
+				const title = String(position.title || position.paperclip_role || seat);
+				const role = String(position.paperclip_role || title);
+				const files = {
+					"ROLE.md": `# ${title}\n\nPaperclip role: ${role}\nFactory: ${factory.slug}\n`,
+					"WORKFLOW.md": `# ${title} Workflow\n\n- Accept work from OpenClaw/Paperclip.\n- Update issue status through the bridge.\n- Ask for approval before destructive actions.\n`,
+					"CLAUDE.md": `# ${title}\n\nYou are the ${title} agent for ${projectSlug}. Follow ROLE.md and WORKFLOW.md.\n`,
+				};
+				for (const [name, content] of Object.entries(files)) {
+					const filePath = join(dir, name);
+					await writeFile(filePath, content, "utf-8");
+					written.push(filePath);
+				}
+				try {
+					await hostExecFile("openclaw", [
+						"agents",
+						"add",
+						agentSlug,
+						"--non-interactive",
+						"--workspace",
+						join(openclawBase(), "workspace", projectSlug),
+						"--agent-dir",
+						dir,
+						"--model",
+						"9router/cx/gpt-5.5",
+					], { timeout: 15000 });
+					registered.push(agentSlug);
+				} catch {
+					// The files are still promoted; OpenClaw may already have the agent.
+				}
+			}
+			const paperclip = input.call_paperclip === false
+				? { skipped: true, reason: "disabled by request" }
+				: await postPaperclipPromotion(factory.slug, { projectSlug, positions });
+			return { kind: "ok" as const, factory_slug: factory.slug, written, registered, paperclip };
+		},
+	});
+
 	return {
 		vps_status: vpsStatus,
 		memory_search: memorySearch,
@@ -514,5 +751,12 @@ export function getAllTools(ctx: ToolContext): Record<string, Tool> {
 		env_diff_propose: envDiffPropose,
 		service_restart: serviceRestart,
 		docker_action: dockerActionTool,
+		propose_role: proposeRole,
+		propose_workflow: proposeWorkflow,
+		propose_pipeline: proposePipeline,
+		save_factory: saveFactory,
+		validate_factory: validateFactory,
+		dry_run_dispatch: dryRunDispatch,
+		agent_factory_promote: promoteFactory,
 	};
 }

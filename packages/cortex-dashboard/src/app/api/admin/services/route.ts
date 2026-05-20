@@ -7,7 +7,27 @@ import {
 	deleteService,
 } from "@/lib/db/service";
 import type { Service } from "@/lib/db/service";
+import { hostExecFile } from "@/lib/host-exec";
 import { VALID_HEALTH_TYPES, SLUG_RE, HEX_COLOR_RE } from "@/lib/validation";
+
+const SAFE_NAME_RE = /^[a-zA-Z0-9._@:-]+$/;
+
+async function startRuntimeService(service: Service): Promise<void> {
+	const target = service.health_url || service.slug;
+	if (!SAFE_NAME_RE.test(target)) return;
+	try {
+		if (service.health_type === "docker" || service.kind === "docker") {
+			await hostExecFile("docker", ["start", target], { timeout: 10000 });
+			return;
+		}
+		if (service.health_type === "systemd") {
+			await hostExecFile("systemctl", ["start", target], { timeout: 10000 });
+		}
+	} catch {
+		// Catalog activation should persist even when a runtime start command is
+		// not available for process/http/tcp services.
+	}
+}
 
 export async function GET(request: Request) {
 	const auth = await requireAuth(request);
@@ -113,7 +133,7 @@ export async function PATCH(request: Request) {
 			updates.category = String(body.category).slice(0, 64);
 		}
 		if (body.url !== undefined) {
-			updates.url = String(body.url).slice(0, 2048);
+			updates.open_url = String(body.url).slice(0, 2048);
 		}
 		if (body.health_url !== undefined) {
 			updates.health_url = String(body.health_url).slice(0, 2048);
@@ -163,6 +183,7 @@ export async function PATCH(request: Request) {
 		}
 
 		const service = await updateService(id, updates);
+		if (updates.is_active === true) await startRuntimeService(service);
 		return NextResponse.json({ service });
 	} catch {
 		return NextResponse.json({ error: "Failed to update service" }, { status: 500 });

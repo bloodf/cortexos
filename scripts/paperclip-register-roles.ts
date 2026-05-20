@@ -22,7 +22,6 @@
 import { readdir, readFile, writeFile, mkdir, chmod } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { request } from "undici";
 
 export interface PaperclipFrontmatter {
 	title: string;
@@ -122,6 +121,11 @@ export interface HttpClient {
 		body: unknown,
 		extraHeaders?: Record<string, string>,
 	): Promise<{ status: number; body: unknown }>;
+	patch(
+		path: string,
+		body: unknown,
+		extraHeaders?: Record<string, string>,
+	): Promise<{ status: number; body: unknown }>;
 }
 
 export function createHttpClient(
@@ -134,10 +138,8 @@ export function createHttpClient(
 		...(extra ?? {}),
 	});
 
-	async function readBody(res: {
-		body: { text(): Promise<string> };
-	}): Promise<unknown> {
-		const text = await res.body.text();
+	async function readBody(res: Response): Promise<unknown> {
+		const text = await res.text();
 		if (!text) return null;
 		try {
 			return JSON.parse(text);
@@ -148,16 +150,24 @@ export function createHttpClient(
 
 	return {
 		async get(path) {
-			const res = await request(`${baseUrl}${path}`, { headers: headers() });
-			return { status: res.statusCode, body: await readBody(res) };
+			const res = await fetch(`${baseUrl}${path}`, { headers: headers() });
+			return { status: res.status, body: await readBody(res) };
 		},
 		async post(path, body, extra) {
-			const res = await request(`${baseUrl}${path}`, {
+			const res = await fetch(`${baseUrl}${path}`, {
 				method: "POST",
 				headers: headers(extra),
 				body: JSON.stringify(body ?? {}),
 			});
-			return { status: res.statusCode, body: await readBody(res) };
+			return { status: res.status, body: await readBody(res) };
+		},
+		async patch(path, body, extra) {
+			const res = await fetch(`${baseUrl}${path}`, {
+				method: "PATCH",
+				headers: headers(extra),
+				body: JSON.stringify(body ?? {}),
+			});
+			return { status: res.status, body: await readBody(res) };
 		},
 	};
 }
@@ -168,16 +178,42 @@ export interface RegisterDeps {
 	boardToken?: string;
 }
 
+function paperclipRoleToAgentRole(role: string): string {
+	const normalized = role.toUpperCase();
+	if (normalized === "CEO") return "ceo";
+	if (normalized === "CTO") return "cto";
+	if (normalized === "PM" || normalized === "PO") return "pm";
+	if (normalized === "QA") return "qa";
+	if (normalized === "UXUI") return "designer";
+	if (normalized.includes("ENG") || normalized === "ENGINEER" || normalized === "STAFF-ENG") return "engineer";
+	return "general";
+}
+
+function buildAdapterConfig(role: ParsedRole): Record<string, unknown> {
+	const headers: Record<string, string> = {};
+	if (process.env.PAPERCLIP_WEBHOOK_SECRET) {
+		headers.authorization = `Bearer ${process.env.PAPERCLIP_WEBHOOK_SECRET}`;
+	}
+	return {
+		url: `${process.env.PAPERCLIP_BRIDGE_URL ?? "http://127.0.0.1:8089"}${role.paperclip.adapterPath}`,
+		method: "POST",
+		payloadTemplate: {
+			cortexRole: role.paperclip.role,
+		},
+		...(Object.keys(headers).length > 0 ? { headers } : {}),
+	};
+}
+
 export async function registerRole(
 	role: ParsedRole,
 	deps: RegisterDeps,
 ): Promise<MintedKey | null> {
 	const { http, companyId, boardToken } = deps;
 	const existing = await http.get(
-		`/api/agents?cortexRole=${encodeURIComponent(role.paperclip.role)}`,
+		`/api/companies/${encodeURIComponent(companyId)}/agents`,
 	);
 
-	type AgentLike = { id?: string };
+	type AgentLike = { id?: string; metadata?: { cortexRole?: string } | null };
 	type AgentListBody = { agents?: AgentLike[] } | AgentLike[] | null;
 	const existingBody = existing.body as AgentListBody;
 	const existingList: AgentLike[] = Array.isArray(existingBody)
@@ -186,49 +222,70 @@ export async function registerRole(
 			? existingBody.agents
 			: [];
 
-	if (existing.status === 200 && existingList.length > 0) {
-		return null; // idempotent skip
-	}
+	const existingAgent = existing.status === 200
+		? existingList.find((agent) => agent.metadata?.cortexRole === role.paperclip.role)
+		: null;
 
-	const hireRes = await http.post(
-		`/api/companies/${encodeURIComponent(companyId)}/agent-hires`,
-		{
-			title: role.paperclip.title,
-			cortexRole: role.paperclip.role,
-			boss: role.paperclip.boss,
-			monthlyBudgetUsd: role.paperclip.monthlyBudgetUsd,
-			adapter: {
-				type: role.paperclip.adapterType,
-				path: role.paperclip.adapterPath,
+	let agentId = existingAgent?.id;
+
+	if (!agentId) {
+		const hireRes = await http.post(
+			`/api/companies/${encodeURIComponent(companyId)}/agent-hires`,
+			{
+				name: role.paperclip.title,
+				role: paperclipRoleToAgentRole(role.paperclip.role),
+				title: role.paperclip.title,
+				budgetMonthlyCents: Math.round(role.paperclip.monthlyBudgetUsd * 100),
+				adapterType: role.paperclip.adapterType,
+				adapterConfig: buildAdapterConfig(role),
+				metadata: {
+					cortexRole: role.paperclip.role,
+					boss: role.paperclip.boss,
+					routine: role.paperclip.routine,
+				},
 			},
-			routine: role.paperclip.routine,
-		},
-	);
-
-	if (hireRes.status === 409) return null; // already exists upstream
-	if (hireRes.status >= 400) {
-		throw new Error(
-			`hire failed for ${role.paperclip.role}: ${hireRes.status} ${JSON.stringify(hireRes.body)}`,
 		);
-	}
 
-	const hireBody = (hireRes.body ?? {}) as {
-		approvalId?: string;
-		agentId?: string;
-		id?: string;
-	};
-	const approvalId = hireBody.approvalId;
-	const agentId = hireBody.agentId ?? hireBody.id;
-
-	if (boardToken && approvalId) {
-		const approveRes = await http.post(
-			`/api/approvals/${encodeURIComponent(approvalId)}/approve`,
-			{},
-			{ "x-board-token": boardToken },
-		);
-		if (approveRes.status >= 400) {
+		if (hireRes.status === 409) return null; // already exists upstream
+		if (hireRes.status >= 400) {
 			throw new Error(
-				`approval failed for ${role.paperclip.role}: ${approveRes.status}`,
+				`hire failed for ${role.paperclip.role}: ${hireRes.status} ${JSON.stringify(hireRes.body)}`,
+			);
+		}
+
+		const hireBody = (hireRes.body ?? {}) as {
+			agent?: { id?: string };
+			approvalId?: string;
+			agentId?: string;
+			id?: string;
+		};
+		const approvalId = hireBody.approvalId;
+		agentId = hireBody.agentId ?? hireBody.agent?.id ?? hireBody.id;
+
+		if (boardToken && approvalId) {
+			const approveRes = await http.post(
+				`/api/approvals/${encodeURIComponent(approvalId)}/approve`,
+				{},
+				{ "x-board-token": boardToken },
+			);
+			if (approveRes.status >= 400) {
+				throw new Error(
+					`approval failed for ${role.paperclip.role}: ${approveRes.status}`,
+				);
+			}
+		}
+	} else {
+		const patchRes = await http.patch(
+			`/api/agents/${encodeURIComponent(agentId)}`,
+			{
+				adapterConfig: buildAdapterConfig(role),
+				replaceAdapterConfig: true,
+				status: "idle",
+			},
+		);
+		if (patchRes.status >= 400) {
+			throw new Error(
+				`agent patch failed for ${role.paperclip.role}: ${patchRes.status}`,
 			);
 		}
 	}
@@ -241,15 +298,15 @@ export async function registerRole(
 
 	const keyRes = await http.post(
 		`/api/agents/${encodeURIComponent(agentId)}/keys`,
-		{ label: `cortex-${role.paperclip.role}` },
+		{ name: `cortex-${role.paperclip.role}` },
 	);
 	if (keyRes.status >= 400) {
 		throw new Error(
 			`key mint failed for ${role.paperclip.role}: ${keyRes.status}`,
 		);
 	}
-	const keyBody = (keyRes.body ?? {}) as { apiKey?: string; key?: string };
-	const apiKey = keyBody.apiKey ?? keyBody.key;
+	const keyBody = (keyRes.body ?? {}) as { apiKey?: string; key?: string; token?: string };
+	const apiKey = keyBody.apiKey ?? keyBody.key ?? keyBody.token;
 	if (!apiKey) {
 		throw new Error(`key mint response missing key for ${role.paperclip.role}`);
 	}

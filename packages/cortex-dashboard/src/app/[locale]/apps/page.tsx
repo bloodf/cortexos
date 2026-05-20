@@ -3,17 +3,54 @@ import { listBadgesForService } from "@/lib/db/service-badges";
 import { getCurrentSession } from "@/lib/auth";
 import { AppsPanel } from "@/components/apps/apps-panel";
 
-const DEFAULT_CREDENTIALS: Record<string, { username?: string; password?: string; note?: string }> = {
-	pgadmin: { username: "admin@cortexos.local", note: "Password is in /opt/cortexos/.secrets/pgadmin.env." },
-	"mongo-express": { username: "admin", note: "Password is in /opt/cortexos/.secrets/mongodb.env." },
-	phpmyadmin: { username: "root", note: "Password is in /opt/cortexos/.secrets/mysql.env." },
-	langfuse: { note: "Create/sign in with the first admin account on Langfuse, or check /opt/cortexos/.secrets/langfuse.env for seeded auth settings." },
-	grafana: { username: "admin", note: "Password is in /opt/cortexos/.secrets/grafana.env." },
+type AppCredentials = { username?: string; password?: string; note?: string };
+
+const CREDENTIAL_ENV: Record<string, { username: string[]; password: string[] }> = {
+	grafana: { username: ["GRAFANA_USERNAME", "GF_SECURITY_ADMIN_USER"], password: ["GRAFANA_PASSWORD", "GF_SECURITY_ADMIN_PASSWORD"] },
+	pgadmin: { username: ["PGADMIN_USERNAME", "PGADMIN_DEFAULT_EMAIL"], password: ["PGADMIN_PASSWORD", "PGADMIN_DEFAULT_PASSWORD"] },
+	"mongo-express": { username: ["MONGO_EXPRESS_USERNAME", "ME_CONFIG_BASICAUTH_USERNAME"], password: ["MONGO_EXPRESS_PASSWORD", "ME_CONFIG_BASICAUTH_PASSWORD"] },
+	phpmyadmin: { username: ["PHPMYADMIN_USERNAME", "MYSQL_USER", "MYSQL_ROOT_USER"], password: ["PHPMYADMIN_PASSWORD", "MYSQL_PASSWORD", "MYSQL_ROOT_PASSWORD"] },
+	langfuse: { username: ["LANGFUSE_USERNAME", "LANGFUSE_INIT_USER_EMAIL"], password: ["LANGFUSE_PASSWORD", "LANGFUSE_INIT_USER_PASSWORD"] },
+	redisinsight: { username: ["REDISINSIGHT_USERNAME"], password: ["REDISINSIGHT_PASSWORD"] },
 };
+
+function parseCredentialJson(): Record<string, AppCredentials> {
+	const raw = process.env.APP_CREDENTIALS_JSON;
+	if (!raw) return {};
+	try {
+		const parsed = JSON.parse(raw) as Record<string, AppCredentials>;
+		return parsed && typeof parsed === "object" ? parsed : {};
+	} catch {
+		return {};
+	}
+}
+
+function firstEnv(keys: string[]): string | undefined {
+	for (const key of keys) {
+		const value = process.env[key]?.trim();
+		if (value) return value;
+	}
+	return undefined;
+}
+
+function credentialsFor(slug: string, isAdmin: boolean, fromJson: Record<string, AppCredentials>): AppCredentials | null {
+	if (!isAdmin) return null;
+	if (fromJson[slug]) return fromJson[slug];
+	const env = CREDENTIAL_ENV[slug];
+	if (!env) return null;
+	const username = firstEnv(env.username);
+	const password = firstEnv(env.password);
+	if (!username && !password) {
+		return { note: "Credentials are not configured in dashboard env." };
+	}
+	return { username, password };
+}
+
 export default async function AppsPage() {
 	const rawServices = await getAllServices();
 	const session = await getCurrentSession();
-	const isAdmin = session !== null;
+	const isAdmin = session?.user.is_admin === true;
+	const credentials = parseCredentialJson();
 
 	const withBadges = await Promise.all(
 		rawServices
@@ -36,7 +73,7 @@ export default async function AppsPage() {
 						label: b.label,
 						color: b.color,
 					})),
-					credentials: DEFAULT_CREDENTIALS[s.slug] ?? null,
+					credentials: credentialsFor(s.slug, isAdmin, credentials),
 				};
 			}),
 	);

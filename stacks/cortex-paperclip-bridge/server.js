@@ -67,7 +67,7 @@ function validate(body) {
   if (!body.context || typeof body.context !== "object") return "context required";
   const { taskId, wakeReason } = body.context;
   if (typeof taskId !== "string" || !taskId) return "context.taskId required";
-  const allowed = ["scheduled", "comment", "new_issue", "manual"];
+  const allowed = ["scheduled", "comment", "new_issue", "manual", "issue_assigned"];
   if (!allowed.includes(wakeReason)) return "context.wakeReason invalid";
   if (typeof body.cortexRole !== "string" || !body.cortexRole) return "cortexRole required";
   return null;
@@ -95,6 +95,7 @@ export function createApp() {
     const { runId, agentId, cortexRole, context } = req.body;
     const subject = `cortex.paperclip.work.${cortexRole}`;
     try {
+      const wakeReason = context.wakeReason === "issue_assigned" ? "new_issue" : context.wakeReason;
       const { inserted } = await recordLink({
         issueId: context.taskId,
         runId,
@@ -107,10 +108,10 @@ export function createApp() {
         issueId: context.taskId,
         agentId,
         role: cortexRole,
-        wakeReason: context.wakeReason,
+        wakeReason,
         payload: req.body,
-        requestedBy: context.commentId || undefined,
       };
+      if (context.commentId) data.requestedBy = context.commentId;
       const event = envelope({
         type: `cortex.paperclip.work.${cortexRole}.v1`,
         source: "cortex-paperclip-bridge",
@@ -133,7 +134,7 @@ export function createApp() {
           issueId: context.taskId,
           role: cortexRole,
           replay: !inserted,
-          wakeReason: context.wakeReason,
+          wakeReason,
         },
       });
       res.status(202).json({ runId, status: "queued" });

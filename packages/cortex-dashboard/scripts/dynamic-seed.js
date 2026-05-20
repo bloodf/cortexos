@@ -106,27 +106,26 @@ async function main() {
   try {
     const state = detectSetupState();
     const completed = new Set(state?.completed_spokes || []);
-    const active = new Set();
+    const detected = new Set();
     for (const spoke of completed) {
-      for (const slug of SPOKE_TO_SERVICES[spoke] || []) active.add(slug);
+      for (const slug of SPOKE_TO_SERVICES[spoke] || []) detected.add(slug);
     }
-    if (active.size === 0) active.add("cortex-dashboard");
 
     const baseUrl = inferPublicBaseUrl(state);
     if (baseUrl) {
       await client.query("SELECT cortex_set_service_urls($1)", [baseUrl]);
     }
 
-    await client.query("UPDATE services SET is_active = slug = ANY($1::text[])", [[...active]]);
     await client.query(`
       UPDATE services
-         SET has_webui = open_url <> '#',
-             show_in_webui = is_active AND open_url <> '#',
-             show_in_healthcheck = is_active,
+         SET is_active = true,
+             has_webui = open_url <> '#',
+             show_in_webui = open_url <> '#',
+             show_in_healthcheck = true,
              updated_at = NOW()
     `);
     console.log(
-      `dynamic-seed active count: ${active.size}` +
+      `dynamic-seed enabled all services, detected completed count: ${detected.size}` +
         (baseUrl ? `, public base: ${baseUrl}` : ", public base: unset"),
     );
   } finally {

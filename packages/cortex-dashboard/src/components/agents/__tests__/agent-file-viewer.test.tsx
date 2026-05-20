@@ -64,31 +64,25 @@ describe("AgentFileViewer", () => {
     );
   });
 
-  it("toggles edit mode", () => {
+  it("renders the Markdown editor", () => {
     render(<AgentFileViewer slug="coder" files={testFiles} />);
 
-    // Click Edit
-    fireEvent.click(screen.getByText("Edit"));
-
-    // Should show Save and Cancel buttons
     expect(screen.getByText("Save")).toBeInTheDocument();
-    expect(screen.getByText("Cancel")).toBeInTheDocument();
+    expect(screen.getByText("Reset")).toBeInTheDocument();
 
-    // Should show textarea
     const textarea = screen.getByRole("textbox");
     expect(textarea).toBeInTheDocument();
     expect(textarea).toHaveValue("# Test Content");
   });
 
-  it("cancels edit mode", () => {
+  it("resets draft changes", () => {
     render(<AgentFileViewer slug="coder" files={testFiles} />);
 
-    fireEvent.click(screen.getByText("Edit"));
-    fireEvent.click(screen.getByText("Cancel"));
+    const textarea = screen.getByRole("textbox");
+    fireEvent.change(textarea, { target: { value: "Changed content" } });
+    fireEvent.click(screen.getByText("Reset"));
 
-    // Should be back to view mode
-    expect(screen.getByText("Edit")).toBeInTheDocument();
-    expect(screen.queryByText("Save")).not.toBeInTheDocument();
+    expect(textarea).toHaveValue("# Test Content");
   });
 
   it("calls PUT on save", async () => {
@@ -99,8 +93,6 @@ describe("AgentFileViewer", () => {
     mockMutate.mockResolvedValue(undefined);
 
     render(<AgentFileViewer slug="coder" files={testFiles} />);
-
-    fireEvent.click(screen.getByText("Edit"));
 
     const textarea = screen.getByRole("textbox");
     fireEvent.change(textarea, { target: { value: "Updated content" } });
@@ -135,7 +127,7 @@ describe("AgentFileViewer", () => {
     } as ReturnType<typeof useSWR>);
 
     render(<AgentFileViewer slug="coder" files={testFiles} />);
-    expect(screen.getByText("Loading...")).toBeInTheDocument();
+    expect(screen.getByText("Loading…")).toBeInTheDocument();
   });
 
   it("shows error state", () => {

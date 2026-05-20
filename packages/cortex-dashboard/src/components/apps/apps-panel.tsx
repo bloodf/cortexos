@@ -7,6 +7,7 @@ import useSWR from "swr";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { IconButton } from "@/components/ui/icon-button";
 import { ServiceLogo } from "@/components/service-logo";
 import { StatusBadge } from "@/components/services/status-badge";
@@ -113,7 +114,41 @@ function BadgeList({ badges }: { badges: AppService["badges"] }) {
 
 function AppActions({ service: s, isAdmin }: { service: AppService; isAdmin: boolean }) {
 	const router = useRouter();
-	return <div className="flex justify-end gap-1">{s.open_url !== "#" && <a href={s.open_url} target="_blank" rel="noopener noreferrer"><IconButton tooltip={`Open ${s.name}`}><ExternalLink className="size-4" /></IconButton></a>}{s.credentials && <IconButton variant="ghost" tooltip={`Show ${s.name} credentials`} onClick={() => window.alert(`${s.name}\n${s.credentials?.username ? `User: ${s.credentials.username}\n` : ""}${s.credentials?.password ? `Password: ${s.credentials.password}\n` : ""}${s.credentials?.note ?? ""}`)}><Eye className="size-4" /></IconButton>}{isAdmin && s.env_source && <IconButton variant="ghost" tooltip={`View env for ${s.name}`} onClick={() => router.push(`/admin/env-browser?path=${encodeURIComponent(s.env_source ?? "")}`)}><Settings2 className="size-4" /></IconButton>}</div>;
+	return <div className="flex justify-end gap-1">{s.open_url !== "#" && <a href={s.open_url} target="_blank" rel="noopener noreferrer"><IconButton tooltip={`Open ${s.name}`}><ExternalLink className="size-4" /></IconButton></a>}{isAdmin && s.credentials && <CredentialsDialog service={s} />}{isAdmin && s.env_source && <IconButton variant="ghost" tooltip={`View env for ${s.name}`} onClick={() => router.push(`/admin/env-browser?path=${encodeURIComponent(s.env_source ?? "")}`)}><Settings2 className="size-4" /></IconButton>}</div>;
+}
+
+function CredentialsDialog({ service }: { service: AppService }) {
+	const credentials = service.credentials;
+	if (!credentials) return null;
+	return (
+		<Dialog>
+			<DialogTrigger render={<IconButton variant="ghost" tooltip={`Show ${service.name} credentials`} />}>
+				<Eye className="size-4" />
+			</DialogTrigger>
+			<DialogContent>
+				<DialogHeader>
+					<DialogTitle>{service.name} credentials</DialogTitle>
+					<DialogDescription>Visible to dashboard administrators only.</DialogDescription>
+				</DialogHeader>
+				<div className="space-y-3">
+					<CredentialRow label="Username" value={credentials.username} />
+					<CredentialRow label="Password" value={credentials.password} />
+					{credentials.note && <p className="rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground">{credentials.note}</p>}
+				</div>
+			</DialogContent>
+		</Dialog>
+	);
+}
+
+function CredentialRow({ label, value }: { label: string; value?: string }) {
+	return (
+		<div className="space-y-1">
+			<div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
+			<div className="break-all rounded-md border border-border bg-background px-3 py-2 font-mono text-sm">
+				{value || "Not configured"}
+			</div>
+		</div>
+	);
 }
 
 function AppCard({ service: s, isAdmin }: { service: AppService; isAdmin: boolean }) {

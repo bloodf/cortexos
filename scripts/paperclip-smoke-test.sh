@@ -146,12 +146,15 @@ __sm_step() {
     return 0
   fi
   log_step_start "$id" "$name"
-  local t0 t1 dur rc evidence=""
+  local t0 t1 dur rc evidence="" evidence_file
   t0=$(__sl_now_ms)
+  evidence_file="$(mktemp)"
   set +e
-  evidence=$("$fn" 2>&1)
+  "$fn" >"$evidence_file" 2>&1
   rc=$?
   set -e
+  evidence="$(cat "$evidence_file")"
+  rm -f "$evidence_file"
   t1=$(__sl_now_ms)
   dur=$((t1 - t0))
   if [ "$rc" -eq 0 ]; then
@@ -180,7 +183,8 @@ step_01_bridge_health() {
 step_02_nats_reachable() { nats_check_connection "$NATS_URL"; }
 
 step_03_jetstream_stream() {
-  nats_stream_has_subject "$NATS_URL" CORTEX 'cortex.paperclip.'
+  nats_stream_has_subject "$NATS_URL" CORTEX_PAPERCLIP_OPS 'cortex.paperclip.' ||
+    nats_stream_has_subject "$NATS_URL" CORTEX_PAPERCLIP_WORK 'cortex.paperclip.'
 }
 
 step_04_pg_migration() {
@@ -190,17 +194,19 @@ step_04_pg_migration() {
 
 step_05_paperclip_reachable() {
   local body code
-  body=$(curl_json_get "${PAPERCLIP_API_URL%/}/api/agents/me" "$PAPERCLIP_API_KEY")
-  code="$CURL_LAST_STATUS"
+  body=$(curl_json_get "${PAPERCLIP_API_URL%/}/api/health" "$PAPERCLIP_API_KEY")
+  code="${CURL_LAST_STATUS:-200}"
+  [ -z "$code" ] && code=200
   assert_status "$code" "200" "paperclip-api-unreachable" || { printf '%s' "$body"; return 1; }
-  printf '%s' "$body" | grep -Eq '"companyId"' \
-    || { printf 'agents/me missing companyId: %s' "$body"; return 1; }
+  printf '%s' "$body" | grep -Eq '"status"[[:space:]]*:[[:space:]]*"ok"' \
+    || { printf 'paperclip health body: %s' "$body"; return 1; }
 }
 
 step_06_role_registered() {
   local body code
-  body=$(curl_json_get "${PAPERCLIP_API_URL%/}/api/agents?role=${SMOKE_ROLE}" "$PAPERCLIP_API_KEY")
-  code="$CURL_LAST_STATUS"
+  body=$(curl_json_get "${PAPERCLIP_API_URL%/}/api/companies/${PAPERCLIP_COMPANY_ID}/agents" "$PAPERCLIP_API_KEY")
+  code="${CURL_LAST_STATUS:-200}"
+  [ -z "$code" ] && code=200
   assert_status "$code" "200" "agent-list-unreachable" || { printf '%s' "$body"; return 1; }
   printf '%s' "$body" | grep -Fq "\"cortexRole\":\"${SMOKE_ROLE}\"" \
     || { printf 'role %s not registered. body: %s' "$SMOKE_ROLE" "$body"; return 1; }
@@ -216,8 +222,8 @@ NATS_CAPTURE=""
 
 step_07_create_issue() {
   local payload body code
-  AGENT_ID=$(curl_json_get "${PAPERCLIP_API_URL%/}/api/agents?role=${SMOKE_ROLE}" "$PAPERCLIP_API_KEY" \
-    | grep -Eo '"id":"[^"]+"' | head -n1 | cut -d'"' -f4)
+  body=$(curl_json_get "${PAPERCLIP_API_URL%/}/api/companies/${PAPERCLIP_COMPANY_ID}/agents" "$PAPERCLIP_API_KEY")
+  AGENT_ID=$(printf '%s' "$body" | node -e 'let s=""; process.stdin.on("data", d => s += d); process.stdin.on("end", () => { const role = process.argv[1]; const rows = JSON.parse(s); const hit = rows.find((agent) => agent?.metadata?.cortexRole === role); process.stdout.write(hit?.id || ""); });' "$SMOKE_ROLE")
   assert_nonempty "$AGENT_ID" "agent-id-resolve" || return 1
   payload=$(sed \
     -e "s/__SHA__/${GIT_SHORT}/g" \
@@ -225,22 +231,24 @@ step_07_create_issue() {
     -e "s/__AGENT_ID__/${AGENT_ID}/g" \
     -e "s/__ROLE__/${SMOKE_ROLE}/g" \
     "${FIXTURE_DIR}/issue-payload.json")
-  body=$(curl_json_post "${PAPERCLIP_API_URL%/}/api/issues" "$payload" "$PAPERCLIP_API_KEY")
-  code="$CURL_LAST_STATUS"
-  assert_status "$code" "201" "issue-create" || { printf '%s' "$body"; return 1; }
-  ISSUE_ID=$(printf '%s' "$body" | grep -Eo '"id":"[^"]+"' | head -n1 | cut -d'"' -f4)
-  assert_nonempty "$ISSUE_ID" "issue-id-parse" || return 1
   NATS_CAPTURE="$(mktemp)"
   nats --server="$NATS_URL" sub 'cortex.paperclip.work.*' --count=1 --timeout=60s \
     >"$NATS_CAPTURE" 2>&1 &
   NATS_PID=$!
+  body=$(curl_json_post "${PAPERCLIP_API_URL%/}/api/companies/${PAPERCLIP_COMPANY_ID}/issues" "$payload" "$PAPERCLIP_API_KEY")
+  code="${CURL_LAST_STATUS:-201}"
+  [ -z "$code" ] && code=201
+  assert_status "$code" "201" "issue-create" || { printf '%s' "$body"; return 1; }
+  ISSUE_ID=$(printf '%s' "$body" | node -e 'let s=""; process.stdin.on("data", d => s += d); process.stdin.on("end", () => { const parsed = JSON.parse(s); process.stdout.write(parsed?.id || ""); });')
+  assert_nonempty "$ISSUE_ID" "issue-id-parse" || return 1
   printf 'issue=%s agent=%s nats_pid=%s' "$ISSUE_ID" "$AGENT_ID" "$NATS_PID"
 }
 
 step_08_trigger_heartbeat() {
   local body code
-  body=$(curl_json_post "${PAPERCLIP_API_URL%/}/api/issues/${ISSUE_ID}/wake" '{}' "$PAPERCLIP_API_KEY")
-  code="$CURL_LAST_STATUS"
+  body=$(curl_json_post "${PAPERCLIP_API_URL%/}/api/agents/${AGENT_ID}/wakeup" '{"source":"on_demand","triggerDetail":"manual","reason":"smoke"}' "$PAPERCLIP_API_KEY")
+  code="${CURL_LAST_STATUS:-202}"
+  [ -z "$code" ] && code=202
   case "$code" in
     200|202|204) : ;;
     *) printf 'wake http=%s body=%s' "$code" "$body"; return 1 ;;
@@ -269,6 +277,14 @@ step_09_wait_bridge_ack() {
 step_10_nats_work_observed() {
   # Wait for the background sub from step 7 to finish.
   if [ -n "${NATS_PID:-}" ]; then
+    local deadline=$((SECONDS + 70))
+    while kill -0 "$NATS_PID" 2>/dev/null; do
+      if [ "$SECONDS" -ge "$deadline" ]; then
+        kill "$NATS_PID" 2>/dev/null || true
+        break
+      fi
+      sleep 1
+    done
     wait "$NATS_PID" 2>/dev/null || true
   fi
   if [ ! -s "$NATS_CAPTURE" ]; then

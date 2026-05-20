@@ -1,5 +1,7 @@
+import { execFile } from "node:child_process";
 import { readdir, readFile, writeFile, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { promisify } from "node:util";
 
 export interface AgentFile {
   name: string;
@@ -28,6 +30,7 @@ export interface AgentGroup {
 
 const DEFAULT_OPENCLAW_BASE = `${process.env.HOME || "/home/cortex"}/.openclaw`;
 const CONTAINER_PREFIX = "/home/node/.openclaw";
+const execFileAsync = promisify(execFile);
 
 function getOpenclawBase(): string {
   return process.env.AGENT_SCAN_PATHS?.split(/[,:]/)[0] || process.env.OPENCLAW_BASE || DEFAULT_OPENCLAW_BASE;
@@ -108,14 +111,45 @@ interface OpenClawAgent {
   id: string;
   name?: string;
   workspace?: string;
+  agentDir?: string;
   model?: string | { primary?: string };
   identity?: { name?: string; emoji?: string };
+  identityName?: string;
+  identityEmoji?: string;
 }
 
 interface OpenClawConfig {
   agents?: {
     list?: OpenClawAgent[];
   };
+}
+
+interface OpenClawListOutput {
+  agents?: OpenClawAgent[];
+}
+
+function isFactoryLane(entry: OpenClawAgent): boolean {
+  const haystack = [
+    entry.id,
+    entry.name,
+    entry.identity?.name,
+    entry.workspace,
+  ].filter(Boolean).join(" ").toLowerCase();
+  return /\bfactory\b/.test(haystack) || /\btemplate\b/.test(haystack);
+}
+
+async function listOpenClawAgents(): Promise<OpenClawAgent[] | null> {
+  try {
+    const { stdout } = await execFileAsync("openclaw", ["agents", "list", "--json"], {
+      timeout: 5000,
+      maxBuffer: 1024 * 1024,
+    });
+    const parsed = JSON.parse(stdout) as OpenClawListOutput | OpenClawAgent[];
+    const agents = Array.isArray(parsed) ? parsed : parsed.agents;
+    return Array.isArray(agents) ? agents.filter((agent) => agent.id && !isFactoryLane(agent)) : null;
+  } catch {
+    return null;
+  }
 }
 
 async function scanLegacyAgentDirs(): Promise<AgentGroup[]> {
@@ -160,6 +194,11 @@ async function scanLegacyAgentDirs(): Promise<AgentGroup[]> {
 }
 
 export async function scanAgents(): Promise<AgentGroup[]> {
+  if (!process.env.AGENT_SCAN_PATHS) {
+    const listed = await listOpenClawAgents();
+    if (listed) return buildGroupsFromOpenClawAgents(listed);
+  }
+
   const configPath = join(getOpenclawBase(), "openclaw.json");
   let config: OpenClawConfig;
   try {
@@ -170,19 +209,23 @@ export async function scanAgents(): Promise<AgentGroup[]> {
   }
 
   const agentList = config.agents?.list ?? [];
+  return buildGroupsFromOpenClawAgents(agentList.filter((agent) => !isFactoryLane(agent)));
+}
+
+async function buildGroupsFromOpenClawAgents(agentList: OpenClawAgent[]): Promise<AgentGroup[]> {
   const agents: Agent[] = [];
 
   for (const entry of agentList) {
     const workspace = entry.workspace ? hostPath(entry.workspace) : "";
-    const agentDir = join(getOpenclawBase(), "agents", entry.id, "agent");
+    const agentDir = entry.agentDir ? hostPath(entry.agentDir) : join(getOpenclawBase(), "agents", entry.id, "agent");
     const files = await getMarkdownFiles(agentDir);
     const model = typeof entry.model === "string" ? entry.model : (entry.model?.primary ?? "unknown");
     const shortModel = model.split("/").pop() ?? model;
 
     agents.push({
       slug: entry.id,
-      name: entry.identity?.name || entry.name || entry.id,
-      emoji: entry.identity?.emoji,
+      name: entry.identity?.name || entry.identityName || entry.name || entry.id,
+      emoji: entry.identity?.emoji || entry.identityEmoji,
       model: shortModel,
       workspace,
       files,

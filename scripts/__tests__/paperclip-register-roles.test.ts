@@ -62,11 +62,18 @@ function mockClient(handlers: {
 		path: string,
 		body: unknown,
 	) => Promise<{ status: number; body: unknown }>;
+	patch?: (
+		path: string,
+		body: unknown,
+	) => Promise<{ status: number; body: unknown }>;
 }): HttpClient {
 	return {
 		get: handlers.get ?? (async () => ({ status: 200, body: { agents: [] } })),
 		post:
 			handlers.post ??
+			(async () => ({ status: 200, body: {} })),
+		patch:
+			handlers.patch ??
 			(async () => ({ status: 200, body: {} })),
 	};
 }
@@ -85,18 +92,31 @@ const ROLE: ParsedRole = {
 };
 
 describe("registerRole", () => {
-	it("skips when role already exists", async () => {
+	it("updates adapter config and mints a fresh key when role already exists", async () => {
+		const calls: Array<{ method: string; path: string; body?: unknown }> = [];
 		const http = mockClient({
 			get: async () => ({
 				status: 200,
-				body: { agents: [{ id: "agent-1" }] },
+				body: {
+					agents: [{ id: "agent-1", metadata: { cortexRole: "ENG-BACKEND" } }],
+				},
 			}),
-			post: async () => {
-				throw new Error("should not POST");
+			patch: async (path, body) => {
+				calls.push({ method: "PATCH", path, body });
+				return { status: 200, body: {} };
+			},
+			post: async (path, body) => {
+				calls.push({ method: "POST", path, body });
+				return { status: 201, body: { apiKey: "pk_secret_existing" } };
 			},
 		});
 		const result = await registerRole(ROLE, { http, companyId: "c1" });
-		expect(result).toBeNull();
+		expect(result?.agentId).toBe("agent-1");
+		expect(result?.apiKey).toBe("pk_secret_existing");
+		expect(calls.map((c) => `${c.method} ${c.path}`)).toEqual([
+			"PATCH /api/agents/agent-1",
+			"POST /api/agents/agent-1/keys",
+		]);
 	});
 
 	it("treats 409 from hire as idempotent skip", async () => {
