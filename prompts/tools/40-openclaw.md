@@ -3,7 +3,9 @@
 ## Purpose
 
 Install OpenClaw, repair the local config schema for the current runtime, and
-boot the gateway on `:18789`.
+boot one canonical gateway on `:18789`. CortexOS uses this single OpenClaw
+instance as the source of truth for agents, projects, Telegram, Paperclip, and
+operator web access.
 
 ## Prerequisites
 
@@ -29,7 +31,9 @@ sudo -v
 
 - [ ] CHECKPOINT 1 confirmed
 - [ ] Install
-- [ ] Configure
+- [ ] Configure single-source gateway + 9Router model
+- [ ] Configure optional Telegram main agent token
+- [ ] Configure LAN socket proxies for OpenClaw Web UI
 - [ ] Verify
 - [ ] CHECKPOINT 2 confirmed
 
@@ -97,11 +101,130 @@ cat >/tmp/openclaw-gateway.env <<EOF
 NINEROUTER_BASE_URL=http://127.0.0.1:11434
 NINEROUTER_API_KEY=${NINEROUTER_API_KEY}
 OPENVIKING_URL=http://127.0.0.1:18790
+# Optional: paste the BotFather token here when Telegram should be the
+# VPS main agent channel. Keep this file mode 0600; never commit tokens.
+# TELEGRAM_BOT_TOKEN=
 EOF
 sudo install -m 0600 -o cortexos -g cortexos /tmp/openclaw-gateway.env /opt/cortexos/.secrets/openclaw-gateway.env
 sudo install -m 0644 /tmp/openclaw-gateway.service /etc/systemd/system/openclaw-gateway.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now openclaw-gateway
+```
+
+Apply the production CortexOS OpenClaw policy. This keeps the gateway bound to
+loopback so Tailscale Serve can own the tailnet listener on the same port, while
+the LAN socket proxies below expose the same single Web UI to local-network
+browsers. `execApprovals.enabled=false` is intentional for the trusted VPS main
+agent; do not split projects into multiple OpenClaw instances.
+
+```bash
+cat >/tmp/openclaw-cortexos-policy.json5 <<'JSON'
+{
+  secrets: {
+    providers: {
+      default: { source: "env" }
+    }
+  },
+  gateway: {
+    bind: "loopback",
+    auth: { allowTailscale: true },
+    controlUi: { dangerouslyAllowHostHeaderOriginFallback: true }
+  },
+  tools: {
+    profile: "full",
+    alsoAllow: ["message", "group:messaging"]
+  },
+  browser: {
+    ssrfPolicy: {
+      dangerouslyAllowPrivateNetwork: true,
+      allowedHostnames: ["localhost", "127.0.0.1"]
+    }
+  },
+  models: {
+    mode: "merge",
+    providers: {
+      "9router": {
+        baseUrl: "http://127.0.0.1:11434/v1",
+        api: "openai-responses",
+        apiKey: { provider: "default", key: "NINEROUTER_API_KEY" },
+        authHeader: true,
+        models: { "gpt-5.5": { aliases: ["gpt-5.5"] } }
+      }
+    }
+  },
+  agents: {
+    defaults: {
+      model: { primary: "9router/gpt-5.5" }
+    }
+  },
+  channels: {
+    telegram: {
+      enabled: true,
+      botToken: { provider: "default", key: "TELEGRAM_BOT_TOKEN" },
+      dmPolicy: "open",
+      groupPolicy: "open",
+      execApprovals: { enabled: false }
+    }
+  }
+}
+JSON
+
+openclaw config patch --file /tmp/openclaw-cortexos-policy.json5
+sudo systemctl restart openclaw-gateway
+```
+
+If Telegram is not configured yet, leave `TELEGRAM_BOT_TOKEN` commented and
+temporarily remove the `channels.telegram` block from the patch. Once the token
+is available, add it to `/opt/cortexos/.secrets/openclaw-gateway.env`, reapply
+the patch, and restart `openclaw-gateway`.
+
+## LAN Web UI access
+
+Tailscale Serve publishes `https://${CORTEX_DOMAIN}:18789/` from the loopback
+gateway. For local LAN browsers, bind socket proxies on each non-tailnet IPv4
+address and forward them to `127.0.0.1:18789`. This avoids a second OpenClaw
+instance and keeps all agents/projects in one Web UI.
+
+```bash
+LAN_IFACES="$(ip -o -4 addr show scope global | awk '$2 !~ /^tailscale/ {print $2\":\"$4}')"
+printf '%s\n' "$LAN_IFACES"
+
+for entry in $LAN_IFACES; do
+  iface="${entry%%:*}"
+  cidr="${entry#*:}"
+  ip="${cidr%%/*}"
+  unit="openclaw-lan-${iface}"
+  sudo tee "/etc/systemd/system/${unit}.socket" >/dev/null <<EOF
+[Unit]
+Description=OpenClaw LAN socket proxy (${iface})
+
+[Socket]
+ListenStream=${ip}:18789
+NoDelay=true
+
+[Install]
+WantedBy=sockets.target
+EOF
+  sudo tee "/etc/systemd/system/${unit}.service" >/dev/null <<EOF
+[Unit]
+Description=OpenClaw LAN proxy (${iface})
+Requires=${unit}.socket
+
+[Service]
+ExecStart=/usr/lib/systemd/systemd-socket-proxyd 127.0.0.1:18789
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
+EOF
+done
+
+sudo systemctl daemon-reload
+for entry in $LAN_IFACES; do
+  iface="${entry%%:*}"
+  sudo systemctl enable --now "openclaw-lan-${iface}.socket"
+done
 ```
 
 ## Verify
@@ -110,9 +233,12 @@ sudo systemctl enable --now openclaw-gateway
 systemctl is-enabled openclaw-gateway
 systemctl show openclaw-gateway -p After,Wants
 curl -fsS http://127.0.0.1:18789/health
+openclaw models status --json | jq -r '.resolvedDefault'
+openclaw channels status --deep --json | jq '.channels.telegram.running'
 ```
 
-Expected: gateway health OK.
+Expected: gateway health OK, model resolves to `9router/gpt-5.5`, and Telegram
+is running when `TELEGRAM_BOT_TOKEN` is configured.
 
 ## CHECKPOINT 2
 

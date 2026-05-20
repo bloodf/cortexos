@@ -34,9 +34,9 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 - [ ] Run section 3 (monitoring stack local + tailnet probes)
 - [ ] Run section 4 (NATS + cortex-consumer)
 - [ ] Run section 5 (9Router, OpenViking, LEANN, Langfuse)
-- [ ] Run section 6 (OpenClaw gateway, plugins, memory ping)
+- [ ] Run section 6 (OpenClaw gateway, Telegram, LAN/Tailscale Web UI, plugins)
 - [ ] Run section 7 (AgentGateway /health)
-- [ ] Run section 8 (Dashboard /api/health + tailnet /en/login)
+- [ ] Run section 8 (Dashboard local + tailnet /en/login)
 - [ ] Run section 9 (paranoia: leak sweep + version-pin grep)
 - [ ] Append `final_validation` timestamp to `.setup-state.json`
 - [ ] CHECKPOINT 2 confirmed — every section returned expected values
@@ -164,11 +164,28 @@ Expected: model count ≥ 1 (9Router), OpenViking OK, LEANN OK, Langfuse OK.
 
 ```bash
 curl -s http://127.0.0.1:18789/health
+curl -s "https://${CORTEX_DOMAIN}:18789/health"
 openclaw plugins list
-openclaw memory ping
+openclaw models status --json | jq -r '.resolvedDefault'
+openclaw channels status --deep --json | jq '.channels.telegram.running'
+openclaw devices list --json | jq '.pending | length'
 ```
 
-Expected: gateway healthy, all plugins listed, memory ping OK.
+Expected: gateway healthy from loopback and Tailscale, all plugins listed,
+model resolves to `9router/gpt-5.5`, Telegram running when configured, and
+pending device approvals count is `0`.
+
+For LAN Web UI validation, test each non-tailnet IPv4 address:
+
+```bash
+ip -o -4 addr show scope global | awk '$2 !~ /^tailscale/ {print $4}' \
+  | cut -d/ -f1 \
+  | while read -r ip; do
+      curl -fsS "http://${ip}:18789/health"
+    done
+```
+
+Expected: every LAN probe returns `{"ok":true,"status":"live"}`.
 
 ### 7. AgentGateway
 
@@ -183,19 +200,19 @@ Expected: health OK.
 ```bash
 curl -fsS http://127.0.0.1:8089/healthz
 sudo journalctl -u cortex-paperclip-bridge --no-pager -n 100 | grep -F "[alerts] ready"
+sudo journalctl -u cortex-paperclip-bridge --since '5 minutes ago' --no-pager | grep -F "TimeoutOverflowWarning" && echo "UNEXPECTED_TIMEOUT_OVERFLOW" || echo "no-timeout-overflow"
 ```
 
-Expected: bridge health OK and alerts worker ready.
+Expected: bridge health OK, alerts worker ready, and `no-timeout-overflow`.
 
 ### 9. Dashboard
 
 ```bash
-# Dashboard health endpoint (see packages/cortex-dashboard/src/app/api/health/route.ts)
-curl -fsS http://127.0.0.1:3080/api/health | jq -r '.status'
+curl -sSo /dev/null -w "%{http_code}" http://127.0.0.1:3080/en/login
 curl -sSo /dev/null -w "%{http_code}" "https://${CORTEX_DOMAIN}/en/login"
 ```
 
-Expected: `ok`, then `200`.
+Expected: `200`, then `200`.
 
 ### 10. Paranoia checks
 

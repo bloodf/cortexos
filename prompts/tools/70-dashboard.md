@@ -24,7 +24,7 @@ sudo -v
 - [ ] Run `packages/cortex-dashboard/scripts/native-build.sh`
 - [ ] Install `templates/systemd/cortex-dashboard.service`
 - [ ] `systemctl enable --now cortex-dashboard`
-- [ ] `/api/health` and `/en/login` return 200 locally
+- [ ] `/en/login` returns 200 locally
 - [ ] Public URL serves login page through Tailscale Serve
 - [ ] CHECKPOINT 2 confirmed
 
@@ -47,21 +47,20 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now cortex-dashboard
 ```
 
-The service starts `node .next/standalone/server.js` on port `3080`, loads `/opt/cortexos/.secrets/dashboard.env`, runs against host PostgreSQL, and exposes `/api/health` unauthenticated for service checks.
+The service starts `node .next/standalone/server.js` on loopback port `3080`, loads `/opt/cortexos/.secrets/dashboard.env`, and runs against host PostgreSQL. The dashboard auth middleware can gate `/api/health`; use `/en/login` for unauthenticated liveness.
 
 ## Verify
 
 ```bash
-curl -fsS http://127.0.0.1:3080/api/health
 curl -fsS -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3080/en/login
 curl -fsS -o /dev/null -w "%{http_code}\n" "https://${CORTEX_DOMAIN}/en/login"
 ```
 
-Expected: `/api/health` returns `{"status":"ok","service":"cortex-dashboard",...}` and both login probes return `200`.
+Expected: both login probes return `200`.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** Does `curl -fsS http://127.0.0.1:3080/api/health` return JSON status ok and does `curl -sS -o /dev/null -w "%{http_code}" https://${CORTEX_DOMAIN}/en/login` print `200`?
+**STOP — operator question:** Do the local and Tailscale `/en/login` probes print `200`?
 
 Type `confirmed` to proceed.
 

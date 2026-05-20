@@ -5,7 +5,6 @@ import useSWR from "swr";
 import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
 	Dialog,
@@ -29,7 +28,7 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 type SystemdAction = "start" | "stop" | "restart";
 
 export function AdminSystemdTable() {
-	const [filter, setFilter] = React.useState("");
+	const [globalFilter, setGlobalFilter] = React.useState("");
 	const [confirming, setConfirming] = React.useState<
 		{ name: string; action: SystemdAction } | null
 	>(null);
@@ -42,16 +41,7 @@ export function AdminSystemdTable() {
 		{ refreshInterval: 10_000 },
 	);
 
-	const rows = React.useMemo(() => {
-		const all = data?.services ?? [];
-		if (!filter.trim()) return all;
-		const q = filter.toLowerCase();
-		return all.filter(
-			(s) =>
-				s.name.toLowerCase().includes(q) ||
-				s.description.toLowerCase().includes(q),
-		);
-	}, [data?.services, filter]);
+	const rows = data?.services ?? [];
 
 	async function runAction(name: string, action: SystemdAction) {
 		setRunning(`${name}:${action}`);
@@ -92,6 +82,7 @@ export function AdminSystemdTable() {
 			{
 				id: "state",
 				header: "State",
+				accessorFn: (row) => `${row.active} ${row.sub}`,
 				cell: ({ row }) => (
 					<span className="text-xs">
 						{row.original.active}/{row.original.sub}
@@ -157,13 +148,6 @@ export function AdminSystemdTable() {
 
 	return (
 		<div className="space-y-3">
-			<Input
-				placeholder="Filter units…"
-				value={filter}
-				onChange={(e) => setFilter(e.target.value)}
-				className="max-w-sm"
-			/>
-
 			{err && (
 				<p className="text-sm text-destructive" role="alert">
 					{err}
@@ -179,7 +163,14 @@ export function AdminSystemdTable() {
 					description={data ? "No units match the filter." : "Loading…"}
 				/>
 			) : (
-				<DataTable columns={columns} data={rows} />
+				<DataTable
+					columns={columns}
+					data={rows}
+					searchPlaceholder="Filter units…"
+					globalFilter={globalFilter}
+					onGlobalFilterChange={setGlobalFilter}
+					noPagination
+				/>
 			)}
 
 			{confirming && (

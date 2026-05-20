@@ -40,17 +40,21 @@ Type `confirmed` to proceed.
 ## Install
 
 ```bash
-rm -rf /tmp/openclaw-codex-watchdog
+sudo install -d -o "$USER" -g "$USER" -m 0755 /opt/cortexos/plugins
+rm -rf /opt/cortexos/plugins/openclaw-codex-watchdog
 # Version pin: shallow clone current default branch; update this prompt when pinning a commit/tag.
-git clone --depth 1 https://github.com/ThisIsJeron/openclaw-codex-watchdog /tmp/openclaw-codex-watchdog
-cd /tmp/openclaw-codex-watchdog
+git clone --depth 1 https://github.com/ThisIsJeron/openclaw-codex-watchdog /opt/cortexos/plugins/openclaw-codex-watchdog
+cd /opt/cortexos/plugins/openclaw-codex-watchdog
 # Current upstream already ships dist/index.js + openclaw.plugin.json.
-openclaw plugins install --link /tmp/openclaw-codex-watchdog || openclaw plugins install /tmp/openclaw-codex-watchdog --force
+openclaw plugins install --link /opt/cortexos/plugins/openclaw-codex-watchdog || openclaw plugins install /opt/cortexos/plugins/openclaw-codex-watchdog --force
 ```
 
 The current plugin does not expose a runtime config schema; there is no stable
 `openclaw plugins configure` step for it. If the gateway does not auto-load the
 linked install, add it to the plugin allow/install metadata and restart the gateway.
+Do not link from `/tmp`; OpenClaw validates plugin paths during startup, so
+temporary plugin paths can prevent the gateway from booting after cleanup or
+reboot.
 
 ## Verify
 

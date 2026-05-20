@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { useSearchParams, usePathname } from "next/navigation";
 import useSWR from "swr";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { ServiceLogo } from "@/components/service-logo";
 import { StatusBadge } from "@/components/services/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ExternalLink, Settings2 } from "lucide-react";
+import { useRouter } from "@/i18n/routing";
 
 export interface AppService {
 	id: number;
@@ -168,6 +169,7 @@ export function AppsPanel({ services, isAdmin }: Props) {
 }
 
 function AppCard({ service: s, isAdmin }: { service: AppService; isAdmin: boolean }) {
+	const router = useRouter();
 	return (
 		<div className="glass-panel rounded-xl border border-white/[0.04] p-4 hover:border-white/[0.1] hover:bg-white/[0.03] transition-all">
 			<div className="flex items-start gap-3">
@@ -224,7 +226,7 @@ function AppCard({ service: s, isAdmin }: { service: AppService; isAdmin: boolea
 						variant="ghost"
 						aria-label={`View env for ${s.name}`}
 						onClick={() => {
-							window.location.href = `/admin/env-browser?path=${encodeURIComponent(s.env_source ?? "")}`;
+							router.push(`/admin/env-browser?path=${encodeURIComponent(s.env_source ?? "")}`);
 						}}
 					>
 						<Settings2 className="size-3" />

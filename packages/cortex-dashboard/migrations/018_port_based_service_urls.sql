@@ -28,7 +28,7 @@ BEGIN
   UPDATE services SET open_url = origin || ':8081/' WHERE slug = 'cadvisor';
   UPDATE services SET open_url = origin || ':8222/' WHERE slug = 'nats-monitor';
   UPDATE services SET open_url = origin || ':3001/' WHERE slug = 'langfuse';
-  UPDATE services SET open_url = origin || ':8020/' WHERE slug = 'openviking';
+  UPDATE services SET open_url = origin || ':8020/health' WHERE slug = 'openviking';
   UPDATE services SET open_url = origin || ':18789/' WHERE slug = 'openclaw';
   UPDATE services SET open_url = origin || ':18791/' WHERE slug = 'leann';
   UPDATE services SET open_url = origin || ':8090/' WHERE slug = 'cortex-graph';

@@ -2,9 +2,9 @@
 
 INSERT INTO services (slug, name, kind, category, health_url, health_type, open_url, env_source, icon_type, sort_order, is_active, has_webui, show_in_webui, show_in_healthcheck)
 VALUES
-  ('pgadmin', 'pgAdmin', 'docker', 'Database', 'http://127.0.0.1:5050/pgadmin/misc/ping', 'http', '#', '/opt/cortexos/.secrets/pgadmin.env', 'database', 20, true, true, true, true),
+  ('pgadmin', 'pgAdmin', 'docker', 'Database', 'http://127.0.0.1:5050/misc/ping', 'http', '#', '/opt/cortexos/.secrets/pgadmin.env', 'database', 20, true, true, true, true),
   ('redisinsight', 'RedisInsight', 'docker', 'Database', 'http://127.0.0.1:5540', 'http', 'http://100.109.20.9:5540', NULL, 'database', 21, true, true, true, true),
-  ('mongo-express', 'mongo-express', 'docker', 'Database', 'http://127.0.0.1:8083/mongo-admin/', 'http', '#', '/opt/cortexos/.secrets/mongodb.env', 'database', 22, true, true, true, true),
+  ('mongo-express', 'mongo-express', 'docker', 'Database', 'http://127.0.0.1:8083/', 'http', '#', '/opt/cortexos/.secrets/mongodb.env', 'database', 22, true, true, true, true),
   ('mysql', 'MySQL', 'docker', 'Database', 'tcp://127.0.0.1:3306', 'tcp', '#', '/opt/cortexos/.secrets/mysql.env', 'database', 23, true, false, false, true),
   ('phpmyadmin', 'phpMyAdmin', 'docker', 'Database', 'http://127.0.0.1:8082', 'http', '#', NULL, 'database', 24, true, true, true, true),
   ('paperclip-bridge', 'Paperclip Bridge', 'service', 'AI', 'http://127.0.0.1:8089/healthz', 'http', '#', '/opt/cortexos/.secrets/paperclip.env', 'cloud', 25, true, false, false, true)
@@ -49,7 +49,7 @@ BEGIN
   UPDATE services SET open_url = normalized || ':8222/' WHERE slug = 'nats-monitor';
   UPDATE services SET open_url = normalized || ':11434/dashboard' WHERE slug = '9router';
   UPDATE services SET open_url = normalized || ':18789/' WHERE slug = 'openclaw';
-  UPDATE services SET open_url = normalized || ':8020/' WHERE slug = 'openviking';
+  UPDATE services SET open_url = normalized || ':8020/health' WHERE slug = 'openviking';
   UPDATE services SET open_url = normalized || ':18791/' WHERE slug = 'leann';
   UPDATE services SET open_url = normalized || ':8090/' WHERE slug = 'cortex-graph';
   UPDATE services SET open_url = normalized || ':5050/' WHERE slug = 'pgadmin';

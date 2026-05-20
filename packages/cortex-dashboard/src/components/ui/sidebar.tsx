@@ -91,7 +91,7 @@ function Sidebar({
   children,
   mobileTitle = "Navigation",
   width = "240px",
-  collapsedWidth = "0px",
+  collapsedWidth = "52px",
   ...props
 }: SidebarProps) {
   const { open, setOpen, isMobile } = useSidebar()

@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { EmptyState } from "@/components/ui/empty-state"
+import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 
 interface DataTableProps<TData> {
@@ -43,6 +44,10 @@ interface DataTableProps<TData> {
   /** Empty state */
   emptyState?: React.ReactNode
   className?: string
+  /** Render integrated global search input */
+  searchPlaceholder?: string
+  /** Disable pagination and render all filtered rows */
+  noPagination?: boolean
 }
 
 function DataTable<TData>({
@@ -57,14 +62,24 @@ function DataTable<TData>({
   onRowSelectionChange,
   emptyState,
   className,
+  searchPlaceholder,
+  noPagination = false,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [internalPagination, setInternalPagination] = React.useState<PaginationState>({
     pageIndex: 0,
-    pageSize: 10,
+    pageSize: noPagination ? Math.max(data.length, 1) : 10,
   })
 
+
+  React.useEffect(() => {
+    if (!noPagination) return
+    setInternalPagination(() => ({
+      pageIndex: 0,
+      pageSize: Math.max(data.length, 1),
+    }))
+  }, [data.length, noPagination])
   const isServerSide = !!onPaginationChange
   const activePagination = isServerSide ? controlledPagination : internalPagination
   const handlePaginationChange = isServerSide ? onPaginationChange : setInternalPagination
@@ -88,7 +103,7 @@ function DataTable<TData>({
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    getPaginationRowModel: noPagination ? undefined : getPaginationRowModel(),
     manualPagination: isServerSide,
     pageCount: isServerSide ? (pageCount ?? -1) : undefined,
     enableRowSelection: !!onRowSelectionChange,
@@ -102,6 +117,15 @@ function DataTable<TData>({
 
   return (
     <div data-slot="data-table" className={cn("flex flex-col gap-3", className)}>
+      {searchPlaceholder && onGlobalFilterChange && (
+        <Input
+          value={globalFilter ?? ""}
+          onChange={(event) => onGlobalFilterChange(event.target.value)}
+          placeholder={searchPlaceholder}
+          className="max-w-sm"
+          type="search"
+        />
+      )}
       <div className="rounded-lg border border-border overflow-hidden">
         <Table>
           <TableHeader>
@@ -170,30 +194,31 @@ function DataTable<TData>({
         </Table>
       </div>
 
-      {/* Pagination */}
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <span>
-          {totalRows > 0 ? `${from}–${to} of ${totalRows}` : "No results"}
-        </span>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Next
-          </Button>
+      {!noPagination && (
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <span>
+            {totalRows > 0 ? `${from}–${to} of ${totalRows}` : "No results"}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              Next
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

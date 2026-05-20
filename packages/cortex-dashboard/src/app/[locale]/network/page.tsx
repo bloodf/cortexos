@@ -80,9 +80,12 @@ export default function NetworkPage() {
 
 	return (
 		<div className="space-y-4 animate-[slide-in_0.4s_ease-out]">
-			<div className="flex items-center gap-2 text-sm text-white/40 light:text-slate-700">
-				<Activity className="w-4 h-4" />
-				<span>{interfaces.length} interfaces</span>
+			<div>
+				<h1 className="text-2xl font-semibold tracking-tight">Network</h1>
+				<p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+					<Activity className="size-4" />
+					<span>{interfaces.length} interfaces</span>
+				</p>
 			</div>
 
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -92,30 +95,30 @@ export default function NetworkPage() {
 				<StatCard label="Total TX" value={formatBytes(txBytesTotal)} accent="text-violet-400" />
 			</div>
 
-			<div className="glass-panel rounded-2xl p-4">
-				<div className="mb-3 text-xs uppercase tracking-wider text-white/40 light:text-slate-700">
+			<div className="rounded-lg border border-border bg-card p-4">
+				<div className="mb-3 text-xs uppercase tracking-wider text-muted-foreground">
 					Throughput history
 				</div>
 				<NetChart data={history} />
 			</div>
 
-			<div className="glass-panel rounded-2xl p-4 overflow-x-auto">
+			<div className="rounded-lg border border-border bg-card p-4 overflow-x-auto">
 				<table className="w-full text-left text-xs">
 					<thead>
-						<tr className="border-b border-white/[0.06]">
-							<th className="pb-3 pr-4 text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
+						<tr className="border-b border-border">
+							<th className="pb-3 pr-4 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
 								Interface
 							</th>
-							<th className="pb-3 pr-4 text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider text-right">
+							<th className="pb-3 pr-4 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-right">
 								RX
 							</th>
-							<th className="pb-3 pr-4 text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider text-right">
+							<th className="pb-3 pr-4 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-right">
 								TX
 							</th>
-							<th className="pb-3 pr-4 text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider text-right">
+							<th className="pb-3 pr-4 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-right">
 								Total RX
 							</th>
-							<th className="pb-3 text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider text-right">
+							<th className="pb-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-right">
 								Total TX
 							</th>
 						</tr>
@@ -123,27 +126,27 @@ export default function NetworkPage() {
 					<tbody>
 						{loading && (
 							<tr>
-								<td colSpan={5} className="py-6 text-center text-white/20 light:text-slate-700">
+								<td colSpan={5} className="py-6 text-center text-muted-foreground">
 									Loading…
 								</td>
 							</tr>
 						)}
 						{!loading && interfaces.length === 0 && (
 							<tr>
-								<td colSpan={5} className="py-6 text-center text-white/20 light:text-slate-700">
+								<td colSpan={5} className="py-6 text-center text-muted-foreground">
 									No interfaces detected
 								</td>
 							</tr>
 						)}
 						{interfaces.map((i) => (
-							<tr key={i.name} className="border-b border-white/[0.02] hover:bg-white/[0.02]">
-								<td className="py-2 pr-4 font-mono text-white/70 light:text-slate-700">{i.name}</td>
+							<tr key={i.name} className="border-b border-border hover:bg-muted/40">
+								<td className="py-2 pr-4 font-mono text-foreground">{i.name}</td>
 								<td className="py-2 pr-4 text-right font-mono text-cyan-400">{formatRate(i.rxKbps)}</td>
 								<td className="py-2 pr-4 text-right font-mono text-violet-400">{formatRate(i.txKbps)}</td>
-								<td className="py-2 pr-4 text-right font-mono text-white/40 light:text-slate-700">
+								<td className="py-2 pr-4 text-right font-mono text-muted-foreground">
 									{formatBytes(i.rxBytesTotal)}
 								</td>
-								<td className="py-2 text-right font-mono text-white/40 light:text-slate-700">
+								<td className="py-2 text-right font-mono text-muted-foreground">
 									{formatBytes(i.txBytesTotal)}
 								</td>
 							</tr>

@@ -1,29 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { useEffect, useState, useMemo } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
+import { DataTable } from "@/components/ui/data-table";
+import { IconButton } from "@/components/ui/icon-button";
+import { Play, Square, RefreshCw, FileText } from "lucide-react";
 
 interface SystemdService {
   name: string;
   load: string;
   active: string;
   sub: string;
+  enabled: string;
   description: string;
 }
+
+type SystemdAction = "start" | "stop" | "restart";
 
 export function SystemdServices() {
   const [services, setServices] = useState<SystemdService[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [globalFilter, setGlobalFilter] = useState("");
 
   async function fetchServices() {
     try {
@@ -60,7 +59,7 @@ export function SystemdServices() {
     };
   }, []);
 
-  async function runAction(name: string, action: string) {
+  async function runAction(name: string, action: SystemdAction) {
     setActionLoading(`${name}:${action}`);
     setError(null);
     try {
@@ -79,53 +78,119 @@ export function SystemdServices() {
     }
   }
 
-  if (loading) {
-    return <div className="text-sm text-white/40 light:text-slate-700">Loading systemd services...</div>;
-  }
+  const columns = useMemo<ColumnDef<SystemdService>[]>(
+    () => [
+      {
+        accessorKey: "name",
+        header: "Service",
+        cell: ({ row }) => (
+          <span className="font-mono text-xs">{row.original.name}</span>
+        ),
+      },
+      {
+        id: "status",
+        header: "Status",
+        accessorFn: (row) => `${row.active} ${row.sub}`,
+        cell: ({ row }) => (
+          <span className="text-xs">
+            {row.original.active}/{row.original.sub}
+          </span>
+        ),
+      },
+      {
+        id: "enabled",
+        header: "Enabled",
+        accessorFn: (row) => `${row.enabled} ${row.load}`,
+        cell: ({ row }) => (
+          <span className="text-xs">
+            {row.original.enabled}/{row.original.load}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "description",
+        header: "Description",
+        cell: ({ row }) => (
+          <span className="text-xs text-muted-foreground truncate block max-w-[400px]">
+            {row.original.description}
+          </span>
+        ),
+      },
+      {
+        id: "actions",
+        header: "Actions",
+        cell: ({ row }) => (
+          <div className="flex gap-1">
+            <IconButton
+              tooltip="Start"
+              variant="ghost"
+              loading={actionLoading === `${row.original.name}:start`}
+              disabled={actionLoading !== null && actionLoading !== `${row.original.name}:start`}
+              onClick={() => runAction(row.original.name, "start")}
+            >
+              <Play className="size-3" />
+            </IconButton>
+            <IconButton
+              tooltip="Stop"
+              variant="ghost"
+              loading={actionLoading === `${row.original.name}:stop`}
+              disabled={actionLoading !== null && actionLoading !== `${row.original.name}:stop`}
+              onClick={() => runAction(row.original.name, "stop")}
+            >
+              <Square className="size-3" />
+            </IconButton>
+            <IconButton
+              tooltip="Restart"
+              variant="ghost"
+              loading={actionLoading === `${row.original.name}:restart`}
+              disabled={actionLoading !== null && actionLoading !== `${row.original.name}:restart`}
+              onClick={() => runAction(row.original.name, "restart")}
+            >
+              <RefreshCw className="size-3" />
+            </IconButton>
+            <IconButton
+              tooltip="Logs"
+              variant="ghost"
+              onClick={() => {
+                window.open(
+                  `/api/systemd/logs?unit=${encodeURIComponent(row.original.name)}`,
+                  "_blank",
+                  "noopener,noreferrer",
+                );
+              }}
+            >
+              <FileText className="size-3" />
+            </IconButton>
+          </div>
+        ),
+      },
+    ],
+    [actionLoading]
+  );
 
-  if (error && services.length === 0) {
-    return <div className="text-sm text-red-400">{error}</div>;
+  if (loading) {
+    return (
+      <div className="text-sm text-muted-foreground">
+        Loading systemd services…
+      </div>
+    );
   }
 
   return (
     <div className="space-y-3">
-      {error && <div className="text-sm text-red-400">{error}</div>}
-      <div className="rounded-lg border border-white/[0.04] bg-white/[0.02] overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-b border-white/[0.04] hover:bg-transparent">
-              <TableHead className="text-white/40 light:text-slate-700 text-xs font-medium">Name</TableHead>
-              <TableHead className="text-white/40 light:text-slate-700 text-xs font-medium">State</TableHead>
-              <TableHead className="text-white/40 light:text-slate-700 text-xs font-medium">Description</TableHead>
-              <TableHead className="text-white/40 light:text-slate-700 text-xs font-medium">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {services.map((service) => (
-              <TableRow key={service.name} className="border-b border-white/[0.02] hover:bg-white/[0.02]">
-                <TableCell className="text-white/70 light:text-slate-700 text-sm font-mono">{service.name}</TableCell>
-                <TableCell className="text-white/40 light:text-slate-700 text-sm">{service.active}/{service.sub}</TableCell>
-                <TableCell className="text-white/40 light:text-slate-700 text-sm">{service.description}</TableCell>
-                <TableCell>
-                  <div className="flex flex-wrap gap-2">
-                    {["start", "stop", "restart"].map((action) => (
-                      <Button
-                        key={action}
-                        size="sm"
-                        variant="outline"
-                        disabled={actionLoading !== null}
-                        onClick={() => runAction(service.name, action)}
-                      >
-                        {actionLoading === `${service.name}:${action}` ? "..." : action.charAt(0).toUpperCase() + action.slice(1)}
-                      </Button>
-                    ))}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      {error && (
+        <p className="text-sm text-destructive" role="alert">
+          {error}
+        </p>
+      )}
+      <DataTable
+        columns={columns}
+        data={services}
+        searchPlaceholder="Search services…"
+        globalFilter={globalFilter}
+        onGlobalFilterChange={setGlobalFilter}
+        noPagination
+      />
     </div>
   );
 }

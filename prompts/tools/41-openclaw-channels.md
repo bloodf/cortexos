@@ -7,6 +7,11 @@ Each enabled channel must render canonical rich blocks (emoji + buttons) per
 `templates/messages/schema.json`. Channels without credentials may remain
 intentionally disabled and be added later.
 
+For the CortexOS VPS main agent, Telegram is configured through the
+`openclaw-gateway` systemd environment file and the single OpenClaw gateway
+created in `40-openclaw.md`; do not create a separate OpenClaw instance for
+Telegram.
+
 ## Prerequisites
 
 - `40-openclaw.md` completed.
@@ -59,8 +64,20 @@ rest. All four channels are optional.
 Skip unless you have a Telegram bot token from `@BotFather`.
 
 ```bash
-openclaw channels add --channel telegram --token "<telegram-bot-token>"
+sudo install -d -m 0700 -o cortexos -g cortexos /opt/cortexos/.secrets
+sudoedit /opt/cortexos/.secrets/openclaw-gateway.env
+# Add or update:
+# TELEGRAM_BOT_TOKEN=<telegram-bot-token>
+sudo chmod 600 /opt/cortexos/.secrets/openclaw-gateway.env
+sudo systemctl restart openclaw-gateway
 ```
+
+The gateway policy from `40-openclaw.md` sets Telegram `dmPolicy=open`,
+`groupPolicy=open`, and disables Telegram exec confirmations for the trusted
+VPS agent. If owner-only commands are required, send one message to the bot,
+read the sender ID from `openclaw directory self --channel telegram --json` or
+Telegram updates, then set `commands.ownerAllowFrom` to
+`["telegram:<sender-id>"]`.
 
 ### Slack (optional)
 

@@ -1,16 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { useEffect, useState, useMemo } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
+import { DataTable } from "@/components/ui/data-table";
 import { SkeletonTable } from "@/components/skeleton";
 import { DockerActionButtons } from "./action-buttons";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 interface CliContainer {
   ID: string;
@@ -56,6 +51,9 @@ export function DockerTable() {
   const [data, setData] = useState<DockerData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [containersFilter, setContainersFilter] = useState("");
+  const [volumesFilter, setVolumesFilter] = useState("");
+  const [imagesFilter, setImagesFilter] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -98,185 +96,177 @@ export function DockerTable() {
   const volumes = Array.isArray(data?.volumes?.data) ? data.volumes.data : [];
   const images = Array.isArray(data?.images?.data) ? data.images.data : [];
 
+  const containerColumns = useMemo<ColumnDef<CliContainer>[]>(
+    () => [
+      {
+        accessorKey: "Names",
+        header: "Name",
+        cell: ({ row }) => (
+          <span className="font-mono text-xs">{row.original.Names}</span>
+        ),
+      },
+      {
+        accessorKey: "Status",
+        header: "Status",
+        cell: ({ row }) => {
+          const c = row.original;
+          return (
+            <span
+              className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                c.State === "running"
+                  ? "bg-emerald-500/10 text-emerald-400"
+                  : c.State === "paused"
+                  ? "bg-amber-500/10 text-amber-400"
+                  : "bg-red-500/10 text-red-400"
+              }`}
+            >
+              {c.Status}
+            </span>
+          );
+        },
+      },
+      {
+        accessorKey: "Image",
+        header: "Image",
+        cell: ({ row }) => (
+          <span className="text-xs">{row.original.Image}</span>
+        ),
+      },
+      {
+        accessorKey: "Ports",
+        header: "Ports",
+        cell: ({ row }) => (
+          <span className="text-xs font-mono">{row.original.Ports || "—"}</span>
+        ),
+      },
+      {
+        id: "actions",
+        header: "Actions",
+        cell: ({ row }) => (
+          <DockerActionButtons name={row.original.Names} onComplete={refreshData} />
+        ),
+      },
+    ],
+    []
+  );
+
+  const volumeColumns = useMemo<ColumnDef<CliVolume>[]>(
+    () => [
+      {
+        accessorKey: "Name",
+        header: "Name",
+        cell: ({ row }) => (
+          <span className="font-mono text-xs">{row.original.Name}</span>
+        ),
+      },
+      {
+        accessorKey: "Driver",
+        header: "Driver",
+        cell: ({ row }) => <span className="text-xs">{row.original.Driver}</span>,
+      },
+      {
+        accessorKey: "Mountpoint",
+        header: "Mountpoint",
+        cell: ({ row }) => (
+          <span className="text-xs font-mono truncate max-w-[300px] block">
+            {row.original.Mountpoint}
+          </span>
+        ),
+      },
+    ],
+    []
+  );
+
+  const imageColumns = useMemo<ColumnDef<CliImage>[]>(
+    () => [
+      {
+        accessorKey: "Repository",
+        header: "Repository",
+        cell: ({ row }) => <span className="text-xs">{row.original.Repository}</span>,
+      },
+      {
+        accessorKey: "Tag",
+        header: "Tag",
+        cell: ({ row }) => (
+          <span className="text-xs font-mono">{row.original.Tag}</span>
+        ),
+      },
+      {
+        accessorKey: "Size",
+        header: "Size",
+        cell: ({ row }) => (
+          <span className="text-xs font-mono">{row.original.Size}</span>
+        ),
+      },
+      {
+        accessorKey: "CreatedSince",
+        header: "Created",
+        cell: ({ row }) => <span className="text-xs">{row.original.CreatedSince}</span>,
+      },
+    ],
+    []
+  );
+
+  if (loading) {
+    return (
+      <div className="space-y-6 animate-[slide-in_0.4s_ease-out]">
+        <SkeletonTable rows={5} cols={4} />
+      </div>
+    );
+  }
+
+  if (error) {
+    return <div className="text-sm text-red-400">{error}</div>;
+  }
+
   return (
-    <div className="space-y-6 animate-[slide-in_0.4s_ease-out]">
-      {/* Containers */}
-      <div className="glass-panel rounded-2xl p-6">
-        <h2 className="text-sm font-semibold text-white/80 light:text-slate-700 mb-4">
-          Containers
-        </h2>
-        {loading ? (
-          <SkeletonTable rows={5} cols={4} />
-        ) : error ? (
-          <div className="text-sm text-red-400">{error}</div>
-        ) : containers.length === 0 ? (
-          <div className="text-sm text-white/30 light:text-slate-700">No containers</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-b border-white/[0.06]">
-                  <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-                    Name
-                  </TableHead>
-                  <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-                    Status
-                  </TableHead>
-                  <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-                    Image
-                  </TableHead>
-                  <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-                    Ports
-                  </TableHead>
-                  <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-                    Actions
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {containers.map((c) => (
-                  <TableRow
-                    key={c.ID}
-                    className="border-b border-white/[0.03] hover:bg-white/[0.02]"
-                  >
-                    <TableCell className="text-white/60 light:text-slate-700 font-mono text-xs">
-                      {c.Names}
-                    </TableCell>
-                    <TableCell>
-                      <span
-                        className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                          c.State === "running"
-                            ? "bg-emerald-500/10 text-emerald-400"
-                            : c.State === "paused"
-                            ? "bg-amber-500/10 text-amber-400"
-                            : "bg-red-500/10 text-red-400"
-                        }`}
-                      >
-                        {c.Status}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-white/40 light:text-slate-700 text-xs">
-                      {c.Image}
-                    </TableCell>
-                    <TableCell className="text-white/40 light:text-slate-700 text-xs font-mono">
-                      {c.Ports || "—"}
-                    </TableCell>
-                    <TableCell>
-                      <DockerActionButtons name={c.Names} onComplete={refreshData} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
+    <div className="animate-[slide-in_0.4s_ease-out]">
+      <Tabs defaultValue="containers">
+        <TabsList variant="line" className="mb-4">
+          <TabsTrigger value="containers">
+            Containers ({containers.length})
+          </TabsTrigger>
+          <TabsTrigger value="images">
+            Images ({images.length})
+          </TabsTrigger>
+          <TabsTrigger value="volumes">
+            Volumes ({volumes.length})
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Volumes */}
-      <div className="glass-panel rounded-2xl p-6">
-        <h2 className="text-sm font-semibold text-white/80 light:text-slate-700 mb-4">
-          Volumes
-        </h2>
-        {loading ? (
-          <SkeletonTable rows={5} cols={3} />
-        ) : error ? (
-          <div className="text-sm text-red-400">{error}</div>
-        ) : volumes.length === 0 ? (
-          <div className="text-sm text-white/30 light:text-slate-700">No volumes</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-b border-white/[0.06]">
-                  <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-                    Name
-                  </TableHead>
-                  <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-                    Driver
-                  </TableHead>
-                  <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-                    Mountpoint
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {volumes.map((v) => (
-                  <TableRow
-                    key={v.Name}
-                    className="border-b border-white/[0.03] hover:bg-white/[0.02]"
-                  >
-                    <TableCell className="text-white/60 light:text-slate-700 font-mono text-xs">
-                      {v.Name}
-                    </TableCell>
-                    <TableCell className="text-white/40 light:text-slate-700 text-xs">
-                      {v.Driver}
-                    </TableCell>
-                    <TableCell className="text-white/40 light:text-slate-700 text-xs font-mono truncate max-w-[300px]">
-                      {v.Mountpoint}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
+        <TabsContent value="containers">
+          <DataTable
+            columns={containerColumns}
+            data={containers}
+            searchPlaceholder="Search containers…"
+            globalFilter={containersFilter}
+            onGlobalFilterChange={setContainersFilter}
+            noPagination
+          />
+        </TabsContent>
 
-      {/* Images */}
-      <div className="glass-panel rounded-2xl p-6">
-        <h2 className="text-sm font-semibold text-white/80 light:text-slate-700 mb-4">
-          Images
-        </h2>
-        {loading ? (
-          <SkeletonTable rows={5} cols={4} />
-        ) : error ? (
-          <div className="text-sm text-red-400">{error}</div>
-        ) : images.length === 0 ? (
-          <div className="text-sm text-white/30 light:text-slate-700">No images</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-b border-white/[0.06]">
-                  <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-                    Repository
-                  </TableHead>
-                  <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-                    Tag
-                  </TableHead>
-                  <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-                    Size
-                  </TableHead>
-                  <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-                    Created
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {images.map((img) => (
-                  <TableRow
-                    key={img.ID}
-                    className="border-b border-white/[0.03] hover:bg-white/[0.02]"
-                  >
-                    <TableCell className="text-white/60 light:text-slate-700 text-xs">
-                      {img.Repository}
-                    </TableCell>
-                    <TableCell className="text-white/40 light:text-slate-700 text-xs font-mono">
-                      {img.Tag}
-                    </TableCell>
-                    <TableCell className="text-white/40 light:text-slate-700 text-xs font-mono">
-                      {img.Size}
-                    </TableCell>
-                    <TableCell className="text-white/40 light:text-slate-700 text-xs">
-                      {img.CreatedSince}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
+        <TabsContent value="images">
+          <DataTable
+            columns={imageColumns}
+            data={images}
+            searchPlaceholder="Search images…"
+            globalFilter={imagesFilter}
+            onGlobalFilterChange={setImagesFilter}
+            noPagination
+          />
+        </TabsContent>
+
+        <TabsContent value="volumes">
+          <DataTable
+            columns={volumeColumns}
+            data={volumes}
+            searchPlaceholder="Search volumes…"
+            globalFilter={volumesFilter}
+            onGlobalFilterChange={setVolumesFilter}
+            noPagination
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

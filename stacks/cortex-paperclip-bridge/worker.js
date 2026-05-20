@@ -114,7 +114,7 @@ export async function handleStatusMessage(envelope, client) {
 async function poll(consumer, client) {
   while (!shuttingDown) {
     try {
-      const messages = await consumer.fetch({ max_messages: 10, expires: nanos(30_000) });
+      const messages = await consumer.fetch({ max_messages: 10, expires: 30_000 });
       for await (const m of messages) {
         if (shuttingDown) { m.nak(); break; }
         const deliveryCount = m.info?.redeliveryCount ?? 0;
@@ -137,7 +137,7 @@ async function poll(consumer, client) {
             m.ack();
           } else {
             const delayMs = Math.min(1000 * Math.pow(2, deliveryCount), 5 * 60 * 1000);
-            m.nak(nanos(delayMs));
+            m.nak(delayMs);
           }
         }
       }

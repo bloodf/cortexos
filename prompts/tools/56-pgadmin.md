@@ -19,7 +19,7 @@ Docker. DB admin UIs are containerized. Persistent data MUST use named volumes.
 - [ ] Copy `stacks/pgadmin/docker-compose.yml`
 - [ ] Write `/opt/cortexos/.secrets/pgadmin.env` mode 0600
 - [ ] `docker compose up -d`
-- [ ] Confirm `/pgadmin/misc/ping` returns 200
+- [ ] Confirm `/misc/ping` returns 200
 
 ## Install
 
@@ -34,4 +34,4 @@ Start from `/opt/cortexos/stacks/pgadmin`.
 
 ## CHECKPOINT 2
 
-Confirm `curl -fsS http://127.0.0.1:5050/pgadmin/misc/ping` returns 200.
+Confirm `curl -fsS http://127.0.0.1:5050/misc/ping` returns 200.

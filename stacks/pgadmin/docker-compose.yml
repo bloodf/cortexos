@@ -6,14 +6,13 @@ services:
     env_file:
       - ../../.secrets/pgadmin.env
     environment:
-      SCRIPT_NAME: /pgadmin
       PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: "True"
     ports:
       - "127.0.0.1:5050:80"
     volumes:
       - pgadmin_data:/var/lib/pgadmin
     healthcheck:
-      test: ["CMD-SHELL", "python3 -c 'import urllib.request; urllib.request.urlopen(\"http://127.0.0.1/pgadmin/misc/ping\", timeout=5)'"]
+      test: ["CMD-SHELL", "python3 -c 'import urllib.request; urllib.request.urlopen(\"http://127.0.0.1/misc/ping\", timeout=5)'"]
       interval: 30s
       timeout: 10s
       retries: 5

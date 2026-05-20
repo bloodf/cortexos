@@ -26,11 +26,7 @@ services:
     env_file:
       - ../../.secrets/mongodb.env
     environment:
-      ME_CONFIG_MONGODB_SERVER: mongodb
-      ME_CONFIG_MONGODB_ADMINUSERNAME: cortexos
-      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
       ME_CONFIG_MONGODB_ENABLE_ADMIN: "true"
-      ME_CONFIG_SITE_BASEURL: /mongo-admin
     ports:
       - "127.0.0.1:8083:8081"
 

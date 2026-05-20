@@ -70,7 +70,7 @@ sudo tailscale serve --bg --https=3100  http://localhost:3100   # Loki API
 sudo tailscale serve --bg --https=8081  http://localhost:8081   # cAdvisor
 sudo tailscale serve --bg --https=8222  http://localhost:8222   # NATS monitor
 sudo tailscale serve --bg --https=3001  http://localhost:3001   # Langfuse
-sudo tailscale serve --bg --https=8020  http://localhost:8020   # OpenViking console
+sudo tailscale serve --bg --https=8020  http://localhost:18790  # OpenViking API
 sudo tailscale serve --bg --https=18789 http://localhost:18789  # OpenClaw gateway
 sudo tailscale serve --bg --https=18791 http://localhost:18791  # LEANN
 sudo tailscale serve --bg --https=8090  http://localhost:8090   # cortex-graph
@@ -97,7 +97,7 @@ the tailnet interface only.
 | cAdvisor | `https://${CORTEX_DOMAIN}:8081/` |
 | NATS monitor | `https://${CORTEX_DOMAIN}:8222/` |
 | Langfuse | `https://${CORTEX_DOMAIN}:3001/` |
-| OpenViking console | `https://${CORTEX_DOMAIN}:8020/` |
+| OpenViking API | `https://${CORTEX_DOMAIN}:8020/health` |
 | OpenClaw gateway | `https://${CORTEX_DOMAIN}:18789/` |
 | LEANN | `https://${CORTEX_DOMAIN}:18791/` |
 | cortex-graph | `https://${CORTEX_DOMAIN}:8090/` |

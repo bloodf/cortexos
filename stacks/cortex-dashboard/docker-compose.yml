@@ -34,6 +34,7 @@ services:
       - /opt/cortexos/.secrets/dashboard.env
     environment:
       PORT: "3080"
+      HOSTNAME: 127.0.0.1
       NODE_ENV: production
       DB_HOST: 127.0.0.1
       SETUP_STATE_PATH: /run/cortexos/setup-state.json

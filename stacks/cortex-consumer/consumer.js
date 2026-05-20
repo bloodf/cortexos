@@ -128,7 +128,9 @@ const OPENCLAW_API_KEY = process.env.OPENCLAW_API_KEY || "";
 const NATS_HMAC = process.env.CORTEX_NATS_HMAC || "";
 const ROUTING_CONFIG = process.env.ROUTING_CONFIG || "/opt/cortexos/stacks/cortex-consumer/config.json";
 const STATE_FILE = process.env.THREAD_STATE_FILE || "/opt/cortexos/state/consumer-threads.json";
+const HEALTH_HOST = process.env.HEALTH_HOST || "127.0.0.1";
 const HEALTH_PORT = Number(process.env.HEALTH_PORT || 7080);
+const METRICS_HOST = process.env.METRICS_HOST || "127.0.0.1";
 const METRICS_PORT = Number(process.env.METRICS_PORT || 7081);
 const STREAM = process.env.CORTEX_STREAM || "CORTEX";
 const DRY_RUN = process.env.DRY_RUN === "1";
@@ -1436,7 +1438,7 @@ function startHealthServer() {
       res.end();
     }
   });
-  srv.listen(HEALTH_PORT, () => process.stdout.write(`[health] :${HEALTH_PORT}/healthz\n`));
+  srv.listen(HEALTH_PORT, HEALTH_HOST, () => process.stdout.write(`[health] ${HEALTH_HOST}:${HEALTH_PORT}/healthz\n`));
   return srv;
 }
 
@@ -1450,7 +1452,7 @@ function startMetricsServer() {
       res.end();
     }
   });
-  srv.listen(METRICS_PORT, () => process.stdout.write(`[metrics] :${METRICS_PORT}/metrics\n`));
+  srv.listen(METRICS_PORT, METRICS_HOST, () => process.stdout.write(`[metrics] ${METRICS_HOST}:${METRICS_PORT}/metrics\n`));
   return srv;
 }
 

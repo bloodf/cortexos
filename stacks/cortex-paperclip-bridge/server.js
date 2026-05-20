@@ -29,6 +29,7 @@ async function safeAuditAppend(event) {
 }
 
 const PORT = Number(process.env.BRIDGE_PORT || 8089);
+const HOST = process.env.BRIDGE_HOST || "127.0.0.1";
 const FAMILY = process.env.CORTEX_OS_FAMILY || "unknown";
 const START_TS = Date.now();
 
@@ -158,8 +159,8 @@ async function main() {
   try { await getConnection(); } catch (e) {
     process.stderr.write(`[bridge] NATS preconnect failed (will retry on publish): ${e.message}\n`);
   }
-  const server = app.listen(PORT, () => {
-    process.stdout.write(`[bridge] listening :${PORT} family=${FAMILY}\n`);
+  const server = app.listen(PORT, HOST, () => {
+    process.stdout.write(`[bridge] listening ${HOST}:${PORT} family=${FAMILY}\n`);
   });
   const shutdown = (sig) => {
     process.stdout.write(`[bridge] ${sig} — closing\n`);

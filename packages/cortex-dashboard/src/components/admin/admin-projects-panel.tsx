@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Plus, FolderOpen } from "lucide-react";
+import { useRouter } from "@/i18n/routing";
 
 interface ProjectRow {
 	id: number;
@@ -32,6 +33,7 @@ export function AdminProjectsPanel({ initialProjects }: Props) {
 	const [projects, setProjects] = React.useState(initialProjects);
 	const [creating, setCreating] = React.useState(false);
 	const [editing, setEditing] = React.useState<ProjectRow | null>(null);
+	const router = useRouter();
 
 	async function save(p: Partial<ProjectRow> & { slug: string; name: string }, isNew: boolean) {
 		const method = isNew ? "POST" : "PUT";
@@ -81,7 +83,7 @@ export function AdminProjectsPanel({ initialProjects }: Props) {
 							size="sm"
 							variant="ghost"
 							onClick={() => {
-								window.location.href = `/admin/env-browser?path=${encodeURIComponent(envFilePath(row.original.slug))}`;
+								router.push(`/admin/env-browser?path=${encodeURIComponent(envFilePath(row.original.slug))}`);
 							}}
 						>
 							<FolderOpen className="size-3 mr-1" /> Env
@@ -90,7 +92,7 @@ export function AdminProjectsPanel({ initialProjects }: Props) {
 				),
 			},
 		],
-		[],
+		[router],
 	);
 
 	return (

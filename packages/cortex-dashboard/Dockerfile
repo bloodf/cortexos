@@ -72,7 +72,7 @@ FROM node:22-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production \
     PORT=3080 \
-    HOSTNAME=0.0.0.0 \
+    HOSTNAME=127.0.0.1 \
     NEXT_TELEMETRY_DISABLED=1
 
 RUN apt-get update \

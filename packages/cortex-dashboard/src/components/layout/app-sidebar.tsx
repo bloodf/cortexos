@@ -18,6 +18,14 @@ import {
 	Paperclip,
 	ChevronDown,
 	ChevronRight,
+	Settings,
+	Tag,
+	FileCode,
+	Factory,
+	Bell,
+	Users,
+	FolderKanban,
+	ScrollText,
 } from "lucide-react";
 import {
 	Sidebar,
@@ -26,6 +34,8 @@ import {
 	SidebarFooter,
 	SidebarGroup,
 	SidebarGroupLabel,
+	SidebarTrigger,
+	useSidebar,
 } from "@/components/ui/sidebar";
 import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
@@ -58,21 +68,23 @@ const PAPERCLIP_NAV: NavItem = {
 const PAPERCLIP_ENABLED = Boolean(process.env.NEXT_PUBLIC_PAPERCLIP_API_URL);
 
 const ADMIN_NAV: NavItem[] = [
-	{ href: "/admin/services", label: "Services", icon: Shield },
-	{ href: "/admin/badges", label: "Badges", icon: Shield },
-	{ href: "/admin/env-browser", label: "Env Browser", icon: Shield },
-	{ href: "/admin/systemd", label: "Systemd", icon: Shield },
-	{ href: "/admin/docker", label: "Docker", icon: Shield },
-	{ href: "/admin/agent-factory", label: "Agent Factory", icon: Shield },
-	{ href: "/admin/alerts", label: "Alerts", icon: Shield },
-	{ href: "/admin/users", label: "Users", icon: Shield },
-	{ href: "/admin/projects", label: "Projects", icon: Shield },
-	{ href: "/admin/audit", label: "Audit Log", icon: Shield },
+	{ href: "/admin/services", label: "Services", icon: Settings },
+	{ href: "/admin/badges", label: "Badges", icon: Tag },
+	{ href: "/admin/env-browser", label: "Env Browser", icon: FileCode },
+	{ href: "/admin/systemd", label: "Systemd", icon: Server },
+	{ href: "/admin/docker", label: "Docker", icon: Container },
+	{ href: "/admin/agent-factory", label: "Agent Factory", icon: Factory },
+	{ href: "/admin/alerts", label: "Alerts", icon: Bell },
+	{ href: "/admin/users", label: "Users", icon: Users },
+	{ href: "/admin/projects", label: "Projects", icon: FolderKanban },
+	{ href: "/admin/audit", label: "Audit Log", icon: ScrollText },
 	{ href: "/admin/account", label: "Account", icon: UserCog },
 ];
 
 export function AppSidebar() {
 	const pathname = usePathname();
+	const { open, isMobile } = useSidebar();
+	const collapsed = !open && !isMobile;
 	const [adminOpen, setAdminOpen] = React.useState(
 		pathname.startsWith("/admin"),
 	);
@@ -80,21 +92,27 @@ export function AppSidebar() {
 	return (
 		<Sidebar mobileTitle="Navigation">
 			<SidebarHeader>
-				<span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-					Cortex
-				</span>
+				<div className="flex items-center justify-between gap-2">
+					{!collapsed && (
+						<span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+							Cortex
+						</span>
+					)}
+					<SidebarTrigger className="hidden lg:inline-flex" />
+				</div>
 			</SidebarHeader>
 			<SidebarContent>
 				<SidebarGroup>
-					<SidebarGroupLabel>Main</SidebarGroupLabel>
+					{!collapsed && <SidebarGroupLabel>Main</SidebarGroupLabel>}
 					{PRIMARY_NAV.map((item) => (
-						<NavLink key={item.href} item={item} active={isActive(pathname, item.href)} />
+						<NavLink key={item.href} item={item} active={isActive(pathname, item.href)} collapsed={collapsed} />
 					))}
 					{PAPERCLIP_ENABLED && (
 						<NavLink
 							key={PAPERCLIP_NAV.href}
 							item={PAPERCLIP_NAV}
 							active={isActive(pathname, PAPERCLIP_NAV.href)}
+							collapsed={collapsed}
 						/>
 					)}
 				</SidebarGroup>
@@ -104,9 +122,12 @@ export function AppSidebar() {
 						type="button"
 						onClick={() => setAdminOpen((v) => !v)}
 						aria-expanded={adminOpen}
-						className="flex items-center justify-between px-2 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wider hover:text-foreground"
+						className={cn(
+							"flex items-center justify-between px-2 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wider hover:text-foreground",
+							collapsed && "justify-center px-1",
+						)}
 					>
-						<span>Admin</span>
+						{collapsed ? <Shield className="size-4" /> : <span>Admin</span>}
 						{adminOpen ? (
 							<ChevronDown className="size-3" />
 						) : (
@@ -114,13 +135,17 @@ export function AppSidebar() {
 						)}
 					</button>
 					{adminOpen && (
-						<div className="ml-2 mt-1 flex flex-col gap-0.5 border-l border-border pl-2">
+						<div className={cn(
+							"mt-1 flex flex-col gap-0.5",
+							collapsed ? "items-center" : "ml-2 border-l border-border pl-2",
+						)}>
 							{ADMIN_NAV.map((item) => (
 								<NavLink
 									key={item.href}
 									item={item}
 									active={isActive(pathname, item.href)}
 									compact
+									collapsed={collapsed}
 								/>
 							))}
 						</div>
@@ -128,9 +153,9 @@ export function AppSidebar() {
 				</SidebarGroup>
 			</SidebarContent>
 			<SidebarFooter>
-				<div className="flex items-center gap-2">
+				<div className={cn("flex items-center gap-2", collapsed && "flex-col")}>
 					<ThemeSwitcher />
-					<LanguageSwitcher />
+					{!collapsed && <LanguageSwitcher />}
 				</div>
 			</SidebarFooter>
 		</Sidebar>
@@ -145,10 +170,12 @@ function NavLink({
 	item,
 	active,
 	compact,
+	collapsed,
 }: {
 	item: NavItem;
 	active: boolean;
 	compact?: boolean;
+	collapsed?: boolean;
 }) {
 	const Icon = item.icon;
 	return (
@@ -160,10 +187,12 @@ function NavLink({
 					? "bg-secondary text-foreground"
 					: "text-muted-foreground hover:bg-muted hover:text-foreground",
 				compact && "text-xs",
+				collapsed && "justify-center px-1.5",
 			)}
+			title={collapsed ? item.label : undefined}
 		>
-			{!compact && <Icon className="size-4 shrink-0" />}
-			<span className="truncate">{item.label}</span>
+			<Icon className="size-4 shrink-0" />
+			{!collapsed && <span className="truncate">{item.label}</span>}
 		</Link>
 	);
 }

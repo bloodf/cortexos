@@ -30,7 +30,7 @@ ON CONFLICT (slug) DO UPDATE SET
 
 -- AI
 INSERT INTO services (slug, name, kind, category, health_url, health_type, open_url, env_source, icon_type, sort_order) VALUES
-  ('9router',        '9Router',        'service', 'AI', 'http://127.0.0.1:11434/api/health',    'http',    '#', '/opt/cortexos/.secrets/9router.env',       'cloud',    1),
+  ('9router',        '9Router',        'service', 'AI', 'http://127.0.0.1:11434/v1/models',    'http',    '#', '/opt/cortexos/.secrets/9router.env',       'cloud',    1),
   ('openviking',     'OpenViking',     'service', 'AI', 'http://127.0.0.1:18790/health',                    'http',    '#', '/opt/cortexos/.secrets/openviking.env',     'cloud',    2),
   ('openclaw',       'OpenClaw',       'service', 'AI', 'http://127.0.0.1:18789/health',                    'http',    '#', '/opt/cortexos/.secrets/openclaw-gateway.env',       'brain',    3),
   ('agentgateway',   'AgentGateway',   'service', 'AI', 'http://127.0.0.1:18800/health',                    'http',    '#', '/opt/cortexos/.secrets/agentgateway.env',   'cloud',    4),
@@ -145,7 +145,7 @@ ON CONFLICT (slug) DO UPDATE SET
 
 -- Dashboard (self)
 INSERT INTO services (slug, name, kind, category, health_url, health_type, open_url, env_source, icon_type, sort_order) VALUES
-  ('cortex-dashboard', 'Cortex Dashboard', 'service', 'Infrastructure', 'http://127.0.0.1:3080/api/health', 'http', '#', '/opt/cortexos/.secrets/dashboard.env', 'server', 9)
+  ('cortex-dashboard', 'Cortex Dashboard', 'service', 'Infrastructure', 'http://127.0.0.1:3080/en/login', 'http', '#', '/opt/cortexos/.secrets/dashboard.env', 'server', 9)
 ON CONFLICT (slug) DO UPDATE SET
   name = EXCLUDED.name,
   kind = EXCLUDED.kind,

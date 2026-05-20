@@ -160,7 +160,7 @@ if [[ ! -f "$ENV_FILE" ]]; then
   cat > "$TMP_ENV" <<EOF
 PORT=3080
 NODE_ENV=production
-HOSTNAME=0.0.0.0
+HOSTNAME=127.0.0.1
 DASHBOARD_ORIGIN=${DASHBOARD_ORIGIN:-$DASHBOARD_ORIGIN_DEFAULT}
 
 DB_HOST=127.0.0.1
@@ -195,5 +195,5 @@ echo "  Postgres       : ${DB_USER}@127.0.0.1:5432/${DB_NAME}"
 echo "  Compose stack  : ${STACK_DIR}"
 echo
 echo "Verify on the VPS:"
-echo "  curl -fsS http://127.0.0.1:3080/api/health"
+echo "  curl -fsS -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3080/en/login"
 echo "  docker compose -f ${STACK_DIR}/docker-compose.yml ps"

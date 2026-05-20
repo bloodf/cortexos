@@ -10,6 +10,8 @@ Install Paperclip, configure CortexOS bridge credentials, deploy the native `cor
 - Dashboard migrations run from `packages/cortex-dashboard/`.
 - Paperclip webhook listener is loopback-only by default.
 - NATS stream is `CORTEX_PAPERCLIP_OPS`; do not rely on legacy `CORTEX`.
+- Paperclip work is delivered into the single canonical OpenClaw gateway at
+  `http://127.0.0.1:18789`; do not create per-project OpenClaw instances.
 
 ## Source: paperclip/00-overview.md
 
@@ -258,6 +260,12 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now cortex-paperclip-bridge
 sudo systemctl status cortex-paperclip-bridge
 ```
+
+The bridge uses the current `nats.js` JetStream pull API. Runtime code must pass
+milliseconds to `consumer.fetch({ expires })` and `m.nak(delay)`; only consumer
+configuration fields such as `ack_wait` and `backoff` should use `nanos(...)`.
+If logs show `TimeoutOverflowWarning`, redeploy the repo version before
+continuing.
 
 ## 3. Bridge probe
 

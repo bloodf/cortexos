@@ -56,7 +56,7 @@ docker compose logs -f cortex-dashboard
 Health check:
 
 ```bash
-curl -fsS http://127.0.0.1:3080/api/health
+curl -fsS -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3080/en/login
 ```
 
 ## Migrations
