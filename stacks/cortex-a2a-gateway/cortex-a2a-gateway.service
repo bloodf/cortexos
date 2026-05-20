@@ -1,0 +1,20 @@
+[Unit]
+Description=CortexOS A2A Gateway
+After=network-online.target openclaw-gateway.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=cortexos
+Group=cortexos
+WorkingDirectory=/opt/cortexos/stacks/cortex-a2a-gateway
+Environment=HOME=/home/cortexos
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+EnvironmentFile=-/opt/cortexos/.secrets/a2a-gateway.env
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

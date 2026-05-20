@@ -172,7 +172,7 @@ openclaw devices list --json | jq '.pending | length'
 ```
 
 Expected: gateway healthy from loopback and Tailscale, all plugins listed,
-model resolves to `9router/gpt-5.5`, Telegram running when configured, and
+model resolves to `9router/cx/gpt-5.5`, Telegram running when configured, and
 pending device approvals count is `0`.
 
 For LAN Web UI validation, test each non-tailnet IPv4 address:

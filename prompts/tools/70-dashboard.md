@@ -23,6 +23,8 @@ sudo -v
 - [ ] Copy dashboard package to `/opt/cortexos/packages/cortex-dashboard`
 - [ ] Run `packages/cortex-dashboard/scripts/native-build.sh`
 - [ ] Install `templates/systemd/cortex-dashboard.service`
+- [ ] Run dashboard migrations and dynamic service seed before starting service
+- [ ] Configure terminal SSH and OpenClaw scan env in `/opt/cortexos/.secrets/dashboard.env`
 - [ ] `systemctl enable --now cortex-dashboard`
 - [ ] `/en/login` returns 200 locally
 - [ ] Public URL serves login page through Tailscale Serve
@@ -34,20 +36,42 @@ sudo -v
 
 Type `confirmed` to proceed.
 
-## Build & install
+## Build, configure & install
 
 ```bash
 sudo install -d -m 0755 /opt/cortexos/packages
 sudo cp -a packages/cortex-dashboard /opt/cortexos/packages/
 sudo cp -a packages/cortex-events packages/cortex-audit /opt/cortexos/packages/
+
+# Ensure dashboard.env contains runtime defaults that should not require manual
+# reconfiguration on a new machine. Root SSH is disabled by OS hardening, so the
+# web terminal uses the operator account over localhost SSH.
+sudo install -d -m 0700 /opt/cortexos/.secrets
+sudo touch /opt/cortexos/.secrets/dashboard.env
+sudo chmod 0600 /opt/cortexos/.secrets/dashboard.env
+sudo /opt/cortexos/templates/scripts/cortex-env-writer.sh <<'JSON'
+{"path":"/opt/cortexos/.secrets/dashboard.env","updates":[
+  {"key":"OPENCLAW_BASE","value":"/home/cortexos/.openclaw"},
+  {"key":"AGENT_SCAN_PATHS","value":"/home/cortexos/.openclaw"},
+  {"key":"TERMINAL_SSH_HOST","value":"127.0.0.1"},
+  {"key":"TERMINAL_SSH_PORT","value":"22"},
+  {"key":"TERMINAL_SSH_USER","value":"cortexos"},
+  {"key":"TERMINAL_SSH_KEY","value":"/home/cortexos/.ssh/id_ed25519"},
+  {"key":"SSH_USER","value":"cortexos"}
+]}
+JSON
+
 cd /opt/cortexos/packages/cortex-dashboard
 bash scripts/native-build.sh
+set -a; . /opt/cortexos/.secrets/dashboard.env; set +a
+DB_HOST="${DB_HOST:-127.0.0.1}" node scripts/migrate.js
+DB_HOST="${DB_HOST:-127.0.0.1}" node scripts/dynamic-seed.js || true
 sudo install -m 0644 /opt/cortexos/templates/systemd/cortex-dashboard.service /etc/systemd/system/cortex-dashboard.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now cortex-dashboard
 ```
 
-The service starts `node .next/standalone/server.js` on loopback port `3080`, loads `/opt/cortexos/.secrets/dashboard.env`, and runs against host PostgreSQL. The dashboard auth middleware can gate `/api/health`; use `/en/login` for unauthenticated liveness.
+The service starts `node .next/standalone/server.js` on loopback port `3080`, loads `/opt/cortexos/.secrets/dashboard.env`, and runs against host PostgreSQL. The dashboard auth middleware can gate `/api/health`; use `/en/login` for unauthenticated liveness. Migrations include the Paperclip-aligned `paperclip-startup-company` Agent Factory project seed, so new machines get the correct startup seats/positions without manual DB work.
 
 ## Verify
 

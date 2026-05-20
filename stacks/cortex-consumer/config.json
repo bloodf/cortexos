@@ -19,7 +19,21 @@
   "paperclip": {
     "work_subject_filter": "cortex.paperclip.work.>",
     "status_subject_prefix": "cortex.paperclip.status",
-    "approval_subject_prefix": "cortex.paperclip.approval"
+    "approval_subject_prefix": "cortex.paperclip.approval",
+    "agent_map": {
+      "netbook": {
+        "PM": "netbook-pm",
+        "BOOK-AUTHOR": "netbook-author",
+        "BOOK-EDITOR": "netbook-editor",
+        "BOOK-REVIEWER": "netbook-reviewer",
+        "BOOK-EVALUATOR": "netbook-evaluator",
+        "BOOK-TRANSLATOR": "netbook-translator"
+      },
+      "cieucpb": {
+        "CIEUCPB": "cieucpb",
+        "default": "cieucpb"
+      }
+    }
   },
   "streams": [
     {

@@ -48,6 +48,7 @@ interface DataTableProps<TData> {
   searchPlaceholder?: string
   /** Disable pagination and render all filtered rows */
   noPagination?: boolean
+  toolbar?: React.ReactNode
 }
 
 function DataTable<TData>({
@@ -64,6 +65,7 @@ function DataTable<TData>({
   className,
   searchPlaceholder,
   noPagination = false,
+  toolbar,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -117,22 +119,27 @@ function DataTable<TData>({
 
   return (
     <div data-slot="data-table" className={cn("flex flex-col gap-3", className)}>
-      {searchPlaceholder && onGlobalFilterChange && (
-        <Input
-          value={globalFilter ?? ""}
-          onChange={(event) => onGlobalFilterChange(event.target.value)}
-          placeholder={searchPlaceholder}
-          className="max-w-sm"
-          type="search"
-        />
-      )}
+      {(searchPlaceholder && onGlobalFilterChange) || toolbar ? (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {searchPlaceholder && onGlobalFilterChange ? (
+            <Input
+              value={globalFilter ?? ""}
+              onChange={(event) => onGlobalFilterChange(event.target.value)}
+              placeholder={searchPlaceholder}
+              className="max-w-sm"
+              type="search"
+            />
+          ) : <span />}
+          {toolbar}
+        </div>
+      ) : null}
       <div className="rounded-lg border border-border overflow-hidden">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} colSpan={header.colSpan}>
+                  <TableHead key={header.id} colSpan={header.colSpan} className={header.column.id === "actions" ? "text-right" : undefined}>
                     {header.isPlaceholder ? null : (
                       <div
                         className={cn(
@@ -175,7 +182,7 @@ function DataTable<TData>({
                   data-state={row.getIsSelected() ? "selected" : undefined}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className={cell.column.id === "actions" ? "text-right" : undefined}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}

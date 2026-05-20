@@ -4,6 +4,7 @@ import * as React from "react";
 import useSWR from "swr";
 import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/ui/data-table";
+import { IconButton } from "@/components/ui/icon-button";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -65,6 +66,11 @@ export function AdminSystemdTable() {
 		}
 	}
 
+	function StatePill({ active, sub }: { active: string; sub: string }) {
+		const cls = active === "active" ? "bg-emerald-500/10 text-emerald-400" : active === "failed" ? "bg-red-500/10 text-red-400" : "bg-muted text-muted-foreground";
+		return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}>{active}/{sub}</span>;
+	}
+
 	const columns = React.useMemo<ColumnDef<SystemdRow>[]>(
 		() => [
 			{
@@ -81,13 +87,9 @@ export function AdminSystemdTable() {
 			},
 			{
 				id: "state",
+				cell: ({ row }) => <StatePill active={row.original.active} sub={row.original.sub} />,
 				header: "State",
 				accessorFn: (row) => `${row.active} ${row.sub}`,
-				cell: ({ row }) => (
-					<span className="text-xs">
-						{row.original.active}/{row.original.sub}
-					</span>
-				),
 			},
 			{
 				accessorKey: "enabled",
@@ -105,45 +107,41 @@ export function AdminSystemdTable() {
 			},
 			{
 				id: "actions",
-				header: "Actions",
-				cell: ({ row }) => (
-					<div className="flex gap-1">
-						<IconAction
-							label="Start"
-							icon={<Play className="size-3" />}
-							loading={running === `${row.original.name}:start`}
-							onClick={() => setConfirming({ name: row.original.name, action: "start" })}
-						/>
-						<IconAction
-							label="Stop"
-							icon={<Square className="size-3" />}
-							loading={running === `${row.original.name}:stop`}
-							onClick={() => setConfirming({ name: row.original.name, action: "stop" })}
-						/>
-						<IconAction
-							label="Restart"
-							icon={<RefreshCw className="size-3" />}
-							loading={running === `${row.original.name}:restart`}
-							onClick={() =>
-								setConfirming({ name: row.original.name, action: "restart" })
-							}
-						/>
-						<IconAction
-							label="Logs"
-							icon={<FileText className="size-3" />}
-							onClick={() => {
-								window.open(
-									`/api/systemd/logs?unit=${encodeURIComponent(row.original.name)}`,
-									"_blank",
-									"noopener,noreferrer",
-								);
-							}}
-						/>
-					</div>
-				),
+				header: "",
+				cell: ({ row }) => {
+					const runningNow = row.original.active === "active";
+					const primary = runningNow ? "stop" : "start";
+					return (
+						<div className="flex justify-end gap-1">
+							<IconButton
+								tooltip={runningNow ? "Stop" : "Start"}
+								variant={runningNow ? "danger" : "primary"}
+								loading={running === `${row.original.name}:${primary}`}
+								onClick={() => setConfirming({ name: row.original.name, action: primary })}
+							>
+								{runningNow ? <Square className="size-3" /> : <Play className="size-3" />}
+							</IconButton>
+							<IconButton
+								tooltip="Restart"
+								variant="ghost"
+								loading={running === `${row.original.name}:restart`}
+								onClick={() => setConfirming({ name: row.original.name, action: "restart" })}
+							>
+								<RefreshCw className="size-3" />
+							</IconButton>
+							<IconButton
+								tooltip="Logs"
+								variant="ghost"
+								onClick={() => window.open(`/api/systemd/logs?unit=${encodeURIComponent(row.original.name)}`, "_blank", "noopener,noreferrer")}
+							>
+								<FileText className="size-3" />
+							</IconButton>
+						</div>
+					);
+				},
 			},
 		],
-		[running],
+		[StatePill, running],
 	);
 
 	return (

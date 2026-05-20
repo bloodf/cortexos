@@ -67,6 +67,8 @@ const bodySchema = z.object({
 	messages: z.array(messageSchema).min(1),
 	modelId: z.string().optional(),
 	sessionId: z.string().min(1),
+	reasoning: z.boolean().optional(),
+	effort: z.enum(["low", "medium", "high"]).optional(),
 });
 
 function jsonError(status: number, code: string, message: string, extra?: Record<string, unknown>): Response {

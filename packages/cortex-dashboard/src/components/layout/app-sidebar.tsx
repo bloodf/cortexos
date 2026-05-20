@@ -34,7 +34,6 @@ import {
 	SidebarFooter,
 	SidebarGroup,
 	SidebarGroupLabel,
-	SidebarTrigger,
 	useSidebar,
 } from "@/components/ui/sidebar";
 import { ThemeSwitcher } from "@/components/ui/theme-switcher";
@@ -98,7 +97,6 @@ export function AppSidebar() {
 							Cortex
 						</span>
 					)}
-					<SidebarTrigger className="hidden lg:inline-flex" />
 				</div>
 			</SidebarHeader>
 			<SidebarContent>

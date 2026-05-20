@@ -68,7 +68,7 @@ function SidebarProvider({
       <div
         data-slot="sidebar-provider"
         data-state={open ? "expanded" : "collapsed"}
-        className={cn("flex min-h-svh w-full", className)}
+        className={cn("flex min-h-screen w-full", className)}
       >
         {children}
       </div>
@@ -124,7 +124,7 @@ function Sidebar({
         "--sidebar-collapsed-width": collapsedWidth,
       } as React.CSSProperties}
       className={cn(
-        "relative flex h-svh flex-col overflow-hidden border-r border-border bg-sidebar transition-[width] duration-200 ease-in-out",
+        "sticky top-0 flex h-screen min-h-screen shrink-0 flex-col overflow-hidden border-r border-border bg-sidebar transition-[width] duration-200 ease-in-out",
         open ? "w-[var(--sidebar-width)]" : "w-[var(--sidebar-collapsed-width)]",
         className
       )}

@@ -74,6 +74,7 @@ sudo tailscale serve --bg --https=8020  http://localhost:18790  # OpenViking API
 sudo tailscale serve --bg --https=18789 http://localhost:18789  # OpenClaw gateway
 sudo tailscale serve --bg --https=18791 http://localhost:18791  # LEANN
 sudo tailscale serve --bg --https=8090  http://localhost:8090   # cortex-graph
+sudo tailscale serve --bg --https=3333  http://localhost:3333   # Kernel Browser
 sudo tailscale serve --bg --https=5050  http://localhost:5050   # pgAdmin
 sudo tailscale serve --bg --https=5540  http://localhost:5540   # RedisInsight
 sudo tailscale serve --bg --https=8083  http://localhost:8083   # mongo-express
@@ -100,7 +101,8 @@ the tailnet interface only.
 | OpenViking API | `https://${CORTEX_DOMAIN}:8020/health` |
 | OpenClaw gateway | `https://${CORTEX_DOMAIN}:18789/` |
 | LEANN | `https://${CORTEX_DOMAIN}:18791/` |
-| cortex-graph | `https://${CORTEX_DOMAIN}:8090/` |
+| cortex-graph | `https://${CORTEX_DOMAIN}:8090/docs` |
+| Kernel Browser | `https://${CORTEX_DOMAIN}:3333/json/version?token={KERNEL_BROWSER_TOKEN}` |
 | pgAdmin | `https://${CORTEX_DOMAIN}:5050/` |
 | RedisInsight | `https://${CORTEX_DOMAIN}:5540/` |
 | mongo-express | `https://${CORTEX_DOMAIN}:8083/` |

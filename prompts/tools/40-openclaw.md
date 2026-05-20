@@ -146,15 +146,15 @@ cat >/tmp/openclaw-cortexos-policy.json5 <<'JSON'
       "9router": {
         baseUrl: "http://127.0.0.1:11434/v1",
         api: "openai-responses",
-        apiKey: { provider: "default", key: "NINEROUTER_API_KEY" },
+        apiKey: { source: "env", provider: "default", id: "NINEROUTER_API_KEY" },
         authHeader: true,
-        models: { "gpt-5.5": { aliases: ["gpt-5.5"] } }
+        models: []
       }
     }
   },
   agents: {
     defaults: {
-      model: { primary: "9router/gpt-5.5" }
+      model: { primary: "9router/cx/gpt-5.5" }
     }
   },
   channels: {
@@ -170,8 +170,17 @@ cat >/tmp/openclaw-cortexos-policy.json5 <<'JSON'
 JSON
 
 openclaw config patch --file /tmp/openclaw-cortexos-policy.json5
+source /opt/cortexos/.secrets/9router.env
+node scripts/sync-openclaw-9router-models.mjs
+openclaw config validate
 sudo systemctl restart openclaw-gateway
 ```
+
+`scripts/sync-openclaw-9router-models.mjs` is mandatory. It reads the live
+9Router `/api/models` catalog and OpenClaw's bundled OMP catalog, then writes
+per-model `contextWindow` and `maxTokens` metadata for every 9Router model. Do
+not maintain a hand-written one-model `models` block; it will drift from what
+the underlying models can provide.
 
 If Telegram is not configured yet, leave `TELEGRAM_BOT_TOKEN` commented and
 temporarily remove the `channels.telegram` block from the patch. Once the token
@@ -237,7 +246,7 @@ openclaw models status --json | jq -r '.resolvedDefault'
 openclaw channels status --deep --json | jq '.channels.telegram.running'
 ```
 
-Expected: gateway health OK, model resolves to `9router/gpt-5.5`, and Telegram
+Expected: gateway health OK, model resolves to `9router/cx/gpt-5.5`, and Telegram
 is running when `TELEGRAM_BOT_TOKEN` is configured.
 
 ## CHECKPOINT 2

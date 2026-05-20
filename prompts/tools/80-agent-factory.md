@@ -25,6 +25,8 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 - [ ] Create 13 `stage/*` labels via `gh label create`
 - [ ] Copy `templates/agent-factory/*.yml` to target `.github/workflows/`
 - [ ] Set `CORTEX_DASHBOARD_URL`, `OPENCLAW_BASE`, `AGENTGATEWAY_BASE` repo secrets
+- [ ] Confirm dashboard migration `017_paperclip_agent_factory` seeded `paperclip-startup-company`
+- [ ] When creating a startup company for Paperclip, use the Paperclip organization contract below
 - [ ] Create probe issue with `stage/00-inbox` label
 - [ ] Confirm triage workflow fires within 60s
 - [ ] CHECKPOINT 2 confirmed — label advanced to `stage/01-triage`
@@ -75,6 +77,28 @@ gh secret set CORTEX_DASHBOARD_URL --body "https://{DOMAIN}" --repo $AGENT_REPO
 gh secret set OPENCLAW_BASE        --body "http://127.0.0.1:18789" --repo $AGENT_REPO
 gh secret set AGENTGATEWAY_BASE    --body "http://127.0.0.1:18800" --repo $AGENT_REPO
 ```
+
+## Paperclip organization contract
+
+Agent Factory project definitions that create a startup company for Paperclip MUST create a `kind=project` factory with Paperclip metadata matching the dashboard seed `paperclip-startup-company`:
+
+- `organization_kind`: `startup_company`
+- `seat_model`: `position`
+- Agent slug pattern: `{project}-{seat}`
+- NATS subject pattern: `cortex.task.{project}.{seat}`
+- Required seats/positions:
+  - `ceo` → CEO → `role-ceo` → Paperclip role `CEO`
+  - `cto` → CTO → `role-cto` → `CTO`
+  - `pm` → Product Manager → `role-pm` → `PM`
+  - `po` → Product Owner → `role-po` → `PO`
+  - `staff-eng` → Staff Engineer → `role-staff-eng` → `STAFF-ENG`
+  - `eng-backend` → Backend Engineer → `role-eng-backend` → `ENG-BACKEND`
+  - `eng-frontend` → Frontend Engineer → `role-eng-frontend` → `ENG-FRONTEND`
+  - `qa` → QA Engineer → `role-qa` → `QA`
+  - `uxui` → UX/UI Designer → `role-uxui` → `UXUI`
+- Optional seats: `eng-mobile`, `eng-esp32` when the product scope requires them.
+
+Do not create a flat list of generic agents for Paperclip. Paperclip needs stable seats and role codes so ticket links in `paperclip_ticket_link` can bind each issue/run to the correct Cortex role and NATS subject.
 
 ## Verify
 

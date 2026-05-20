@@ -211,6 +211,19 @@ export async function scanAgents(): Promise<AgentGroup[]> {
     .sort((a, b) => a.project.localeCompare(b.project));
 }
 
+function slugifyProject(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+export async function scanAgentsForProject(projectSlug: string): Promise<Agent[]> {
+  const groups = await scanAgents();
+  const normalized = slugifyProject(projectSlug);
+  for (const group of groups) {
+    if (slugifyProject(group.project) === normalized) return group.agents;
+  }
+  return groups.flatMap((group) => group.agents).filter((agent) => slugifyProject(agent.slug).startsWith(`${normalized}-`));
+}
+
 export async function getAgentFiles(agentDir: string): Promise<AgentFile[]> {
   return getMarkdownFiles(agentDir);
 }

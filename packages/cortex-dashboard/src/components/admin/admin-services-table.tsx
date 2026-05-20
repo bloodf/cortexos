@@ -25,6 +25,7 @@ interface Props {
 export function AdminServicesTable({ services }: Props) {
 	const [rows, setRows] = React.useState(services);
 
+	const [globalFilter, setGlobalFilter] = React.useState("");
 	const toggle = React.useCallback(async (id: number, next: boolean) => {
 		setRows((prev) =>
 			prev.map((r) => (r.id === id ? { ...r, is_active: next } : r)),
@@ -95,5 +96,5 @@ export function AdminServicesTable({ services }: Props) {
 		return <EmptyState title="No services" description="No services registered yet." />;
 	}
 
-	return <DataTable columns={columns} data={rows} />;
+	return <DataTable columns={columns} data={rows} globalFilter={globalFilter} onGlobalFilterChange={setGlobalFilter} searchPlaceholder="Search services..." noPagination />;
 }

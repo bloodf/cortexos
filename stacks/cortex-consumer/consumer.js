@@ -420,9 +420,78 @@ async function openclawSendMessageHttpV1({ account, channel, target, blocks }) {
 
 async function openclawBindRoute({ agent, channel, account }) {
   const args = ["agents", "bind", "--agent", agent];
-  if (channel) args.push("--channel", channel);
-  if (account) args.push("--account", account);
+  if (channel) args.push("--bind", account ? `${channel}:${account}` : channel);
   return openclawExec(args);
+}
+
+function normalizeRole(role) {
+  return String(role || "").trim().toUpperCase();
+}
+
+function paperclipProjectSlug(data) {
+  const payload = data?.payload || {};
+  const context = payload.context || {};
+  return String(
+    context.projectSlug
+      || context.project_slug
+      || payload.projectSlug
+      || payload.project_slug
+      || data?.projectSlug
+      || "",
+  ).trim().toLowerCase();
+}
+
+function resolvePaperclipAgent(role, data, cfg) {
+  const map = cfg?.paperclip?.agent_map || {};
+  const project = paperclipProjectSlug(data);
+  const normalizedRole = normalizeRole(role);
+  const candidates = [];
+  if (project && map[project]) candidates.push(map[project]);
+  if (map.default) candidates.push(map.default);
+  for (const entry of candidates) {
+    if (!entry || typeof entry !== "object") continue;
+    const direct = entry[normalizedRole] || entry[String(role || "")] || entry.default;
+    if (direct) return String(direct);
+  }
+  return null;
+}
+
+function buildPaperclipAgentPrompt(role, data) {
+  const payload = data?.payload || {};
+  const context = payload.context || {};
+  return [
+    `Paperclip assigned work to CortexOS role ${role}.`,
+    "",
+    `Run ID: ${data?.runId || "unknown"}`,
+    `Issue/Task ID: ${data?.issueId || context.taskId || "unknown"}`,
+    `Wake reason: ${data?.wakeReason || context.wakeReason || "manual"}`,
+    "",
+    "Use your configured workspace, restored memory, and workflow files.",
+    "Complete the next safe step for this task, then return a concise status summary.",
+    "Do not print secrets or credentials.",
+    "",
+    "Paperclip payload:",
+    "```json",
+    JSON.stringify(payload, null, 2),
+    "```",
+  ].join("\n");
+}
+
+async function dispatchPaperclipOpenClawAgent(role, data, cfg) {
+  const agentId = resolvePaperclipAgent(role, data, cfg);
+  if (!agentId) return null;
+  const timeoutSec = Number(process.env.PAPERCLIP_OPENCLAW_TIMEOUT_SEC || 900);
+  const stdout = await openclawExec([
+    "agent",
+    "--agent",
+    agentId,
+    "--message",
+    buildPaperclipAgentPrompt(role, data),
+    "--json",
+    "--timeout",
+    String(timeoutSec),
+  ]);
+  return { agentId, stdout };
 }
 
 // ---------------------------------------------------------------------------
@@ -980,7 +1049,7 @@ export function isApprovalRequired(role) {
   return roles.has(String(role).toUpperCase());
 }
 
-async function handlePaperclipWork(subject, envelope) {
+async function handlePaperclipWork(subject, envelope, cfg = {}) {
   // Envelope shape: { data: <payload>, sig: <hex> }. Verify HMAC like approval path.
   if (!envelope || typeof envelope !== "object" || !envelope.data || !envelope.sig) {
     metrics.hmac_reject_total++;
@@ -1199,6 +1268,41 @@ async function handlePaperclipWork(subject, envelope) {
     },
   });
   process.stdout.write(`[paperclip.work] run=${data.runId} role=${role} accepted\n`);
+
+  const mappedAgent = resolvePaperclipAgent(role, data, cfg);
+  if (!mappedAgent) return;
+  try {
+    const result = await dispatchPaperclipOpenClawAgent(role, data, cfg);
+    publishPaperclipStatus(role, {
+      runId: data.runId,
+      issueId: data.issueId,
+      status: "done",
+      comment: `CortexOS agent ${result.agentId} completed the run`,
+      costUsdCents: 0,
+    });
+    await safeAuditAppend({
+      event_type: `cortex.paperclip.work.${role}.completed`,
+      source: "cortex-consumer",
+      subject: data.issueId,
+      actor: result.agentId,
+      payload: {
+        runId: data.runId,
+        issueId: data.issueId,
+        role,
+        agentId: result.agentId,
+      },
+    });
+  } catch (e) {
+    process.stderr.write(`[paperclip.work] agent dispatch failed run=${data.runId} role=${role} agent=${mappedAgent}: ${e.message}\n`);
+    publishPaperclipStatus(role, {
+      runId: data.runId,
+      issueId: data.issueId,
+      status: "failed",
+      comment: `CortexOS agent ${mappedAgent} failed: ${e.message}`,
+      costUsdCents: 0,
+    });
+    throw e;
+  }
 }
 
 function publishPaperclipStatus(role, payload) {
@@ -1548,7 +1652,7 @@ async function processMessage(m, cfg) {
     } else if (subject === "openclaw.message.received") {
       await handleOpenclawReceived(data);
     } else if (subject.startsWith("cortex.paperclip.work.")) {
-      await handlePaperclipWork(subject, data);
+      await handlePaperclipWork(subject, data, cfg);
     } else {
       process.stdout.write(`[skip] unhandled: ${subject}\n`);
     }
