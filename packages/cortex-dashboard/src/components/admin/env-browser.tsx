@@ -38,9 +38,7 @@ export function EnvBrowser() {
 
 	async function reveal(key: string) {
 		if (!activePath) return;
-		const token = window.prompt(`Reveal "${key}"? Paste confirmation token. This action is audit-logged.`);
-		if (!token) return;
-		const res = await fetch(`/api/env-browser?path=${encodeURIComponent(activePath)}&reveal=true&keys=${encodeURIComponent(key)}`, { headers: { "X-Cortex-Confirmation-Token": token } });
+		const res = await fetch(`/api/env-browser?path=${encodeURIComponent(activePath)}&reveal=true&keys=${encodeURIComponent(key)}`);
 		if (!res.ok) { const body = (await res.json()) as { error?: string }; setError(body.error ?? "Reveal failed"); return; }
 		const data = (await res.json()) as { keys: Record<string, string | null> };
 		setRevealed((prev) => ({ ...prev, [key]: data.keys[key] ?? "" }));
@@ -49,8 +47,7 @@ export function EnvBrowser() {
 	async function saveOne(key: string) {
 		if (!activePath) return;
 		const value = edits[key]; if (value === undefined) return;
-		const token = window.prompt(`Confirm write to ${activePath} key ${key}. Paste confirmation token to proceed.`); if (!token) return;
-		const res = await fetch("/api/env-browser", { method: "POST", headers: { "Content-Type": "application/json", "X-Cortex-Confirmation-Token": token }, body: JSON.stringify({ path: activePath, updates: [{ key, value }] }) });
+		const res = await fetch("/api/env-browser", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: activePath, updates: [{ key, value }] }) });
 		if (!res.ok) { const body = (await res.json()) as { error?: string }; setError(body.error ?? "Save failed"); return; }
 		const data = (await res.json()) as { afterSha256: string }; setPostHash(data.afterSha256); setEdits((prev) => { const next = { ...prev }; delete next[key]; return next; }); await loadPath(activePath, true, "edit");
 	}

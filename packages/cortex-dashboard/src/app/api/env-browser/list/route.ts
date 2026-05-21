@@ -2,7 +2,7 @@ import { access, readdir } from "node:fs/promises";
 import { constants } from "node:fs";
 import path from "node:path";
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 import { assertPathAllowed } from "@/lib/secrets/allowlist";
 
 export const runtime = "nodejs";
@@ -66,7 +66,7 @@ async function listStackEnvFiles(): Promise<string[]> {
 }
 
 export async function GET(request: Request) {
-	const auth = await requireAuth(request);
+	const auth = await requireAdmin(request, { tool: "env.list" });
 	if (auth.error) return auth.error;
 
 	const discovered = await Promise.all([

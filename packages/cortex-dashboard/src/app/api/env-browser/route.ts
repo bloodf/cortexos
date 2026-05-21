@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
-import { requireAuth, requireAdmin } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 import { readEnvFile, readEnvFileRaw } from "@/lib/secrets/vps-reader";
 import { writeEnvFile } from "@/lib/secrets/vps-writer";
 import { insertAuditRow } from "@/lib/db/tool-audit";
@@ -48,7 +48,7 @@ function safeErrorMessage(err: unknown): string {
 // ---------------------------------------------------------------------------
 
 export async function GET(request: Request) {
-	const auth = await requireAuth(request);
+	const auth = await requireAdmin(request, { tool: "env.read" });
 	if (auth.error) return auth.error;
 
 	const { searchParams } = new URL(request.url);
@@ -71,55 +71,12 @@ export async function GET(request: Request) {
 		const requestedKeys = keysParam.split(",").map((k) => k.trim()).filter(Boolean);
 		const sortedKeys = [...requestedKeys].sort();
 		const argsHash = sha256hex(`${absPath}|${sortedKeys.join(",")}`);
-
-		// H-2: reveal-mode reads of cleartext secrets are privileged. Require
-		// the same X-Cortex-Confirmation-Token gate as the POST writer flow.
-		// Token is bound to tool='env_reveal', argsHash=sha256(path|sorted(keys)).
 		const userId = auth.session?.user_id;
 		const sessionToken = auth.session?.token;
 		if (!userId || !sessionToken) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 		const cortexSessionId = deriveCortexSessionId(userId, sessionToken);
-
-		const confirmationToken = request.headers.get("x-cortex-confirmation-token") ?? "";
-		if (!confirmationToken) {
-			return NextResponse.json(
-				{
-					error: "Confirmation token required for reveal",
-					code: "confirmation_required",
-					tool: "env_reveal",
-					argsHash,
-				},
-				{ status: 412 },
-			);
-		}
-
-		const { verifyAndConsume } = await import("@/lib/ai/confirmation-token");
-		const verify = await verifyAndConsume({
-			token: confirmationToken,
-			sessionId: cortexSessionId,
-			toolName: "env_reveal",
-			argsHash,
-			userId,
-		});
-
-		if (!verify.ok) {
-			await insertAuditRow({
-				actor_user_id: userId,
-				session_id: cortexSessionId,
-				tool: "env_reveal",
-				tool_class: "privileged",
-				args_hash: argsHash,
-				decision: "deny",
-				decision_reason: verify.reason,
-				result: "denied",
-			}).catch(() => {});
-			return NextResponse.json(
-				{ error: `Confirmation token invalid: ${verify.reason}`, code: "EBADTOKEN" },
-				{ status: 403 },
-			);
-		}
 
 		// Audit BEFORE reading cleartext.
 		await insertAuditRow({
@@ -128,7 +85,6 @@ export async function GET(request: Request) {
 			tool: "env_reveal",
 			tool_class: "privileged",
 			args_hash: argsHash,
-			approval_id: verify.approvalId,
 			decision: "allow",
 			result: "ok",
 			before_state_hash: null,
@@ -178,20 +134,12 @@ export async function GET(request: Request) {
 }
 
 // ---------------------------------------------------------------------------
-// POST — write updates (requires confirmation token)
+// POST — write updates
 // ---------------------------------------------------------------------------
 
 export async function POST(request: Request) {
 	const auth = await requireAdmin(request, { tool: "env.write" });
 	if (auth.error) return auth.error;
-
-	const confirmationToken = request.headers.get("x-cortex-confirmation-token") ?? "";
-	if (!confirmationToken) {
-		return NextResponse.json(
-			{ error: "X-Cortex-Confirmation-Token header required", code: "ENOTOKEN" },
-			{ status: 400 },
-		);
-	}
 
 	let body: { path?: unknown; updates?: unknown };
 	try {
@@ -219,32 +167,13 @@ export async function POST(request: Request) {
 		}
 	}
 
-	// Verify confirmation token. Token binds to tool='env.write' + argsHash=sha256(path).
-	// CR-1/CR-2: sessionId is derived server-side from (userId, session token), and
-	// userId is folded into the HMAC payload — leaked sessionId alone cannot replay.
 	const userId = auth.session?.user_id;
 	const sessionToken = auth.session?.token;
 	if (!userId || !sessionToken) {
 		return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 	}
 	const cortexSessionId = deriveCortexSessionId(userId, sessionToken);
-
-	const { verifyAndConsume } = await import("@/lib/ai/confirmation-token");
 	const argsHash = sha256hex(absPath);
-	const verify = await verifyAndConsume({
-		token: confirmationToken,
-		sessionId: cortexSessionId,
-		toolName: "env.write",
-		argsHash,
-		userId,
-	});
-
-	if (!verify.ok) {
-		return NextResponse.json(
-			{ error: `Confirmation token invalid: ${verify.reason}`, code: "EBADTOKEN" },
-			{ status: 403 },
-		);
-	}
 
 	try {
 		const result = await writeEnvFile(
@@ -259,7 +188,6 @@ export async function POST(request: Request) {
 			tool: "env.write",
 			tool_class: "privileged",
 			args_hash: argsHash,
-			approval_id: verify.approvalId,
 			decision: "allow",
 			result: "ok",
 			before_state_hash: result.beforeSha256,
