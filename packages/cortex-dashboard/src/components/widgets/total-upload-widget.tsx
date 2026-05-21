@@ -15,7 +15,7 @@ export function TotalUploadWidget() {
 	return (
 		<motion.div
 			whileHover={{ scale: 1.02 }}
-			className="h-full flex flex-col justify-center bg-white/[0.02] rounded-xl p-4 border border-white/[0.04] min-h-[80px]"
+			className="-m-4 flex h-[calc(100%+2rem)] min-h-[112px] flex-col justify-center rounded-2xl border border-violet-500/20 bg-violet-500/10 px-6 py-4"
 		>
 			<div className="flex items-center gap-2 text-xs text-white/40 light:text-slate-700 mb-2">
 				<ArrowUp className="w-3.5 h-3.5 text-violet-400" />

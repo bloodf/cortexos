@@ -3,7 +3,7 @@
 import { Activity, Cpu, Fan, GaugeIcon, Thermometer, Zap } from "lucide-react";
 import { Gauge } from "@/components/gauge";
 import { useSystemData } from "@/hooks/use-dashboard-data";
-import type { MachineSensor } from "@/hooks/use-dashboard-data";
+import type { MachineSensor, SystemData } from "@/hooks/use-dashboard-data";
 
 type Tone = { color: string; text: string; badge: string; panel: string };
 
@@ -28,6 +28,25 @@ function formatGaugeDisplay(value: number, unit: string) {
 			<span className="ml-0.5 pt-1 text-sm font-semibold leading-none">°C</span>
 		</span>
 	);
+}
+
+function sensorGroups(sys: SystemData | undefined) {
+	const temperatures = sys?.sensors?.temperatures ?? [];
+	const cpuTemps = temperatures.filter(isCpuSensor);
+	const otherTemps = temperatures.filter((sensor) => !isCpuSensor(sensor));
+	const fans = sys?.sensors?.fans ?? [];
+	const voltages = sys?.sensors?.voltages ?? [];
+	return {
+		cpuTemps,
+		otherTemps,
+		fans,
+		voltages,
+		sensorCount: temperatures.length + fans.length + voltages.length,
+		cpuAvg: average(cpuTemps),
+		tempAvg: average(otherTemps),
+		fanAvg: average(fans),
+		voltageAvg: average(voltages),
+	};
 }
 
 function sensorTone(sensor: MachineSensor): Tone {
@@ -74,58 +93,67 @@ function SensorRow({ sensor }: { sensor: MachineSensor }) {
 	);
 }
 
-function SensorGroup({ title, subtitle, sensors, averageValue, gaugeValue, unit, color, icon }: { title: string; subtitle: string; sensors: MachineSensor[]; averageValue: number; gaugeValue: number; unit: string; color: string; icon: React.ReactNode }) {
+function SensorGauge({ title, sensors, averageValue, gaugeValue, unit, color, icon }: { title: string; sensors: MachineSensor[]; averageValue: number; gaugeValue: number; unit: string; color: string; icon: React.ReactNode }) {
 	if (!sensors.length) return null;
-	const tone = unit === "C" ? temperatureTone(averageValue) : unit === "rpm" ? sensorTone({ ...sensors[0], unit: "rpm" }) : sensorTone({ ...sensors[0], unit: "volts" });
 	return (
-		<section className={`min-h-0 overflow-hidden rounded-xl border border-white/[0.07] bg-white/[0.025] light:border-slate-200 light:bg-white/75 ${tone.panel}`}>
-			<div className="border-b border-white/[0.06] p-3 light:border-slate-100">
-				<div className="flex items-start justify-between gap-3">
-					<div className="min-w-0">
-						<div className="flex items-center gap-2">
-							<span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-							<p className="truncate text-sm font-semibold text-white/85 light:text-slate-900">{title}</p>
-						</div>
-						<p className="mt-1 truncate text-xs text-white/40 light:text-slate-500">{subtitle}</p>
-					</div>
-					<span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${tone.badge}`}>
-						{statusLabel(averageValue, unit)}
-					</span>
+		<div className="flex h-full min-h-[200px] flex-col items-center justify-center">
+			<Gauge
+				value={Math.round(gaugeValue)}
+				color={color}
+				label={title}
+				sublabel={`${sensors.length} readings · ${statusLabel(averageValue, unit).toLowerCase()}`}
+				icon={icon}
+				valueLabel={formatGaugeDisplay(averageValue, unit)}
+			/>
+		</div>
+	);
+}
+
+function SensorListGroup({ title, sensors, color }: { title: string; sensors: MachineSensor[]; color: string }) {
+	if (!sensors.length) return null;
+	return (
+		<section className="min-w-0">
+			<div className="mb-2 flex items-center justify-between gap-3 border-b border-white/[0.06] pb-2 light:border-slate-100">
+				<div className="flex min-w-0 items-center gap-2">
+					<span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
+					<p className="truncate text-sm font-semibold text-white/85 light:text-slate-900">{title}</p>
 				</div>
-				<div className="mt-3 grid gap-3 xl:grid-cols-[132px_minmax(0,1fr)] xl:items-start">
-					<div className="flex items-center justify-center rounded-lg bg-black/10 p-2 light:bg-slate-50">
-						<Gauge
-							value={Math.round(gaugeValue)}
-							color={color}
-							label={title}
-							sublabel={unit === "rpm" ? "fan speed" : unit === "V" ? "rail reading" : "temperature"}
-							icon={icon}
-							size={108}
-							strokeWidth={8}
-							valueLabel={formatGaugeDisplay(averageValue, unit)}
-						/>
-					</div>
-					<div className="max-h-40 overflow-y-auto rounded-lg border border-white/[0.05] bg-white/[0.02] px-2 py-1 light:border-slate-100 light:bg-white">
-						{sensors.map((sensor) => <SensorRow key={sensor.id} sensor={sensor} />)}
-					</div>
-				</div>
+				<span className="shrink-0 text-xs font-semibold text-white/40 light:text-slate-500">{sensors.length}</span>
+			</div>
+			<div className="max-h-52 overflow-y-auto pr-1">
+				{sensors.map((sensor) => <SensorRow key={sensor.id} sensor={sensor} />)}
 			</div>
 		</section>
 	);
 }
 
+export function SensorCpuGaugeWidget() {
+	const { data: sys } = useSystemData();
+	const { cpuTemps, cpuAvg } = sensorGroups(sys);
+	return sys ? <SensorGauge title="CPU Sensors" sensors={cpuTemps} averageValue={cpuAvg} gaugeValue={Math.min(100, cpuAvg)} unit="C" color={temperatureTone(cpuAvg).color} icon={<Cpu className="h-5 w-5" />} /> : <div className="h-32 animate-pulse rounded-full bg-white/[0.04] light:bg-slate-100" />;
+}
+
+export function SensorThermalGaugeWidget() {
+	const { data: sys } = useSystemData();
+	const { otherTemps, tempAvg } = sensorGroups(sys);
+	return sys ? <SensorGauge title="Thermals" sensors={otherTemps} averageValue={tempAvg} gaugeValue={Math.min(100, tempAvg)} unit="C" color={temperatureTone(tempAvg).color} icon={<Thermometer className="h-5 w-5" />} /> : <div className="h-32 animate-pulse rounded-full bg-white/[0.04] light:bg-slate-100" />;
+}
+
+export function SensorFanGaugeWidget() {
+	const { data: sys } = useSystemData();
+	const { fans, fanAvg } = sensorGroups(sys);
+	return sys ? <SensorGauge title="Fans" sensors={fans} averageValue={fanAvg} gaugeValue={Math.min(100, (fanAvg / 5000) * 100)} unit="rpm" color="#38bdf8" icon={<Fan className="h-5 w-5" />} /> : <div className="h-32 animate-pulse rounded-full bg-white/[0.04] light:bg-slate-100" />;
+}
+
+export function SensorVoltageGaugeWidget() {
+	const { data: sys } = useSystemData();
+	const { voltages, voltageAvg } = sensorGroups(sys);
+	return sys ? <SensorGauge title="Voltage" sensors={voltages} averageValue={voltageAvg} gaugeValue={Math.min(100, (voltageAvg / 12) * 100)} unit="V" color="#a78bfa" icon={<Zap className="h-5 w-5" />} /> : <div className="h-32 animate-pulse rounded-full bg-white/[0.04] light:bg-slate-100" />;
+}
+
 export function MachineSensorsWidget() {
 	const { data: sys } = useSystemData();
-	const temperatures = sys?.sensors?.temperatures ?? [];
-	const cpuTemps = temperatures.filter(isCpuSensor);
-	const otherTemps = temperatures.filter((sensor) => !isCpuSensor(sensor));
-	const fans = sys?.sensors?.fans ?? [];
-	const voltages = sys?.sensors?.voltages ?? [];
-	const sensorCount = temperatures.length + fans.length + voltages.length;
-	const cpuAvg = average(cpuTemps);
-	const tempAvg = average(otherTemps);
-	const fanAvg = average(fans);
-	const voltageAvg = average(voltages);
+	const { cpuTemps, otherTemps, fans, voltages, sensorCount, cpuAvg, tempAvg } = sensorGroups(sys);
 
 	return (
 		<div className="h-full p-1">
@@ -140,11 +168,11 @@ export function MachineSensorsWidget() {
 			</div>
 			{sys ? (
 				sensorCount ? (
-					<div className="grid max-h-[760px] gap-3 overflow-y-auto pr-1 lg:grid-cols-2">
-						<SensorGroup title="CPU" subtitle="Average of CPU/package/core temperature sensors" sensors={cpuTemps} averageValue={cpuAvg} gaugeValue={Math.min(100, cpuAvg)} unit="C" color={temperatureTone(cpuAvg).color} icon={<Cpu className="h-5 w-5" />} />
-						<SensorGroup title="Thermals" subtitle="Average of non-CPU temperature sensors" sensors={otherTemps} averageValue={tempAvg} gaugeValue={Math.min(100, tempAvg)} unit="C" color={temperatureTone(tempAvg).color} icon={<Thermometer className="h-5 w-5" />} />
-						<SensorGroup title="Fans" subtitle="Average fan speed across exposed tachometers" sensors={fans} averageValue={fanAvg} gaugeValue={Math.min(100, (fanAvg / 5000) * 100)} unit="rpm" color="#38bdf8" icon={<Fan className="h-5 w-5" />} />
-						<SensorGroup title="Voltage Rails" subtitle="Average exposed voltage rail reading" sensors={voltages} averageValue={voltageAvg} gaugeValue={Math.min(100, (voltageAvg / 12) * 100)} unit="V" color="#a78bfa" icon={<Zap className="h-5 w-5" />} />
+					<div className="grid max-h-[760px] gap-5 overflow-y-auto pr-1 lg:grid-cols-2">
+						<SensorListGroup title="CPU Temperature Sensors" sensors={cpuTemps} color={temperatureTone(cpuAvg).color} />
+						<SensorListGroup title="Thermal Sensors" sensors={otherTemps} color={temperatureTone(tempAvg).color} />
+						<SensorListGroup title="Fan Tachometers" sensors={fans} color="#38bdf8" />
+						<SensorListGroup title="Voltage Rails" sensors={voltages} color="#a78bfa" />
 					</div>
 				) : (
 					<div className="flex h-36 flex-col items-center justify-center text-center text-sm text-white/40 light:text-slate-500">

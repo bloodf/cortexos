@@ -3,7 +3,8 @@ import { queryOne, execute } from "@/lib/db/client";
 
 const DEFAULT_LAYOUT = {
 	rows: [
-		{ items: ["cpu-gauge", "cpu-temperature", "memory-gauge", "storage-gauge"] },
+		{ items: ["cpu-gauge", "memory-gauge", "sensor-cpu-gauge", "sensor-thermal-gauge"] },
+		{ items: ["sensor-fan-gauge", "sensor-voltage-gauge", "cpu-temperature", "storage-gauge"] },
 		{ items: ["machine-sensors"] },
 		{ items: ["service-online", "service-offline", "service-idle", "alerts"] },
 		{ items: ["mail-guardian", "mail-guardian-reviews"] },

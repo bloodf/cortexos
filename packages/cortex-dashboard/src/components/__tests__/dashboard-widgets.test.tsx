@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { WIDGET_REGISTRY, WIDGET_LABELS } from '../dashboard-widgets';
 
 describe('WIDGET_REGISTRY', () => {
-	it('contains all 21 widget entries', () => {
-		expect(Object.keys(WIDGET_REGISTRY).length).toBe(21);
+	it('contains all 25 widget entries', () => {
+		expect(Object.keys(WIDGET_REGISTRY).length).toBe(25);
 	});
 
 	it('maps widget keys to React components', () => {
@@ -21,6 +21,7 @@ describe('WIDGET_REGISTRY', () => {
 
 	const expectedWidgets = [
 		'cpu-gauge', 'cpu-temperature', 'memory-gauge', 'machine-sensors', 'storage-gauge',
+		'sensor-cpu-gauge', 'sensor-thermal-gauge', 'sensor-fan-gauge', 'sensor-voltage-gauge',
 		'service-online', 'service-offline', 'service-idle',
 		'live-performance', 'top-processes', 'network-graph',
 		'total-download', 'total-upload',
@@ -34,8 +35,8 @@ describe('WIDGET_REGISTRY', () => {
 });
 
 describe('WIDGET_LABELS', () => {
-	it('contains all 21 label entries', () => {
-		expect(Object.keys(WIDGET_LABELS).length).toBe(21);
+	it('contains all 25 label entries', () => {
+		expect(Object.keys(WIDGET_LABELS).length).toBe(25);
 	});
 
 	it('has human-readable labels', () => {

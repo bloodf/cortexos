@@ -11,10 +11,8 @@ export function ServiceIdleWidget() {
 	const services: ServiceCheck[] = data?.services ?? [];
 	const idle = services.filter((s) => s.status === "unknown").length;
 	return (
-		<div className="h-full flex items-center gap-3 border border-white/10 light:border-slate-200 rounded-xl px-4 py-3 bg-white/[0.01] min-h-[80px]">
-			<div className="w-10 h-10 rounded-lg bg-white/5 light:bg-slate-100 flex items-center justify-center">
-				<Server className="w-5 h-5 text-white/40 light:text-slate-700" />
-			</div>
+		<div className="-m-4 flex h-[calc(100%+2rem)] min-h-[112px] items-center gap-3 rounded-2xl border border-slate-400/20 bg-slate-500/10 px-6 py-4">
+			<Server className="h-7 w-7 text-white/50 light:text-slate-700" />
 			<div>
 				<div className="text-2xl font-bold text-white/60 light:text-slate-700">{idle}</div>
 				<div className="text-xs text-white/40 light:text-slate-700">Idle</div>
