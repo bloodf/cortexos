@@ -9,6 +9,7 @@ function getClientCtor(pg) {
 const SPOKE_TO_SERVICES = {
   "11-docker": ["docker"],
   "12-tailscale": ["tailscale"],
+  "17-dnsmasq": ["dnsmasq"],
   "14-postgresql": ["postgresql", "pg-exporter", "pgadmin"],
   "14a-home-assistant": ["home-assistant"],
   "14b-jellyfin": ["jellyfin"],
@@ -16,6 +17,7 @@ const SPOKE_TO_SERVICES = {
   "16-mongodb": ["mongodb", "mongo-express", "mongo-exporter"],
   "16a-mysql": ["mysql", "phpmyadmin"],
   "18-fail2ban": ["fail2ban"],
+  "13-tailscale-serve": ["watchtower"],
   "20-prometheus": ["prometheus"],
   "21-loki": ["loki"],
   "22-grafana": ["grafana"],
@@ -115,6 +117,16 @@ async function main() {
     }
 
     const baseUrl = inferPublicBaseUrl(state);
+    if (detected.size > 0) {
+      await client.query(
+        `UPDATE services
+            SET is_active = TRUE,
+                updated_at = NOW()
+          WHERE slug = ANY($1::text[])`,
+        [Array.from(detected)],
+      );
+    }
+
     if (baseUrl) {
       await client.query("SELECT cortex_set_service_urls($1)", [baseUrl]);
     }

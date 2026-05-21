@@ -16,8 +16,6 @@ import {
 	Shield,
 	UserCog,
 	Paperclip,
-	ChevronDown,
-	ChevronRight,
 	Settings,
 	Tag,
 	FileCode,
@@ -48,14 +46,23 @@ interface NavItem {
 const PRIMARY_NAV: NavItem[] = [
 	{ href: "/overview", label: "Overview", icon: Activity },
 	{ href: "/apps", label: "Apps", icon: LayoutGrid },
+	{ href: "/services", label: "Services", icon: Settings },
 	{ href: "/healthcheck", label: "Healthcheck", icon: HeartPulse },
 	{ href: "/agents", label: "Agents", icon: Bot },
+	{ href: "/agent-factory", label: "Agent Factory", icon: Factory },
 	{ href: "/docker", label: "Docker", icon: Container },
 	{ href: "/systemd", label: "Systemd", icon: Server },
 	{ href: "/storage", label: "Storage", icon: HardDrive },
 	{ href: "/network", label: "Network", icon: Network },
 	{ href: "/processes", label: "Processes", icon: Box },
 	{ href: "/terminal", label: "Terminal", icon: Terminal },
+	{ href: "/alerts", label: "Alerts", icon: Bell },
+	{ href: "/projects", label: "Projects", icon: FolderKanban },
+	{ href: "/users", label: "Users", icon: UserCog },
+	{ href: "/badges", label: "Badges", icon: Tag },
+	{ href: "/env-browser", label: "Env Browser", icon: FileCode },
+	{ href: "/audit", label: "Audit", icon: ScrollText },
+	{ href: "/tool-audit", label: "Tool Audit", icon: Shield },
 ];
 
 const PAPERCLIP_NAV: NavItem = {
@@ -65,26 +72,11 @@ const PAPERCLIP_NAV: NavItem = {
 };
 const PAPERCLIP_ENABLED = Boolean(process.env.NEXT_PUBLIC_PAPERCLIP_API_URL);
 
-const ADMIN_NAV: NavItem[] = [
-	{ href: "/admin/services", label: "Services", icon: Settings },
-	{ href: "/admin/badges", label: "Badges", icon: Tag },
-	{ href: "/admin/env-browser", label: "Env Browser", icon: FileCode },
-	{ href: "/admin/systemd", label: "Systemd", icon: Server },
-	{ href: "/admin/docker", label: "Docker", icon: Container },
-	{ href: "/admin/agent-factory", label: "Agent Factory", icon: Factory },
-	{ href: "/admin/alerts", label: "Alerts", icon: Bell },
-	{ href: "/admin/projects", label: "Projects", icon: FolderKanban },
-	{ href: "/admin/audit", label: "Audit Log", icon: ScrollText },
-	{ href: "/admin/account", label: "Account", icon: UserCog },
-];
 
 export function AppSidebar() {
 	const pathname = usePathname();
 	const { open, isMobile } = useSidebar();
 	const collapsed = !open && !isMobile;
-	const [adminOpen, setAdminOpen] = React.useState(
-		pathname.startsWith("/admin"),
-	);
 
 	return (
 		<Sidebar mobileTitle="Navigation">
@@ -113,40 +105,6 @@ export function AppSidebar() {
 					)}
 				</SidebarGroup>
 
-				<SidebarGroup>
-					<button
-						type="button"
-						onClick={() => setAdminOpen((v) => !v)}
-						aria-expanded={adminOpen}
-						className={cn(
-							"flex items-center justify-between px-2 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wider hover:text-foreground",
-							collapsed && "justify-center px-1",
-						)}
-					>
-						{collapsed ? <Shield className="size-4" /> : <span>Admin</span>}
-						{adminOpen ? (
-							<ChevronDown className="size-3" />
-						) : (
-							<ChevronRight className="size-3" />
-						)}
-					</button>
-					{adminOpen && (
-						<div className={cn(
-							"mt-1 flex flex-col gap-0.5",
-							collapsed ? "items-center" : "ml-2 border-l border-border pl-2",
-						)}>
-							{ADMIN_NAV.map((item) => (
-								<NavLink
-									key={item.href}
-									item={item}
-									active={isActive(pathname, item.href)}
-									compact
-									collapsed={collapsed}
-								/>
-							))}
-						</div>
-					)}
-				</SidebarGroup>
 			</SidebarContent>
 			<SidebarFooter>
 				<div className={cn("flex items-center gap-2", collapsed && "flex-col")}>

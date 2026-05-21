@@ -49,6 +49,7 @@ interface DataTableProps<TData> {
   /** Disable pagination and render all filtered rows */
   noPagination?: boolean
   toolbar?: React.ReactNode
+  renderSubRow?: (row: TData) => React.ReactNode
 }
 
 function DataTable<TData>({
@@ -66,6 +67,7 @@ function DataTable<TData>({
   searchPlaceholder,
   noPagination = false,
   toolbar,
+  renderSubRow,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -177,16 +179,18 @@ function DataTable<TData>({
           <TableBody>
             {table.getRowModel().rows.length > 0 ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() ? "selected" : undefined}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className={cell.column.id === "actions" ? "text-right" : undefined}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
+                <React.Fragment key={row.id}>
+                  <TableRow
+                    data-state={row.getIsSelected() ? "selected" : undefined}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id} className={cell.column.id === "actions" ? "text-right" : undefined}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                  {renderSubRow ? renderSubRow(row.original) : null}
+                </React.Fragment>
               ))
             ) : (
               <TableRow>

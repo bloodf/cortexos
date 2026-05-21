@@ -114,7 +114,7 @@ function BadgeList({ badges }: { badges: AppService["badges"] }) {
 
 function AppActions({ service: s, isAdmin }: { service: AppService; isAdmin: boolean }) {
 	const router = useRouter();
-	return <div className="flex justify-end gap-1">{s.open_url !== "#" && <a href={s.open_url} target="_blank" rel="noopener noreferrer"><IconButton tooltip={`Open ${s.name}`}><ExternalLink className="size-4" /></IconButton></a>}{isAdmin && s.credentials && <CredentialsDialog service={s} />}{isAdmin && s.env_source && <IconButton variant="ghost" tooltip={`View env for ${s.name}`} onClick={() => router.push(`/admin/env-browser?path=${encodeURIComponent(s.env_source ?? "")}`)}><Settings2 className="size-4" /></IconButton>}</div>;
+	return <div className="flex justify-end gap-1">{s.open_url !== "#" && <a href={s.open_url} target="_blank" rel="noopener noreferrer"><IconButton tooltip={`Open ${s.name}`}><ExternalLink className="size-4" /></IconButton></a>}{isAdmin && s.credentials && <CredentialsDialog service={s} />}{isAdmin && s.env_source && <IconButton variant="ghost" tooltip={`View env for ${s.name}`} onClick={() => router.push(`/env-browser?path=${encodeURIComponent(s.env_source ?? "")}`)}><Settings2 className="size-4" /></IconButton>}</div>;
 }
 
 function CredentialsDialog({ service }: { service: AppService }) {

@@ -77,7 +77,7 @@ export function AdminSystemdTable() {
 				accessorKey: "name",
 				header: "Unit",
 				cell: ({ row }) => (
-					<span className="font-mono text-xs">{row.original.name}</span>
+					<span className="font-mono text-xs truncate block max-w-[220px]" title={row.original.name}>{row.original.name}</span>
 				),
 			},
 			{
@@ -100,7 +100,7 @@ export function AdminSystemdTable() {
 				accessorKey: "description",
 				header: "Description",
 				cell: ({ row }) => (
-					<span className="text-xs text-muted-foreground truncate block max-w-[400px]">
+					<span className="text-xs text-muted-foreground truncate block max-w-[300px]" title={row.original.description}>
 						{row.original.description}
 					</span>
 				),

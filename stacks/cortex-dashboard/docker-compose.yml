@@ -52,6 +52,8 @@ services:
       - "${CORTEXOS_ROOT:-/opt/cortexos}/.secrets/.setup-state.json:/run/cortexos/setup-state.json:ro"
       - /var/run/docker.sock:/var/run/docker.sock
       - /opt/cortexos/.secrets/terminal_id_ed25519:/run/cortexos/terminal_id_ed25519:ro
+      - /opt/cortexos/.secrets:/opt/cortexos/.secrets
+      - /opt/cortexos/stacks:/opt/cortexos/stacks:ro
       - /opt/cortexos/hermes:/opt/cortexos/hermes:ro
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3080/en/login"]

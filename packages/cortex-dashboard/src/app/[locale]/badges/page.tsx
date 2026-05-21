@@ -4,7 +4,7 @@ import { AdminBadgesGrid } from "@/components/admin/admin-badges-grid";
 
 type BadgeUsage = { badge_id: number; usage_count: string | number };
 
-export default async function AdminBadgesPage() {
+export default async function BadgesPage() {
 	const badges = await listBadges();
 	const usageRows = await query<BadgeUsage>("SELECT badge_id, COUNT(*) AS usage_count FROM service_badges GROUP BY badge_id");
 	const usage = new Map(usageRows.map((row) => [row.badge_id, Number(row.usage_count)]));
@@ -18,7 +18,7 @@ export default async function AdminBadgesPage() {
 	}));
 	return (
 		<div className="space-y-4">
-			<h1 className="text-2xl font-semibold">Admin · Badges</h1>
+			<h1 className="text-2xl font-semibold">Badges</h1>
 			<AdminBadgesGrid initialBadges={safe} />
 		</div>
 	);

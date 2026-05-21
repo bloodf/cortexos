@@ -1,13 +1,14 @@
-import { SystemdServices } from "@/components/admin/systemd-services";
+import { AdminSystemdTable } from "@/components/admin/admin-systemd-table";
 
 export default function SystemdPage() {
 	return (
 		<div className="space-y-4">
 			<h1 className="text-2xl font-semibold">Systemd</h1>
 			<p className="text-sm text-muted-foreground">
-				Read-only view of host systemd units. Use Admin · Systemd to start/stop/restart.
+				Manage systemd units on the host. Start/stop/restart actions require confirmation
+				and are audit-logged.
 			</p>
-			<SystemdServices />
+			<AdminSystemdTable />
 		</div>
 	);
 }

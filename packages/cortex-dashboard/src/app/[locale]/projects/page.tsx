@@ -1,7 +1,7 @@
 import { listProjects } from "@/lib/db/projects";
 import { AdminProjectsPanel } from "@/components/admin/admin-projects-panel";
 
-export default async function AdminProjectsPage() {
+export default async function ProjectsPage() {
 	const projects = await listProjects();
 	const safe = projects.map((p) => ({
 		id: p.id,
@@ -13,7 +13,7 @@ export default async function AdminProjectsPage() {
 	}));
 	return (
 		<div className="space-y-4">
-			<h1 className="text-2xl font-semibold">Admin · Projects</h1>
+			<h1 className="text-2xl font-semibold">Projects</h1>
 			<p className="text-sm text-muted-foreground">
 				Operator-registered projects. Bot tokens live on the VPS, never in the dashboard DB.
 			</p>

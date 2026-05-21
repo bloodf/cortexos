@@ -30,7 +30,7 @@ export function LoginForm() {
         setError(data.error || "Login failed");
         return;
       }
-      router.push("/admin");
+      router.push("/overview");
       router.refresh();
     } catch {
       setError("Network error");

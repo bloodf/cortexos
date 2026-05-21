@@ -347,6 +347,35 @@ function hermesBase(): string {
 	return process.env.HERMES_PROFILES_ROOT || "/opt/cortexos/hermes/profiles";
 }
 
+function renderFactoryProfileConfig(model = "cx/gpt-5.5"): string {
+	return [
+		"model:",
+		`  default: ${model}`,
+		"  provider: 9router",
+		"  base_url: ${NINEROUTER_BASE_URL}",
+		"  api_mode: chat_completions",
+		"providers:",
+		"  9router:",
+		"    name: 9Router",
+		"    api: ${NINEROUTER_BASE_URL}",
+		"    key_env: NINEROUTER_API_KEY",
+		"    transport: openai_chat",
+		"agent:",
+		"  max_turns: 120",
+		"mcp_servers:",
+		"  filesystem:",
+		"    command: sh",
+		"    args: [\"-lc\", \"exec npx -y @modelcontextprotocol/server-filesystem ${MCP_FILESYSTEM_ROOTS}\"]",
+		"  agentgateway:",
+		"    command: node",
+		"    args: [\"${CORTEX_AGENTGATEWAY_MCP_BIN}\"]",
+		"    env:",
+		"      AGENTGATEWAY_MCP_CONFIG: ${AGENTGATEWAY_MCP_CONFIG}",
+		"      AGENTGATEWAY_MCP_TIMEOUT_MS: ${AGENTGATEWAY_MCP_TIMEOUT_MS}",
+		"",
+	].join("\n");
+}
+
 function slugify(value: string): string {
 	return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "agent";
 }
@@ -681,6 +710,10 @@ export function getAllTools(ctx: ToolContext): Record<string, Tool> {
 				}
 				const written: string[] = [];
 			const registered: string[] = [];
+			const projectHome = join(hermesBase(), projectSlug);
+			await mkdir(projectHome, { recursive: true });
+			await writeFile(join(projectHome, "config.yaml"), renderFactoryProfileConfig(), "utf-8");
+			written.push(join(projectHome, "config.yaml"));
 			for (const position of positions) {
 				const seat = slugify(String(position.seat || position.paperclip_role || position.title || "agent"));
 				const agentSlug = `${projectSlug}-${seat}`;

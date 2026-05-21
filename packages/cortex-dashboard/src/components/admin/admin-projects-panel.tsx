@@ -83,7 +83,7 @@ export function AdminProjectsPanel({ initialProjects }: Props) {
 							size="sm"
 							variant="ghost"
 							onClick={() => {
-								router.push(`/admin/env-browser?path=${encodeURIComponent(envFilePath(row.original.slug))}`);
+								router.push(`/env-browser?path=${encodeURIComponent(envFilePath(row.original.slug))}`);
 							}}
 						>
 							<FolderOpen className="size-3 mr-1" /> Env

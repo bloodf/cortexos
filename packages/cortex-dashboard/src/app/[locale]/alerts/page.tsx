@@ -1,48 +1,38 @@
-import { getAlertRules } from "@/lib/db/alerts";
-import { AlertHistory } from "@/components/notifications";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { BellIcon } from "lucide-react";
+import { listAlerts, getAlertRules } from "@/lib/db/alerts";
+import { AdminAlertsPanel } from "@/components/admin/admin-alerts-panel";
 
 export default async function AlertsPage() {
-	const rules = await getAlertRules();
-
+	const [alerts, rules] = await Promise.all([
+		listAlerts({ limit: 100 }),
+		getAlertRules(),
+	]);
+	const safeAlerts = alerts.map((a) => ({
+		id: a.id,
+		kind: a.kind,
+		severity: a.severity,
+		title: a.title,
+		body: a.body,
+		source: a.source,
+		acknowledged_at: a.acknowledged_at ? a.acknowledged_at.toISOString() : null,
+		created_at: a.created_at.toISOString(),
+	}));
+	const safeRules = rules.map((r) => ({
+		id: r.id,
+		service_id: r.service_id,
+		name: r.name,
+		condition: r.condition,
+		threshold_ms: r.threshold_ms,
+		enabled: r.enabled,
+	}));
 	return (
-		<div className="space-y-6">
-			<div className="flex items-center gap-2">
-				<BellIcon className="size-5" />
-				<h1 className="text-xl font-bold">Alerts</h1>
-			</div>
-
-			<Card>
-				<CardHeader>
-					<CardTitle>Alert Rules</CardTitle>
-				</CardHeader>
-				<CardContent className="space-y-3">
-					{rules.length === 0 && (
-						<p className="text-sm text-muted-foreground">No alert rules configured.</p>
-					)}
-					{rules.map((rule) => (
-						<div
-							key={rule.id}
-							className="flex items-center justify-between rounded-lg border p-3"
-						>
-							<div>
-								<p className="text-sm font-medium">{rule.name}</p>
-								<p className="text-xs text-muted-foreground">
-									Condition: {rule.condition}
-									{rule.threshold_ms ? ` > ${rule.threshold_ms}ms` : ""}
-								</p>
-							</div>
-							<Badge variant={rule.enabled ? "default" : "secondary"}>
-								{rule.enabled ? "Enabled" : "Disabled"}
-							</Badge>
-						</div>
-					))}
-				</CardContent>
-			</Card>
-
-			<AlertHistory limit={20} />
+		<div className="space-y-4">
+			<h1 className="text-2xl font-semibold">Alerts</h1>
+			<p className="text-sm text-muted-foreground">
+				Operational alerts and rule management. Acknowledge or delete alerts; toggle rules.
+			</p>
+			<AdminAlertsPanel initialAlerts={safeAlerts} initialRules={safeRules} />
 		</div>
 	);
 }
+
+export const dynamic = "force-dynamic";
