@@ -15,7 +15,7 @@ export function DatabaseOpsWidget() {
 	return (
 		<motion.div
 			whileHover={{ scale: 1.02 }}
-			className="h-full flex flex-col justify-center bg-white/[0.02] rounded-xl p-4 border border-emerald-500/20 min-h-[80px] shadow-[inset_0_0_20px_rgba(16,185,129,0.05)]"
+			className="-m-4 flex h-[calc(100%+2rem)] min-h-[112px] flex-col justify-center rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-6 py-4"
 		>
 			<div className="flex items-center gap-2 text-xs text-white/50 light:text-slate-700 mb-2 font-medium tracking-wide uppercase">
 				<Database className="w-4 h-4 text-emerald-400" />

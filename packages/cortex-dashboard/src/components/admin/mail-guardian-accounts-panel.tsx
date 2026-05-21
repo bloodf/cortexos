@@ -4,6 +4,7 @@ import * as React from "react";
 import useSWR from "swr";
 import { Edit2, Plus, RefreshCw, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -63,6 +64,7 @@ export function MailGuardianAccountsPanel() {
 	const { data, mutate, isLoading } = useSWR<{ accounts: MailAccount[]; error?: string }>("/api/mail-guardian/accounts", fetcher, { refreshInterval: 10_000 });
 	const [form, setForm] = React.useState<AccountForm>(emptyForm);
 	const [editingSlug, setEditingSlug] = React.useState<string | null>(null);
+	const [dialogOpen, setDialogOpen] = React.useState(false);
 	const [running, setRunning] = React.useState<string | null>(null);
 	const [message, setMessage] = React.useState<string | null>(null);
 	const accounts = data?.accounts ?? [];
@@ -74,6 +76,7 @@ export function MailGuardianAccountsPanel() {
 	function reset() {
 		setEditingSlug(null);
 		setForm(emptyForm);
+		setDialogOpen(false);
 	}
 
 	async function save(event: React.FormEvent) {
@@ -126,10 +129,16 @@ export function MailGuardianAccountsPanel() {
 					<h2 className="text-lg font-semibold">Email Accounts</h2>
 					<p className="text-sm text-muted-foreground">Manage IMAP accounts watched by Mail Guardian. Changes restart the listener.</p>
 				</div>
-				<Button type="button" variant="outline" onClick={() => mutate()} disabled={isLoading}>
-					<RefreshCw className="size-4" />
-					Refresh
-				</Button>
+				<div className="flex gap-2">
+					<Button type="button" variant="outline" onClick={() => mutate()} disabled={isLoading}>
+						<RefreshCw className="size-4" />
+						Refresh
+					</Button>
+					<Button type="button" onClick={() => { setEditingSlug(null); setForm(emptyForm); setDialogOpen(true); }}>
+						<Plus className="size-4" />
+						Add Account
+					</Button>
+				</div>
 			</div>
 			{message && <p className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">{message}</p>}
 			<div className="overflow-hidden rounded-lg border border-border">
@@ -157,7 +166,7 @@ export function MailGuardianAccountsPanel() {
 								<TableCell>{account.passwordSet ? "Stored" : "Missing"}</TableCell>
 								<TableCell className="text-right">
 									<div className="flex justify-end gap-1">
-										<Button type="button" size="icon-sm" variant="outline" title="Edit" onClick={() => { setEditingSlug(account.slug); setForm(formFromAccount(account)); }}>
+										<Button type="button" size="icon-sm" variant="outline" title="Edit" onClick={() => { setEditingSlug(account.slug); setForm(formFromAccount(account)); setDialogOpen(true); }}>
 											<Edit2 className="size-3.5" />
 										</Button>
 										<Button type="button" size="icon-sm" variant="destructive" title="Remove" disabled={running !== null || accounts.length <= 1} onClick={() => remove(account.slug)}>
@@ -170,32 +179,39 @@ export function MailGuardianAccountsPanel() {
 					</TableBody>
 				</Table>
 			</div>
-			<form onSubmit={save} className="rounded-lg border border-border p-4">
-				<div className="mb-3 flex items-center justify-between">
-					<h3 className="font-semibold">{editingSlug ? `Edit ${editingSlug}` : "Add Email Account"}</h3>
-					{editingSlug && <Button type="button" size="sm" variant="ghost" onClick={reset}><X className="size-4" />Cancel</Button>}
-				</div>
-				<div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-					<Input placeholder="slug" value={form.slug} onChange={(event) => update("slug", event.target.value)} disabled={Boolean(editingSlug)} />
-					<Input placeholder="email address" value={form.address} onChange={(event) => update("address", event.target.value)} />
-					<Input placeholder="IMAP host" value={form.host} onChange={(event) => update("host", event.target.value)} />
-					<Input placeholder="port" value={form.port} onChange={(event) => update("port", event.target.value)} />
-					<Input placeholder="username" value={form.username} onChange={(event) => update("username", event.target.value)} />
-					<Input placeholder={editingSlug ? "new password optional" : "password"} type="password" value={form.password} onChange={(event) => update("password", event.target.value)} />
-					<Input placeholder="inbox" value={form.inbox} onChange={(event) => update("inbox", event.target.value)} />
-					<Input placeholder="trash mailbox optional" value={form.trashMailbox} onChange={(event) => update("trashMailbox", event.target.value)} />
-				</div>
-				<div className="mt-3 flex items-center justify-between gap-3">
-					<label className="flex items-center gap-2 text-sm text-muted-foreground">
-						<input type="checkbox" checked={form.secure} onChange={(event) => update("secure", event.target.checked)} />
-						Use TLS
-					</label>
-					<Button type="submit" disabled={running !== null}>
-						<Plus className="size-4" />
-						{running === "save" ? "Saving..." : editingSlug ? "Update Account" : "Add Account"}
-					</Button>
-				</div>
-			</form>
+			<Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) reset(); else setDialogOpen(true); }}>
+				<DialogContent className="sm:max-w-2xl">
+					<DialogHeader>
+						<DialogTitle>{editingSlug ? `Edit ${editingSlug}` : "Add Email Account"}</DialogTitle>
+						<DialogDescription>Mail Guardian will restart after the account is saved.</DialogDescription>
+					</DialogHeader>
+					<form onSubmit={save} className="space-y-3">
+						<div className="grid gap-3 md:grid-cols-2">
+							<Input placeholder="slug" value={form.slug} onChange={(event) => update("slug", event.target.value)} disabled={Boolean(editingSlug)} />
+							<Input placeholder="email address" value={form.address} onChange={(event) => update("address", event.target.value)} />
+							<Input placeholder="IMAP host" value={form.host} onChange={(event) => update("host", event.target.value)} />
+							<Input placeholder="port" value={form.port} onChange={(event) => update("port", event.target.value)} />
+							<Input placeholder="username" value={form.username} onChange={(event) => update("username", event.target.value)} />
+							<Input placeholder={editingSlug ? "new password optional" : "password"} type="password" value={form.password} onChange={(event) => update("password", event.target.value)} />
+							<Input placeholder="inbox" value={form.inbox} onChange={(event) => update("inbox", event.target.value)} />
+							<Input placeholder="trash mailbox optional" value={form.trashMailbox} onChange={(event) => update("trashMailbox", event.target.value)} />
+						</div>
+						<div className="flex items-center justify-between gap-3 pt-2">
+							<label className="flex items-center gap-2 text-sm text-muted-foreground">
+								<input type="checkbox" checked={form.secure} onChange={(event) => update("secure", event.target.checked)} />
+								Use TLS
+							</label>
+							<div className="flex gap-2">
+								<Button type="button" variant="outline" onClick={reset}><X className="size-4" />Cancel</Button>
+								<Button type="submit" disabled={running !== null}>
+									<Plus className="size-4" />
+									{running === "save" ? "Saving..." : editingSlug ? "Update Account" : "Add Account"}
+								</Button>
+							</div>
+						</div>
+					</form>
+				</DialogContent>
+			</Dialog>
 		</section>
 	);
 }

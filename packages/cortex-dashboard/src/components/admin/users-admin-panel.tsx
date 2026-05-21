@@ -2,9 +2,11 @@
 
 import * as React from "react";
 import useSWR from "swr";
-import { Lock, LockOpen, Shield, ShieldOff, Trash2, UserPlus, RefreshCw } from "lucide-react";
+import { Lock, LockOpen, Shield, ShieldOff, Trash2, UserPlus, RefreshCw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface LocalUser {
@@ -49,7 +51,8 @@ export function UsersAdminPanel({ initialUsers, initialSessions }: { initialUser
 	});
 	const [username, setUsername] = React.useState("");
 	const [password, setPassword] = React.useState("");
-	const [admin, setAdmin] = React.useState(false);
+	const [adminPassword, setAdminPassword] = React.useState("");
+	const [createOpen, setCreateOpen] = React.useState(false);
 	const [running, setRunning] = React.useState<string | null>(null);
 	const [message, setMessage] = React.useState<string | null>(null);
 	const localUsers = data?.localUsers ?? [];
@@ -77,33 +80,33 @@ export function UsersAdminPanel({ initialUsers, initialSessions }: { initialUser
 		await run("create", () => fetch("/api/users", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ username, password, admin }),
+			body: JSON.stringify({ username, password, adminPassword }),
 		}));
 		setUsername("");
 		setPassword("");
-		setAdmin(false);
+		setAdminPassword("");
+		setCreateOpen(false);
 	}
 
 	return (
 		<div className="space-y-6">
-			<form onSubmit={createUser} className="rounded-lg border border-border p-4">
-				<div className="mb-3 flex items-center justify-between gap-3">
-					<div>
-						<h2 className="text-lg font-semibold">Create Local User</h2>
-						<p className="text-sm text-muted-foreground">Creates a Linux account on this machine.</p>
-					</div>
+			<div className="flex items-center justify-between gap-3">
+				<div>
+					<h2 className="text-lg font-semibold">User Management</h2>
+					<p className="text-sm text-muted-foreground">Local machine users and active dashboard sessions.</p>
+				</div>
+				<div className="flex gap-2">
 					<Button type="button" variant="outline" onClick={() => mutate()}><RefreshCw className="size-4" />Refresh</Button>
+					<Button type="button" onClick={() => setCreateOpen(true)}><UserPlus className="size-4" />Create User</Button>
 				</div>
-				<div className="grid gap-3 md:grid-cols-[1fr_1fr_auto_auto] md:items-center">
-					<Input placeholder="username" value={username} onChange={(event) => setUsername(event.target.value)} />
-					<Input placeholder="temporary password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
-					<label className="flex items-center gap-2 text-sm text-muted-foreground"><input type="checkbox" checked={admin} onChange={(event) => setAdmin(event.target.checked)} /> Admin</label>
-					<Button type="submit" disabled={running !== null}><UserPlus className="size-4" />Create</Button>
-				</div>
-			</form>
+			</div>
 			{message && <p className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">{message}</p>}
-			<section className="space-y-2">
-				<h2 className="text-lg font-semibold">Local Machine Users</h2>
+			<Tabs defaultValue="local">
+				<TabsList variant="line">
+					<TabsTrigger value="local">Local Users</TabsTrigger>
+					<TabsTrigger value="sessions">Dashboard Sessions</TabsTrigger>
+				</TabsList>
+				<TabsContent value="local" className="space-y-2">
 				<div className="overflow-hidden rounded-lg border border-border">
 					<Table>
 						<TableHeader><TableRow><TableHead>User</TableHead><TableHead>UID</TableHead><TableHead>Home</TableHead><TableHead>Shell</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
@@ -127,9 +130,8 @@ export function UsersAdminPanel({ initialUsers, initialSessions }: { initialUser
 						</TableBody>
 					</Table>
 				</div>
-			</section>
-			<section className="space-y-2">
-				<h2 className="text-lg font-semibold">Dashboard Sessions</h2>
+				</TabsContent>
+				<TabsContent value="sessions" className="space-y-2">
 				<div className="overflow-hidden rounded-lg border border-border">
 					<Table>
 						<TableHeader><TableRow><TableHead>User</TableHead><TableHead>Created</TableHead><TableHead>Expires</TableHead><TableHead>Admin</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader>
@@ -141,7 +143,25 @@ export function UsersAdminPanel({ initialUsers, initialSessions }: { initialUser
 						</TableBody>
 					</Table>
 				</div>
-			</section>
+				</TabsContent>
+			</Tabs>
+			<Dialog open={createOpen} onOpenChange={setCreateOpen}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Create Local User</DialogTitle>
+						<DialogDescription>Creates a standard Linux user. Enter your admin password to authorize the system operation.</DialogDescription>
+					</DialogHeader>
+					<form onSubmit={createUser} className="space-y-3">
+						<Input placeholder="username" value={username} onChange={(event) => setUsername(event.target.value)} />
+						<Input placeholder="final password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
+						<Input placeholder="your sudo/admin password" type="password" value={adminPassword} onChange={(event) => setAdminPassword(event.target.value)} />
+						<div className="flex justify-end gap-2 pt-2">
+							<Button type="button" variant="outline" onClick={() => setCreateOpen(false)}><X className="size-4" />Cancel</Button>
+							<Button type="submit" disabled={running !== null}><UserPlus className="size-4" />Create User</Button>
+						</div>
+					</form>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 }

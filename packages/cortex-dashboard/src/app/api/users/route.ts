@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { authenticateUser, requireAdmin } from "@/lib/auth";
 import { listPamUsers, listActiveSessions, deleteUserSessions } from "@/lib/db/admin";
 import { createActionLog } from "@/lib/db/action-log";
 import { hostExecFile } from "@/lib/host-exec";
@@ -21,6 +21,13 @@ interface LocalUser {
 
 function isValidUsername(username: string) {
 	return SAFE_USERNAME_RE.test(username);
+}
+
+async function sudoExec(adminPassword: string, bin: string, args: string[]) {
+	return hostExecFile("bash", ["-lc", 'printf \'%s\\n\' "$1" | sudo -S -p \'\' "$2" "${@:3}"', "sudo-exec", adminPassword, bin, ...args], {
+		timeout: 30_000,
+		maxBuffer: 1024 * 1024,
+	});
 }
 
 function parsePasswd(stdout: string): LocalUser[] {
@@ -75,18 +82,21 @@ export async function POST(request: Request) {
 	const body = await request.json().catch(() => ({}));
 	const username = String(body.username || "").trim();
 	const password = String(body.password || "");
-	const admin = Boolean(body.admin);
+	const adminPassword = String(body.adminPassword || "");
 	if (!isValidUsername(username)) return NextResponse.json({ error: "Invalid username" }, { status: 400 });
 	if (password.length < 8) return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });
+	if (!adminPassword) return NextResponse.json({ error: "Admin password is required" }, { status: 400 });
+
+	const adminUser = auth.session?.username ? await authenticateUser(auth.session.username, adminPassword) : null;
+	if (!adminUser?.is_admin) return NextResponse.json({ error: "Invalid admin password" }, { status: 403 });
 
 	try {
-		await hostExecFile("useradd", ["-m", "-s", "/bin/bash", username], { timeout: 30_000 });
-		await hostExecFile("sh", ["-c", `printf '%s:%s\\n' "$1" "$2" | chpasswd`, "set-password", username, password], { timeout: 30_000 }).catch(async (error) => {
-			await hostExecFile("userdel", ["-r", username], { timeout: 30_000 }).catch(() => {});
+		await sudoExec(adminPassword, "useradd", ["-m", "-s", "/bin/bash", username]);
+		await hostExecFile("sh", ["-c", `printf '%s\\n' "$1" | sudo -S -p '' sh -c 'printf \"%s:%s\\\\n\" \"$1\" \"$2\" | chpasswd' set-password "$2" "$3"`, "sudo-set-password", adminPassword, username, password], { timeout: 30_000 }).catch(async (error) => {
+			await sudoExec(adminPassword, "userdel", ["-r", username]).catch(() => {});
 			throw error;
 		});
-		if (admin) await hostExecFile("usermod", ["-aG", "sudo,cortexos-admin", username], { timeout: 30_000 });
-		await createActionLog({ user_id: auth.session?.user_id ?? null, username: auth.session?.username ?? null, target_type: "local-user", target_name: username, action: "create", status: "success", message: admin ? "Created admin user" : "Created user" });
+		await createActionLog({ user_id: auth.session?.user_id ?? null, username: auth.session?.username ?? null, target_type: "local-user", target_name: username, action: "create", status: "success", message: "Created user" });
 		return NextResponse.json({ success: true });
 	} catch (error) {
 		const message = error instanceof Error ? error.message : "Failed to create user";
