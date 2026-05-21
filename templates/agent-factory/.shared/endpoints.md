@@ -8,6 +8,7 @@ Do not duplicate these URLs in other docs — reference this file by relative pa
 - Base:        `http://127.0.0.1:11434/v1`
 - Chat:        `http://127.0.0.1:11434/v1/chat/completions`
 - Models list: `http://127.0.0.1:11434/v1/models`
+- Hermes `/model` pickers must derive the selectable catalog from this endpoint and `NINEROUTER_API_KEY`; do not hardcode stale subsets or fall back to direct provider APIs.
 
 ## Paperclip
 

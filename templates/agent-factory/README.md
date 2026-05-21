@@ -48,7 +48,7 @@ Supplementary (not in REQUIRED_FILES):
 
 ## Key Concepts
 
-- **9Router**: All AI model calls route through 9Router at `127.0.0.1:11434`. No direct provider calls.
+- **9Router**: All AI model calls route through 9Router at `127.0.0.1:11434/v1`. No direct provider calls. The model catalog source of truth is `GET /v1/models`; Hermes profiles must load `/opt/cortexos/.secrets/9router.env` and keep their `providers.9router.models` synced from that endpoint so `/model` never shows an empty 9Router picker.
 - **Antagonist Review**: Cross-model review before pipeline stage transitions. BLOCK/PASS verdicts.
 - **Quality Gates**: gstack skill pipeline — office → ceo → eng → dev → review → qa → ship → retro.
 - **Agent Routing Tokens**: `@pm` is not a GitHub account; `templates/workflows/agent-mention-router.yml` should be installed as `.github/workflows/agent-mention-router.yml` and converts it into `agent:pm` + `needs-clarification` labels for PM polling.

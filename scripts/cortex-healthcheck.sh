@@ -12,8 +12,11 @@ check_http() {
 
 echo "[models]"
 if [[ -n "${NINEROUTER_API_KEY:-}" ]]; then
+  base="${NINEROUTER_BASE_URL:-http://127.0.0.1:11434}"
+  base="${base%/}"
+  if [[ "$base" == */v1 ]]; then models_url="${base}/models"; else models_url="${base}/v1/models"; fi
   curl -fsS --max-time 10 -H "Authorization: Bearer ${NINEROUTER_API_KEY}" \
-    "${NINEROUTER_BASE_URL:-http://127.0.0.1:11434}/v1/models" | jq -e '.data | length > 0' >/dev/null \
+    "$models_url" | jq -e '.data | length > 0' >/dev/null \
     && ok "9Router models available" || bad "9Router models available"
 else
   bad "NINEROUTER_API_KEY set"

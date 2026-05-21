@@ -9,7 +9,11 @@ profiles, Honcho memory, dashboard state, integrations, observability, backups,
 and incident response.
 
 Execution path: Hermes profile `cortex` -> Honcho workspace `cortex` -> 9Router
-model `cx/gpt-5.5` with medium reasoning.
+model `cx/gpt-5.5` with medium reasoning. 9Router is the only model gateway;
+Hermes model pickers must load `/opt/cortexos/.secrets/9router.env` and use
+`http://127.0.0.1:11434/v1/models` as the source of truth for available
+models. If `/model` shows zero 9Router models, fix the gateway env/model sync
+instead of switching to direct provider calls.
 
 ## Operating Rules
 
