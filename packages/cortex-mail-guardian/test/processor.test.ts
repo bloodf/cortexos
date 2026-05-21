@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ProcessDeps } from "../src/processor.js";
-import { buildReviewMessage, sweep } from "../src/processor.js";
+import { applyReviewDecision, buildReviewMessage, sweep } from "../src/processor.js";
 
 vi.mock("../src/model.js", () => ({
 	classifyEmail: async () => ({
@@ -81,5 +81,47 @@ describe("mail guardian Telegram review message", () => {
 		expect(message).not.toContain("Summary:");
 		expect(message).not.toContain("Body:");
 		expect(message).not.toContain("invoice body private details");
+	});
+});
+
+describe("mail guardian review decisions", () => {
+	it("blocks the sender when a message is marked as spam", async () => {
+		const rules: Array<{ ruleType: string; scope: string; valueHash: string }> = [];
+		const moved: Array<{ slug: string; uid: number }> = [];
+		const processed: Array<{ slug: string; uid: number; action: string }> = [];
+		const deps = {
+			config: {
+				accounts: [account("one")],
+				dryRun: false,
+			},
+			store: {
+				getReview: async () => ({
+					id: 42,
+					account_slug: "one",
+					message_uid: 101,
+					from_hash: "sender-hash",
+					domain_hash: "domain-hash",
+				}),
+				addRule: async (ruleType: string, scope: string, valueHash: string) => {
+					rules.push({ ruleType, scope, valueHash });
+				},
+				markProcessed: async (slug: string, uid: number, action: string) => {
+					processed.push({ slug, uid, action });
+				},
+				resolveReview: async () => undefined,
+			},
+			mail: {
+				moveToTrash: async (mailAccount: { slug: string }, uid: number) => {
+					moved.push({ slug: mailAccount.slug, uid });
+					return "Trash";
+				},
+			},
+		} as unknown as ProcessDeps;
+
+		await applyReviewDecision(deps, 42, "spam", "telegram");
+
+		expect(moved).toEqual([{ slug: "one", uid: 101 }]);
+		expect(processed).toEqual([{ slug: "one", uid: 101, action: "trashed" }]);
+		expect(rules).toEqual([{ ruleType: "block", scope: "sender", valueHash: "sender-hash" }]);
 	});
 });

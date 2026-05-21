@@ -172,7 +172,7 @@ export async function applyReviewDecision(deps: ProcessDeps, reviewId: number, d
 	if (decision === "spam" || decision === "block_sender") {
 		if (!deps.config.dryRun) await deps.mail.moveToTrash(account, review.message_uid);
 		await deps.store.markProcessed(account.slug, review.message_uid, deps.config.dryRun ? "would_trash" : "trashed");
-		if (decision === "block_sender") await deps.store.addRule("block", "sender", review.from_hash);
+		await deps.store.addRule("block", "sender", review.from_hash);
 	} else if (decision === "keep" || decision === "allow_sender") {
 		await deps.store.markProcessed(account.slug, review.message_uid, "kept");
 		if (decision === "allow_sender") await deps.store.addRule("allow", "sender", review.from_hash);
