@@ -5,7 +5,7 @@
 ############################
 # Stage 1 — builder
 ############################
-FROM node:22-slim AS builder
+FROM node:26-slim AS builder
 WORKDIR /repo
 ENV NEXT_TELEMETRY_DISABLED=1
 
@@ -68,7 +68,7 @@ EOF
 ############################
 # Stage 2 — runtime
 ############################
-FROM node:22-slim AS runtime
+FROM node:26-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production \
     PORT=3080 \
