@@ -17,6 +17,8 @@ Validate the Paperclip + Hermes + Honcho CortexOS stack.
 - Hermes Primary is healthy on `127.0.0.1:18691`.
 - Hermes Secondary is healthy on `127.0.0.1:18692`.
 - Paperclip can execute a Hermes run for each profile.
+- Coding Hermes profiles expose the configured MCP tool names after MCP reload
+  or service restart.
 - Dashboard service catalog contains Hermes/Honcho/Paperclip and no active
   retired agent-workflow services.
 - Local-machine API access works through Caddy/Tailscale with auth and fails
@@ -43,3 +45,9 @@ CORTEX_FULL_PIPELINE_SMOKE=1 bash scripts/cortex-production-readiness.sh
 
 Active installer prompts, templates, dashboard code, and scripts must describe
 only the Paperclip, Hermes, Honcho, Ollama, and 9Router runtime.
+They must not contain live secrets, tenant URLs, private endpoints, local
+absolute paths, or tracked non-Cortex generated agent profiles.
+
+```bash
+node scripts/check-repo-leaks.mjs
+```

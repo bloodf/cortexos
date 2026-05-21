@@ -26,4 +26,4 @@ Create a memory fact in `secondary` and confirm `primary` cannot retrieve it.
 
 ## Next
 
-→ `prompts/tools/43-paperclip-hermes.md`
+→ `prompts/tools/42a-hermes-mcp.md`

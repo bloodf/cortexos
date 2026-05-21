@@ -5,18 +5,20 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=cortexos
-Group=cortexos
-EnvironmentFile=/opt/cortexos/.secrets/hermes/%i.env
-WorkingDirectory=/opt/cortexos/hermes/profiles/%i
-ExecStart=/usr/bin/env node /opt/cortexos/scripts/hermes-profile-api.mjs %i
+User={VPS_USER}
+Group={VPS_USER}
+EnvironmentFile=-{CORTEX_SECRETS_DIR}/mcp.env
+EnvironmentFile={CORTEX_SECRETS_DIR}/hermes/%i.env
+Environment=HERMES_COMMAND={HERMES_COMMAND}
+WorkingDirectory={CORTEX_HERMES_ROOT}/profiles/%i
+ExecStart=/usr/bin/env node {CORTEX_RUNTIME_ROOT}/scripts/hermes-profile-api.mjs %i
 Restart=always
 RestartSec=5
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=full
 ProtectHome=read-only
-ReadWritePaths=/opt/cortexos/hermes /opt/cortexos/.secrets/hermes
+ReadWritePaths={CORTEX_HERMES_ROOT} {CORTEX_SECRETS_DIR}
 
 [Install]
 WantedBy=multi-user.target

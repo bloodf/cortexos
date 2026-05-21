@@ -30,6 +30,8 @@ Required:
 7. Memory scope: new Honcho workspace or existing workspace to reuse.
 8. Risk level: can agents change files/services, or should they only report?
 9. Acceptance test for the initial factory smoke.
+10. MCP needs beyond the default coding bundle, especially filesystem roots or
+   credentialed external services.
 
 Optional:
 
@@ -58,11 +60,15 @@ Optional:
 4. Define roles with clear bosses, permissions, and schedule cadence.
 5. Create or update dashboard factory state.
 6. Register only factory-produced roles in Paperclip.
-7. Run a smoke test:
+7. Attach filesystem MCP through the runtime Hermes profile and external MCPs
+   through the AgentGateway proxy/aggregator config. Do not write generated
+   profile names, local paths, or secrets into repository files.
+8. Run a smoke test:
    - Dashboard factory exists.
    - Hermes profile health is ok.
    - Paperclip agents exist only for factory roles.
    - A temporary assigned issue can run through Paperclip -> Hermes -> Honcho.
+   - MCP tools are visible for coding agents when required.
    - Temporary smoke artifacts are cleaned up.
 
 ## Output Contract

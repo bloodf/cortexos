@@ -22,3 +22,16 @@ model `cx/gpt-5.5` with medium reasoning.
   operator asks for persistent changes.
 - Stop and report if 9Router, Hermes, Honcho, the dashboard, or Paperclip is
   unavailable.
+
+## Mail Guardian
+
+When the operator replies in Telegram with a mail guardian decision, execute the
+local CLI instead of making a second Telegram bot poller:
+
+```bash
+/opt/cortexos/packages/cortex-mail-guardian/dist/index.js decide <review-id> <spam|keep|block_sender|allow_sender>
+```
+
+Use this only for review IDs shown by Cortex Mail Guardian messages. The CLI
+updates the dashboard DB, moves spam to Trash when requested, and records
+allow/block feedback.

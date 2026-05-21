@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "packageManager": "pnpm@10.12.1",
+  "scripts": {
+    "check:repo-leaks": "node scripts/check-repo-leaks.mjs"
+  },
   "engines": {
     "node": ">=22"
   }

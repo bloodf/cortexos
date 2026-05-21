@@ -134,8 +134,12 @@ spokes:
     deps: [41-hermes-profiles, 32-honcho]
     optional: false
 
-  43-paperclip-hermes:
+  42a-hermes-mcp:
     deps: [42-hermes-honcho]
+    optional: false
+
+  43-paperclip-hermes:
+    deps: [42a-hermes-mcp]
     optional: false
 
   44-api-exposure:
@@ -203,6 +207,7 @@ spokes:
       - 32-honcho
       - 34-kernel-browser
       - 42-hermes-honcho
+      - 42a-hermes-mcp
       - 43-paperclip-hermes
       - 44-api-exposure
       - 47a-cortex-sandbox

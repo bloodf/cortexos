@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
+import { chmodSync, mkdirSync, readFileSync, symlinkSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { randomBytes } from "node:crypto";
 
@@ -15,6 +15,9 @@ const profileHome = `${root}/profiles/${profile}`;
 const secretsDir = "/opt/cortexos/.secrets/hermes";
 const secretPath = `${secretsDir}/${profile}.env`;
 const templatePath = resolve("templates/hermes/profile-template.json");
+const mcpTemplatePath = resolve("templates/hermes/filesystem-mcp.yaml");
+const binDir = "/opt/cortexos/bin";
+const userBinDir = process.env.CORTEX_USER_BIN_DIR || (process.env.HOME ? `${process.env.HOME}/.local/bin` : "");
 
 let registry = { profiles: [] };
 if (existsSync(registryPath)) {
@@ -50,6 +53,29 @@ const template = readFileSync(templatePath, "utf8")
 const profileConfig = JSON.parse(template);
 writeFileSync(`${profileHome}/cortexos-profile.json`, JSON.stringify(profileConfig, null, 2) + "\n", { mode: 0o644 });
 
+function renderHermesConfig() {
+  const mcpConfig = readFileSync(mcpTemplatePath, "utf8");
+  return [
+    "model:",
+    `  default: ${model}`,
+    "  provider: 9router",
+    "  base_url: ${NINEROUTER_BASE_URL}",
+    "  api_mode: chat_completions",
+    "providers:",
+    "  9router:",
+    "    name: 9Router",
+    "    api: ${NINEROUTER_BASE_URL}",
+    "    key_env: NINEROUTER_API_KEY",
+    "    transport: openai_chat",
+    "agent:",
+    "  max_turns: 120",
+    mcpConfig.trimEnd(),
+    "",
+  ].join("\n");
+}
+
+writeFileSync(`${profileHome}/config.yaml`, renderHermesConfig(), { mode: 0o644 });
+
 if (!existsSync(secretPath)) {
   const apiKey = randomBytes(32).toString("hex");
   writeFileSync(
@@ -71,6 +97,28 @@ if (!existsSync(secretPath)) {
     ].join("\n"),
     { mode: 0o600 },
   );
+}
+
+mkdirSync(binDir, { recursive: true, mode: 0o755 });
+if (userBinDir) mkdirSync(userBinDir, { recursive: true, mode: 0o755 });
+const wrapperPath = `${binDir}/hermes-${profile}`;
+writeFileSync(
+  wrapperPath,
+  [
+    "#!/usr/bin/env bash",
+    "set -euo pipefail",
+    `export HERMES_PROFILE=${JSON.stringify(profile)}`,
+    `export HERMES_HOME=${JSON.stringify(profileHome)}`,
+    'exec "${HERMES_COMMAND:-hermes}" "$@"',
+    "",
+  ].join("\n"),
+  { mode: 0o755 },
+);
+chmodSync(wrapperPath, 0o755);
+try {
+  if (userBinDir) symlinkSync(wrapperPath, `${userBinDir}/hermes-${profile}`);
+} catch (error) {
+  if (error?.code !== "EEXIST") throw error;
 }
 
 registry.profiles = registry.profiles.filter((item) => item.profile !== profile);

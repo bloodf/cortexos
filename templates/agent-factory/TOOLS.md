@@ -139,9 +139,31 @@ Hermes profiles execute Paperclip-assigned agent work through 9Router-backed mod
 
 ## MCP Servers
 
-### Filesystem
+Factory-created coding agents inherit direct filesystem MCP from their runtime
+Hermes profile. External MCP capabilities are exposed through the CortexOS
+AgentGateway MCP proxy/aggregator. Repository templates name capabilities
+only; profile names, local paths, secrets, and generated agent files stay in
+runtime storage.
 
-Standard filesystem MCP server for file operations. Available by default in all agent sessions.
+Configured coding MCP capabilities:
+
+- `claude-context` — semantic codebase context
+- `context7` — library documentation lookup
+- `expo` — Expo documentation and development context
+- `fetch` — URL to markdown/text
+- `git` — repository status, diff, log, add, and commit helpers
+- `markitdown` — file or URL conversion to markdown
+- `next-devtools` — Next.js runtime, docs, and browser-eval helpers
+- `semble` — semantic code search
+- `sequentialthinking` — stepwise reasoning scratchpad
+- `time` — timezone-aware time lookup
+- `minimax` — media generation where configured
+- `web-reader` — web page reader where configured
+- `web-search-prime` — web search where configured
+- `zai-mcp-server` — vision, OCR, UI, and diagram analysis where configured
+- `zread` — repository read/search where configured
+- `filesystem` — direct Hermes file access under operator-approved runtime
+  roots only
 
 ## Skills System
 

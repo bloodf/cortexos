@@ -92,6 +92,8 @@ These are non-negotiable. Violating any of these is a session-ending failure.
 - Query 9Router models
 - Access databases listed in TOOLS.md
 - Use skills in your workspace
+- Use MCP tools already exposed by your active Hermes profile, within the
+  permissions and roots defined in TOOLS.md
 
 ### External (ask first)
 
@@ -101,6 +103,14 @@ These are non-negotiable. Violating any of these is a session-ending failure.
 - Installing new system packages
 - Modifying Docker containers outside your workspace
 - Any action that costs money
+
+## MCP Boundary
+
+Filesystem MCP is provided directly by the runtime Hermes profile. External MCP
+tools are provided through the CortexOS AgentGateway MCP proxy/aggregator. Do
+not hardcode secrets, profile names, host paths, private endpoints, or
+generated agent identities in repository files. Filesystem MCP access is
+limited to operator-approved runtime roots.
 
 ---
 

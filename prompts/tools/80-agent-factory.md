@@ -17,10 +17,14 @@ Factory definitions must use:
 
 - `adapter: "hermes_local"`
 - one Hermes profile per project
+- the shared coding MCP bundle from the runtime Hermes profile
 - `ticket_link_table: "paperclip_ticket_link"`
 - stable Paperclip role codes for seats
 
 Do not add custom bus subjects, gateway IDs, or legacy runtime paths.
+Do not write generated profile names, project-agent files, local paths, or
+secrets into the repository. Factory promotion writes generated agents only to
+runtime Hermes/Paperclip storage.
 
 ## Verify
 

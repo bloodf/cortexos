@@ -65,6 +65,9 @@ Use `scripts/paperclip-register-roles.ts` after Paperclip can load
 
 Paperclip owns schedules, comments, issue assignment, budgets, approvals, and
 status. Hermes owns execution, sessions, tools, skills, and messaging.
+MCP configuration is owned by the Hermes profile and AgentGateway runtime
+created in `42a-hermes-mcp.md`; Paperclip does not store MCP credentials or
+generated profile files in the repository.
 
 Required env:
 

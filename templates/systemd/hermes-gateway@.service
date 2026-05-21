@@ -1,0 +1,29 @@
+[Unit]
+Description=CortexOS Hermes AgentGateway %i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={VPS_USER}
+Group={VPS_USER}
+EnvironmentFile=-{CORTEX_SECRETS_DIR}/mcp.env
+EnvironmentFile={CORTEX_SECRETS_DIR}/hermes/%i.env
+Environment=HOME={VPS_HOME}
+Environment=USER={VPS_USER}
+Environment=LOGNAME={VPS_USER}
+Environment=PATH={VPS_HOME}/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/snap/bin
+Environment=VIRTUAL_ENV={VPS_HOME}/.hermes/hermes-agent/venv
+Environment=HERMES_HOME={CORTEX_HERMES_ROOT}/profiles/%i
+WorkingDirectory={VPS_HOME}/.hermes/hermes-agent
+ExecStart={VPS_HOME}/.hermes/hermes-agent/venv/bin/python -m hermes_cli.main --profile %i gateway run --replace
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths={CORTEX_HERMES_ROOT} {CORTEX_SECRETS_DIR}
+
+[Install]
+WantedBy=multi-user.target

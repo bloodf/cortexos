@@ -1,0 +1,12 @@
+{
+  "name": "@cortexos/agentgateway",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "cortex-agentgateway-mcp": "./src/mcp-proxy.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.0"
+  }
+}
