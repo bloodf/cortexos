@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import {
   Table,
   TableBody,
@@ -15,13 +16,26 @@ interface ActionLogProps {
   entries?: ActionLogEntry[];
 }
 
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
 export function ActionLog({ entries = [] }: ActionLogProps) {
+  const [rows, setRows] = React.useState<ActionLogEntry[]>(entries);
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    fetcher("/api/action-log")
+      .then((data: { entries?: ActionLogEntry[] }) => { if (!cancelled) setRows(data.entries ?? []); })
+      .catch((err: unknown) => { if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load action log"); });
+    return () => { cancelled = true; };
+  }, []);
   return (
     <div className="space-y-2">
       <h3 className="text-sm font-semibold text-white/80 light:text-slate-700">
         Action Log
       </h3>
-      {entries.length === 0 ? (
+      {error && <p className="text-sm text-destructive">{error}</p>}
+      {rows.length === 0 ? (
         <p className="text-sm text-white/30 light:text-slate-700">
           No actions recorded.
         </p>
@@ -51,7 +65,7 @@ export function ActionLog({ entries = [] }: ActionLogProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {entries.map((entry) => (
+              {rows.map((entry) => (
                 <TableRow
                   key={entry.id}
                   className="border-white/[0.03] hover:bg-white/[0.02]"

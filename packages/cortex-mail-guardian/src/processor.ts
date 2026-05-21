@@ -121,11 +121,14 @@ export async function sweep(deps: ProcessDeps): Promise<{ processed: number; tra
 				process.stderr.write(`[mail-guardian] ${account.slug}:${message.uid} failed: ${error instanceof Error ? error.message : String(error)}\n`);
 				continue;
 			}
-			accountProcessed += 1;
 			processed += 1;
+			if (action === "skipped") {
+				skipped += 1;
+				continue;
+			}
+			accountProcessed += 1;
 			if (action === "trashed") trashed += 1;
 			else if (action === "review") review += 1;
-			else skipped += 1;
 		}
 	}
 	return { processed, trashed, review, skipped, failed };

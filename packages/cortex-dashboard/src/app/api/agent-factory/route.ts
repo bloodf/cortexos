@@ -1,3 +1,5 @@
+import { promises as fs } from "node:fs";
+import path from "node:path";
 import { NextResponse } from "next/server";
 import { requireAuth, requireAdmin } from "@/lib/auth";
 import {
@@ -10,6 +12,16 @@ import { insertAuditRow } from "@/lib/db/tool-audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const TEMPLATE_DIR = path.resolve(process.cwd(), "../../templates/agent-factory");
+const MD_FILE_RE = /^[A-Z0-9_.-]+\.md$/i;
+
+function markdownPath(fileParam: string | null): string | null {
+	const file = (fileParam ?? "").trim();
+	if (!MD_FILE_RE.test(file)) return null;
+	const resolved = path.resolve(TEMPLATE_DIR, file);
+	return resolved.startsWith(`${TEMPLATE_DIR}${path.sep}`) ? resolved : null;
+}
 
 function auditMutation(tool: string, actorUserId: number | null, argsHash: string) {
 	return insertAuditRow({
@@ -28,6 +40,21 @@ export async function GET(request: Request) {
 
 	const { searchParams } = new URL(request.url);
 	const kind = searchParams.get("kind") ?? undefined;
+	const markdownFile = markdownPath(searchParams.get("markdown"));
+
+	if (markdownFile) {
+		try {
+			const content = await fs.readFile(markdownFile, "utf8");
+			return NextResponse.json({ file: path.basename(markdownFile), content });
+		} catch (err) {
+			if ((err as NodeJS.ErrnoException).code === "ENOENT") return NextResponse.json({ error: "Markdown file not found", code: "ENOTFOUND" }, { status: 404 });
+			return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+		}
+	}
+
+	if (searchParams.has("markdown")) {
+		return NextResponse.json({ error: "Invalid markdown file", code: "EVALIDATION" }, { status: 400 });
+	}
 
 	try {
 		const factories = await listAgentFactories(
@@ -97,6 +124,16 @@ export async function PUT(request: Request) {
 
 	try {
 		const body = await request.json();
+		const markdownFile = markdownPath(typeof body.markdownFile === "string" ? body.markdownFile : null);
+
+		if (body.markdownContent !== undefined) {
+			if (!markdownFile || typeof body.markdownContent !== "string") {
+				return NextResponse.json({ error: "Valid markdownFile and markdownContent required", code: "EVALIDATION" }, { status: 400 });
+			}
+			await fs.writeFile(markdownFile, body.markdownContent, "utf8");
+			await auditMutation("agent_factory.markdown_write", auth.session?.user_id ?? null, path.basename(markdownFile));
+			return NextResponse.json({ file: path.basename(markdownFile), success: true });
+		}
 
 		const factory = await upsertAgentFactory({
 			slug,

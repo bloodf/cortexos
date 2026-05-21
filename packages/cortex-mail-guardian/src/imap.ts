@@ -35,7 +35,7 @@ export class TlsImapMailClient implements MailClient {
 		await session.select(account.inbox);
 		const uids = await session.searchAll();
 		const messages: MailMessage[] = [];
-		for (const uid of uids) {
+		for (const uid of [...uids].reverse()) {
 			const raw = await session.fetchRaw(uid);
 			messages.push({ uid, ...parseRawEmail(raw) });
 		}

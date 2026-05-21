@@ -1,6 +1,16 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { ProcessDeps } from "../src/processor.js";
 import { buildReviewMessage, sweep } from "../src/processor.js";
+
+vi.mock("../src/model.js", () => ({
+	classifyEmail: async () => ({
+		verdict: "uncertain",
+		confidence: 0.5,
+		reasons: [],
+		riskSignals: [],
+	}),
+	shouldAutoTrash: () => false,
+}));
 
 function account(slug: string) {
 	return {
@@ -16,13 +26,28 @@ function account(slug: string) {
 }
 
 describe("mail guardian sweep", () => {
-	it("applies the message cap per account so later accounts are not starved", async () => {
+	it("does not let skipped messages consume the per-account processing cap", async () => {
 		const accounts = [account("one"), account("two"), account("three")];
 		const listed: string[] = [];
 		const deps = {
 			config: {
 				accounts,
 				maxMessagesPerSweep: 1,
+				nineRouterBaseUrl: "http://127.0.0.1:11434/v1",
+				nineRouterApiKey: "test",
+				model: "test",
+				modelTimeoutMs: 30_000,
+				confidenceThreshold: 0.95,
+				dryRun: true,
+			},
+			store: {
+				hasProcessed: async (_accountSlug: string, uid: number) => uid === 1,
+				hasAllowRule: async () => false,
+				createPendingReview: async () => 10,
+				markProcessed: async () => undefined,
+			},
+			telegram: {
+				sendMessage: async () => undefined,
 			},
 			mail: {
 				listInbox: async (mailAccount: { slug: string }) => {
@@ -33,12 +58,9 @@ describe("mail guardian sweep", () => {
 					];
 				},
 			},
-			store: {
-				hasProcessed: async () => true,
-			},
 		} as unknown as ProcessDeps;
 
-		await expect(sweep(deps)).resolves.toMatchObject({ processed: 3, skipped: 3 });
+		await expect(sweep(deps)).resolves.toMatchObject({ processed: 6, review: 3, skipped: 3 });
 		expect(listed).toEqual(["one", "two", "three"]);
 	});
 });

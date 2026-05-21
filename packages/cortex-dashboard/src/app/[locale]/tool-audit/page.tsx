@@ -1,10 +1,11 @@
-import { AuditLogTable } from "@/components/admin/audit-log-table";
+import { ActionLog } from "@/components/admin/action-log";
 
 export default function AuditLogPage() {
 	return (
 		<div className="space-y-4">
-			<h1 className="text-2xl font-semibold">Audit Log</h1>
-			<AuditLogTable />
+			<h1 className="text-2xl font-semibold">Action Log</h1>
+			<p className="text-sm text-muted-foreground">Operator actions against systemd and Docker targets.</p>
+			<ActionLog />
 		</div>
 	);
 }

@@ -4,10 +4,11 @@ import * as React from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Plus, FolderOpen } from "lucide-react";
+import { Plus, FolderOpen, Pencil } from "lucide-react";
 import { useRouter } from "@/i18n/routing";
 
 interface ProjectRow {
@@ -75,19 +76,19 @@ export function AdminProjectsPanel({ initialProjects }: Props) {
 				id: "actions",
 				header: "",
 				cell: ({ row }) => (
-					<div className="flex gap-1">
-						<Button size="sm" variant="ghost" onClick={() => setEditing(row.original)}>
-							Edit
-						</Button>
-						<Button
-							size="sm"
+					<div className="flex justify-end gap-1">
+						<IconButton tooltip={`Edit ${row.original.name}`} variant="ghost" onClick={() => setEditing(row.original)}>
+							<Pencil className="size-4" />
+						</IconButton>
+						<IconButton
+							tooltip={`Open env for ${row.original.name}`}
 							variant="ghost"
 							onClick={() => {
 								router.push(`/env-browser?path=${encodeURIComponent(envFilePath(row.original.slug))}`);
 							}}
 						>
-							<FolderOpen className="size-3 mr-1" /> Env
-						</Button>
+							<FolderOpen className="size-4" />
+						</IconButton>
 					</div>
 				),
 			},

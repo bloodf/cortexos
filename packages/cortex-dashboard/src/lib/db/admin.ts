@@ -1,4 +1,4 @@
-import { queryOne, execute } from "./client";
+import { query, queryOne, execute } from "./client";
 
 export interface PamUser {
   id: number;
@@ -66,4 +66,37 @@ export async function deleteExpiredSessions(): Promise<void> {
 
 export async function deleteUserSessions(userId: number): Promise<void> {
   await execute("DELETE FROM admin_sessions WHERE user_id = $1", [userId]);
+}
+
+export interface PamUserWithSessions extends PamUser {
+  active_sessions: number;
+  last_login_at: Date | null;
+  last_expires_at: Date | null;
+}
+
+export interface ActiveSession extends Omit<AdminSession, "token"> {
+  username: string;
+}
+
+export async function listPamUsers(): Promise<PamUserWithSessions[]> {
+  return query<PamUserWithSessions>(
+    `SELECT u.id, u.username, u.created_at,
+            COUNT(s.id) FILTER (WHERE s.expires_at > NOW())::int AS active_sessions,
+            MAX(s.created_at) AS last_login_at,
+            MAX(s.expires_at) FILTER (WHERE s.expires_at > NOW()) AS last_expires_at
+     FROM pam_users u
+     LEFT JOIN admin_sessions s ON s.user_id = u.id
+     GROUP BY u.id, u.username, u.created_at
+     ORDER BY last_login_at DESC NULLS LAST, u.username ASC`,
+  );
+}
+
+export async function listActiveSessions(): Promise<ActiveSession[]> {
+  return query<ActiveSession>(
+    `SELECT s.id, s.user_id, s.expires_at, s.created_at, s.is_admin, u.username
+     FROM admin_sessions s
+     JOIN pam_users u ON u.id = s.user_id
+     WHERE s.expires_at > NOW()
+     ORDER BY s.created_at DESC, s.id DESC`,
+  );
 }

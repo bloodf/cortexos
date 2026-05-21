@@ -4,7 +4,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { TlsImapMailClient } from "./imap.js";
 import { GuardianStore } from "./store.js";
 import { assertTelegramReady, BotApiTelegramClient, discoverOwnerChatId } from "./telegram.js";
-import { applyReviewDecision, sweep } from "./processor.js";
+import { applyReviewDecision, handleTelegramUpdates, sweep } from "./processor.js";
 
 async function buildDeps() {
 	const config = loadConfig();
@@ -59,7 +59,7 @@ async function listen(): Promise<void> {
 		await assertTelegramReady(deps.telegram, deps.config.telegramOwnerChatId);
 	}
 	await runSweep();
-	await Promise.all(deps.config.accounts.map(async (account) => {
+	const listeners = deps.config.accounts.map(async (account) => {
 		for (;;) {
 			try {
 				await deps.mail.waitForNewMail(account);
@@ -69,7 +69,31 @@ async function listen(): Promise<void> {
 				await new Promise((resolve) => setTimeout(resolve, 30_000));
 			}
 		}
-	}));
+	});
+	await Promise.all([
+		pollTelegramReviews(deps),
+		...listeners,
+	]);
+}
+
+async function pollTelegramReviews(deps: Awaited<ReturnType<typeof buildDeps>>): Promise<void> {
+	if (!deps.config.telegramOwnerChatId) return;
+	let offset: number | undefined;
+	for (;;) {
+		try {
+			const updates = await deps.telegram.getUpdates(offset);
+			if (updates.length > 0) {
+				offset = Math.max(...updates.map((update) => update.update_id)) + 1;
+				const handled = await handleTelegramUpdates(deps, updates);
+				if (handled > 0) {
+					process.stdout.write(`${JSON.stringify({ event: "mail_guardian_telegram_decisions", handled })}\n`);
+				}
+			}
+		} catch (error) {
+			process.stderr.write(`[mail-guardian] telegram polling error: ${error instanceof Error ? error.message : String(error)}\n`);
+			await new Promise((resolve) => setTimeout(resolve, 30_000));
+		}
+	}
 }
 
 async function telegramDiscoverOwner(): Promise<void> {
