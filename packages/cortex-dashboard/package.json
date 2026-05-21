@@ -18,7 +18,7 @@
   "dependencies": {
     "@cortexos/audit": "file:../cortex-audit",
     "@ai-sdk/openai-compatible": "^2.0.47",
-    "@ai-sdk/react": "^3.0.185",
+    "@ai-sdk/react": "^3.0.190",
     "@base-ui/react": "^1.4.1",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
