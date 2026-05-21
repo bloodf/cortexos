@@ -13,13 +13,13 @@ const iconButtonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+          "bg-sky-500/15 text-sky-700 hover:bg-sky-500/25 dark:text-sky-300",
         primary:
           "bg-primary text-primary-foreground hover:bg-primary/80",
         danger:
-          "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30",
+          "bg-destructive/15 text-destructive hover:bg-destructive/25 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30",
         ghost:
-          "hover:bg-muted hover:text-foreground dark:hover:bg-muted/50",
+          "bg-indigo-500/10 text-indigo-700 hover:bg-indigo-500/20 dark:text-indigo-300 dark:hover:bg-indigo-500/25",
       },
     },
     defaultVariants: {
