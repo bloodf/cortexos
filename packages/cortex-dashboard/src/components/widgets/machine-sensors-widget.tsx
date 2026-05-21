@@ -67,33 +67,38 @@ function SensorRow({ sensor }: { sensor: MachineSensor }) {
 	);
 }
 
-function GroupCard({ title, subtitle, sensors, averageValue, gaugeValue, unit, color, icon }: { title: string; subtitle: string; sensors: MachineSensor[]; averageValue: number; gaugeValue: number; unit: string; color: string; icon: React.ReactNode }) {
+function SensorGroup({ title, subtitle, sensors, averageValue, gaugeValue, unit, color, icon }: { title: string; subtitle: string; sensors: MachineSensor[]; averageValue: number; gaugeValue: number; unit: string; color: string; icon: React.ReactNode }) {
 	if (!sensors.length) return null;
 	return (
-		<section className="min-h-0 rounded-xl border border-white/[0.07] bg-white/[0.025] p-3 light:border-slate-200 light:bg-white/70">
-			<div className="mb-3 flex items-start justify-between gap-2">
-				<div>
-					<p className="text-sm font-semibold text-white/85 light:text-slate-900">{title}</p>
-					<p className="mt-0.5 text-xs text-white/40 light:text-slate-500">{subtitle}</p>
-				</div>
-				<span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-xs font-semibold text-white/45 light:bg-slate-100 light:text-slate-500">{sensors.length}</span>
-			</div>
-			<div className="grid gap-3">
-				<div className="flex items-center justify-center rounded-xl bg-black/10 py-2 light:bg-slate-50">
+		<section className="grid gap-2">
+			<div className="grid min-h-[132px] gap-3 rounded-xl border border-white/[0.07] bg-white/[0.025] p-3 light:border-slate-200 light:bg-white/70 sm:grid-cols-[132px_minmax(0,1fr)] sm:items-center">
+				<div className="flex items-center justify-center rounded-lg bg-black/10 py-2 light:bg-slate-50">
 					<Gauge
 						value={Math.round(gaugeValue)}
 						color={color}
 						label={`${formatGaugeValue(averageValue, unit)} avg`}
 						sublabel={unit === "rpm" ? "fan speed" : unit === "V" ? "rail reading" : "temperature"}
 						icon={icon}
-						size={120}
-						strokeWidth={9}
+						size={108}
+						strokeWidth={8}
 						valueLabel={formatGaugeValue(averageValue, unit)}
 					/>
 				</div>
-				<div className="grid max-h-56 gap-1.5 overflow-y-auto pr-1">
-					{sensors.map((sensor) => <SensorRow key={sensor.id} sensor={sensor} />)}
+				<div className="min-w-0">
+					<div className="flex items-start justify-between gap-2">
+						<div className="min-w-0">
+							<p className="text-sm font-semibold text-white/85 light:text-slate-900">{title}</p>
+							<p className="mt-0.5 text-xs text-white/40 light:text-slate-500">{subtitle}</p>
+						</div>
+						<span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-xs font-semibold text-white/45 light:bg-slate-100 light:text-slate-500">{sensors.length}</span>
+					</div>
+					<div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.07] light:bg-slate-100">
+						<div className="h-full rounded-full" style={{ width: `${Math.min(100, Math.max(0, gaugeValue))}%`, backgroundColor: color }} />
+					</div>
 				</div>
+			</div>
+			<div className="grid max-h-40 gap-1.5 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+				{sensors.map((sensor) => <SensorRow key={sensor.id} sensor={sensor} />)}
 			</div>
 		</section>
 	);
@@ -125,11 +130,11 @@ export function MachineSensorsWidget() {
 			</div>
 			{sys ? (
 				sensorCount ? (
-					<div className="grid max-h-[760px] gap-4 overflow-y-auto pr-1 lg:grid-cols-2 2xl:grid-cols-4">
-						<GroupCard title="CPU" subtitle="Average of CPU/package/core temperature sensors" sensors={cpuTemps} averageValue={cpuAvg} gaugeValue={Math.min(100, cpuAvg)} unit="C" color={temperatureTone(cpuAvg).color} icon={<Cpu className="h-5 w-5" />} />
-						<GroupCard title="Thermals" subtitle="Average of non-CPU temperature sensors" sensors={otherTemps} averageValue={tempAvg} gaugeValue={Math.min(100, tempAvg)} unit="C" color={temperatureTone(tempAvg).color} icon={<Thermometer className="h-5 w-5" />} />
-						<GroupCard title="Fans" subtitle="Average fan speed across exposed tachometers" sensors={fans} averageValue={fanAvg} gaugeValue={Math.min(100, (fanAvg / 5000) * 100)} unit="rpm" color="#38bdf8" icon={<Fan className="h-5 w-5" />} />
-						<GroupCard title="Voltage Rails" subtitle="Average exposed voltage rail reading" sensors={voltages} averageValue={voltageAvg} gaugeValue={Math.min(100, (voltageAvg / 12) * 100)} unit="V" color="#a78bfa" icon={<Zap className="h-5 w-5" />} />
+					<div className="grid max-h-[760px] gap-4 overflow-y-auto pr-1">
+						<SensorGroup title="CPU" subtitle="Average of CPU/package/core temperature sensors" sensors={cpuTemps} averageValue={cpuAvg} gaugeValue={Math.min(100, cpuAvg)} unit="C" color={temperatureTone(cpuAvg).color} icon={<Cpu className="h-5 w-5" />} />
+						<SensorGroup title="Thermals" subtitle="Average of non-CPU temperature sensors" sensors={otherTemps} averageValue={tempAvg} gaugeValue={Math.min(100, tempAvg)} unit="C" color={temperatureTone(tempAvg).color} icon={<Thermometer className="h-5 w-5" />} />
+						<SensorGroup title="Fans" subtitle="Average fan speed across exposed tachometers" sensors={fans} averageValue={fanAvg} gaugeValue={Math.min(100, (fanAvg / 5000) * 100)} unit="rpm" color="#38bdf8" icon={<Fan className="h-5 w-5" />} />
+						<SensorGroup title="Voltage Rails" subtitle="Average exposed voltage rail reading" sensors={voltages} averageValue={voltageAvg} gaugeValue={Math.min(100, (voltageAvg / 12) * 100)} unit="V" color="#a78bfa" icon={<Zap className="h-5 w-5" />} />
 					</div>
 				) : (
 					<div className="flex h-36 flex-col items-center justify-center text-center text-sm text-white/40 light:text-slate-500">
