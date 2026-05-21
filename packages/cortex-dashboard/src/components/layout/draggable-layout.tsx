@@ -15,7 +15,8 @@ export interface DraggableLayoutProps {
 
 const DEFAULT_LAYOUT: LayoutConfig = {
 	rows: [
-		rowFromItems(["cpu-gauge", "memory-gauge", "storage-gauge"]),
+		rowFromItems(["cpu-gauge", "cpu-temperature", "memory-gauge", "storage-gauge"]),
+		rowFromItems(["machine-sensors"]),
 		rowFromItems(["service-online", "service-offline", "service-idle"]),
 		rowFromItems(["database-ops", "monitoring-ops", "container-ops"]),
 		rowFromItems([{ type: "container", id: "perf-container", direction: "row", items: ["live-performance", { type: "container", id: "side-container", direction: "column", items: ["top-processes", "network-graph"] }] }]),

@@ -4,7 +4,8 @@ import type { LayoutConfig } from "@/components/layout/types";
 
 const DEFAULT_LAYOUT = {
 	rows: [
-		{ items: ["cpu-gauge", "memory-gauge", "storage-gauge"] },
+		{ items: ["cpu-gauge", "cpu-temperature", "memory-gauge", "storage-gauge"] },
+		{ items: ["machine-sensors"] },
 		{ items: ["service-online", "service-offline", "service-idle"] },
 		{ items: ["uptime", "docker-status", "alerts"] },
 		{ items: ["live-performance", "top-processes"] },

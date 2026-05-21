@@ -3,7 +3,8 @@ import { queryOne, execute } from "@/lib/db/client";
 
 const DEFAULT_LAYOUT = {
 	rows: [
-		{ items: ["cpu-gauge", "memory-gauge", "storage-gauge"] },
+		{ items: ["cpu-gauge", "cpu-temperature", "memory-gauge", "storage-gauge"] },
+		{ items: ["machine-sensors"] },
 		{ items: ["service-online", "service-offline", "service-idle", "alerts"] },
 		{ items: ["database-ops", "monitoring-ops", "container-ops", "docker-status"] },
 		{
