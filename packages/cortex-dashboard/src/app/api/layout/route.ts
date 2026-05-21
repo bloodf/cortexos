@@ -5,9 +5,8 @@ const DEFAULT_LAYOUT = {
 	rows: [
 		{ items: ["cpu-gauge", "memory-gauge", "sensor-thermal-gauge", "storage-gauge"] },
 		{ items: ["machine-sensors"] },
-		{ items: ["service-online", "service-offline", "service-idle", "alerts"] },
-		{ items: ["mail-guardian", "mail-guardian-reviews"] },
-		{ items: ["database-ops", "monitoring-ops", "container-ops", "docker-status"] },
+		{ items: ["service-online", "service-offline", "service-idle"] },
+		{ items: ["database-ops", "monitoring-ops", "container-ops"] },
 		{
 			items: [
 				{
