@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ProcessDeps } from "../src/processor.js";
-import { sweep } from "../src/processor.js";
+import { buildReviewMessage, sweep } from "../src/processor.js";
 
 function account(slug: string) {
 	return {
@@ -40,5 +40,24 @@ describe("mail guardian sweep", () => {
 
 		await expect(sweep(deps)).resolves.toMatchObject({ processed: 3, skipped: 3 });
 		expect(listed).toEqual(["one", "two", "three"]);
+	});
+});
+
+describe("mail guardian Telegram review message", () => {
+	it("shows only sender and subject, not body or generated summaries", () => {
+		const message = buildReviewMessage({
+			accountAddress: "inbox@example.test",
+			from: "Sender <sender@example.test>",
+			subject: "Quarterly invoice",
+			verdict: "uncertain",
+			confidence: 0.61,
+			reviewId: 123,
+		});
+
+		expect(message).toContain("From: Sender <sender@example.test>");
+		expect(message).toContain("Subject: Quarterly invoice");
+		expect(message).not.toContain("Summary:");
+		expect(message).not.toContain("Body:");
+		expect(message).not.toContain("invoice body private details");
 	});
 });

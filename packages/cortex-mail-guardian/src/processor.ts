@@ -12,6 +12,29 @@ export interface ProcessDeps {
 	telegram: TelegramClient;
 }
 
+export function buildReviewMessage(input: {
+	accountAddress: string;
+	from: string;
+	subject: string;
+	verdict: string;
+	confidence: number;
+	reviewId: number;
+}): string {
+	return [
+		"Cortex mail guardian needs a decision.",
+		`Account: ${input.accountAddress}`,
+		`From: ${input.from || "(unknown sender)"}`,
+		`Subject: ${input.subject || "(no subject)"}`,
+		`Verdict: ${input.verdict} (${input.confidence})`,
+		"",
+		"Reply to Cortex with one of:",
+		`mail guardian decide ${input.reviewId} spam`,
+		`mail guardian decide ${input.reviewId} keep`,
+		`mail guardian decide ${input.reviewId} block_sender`,
+		`mail guardian decide ${input.reviewId} allow_sender`,
+	].join("\n");
+}
+
 export async function processMessage(deps: ProcessDeps, account: MailAccountConfig, message: MailMessage): Promise<"trashed" | "review" | "skipped"> {
 	if (await deps.store.hasProcessed(account.slug, message.uid)) return "skipped";
 	const redacted = redactEmail({ from: message.from, subject: message.subject, text: message.text });
@@ -56,18 +79,14 @@ export async function processMessage(deps: ProcessDeps, account: MailAccountConf
 	if (deps.config.telegramOwnerChatId) {
 		await deps.telegram.sendMessage(
 			deps.config.telegramOwnerChatId,
-			[
-				"Cortex mail guardian needs a decision.",
-				`Account: ${account.address}`,
-				`Summary: ${redacted.summary || "(empty)"}`,
-				`Verdict: ${classification.verdict} (${classification.confidence})`,
-				"",
-				"Reply to Cortex with one of:",
-				`mail guardian decide ${reviewId} spam`,
-				`mail guardian decide ${reviewId} keep`,
-				`mail guardian decide ${reviewId} block_sender`,
-				`mail guardian decide ${reviewId} allow_sender`,
-			].join("\n"),
+			buildReviewMessage({
+				accountAddress: account.address,
+				from: message.from,
+				subject: message.subject,
+				verdict: classification.verdict,
+				confidence: classification.confidence,
+				reviewId,
+			}),
 			{
 				inline_keyboard: [[
 					{ text: "Spam -> Trash", callback_data: `mg:${reviewId}:spam` },
