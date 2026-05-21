@@ -1,0 +1,12 @@
+[Unit]
+Description=Paperclip local compatibility proxy
+Requires=paperclip.service
+After=paperclip.service
+
+[Service]
+ExecStart=/lib/systemd/systemd-socket-proxyd 127.0.0.1:3034
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
