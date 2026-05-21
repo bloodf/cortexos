@@ -17,7 +17,9 @@ import {
 	ContainerOpsWidget,
 	DockerStatusWidget,
 	UptimeWidget,
-	AlertsWidget
+	AlertsWidget,
+	MailGuardianWidget,
+	MailGuardianReviewsWidget
 } from './widgets';
 
 export const WIDGET_REGISTRY: Record<string, React.FC> = {
@@ -40,6 +42,8 @@ export const WIDGET_REGISTRY: Record<string, React.FC> = {
 	"docker-status": DockerStatusWidget,
 	"uptime": UptimeWidget,
 	"alerts": AlertsWidget,
+	"mail-guardian": MailGuardianWidget,
+	"mail-guardian-reviews": MailGuardianReviewsWidget,
 };
 
 export const WIDGET_LABELS: Record<string, string> = {
@@ -62,4 +66,6 @@ export const WIDGET_LABELS: Record<string, string> = {
 	"docker-status": "Docker Status",
 	"uptime": "Host Uptime",
 	"alerts": "Alerts",
+	"mail-guardian": "Mail Guardian",
+	"mail-guardian-reviews": "Mail Reviews",
 };

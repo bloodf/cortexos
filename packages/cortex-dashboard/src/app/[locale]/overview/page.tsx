@@ -7,6 +7,7 @@ const DEFAULT_LAYOUT = {
 		{ items: ["cpu-gauge", "cpu-temperature", "memory-gauge", "storage-gauge"] },
 		{ items: ["machine-sensors"] },
 		{ items: ["service-online", "service-offline", "service-idle"] },
+		{ items: ["mail-guardian", "mail-guardian-reviews"] },
 		{ items: ["uptime", "docker-status", "alerts"] },
 		{ items: ["live-performance", "top-processes"] },
 		{ items: ["network-graph"] },

@@ -6,6 +6,7 @@ const DEFAULT_LAYOUT = {
 		{ items: ["cpu-gauge", "cpu-temperature", "memory-gauge", "storage-gauge"] },
 		{ items: ["machine-sensors"] },
 		{ items: ["service-online", "service-offline", "service-idle", "alerts"] },
+		{ items: ["mail-guardian", "mail-guardian-reviews"] },
 		{ items: ["database-ops", "monitoring-ops", "container-ops", "docker-status"] },
 		{
 			items: [

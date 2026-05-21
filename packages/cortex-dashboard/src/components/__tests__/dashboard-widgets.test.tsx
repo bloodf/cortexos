@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { WIDGET_REGISTRY, WIDGET_LABELS } from '../dashboard-widgets';
 
 describe('WIDGET_REGISTRY', () => {
-	it('contains all 19 widget entries', () => {
-		expect(Object.keys(WIDGET_REGISTRY).length).toBe(19);
+	it('contains all 21 widget entries', () => {
+		expect(Object.keys(WIDGET_REGISTRY).length).toBe(21);
 	});
 
 	it('maps widget keys to React components', () => {
@@ -26,6 +26,7 @@ describe('WIDGET_REGISTRY', () => {
 		'total-download', 'total-upload',
 		'database-ops', 'monitoring-ops', 'container-ops',
 		'docker-status', 'uptime', 'alerts',
+		'mail-guardian', 'mail-guardian-reviews',
 	];
 	it.each(expectedWidgets)('contains widget "%s"', (key) => {
 		expect(WIDGET_REGISTRY[key]).toBeDefined();
@@ -33,8 +34,8 @@ describe('WIDGET_REGISTRY', () => {
 });
 
 describe('WIDGET_LABELS', () => {
-	it('contains all 19 label entries', () => {
-		expect(Object.keys(WIDGET_LABELS).length).toBe(19);
+	it('contains all 21 label entries', () => {
+		expect(Object.keys(WIDGET_LABELS).length).toBe(21);
 	});
 
 	it('has human-readable labels', () => {
