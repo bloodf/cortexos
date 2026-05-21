@@ -44,7 +44,12 @@ const emptyForm: AccountForm = {
 	trashMailbox: "",
 };
 
-const fetcher = (url: string) => fetch(url, { cache: "no-store" }).then((res) => res.json());
+async function fetcher(url: string) {
+	const res = await fetch(url, { cache: "no-store" });
+	const body = await res.json().catch(() => ({}));
+	if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
+	return body;
+}
 
 function formFromAccount(account: MailAccount): AccountForm {
 	return {
@@ -61,7 +66,7 @@ function formFromAccount(account: MailAccount): AccountForm {
 }
 
 export function MailGuardianAccountsPanel() {
-	const { data, mutate, isLoading } = useSWR<{ accounts: MailAccount[]; error?: string }>("/api/mail-guardian/accounts", fetcher, { refreshInterval: 10_000 });
+	const { data, error, mutate, isLoading } = useSWR<{ accounts: MailAccount[] }>("/api/mail-guardian/accounts", fetcher, { refreshInterval: 10_000 });
 	const [form, setForm] = React.useState<AccountForm>(emptyForm);
 	const [editingSlug, setEditingSlug] = React.useState<string | null>(null);
 	const [dialogOpen, setDialogOpen] = React.useState(false);
@@ -127,7 +132,7 @@ export function MailGuardianAccountsPanel() {
 			<div className="flex items-center justify-between gap-3">
 				<div>
 					<h2 className="text-lg font-semibold">Email Accounts</h2>
-					<p className="text-sm text-muted-foreground">Manage IMAP accounts watched by Mail Guardian. Changes restart the listener.</p>
+					<p className="text-sm text-muted-foreground">Manage {accounts.length} IMAP account{accounts.length === 1 ? "" : "s"} watched by Mail Guardian. Changes restart the listener.</p>
 				</div>
 				<div className="flex gap-2">
 					<Button type="button" variant="outline" onClick={() => mutate()} disabled={isLoading}>
@@ -140,6 +145,7 @@ export function MailGuardianAccountsPanel() {
 					</Button>
 				</div>
 			</div>
+			{error && <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error instanceof Error ? error.message : "Failed to load accounts"}</p>}
 			{message && <p className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">{message}</p>}
 			<div className="overflow-hidden rounded-lg border border-border">
 				<Table>
