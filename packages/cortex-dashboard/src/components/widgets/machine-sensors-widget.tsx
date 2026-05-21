@@ -8,9 +8,16 @@ import type { MachineSensor } from "@/hooks/use-dashboard-data";
 type Tone = { color: string; text: string; icon: string; bg: string; ring: string; bar: string; shadow: string };
 
 function formatSensor(sensor: MachineSensor) {
-	if (sensor.unit === "celsius") return `${sensor.value.toFixed(1)} C`;
+	if (sensor.unit === "celsius") return `${Math.round(sensor.value)} C`;
 	if (sensor.unit === "rpm") return `${Math.round(sensor.value)} rpm`;
 	return `${sensor.value.toFixed(2)} V`;
+}
+
+function formatGaugeValue(value: number, unit: string) {
+	if (unit === "C") return `${Math.round(value)}C`;
+	if (unit === "rpm") return value >= 1000 ? `${(value / 1000).toFixed(1)}k` : `${Math.round(value)}`;
+	if (unit === "V") return `${value.toFixed(1)}V`;
+	return `${Math.round(value)}`;
 }
 
 function sensorTone(sensor: MachineSensor): Tone {
@@ -41,25 +48,19 @@ function isCpuSensor(sensor: MachineSensor) {
 }
 
 function SensorRow({ sensor }: { sensor: MachineSensor }) {
-	const Icon = sensor.unit === "celsius" ? Thermometer : sensor.unit === "rpm" ? Fan : Zap;
 	const tone = sensorTone(sensor);
 	return (
-		<div className={`rounded-lg border border-white/[0.07] bg-white/[0.035] p-2.5 shadow-sm ${tone.shadow} ring-1 ${tone.ring} light:border-slate-200 light:bg-white`}>
-			<div className="flex items-start justify-between gap-3">
-				<div className="flex min-w-0 items-center gap-2.5">
-					<div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${tone.bg}`}>
-						<Icon className={`h-4 w-4 ${tone.icon}`} />
-					</div>
-					<div className="min-w-0">
-						<p className="truncate text-xs font-semibold text-white/85 light:text-slate-900">{sensor.label}</p>
-						<p className="truncate text-[11px] text-white/40 light:text-slate-500">{sensor.source}</p>
-					</div>
+		<div className={`rounded-md border border-white/[0.07] bg-white/[0.03] px-2 py-1.5 shadow-sm ${tone.shadow} ring-1 ${tone.ring} light:border-slate-200 light:bg-white`}>
+			<div className="flex items-start justify-between gap-2">
+				<div className="min-w-0">
+					<p className="truncate text-[11px] font-semibold leading-4 text-white/85 light:text-slate-900">{sensor.label}</p>
+					<p className="truncate text-[10px] leading-3 text-white/40 light:text-slate-500">{sensor.source}</p>
 				</div>
-				<span className={`shrink-0 text-xs font-bold tabular-nums ${tone.text} light:text-slate-800`}>
+				<span className={`shrink-0 text-[11px] font-bold leading-4 tabular-nums ${tone.text} light:text-slate-800`}>
 					{formatSensor(sensor)}
 				</span>
 			</div>
-			<div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[0.07] light:bg-slate-100">
+			<div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/[0.07] light:bg-slate-100">
 				<div className={`h-full rounded-full ${tone.bar}`} style={{ width: `${sensorPercent(sensor)}%` }} />
 			</div>
 		</div>
@@ -69,19 +70,28 @@ function SensorRow({ sensor }: { sensor: MachineSensor }) {
 function GroupCard({ title, subtitle, sensors, averageValue, gaugeValue, unit, color, icon }: { title: string; subtitle: string; sensors: MachineSensor[]; averageValue: number; gaugeValue: number; unit: string; color: string; icon: React.ReactNode }) {
 	if (!sensors.length) return null;
 	return (
-		<section className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-3 light:border-slate-200 light:bg-white/70">
-			<div className="mb-3 flex items-start justify-between gap-3">
+		<section className="min-h-0 rounded-xl border border-white/[0.07] bg-white/[0.025] p-3 light:border-slate-200 light:bg-white/70">
+			<div className="mb-3 flex items-start justify-between gap-2">
 				<div>
 					<p className="text-sm font-semibold text-white/85 light:text-slate-900">{title}</p>
 					<p className="mt-0.5 text-xs text-white/40 light:text-slate-500">{subtitle}</p>
 				</div>
 				<span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-xs font-semibold text-white/45 light:bg-slate-100 light:text-slate-500">{sensors.length}</span>
 			</div>
-			<div className="grid gap-3 lg:grid-cols-[180px_1fr]">
-				<div className="flex items-center justify-center rounded-xl bg-black/10 py-3 light:bg-slate-50">
-					<Gauge value={gaugeValue} color={color} label={`${averageValue.toFixed(unit === "rpm" ? 0 : 1)} ${unit}`} sublabel="group average" icon={icon} size={150} />
+			<div className="grid gap-3">
+				<div className="flex items-center justify-center rounded-xl bg-black/10 py-2 light:bg-slate-50">
+					<Gauge
+						value={Math.round(gaugeValue)}
+						color={color}
+						label={`${formatGaugeValue(averageValue, unit)} avg`}
+						sublabel={unit === "rpm" ? "fan speed" : unit === "V" ? "rail reading" : "temperature"}
+						icon={icon}
+						size={120}
+						strokeWidth={9}
+						valueLabel={formatGaugeValue(averageValue, unit)}
+					/>
 				</div>
-				<div className="grid max-h-72 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
+				<div className="grid max-h-56 gap-1.5 overflow-y-auto pr-1">
 					{sensors.map((sensor) => <SensorRow key={sensor.id} sensor={sensor} />)}
 				</div>
 			</div>
@@ -115,7 +125,7 @@ export function MachineSensorsWidget() {
 			</div>
 			{sys ? (
 				sensorCount ? (
-					<div className="max-h-[760px] space-y-4 overflow-y-auto pr-1">
+					<div className="grid max-h-[760px] gap-4 overflow-y-auto pr-1 lg:grid-cols-2 2xl:grid-cols-4">
 						<GroupCard title="CPU" subtitle="Average of CPU/package/core temperature sensors" sensors={cpuTemps} averageValue={cpuAvg} gaugeValue={Math.min(100, cpuAvg)} unit="C" color={temperatureTone(cpuAvg).color} icon={<Cpu className="h-5 w-5" />} />
 						<GroupCard title="Thermals" subtitle="Average of non-CPU temperature sensors" sensors={otherTemps} averageValue={tempAvg} gaugeValue={Math.min(100, tempAvg)} unit="C" color={temperatureTone(tempAvg).color} icon={<Thermometer className="h-5 w-5" />} />
 						<GroupCard title="Fans" subtitle="Average fan speed across exposed tachometers" sensors={fans} averageValue={fanAvg} gaugeValue={Math.min(100, (fanAvg / 5000) * 100)} unit="rpm" color="#38bdf8" icon={<Fan className="h-5 w-5" />} />

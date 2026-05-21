@@ -10,6 +10,7 @@ interface GaugeProps {
 	label: string;
 	sublabel?: string;
 	icon?: React.ReactNode;
+	valueLabel?: string;
 }
 
 export function Gauge({
@@ -20,6 +21,7 @@ export function Gauge({
 	label,
 	sublabel,
 	icon,
+	valueLabel,
 }: GaugeProps) {
 	const radius = (size - strokeWidth) / 2;
 	const circumference = 2 * Math.PI * radius;
@@ -88,7 +90,7 @@ export function Gauge({
 						className="text-3xl font-bold tabular-nums tracking-tight"
 						style={{ color: activeColor, transition: "color 0.5s ease" }}
 					>
-						{animatedValue}%
+						{valueLabel ?? `${animatedValue}%`}
 					</span>
 				</div>
 			</div>
