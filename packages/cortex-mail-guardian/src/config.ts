@@ -93,7 +93,7 @@ function loadAccount(index: number, source: NodeJS.ProcessEnv): MailAccountConfi
 
 export function loadConfig(source: NodeJS.ProcessEnv = process.env): GuardianConfig {
 	const accountCount = parseIntEnv("MAIL_GUARDIAN_ACCOUNT_COUNT", source);
-	if (accountCount !== 3) throw new Error("MAIL_GUARDIAN_ACCOUNT_COUNT must be exactly 3");
+	if (accountCount < 1) throw new Error("MAIL_GUARDIAN_ACCOUNT_COUNT must be at least 1");
 	const accounts = Array.from({ length: accountCount }, (_, idx) => loadAccount(idx + 1, source));
 	const slugs = new Set(accounts.map((account) => account.slug));
 	if (slugs.size !== accounts.length) throw new Error("mail account slugs must be unique");

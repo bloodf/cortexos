@@ -29,7 +29,7 @@ function baseEnv(): NodeJS.ProcessEnv {
 }
 
 describe("config", () => {
-	it("loads exactly three base64 password accounts", () => {
+	it("loads configured base64 password accounts", () => {
 		const config = loadConfig(baseEnv());
 		expect(config.accounts).toHaveLength(3);
 		expect(config.accounts[0].password).toBe("dummy#password;with.symbols");
@@ -42,9 +42,9 @@ describe("config", () => {
 		expect(() => decodeBase64Secret("SECRET", "not-base64")).toThrow(/base64/);
 	});
 
-	it("requires exactly three accounts", () => {
+	it("requires at least one account", () => {
 		const input = baseEnv();
-		input.MAIL_GUARDIAN_ACCOUNT_COUNT = "2";
-		expect(() => loadConfig(input)).toThrow(/exactly 3/);
+		input.MAIL_GUARDIAN_ACCOUNT_COUNT = "0";
+		expect(() => loadConfig(input)).toThrow(/positive integer/);
 	});
 });

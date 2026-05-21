@@ -12,7 +12,7 @@ export interface ActionLogEntry {
   created_at: Date;
 }
 
-export type ActionTargetType = "docker" | "systemd" | "updates" | "local-user";
+export type ActionTargetType = "docker" | "systemd" | "updates" | "local-user" | "mail-guardian";
 export type ActionStatus = "success" | "failure";
 
 export async function createActionLog(data: {
