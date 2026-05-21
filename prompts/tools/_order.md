@@ -190,6 +190,10 @@ spokes:
     deps: [70-dashboard]
     optional: false
 
+  82-mail-guardian:
+    deps: [31-9router, 41-hermes-profiles, 70-dashboard]
+    optional: true
+
   99-final-validation:
     deps:
       - 18-fail2ban
