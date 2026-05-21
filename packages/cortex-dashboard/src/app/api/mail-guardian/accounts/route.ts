@@ -131,7 +131,7 @@ async function writeAccounts(raw: string, accounts: AccountRecord[]) {
 }
 
 async function restartGuardian() {
-	return hostExecFile("systemctl", ["restart", "cortex-mail-guardian.service"], { timeout: 60_000, maxBuffer: 2 * 1024 * 1024 });
+	return hostExecFile("sudo", ["-n", "systemctl", "restart", "cortex-mail-guardian.service"], { timeout: 60_000, maxBuffer: 2 * 1024 * 1024 });
 }
 
 async function logAction(auth: Awaited<ReturnType<typeof requireAdmin>>, action: string, slug: string, status: "success" | "failure", message?: string | null) {
