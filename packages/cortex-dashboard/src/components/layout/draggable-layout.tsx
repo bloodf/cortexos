@@ -15,7 +15,7 @@ export interface DraggableLayoutProps {
 
 const DEFAULT_LAYOUT: LayoutConfig = {
 	rows: [
-		rowFromItems(["cpu-gauge", "cpu-temperature", "memory-gauge", "storage-gauge"]),
+		rowFromItems(["cpu-gauge", "memory-gauge", "sensor-thermal-gauge", "storage-gauge"]),
 		rowFromItems(["machine-sensors"]),
 		rowFromItems(["service-online", "service-offline", "service-idle"]),
 		rowFromItems(["database-ops", "monitoring-ops", "container-ops"]),
@@ -26,6 +26,16 @@ const DEFAULT_LAYOUT: LayoutConfig = {
 
 function makeContainer(direction: LayoutDirection): LayoutItem {
 	return { type: "container", id: `container-${Date.now()}-${Math.random().toString(16).slice(2)}`, direction, items: [] };
+}
+
+function rowGridClass(rowIndex: number) {
+	return rowIndex === 0
+		? "grid gap-4 md:grid-cols-5"
+		: "grid gap-4 md:grid-cols-[repeat(auto-fit,minmax(min(100%,280px),1fr))]";
+}
+
+function rowItemClass(rowIndex: number, item: LayoutItem) {
+	return rowIndex === 0 && item === "storage-gauge" ? "md:col-span-2" : "";
 }
 
 function updateInItems(items: LayoutItem[], containerId: string, updater: (items: LayoutItem[]) => LayoutItem[]): LayoutItem[] {
@@ -99,8 +109,12 @@ export function DraggableLayout({ layout, onChange }: DraggableLayoutProps) {
 				{rows.map((row, rowIndex) => (
 					<div key={rowIndex} className="relative">
 						{editMode && <div className="mb-2 flex flex-wrap gap-2"><span className="rounded bg-indigo-500/20 px-2 py-1 text-xs text-indigo-300">Row {rowIndex + 1}</span><Button type="button" size="sm" variant="outline" disabled={rowIndex === 0} onClick={() => changeRows(moveRow(rows, rowIndex, rowIndex - 1))}>Up</Button><Button type="button" size="sm" variant="outline" disabled={rowIndex === rows.length - 1} onClick={() => changeRows(moveRow(rows, rowIndex, rowIndex + 1))}>Down</Button><Button type="button" size="sm" variant="destructive" onClick={() => changeRows(rows.filter((_, i) => i !== rowIndex))}>Remove row</Button></div>}
-						<div className="grid gap-4 md:grid-cols-[repeat(auto-fit,minmax(min(100%,280px),1fr))]">
-							{getRowItems(row).map((item, index) => <LayoutNode key={typeof item === "string" ? `${item}:${index}` : item.id} item={item} editMode={editMode} path={[index]} onRemove={(path) => removeItem(rowIndex, path)} onAddWidget={addWidgetToContainer} onAddContainer={addContainerToContainer} />)}
+						<div className={rowGridClass(rowIndex)}>
+							{getRowItems(row).map((item, index) => (
+								<div key={typeof item === "string" ? `${item}:${index}` : item.id} className={rowItemClass(rowIndex, item)}>
+									<LayoutNode item={item} editMode={editMode} path={[index]} onRemove={(path) => removeItem(rowIndex, path)} onAddWidget={addWidgetToContainer} onAddContainer={addContainerToContainer} />
+								</div>
+							))}
 						</div>
 						{editMode && <div className="mt-3 flex flex-wrap gap-2"><Button type="button" size="sm" variant="outline" onClick={() => addContainerToRow(rowIndex, "row")}><Rows3 className="mr-1 h-3 w-3" />Add row container</Button><Button type="button" size="sm" variant="outline" onClick={() => addContainerToRow(rowIndex, "column")}><Columns3 className="mr-1 h-3 w-3" />Add column container</Button><AddWidgetStrip onAdd={(widgetId) => addWidgetToRow(rowIndex, widgetId)} /></div>}
 					</div>

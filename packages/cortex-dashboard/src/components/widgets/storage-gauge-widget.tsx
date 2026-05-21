@@ -12,7 +12,7 @@ export function StorageGaugeWidget() {
 	return (
 		<div className="h-full flex flex-col items-center justify-center min-h-[200px]">
 			{sys ? (
-				<div className="flex gap-6 flex-wrap justify-center">
+				<div className="grid w-full gap-3 sm:grid-cols-2">
 					{physicalDrives.map((d: DriveInfo) => (
 						<Gauge
 							key={d.name}
@@ -21,6 +21,7 @@ export function StorageGaugeWidget() {
 							label={d.name}
 							sublabel={d.used && d.total ? `${d.used} / ${d.total}` : d.size}
 							icon={<HardDrive className="w-5 h-5" />}
+							size={128}
 						/>
 					))}
 				</div>
