@@ -29,11 +29,13 @@ import {
 	HardDrive,
 	Terminal,
 	Menu,
+	Mail,
 } from "lucide-react";
 
 const navConfig = [
 	{ href: "/overview", labelKey: "Overview", icon: Activity },
 	{ href: "/alerts", labelKey: "Alerts", icon: Bell },
+	{ href: "/mail-guardian", labelKey: "Mail Guardian", icon: Mail },
 	{ href: "/apps", labelKey: "Apps", icon: LayoutGrid },
 	{ href: "/services", labelKey: "Services", icon: HeartPulse },
 	{ href: "/agents", labelKey: "Agents", icon: Bot },

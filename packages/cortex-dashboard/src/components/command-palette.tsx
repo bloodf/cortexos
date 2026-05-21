@@ -31,6 +31,7 @@ const pages = [
 	{ label: "Processes", href: "/processes" },
 	{ label: "Terminal", href: "/terminal" },
 	{ label: "Alerts", href: "/alerts" },
+	{ label: "Mail Guardian", href: "/mail-guardian" },
 	{ label: "Projects", href: "/projects" },
 	{ label: "Users", href: "/users" },
 	{ label: "Badges", href: "/badges" },

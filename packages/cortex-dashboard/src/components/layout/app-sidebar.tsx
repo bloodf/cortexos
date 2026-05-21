@@ -23,6 +23,7 @@ import {
 	Bell,
 	FolderKanban,
 	ScrollText,
+	Mail,
 } from "lucide-react";
 import {
 	Sidebar,
@@ -57,6 +58,7 @@ const PRIMARY_NAV: NavItem[] = [
 	{ href: "/processes", label: "Processes", icon: Box },
 	{ href: "/terminal", label: "Terminal", icon: Terminal },
 	{ href: "/alerts", label: "Alerts", icon: Bell },
+	{ href: "/mail-guardian", label: "Mail Guardian", icon: Mail },
 	{ href: "/projects", label: "Projects", icon: FolderKanban },
 	{ href: "/users", label: "Users", icon: UserCog },
 	{ href: "/badges", label: "Badges", icon: Tag },
