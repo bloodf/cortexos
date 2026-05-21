@@ -82,25 +82,27 @@ function SensorGroup({ title, subtitle, sensors, averageValue, gaugeValue, unit,
 						{statusLabel(averageValue, unit)}
 					</span>
 				</div>
-				<div className="mt-3 grid grid-cols-[104px_minmax(0,1fr)] items-center gap-3">
-					<Gauge
-						value={Math.round(gaugeValue)}
-						color={color}
-						label={`${formatGaugeValue(averageValue, unit)} avg`}
-						sublabel={unit === "rpm" ? "fan speed" : unit === "V" ? "rail reading" : "temperature"}
-						icon={icon}
-						size={108}
-						strokeWidth={8}
-						valueLabel={formatGaugeValue(averageValue, unit)}
-					/>
-					<div className="min-w-0">
-						<p className={`text-3xl font-bold tabular-nums ${tone.text}`}>{formatGaugeValue(averageValue, unit)}</p>
-						<p className="mt-1 text-xs text-white/40 light:text-slate-500">{sensors.length} readings</p>
+				<div className="mt-3 grid gap-3 xl:grid-cols-[190px_minmax(0,1fr)] xl:items-start">
+					<div className="grid grid-cols-[104px_minmax(0,1fr)] items-center gap-3 rounded-lg bg-black/10 p-2 light:bg-slate-50">
+						<Gauge
+							value={Math.round(gaugeValue)}
+							color={color}
+							label={`${formatGaugeValue(averageValue, unit)} avg`}
+							sublabel={unit === "rpm" ? "fan speed" : unit === "V" ? "rail reading" : "temperature"}
+							icon={icon}
+							size={108}
+							strokeWidth={8}
+							valueLabel={formatGaugeValue(averageValue, unit)}
+						/>
+						<div className="min-w-0">
+							<p className={`text-3xl font-bold tabular-nums ${tone.text}`}>{formatGaugeValue(averageValue, unit)}</p>
+							<p className="mt-1 text-xs text-white/40 light:text-slate-500">{sensors.length} readings</p>
+						</div>
+					</div>
+					<div className="max-h-40 overflow-y-auto rounded-lg border border-white/[0.05] bg-white/[0.02] px-2 py-1 light:border-slate-100 light:bg-white">
+						{sensors.map((sensor) => <SensorRow key={sensor.id} sensor={sensor} />)}
 					</div>
 				</div>
-			</div>
-			<div className="max-h-48 overflow-y-auto px-3 py-2">
-				{sensors.map((sensor) => <SensorRow key={sensor.id} sensor={sensor} />)}
 			</div>
 		</section>
 	);
