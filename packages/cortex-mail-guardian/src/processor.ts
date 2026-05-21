@@ -90,9 +90,10 @@ export async function sweep(deps: ProcessDeps): Promise<{ processed: number; tra
 	let skipped = 0;
 	let failed = 0;
 	for (const account of deps.config.accounts) {
+		let accountProcessed = 0;
 		const messages = await deps.mail.listInbox(account);
 		for (const message of messages) {
-			if (processed >= deps.config.maxMessagesPerSweep) return { processed, trashed, review, skipped, failed };
+			if (accountProcessed >= deps.config.maxMessagesPerSweep) break;
 			let action: "trashed" | "review" | "skipped";
 			try {
 				action = await processMessage(deps, account, message);
@@ -101,6 +102,7 @@ export async function sweep(deps: ProcessDeps): Promise<{ processed: number; tra
 				process.stderr.write(`[mail-guardian] ${account.slug}:${message.uid} failed: ${error instanceof Error ? error.message : String(error)}\n`);
 				continue;
 			}
+			accountProcessed += 1;
 			processed += 1;
 			if (action === "trashed") trashed += 1;
 			else if (action === "review") review += 1;

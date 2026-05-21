@@ -116,7 +116,6 @@ export async function discoverOwnerChatId(client: TelegramClient): Promise<strin
 export async function assertTelegramReady(client: TelegramClient, ownerChatId: string): Promise<void> {
 	await client.getMe();
 	await client.getChat(ownerChatId);
-	await client.sendMessage(ownerChatId, "Cortex mail guardian Telegram check passed.");
 }
 import https from "node:https";
 import { lookupWithFallback } from "./dns.js";

@@ -217,7 +217,8 @@ function quote(value: string): string {
 
 function parseMailboxPath(line: string): string | undefined {
 	const quoted = [...line.matchAll(/"((?:\\"|[^"])*)"/g)].map((match) => match[1].replace(/\\"/g, '"'));
-	return quoted.at(-1);
+	if (quoted.length > 0) return quoted.at(-1);
+	return line.trim().split(/\s+/).at(-1);
 }
 
 function parseRawEmail(raw: string): Omit<MailMessage, "uid"> {
