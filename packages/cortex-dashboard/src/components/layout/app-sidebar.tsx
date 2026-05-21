@@ -24,6 +24,7 @@ import {
 	FolderKanban,
 	ScrollText,
 	Mail,
+	PackageOpen,
 } from "lucide-react";
 import {
 	Sidebar,
@@ -53,6 +54,7 @@ const PRIMARY_NAV: NavItem[] = [
 	{ href: "/agent-factory", label: "Agent Factory", icon: Factory },
 	{ href: "/docker", label: "Docker", icon: Container },
 	{ href: "/systemd", label: "Systemd", icon: Server },
+	{ href: "/updates", label: "Updates", icon: PackageOpen },
 	{ href: "/storage", label: "Storage", icon: HardDrive },
 	{ href: "/network", label: "Network", icon: Network },
 	{ href: "/processes", label: "Processes", icon: Box },

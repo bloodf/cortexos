@@ -26,6 +26,7 @@ const pages = [
 	{ label: "Agent Factory", href: "/agent-factory" },
 	{ label: "Docker", href: "/docker" },
 	{ label: "Systemd", href: "/systemd" },
+	{ label: "Updates", href: "/updates" },
 	{ label: "Storage", href: "/storage" },
 	{ label: "Network", href: "/network" },
 	{ label: "Processes", href: "/processes" },

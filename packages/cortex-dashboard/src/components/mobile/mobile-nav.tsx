@@ -30,6 +30,7 @@ import {
 	Terminal,
 	Menu,
 	Mail,
+	PackageOpen,
 } from "lucide-react";
 
 const navConfig = [
@@ -42,6 +43,7 @@ const navConfig = [
 	{ href: "/agent-factory", labelKey: "Agent Factory", icon: Factory },
 	{ href: "/docker", labelKey: "Docker", icon: Container },
 	{ href: "/systemd", labelKey: "Systemd", icon: Server },
+	{ href: "/updates", labelKey: "Updates", icon: PackageOpen },
 	{ href: "/storage", labelKey: "Storage", icon: HardDrive },
 	{ href: "/network", labelKey: "Network", icon: Network },
 	{ href: "/processes", labelKey: "Processes", icon: Box },
