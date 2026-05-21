@@ -10,14 +10,14 @@ vi.mock("@/lib/db/agent-factories", () => ({
 	upsertAgentFactory: vi.fn(),
 	deleteAgentFactory: vi.fn(),
 }));
-vi.mock("@/lib/db/agent-gateway-audit", () => ({
+vi.mock("@/lib/db/tool-audit", () => ({
 	insertAuditRow: vi.fn().mockResolvedValue({}),
 }));
 
 import { GET, POST, PUT, DELETE } from "../route";
 import { requireAuth } from "@/lib/auth";
 import { listAgentFactories, upsertAgentFactory, deleteAgentFactory } from "@/lib/db/agent-factories";
-import { insertAuditRow } from "@/lib/db/agent-gateway-audit";
+import { insertAuditRow } from "@/lib/db/tool-audit";
 
 const mockRequireAuth = vi.mocked(requireAuth);
 const mockList = vi.mocked(listAgentFactories);

@@ -19,21 +19,17 @@ Use repo-native commands, in this order:
 4. tests
 5. build, when available
 
-## NATS Publish Contract
+## Paperclip Completion Contract
 
-Pre-push must publish exactly one CI event:
+Every run must leave a concise Paperclip issue comment containing:
 
-Success:
+- changed files or "no files changed"
+- commands run
+- pass/fail result
+- remaining risk or follow-up, if any
 
-```bash
-nats pub cortex.ci.<repo>.passed '{"repo":"<repo>","sha":"'"$(git rev-parse HEAD)"'","ts":"'"$(date -Is)"'"}'
-```
-
-Failure:
-
-```bash
-nats pub cortex.ci.<repo>.failed '{"repo":"<repo>","sha":"'"$(git rev-parse HEAD)"'","ts":"'"$(date -Is)"'","tail":"check failed"}'
-```
+The Paperclip issue status is the workflow state. Do not publish extra workflow
+events or depend on separate workflow daemons.
 
 ## Factory Install Rule
 

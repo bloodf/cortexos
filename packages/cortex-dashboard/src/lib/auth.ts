@@ -1,28 +1,42 @@
-import bcrypt from "bcryptjs";
 import crypto from "crypto";
+import { execFile } from "node:child_process";
 import { cookies } from "next/headers";
 import {
   getSessionByToken,
   deleteSession,
   createSession,
-  getUserByUsername,
-  type AdminUser,
+  getOrCreatePamUser,
+  type PamUser,
 } from "./db/admin";
+import { authenticatePam } from "./pam";
 
 const SESSION_COOKIE = "session_token";
 const SESSION_DAYS = 7;
+const ADMIN_GROUPS = ["cortexos-admin", "sudo"] as const;
 const COOKIE_SECURE = process.env.COOKIE_SECURE === "true" || (process.env.NODE_ENV === "production" && process.env.DASHBOARD_ORIGIN?.startsWith("https://"));
 
-export async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, 12);
+export interface AuthUser extends PamUser {
+  is_admin: boolean;
 }
 
-export async function verifyPassword(
-  password: string,
-  hash: string,
+export async function checkGroupMembership(
+  username: string,
+  groups: readonly string[] = ADMIN_GROUPS,
 ): Promise<boolean> {
-  return bcrypt.compare(password, hash);
+  try {
+    const stdout = await new Promise<string>((resolve, reject) => {
+      execFile("id", ["-Gn", username], { timeout: 2000 }, (error, output) => {
+        if (error) reject(error);
+        else resolve(String(output));
+      });
+    });
+    const userGroups = new Set(stdout.trim().split(/\s+/).filter(Boolean));
+    return groups.some((group) => userGroups.has(group));
+  } catch {
+    return false;
+  }
 }
+
 
 export function generateSessionToken(): string {
   return crypto.randomBytes(32).toString("hex");
@@ -30,10 +44,11 @@ export function generateSessionToken(): string {
 
 export async function createUserSession(
   userId: number,
+  isAdmin: boolean = false,
 ): Promise<{ token: string; expiresAt: Date }> {
   const token = generateSessionToken();
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
-  await createSession(userId, token, expiresAt);
+  await createSession(userId, token, expiresAt, isAdmin);
   return { token, expiresAt };
 }
 
@@ -89,12 +104,17 @@ export async function logout(): Promise<void> {
 export async function authenticateUser(
   username: string,
   password: string,
-): Promise<AdminUser | null> {
-  const user = await getUserByUsername(username);
-  if (!user) return null;
-  const valid = await verifyPassword(password, user.password_hash);
-  if (!valid) return null;
-  return user;
+): Promise<AuthUser | null> {
+  const normalized = username.trim();
+  if (!normalized || !password) return null;
+  try {
+    await authenticatePam(normalized, password);
+    const user = await getOrCreatePamUser(normalized);
+    const isAdmin = await checkGroupMembership(normalized);
+    return { ...user, is_admin: isAdmin };
+  } catch {
+    return null;
+  }
 }
 
 export interface AuthSession {
@@ -158,9 +178,8 @@ export async function requireAdmin(
 	const auth = await requireAuth(request);
 	if (auth.error) return auth;
 	if (!auth.session?.is_admin) {
-		// Best-effort audit. Lazy import to avoid a load-time cycle.
 		try {
-			const mod = await import("./db/agent-gateway-audit");
+			const mod = await import("./db/tool-audit");
 			await mod
 				.insertAuditRow({
 					actor_user_id: auth.session?.user_id ?? null,

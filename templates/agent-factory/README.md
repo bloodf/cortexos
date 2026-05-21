@@ -1,6 +1,6 @@
 # Agent Factory Templates
 
-OpenClaw-compatible workspace files for CortexOS agents. These templates define the full runtime environment for autonomous agents operating on the VPS.
+Hermes-compatible workspace files for CortexOS agents. These templates define the full runtime environment for autonomous agents operating on the VPS.
 
 ## Usage
 
@@ -22,8 +22,7 @@ When creating a new agent, copy all template files to the agent's workspace dire
 | `{stage}`           | Pipeline stage name                                       |
 | `{type}`            | Commit type                                               |
 | `{scope}`           | Commit scope                                              |
-| `{openviking_port}` | OpenViking knowledge base port                            |
-| `{hindsight_port}`  | Hindsight agent memory port                               |
+| `{Honcho_port}` | Honcho knowledge base port (default `18690`) |
 
 ## File Purposes
 
@@ -56,18 +55,19 @@ Supplementary (not in REQUIRED_FILES):
 - **Git Policy**: every code-writing agent must follow [`GIT_POLICY.md`](GIT_POLICY.md) — worktree per task; hotfix/bugfix/chore push direct to `main`; PR only when CI workflow or owner approval gate requires it.
 - **GitHub Templates**: agents must use `templates/github/PULL_REQUEST_TEMPLATE.md` for PRs and `templates/github/ISSUE_TEMPLATE/agent-task.md` for issues.
 - **Slack Threads**: agents use one Slack bot and one thread per GitHub issue/PR per `SLACK.md`; do not post every update as a new top-level channel message.
-- **Approval Flow**: merge-ready PRs request approval in the Slack thread (primary); Telegram inline buttons are an owner-only fallback. See [`docs/runbooks/APPROVAL_FLOW.md`](../../docs/runbooks/APPROVAL_FLOW.md). Text fallback (`APPROVE`, `APPROVED`, `MERGE`, `REJECT`) accepted on both surfaces.
-- **Memory Hierarchy**: Daily files (`memory/YYYY-MM-DD.md`) distilled into curated `MEMORY.md`.
-- **Heartbeat**: 30-minute check-in cycle for status, memory maintenance, and proactive work.
+- **Approval Flow**: merge-ready PRs request approval in the Slack thread (primary); Telegram inline buttons are an owner-only fallback. Text fallback (`APPROVE`, `APPROVED`, `MERGE`, `REJECT`) accepted on both surfaces.
+- **Memory Hierarchy**: Daily files (`memory/YYYY-MM-DD.md`) distilled into curated `MEMORY.md`; Honcho stores searchable indexed knowledge.
+- **Heartbeat**: check-in cycle for status, memory maintenance, and proactive work.
 - **Plan-First**: writing-plans → executing-plans with batch checkpoints. No coding without a plan.
-- **First Work: Green CI**: every project agent's first implementation task is to make CI green under [`docs/runbooks/CI_POLICY.md`](../../docs/runbooks/CI_POLICY.md) (husky-as-CI canonical, GitHub Actions opt-in): unit tests, lint, typecheck/build as applicable; no e2e, ESP32/hardware, or iOS/Android native app builds until the owner asks to restore them.
-- **Operational Runbooks**: see [`docs/runbooks/`](../../docs/runbooks/) for CI policy, escalation, incident template, approval flow, and per-repo STACK card.
+- **First Work: Green CI**: every project agent's first implementation task is to make CI green under `CI_POLICY.md`: unit tests, lint, typecheck/build as applicable; no e2e, ESP32/hardware, or iOS/Android native app builds until the owner asks to restore them.
+- **Operational Guidance**: local policy files (`CI_POLICY.md`, `TELEGRAM_APPROVAL.md`, `ESCALATION.md`, `STACK.md`) define repo-specific verification, approvals, escalation, and stack context.
 
 ## Reusable Workflow Packs
 
 | Pack              | Files                                                                         | Use case                                                                                      |
 | ----------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Cortex operations | `templates/agent-workflows/cortex/` + `templates/agent-roles/CORTEX.md`       | Always-on infrastructure, OpenClaw, model gateway, memory, and agent-fleet stewardship        |
+| Cortex operations | `templates/hermes/cortex/` + `templates/hermes/skills/cortex-factory-creation/` | Standalone machine-owner profile for infrastructure, Hermes, model gateway, memory, and factory stewardship |
 | Book writing      | `templates/agent-workflows/book-writing/` + `templates/agent-roles/BOOK-*.md` | Multi-agent author/editor/reviewer/evaluator/translator workflow for books and long-form docs |
 
-Role-specific CLAUDE.md files are in `templates/agent-roles/`.
+Factory agent role files are in `templates/agent-roles/`. Cortex itself is a
+standalone Hermes profile and is not registered as a Paperclip agent.

@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://cortexos/templates/messages/schema.json",
   "title": "CortexOS Canonical Rich-Block Envelope",
-  "description": "Channel-agnostic message envelope. OpenClaw plugins render per platform.",
+  "description": "Channel-agnostic message envelope. Hermes plugins render per platform.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "header", "sections", "context"],

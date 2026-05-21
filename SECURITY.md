@@ -14,8 +14,8 @@
 - Dashboard authentication, authorization, sessions, and privileged routes.
 - Credential encryption, import, masking, reveal, and rotation workflows.
 - VPS file allowlists and path traversal protections.
-- NATS approval signature verification and event routing.
-- Agent dispatch boundaries, prompt escalation rules, and audit logging.
+- Paperclip approval verification and Hermes adapter boundaries.
+- Agent prompt escalation rules and audit logging.
 - Templates that could expose secrets or run unsafe commands.
 
 ## Out of scope

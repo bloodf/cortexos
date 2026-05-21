@@ -10,22 +10,20 @@ import { EmptyState } from "@/components/ui/empty-state";
 
 const ENV_FILES = [
 	"/opt/cortexos/.secrets/dashboard.env",
-	"/opt/cortexos/.secrets/openclaw-gateway.env",
+	"/opt/cortexos/.secrets/honcho.env",
+	"/opt/cortexos/.secrets/hermes/primary.env",
+	"/opt/cortexos/.secrets/hermes/secondary.env",
 	"/opt/cortexos/.secrets/langfuse.env",
-	"/opt/cortexos/.secrets/consumer.env",
-	"/opt/cortexos/.secrets/graph.env",
 	"/opt/cortexos/.secrets/paperclip.env",
-	"/opt/cortexos/.secrets/agentgateway.env",
 	"/opt/cortexos/.secrets/kernel-browser.env",
 	"/opt/cortexos/.secrets/redis.env",
 	"/opt/cortexos/stacks/monitoring/.env",
 	"/opt/cortexos/stacks/cortex-langfuse/.env",
-	"~/.openclaw/openclaw.json",
 ];
 
 interface EnvLine { line: number; type: "kv" | "comment" | "blank"; key?: string; value?: string; masked?: string }
 interface EnvFileRow { path: string; group: string; file: string }
-const groupFor = (path: string) => path.includes("/stacks/") ? "Stack" : path.includes(".openclaw") ? "OpenClaw" : "Secrets";
+const groupFor = (path: string) => path.includes("/stacks/") ? "Stack" : path.includes("/hermes/") ? "Hermes" : "Secrets";
 const ROWS: EnvFileRow[] = ENV_FILES.map((path) => ({ path, group: groupFor(path), file: path.split("/").pop() ?? path }));
 
 export function EnvBrowser() {

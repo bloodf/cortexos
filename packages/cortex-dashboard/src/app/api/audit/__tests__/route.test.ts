@@ -5,14 +5,14 @@ vi.mock("@/lib/auth", () => {
 	const fn = vi.fn();
 	return { requireAuth: fn, requireAdmin: fn };
 });
-vi.mock("@/lib/db/agent-gateway-audit", () => ({
+vi.mock("@/lib/db/tool-audit", () => ({
 	listAudit: vi.fn(),
 	countAudit: vi.fn(),
 }));
 
 import { GET } from "../route";
 import { requireAdmin } from "@/lib/auth";
-import { listAudit, countAudit } from "@/lib/db/agent-gateway-audit";
+import { listAudit, countAudit } from "@/lib/db/tool-audit";
 
 const mockRequireAdmin = vi.mocked(requireAdmin);
 const mockListAudit = vi.mocked(listAudit);

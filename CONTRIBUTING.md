@@ -58,7 +58,7 @@ Use concise conventional prefix:
 
 ```text
 feat(dashboard): add service health timeline
-fix(consumer): validate NATS approval signature
+fix(paperclip): validate approval signature
 docs(security): document credential rotation window
 refactor(prompts): split monitoring setup steps
 test(secrets): cover allowlist traversal rejection
@@ -72,7 +72,7 @@ test(secrets): cover allowlist traversal rejection
 - [ ] New paths use `/opt/cortexos` and `CORTEX_ROOT` consistently.
 - [ ] Documentation index links new or changed docs.
 - [ ] No secrets, private IPs, passwords, tokens, or customer data committed.
-- [ ] Security-sensitive behavior includes audit and rollback notes.
+- [ ] Security-sensitive behavior includes audit notes.
 
 ## Documentation standards
 

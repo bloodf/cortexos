@@ -1,7 +1,5 @@
-import { execFile } from "node:child_process";
 import { readdir, readFile, writeFile, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { promisify } from "node:util";
 
 export interface AgentFile {
   name: string;
@@ -28,44 +26,38 @@ export interface AgentGroup {
   agents: Agent[];
 }
 
-const DEFAULT_OPENCLAW_BASE = `${process.env.HOME || "/home/cortex"}/.openclaw`;
-const CONTAINER_PREFIX = "/home/node/.openclaw";
-const execFileAsync = promisify(execFile);
-
-function getOpenclawBase(): string {
-  return process.env.AGENT_SCAN_PATHS?.split(/[,:]/)[0] || process.env.OPENCLAW_BASE || DEFAULT_OPENCLAW_BASE;
+interface HermesProfile {
+  profile: string;
+  home: string;
+  apiPort?: number;
+  model?: string;
+  reasoning?: string;
+  honchoWorkspace?: string;
 }
 
-// Group agents by the slug prefix before the first hyphen. Avoid hardcoding
-// any project names — operators register projects via the admin UI.
-function projectForSlug(slug: string): string {
-  if (slug === "cortex") return "Cortex";
-  const idx = slug.indexOf("-");
-  const prefix = idx > 0 ? slug.slice(0, idx) : slug;
-  if (!prefix) return "Other";
-  return prefix.charAt(0).toUpperCase() + prefix.slice(1);
+interface HermesRegistry {
+  profiles?: HermesProfile[];
 }
 
-function hostPath(containerPath: string): string {
-  if (containerPath.startsWith(CONTAINER_PREFIX)) {
-    return containerPath.replace(CONTAINER_PREFIX, getOpenclawBase());
-  }
-  return containerPath;
+const DEFAULT_HERMES_ROOT = "/opt/cortexos/hermes";
+const DEFAULT_HERMES_REGISTRY = `${DEFAULT_HERMES_ROOT}/profiles.json`;
+
+function getRegistryPath(): string {
+  return process.env.HERMES_PROFILES_REGISTRY || DEFAULT_HERMES_REGISTRY;
 }
 
 function getScanRoots(): string[] {
-  return process.env.AGENT_SCAN_PATHS?.split(/[,:]/).filter(Boolean) || [getOpenclawBase()];
+  return process.env.AGENT_SCAN_PATHS?.split(/[,:]/).filter(Boolean) || [
+    `${DEFAULT_HERMES_ROOT}/profiles`,
+  ];
 }
 
 async function getMarkdownFiles(dir: string): Promise<AgentFile[]> {
   try {
     const entries = await readdir(dir, { withFileTypes: true });
     return entries
-      .filter((e) => e.isFile() && e.name.endsWith(".md") && !e.name.includes(".bak"))
-      .map((e) => ({
-        name: e.name,
-        path: join(dir, e.name),
-      }))
+      .filter((entry) => entry.isFile() && entry.name.endsWith(".md") && !entry.name.includes(".bak"))
+      .map((entry) => ({ name: entry.name, path: join(dir, entry.name) }))
       .sort((a, b) => a.name.localeCompare(b.name));
   } catch {
     return [];
@@ -74,19 +66,16 @@ async function getMarkdownFiles(dir: string): Promise<AgentFile[]> {
 
 async function isModelEndpointReachable(model: string): Promise<boolean> {
   if (!model || model === "unknown") return false;
-  const base =
-    process.env.NINEROUTER_BASE_URL ||
-    process.env.ROUTER_BASE_URL ||
-    "http://127.0.0.1:11434";
+  const base = (process.env.NINEROUTER_BASE_URL || "http://127.0.0.1:11434").replace(/\/$/, "");
   const apiKey = process.env.NINEROUTER_API_KEY;
   const headers: Record<string, string> = {};
   if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
   try {
-    const res = await fetch(`${base}/v1/models`, {
-      cache: "no-store",
-      headers,
-    });
-    return res.ok;
+    const res = await fetch(`${base}/v1/models`, { cache: "no-store", headers });
+    if (!res.ok) return false;
+    const payload = await res.json().catch(() => null);
+    const ids = Array.isArray(payload?.data) ? payload.data.map((item: { id?: string }) => item.id) : [];
+    return ids.length === 0 ? true : ids.includes(model);
   } catch {
     return false;
   }
@@ -94,12 +83,12 @@ async function isModelEndpointReachable(model: string): Promise<boolean> {
 
 function hasRoleFiles(files: AgentFile[]): boolean {
   const names = new Set(files.map((file) => file.name));
-  return names.has("CLAUDE.md") && names.has("ROLE.md");
+  return names.has("ROLE.md") || names.has("SOUL.md") || names.has("AGENTS.md");
 }
 
 function hasWorkflow(files: AgentFile[]): boolean {
   const names = new Set(files.map((file) => file.name));
-  return names.has("WORKFLOW.md") || names.has("PIPELINE.md");
+  return names.has("WORKFLOW.md") || names.has("PIPELINE.md") || names.has("README.md");
 }
 
 function isWithinRoots(filePath: string, roots: string[]): boolean {
@@ -107,162 +96,69 @@ function isWithinRoots(filePath: string, roots: string[]): boolean {
   return roots.some((root) => resolved.startsWith(resolve(root)));
 }
 
-interface OpenClawAgent {
-  id: string;
-  name?: string;
-  workspace?: string;
-  agentDir?: string;
-  kind?: string;
-  lane?: string;
-  tags?: string[];
-  model?: string | { primary?: string };
-  identity?: { name?: string; emoji?: string };
-  identityName?: string;
-  identityEmoji?: string;
-  metadata?: { factoryLane?: boolean; template?: boolean };
-}
-
-interface OpenClawConfig {
-  agents?: {
-    list?: OpenClawAgent[];
-  };
-}
-
-interface OpenClawListOutput {
-  agents?: OpenClawAgent[];
-}
-
-function isFactoryLane(entry: OpenClawAgent): boolean {
-  if (entry.metadata?.factoryLane || entry.metadata?.template) return true;
-  if (entry.kind === "factory" || entry.lane === "factory") return true;
-  if (entry.tags?.some((tag) => tag === "factory" || tag === "template")) return true;
-  const labels = [entry.id, entry.name, entry.identity?.name]
+function displayName(slug: string): string {
+  return slug
+    .split("-")
     .filter(Boolean)
-    .map((value) => String(value).toLowerCase());
-  return labels.some((value) => value === "factory" || value === "template" || value.startsWith("factory-") || value.startsWith("template-"));
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
-let cachedOpenClawAgents: { expiresAt: number; agents: OpenClawAgent[] | null } | null = null;
-
-async function listOpenClawAgents(): Promise<OpenClawAgent[] | null> {
-  const now = Date.now();
-  if (cachedOpenClawAgents && cachedOpenClawAgents.expiresAt > now) return cachedOpenClawAgents.agents;
+async function readRegistry(): Promise<HermesRegistry | null> {
   try {
-    const { stdout } = await execFileAsync("openclaw", ["agents", "list", "--json"], {
-      timeout: 5000,
-      maxBuffer: 1024 * 1024,
-    });
-    const parsed = JSON.parse(stdout) as OpenClawListOutput | OpenClawAgent[];
-    const agents = Array.isArray(parsed) ? parsed : parsed.agents;
-    const filtered = Array.isArray(agents) ? agents.filter((agent) => agent.id && !isFactoryLane(agent)) : null;
-    cachedOpenClawAgents = { agents: filtered, expiresAt: now + 5000 };
-    return filtered;
+    return JSON.parse(await readFile(getRegistryPath(), "utf-8")) as HermesRegistry;
   } catch {
-    cachedOpenClawAgents = { agents: null, expiresAt: now + 1000 };
     return null;
   }
 }
 
-async function scanLegacyAgentDirs(): Promise<AgentGroup[]> {
-  const groups: AgentGroup[] = [];
-
-  async function walk(dir: string, projectName: string): Promise<void> {
-    const entries = await readdir(dir, { withFileTypes: true });
-    const agentsDir = entries.find((entry) => entry.isDirectory() && entry.name === ".agents");
-    if (agentsDir) {
-      const base = join(dir, agentsDir.name);
-      const agentEntries = await readdir(base, { withFileTypes: true });
-      const agents: Agent[] = [];
-      for (const entry of agentEntries.filter((item) => item.isDirectory())) {
-        const workspace = join(base, entry.name);
-        agents.push({
-          slug: entry.name,
-          name: entry.name.charAt(0).toUpperCase() + entry.name.slice(1),
-          model: "unknown",
-          workspace,
-          files: await getMarkdownFiles(workspace),
-        });
-      }
-      if (agents.length > 0) groups.push({ project: projectName, agents });
-      return;
-    }
-
-    for (const entry of entries.filter((item) => item.isDirectory())) {
-      await walk(join(dir, entry.name), entry.name);
-    }
-  }
-
+async function scanProfileDirs(): Promise<HermesProfile[]> {
+  const profiles: HermesProfile[] = [];
   for (const root of getScanRoots()) {
     try {
       const rootStat = await stat(root);
-      if (rootStat.isDirectory()) await walk(root, root.split("/").pop() || root);
+      if (!rootStat.isDirectory()) continue;
+      const entries = await readdir(root, { withFileTypes: true });
+      for (const entry of entries.filter((item) => item.isDirectory())) {
+        const home = join(root, entry.name);
+        profiles.push({ profile: entry.name, home, model: "unknown" });
+      }
     } catch {
       // Missing scan roots are ignored.
     }
   }
-
-  return groups;
+  return profiles;
 }
 
 export async function scanAgents(): Promise<AgentGroup[]> {
-  if (!process.env.AGENT_SCAN_PATHS) {
-    const listed = await listOpenClawAgents();
-    if (listed) return buildGroupsFromOpenClawAgents(listed);
-  }
+  const registry = await readRegistry();
+  const profileList = registry?.profiles?.length ? registry.profiles : await scanProfileDirs();
+  const groups: AgentGroup[] = [];
 
-  const configPath = join(getOpenclawBase(), "openclaw.json");
-  let config: OpenClawConfig;
-  try {
-    const raw = await readFile(configPath, "utf-8");
-    config = JSON.parse(raw) as OpenClawConfig;
-  } catch {
-    return scanLegacyAgentDirs();
-  }
-
-  const agentList = config.agents?.list ?? [];
-  return buildGroupsFromOpenClawAgents(agentList.filter((agent) => !isFactoryLane(agent)));
-}
-
-async function buildGroupsFromOpenClawAgents(agentList: OpenClawAgent[]): Promise<AgentGroup[]> {
-  const agents: Agent[] = [];
-
-  for (const entry of agentList) {
-    const workspace = entry.workspace ? hostPath(entry.workspace) : "";
-    const agentDir = entry.agentDir ? hostPath(entry.agentDir) : join(getOpenclawBase(), "agents", entry.id, "agent");
-    const files = await getMarkdownFiles(agentDir);
-    const model = typeof entry.model === "string" ? entry.model : (entry.model?.primary ?? "unknown");
-    const shortModel = model.split("/").pop() ?? model;
-
-    agents.push({
-      slug: entry.id,
-      name: entry.identity?.name || entry.identityName || entry.name || entry.id,
-      emoji: entry.identity?.emoji || entry.identityEmoji,
-      model: shortModel,
-      workspace,
-      files,
-      health: {
-        registered: true,
-        roleFilesPresent: hasRoleFiles(files),
-        modelReachable: await isModelEndpointReachable(model),
-        workflowPresent: hasWorkflow(files),
-      },
+  for (const profile of profileList) {
+    const files = await getMarkdownFiles(profile.home);
+    const model = profile.model || "unknown";
+    groups.push({
+      project: displayName(profile.profile),
+      agents: [
+        {
+          slug: profile.profile,
+          name: displayName(profile.profile),
+          model,
+          workspace: profile.home,
+          files,
+          health: {
+            registered: true,
+            roleFilesPresent: hasRoleFiles(files),
+            modelReachable: await isModelEndpointReachable(model),
+            workflowPresent: hasWorkflow(files),
+          },
+        },
+      ],
     });
   }
 
-  const byProject = new Map<string, Agent[]>();
-  for (const agent of agents) {
-    const project = projectForSlug(agent.slug);
-    const bucket = byProject.get(project) ?? [];
-    bucket.push(agent);
-    byProject.set(project, bucket);
-  }
-
-  return Array.from(byProject.entries())
-    .map(([project, list]) => ({
-      project,
-      agents: list.sort((a, b) => a.slug.localeCompare(b.slug)),
-    }))
-    .sort((a, b) => a.project.localeCompare(b.project));
+  return groups.sort((a, b) => a.project.localeCompare(b.project));
 }
 
 function slugifyProject(value: string): string {
@@ -275,7 +171,7 @@ export async function scanAgentsForProject(projectSlug: string): Promise<Agent[]
   for (const group of groups) {
     if (slugifyProject(group.project) === normalized) return group.agents;
   }
-  return groups.flatMap((group) => group.agents).filter((agent) => slugifyProject(agent.slug).startsWith(`${normalized}-`));
+  return groups.flatMap((group) => group.agents).filter((agent) => slugifyProject(agent.slug) === normalized);
 }
 
 export async function getAgentFiles(agentDir: string): Promise<AgentFile[]> {
@@ -284,19 +180,12 @@ export async function getAgentFiles(agentDir: string): Promise<AgentFile[]> {
 
 export async function readAgentFile(filePath: string): Promise<string> {
   const roots = getScanRoots();
-  if (!isWithinRoots(filePath, roots)) {
-    throw new Error("Access denied: path outside scan roots");
-  }
+  if (!isWithinRoots(filePath, roots)) throw new Error("Access denied: path outside scan roots");
   return readFile(filePath, "utf-8");
 }
 
-export async function writeAgentFile(
-  filePath: string,
-  content: string,
-): Promise<void> {
+export async function writeAgentFile(filePath: string, content: string): Promise<void> {
   const roots = getScanRoots();
-  if (!isWithinRoots(filePath, roots)) {
-    throw new Error("Access denied: path outside scan roots");
-  }
+  if (!isWithinRoots(filePath, roots)) throw new Error("Access denied: path outside scan roots");
   await writeFile(filePath, content, "utf-8");
 }

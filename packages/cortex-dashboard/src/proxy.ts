@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getSessionByToken } from "@/lib/db/admin";
 
-const PUBLIC_PREFIXES = ["/api/auth", "/_next", "/favicon"];
+const PUBLIC_PREFIXES = ["/api/auth", "/api/health", "/_next", "/favicon"];
 const INTERNAL_TOKEN = process.env.CORTEX_INTERNAL_TOKEN || process.env.CORTEX_MASTER_KEY;
-const PUBLIC_PATHS = ["/", "/login", "/setup"];
+const PUBLIC_PATHS = ["/", "/login"];
 const SESSION_CACHE = new Map<string, number>();
 const SESSION_CACHE_MS = 5 * 60 * 1000;
 

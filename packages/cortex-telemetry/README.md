@@ -14,16 +14,16 @@ Node OpenLLMetry + Langfuse wrapper for CortexOS services.
 ```js
 import { instrument, traceLLMCall, shutdown } from "@cortexos/telemetry";
 
-instrument({ service: "cortex-consumer", env: process.env.CORTEX_ENV });
+instrument({ service: "hermes-primary", env: process.env.CORTEX_ENV });
 
 const result = await traceLLMCall(
   {
-    name: "openclaw.dispatch",
-    model: "openclaw-cli",
+    name: "hermes.run",
+    model: "cx/gpt-5.5",
     input: { subject, payload },
     metadata: { runId: data.runId, role },
   },
-  () => openclawExec(args),
+  () => runHermes(args),
 );
 
 process.on("SIGTERM", () => shutdown());

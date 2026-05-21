@@ -52,8 +52,8 @@ export async function getUptimeStats(
       COUNT(*) FILTER (WHERE status = 'online') AS online_checks,
       AVG(response_time_ms) FILTER (WHERE status = 'online') AS avg_response_ms
     FROM service_health_log
-    WHERE service_id = $1 AND checked_at >= NOW() - INTERVAL '${hours} hours'`,
-		[serviceId],
+    WHERE service_id = $1 AND checked_at >= NOW() - ($2::int * INTERVAL '1 hour')`,
+		[serviceId, hours],
 	);
 	const total = parseInt(row?.total_checks ?? "0", 10);
 	const online = parseInt(row?.online_checks ?? "0", 10);

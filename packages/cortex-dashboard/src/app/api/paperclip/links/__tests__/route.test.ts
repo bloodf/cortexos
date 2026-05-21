@@ -22,7 +22,7 @@ describe("GET /api/paperclip/links", () => {
 				paperclip_run_id: "run-1",
 				paperclip_agent_id: "agent-1",
 				cortex_role: "ENG-BACKEND",
-				nats_subject: "cortex.task.eng-backend",
+				adapter_ref: "hermes:primary",
 				status: "in_progress",
 				cost_usd_cents: 250,
 				created_at: "2026-05-18T10:00:00.000Z",

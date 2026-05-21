@@ -1,7 +1,7 @@
 /**
  * /api/ai/chat — Cortex chat streaming endpoint.
  *
- * - Admin gate via requireAuth (admin_users is the only kind).
+ * - Admin gate via requireAuth (PAM-backed dashboard sessions).
  * - Shared rate limiting via injectable RateLimitStore: 60 req / 15min per user, 300 / 15min global.
  * - Streams via Vercel AI SDK `streamText` against 9Router (openai-compatible).
  * - Persists messages to `chat_sessions.messages` jsonb via `appendChatMessages`.
@@ -18,7 +18,7 @@ import {
 import { getAllTools } from "@/lib/ai/tools";
 import { deriveCortexSessionId } from "@/lib/ai/session-binding";
 import { getRateLimitStore } from "@/lib/ai/rate-limit-store";
-import { insertAuditRow } from "@/lib/db/agent-gateway-audit";
+import { insertAuditRow } from "@/lib/db/tool-audit";
 import {
 	appendChatMessages,
 	type ChatMessage as DBChatMessage,

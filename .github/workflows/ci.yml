@@ -30,24 +30,6 @@ jobs:
         env:
           NEXT_TELEMETRY_DISABLED: '1'
 
-  consumer:
-    name: Cortex Consumer (node --test)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: stacks/cortex-consumer
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
-      - name: Install workspace deps
-        working-directory: .
-        run: pnpm install --frozen-lockfile
-      - run: pnpm test
 
   shell:
     name: Shell scripts (shellcheck + bash -n)
@@ -72,7 +54,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: DASHBOARD_DB_PASSWORD=x CORTEX_MASTER_KEY=x docker compose -f packages/cortex-dashboard/docker-compose.yml config >/dev/null
-      - run: docker compose -f stacks/nats/docker-compose.yml config >/dev/null
+      - run: docker compose -f stacks/otel/docker-compose.yml config >/dev/null
 
   docker-image:
     name: Dashboard image build

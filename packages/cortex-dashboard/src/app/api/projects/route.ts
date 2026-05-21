@@ -7,7 +7,7 @@ import {
 	updateProject,
 	deleteProject,
 } from "@/lib/db/projects";
-import { insertAuditRow } from "@/lib/db/agent-gateway-audit";
+import { insertAuditRow } from "@/lib/db/tool-audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

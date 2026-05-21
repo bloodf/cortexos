@@ -2,31 +2,28 @@
 
 ## Contract
 
-Every factory-created agent gets this workflow file in `~/.openclaw/agents/<agent-id>/agent/WORKFLOW.md`.
+Every factory-created agent gets this workflow file in `~/.Hermes/agents/<agent-id>/agent/WORKFLOW.md`.
 
 ## Pipeline
 
-1. Intake Slack thread or NATS event.
+1. Intake the assigned Paperclip issue.
 2. Confirm repo, branch, task, acceptance criteria.
 3. Make smallest safe change in assigned workspace.
 4. Run repo-local checks from `PIPELINE.md`.
-5. Publish result through NATS subject for repo slug.
-6. Report summary to PM thread. Never bypass PM gate.
+5. Post a Paperclip comment with changed files, checks, and risk.
+6. Move the issue to the correct status. Never bypass PM/owner approval gates.
 
-## Required Signals
+## Required Paperclip State
 
-- Start: `cortex.task.<repo>.assigned`
-- CI pass: `cortex.ci.<repo>.passed`
-- CI fail: `cortex.ci.<repo>.failed`
-- Review request: `cortex.review.<repo>.requested`
-- Review approved: `cortex.review.<repo>.approved`
-- Review rejected: `cortex.review.<repo>.rejected`
-- Deploy requested: `cortex.deploy.<repo>.requested`
-- Deploy succeeded: `cortex.deploy.<repo>.succeeded`
+- `open`: issue is ready to triage.
+- `in_progress`: Hermes-backed agent is actively working.
+- `done`: acceptance criteria and verification are complete.
+- `failed`: blocked or verification failed; comment includes the reason.
+- `cancelled`: operator or PM explicitly stopped the work.
 
 ## Hard Rules
 
-- No direct `openclaw run`/`openclaw dispatch` unless agent id is `cortex`.
+- No direct Hermes dispatch outside Paperclip unless the operator explicitly asks.
 - No GitHub label state machine.
-- No merge without PM Slack-thread approval.
-- Persist important state in repo or approved service, never memory only.
+- No custom event-bus workflow or sidecar pipeline.
+- Persist important state in Paperclip, repo files, or Honcho; never memory only.

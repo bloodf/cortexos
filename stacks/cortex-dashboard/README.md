@@ -8,8 +8,8 @@ former laptop-side `rsync`/systemd deploy path.
 - **Build runs on the VPS.** The bootstrap flow materializes the repo at
   `/opt/cortexos` via `git archive | ssh tar -x`, so `packages/cortex-dashboard/` is
   already present. `docker compose build` consumes that source.
-- **No `depends_on` for postgres/nats.** Those run as sibling
-  containers (or host services) and are joined through the
+- **No `depends_on` for Postgres, Hermes, Honcho, or Paperclip.** Those run as sibling
+  containers or host services and are joined through the
   `cortex-net` external Docker network. Health is the integration
   contract, not compose ordering.
 - **Non-root runtime.** Image runs as the `node` user with `dumb-init`

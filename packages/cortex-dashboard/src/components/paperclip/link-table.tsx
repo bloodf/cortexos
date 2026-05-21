@@ -9,7 +9,7 @@ export interface PaperclipLinkRow {
 	paperclip_run_id: string;
 	paperclip_agent_id: string;
 	cortex_role: string;
-	nats_subject: string;
+	adapter_ref?: string | null;
 	status: "open" | "in_progress" | "done" | "failed" | "cancelled";
 	cost_usd_cents: number;
 	created_at: string;

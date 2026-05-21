@@ -3,9 +3,9 @@
  * HMAC-SHA256 confirmation tokens for privileged/destructive tool calls.
  * Plan §4a: issue → UI echo → verify → execute.
  *
- * Token consumption is abstracted behind TokenConsumedStore. Deployments can
- * install a JetStream KV implementation with `setTokenConsumedStore(...)` at
- * server startup; the built-in store is the safe single-node fallback.
+ * Token consumption is abstracted behind TokenConsumedStore. The built-in
+ * single-node store is the default for this all-in-one installer; deployments
+ * can inject another durable store with `setTokenConsumedStore(...)`.
  */
 
 import { createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
@@ -132,7 +132,7 @@ class InMemoryConsumedStore implements TokenConsumedStore {
 
 let consumedStore: TokenConsumedStore = new InMemoryConsumedStore();
 
-/** Inject alternative store (JetStream KV, test doubles). */
+/** Inject alternative store for clustered deployments or test doubles. */
 export function setTokenConsumedStore(impl: TokenConsumedStore): void {
   consumedStore = impl;
 }

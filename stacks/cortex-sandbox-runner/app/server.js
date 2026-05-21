@@ -31,18 +31,16 @@ const PODMAN_BIN = process.env.CORTEX_SANDBOX_PODMAN_BIN || "podman";
 // Audit fan-out: the sandbox runner cannot write directly to the
 // Postgres audit_log (no DB connection by design — minimal attack
 // surface). Instead it POSTs a CloudEvents-shaped record to an internal
-// audit-write endpoint when CORTEX_AUDIT_URL is configured; the
-// dashboard / consumer subscribes and calls `@cortexos/audit.append`.
-// See docs/NATS-CONTRACT.md → `cortex.audit.<scope>.<verb>`.
+// audit-write endpoint when CORTEX_AUDIT_URL is configured.
 const CORTEX_AUDIT_URL = (process.env.CORTEX_AUDIT_URL || "").replace(/\/$/, "");
-// When CORTEX_NATS_HMAC is configured, the CloudEvent is wrapped in the
+// When CORTEX_AUDIT_HMAC is configured, the CloudEvent is wrapped in the
 // standard signed envelope `{ data, sig }` (sig = HMAC-SHA256 over JCS
 // canonicalised data). This lets downstream verifiers confirm integrity
 // without trusting the transport. If the secret is absent the event is
 // still emitted but logged as unsigned.
 const CORTEX_AUDIT_TOKEN = process.env.CORTEX_AUDIT_TOKEN || "";
 const CORTEX_AUDIT_ENABLED = process.env.CORTEX_AUDIT_ENABLED !== "0";
-function getCortexNatsHmac() { return process.env.CORTEX_NATS_HMAC || ""; }
+function getCortexAuditHmac() { return process.env.CORTEX_AUDIT_HMAC || ""; }
 
 function jcs(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -52,7 +50,7 @@ function jcs(value) {
 }
 
 function signEnvelope(data, secret) {
-  if (!secret) throw new Error("CORTEX_NATS_HMAC not configured");
+  if (!secret) throw new Error("CORTEX_AUDIT_HMAC not configured");
   const sig = createHmac("sha256", secret).update(jcs(data)).digest("hex");
   return { data, sig };
 }
@@ -76,7 +74,7 @@ async function emitAuditEvent(payload) {
   };
 
   let envelope;
-  const hmacSecret = getCortexNatsHmac();
+  const hmacSecret = getCortexAuditHmac();
   if (hmacSecret) {
     try {
       envelope = signEnvelope(event, hmacSecret);

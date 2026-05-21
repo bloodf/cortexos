@@ -6,7 +6,7 @@ import {
 	deleteAgentFactory,
 } from "@/lib/db/agent-factories";
 import type { AgentFactoryKind } from "@/lib/db/agent-factories";
-import { insertAuditRow } from "@/lib/db/agent-gateway-audit";
+import { insertAuditRow } from "@/lib/db/tool-audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

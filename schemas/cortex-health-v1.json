@@ -10,7 +10,7 @@
     "service": {
       "type": "string",
       "minLength": 1,
-      "description": "Logical service name (e.g. cortex-consumer, paperclip-bridge, agentgateway)."
+      "description": "Logical service name."
     },
     "status": {
       "type": "string",
@@ -29,7 +29,7 @@
     "subject": {
       "type": "string",
       "minLength": 1,
-      "description": "NATS subject this heartbeat was published on."
+      "description": "Optional routing key for this heartbeat."
     },
     "ts": {
       "type": "string",

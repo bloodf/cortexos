@@ -52,7 +52,7 @@ Checklist:
 3. LLM trust boundary: any user input passed to LLM is sanitized; LLM output
    never trusted for auth/authz decisions or file paths.
 4. Conditional side effects: any `if` that mutates state has corresponding
-   rollback path.
+   recovery path.
 5. Test coverage: every new branch covered, edge cases listed in test names.
 6. No hardcoded secrets, no `.env` content committed.
 7. Backward compatibility: API/schema changes documented.
@@ -71,7 +71,7 @@ Walk through interactively:
 - Test plan: unit + integration + e2e listed with names.
 - Performance: O(n) of hot paths, expected p99 latency, memory ceiling.
 - Observability: logs, metrics, traces wired in.
-- Rollback strategy.
+- Recovery strategy.
 
 Refuse to proceed if any dimension is < 7/10.
 
@@ -230,7 +230,7 @@ Trigger: after `ship` completes.
 | QA               | qa, qa-only, browse, qa-design-review                              |
 | PM               | ship, retro, document-release                                      |
 | PO               | plan-ceo-review (selective), retro                                 |
-| CORTEX           | retro, document-release, ship (gateway PRs)                        |
+| PROJECT-SPECIALIST | retro, document-release, ship                                    |
 | ANTAGONIST       | review, plan-eng-review (adversarial mode)                         |
 | BOOK-*           | (n/a — book agents follow BOOK-pipeline, not gstack)               |
 
@@ -241,7 +241,7 @@ Trigger: after `ship` completes.
 - `ship` step 10 (Slack thread post) is the **only** Slack write path for
   engineering work — PM owns the thread, engineers append.
 - `qa` reports go to Slack thread + Telegram-to-PM if CRITICAL.
-- `retro` Telegram delivery: PM agent only, via `openclaw-dispatch-pm`.
+- `retro` Telegram delivery: PM agent only, via `Hermes-dispatch-pm`.
 - AI reviewer responses (Codex/Claude/Cursorbot/CodeRabbit) wait-loop is
   inside `ship` step 11 — agents poll PR comments via `gh pr view`.
 
@@ -253,6 +253,6 @@ Trigger: after `ship` completes.
 | pskoett/self-improving-agent    | qa, review (learn from corrections)         |
 | biostartechnology/humanizer     | document-release, retro (cleanup AI voice)  |
 | steipete/github                 | ship, review (gh CLI native)                |
-| @openclaw/lobster               | ship, qa (typed pipelines + approvals)      |
+| @Hermes/lobster               | ship, qa (typed pipelines + approvals)      |
 
 All 5 plugins installed fleet-wide. See `TOOLS.md` for plugin invocation.

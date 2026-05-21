@@ -11,7 +11,7 @@ vi.mock("@/lib/db/messaging-routes", () => ({
 	addRoute: vi.fn(),
 	removeRoute: vi.fn(),
 }));
-vi.mock("@/lib/db/agent-gateway-audit", () => ({
+vi.mock("@/lib/db/tool-audit", () => ({
 	insertAuditRow: vi.fn().mockResolvedValue({}),
 }));
 
@@ -19,7 +19,7 @@ import { GET, POST, DELETE } from "../route";
 import { requireAuth } from "@/lib/auth";
 import { getProject } from "@/lib/db/projects";
 import { listRoutes, addRoute, removeRoute } from "@/lib/db/messaging-routes";
-import { insertAuditRow } from "@/lib/db/agent-gateway-audit";
+import { insertAuditRow } from "@/lib/db/tool-audit";
 
 const mockRequireAuth = vi.mocked(requireAuth);
 const mockGetProject = vi.mocked(getProject);

@@ -68,17 +68,21 @@ sudo tailscale serve --bg --https=3000  http://localhost:3000   # Grafana
 sudo tailscale serve --bg --https=9090  http://localhost:9090   # Prometheus
 sudo tailscale serve --bg --https=3100  http://localhost:3100   # Loki API
 sudo tailscale serve --bg --https=8081  http://localhost:8081   # cAdvisor
-sudo tailscale serve --bg --https=8222  http://localhost:8222   # NATS monitor
 sudo tailscale serve --bg --https=3001  http://localhost:3001   # Langfuse
-sudo tailscale serve --bg --https=8020  http://localhost:18790  # OpenViking API
-sudo tailscale serve --bg --https=18789 http://localhost:18789  # OpenClaw gateway
-sudo tailscale serve --bg --https=18791 http://localhost:18791  # LEANN
-sudo tailscale serve --bg --https=8090  http://localhost:8090   # cortex-graph
+sudo tailscale serve --bg --https=18690 http://localhost:18690  # Honcho API
+sudo tailscale serve --bg --https=18691 http://localhost:18691  # Hermes primary API
+sudo tailscale serve --bg --https=18692 http://localhost:18692  # Hermes secondary API
 sudo tailscale serve --bg --https=3333  http://localhost:3333   # Kernel Browser
 sudo tailscale serve --bg --https=5050  http://localhost:5050   # pgAdmin
 sudo tailscale serve --bg --https=5540  http://localhost:5540   # RedisInsight
 sudo tailscale serve --bg --https=8083  http://localhost:8083   # mongo-express
 sudo tailscale serve --bg --https=8082  http://localhost:8082   # phpMyAdmin
+sudo tailscale serve --bg --https=9091  http://localhost:9091   # Cockpit
+sudo tailscale serve --bg --https=3420  http://localhost:3420   # Dockhand
+sudo tailscale serve --bg --https=4566  http://localhost:4566   # Floci / LocalStack API
+sudo tailscale serve --bg --https=8123  http://localhost:8123   # Home Assistant
+sudo tailscale serve --bg --https=8096  http://localhost:8096   # Jellyfin
+sudo tailscale serve --bg --https=10000 https://localhost:10000 # Webmin
 
 sudo tailscale serve status
 ```
@@ -96,17 +100,21 @@ the tailnet interface only.
 | Prometheus | `https://${CORTEX_DOMAIN}:9090/` |
 | Loki API | `https://${CORTEX_DOMAIN}:3100/` |
 | cAdvisor | `https://${CORTEX_DOMAIN}:8081/` |
-| NATS monitor | `https://${CORTEX_DOMAIN}:8222/` |
 | Langfuse | `https://${CORTEX_DOMAIN}:3001/` |
-| OpenViking API | `https://${CORTEX_DOMAIN}:8020/health` |
-| OpenClaw gateway | `https://${CORTEX_DOMAIN}:18789/` |
-| LEANN | `https://${CORTEX_DOMAIN}:18791/` |
-| cortex-graph | `https://${CORTEX_DOMAIN}:8090/docs` |
+| Honcho API | `https://${CORTEX_DOMAIN}:18690/` |
+| Hermes Primary API | `https://${CORTEX_DOMAIN}:18691/v1/` |
+| Hermes Secondary API | `https://${CORTEX_DOMAIN}:18692/v1/` |
 | Kernel Browser | `https://${CORTEX_DOMAIN}:3333/json/version?token={KERNEL_BROWSER_TOKEN}` |
 | pgAdmin | `https://${CORTEX_DOMAIN}:5050/` |
 | RedisInsight | `https://${CORTEX_DOMAIN}:5540/` |
 | mongo-express | `https://${CORTEX_DOMAIN}:8083/` |
 | phpMyAdmin | `https://${CORTEX_DOMAIN}:8082/` |
+| Cockpit | `https://${CORTEX_DOMAIN}:9091/` |
+| Dockhand | `https://${CORTEX_DOMAIN}:3420/` |
+| Floci / LocalStack | `https://${CORTEX_DOMAIN}:4566/_localstack/health` |
+| Home Assistant | `https://${CORTEX_DOMAIN}:8123/` |
+| Jellyfin | `https://${CORTEX_DOMAIN}:8096/` |
+| Webmin | `https://${CORTEX_DOMAIN}:10000/` |
 
 ## Verify
 

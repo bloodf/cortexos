@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("@/lib/db/agent-gateway-audit", () => ({
+vi.mock("@/lib/db/tool-audit", () => ({
 	insertAuditRow: vi.fn().mockResolvedValue({}),
 }));
 vi.mock("@/lib/db/service", () => ({
@@ -27,7 +27,7 @@ vi.mock("@/lib/runtime/host-ops", () => ({
 }));
 
 import { getAllTools, _resetToolCooldowns, _resetToolRateLimits } from "../tools";
-import { insertAuditRow } from "@/lib/db/agent-gateway-audit";
+import { insertAuditRow } from "@/lib/db/tool-audit";
 
 const mockAudit = vi.mocked(insertAuditRow);
 

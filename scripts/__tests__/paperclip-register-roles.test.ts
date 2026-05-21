@@ -6,6 +6,7 @@ import {
 	parseFrontmatter,
 	loadRoles,
 	registerRole,
+	routineToIntervalSec,
 	run,
 	writeKeyFile,
 	type HttpClient,
@@ -18,7 +19,7 @@ paperclip:
   role:             "ENG-BACKEND"
   boss:             "STAFF-ENG"
   monthlyBudgetUsd: 200
-  adapterType:      "http"
+  adapterType:      "hermes_local"
   adapterPath:      "/paperclip/heartbeat"
   routine:          "0 */15 * * * *"
 ---
@@ -38,6 +39,19 @@ describe("parseFrontmatter", () => {
 	it("returns null when no paperclip block", () => {
 		expect(parseFrontmatter("# plain\n")).toBeNull();
 		expect(parseFrontmatter("---\nother: 1\n---\nbody")).toBeNull();
+	});
+});
+
+describe("routineToIntervalSec", () => {
+	it("converts supported cron routines to seconds", () => {
+		expect(routineToIntervalSec("0 */15 * * * *")).toBe(900);
+		expect(routineToIntervalSec("0 */5 * * * *")).toBe(300);
+		expect(routineToIntervalSec("0 0 */2 * * *")).toBe(7200);
+	});
+
+	it("returns zero for unsupported schedules", () => {
+		expect(routineToIntervalSec("*/15 * * * *")).toBe(0);
+		expect(routineToIntervalSec("0 15 * * * *")).toBe(0);
 	});
 });
 
@@ -85,7 +99,7 @@ const ROLE: ParsedRole = {
 		role: "ENG-BACKEND",
 		boss: "STAFF-ENG",
 		monthlyBudgetUsd: 200,
-		adapterType: "http",
+		adapterType:      "hermes_local",
 		adapterPath: "/paperclip/heartbeat",
 		routine: "0 */15 * * * *",
 	},
@@ -117,6 +131,20 @@ describe("registerRole", () => {
 			"PATCH /api/agents/agent-1",
 			"POST /api/agents/agent-1/keys",
 		]);
+		expect(calls[0].body).toMatchObject({
+			adapterType: "hermes_local",
+			adapterConfig: {
+				provider: "auto",
+				extraArgs: ["--provider", "9router"],
+			},
+			runtimeConfig: {
+				heartbeat: {
+					enabled: true,
+					intervalSec: 900,
+					maxConcurrentRuns: 20,
+				},
+			},
+		});
 	});
 
 	it("treats 409 from hire as idempotent skip", async () => {
@@ -151,6 +179,19 @@ describe("registerRole", () => {
 			"/api/companies/c1/agent-hires",
 			"/api/agents/agent-9/keys",
 		]);
+		expect(calls[0].body).toMatchObject({
+			adapterConfig: {
+				provider: "auto",
+				extraArgs: ["--provider", "9router"],
+			},
+			runtimeConfig: {
+				heartbeat: {
+					enabled: true,
+					intervalSec: 900,
+					maxConcurrentRuns: 20,
+				},
+			},
+		});
 	});
 
 	it("calls approve endpoint when BOARD_TOKEN provided", async () => {

@@ -2,7 +2,7 @@
  * Live VPS env-file reader.
  *
  * Parses POSIX env-file format and applies key-based masking. Caller controls
- * reveal (and is responsible for writing an `agent_gateway_audit` row when
+ * reveal (and is responsible for writing an `tool_audit` row when
  * unmasked values are accessed via `readEnvFileRaw`).
  */
 
@@ -190,7 +190,7 @@ export async function readEnvFile(absPath: string): Promise<readonly EnvLineWith
 /**
  * IO: read an env file with no masking applied. Intended ONLY for the
  * env-writer's read-modify-write cycle. Callers MUST write an
- * `agent_gateway_audit` row recording the access before invoking this.
+ * `tool_audit` row recording the access before invoking this.
  *
  * @internal
  */

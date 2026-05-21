@@ -15,8 +15,8 @@
  *
  * Trade-offs (documented in docs/AUDIT.md):
  *   - `append()` failure MUST NOT block the originating operation. Callers
- *     wrap it in try/catch and re-emit a NATS alert
- *     (`cortex.alerts.error.audit-append-failed`) on failure. Continuity of
+ *     wrap it in try/catch and emit an operational alert
+ *     on failure. Continuity of
  *     the production path beats absolute completeness of the audit trail
  *     for tamper-evidence; gaps are observable via `verifyChain`.
  */
@@ -78,7 +78,7 @@ export function chainHashOf(prevHashHex, payloadHashHex) {
  *
  * @param {object} event
  * @param {string} event.event_type   e.g. "cortex.paperclip.work.executor"
- * @param {string} event.source       e.g. "cortex-consumer"
+ * @param {string} event.source       e.g. "hermes-primary"
  * @param {string} [event.subject]    e.g. issueId / runId
  * @param {string} [event.actor]      e.g. user/agent identifier
  * @param {object} event.payload      free-form JSON, canonicalised for hashing

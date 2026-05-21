@@ -1,10 +1,10 @@
 /**
  * V11 — E2E: paperclip ticket flow.
  *
- * Creates an issue via the Paperclip-bridge webhook (mocked when
+ * Creates an issue via the Paperclip/Hermes adapter endpoint (mocked when
  * `PAPERCLIP_BRIDGE_URL` is unset), waits for the link row to reach
  * `done`, and asserts the table renders it. Requires a live dashboard
- * + bridge + NATS. In hermetic local runs without the supporting infra
+ * + Paperclip/Hermes. In hermetic local runs without the supporting infra
  * the spec is marked `test.fixme` with an explanatory message.
  */
 import { test, expect } from "@playwright/test";

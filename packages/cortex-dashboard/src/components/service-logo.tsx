@@ -41,13 +41,14 @@ function InitialAvatar({
 
 const BRAND_COLORS: Record<string, string> = {
 	"9router": "#6366f1",
-	openviking: "#0ea5e9",
+	honcho: "#0ea5e9",
+	"hermes-primary": "#f97316",
+	"hermes-secondary": "#f97316",
 	hindsight: "#f59e0b",
 	floci: "#ff9900",
 	dockhand: "#06b6d4",
 "home-assistant": "#03a9f4",
 	jellyfin: "#00a4dc",
-	openclaw: "#f97316",
 	webmin: "#881113",
 	cockpit: "#3e4245",
 	ollama: "#1a1a1a",

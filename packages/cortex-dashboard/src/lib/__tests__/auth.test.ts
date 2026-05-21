@@ -1,8 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import bcrypt from 'bcryptjs';
+
+const mocks = vi.hoisted(() => ({
+  authenticatePam: vi.fn(),
+  execFile: vi.fn(),
+}));
+
+vi.mock('../pam', () => ({
+  authenticatePam: mocks.authenticatePam,
+}));
+
+vi.mock('node:child_process', () => ({
+  default: { execFile: mocks.execFile },
+  execFile: mocks.execFile,
+}));
 
 vi.mock('../db/admin', () => ({
-  getUserByUsername: vi.fn(),
+  getOrCreatePamUser: vi.fn(),
   createSession: vi.fn(),
   deleteSession: vi.fn(),
   getSessionByToken: vi.fn(),
@@ -16,34 +29,18 @@ vi.mock('next/headers', () => ({
 }));
 
 import {
-  hashPassword,
-  verifyPassword,
   generateSessionToken,
   authenticateUser,
+  checkGroupMembership,
+  createUserSession,
 } from '../auth';
-import { getUserByUsername } from '../db/admin';
+import { getOrCreatePamUser, createSession } from '../db/admin';
 
 describe('auth helpers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  it('hashPassword returns bcrypt hash', async () => {
-    const hash = await hashPassword('password123');
-    expect(hash.startsWith('$2')).toBe(true);
-    expect(hash.length).toBeGreaterThan(50);
-  });
-
-  it('verifyPassword validates correct password', async () => {
-    const hash = await bcrypt.hash('secret', 10);
-    const result = await verifyPassword('secret', hash);
-    expect(result).toBe(true);
-  });
-
-  it('verifyPassword rejects wrong password', async () => {
-    const hash = await bcrypt.hash('secret', 10);
-    const result = await verifyPassword('wrong', hash);
-    expect(result).toBe(false);
+    mocks.authenticatePam.mockResolvedValue(undefined);
+    mocks.execFile.mockImplementation((_cmd, _args, _options, cb) => cb(null, 'cortexos sudo\n', ''));
   });
 
   it('generateSessionToken returns 64-char hex', () => {
@@ -55,33 +52,57 @@ describe('auth helpers', () => {
     expect(/^[a-f0-9]+$/.test(tok1)).toBe(true);
   });
 
-  it('authenticateUser returns user on valid credentials', async () => {
-    const hash = await bcrypt.hash('pass', 10);
-    (getUserByUsername as any).mockResolvedValue({
+  it('checkGroupMembership returns true for matching group', async () => {
+    await expect(checkGroupMembership('admin', ['sudo'])).resolves.toBe(true);
+    expect(mocks.execFile).toHaveBeenCalledWith('id', ['-Gn', 'admin'], { timeout: 2000 }, expect.any(Function));
+  });
+
+  it('checkGroupMembership returns false on id failure', async () => {
+    mocks.execFile.mockImplementation((_cmd, _args, _options, cb) => cb(new Error('missing'), '', ''));
+    await expect(checkGroupMembership('missing', ['sudo'])).resolves.toBe(false);
+  });
+
+  it('authenticateUser returns PAM user with admin flag on valid credentials', async () => {
+    (getOrCreatePamUser as any).mockResolvedValue({
       id: 1,
       username: 'admin',
-      password_hash: hash,
       created_at: new Date(),
     });
-    const result = await authenticateUser('admin', 'pass');
+    const result = await authenticateUser(' admin ', 'pass');
+    expect(mocks.authenticatePam).toHaveBeenCalledWith('admin', 'pass');
+    expect(getOrCreatePamUser).toHaveBeenCalledWith('admin');
     expect(result?.username).toBe('admin');
+    expect(result?.is_admin).toBe(true);
   });
 
-  it('authenticateUser returns null on missing user', async () => {
-    (getUserByUsername as any).mockResolvedValue(null);
-    const result = await authenticateUser('nobody', 'pass');
-    expect(result).toBeNull();
-  });
-
-  it('authenticateUser returns null on wrong password', async () => {
-    const hash = await bcrypt.hash('right', 10);
-    (getUserByUsername as any).mockResolvedValue({
-      id: 1,
-      username: 'admin',
-      password_hash: hash,
+  it('authenticateUser returns non-admin user when group check misses', async () => {
+    mocks.execFile.mockImplementation((_cmd, _args, _options, cb) => cb(null, 'users\n', ''));
+    (getOrCreatePamUser as any).mockResolvedValue({
+      id: 2,
+      username: 'operator',
       created_at: new Date(),
     });
+    const result = await authenticateUser('operator', 'pass');
+    expect(result?.is_admin).toBe(false);
+  });
+
+  it('authenticateUser returns null on PAM failure', async () => {
+    mocks.authenticatePam.mockRejectedValue(new Error('denied'));
     const result = await authenticateUser('admin', 'wrong');
     expect(result).toBeNull();
+    expect(getOrCreatePamUser).not.toHaveBeenCalled();
+  });
+
+  it('authenticateUser returns null on blank input', async () => {
+    await expect(authenticateUser(' ', 'pass')).resolves.toBeNull();
+    await expect(authenticateUser('admin', '')).resolves.toBeNull();
+    expect(mocks.authenticatePam).not.toHaveBeenCalled();
+  });
+
+  it('createUserSession stores is_admin in session', async () => {
+    (createSession as any).mockResolvedValue({});
+    const result = await createUserSession(1, true);
+    expect(result.token).toHaveLength(64);
+    expect(createSession).toHaveBeenCalledWith(1, result.token, result.expiresAt, true);
   });
 });

@@ -23,7 +23,6 @@ import {
 	FileCode,
 	Factory,
 	Bell,
-	Users,
 	FolderKanban,
 	ScrollText,
 } from "lucide-react";
@@ -74,7 +73,6 @@ const ADMIN_NAV: NavItem[] = [
 	{ href: "/admin/docker", label: "Docker", icon: Container },
 	{ href: "/admin/agent-factory", label: "Agent Factory", icon: Factory },
 	{ href: "/admin/alerts", label: "Alerts", icon: Bell },
-	{ href: "/admin/users", label: "Users", icon: Users },
 	{ href: "/admin/projects", label: "Projects", icon: FolderKanban },
 	{ href: "/admin/audit", label: "Audit Log", icon: ScrollText },
 	{ href: "/admin/account", label: "Account", icon: UserCog },

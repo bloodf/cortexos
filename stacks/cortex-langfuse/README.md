@@ -95,4 +95,3 @@ no-op when `LANGFUSE_HOST` is unset (safe for dev/test).
 - `prompts/tools/55-langfuse.md` — operator install + admin bootstrap.
 - `docs/OBSERVABILITY-LLM.md` — instrumentation guide.
 - `packages/cortex-telemetry/` — Node OpenLLMetry wrapper.
-- `stacks/cortex-graph/app/telemetry.py` — Python OpenLLMetry init.

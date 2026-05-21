@@ -1,0 +1,22 @@
+[Unit]
+Description=CortexOS Hermes profile %i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=cortexos
+Group=cortexos
+EnvironmentFile=/opt/cortexos/.secrets/hermes/%i.env
+WorkingDirectory=/opt/cortexos/hermes/profiles/%i
+ExecStart=/usr/bin/env node /opt/cortexos/scripts/hermes-profile-api.mjs %i
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=/opt/cortexos/hermes /opt/cortexos/.secrets/hermes
+
+[Install]
+WantedBy=multi-user.target

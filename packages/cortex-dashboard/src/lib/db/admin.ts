@@ -1,10 +1,8 @@
 import { queryOne, execute } from "./client";
 
-export interface AdminUser {
+export interface PamUser {
   id: number;
   username: string;
-  password_hash: string;
-  is_admin: boolean;
   created_at: Date;
 }
 
@@ -14,68 +12,33 @@ export interface AdminSession {
   token: string;
   expires_at: Date;
   created_at: Date;
+  is_admin: boolean;
 }
 
+export async function getOrCreatePamUser(username: string): Promise<PamUser> {
+  const normalized = username.trim();
+  if (!normalized) throw new Error("Username required");
 
-export async function countAdminUsers(): Promise<number> {
-  const row = await queryOne<{ count: string }>("SELECT COUNT(*)::text AS count FROM admin_users");
-  return Number(row?.count ?? 0);
-}
-export async function getUserByUsername(
-  username: string,
-): Promise<AdminUser | null> {
-  return queryOne<AdminUser>(
-    "SELECT id, username, password_hash, is_admin, created_at FROM admin_users WHERE username = $1",
-    [username],
+  const inserted = await queryOne<PamUser>(
+    `INSERT INTO pam_users (username)
+     VALUES ($1)
+     ON CONFLICT (username) DO UPDATE SET username = EXCLUDED.username
+     RETURNING id, username, created_at`,
+    [normalized],
   );
-}
-
-export async function getUserById(id: number): Promise<AdminUser | null> {
-  return queryOne<AdminUser>(
-    "SELECT id, username, password_hash, is_admin, created_at FROM admin_users WHERE id = $1",
-    [id],
-  );
-}
-
-export async function createUser(
-  username: string,
-  passwordHash: string,
-  isAdmin: boolean = false,
-): Promise<AdminUser> {
-  const user = await queryOne<AdminUser>(
-    "INSERT INTO admin_users (username, password_hash, is_admin) VALUES ($1, $2, $3) RETURNING id, username, password_hash, is_admin, created_at",
-    [username, passwordHash, isAdmin],
-  );
-  if (!user) throw new Error("Failed to create user");
-  return user;
-}
-
-export async function setUserAdmin(id: number, isAdmin: boolean): Promise<void> {
-  await execute("UPDATE admin_users SET is_admin = $1 WHERE id = $2", [isAdmin, id]);
-}
-
-export async function updateUserPassword(
-  id: number,
-  passwordHash: string,
-): Promise<void> {
-  await execute(
-    "UPDATE admin_users SET password_hash = $1 WHERE id = $2",
-    [passwordHash, id],
-  );
-}
-
-export async function deleteUser(id: number): Promise<void> {
-  await execute("DELETE FROM admin_users WHERE id = $1", [id]);
+  if (!inserted) throw new Error("Failed to get or create PAM user");
+  return inserted;
 }
 
 export async function createSession(
   userId: number,
   token: string,
   expiresAt: Date,
+  isAdmin: boolean = false,
 ): Promise<AdminSession> {
   const session = await queryOne<AdminSession>(
-    "INSERT INTO admin_sessions (user_id, token, expires_at) VALUES ($1, $2, $3) RETURNING id, user_id, token, expires_at, created_at",
-    [userId, token, expiresAt],
+    "INSERT INTO admin_sessions (user_id, token, expires_at, is_admin) VALUES ($1, $2, $3, $4) RETURNING id, user_id, token, expires_at, created_at, is_admin",
+    [userId, token, expiresAt, isAdmin],
   );
   if (!session) throw new Error("Failed to create session");
   return session;
@@ -83,11 +46,11 @@ export async function createSession(
 
 export async function getSessionByToken(
   token: string,
-): Promise<(AdminSession & { username: string; is_admin: boolean }) | null> {
-  return queryOne<AdminSession & { username: string; is_admin: boolean }>(
-    `SELECT s.id, s.user_id, s.token, s.expires_at, s.created_at, u.username, u.is_admin
+): Promise<(AdminSession & { username: string }) | null> {
+  return queryOne<AdminSession & { username: string }>(
+    `SELECT s.id, s.user_id, s.token, s.expires_at, s.created_at, s.is_admin, u.username
      FROM admin_sessions s
-     JOIN admin_users u ON u.id = s.user_id
+     JOIN pam_users u ON u.id = s.user_id
      WHERE s.token = $1 AND s.expires_at > NOW()`,
     [token],
   );

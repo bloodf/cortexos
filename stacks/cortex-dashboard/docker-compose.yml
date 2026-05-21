@@ -10,7 +10,7 @@
 # laptop-side Next.js build. The VPS builds the image locally with
 # `docker compose build`.
 #
-# Postgres, NATS, systemd, Docker, process, storage, network, and terminal
+# Postgres, systemd, Docker, process, storage, network, and terminal
 # operations target the VPS host. The dashboard does NOT manage sibling
 # service lifecycles, hence no `depends_on` here — host networking and the
 # Docker socket are the integration seams.
@@ -39,8 +39,11 @@ services:
       DB_HOST: 127.0.0.1
       SETUP_STATE_PATH: /run/cortexos/setup-state.json
       CORTEX_PUBLIC_BASE_URL: "${CORTEX_PUBLIC_BASE_URL:-}"
-      OPENCLAW_BASE: /home/cortexos/.openclaw
-      AGENT_SCAN_PATHS: /home/cortexos/.openclaw
+      HERMES_PROFILES_REGISTRY: /opt/cortexos/hermes/profiles.json
+      AGENT_SCAN_PATHS: /opt/cortexos/hermes/profiles
+      HERMES_PRIMARY_URL: http://127.0.0.1:18691
+      HERMES_SECONDARY_URL: http://127.0.0.1:18692
+      HONCHO_BASE_URL: http://127.0.0.1:18690
       TERMINAL_SSH_HOST: 127.0.0.1
       TERMINAL_SSH_PORT: "22"
       TERMINAL_SSH_USER: cortexos
@@ -49,7 +52,7 @@ services:
       - "${CORTEXOS_ROOT:-/opt/cortexos}/.secrets/.setup-state.json:/run/cortexos/setup-state.json:ro"
       - /var/run/docker.sock:/var/run/docker.sock
       - /opt/cortexos/.secrets/terminal_id_ed25519:/run/cortexos/terminal_id_ed25519:ro
-      - /home/cortexos/.openclaw:/home/cortexos/.openclaw:ro
+      - /opt/cortexos/hermes:/opt/cortexos/hermes:ro
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3080/en/login"]
       interval: 30s

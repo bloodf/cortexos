@@ -23,16 +23,9 @@ function constantTimeEqual(a: string, b: string): boolean {
  *
  * Auth: session role `is_admin=true` OR header `X-Admin-Token` matching `ADMIN_TOKEN`.
  * Body (optional): `{ title?, body?, source? }`.
- * Publishes `cortex.alerts.critical.test` to NATS via lib/alerts.publishAlert.
+ * Logs `dashboard.alerts.critical.test` via lib/alerts.publishAlert.
  */
 export async function POST(request: Request): Promise<Response> {
-  if (!process.env.NATS_URL) {
-    return NextResponse.json(
-      { error: "NATS_URL not configured" },
-      { status: 503 },
-    );
-  }
-
   const adminToken = process.env.ADMIN_TOKEN || "";
   const headerToken = request.headers.get("x-admin-token") || "";
   const headerAuthorized =

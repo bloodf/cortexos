@@ -7,7 +7,9 @@ export interface PaperclipLinkRow {
 	paperclip_run_id: string;
 	paperclip_agent_id: string;
 	cortex_role: string;
-	nats_subject: string;
+	adapter_ref: string | null;
+	adapter_run_id: string | null;
+	omc_task_id: string | null;
 	status: string;
 	cost_usd_cents: number;
 	created_at: string;
@@ -21,7 +23,9 @@ const SQL = `
     paperclip_run_id,
     paperclip_agent_id,
     cortex_role,
-    nats_subject,
+    adapter_ref,
+    adapter_run_id,
+    omc_task_id,
     status,
     cost_usd_cents,
     created_at,

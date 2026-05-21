@@ -92,4 +92,4 @@ Type `confirmed` to proceed.
 
 ## Next
 
-→ `prompts/tools/40-openclaw.md`
+→ `prompts/tools/40-hermes.md`

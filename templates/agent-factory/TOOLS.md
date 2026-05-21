@@ -120,21 +120,22 @@ Credentials for all databases are in `.secrets/cortex-credentials.md`. Never har
 
 ## Knowledge & Memory Services
 
-### OpenViking — Knowledge Base
+### Honcho — Knowledge Base
 
 ```text
-Endpoint: http://127.0.0.1:{openviking_port}
+Endpoint: http://127.0.0.1:{Honcho_port}
 ```
 
 Semantic search over indexed documents, code, and workspace knowledge.
 
-### Hindsight — Agent Memory
+### Hermes — Agent Execution
 
 ```text
-Endpoint: http://127.0.0.1:{hindsight_port}
+Primary endpoint:   http://127.0.0.1:18691/v1
+Secondary endpoint: http://127.0.0.1:18692/v1
 ```
 
-Structured agent memory storage and retrieval. Complements file-based MEMORY.md with searchable indexed memory.
+Hermes profiles execute Paperclip-assigned agent work through 9Router-backed model routing.
 
 ## MCP Servers
 
@@ -161,7 +162,7 @@ Skills live in the workspace `skills/` directory. Each skill has a `SKILL.md` de
 | `self-improving-agent` | Capture learnings on command failure or user correction (pskoett) |
 | `humanizer`          | Strip AI-writing tells from text (biostartechnology)               |
 | `github`             | `gh` CLI workflows: issue, pr, run, api (steipete)                 |
-| `lobster`            | Typed workflow pipelines + resumable approvals (@openclaw)         |
+| `lobster`            | Typed workflow pipelines + resumable approvals (@Hermes)         |
 | `writing-plans`      | Structured plan creation from specs/requirements                   |
 | `executing-plans`    | Batch execution with checkpoints and verification                  |
 | `gh-issues`          | GitHub issue management and triage                                 |
@@ -174,13 +175,13 @@ Skills live in the workspace `skills/` directory. Each skill has a `SKILL.md` de
 
 ### Mandatory Clawhub Skills
 
-All agents must have these 5 skills installed (via `openclaw skills install <slug> --agent <id>`):
+All agents must have these 5 skills installed (via `Hermes skills install <slug> --agent <id>`):
 
 1. `self-improving` (ivangdavila)
 2. `humanizer` (biostartechnology)
 3. `self-improving-agent` (pskoett)
 4. `github` (steipete)
-5. `lobster` (@openclaw, installed as code-plugin globally)
+5. `lobster` (@Hermes, installed as code-plugin globally)
 
 ### Gstack Workflow Doctrine
 

@@ -4,20 +4,21 @@ All notable changes to CortexOS are documented here.
 
 ## [1.0.0] - 2026-05-14
 
+### Current Runtime
+
+- All-in-one installer centered on Paperclip, Hermes profiles, Honcho memory,
+  Ollama embeddings, and 9Router model routing.
+- Dashboard migrations are collapsed to a clean current baseline for new
+  installs.
+- Agent templates use Paperclip issues/comments as the workflow surface and
+  Hermes/Honcho for execution and memory.
+
 ### Added
 
 - Production-ready single-host CortexOS release.
-- Module 13 — credentials export: `templates/scripts/export-credentials.sh` harvests live VPS credentials into `.secrets/credentials.md`.
-- Dashboard `/admin/credentials/import` endpoint and page — paste `.secrets/credentials.md` to seed the encrypted credential store (AES-256-GCM, upsert-by-slug).
-- Parameterized PostgreSQL function `cortex_set_service_urls(base_url)` (migration 004) replaces hardcoded service URLs.
-- Systemd unit template (`__CORTEX_*__` placeholders) rendered at deploy time by `dashboard/deploy.sh`.
-- Public docs set under `docs/`: ARCHITECTURE, SETUP_GUIDE, CREDENTIALS, DASHBOARD, AGENT_FACTORY, TROUBLESHOOTING.
-- NATS event bus and cortex-consumer orchestration daemon.
-- Slack thread source-of-truth workflow for agent operations.
-- Husky-as-CI local hook model for repo validation and event publishing.
-- OpenClaw agent factory role templates and dispatch pattern.
+- Parameterized PostgreSQL function `cortex_set_service_urls(base_url)` for public service URLs.
+- Public docs set under `docs/`.
 - Next.js dashboard for services, processes, storage, agents, and terminal access.
-- Runbooks for CI, escalation, approvals, pipeline, sandboxing, and incidents.
 - GitHub issue and pull request templates.
 - Security policy and contributor code of conduct.
 

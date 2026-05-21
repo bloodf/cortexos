@@ -1,7 +1,8 @@
 # Spoke Dependency Graph
 
-Declarative dependency map for `prompts/tools/`. Each spoke lists its required predecessors.
-SETUP.md reads this file to compute install order and skip disabled optional spokes.
+Declarative dependency map for `prompts/tools/`. Each spoke lists its required
+predecessors. SETUP.md reads this file to compute install order and skip
+disabled optional spokes.
 
 ```yaml
 spokes:
@@ -27,8 +28,7 @@ spokes:
 
   12a-sops-bootstrap:
     deps: [12-tailscale]
-    optional: false       # SOPS + age must be available before any service
-                          # that loads secrets — install before Tailscale Serve routing.
+    optional: false
 
   13-tailscale-serve:
     deps: [12-tailscale, 12a-sops-bootstrap]
@@ -38,18 +38,26 @@ spokes:
     deps: [10-os-hardening]
     optional: false
 
+  14a-home-assistant:
+    deps: [11-docker, 13-tailscale-serve]
+    optional: false
+
+  14b-jellyfin:
+    deps: [11-docker, 13-tailscale-serve]
+    optional: false
+
   15-redis:
     deps: [11-docker]
     optional: false
 
   16-mongodb:
     deps: [11-docker]
-    optional: true       # enabled only if questionnaire: mongodb=yes
-
+    optional: true
 
   16a-mysql:
     deps: [11-docker]
-    optional: true       # enabled only if questionnaire: INSTALL_MYSQL=yes
+    optional: true
+
   17-dnsmasq:
     deps: [10-os-hardening]
     optional: false
@@ -82,112 +90,92 @@ spokes:
     deps: [20-prometheus]
     optional: false
 
-  30-nats:
-    deps: [11-docker]
+  26-cockpit:
+    deps: [10-os-hardening, 13-tailscale-serve]
+    optional: false
+
+  26a-otel-collector:
+    deps: [11-docker, 20-prometheus]
+    optional: false
+
+  26b-webmin:
+    deps: [10-os-hardening, 13-tailscale-serve]
+    optional: false
+
+  27-dockhand:
+    deps: [11-docker, 13-tailscale-serve]
+    optional: false
+
+  28-floci:
+    deps: [11-docker, 13-tailscale-serve]
     optional: false
 
   31-9router:
-    deps: [30-nats]
+    deps: []
     optional: false
 
-  32-openviking:
-    deps: [14-postgresql, 31-9router, 30-nats]
-    optional: false
-
-  33-leann:
-    deps: [32-openviking, 31-9router]
+  32-honcho:
+    deps: [11-docker, 31-9router]
     optional: false
 
   34-kernel-browser:
     deps: [11-docker, 31-9router]
     optional: false
 
-  40-openclaw:
-    deps: [31-9router, 32-openviking]
+  40-hermes:
+    deps: [31-9router, 32-honcho]
     optional: false
 
-  41-openclaw-channels:
-    deps: [40-openclaw]
-    optional: false    # all four channels mandatory for v1.0
-
-  42-openclaw-openviking:
-    deps: [40-openclaw, 32-openviking]
+  41-hermes-profiles:
+    deps: [40-hermes]
     optional: false
 
-  43-openclaw-memory-core:
-    deps: [42-openclaw-openviking]
+  42-hermes-honcho:
+    deps: [41-hermes-profiles, 32-honcho]
     optional: false
 
-  44-openclaw-a2a-gateway:
-    deps: [40-openclaw]
+  43-paperclip-hermes:
+    deps: [42-hermes-honcho]
     optional: false
 
-  45-openclaw-compaction:
-    deps: [40-openclaw]
-    optional: false
-
-  45a-cortex-graph:
-    deps: [14-postgresql, 30-nats, 45-openclaw-compaction]
-    optional: false      # LangGraph sidecar (V7 substrate)
-
-  46-openclaw-codex-watchdog:
-    deps: [40-openclaw, 30-nats]
-    optional: false
-
-  47-openclaw-foundry:
-    deps: [40-openclaw]
+  44-api-exposure:
+    deps: [13-tailscale-serve, 41-hermes-profiles, 32-honcho]
     optional: false
 
   47a-cortex-sandbox:
-    deps: [11-docker, 12a-sops-bootstrap, 47-openclaw-foundry]
-    optional: false      # gVisor sandbox runner (V10 substrate)
-
-  49-openclaw-account-ops:
-    deps: [40-openclaw, 47a-cortex-sandbox]
+    deps: [11-docker, 12a-sops-bootstrap]
     optional: false
 
-  50-agentgateway:
-    deps: [40-openclaw, 30-nats, 14-postgresql]
+  49-memory-import-prep:
+    deps: [42-hermes-honcho]
     optional: false
 
   55-langfuse:
-    deps: [14-postgresql, 11-docker, 50-agentgateway]
-    optional: false      # full Langfuse operator install + OpenLLMetry wiring
-
+    deps: [14-postgresql, 11-docker, 40-hermes]
+    optional: false
 
   56-pgadmin:
     deps: [14-postgresql]
-    optional: false      # questionnaire default yes; mandatory in native-first install
+    optional: false
 
   57-redisinsight:
     deps: [15-redis]
-    optional: false      # questionnaire default yes; mandatory in native-first install
+    optional: false
 
   58-mongo-express:
     deps: [16-mongodb]
-    optional: true       # enabled only if INSTALL_MONGO_EXPRESS=yes
+    optional: true
 
   59-phpmyadmin:
     deps: [16a-mysql]
-    optional: true       # enabled only if INSTALL_PHPMYADMIN=yes
-  60-cortex-consumer:
-    deps: [30-nats, 40-openclaw, 50-agentgateway, 55-langfuse]
-    optional: false
-
-  61-weekly-synthetic-traffic:
-    deps: [60-cortex-consumer]
-    optional: false
+    optional: true
 
   62-paperclip:
-    deps: [40-openclaw, 60-cortex-consumer]
-    optional: false
-
-  63-paperclip-alerts:
-    deps: [62-paperclip]
+    deps: [43-paperclip-hermes]
     optional: false
 
   70-dashboard:
-    deps: [14-postgresql, 13-tailscale-serve, 40-openclaw, 62-paperclip, 63-paperclip-alerts]
+    deps: [14-postgresql, 13-tailscale-serve, 32-honcho, 40-hermes, 62-paperclip]
     optional: false
 
   80-agent-factory:
@@ -205,33 +193,31 @@ spokes:
       - 23-fluent-bit
       - 24-cadvisor
       - 25-node-exporter
-      - 33-leann
+      - 14a-home-assistant
+      - 14b-jellyfin
+      - 26-cockpit
+      - 26a-otel-collector
+      - 26b-webmin
+      - 27-dockhand
+      - 28-floci
+      - 32-honcho
       - 34-kernel-browser
-      - 43-openclaw-memory-core
-      - 44-openclaw-a2a-gateway
-      - 45-openclaw-compaction
-      - 46-openclaw-codex-watchdog
-      - 47-openclaw-foundry
+      - 42-hermes-honcho
+      - 43-paperclip-hermes
+      - 44-api-exposure
       - 47a-cortex-sandbox
-      - 49-openclaw-account-ops
-      - 50-agentgateway
+      - 49-memory-import-prep
       - 55-langfuse
-      - 60-cortex-consumer
-      - 61-weekly-synthetic-traffic
       - 62-paperclip
-      - 63-paperclip-alerts
       - 70-dashboard
       - 80-agent-factory
       - 81-projects
       - 12a-sops-bootstrap
-      - 45a-cortex-graph
     optional: false
 ```
 
 ## Notes
 
-- Agent computes topological sort of enabled spokes before execution.
-- Optional spokes are skipped unless the questionnaire enabled them.
-- `16-mongodb` is optional (questionnaire-gated).
-- All other spokes are required.
-- Spoke numbering has intentional gaps (e.g. 18→20, 35→40) to allow future insertion without renumbering.
+- Paperclip and Hermes are the only agent orchestration path.
+- Honcho is the only memory backend.
+- Retired agent workflow services are not part of the active graph.

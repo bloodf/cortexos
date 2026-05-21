@@ -14,7 +14,7 @@
     { "type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0" }
   ],
   "annotations": { "list": [] },
-  "description": "CortexOS v1.0 — consumer + approval + circuit breaker + audit observability",
+  "description": "CortexOS all-in-one — Paperclip, Hermes, Honcho, service, and audit observability",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -25,7 +25,7 @@
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
       "id": 1,
-      "title": "Consumer — Message Rate",
+      "title": "Paperclip / Hermes Runtime",
       "type": "row"
     },
     {
@@ -41,12 +41,12 @@
         "tooltip": { "mode": "multi" }
       },
       "targets": [
-        { "expr": "rate(messages_received_total[1m])", "legendFormat": "received/s", "refId": "A" },
-        { "expr": "rate(messages_acked_total[1m])", "legendFormat": "acked/s", "refId": "B" },
-        { "expr": "rate(messages_nacked_total[1m])", "legendFormat": "nacked/s", "refId": "C" },
-        { "expr": "rate(messages_dlq_total[1m])", "legendFormat": "dlq/s", "refId": "D" }
+        { "expr": "rate(paperclip_issues_seen_total[1m])", "legendFormat": "received/s", "refId": "A" },
+        { "expr": "rate(paperclip_runs_completed_total[1m])", "legendFormat": "completed/s", "refId": "B" },
+        { "expr": "rate(paperclip_runs_failed_total[1m])", "legendFormat": "failed/s", "refId": "C" },
+        { "expr": "rate(paperclip_runs_cancelled_total[1m])", "legendFormat": "cancelled/s", "refId": "D" }
       ],
-      "title": "Message Rate (per second)",
+      "title": "Workflow Rate (per second)",
       "type": "timeseries"
     },
     {
@@ -58,17 +58,17 @@
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 1 },
       "id": 3,
       "targets": [
-        { "expr": "rate(openclaw_http_ok_total[1m])", "legendFormat": "ok/s", "refId": "A" },
-        { "expr": "rate(openclaw_http_errors_total[1m])", "legendFormat": "errors/s", "refId": "B" }
+        { "expr": "rate(Hermes_http_ok_total[1m])", "legendFormat": "ok/s", "refId": "A" },
+        { "expr": "rate(Hermes_http_errors_total[1m])", "legendFormat": "errors/s", "refId": "B" }
       ],
-      "title": "OpenClaw HTTP Rate",
+      "title": "Hermes HTTP Rate",
       "type": "timeseries"
     },
     {
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
       "id": 4,
-      "title": "NATS JetStream",
+      "title": "Paperclip Workflow",
       "type": "row"
     },
     {
@@ -80,7 +80,7 @@
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
       "id": 5,
       "targets": [
-        { "expr": "cortex_consumer_pending_approvals", "legendFormat": "pending approvals", "refId": "A" }
+        { "expr": "cortex_dashboard_pending_approvals", "legendFormat": "pending approvals", "refId": "A" }
       ],
       "title": "Pending Approvals",
       "type": "timeseries"
@@ -94,60 +94,15 @@
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 },
       "id": 6,
       "targets": [
-        { "expr": "cortex_consumer_last_message_age_seconds", "legendFormat": "last message age (s)", "refId": "A" }
+        { "expr": "cortex_dashboard_last_workflow_update_seconds", "legendFormat": "last message age (s)", "refId": "A" }
       ],
       "title": "Last Message Age",
-      "type": "timeseries"
-    },
-    {
-      "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
-      "id": 7,
-      "title": "Circuit Breaker + Security",
-      "type": "row"
-    },
-    {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "fieldConfig": {
-        "defaults": { "unit": "short" },
-        "overrides": []
-      },
-      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 19 },
-      "id": 8,
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
-      "targets": [
-        { "expr": "cortex_consumer_circuit_state{state=\"open\"}", "legendFormat": "circuit open", "refId": "A" }
-      ],
-      "title": "Circuit Breaker State",
-      "type": "stat"
-    },
-    {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
-      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 19 },
-      "id": 9,
-      "targets": [
-        { "expr": "increase(hmac_reject_total[5m])", "legendFormat": "HMAC rejects/5m", "refId": "A" },
-        { "expr": "increase(nonce_replay_total[5m])", "legendFormat": "nonce replays/5m", "refId": "B" }
-      ],
-      "title": "Security Events",
-      "type": "timeseries"
-    },
-    {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
-      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 19 },
-      "id": 10,
-      "targets": [
-        { "expr": "increase(approval_stall_total[15m])", "legendFormat": "stalled approvals/15m", "refId": "A" }
-      ],
-      "title": "Approval Timeouts",
       "type": "timeseries"
     }
   ],
   "refresh": "30s",
   "schemaVersion": 39,
-  "tags": ["cortexos", "consumer", "nats"],
+  "tags": ["cortexos", "paperclip", "hermes", "honcho"],
   "templating": {
     "list": [
       {

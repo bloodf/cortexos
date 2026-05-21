@@ -1,8 +1,8 @@
 /**
  * V12 — Pending approvals queue.
  *
- * Lists rows from `pending_approvals` (populated by cortex-consumer when a
- * destructive op enters `awaitSignal`). Each row exposes an approve / deny
+ * Lists rows from `pending_approvals` (populated by Paperclip/Hermes when a
+ * destructive op enters an approval gate). Each row exposes an approve / deny
  * form that calls the `decideApproval` server action.
  */
 import { EmptyState } from "@/components/ui/empty-state";
@@ -33,9 +33,8 @@ export default async function ApprovalsPage() {
 					Pending approvals
 				</h1>
 				<p className="text-sm text-muted-foreground mt-1">
-					Destructive operations paused on{" "}
-					<code className="font-mono text-xs">cortex.signals.&lt;runId&gt;.&lt;name&gt;</code>.
-					Approve or deny to unblock the consumer.
+					Destructive operations paused by Paperclip approval gates.
+					Approve or deny to unblock the Hermes run.
 				</p>
 			</div>
 

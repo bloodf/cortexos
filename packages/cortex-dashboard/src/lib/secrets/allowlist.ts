@@ -9,7 +9,6 @@
  *   - /opt/cortexos/.secrets/**
  *   - /opt/cortexos/stacks/<stack>/**
  *   - /etc/systemd/system/*.d/**  (overrides only, never the .service file)
- *   - ~/.openclaw/openclaw.json   (exact file)
  *
  * Test override: when NODE_ENV !== 'production', the env var
  * __TEST_ALLOW_PREFIX__ may add an additional absolute prefix (used by
@@ -35,35 +34,17 @@ function makeDenied(reason: string): PathDeniedError {
  * Public list of allowed prefixes / exact paths.
  * Each entry is matched against the resolved absolute path.
  *
- * Note: the openclaw.json exact path is computed lazily at match time via
- * `getOpenClawPath()` so tests can set process.env.HOME after module load.
  */
 export const ALLOWED_PREFIXES: ReadonlyArray<
   | { kind: 'prefix'; value: string }
   | { kind: 'exact'; value: string }
   | { kind: 'systemd-override'; value: string }
-  | { kind: 'openclaw-exact' }
 > = Object.freeze([
   { kind: 'prefix', value: '/opt/cortexos/.secrets/' },
   { kind: 'prefix', value: '/opt/cortexos/stacks/' },
+  { kind: 'prefix', value: '/opt/cortexos/hermes/' },
   { kind: 'systemd-override', value: '/etc/systemd/system/' },
-  { kind: 'openclaw-exact' },
 ]);
-
-/**
- * Computes the openclaw.json path lazily, respecting current HOME.
- * Uses the same resolveExistingAncestor logic as assertPathAllowed so the
- * comparison is always against symlink-resolved paths (e.g. on macOS
- * /home → /System/Volumes/Data/home).
- */
-function getOpenClawPath(): string {
-  const p = expandHome('~/.openclaw/openclaw.json');
-  try {
-    return fs.realpathSync(p);
-  } catch {
-    return resolveExistingAncestor(p);
-  }
-}
 
 /**
  * Expand a leading `~` to $HOME. Pure.
@@ -177,7 +158,6 @@ function matchesAllowlist(absPath: string): boolean {
     if (entry.kind === 'exact' && absPath === entry.value) return true;
     if (entry.kind === 'prefix' && absPath.startsWith(entry.value)) return true;
     if (entry.kind === 'systemd-override' && isSystemdOverride(absPath)) return true;
-    if (entry.kind === 'openclaw-exact' && absPath === getOpenClawPath()) return true;
   }
   return false;
 }

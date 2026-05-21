@@ -42,10 +42,10 @@ Re-runnable Phase 1 teardown per project.
 Steps:
 
 1. Tarball `<repo>/.agents/` → `<backup-dir>/<project>-agents-<ts>.tgz`
-2. SSH backup `~/.openclaw/openclaw.json`
-3. List + delete agents matching `<project>-*` via `openclaw agents delete`
+2. Archive legacy profile config if present
+3. List + delete project Hermes profiles matching `<project>-*`
 4. Strip cron jobs and bindings
-5. Purge sqlite rows `WHERE agent_id LIKE '<project>-%'` across `~/.openclaw/*.db`
+5. Purge project-local cache rows
 6. `rm -rf ${CORTEX_WORKSPACE_ROOT}/<project>`
 
 ### `regenerate-agents-md.sh`
@@ -79,7 +79,7 @@ Checks:
 - `.github/labels.yml` matches `templates/labels.yml`
 - Required workflows present
 - Repo-root `AGENTS.md` + `CLAUDE.md`
-- (VPS) openclaw agents, bindings, cron, telegram routes
+- (VPS) Hermes profiles, bindings, cron, telegram routes
 
 ## chmod
 

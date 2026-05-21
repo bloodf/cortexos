@@ -31,11 +31,13 @@ ON CONFLICT (slug) DO UPDATE SET
 -- AI
 INSERT INTO services (slug, name, kind, category, health_url, health_type, open_url, env_source, icon_type, sort_order) VALUES
   ('9router',        '9Router',        'service', 'AI', 'http://127.0.0.1:11434/v1/models',    'http',    '#', '/opt/cortexos/.secrets/9router.env',       'cloud',    1),
-  ('openviking',     'OpenViking',     'service', 'AI', 'http://127.0.0.1:18790/health',                    'http',    '#', '/opt/cortexos/.secrets/openviking.env',     'cloud',    2),
-  ('openclaw',       'OpenClaw',       'service', 'AI', 'http://127.0.0.1:18789/health',                    'http',    '#', '/opt/cortexos/.secrets/openclaw-gateway.env',       'brain',    3),
-  ('agentgateway',   'AgentGateway',   'service', 'AI', 'http://127.0.0.1:18800/health',                    'http',    '#', '/opt/cortexos/.secrets/agentgateway.env',   'cloud',    4),
-  ('kernel-browser', 'Kernel Browser', 'docker',  'AI', 'http://127.0.0.1:9222/json/version',              'http',    '#', '/opt/cortexos/.secrets/kernel-browser.env', 'browser',  5),
-  ('leann',          'LEANN',          'service', 'AI', 'http://127.0.0.1:18791/health',                    'http',    '#', '/opt/cortexos/.secrets/leann.env',                                     'database', 6)
+  ('honcho',         'Honcho',         'docker',  'AI', 'http://127.0.0.1:18690/health',       'http',    '#', '/opt/cortexos/.secrets/honcho.env',        'database', 2),
+  ('hermes-primary', 'Hermes Primary', 'service', 'AI', 'http://127.0.0.1:18691/health',       'http',    '#', '/opt/cortexos/.secrets/hermes/primary.env', 'brain',    3),
+  ('hermes-secondary', 'Hermes Secondary', 'service', 'AI', 'http://127.0.0.1:18692/health',       'http',    '#', '/opt/cortexos/.secrets/hermes/secondary.env', 'brain',    4),
+  ('ollama',         'Ollama',         'service', 'AI', 'ollama.service',                       'systemd', '#', NULL,                                      'ollama',   5),
+  ('ollama-honcho-embeddings-proxy', 'Ollama Honcho Embeddings Proxy', 'service', 'AI', 'ollama-honcho-embeddings-proxy.service', 'systemd', '#', NULL, 'ollama', 6),
+  ('paperclip',      'Paperclip',      'app',     'AI', 'http://127.0.0.1:3033/api/health',    'http',    '#', '/opt/cortexos/.secrets/paperclip.env',      'cloud',    7),
+  ('kernel-browser', 'Kernel Browser', 'docker',  'AI', 'http://127.0.0.1:9222/json/version',  'http',    '#', '/opt/cortexos/.secrets/kernel-browser.env', 'browser',  8)
 ON CONFLICT (slug) DO UPDATE SET
   name = EXCLUDED.name,
   kind = EXCLUDED.kind,
@@ -50,9 +52,9 @@ ON CONFLICT (slug) DO UPDATE SET
 
 -- Infrastructure
 INSERT INTO services (slug, name, kind, category, health_url, health_type, open_url, env_source, icon_type, sort_order) VALUES
-  ('floci',      'Floci',      'docker',  'Infrastructure', 'http://host.docker.internal:4566/_localstack/health', 'http',    '#', '/opt/cortexos/stacks/floci/.env',  'cloud',   2),
-  ('cockpit',    'Cockpit',    'service', 'Infrastructure', 'tcp://host.docker.internal:9093',                     'tcp',     '#', NULL,                             'server',  3),
-  ('webmin',     'Webmin',     'service', 'Infrastructure', 'tcp://host.docker.internal:10000',                    'tcp',     '#', NULL,                             'server',  4),
+  ('floci',      'Floci',      'docker',  'Infrastructure', 'http://127.0.0.1:4566/_localstack/health', 'http',    '#', '/opt/cortexos/stacks/floci/.env',  'cloud',   2),
+  ('cockpit',    'Cockpit',    'service', 'Infrastructure', 'tcp://127.0.0.1:9091',                     'tcp',     '#', NULL,                             'server',  3),
+  ('webmin',     'Webmin',     'service', 'Infrastructure', 'tcp://127.0.0.1:10000',                    'tcp',     '#', NULL,                             'server',  4),
   ('watchtower', 'Watchtower', 'docker',  'Infrastructure', 'watchtower',                                          'docker',  '#', NULL,                             'monitor', 5),
   ('tailscale',  'Tailscale',  'process', 'Infrastructure', 'tailscaled',                                          'process', '#', NULL,                             'server',  6),
   ('dnsmasq',    'DNSmasq',    'process', 'Infrastructure', 'dnsmasq',                                             'process', '#', NULL,                             'server',  7),
@@ -71,10 +73,9 @@ ON CONFLICT (slug) DO UPDATE SET
 
 -- Database (MySQL excluded per policy; MongoDB retained pending questionnaire flag)
 INSERT INTO services (slug, name, kind, category, health_url, health_type, open_url, env_source, icon_type, sort_order) VALUES
-  ('postgresql', 'PostgreSQL', 'docker',  'Database', 'tcp://host.docker.internal:5432',          'tcp',  '#', '/opt/cortexos/.secrets/postgres.env', 'postgresql', 1),
-  ('redis',      'Redis',      'docker',  'Database', 'tcp://host.docker.internal:6379',          'tcp',  '#', '/opt/cortexos/.secrets/redis.env',    'redis',      2),
-  ('mongodb',    'MongoDB',    'docker',  'Database', 'tcp://host.docker.internal:27017',         'tcp',  '#', '/opt/cortexos/.secrets/mongodb.env',  'database',   3),
-  ('nats',       'NATS',       'docker',  'Database', 'http://host.docker.internal:8222/healthz', 'http', '#', '/opt/cortexos/.secrets/nats.env',     'database',   4)
+  ('postgresql', 'PostgreSQL', 'docker',  'Database', 'tcp://127.0.0.1:5432',          'tcp',  '#', '/opt/cortexos/.secrets/postgres.env', 'postgresql', 1),
+  ('redis',      'Redis',      'docker',  'Database', 'tcp://127.0.0.1:6379',          'tcp',  '#', '/opt/cortexos/.secrets/redis.env',    'redis',      2),
+  ('mongodb',    'MongoDB',    'docker',  'Database', 'tcp://127.0.0.1:27017',         'tcp',  '#', '/opt/cortexos/.secrets/mongodb.env',  'database',   3)
 ON CONFLICT (slug) DO UPDATE SET
   name = EXCLUDED.name,
   kind = EXCLUDED.kind,
@@ -89,7 +90,7 @@ ON CONFLICT (slug) DO UPDATE SET
 
 -- Home
 INSERT INTO services (slug, name, kind, category, health_url, health_type, open_url, env_source, icon_type, sort_order) VALUES
-  ('home-assistant', 'Home Assistant', 'docker', 'Home', 'http://host.docker.internal:8123', 'http', '#', '/opt/cortexos/stacks/home-assistant/.env', 'home', 1)
+  ('home-assistant', 'Home Assistant', 'docker', 'Home', 'http://127.0.0.1:8123', 'http', '#', '/opt/cortexos/stacks/home-assistant/.env', 'home', 1)
 ON CONFLICT (slug) DO UPDATE SET
   name = EXCLUDED.name,
   kind = EXCLUDED.kind,
@@ -104,7 +105,7 @@ ON CONFLICT (slug) DO UPDATE SET
 
 -- Media
 INSERT INTO services (slug, name, kind, category, health_url, health_type, open_url, env_source, icon_type, sort_order) VALUES
-  ('jellyfin', 'Jellyfin', 'docker', 'Media', 'http://host.docker.internal:8096/health', 'http', '#', '/opt/cortexos/stacks/jellyfin/.env', 'jellyfin', 1)
+  ('jellyfin', 'Jellyfin', 'docker', 'Media', 'http://127.0.0.1:8096/health', 'http', '#', '/opt/cortexos/stacks/jellyfin/.env', 'jellyfin', 1)
 ON CONFLICT (slug) DO UPDATE SET
   name = EXCLUDED.name,
   kind = EXCLUDED.kind,
@@ -127,7 +128,7 @@ INSERT INTO services (slug, name, kind, category, health_url, health_type, open_
   ('promtail',       'Promtail',       'process', 'Monitoring', 'promtail',                                    'process', '#', NULL,                                     'monitor', 6),
   ('cadvisor',       'cAdvisor',       'docker',  'Monitoring', 'http://127.0.0.1:8081/metrics',    'http',    '#', NULL,                                     'monitor', 7),
   ('node-exporter',  'Node Exporter',  'service', 'Monitoring', 'http://127.0.0.1:9100/metrics',    'http',    '#', NULL,                                     'monitor', 8),
-  ('otel-collector', 'OTel Collector', 'docker',  'Monitoring', 'tcp://host.docker.internal:4317',             'tcp',     '#', '/opt/cortexos/stacks/otel/.env',           'monitor', 9),
+  ('otel-collector', 'OTel Collector', 'docker',  'Monitoring', 'tcp://127.0.0.1:4317',             'tcp',     '#', '/opt/cortexos/stacks/otel/.env',           'monitor', 9),
   ('pg-exporter',    'PG Exporter',    'docker',  'Monitoring', 'http://127.0.0.1:9187/metrics',    'http',    '#', '/opt/cortexos/stacks/pg-exporter/.env',    'monitor', 10),
   ('redis-exporter', 'Redis Exporter', 'docker',  'Monitoring', 'http://127.0.0.1:9121/metrics',    'http',    '#', '/opt/cortexos/stacks/redis-exporter/.env', 'monitor', 11),
   ('mongo-exporter', 'Mongo Exporter', 'docker',  'Monitoring', 'http://127.0.0.1:9216/metrics',    'http',    '#', '/opt/cortexos/stacks/mongo-exporter/.env', 'monitor', 12)
@@ -184,19 +185,19 @@ UPDATE services SET has_webui = false, show_in_webui = false WHERE open_url  = '
 -- AI category
 INSERT INTO service_badges (service_id, badge_id)
 SELECT s.id, b.id FROM services s, badges b
-WHERE s.slug IN ('9router','openviking','openclaw','agentgateway','kernel-browser','leann')
+WHERE s.slug IN ('9router','honcho','hermes-primary','hermes-secondary','ollama','ollama-honcho-embeddings-proxy','paperclip','kernel-browser')
   AND b.slug = 'ai'
 ON CONFLICT (service_id, badge_id) DO NOTHING;
 
 INSERT INTO service_badges (service_id, badge_id)
 SELECT s.id, b.id FROM services s, badges b
-WHERE s.slug IN ('openclaw','agentgateway')
+WHERE s.slug IN ('hermes-primary','hermes-secondary')
   AND b.slug = 'agent'
 ON CONFLICT (service_id, badge_id) DO NOTHING;
 
 INSERT INTO service_badges (service_id, badge_id)
 SELECT s.id, b.id FROM services s, badges b
-WHERE s.slug IN ('9router','agentgateway')
+WHERE s.slug IN ('9router','honcho','hermes-primary','hermes-secondary','paperclip')
   AND b.slug = 'api'
 ON CONFLICT (service_id, badge_id) DO NOTHING;
 
@@ -227,7 +228,7 @@ ON CONFLICT (service_id, badge_id) DO NOTHING;
 -- Database
 INSERT INTO service_badges (service_id, badge_id)
 SELECT s.id, b.id FROM services s, badges b
-WHERE s.slug IN ('postgresql','redis','mongodb','nats')
+WHERE s.slug IN ('postgresql','redis','mongodb')
   AND b.slug = 'db'
 ON CONFLICT (service_id, badge_id) DO NOTHING;
 
@@ -266,9 +267,56 @@ WHERE s.slug IN ('grafana','dockhand')
 ON CONFLICT (service_id, badge_id) DO NOTHING;
 
 -- ============================================================
--- projects: empty seed (personal projects never in public repo)
--- messaging_routes: empty seed
+-- Current project/factory seeds. Secrets and personal channel tokens are never
+-- stored here; runtime integration uses Paperclip, Hermes profiles, and Honcho.
 -- ============================================================
+
+-- Project/factory seeds are generic. Real projects are created through the
+-- dashboard Projects page or installer configuration; do not seed private
+-- project names in the public repo.
+
+INSERT INTO agent_factories (slug, name, kind, schema_version, definition, created_by)
+VALUES (
+  'paperclip-project-template',
+  'Paperclip Project Template',
+  'project',
+  3,
+  '{
+    "template":"templates/agent-factory/README.md",
+    "paperclip":{
+      "organization_kind":"project_team",
+      "project_slug":"example-project",
+      "seat_model":"position",
+      "adapter":"hermes_local",
+      "hermes_profile_pattern":"{project}",
+      "honcho_workspace_pattern":"{project}",
+      "required_positions":[
+        {"seat":"pm","title":"Product Manager","paperclip_role":"PM","count":1},
+        {"seat":"cto","title":"CTO","paperclip_role":"CTO","count":1},
+        {"seat":"eng-backend","title":"Backend Engineer","paperclip_role":"ENG-BACKEND","count":1},
+        {"seat":"eng-frontend","title":"Frontend Engineer","paperclip_role":"ENG-FRONTEND","count":1},
+        {"seat":"qa","title":"QA Engineer","paperclip_role":"QA","count":1}
+      ],
+      "optional_positions":[
+        {"seat":"ceo","title":"CEO","paperclip_role":"CEO","count":1},
+        {"seat":"po","title":"Product Owner","paperclip_role":"PO","count":1},
+        {"seat":"staff-eng","title":"Staff Engineer","paperclip_role":"STAFF-ENG","count":1},
+        {"seat":"uxui","title":"UX/UI Designer","paperclip_role":"UXUI","count":1},
+        {"seat":"eng-mobile","title":"Mobile Engineer","paperclip_role":"ENG-MOBILE","count":1},
+        {"seat":"eng-esp32","title":"ESP32 Engineer","paperclip_role":"ENG-ESP32","count":1}
+      ],
+      "agent_slug_pattern":"{project}-{seat}",
+      "ticket_link_table":"paperclip_ticket_link"
+    }
+  }'::jsonb,
+  'system'
+)
+ON CONFLICT (slug) DO UPDATE SET
+  name = EXCLUDED.name,
+  kind = EXCLUDED.kind,
+  schema_version = EXCLUDED.schema_version,
+  definition = EXCLUDED.definition,
+  updated_at = NOW();
 
 -- Config
 INSERT INTO config (key, value) VALUES
@@ -283,13 +331,5 @@ VALUES (1, '{"rows":[{"items":["cpu-gauge","memory-gauge","storage-gauge"]},{"it
 ON CONFLICT (user_id) DO NOTHING;
 
 -- ============================================================
--- Default admin user
--- Default admin: admin / 12345678 — operator MUST change via /admin/account on first login
--- Hash generated via: node -e 'console.log(require("bcryptjs").hashSync("12345678",10))'
--- ============================================================
-INSERT INTO admin_users (username, password_hash, is_admin)
-VALUES ('admin', '$2b$10$A7llpDGfeZc4eHVsGbC6.excbMKkNRI5nC7Cz8mySg0U6eOe50V1e', TRUE)
-ON CONFLICT (username) DO NOTHING;
-
 INSERT INTO migrations (name) VALUES ('002_seed')
 ON CONFLICT (name) DO NOTHING;

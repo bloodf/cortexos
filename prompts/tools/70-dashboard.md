@@ -8,7 +8,7 @@ Build and deploy the CortexOS Next.js dashboard as a native systemd service usin
 
 - `14-postgresql.md` completed.
 - `13-tailscale-serve.md` completed (Tailscale Serve publishes the dashboard root to port 3080).
-- `40-openclaw.md` completed.
+- `40-hermes.md`, `41-hermes-profiles.md`, and `42-hermes-honcho.md` completed.
 - Repo materialized at `/opt/cortexos`.
 
 ## Sudo gate
@@ -24,7 +24,7 @@ sudo -v
 - [ ] Run `packages/cortex-dashboard/scripts/native-build.sh`
 - [ ] Install `templates/systemd/cortex-dashboard.service`
 - [ ] Run dashboard migrations and dynamic service seed before starting service
-- [ ] Configure terminal SSH and OpenClaw scan env in `/opt/cortexos/.secrets/dashboard.env`
+- [ ] Configure terminal SSH and Hermes scan env in `/opt/cortexos/.secrets/dashboard.env`
 - [ ] `systemctl enable --now cortex-dashboard`
 - [ ] `/en/login` returns 200 locally
 - [ ] Public URL serves login page through Tailscale Serve
@@ -41,7 +41,7 @@ Type `confirmed` to proceed.
 ```bash
 sudo install -d -m 0755 /opt/cortexos/packages
 sudo cp -a packages/cortex-dashboard /opt/cortexos/packages/
-sudo cp -a packages/cortex-events packages/cortex-audit /opt/cortexos/packages/
+sudo cp -a packages/cortex-audit /opt/cortexos/packages/
 
 # Ensure dashboard.env contains runtime defaults that should not require manual
 # reconfiguration on a new machine. Root SSH is disabled by OS hardening, so the
@@ -51,8 +51,11 @@ sudo touch /opt/cortexos/.secrets/dashboard.env
 sudo chmod 0600 /opt/cortexos/.secrets/dashboard.env
 sudo /opt/cortexos/templates/scripts/cortex-env-writer.sh <<'JSON'
 {"path":"/opt/cortexos/.secrets/dashboard.env","updates":[
-  {"key":"OPENCLAW_BASE","value":"/home/cortexos/.openclaw"},
-  {"key":"AGENT_SCAN_PATHS","value":"/home/cortexos/.openclaw"},
+  {"key":"HERMES_PROFILES_REGISTRY","value":"/opt/cortexos/hermes/profiles.json"},
+  {"key":"AGENT_SCAN_PATHS","value":"/opt/cortexos/hermes/profiles"},
+  {"key":"HERMES_PRIMARY_URL","value":"http://127.0.0.1:18691"},
+  {"key":"HERMES_SECONDARY_URL","value":"http://127.0.0.1:18692"},
+  {"key":"HONCHO_BASE_URL","value":"http://127.0.0.1:18690"},
   {"key":"TERMINAL_SSH_HOST","value":"127.0.0.1"},
   {"key":"TERMINAL_SSH_PORT","value":"22"},
   {"key":"TERMINAL_SSH_USER","value":"cortexos"},

@@ -7,7 +7,6 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { ChangePasswordForm } from "@/components/auth/change-password-form";
 
 export default async function AccountPage({
 	params,
@@ -30,14 +29,19 @@ export default async function AccountPage({
 			</div>
 			<Card>
 				<CardHeader>
-					<CardTitle>Change password</CardTitle>
+					<CardTitle>Password management</CardTitle>
 					<CardDescription>
-						Use a strong password of at least 8 characters. Changes take effect
-						immediately; existing sessions remain valid.
+						Dashboard passwords are managed by Linux PAM.
 					</CardDescription>
 				</CardHeader>
-				<CardContent>
-					<ChangePasswordForm />
+				<CardContent className="space-y-2 text-sm text-muted-foreground">
+					<p>
+						Use <code className="rounded bg-muted px-1 py-0.5 font-mono">passwd</code>, Cockpit,
+						Webmin, or SSH to change your system account password.
+					</p>
+					<p>
+						Admin rights require membership in <code className="rounded bg-muted px-1 py-0.5 font-mono">cortexos-admin</code> or <code className="rounded bg-muted px-1 py-0.5 font-mono">sudo</code>.
+					</p>
 				</CardContent>
 			</Card>
 		</div>

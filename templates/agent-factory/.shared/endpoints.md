@@ -9,18 +9,19 @@ Do not duplicate these URLs in other docs — reference this file by relative pa
 - Chat:        `http://127.0.0.1:11434/v1/chat/completions`
 - Models list: `http://127.0.0.1:11434/v1/models`
 
-## OpenViking
+## Paperclip
 
-- Base: `http://127.0.0.1:{openviking_port}` (default `1933`)
+- Base:        `http://127.0.0.1:3033`
+- Health:      `http://127.0.0.1:3033/api/health`
 
-## Hindsight
+## Honcho
 
-- Base: `http://127.0.0.1:{hindsight_port}` (default `1953`)
+- Base:        `http://127.0.0.1:{Honcho_port}` (default `18690`)
 
-## AgentGateway
+## Hermes
 
-- MCP bind:  `http://127.0.0.1:4100`
-- LLM proxy: `http://127.0.0.1:4101`
+- Primary:     `http://127.0.0.1:18691/v1`
+- Secondary:   `http://127.0.0.1:18692/v1`
 
 ## Notes
 

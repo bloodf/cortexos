@@ -1,6 +1,0 @@
-# Encrypt with sops before committing real values.
-OPENVIKING_ROOT_API_KEY: CHANGE_ME
-OPENVIKING_CONFIG_FILE: /opt/cortexos/openviking/ov.conf
-OLLAMA_BASE_URL: http://127.0.0.1:11435
-OLLAMA_EMBED_MODEL: nomic-embed-text
-OLLAMA_CHAT_MODEL: llama3.2:1b

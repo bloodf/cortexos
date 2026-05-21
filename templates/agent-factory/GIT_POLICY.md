@@ -37,13 +37,14 @@ PRs exist only when CI pipelines/workflows actively require them (e.g., gate-enf
 - No AI attribution in commit messages, PR titles, or PR bodies.
 - Never use `--no-verify` or `--no-gpg-sign` unless explicitly authorized.
 
-## Push flow
+## Push Flow
 
 1. Push from the worktree.
-2. Husky pre-push runs tests/build/lint and emits `cortex.ci.<repo>.{passed,failed}`.
-3. On `.failed`: fix + re-push (no Slack noise until green).
-4. On `.passed` for hotfix lane: fast-forward into `main` locally, push `main`, drop lane branch + worktree.
-5. On `.passed` for feature lane: open PR (only if classification above requires it).
+2. Husky pre-push runs tests/build/lint when the repo has hooks.
+3. On failure: fix and re-push; update the Paperclip issue with the failing command and next action.
+4. On success for a hotfix lane: fast-forward into `main` locally, push `main`, drop lane branch and worktree.
+5. On success for a feature lane: open PR only if the classification above requires it.
+6. Record the result in the Paperclip issue thread.
 
 ## Submodules
 

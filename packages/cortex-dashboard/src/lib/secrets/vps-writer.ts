@@ -5,7 +5,7 @@
  * atomic replace via `rename(2)`. Preserves comments, blank lines, and the
  * original ordering of unchanged keys. New keys are appended at the end.
  * Returns sha256 of file content before and after the write so the caller
- * can persist them in `agent_gateway_audit`.
+ * can persist them in `tool_audit`.
  *
  * NOTE: `proper-lockfile` is not a project dependency, so we implement a
  * lockfile-based advisory lock here. If `proper-lockfile` is added later,

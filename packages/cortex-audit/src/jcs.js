@@ -3,8 +3,8 @@
  *
  * Stable key ordering by lexicographic UTF-16 code unit (the order
  * `Array.prototype.sort` gives for strings without a comparator). Matches
- * the helper already in use inside `stacks/cortex-consumer/consumer.js` so
- * hash-chain inputs are byte-identical regardless of which process appends.
+ * the project helper style so hash-chain inputs are byte-identical regardless
+ * of which process appends.
  *
  * NOTE: matches the project convention rather than the strictest RFC8785
  * number serialisation — payloads going through this layer originate from

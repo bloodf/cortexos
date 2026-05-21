@@ -31,8 +31,8 @@ body:
         - dashboard
         - prompts
         - agent roles
-        - cortex-consumer
-        - NATS pipeline
+        - paperclip-hermes workflow
+        - honcho memory
         - docs
         - templates
         - other

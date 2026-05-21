@@ -17,7 +17,7 @@ pnpm run test:e2e:list                 # lists discovered specs
 ## Why local-only
 
 - CI runtime budget: full browser install + spec run inflates job time.
-- Flakiness surface: live Postgres / NATS dependencies are easier to
+- Flakiness surface: live Postgres and Paperclip/Hermes dependencies are easier to
   reproduce on a developer machine than in a hermetic runner.
 - Operator preference: see repo-level CI policy.
 
@@ -25,7 +25,7 @@ pnpm run test:e2e:list                 # lists discovered specs
 
 | Spec                     | Coverage                              |
 | ------------------------ | ------------------------------------- |
-| `alerts-flow.spec.ts`    | Alerts publish → NATS round trip      |
+| `alerts-flow.spec.ts`    | Alerts publish → Paperclip notification |
 | `audit-viewer.spec.ts`   | Audit viewer + chain-verify badge     |
 | `paperclip-flow.spec.ts` | Approval queue + signal publish       |
 

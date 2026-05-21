@@ -24,8 +24,8 @@ A non-root sudo user (e.g. `cortexos`). SSH access from your laptop.
 
 ## 2. Node.js 24.x
 
-CortexOS runtime (dashboard, NATS consumer, paperclip bridge, sandbox
-runner, graph sidecar) targets Node 24. Install on the VPS before setup:
+CortexOS runtime (dashboard, Paperclip registration scripts, Hermes profile
+helpers, and sandbox tooling) targets Node 24. Install on the VPS before setup:
 
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
@@ -166,10 +166,10 @@ DNS record, no ports 80/443 exposed, no Let's Encrypt account needed.
 ## What you do NOT need at setup time
 
 - Telegram / Slack / Discord / WhatsApp tokens — these go in only when
-  channel wiring is handled by `prompts/tools/41-openclaw-channels.md` during install and by the OpenClaw CLI after install.
+  a project profile needs that channel through Paperclip/Hermes.
 - A Tailscale auth key — the install uses interactive `tailscale up`
   browser login.
-- Paperclip credentials — wired during mandatory spokes `62-paperclip` and `63-paperclip-alerts`.
+- Paperclip credentials — wired during mandatory spoke `62-paperclip`.
 
 Once items 1–6 are in place, open `SETUP.md` (or `prompts/00-bootstrap.md`
 if you prefer the laptop-driven push install) and follow the questionnaire.

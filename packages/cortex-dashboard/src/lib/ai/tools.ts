@@ -2,9 +2,9 @@
  * Vercel AI SDK tool registry for the Cortex chat panel.
  *
  * Each tool definition consults the policy (loaded from `tools-data/policy.json`,
- * mirrored from `templates/agentgateway/tools.json`) for its class and rate-limit.
+ * mirrored from policy data) for its class and rate-limit.
  * Privileged/destructive tools follow the confirmation-token issue/verify dance
- * before executing. Every invocation writes a row to `agent_gateway_audit`.
+ * before executing. Every invocation writes an audit row.
  */
 
 import { createHash } from "node:crypto";
@@ -18,13 +18,12 @@ import {
 	issueConfirmationToken,
 	verifyAndConsume,
 } from "./confirmation-token";
-import { insertAuditRow } from "@/lib/db/agent-gateway-audit";
+import { insertAuditRow } from "@/lib/db/tool-audit";
 import { getRateLimitStore } from "./rate-limit-store";
 import { getAllServices } from "@/lib/db/service";
 import { getAgentFactory, upsertAgentFactory } from "@/lib/db/agent-factories";
 import type { AgentFactoryKind } from "@/lib/db/agent-factories";
 import { readEnvFile } from "@/lib/secrets/vps-reader";
-import { hostExecFile } from "@/lib/host-exec";
 import {
 	systemdAction,
 	dockerAction as runDockerAction,
@@ -344,8 +343,8 @@ const confirmationField = z.string().optional().describe(
 const factoryKindSchema = z.enum(["role", "workflow", "pipeline", "project"]);
 const jsonRecordSchema = z.record(z.string(), z.any());
 
-function openclawBase(): string {
-	return process.env.OPENCLAW_BASE || `${process.env.HOME || "/home/cortexos"}/.openclaw`;
+function hermesBase(): string {
+	return process.env.HERMES_PROFILES_ROOT || "/opt/cortexos/hermes/profiles";
 }
 
 function slugify(value: string): string {
@@ -411,7 +410,7 @@ export function getAllTools(ctx: ToolContext): Record<string, Tool> {
 
 	const memorySearch = tool({
 		description:
-			"Search the OpenViking unified memory store. Returns stub data until the OpenViking plugin is live.",
+			"Search the Honcho memory store. Returns a stub until the Honcho API search endpoint is configured.",
 		inputSchema: z.object({
 			query: z.string().min(1),
 			limit: z.number().int().min(1).max(50).optional(),
@@ -426,29 +425,7 @@ export function getAllTools(ctx: ToolContext): Record<string, Tool> {
 			if (approval.kind !== "ok") return approval;
 			return {
 				kind: "stub" as const,
-				note: "wire after OpenViking plugin live",
-				query: input.query,
-			};
-		},
-	});
-
-	const leannQuery = tool({
-		description: "Query the LEANN doc RAG index. Stubbed pending plugin wiring.",
-		inputSchema: z.object({
-			query: z.string().min(1),
-			top_k: z.number().int().min(1).max(20).optional(),
-			confirmationToken: confirmationField,
-		}),
-		execute: async (input) => {
-			const approval = await ensureApproval(
-				ctx,
-				"leann_query",
-				input as Record<string, unknown>,
-			);
-			if (approval.kind !== "ok") return approval;
-			return {
-				kind: "stub" as const,
-				note: "wire after LEANN plugin live",
+				note: "wire after Honcho search endpoint is configured",
 				query: input.query,
 			};
 		},
@@ -550,7 +527,7 @@ export function getAllTools(ctx: ToolContext): Record<string, Tool> {
 	});
 
 	const proposeRole = tool({
-		description: "Generate a role factory proposal for an OpenClaw/Paperclip agent.",
+		description: "Generate a role factory proposal for a Hermes/Paperclip agent.",
 		inputSchema: z.object({
 			title: z.string().min(1),
 			description: z.string().min(1),
@@ -571,7 +548,7 @@ export function getAllTools(ctx: ToolContext): Record<string, Tool> {
 						role,
 						files: {
 							"ROLE.md": `# ${input.title}\n\n${input.description}\n`,
-							"WORKFLOW.md": `# ${input.title} Workflow\n\n- Review assigned Paperclip/OpenClaw work.\n- Produce concise status updates.\n- Escalate blocked or destructive actions.\n`,
+							"WORKFLOW.md": `# ${input.title} Workflow\n\n- Review assigned Paperclip/Hermes work.\n- Produce concise status updates.\n- Escalate blocked or destructive actions.\n`,
 						},
 					},
 				},
@@ -593,7 +570,7 @@ export function getAllTools(ctx: ToolContext): Record<string, Tool> {
 				kind: "proposal" as const,
 				factory_slug: input.factory_slug,
 				workflow: {
-					"WORKFLOW.md": `# Workflow\n\nGoal: ${input.goal || "Create, validate, and promote the generated agent files."}\n\n1. Draft roles and project seats.\n2. Validate required Markdown files.\n3. Promote to OpenClaw and Paperclip.\n`,
+					"WORKFLOW.md": `# Workflow\n\nGoal: ${input.goal || "Create, validate, and promote the generated agent files."}\n\n1. Draft roles and project seats.\n2. Validate required Markdown files.\n3. Promote to Hermes and Paperclip.\n`,
 				},
 			};
 		},
@@ -685,7 +662,7 @@ export function getAllTools(ctx: ToolContext): Record<string, Tool> {
 	});
 
 	const promoteFactory = tool({
-		description: "Promote a saved factory to OpenClaw agent files and Paperclip.",
+		description: "Promote a saved factory to Hermes profile files and Paperclip.",
 		inputSchema: z.object({
 			factory_slug: z.string().min(1),
 			project_slug: z.string().optional(),
@@ -707,37 +684,21 @@ export function getAllTools(ctx: ToolContext): Record<string, Tool> {
 			for (const position of positions) {
 				const seat = slugify(String(position.seat || position.paperclip_role || position.title || "agent"));
 				const agentSlug = `${projectSlug}-${seat}`;
-				const dir = join(openclawBase(), "agents", agentSlug, "agent");
+				const dir = join(hermesBase(), projectSlug, "agents", agentSlug);
 				await mkdir(dir, { recursive: true });
 				const title = String(position.title || position.paperclip_role || seat);
 				const role = String(position.paperclip_role || title);
 				const files = {
 					"ROLE.md": `# ${title}\n\nPaperclip role: ${role}\nFactory: ${factory.slug}\n`,
-					"WORKFLOW.md": `# ${title} Workflow\n\n- Accept work from OpenClaw/Paperclip.\n- Update issue status through the bridge.\n- Ask for approval before destructive actions.\n`,
-					"CLAUDE.md": `# ${title}\n\nYou are the ${title} agent for ${projectSlug}. Follow ROLE.md and WORKFLOW.md.\n`,
+					"WORKFLOW.md": `# ${title} Workflow\n\n- Accept work from Paperclip.\n- Execute through the ${projectSlug} Hermes profile.\n- Ask for approval before destructive actions.\n`,
+					"AGENTS.md": `# ${title}\n\nYou are the ${title} agent for ${projectSlug}. Follow ROLE.md and WORKFLOW.md.\n`,
 				};
 				for (const [name, content] of Object.entries(files)) {
 					const filePath = join(dir, name);
 					await writeFile(filePath, content, "utf-8");
 					written.push(filePath);
 				}
-				try {
-					await hostExecFile("openclaw", [
-						"agents",
-						"add",
-						agentSlug,
-						"--non-interactive",
-						"--workspace",
-						join(openclawBase(), "workspace", projectSlug),
-						"--agent-dir",
-						dir,
-						"--model",
-						"9router/cx/gpt-5.5",
-					], { timeout: 15000 });
-					registered.push(agentSlug);
-				} catch {
-					// The files are still promoted; OpenClaw may already have the agent.
-				}
+				registered.push(`hermes:${projectSlug}:${agentSlug}`);
 			}
 			const paperclip = input.call_paperclip === false
 				? { skipped: true, reason: "disabled by request" }
@@ -749,7 +710,6 @@ export function getAllTools(ctx: ToolContext): Record<string, Tool> {
 	return {
 		vps_status: vpsStatus,
 		memory_search: memorySearch,
-		leann_query: leannQuery,
 		env_read: envRead,
 		env_diff_propose: envDiffPropose,
 		service_restart: serviceRestart,

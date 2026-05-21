@@ -4,7 +4,7 @@
  * The shim implements the subset of pg.Pool the audit module uses:
  *   - pool.connect() → client with query/release
  *   - pool.query()   → forwards to the shared store
- *   - BEGIN/COMMIT/ROLLBACK + FOR UPDATE serialisation
+ *   - BEGIN/COMMIT/transaction abort + FOR UPDATE serialisation
  *   - the four SQL shapes the audit module sends
  */
 import { describe, it, expect, beforeEach } from "vitest";

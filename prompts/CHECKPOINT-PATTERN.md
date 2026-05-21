@@ -63,8 +63,8 @@ Spokes are ordered in `prompts/tools/_order.md` and executed linearly.
 The operator confirms each `CHECKPOINT N` before continuing. If spoke `N`
 asks for evidence produced only by spoke `N+k`, the install graph
 deadlocks — exactly the failure mode found by the readiness review for
-`00-preflight` (probed OpenClaw before `40-openclaw`), `13-tailscale-serve` (probed
-Grafana / Prometheus / Loki / cAdvisor / NATS / Langfuse before any of
+`00-preflight` (probed Hermes before `40-Hermes`), `13-tailscale-serve` (probed
+Grafana / Prometheus / Loki / cAdvisor / Paperclip / Langfuse before any of
 them existed), and `20-prometheus` (asked for `cadvisor` / `node`
 targets before those exporters ran).
 
@@ -85,7 +85,7 @@ owning spoke and to `99-final-validation`.
 ## Detection of future-spoke state is informational only
 
 If a spoke needs to know whether an optional later-spoke service is
-already present (e.g. preflight reading whether OpenClaw is installed),
+already present (e.g. preflight reading whether Hermes is installed),
 the probe is **informational, never blocking**:
 
 1. Detect existence with a non-fatal command (`command -v`, `curl
@@ -100,7 +100,7 @@ the probe is **informational, never blocking**:
 ## Consolidated end-to-end checks live in `99-final-validation`
 
 Cross-service flows (Tailscale Serve → Grafana, Prometheus → cAdvisor target UP,
-Fluent Bit → Loki query, Consumer → NATS → Sandbox dispatch) are
+Fluent Bit → Loki query, Paperclip → Hermes → Honcho workflow dispatch) are
 verified once in `prompts/tools/99-final-validation.md` after every
 spoke has run. That is the only place where the full system is in
 scope.
@@ -109,7 +109,7 @@ scope.
 
 Before merging a new or edited spoke:
 
-- [ ] Every `curl`, `nats`, `psql`, `redis-cli`, `docker compose ps`
+- [ ] Every `curl`, `Paperclip`, `psql`, `redis-cli`, `docker compose ps`
       in the CHECKPOINT region targets only this spoke's surface.
 - [ ] Any reference to a future spoke is informational and produces
       `NOT_INSTALLED` rather than failing.

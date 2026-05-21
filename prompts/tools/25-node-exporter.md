@@ -70,4 +70,4 @@ Type `confirmed` to proceed.
 
 ## Next
 
-→ `prompts/tools/30-nats.md`
+→ `prompts/tools/26-cockpit.md`

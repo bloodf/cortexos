@@ -146,7 +146,7 @@ independently of the laptop key.
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** Does every line of `ssh "$CORTEX_USER@$CORTEX_HOST" 'stat -c "%a %U %n" /opt/cortexos/.secrets/*.env'` read `600 <CORTEX_USER> /opt/cortexos/.secrets/<name>.env` (not `644`, not `root` owner) — covering `paperclip.env`, `dashboard.env`, `consumer.env`, `graph.env`, `langfuse.env`, `nats.env`, `sandbox.env`, `agentgateway.env`?
+**STOP — operator question:** Does every line of `ssh "$CORTEX_USER@$CORTEX_HOST" 'stat -c "%a %U %n" /opt/cortexos/.secrets/*.env'` read `600 <CORTEX_USER> /opt/cortexos/.secrets/<name>.env` (not `644`, not `root` owner) — covering `paperclip.env`, `dashboard.env`, `honcho.env`, `langfuse.env`, `9router.env`, and Hermes profile env files?
 
 Type `confirmed` to proceed.
 
@@ -173,7 +173,7 @@ If **all** private keys are lost, the encrypted YAML is unrecoverable.
 Rotate every credential from upstream providers and re-author the
 secrets files from scratch.
 
-## Rollback
+## Plaintext Cleanup
 
 To remove plaintext from the VPS without affecting Git history:
 

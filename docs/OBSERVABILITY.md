@@ -43,13 +43,13 @@ Use Loki for service logs and systemd journal for units. Prefer structured logs 
 | Alert | Condition | Action |
 |---|---|---|
 | DashboardDown | dashboard health fails 3m | Restart dashboard and inspect logs |
-| NATSUnavailable | NATS health fails 1m | Check NATS container and disk |
-| ConsumerStopped | systemd unit inactive | Restart and inspect env |
+| HermesUnavailable | Hermes profile health fails 1m | Restart the affected Hermes profile and inspect env |
+| HonchoUnavailable | Honcho health fails 1m | Restart Honcho and inspect storage/env |
 | SecretReadDeniedSpike | repeated deny events | Investigate possible traversal or misuse |
 
 ## Dashboards
 
-> Placeholder: add Grafana dashboard screenshots for host health, Docker services, NATS, dashboard API latency, and agent dispatch outcomes.
+> Placeholder: add Grafana dashboard screenshots for host health, Docker services, dashboard API latency, and Hermes/Paperclip outcomes.
 
 ## Related docs
 

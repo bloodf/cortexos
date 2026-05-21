@@ -6,7 +6,6 @@ Install 9Router, the OpenAI-compatible model gateway that proxies AI provider AP
 
 ## Prerequisites
 
-- `30-nats.md` completed (9Router publishes metrics to NATS).
 - `13-tailscale-serve.md` completed (operator reaches the 9Router WebUI through Tailscale Serve on port `11434`).
 - AI provider API keys available (at least one: OpenAI, Anthropic, or other). These are entered in the 9Router WebUI later — NOT pasted into prompts or env files.
 
@@ -77,14 +76,13 @@ sudo tee /opt/cortexos/.secrets/9router.env <<EOF
 NINEROUTER_BASE_URL=http://127.0.0.1:11434
 NINEROUTER_PORT=11434
 NINEROUTER_API_KEY=${NINEROUTER_API_KEY}
-NINEROUTER_NATS_URL=nats://127.0.0.1:4222
 EOF
 sudo chmod 600 /opt/cortexos/.secrets/9router.env
 ```
 
 `NINEROUTER_API_KEY` is the master bearer the rest of CortexOS uses to call `/v1/*` AND the admin token for the WebUI session. Record it somewhere you can paste it back later.
 
-> **Canonical env contract.** All 9Router env vars use the `NINEROUTER_*` prefix (no underscore split). Canonical port is `11434`. Every downstream spoke that calls AI — dashboard, OpenClaw, OpenViking, LEANN, AgentGateway, consumer — receives `NINEROUTER_BASE_URL=http://127.0.0.1:11434` and `NINEROUTER_API_KEY={9ROUTER_API_KEY}` propagated from this spoke's env. Each spoke's own `.secrets/*.env` writes a copy; rotation of the 9Router master key requires re-running the propagation step.
+> **Canonical env contract.** All 9Router env vars use the `NINEROUTER_*` prefix (no underscore split). Canonical port is `11434`. Every downstream component that calls AI — dashboard, Hermes, Honcho, and Paperclip adapters — receives `NINEROUTER_BASE_URL=http://127.0.0.1:11434` and `NINEROUTER_API_KEY={9ROUTER_API_KEY}` propagated from this spoke's env. Rotation of the 9Router master key requires re-running the propagation step.
 
 Install systemd unit from `templates/systemd/9router.service`. Substitute placeholders (`{VPS_USER}`, `{VPS_HOME}`, `{NODE_BIN}`, `{NODE_BIN_DIR}`, `{NPM_PREFIX}`) using the values captured during `Install` — typical Linuxbrew layout: `{NODE_BIN}=/home/linuxbrew/.linuxbrew/opt/node@24/bin/node`, `{NPM_PREFIX}=/home/linuxbrew/.linuxbrew`.
 
@@ -192,4 +190,4 @@ Type `confirmed` to proceed.
 
 ## Next
 
-→ `prompts/tools/32-openviking.md`
+→ `prompts/tools/32-honcho.md`

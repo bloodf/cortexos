@@ -16,11 +16,12 @@
  *   PAPERCLIP_COMPANY_ID (required)
  *   BOARD_TOKEN         (optional) — when present, auto-approves hires
  *   PAPERCLIP_KEYS_FILE (optional) — override output path (default /opt/cortexos/.secrets/paperclip-keys.json)
+ *   HERMES_PROFILE_MAP  (optional) — JSON role/profile map
  *   ROLES_DIR           (optional) — override frontmatter source dir
  */
 
 import { readdir, readFile, writeFile, mkdir, chmod } from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
 export interface PaperclipFrontmatter {
@@ -187,22 +188,90 @@ function paperclipRoleToAgentRole(role: string): string {
 	if (normalized === "UXUI") return "designer";
 	if (normalized.includes("ENG") || normalized === "ENGINEER" || normalized === "STAFF-ENG") return "engineer";
 	if (normalized.startsWith("BOOK-")) return "researcher";
-	if (normalized === "CORTEX") return "general";
+	if (normalized === "PROJECT-SPECIALIST") return "general";
 	throw new Error(`unmapped Paperclip role: ${role}`);
 }
 
-function buildAdapterConfig(role: ParsedRole): Record<string, unknown> {
-	const headers: Record<string, string> = {};
-	if (process.env.PAPERCLIP_WEBHOOK_SECRET) {
-		headers.authorization = `Bearer ${process.env.PAPERCLIP_WEBHOOK_SECRET}`;
-	}
+export function routineToIntervalSec(routine: string): number {
+	const fields = routine.trim().split(/\s+/);
+	if (fields.length !== 6) return 0;
+	const [second, minute, hour, dayOfMonth, month, dayOfWeek] = fields;
+	if (second !== "0" || dayOfMonth !== "*" || month !== "*" || dayOfWeek !== "*") return 0;
+	const minuteEvery = minute.match(/^\*\/(\d+)$/);
+	if (minuteEvery && hour === "*") return Math.max(60, Number(minuteEvery[1]) * 60);
+	const hourEvery = hour.match(/^\*\/(\d+)$/);
+	if (minute === "0" && hourEvery) return Math.max(3600, Number(hourEvery[1]) * 3600);
+	return 0;
+}
+
+function buildRuntimeConfig(role: ParsedRole): Record<string, unknown> {
+	const intervalSec = routineToIntervalSec(role.paperclip.routine);
 	return {
-		url: `${process.env.PAPERCLIP_BRIDGE_URL ?? "http://127.0.0.1:8089"}${role.paperclip.adapterPath}`,
-		method: "POST",
-		payloadTemplate: {
-			cortexRole: role.paperclip.role,
+		heartbeat: {
+			enabled: intervalSec > 0,
+			intervalSec,
+			maxConcurrentRuns: 20,
 		},
-		...(Object.keys(headers).length > 0 ? { headers } : {}),
+	};
+}
+
+function defaultHermesCommand(): string {
+	return process.env.HERMES_COMMAND || "/opt/cortexos/bin/hermes-paperclip";
+}
+
+function hermesProfilePort(profile: string): string {
+	if (profile === "primary") return "18691";
+	if (profile === "secondary") return "18692";
+	try {
+		const registry = JSON.parse(readFileSync("/opt/cortexos/hermes/profiles.json", "utf8")) as {
+			profiles?: Array<{ profile?: string; apiPort?: number | string }>;
+		};
+		const found = registry.profiles?.find((item) => item.profile === profile);
+		if (found?.apiPort) return String(found.apiPort);
+	} catch {
+		// Fall back below when the runtime registry is unavailable, such as in tests.
+	}
+	return "18691";
+}
+
+function buildAdapterConfig(role: ParsedRole): Record<string, unknown> {
+	const map = process.env.HERMES_PROFILE_MAP
+		? JSON.parse(process.env.HERMES_PROFILE_MAP) as Record<string, string>
+		: {};
+	const normalized = role.paperclip.role.toUpperCase();
+	if (normalized === "CORTEX") {
+		throw new Error("CORTEX is a standalone Hermes profile and must not be registered in Paperclip");
+	}
+	const profile = map[role.paperclip.role] || map[normalized] || "primary";
+	const envName = profile.toUpperCase().replace(/[^A-Z0-9]/g, "_");
+	const port = hermesProfilePort(profile);
+	return {
+		profile,
+		model: "cx/gpt-5.5",
+		provider: "auto",
+		maxIterations: 50,
+		timeoutSec: 900,
+		graceSec: 15,
+		persistSession: true,
+		toolsets: "terminal,file,web,browser,code_execution",
+		hermesCommand: defaultHermesCommand(),
+		quiet: true,
+		verbose: false,
+		extraArgs: ["--provider", "9router"],
+		env: {
+			HERMES_PROFILE: profile,
+			HERMES_HOME: `/opt/cortexos/hermes/profiles/${profile}`,
+			HERMES_MODEL: "cx/gpt-5.5",
+			HERMES_REASONING: "medium",
+			HONCHO_BASE_URL: process.env.HONCHO_BASE_URL || "http://127.0.0.1:18690",
+			HONCHO_WORKSPACE: profile,
+			OPENAI_BASE_URL: process.env.NINEROUTER_BASE_URL || "http://127.0.0.1:11434/v1",
+		},
+		paperclipApiUrl: process.env.PAPERCLIP_API_URL || "http://127.0.0.1:3033",
+		baseUrl: process.env[`HERMES_${envName}_URL`] || `http://127.0.0.1:${port}/v1`,
+		apiKeyEnv: `HERMES_${envName}_API_KEY`,
+		reasoningEffort: "medium",
+		sessionTemplate: `${profile}:${role.paperclip.role}:{{issueId}}`,
 	};
 }
 
@@ -240,6 +309,7 @@ export async function registerRole(
 				budgetMonthlyCents: Math.round(role.paperclip.monthlyBudgetUsd * 100),
 				adapterType: role.paperclip.adapterType,
 				adapterConfig: buildAdapterConfig(role),
+				runtimeConfig: buildRuntimeConfig(role),
 				metadata: {
 					cortexRole: role.paperclip.role,
 					boss: role.paperclip.boss,
@@ -285,7 +355,9 @@ export async function registerRole(
 		const patchRes = await http.patch(
 			`/api/agents/${encodeURIComponent(agentId)}`,
 			{
+				adapterType: role.paperclip.adapterType,
 				adapterConfig: buildAdapterConfig(role),
+				runtimeConfig: buildRuntimeConfig(role),
 				replaceAdapterConfig: true,
 				status: "idle",
 			},

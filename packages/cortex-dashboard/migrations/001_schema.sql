@@ -82,8 +82,8 @@ CREATE TABLE IF NOT EXISTS agent_factories (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Agent gateway audit (append-only; revoke UPDATE/DELETE from dashboard app role at deploy time)
-CREATE TABLE IF NOT EXISTS agent_gateway_audit (
+-- tool audit (append-only; revoke UPDATE/DELETE from dashboard app role at deploy time)
+CREATE TABLE IF NOT EXISTS tool_audit (
   id BIGSERIAL PRIMARY KEY,
   ts TIMESTAMP NOT NULL DEFAULT NOW(),
   actor_user_id INTEGER DEFAULT NULL,
@@ -107,10 +107,10 @@ CREATE TABLE IF NOT EXISTS agent_gateway_audit (
   result VARCHAR(16) NOT NULL
     CHECK (result IN ('ok','err','timeout','denied'))
 );
-COMMENT ON TABLE agent_gateway_audit IS
+COMMENT ON TABLE tool_audit IS
   'Append-only. Dashboard app role must have INSERT,SELECT only; REVOKE UPDATE,DELETE at deploy.';
 
--- Projects (no tokens; live secrets via OpenClaw account_ref)
+-- Projects (no tokens; live secrets via project env and Hermes profile refs)
 CREATE TABLE IF NOT EXISTS projects (
   id SERIAL PRIMARY KEY,
   slug VARCHAR(64) UNIQUE NOT NULL,
@@ -124,7 +124,7 @@ CREATE TABLE IF NOT EXISTS projects (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Messaging routes (no tokens; account_ref points to OpenClaw account)
+-- Messaging routes (no tokens; account_ref points to an external channel account)
 CREATE TABLE IF NOT EXISTS messaging_routes (
   id SERIAL PRIMARY KEY,
   project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
@@ -140,22 +140,20 @@ CREATE TABLE IF NOT EXISTS messaging_routes (
 );
 
 -- Admin / auth
--- H-1: is_admin gates destructive AI/admin routes. The first user created
--- via /api/auth/setup bootstrap is marked admin. Subsequent users default
--- to non-admin and must be elevated explicitly.
-CREATE TABLE IF NOT EXISTS admin_users (
+-- Dashboard uses Linux PAM; is_admin is captured on each session from the
+-- operator's local group membership.
+CREATE TABLE IF NOT EXISTS pam_users (
   id SERIAL PRIMARY KEY,
   username VARCHAR(64) UNIQUE NOT NULL,
-  password_hash VARCHAR(255) NOT NULL,
-  is_admin BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS admin_sessions (
   id SERIAL PRIMARY KEY,
-  user_id INTEGER NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES pam_users(id) ON DELETE CASCADE,
   token VARCHAR(255) UNIQUE NOT NULL,
   expires_at TIMESTAMP NOT NULL,
+  is_admin BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -220,13 +218,68 @@ CREATE TABLE IF NOT EXISTS dashboard_layouts (
 -- Chat sessions (per-user server-side chat state; redacted tool outputs)
 -- H-6: FK + retention TTL + size cap. Orphan-free on user delete.
 CREATE TABLE IF NOT EXISTS chat_sessions (
-  user_id INTEGER PRIMARY KEY REFERENCES admin_users(id) ON DELETE CASCADE,
+  user_id INTEGER PRIMARY KEY REFERENCES pam_users(id) ON DELETE CASCADE,
   panel_open BOOLEAN NOT NULL DEFAULT false,
   width INTEGER NOT NULL DEFAULT 360,
   messages JSONB NOT NULL DEFAULT '[]'::jsonb,
   expires_at TIMESTAMPTZ NOT NULL DEFAULT NOW() + INTERVAL '30 days',
   updated_at TIMESTAMP DEFAULT NOW(),
   CHECK (length(messages::text) < 1000000)
+);
+
+-- Paperclip/Hermes run links surfaced in the dashboard.
+CREATE TABLE IF NOT EXISTS paperclip_ticket_link (
+  id BIGSERIAL PRIMARY KEY,
+  paperclip_issue_id TEXT NOT NULL,
+  paperclip_run_id   TEXT NOT NULL,
+  paperclip_agent_id TEXT NOT NULL,
+  cortex_role        TEXT NOT NULL,
+  adapter_ref        TEXT,
+  adapter_run_id     TEXT,
+  status             TEXT NOT NULL CHECK (status IN ('open','in_progress','done','failed','cancelled')),
+  cost_usd_cents     INTEGER DEFAULT 0,
+  omc_task_id        TEXT,
+  backfilled_at      TIMESTAMPTZ,
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (paperclip_run_id)
+);
+
+-- Operator approval queue. Paperclip/Hermes writes rows here when a run needs
+-- human approval; the dashboard resolves them.
+CREATE TABLE IF NOT EXISTS pending_approvals (
+  id              BIGSERIAL PRIMARY KEY,
+  run_id          TEXT        NOT NULL,
+  signal_name     TEXT        NOT NULL,
+  role            TEXT,
+  issue_id        TEXT,
+  reason          TEXT,
+  requested_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  timeout_at      TIMESTAMPTZ,
+  resolved_at     TIMESTAMPTZ,
+  decision        TEXT,
+  approver        TEXT,
+  CONSTRAINT pending_approvals_decision_chk
+    CHECK (decision IS NULL OR decision IN ('approve', 'deny', 'timeout')),
+  CONSTRAINT pending_approvals_unique_run_signal
+    UNIQUE (run_id, signal_name)
+);
+
+-- Hash-chained operational audit log. Kept Postgres-native for the all-in-one
+-- installer; external anchoring can be layered on top later.
+CREATE TABLE IF NOT EXISTS audit_log (
+  id              BIGSERIAL PRIMARY KEY,
+  occurred_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  event_id        UUID NOT NULL,
+  event_type      TEXT NOT NULL,
+  source          TEXT NOT NULL,
+  subject         TEXT,
+  actor           TEXT,
+  payload_hash    TEXT NOT NULL,
+  prev_hash       TEXT NOT NULL,
+  chain_hash      TEXT NOT NULL,
+  rekor_log_index BIGINT,
+  payload         JSONB NOT NULL
 );
 
 -- Indexes
@@ -237,9 +290,9 @@ CREATE INDEX IF NOT EXISTS idx_service_badges_badge ON service_badges(badge_id);
 CREATE INDEX IF NOT EXISTS idx_alerts_unread ON alerts(created_at DESC) WHERE acknowledged_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_alerts_severity ON alerts(severity, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_agent_factories_kind ON agent_factories(kind);
-CREATE INDEX IF NOT EXISTS idx_agent_gateway_audit_ts ON agent_gateway_audit(ts DESC);
-CREATE INDEX IF NOT EXISTS idx_agent_gateway_audit_role_ts ON agent_gateway_audit(role, ts DESC);
-CREATE INDEX IF NOT EXISTS idx_agent_gateway_audit_actor_ts ON agent_gateway_audit(actor_user_id, ts DESC);
+CREATE INDEX IF NOT EXISTS idx_tool_audit_ts ON tool_audit(ts DESC);
+CREATE INDEX IF NOT EXISTS idx_tool_audit_role_ts ON tool_audit(role, ts DESC);
+CREATE INDEX IF NOT EXISTS idx_tool_audit_actor_ts ON tool_audit(actor_user_id, ts DESC);
 CREATE INDEX IF NOT EXISTS idx_messaging_routes_project ON messaging_routes(project_id);
 CREATE INDEX IF NOT EXISTS idx_messaging_routes_platform ON messaging_routes(platform);
 CREATE INDEX IF NOT EXISTS idx_admin_sessions_token ON admin_sessions(token);
@@ -256,9 +309,24 @@ CREATE INDEX IF NOT EXISTS idx_action_log_target ON action_log(target_type, targ
 CREATE INDEX IF NOT EXISTS idx_action_log_status ON action_log(status);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_dashboard_layouts_user ON dashboard_layouts(user_id);
 CREATE INDEX IF NOT EXISTS idx_chat_sessions_expires_at ON chat_sessions(expires_at);
+CREATE INDEX IF NOT EXISTS idx_pcl_issue ON paperclip_ticket_link (paperclip_issue_id);
+CREATE INDEX IF NOT EXISTS idx_pcl_status ON paperclip_ticket_link (status);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_pcl_omc_task_id
+  ON paperclip_ticket_link (omc_task_id)
+  WHERE omc_task_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_pcl_backfilled_at
+  ON paperclip_ticket_link (backfilled_at)
+  WHERE backfilled_at IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_pending_approvals_open
+  ON pending_approvals (requested_at DESC)
+  WHERE resolved_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_pending_approvals_run_id ON pending_approvals (run_id);
+CREATE INDEX IF NOT EXISTS idx_audit_log_event_type ON audit_log (event_type, occurred_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_log_subject ON audit_log (subject, occurred_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_log_chain_head ON audit_log (occurred_at DESC, id DESC);
 
 -- ============================================================
--- H-3: Append-only enforcement for agent_gateway_audit.
+-- H-3: Append-only enforcement for tool_audit.
 -- The forensic trail must never be mutable from the app role.
 -- If a 'dashboard' role exists, revoke UPDATE/DELETE/TRUNCATE
 -- and grant only INSERT/SELECT. Wrapped to stay idempotent
@@ -267,8 +335,8 @@ CREATE INDEX IF NOT EXISTS idx_chat_sessions_expires_at ON chat_sessions(expires
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'dashboard') THEN
-    EXECUTE 'REVOKE UPDATE, DELETE, TRUNCATE ON agent_gateway_audit FROM dashboard';
-    EXECUTE 'GRANT INSERT, SELECT ON agent_gateway_audit TO dashboard';
+    EXECUTE 'REVOKE UPDATE, DELETE, TRUNCATE ON tool_audit FROM dashboard';
+    EXECUTE 'GRANT INSERT, SELECT ON tool_audit TO dashboard';
   END IF;
 EXCEPTION WHEN OTHERS THEN
   -- Non-fatal: fresh DBs without the role yet still apply schema; the

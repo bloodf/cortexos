@@ -1,0 +1,25 @@
+{
+  "profile": "{{profile}}",
+  "home": "/opt/cortexos/hermes/profiles/{{profile}}",
+  "api": {
+    "host": "127.0.0.1",
+    "port": {{port}},
+    "publicPath": "/hermes/{{profile}}/v1"
+  },
+  "model": {
+    "provider": "9router",
+    "baseUrl": "http://127.0.0.1:11434/v1",
+    "id": "{{model}}",
+    "reasoning": "{{reasoning}}"
+  },
+  "memory": {
+    "provider": "honcho",
+    "baseUrl": "http://127.0.0.1:18690",
+    "workspace": "{{profile}}",
+    "aiPeer": "hermes-{{profile}}"
+  },
+  "paperclip": {
+    "adapter": "hermes_local",
+    "sessionKey": "{{profile}}:<role>:<issue-id>"
+  }
+}

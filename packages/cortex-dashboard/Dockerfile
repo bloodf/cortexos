@@ -10,16 +10,16 @@ WORKDIR /repo
 ENV NEXT_TELEMETRY_DISABLED=1
 
 COPY packages ./packages
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends python3 make g++ libpam0g-dev \
+ && rm -rf /var/lib/apt/lists/*
 
-RUN cd packages/cortex-events && npm install --no-audit --no-fund
 RUN cd packages/cortex-audit && npm install --no-audit --no-fund
 RUN cd packages/cortex-dashboard && npm install --no-audit --no-fund
 # Replace npm's local file symlinks with real directories so Turbopack resolves
 # the internal packages consistently inside Docker.
-RUN rm -rf /repo/packages/cortex-dashboard/node_modules/@cortexos/events /repo/packages/cortex-dashboard/node_modules/@cortexos/audit \
- && mkdir -p /repo/packages/cortex-dashboard/node_modules/@cortexos/events \
+RUN rm -rf /repo/packages/cortex-dashboard/node_modules/@cortexos/audit \
  && mkdir -p /repo/packages/cortex-dashboard/node_modules/@cortexos/audit \
- && cp -a /repo/packages/cortex-events/. /repo/packages/cortex-dashboard/node_modules/@cortexos/events/ \
  && cp -a /repo/packages/cortex-audit/. /repo/packages/cortex-dashboard/node_modules/@cortexos/audit/
 
 WORKDIR /repo/packages/cortex-dashboard
@@ -81,6 +81,7 @@ RUN apt-get update \
       curl \
       ca-certificates \
       postgresql-client \
+      libpam0g \
  && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /repo/packages/cortex-dashboard/package.json ./package.json
@@ -99,7 +100,6 @@ RUN printf '%s\n' "module.exports = require('./lib/index.js');" > /app/node_modu
  && (chmod +x scripts/*.sh 2>/dev/null || true) \
  && chown -R node:node /app
 
-USER node
 EXPOSE 3080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD curl -fsS http://127.0.0.1:3080/en/login || exit 1

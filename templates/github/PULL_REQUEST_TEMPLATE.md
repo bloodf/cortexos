@@ -34,10 +34,10 @@ Branch: `{branch_name}`
 - CI container cleanup: {not applicable OR confirmed `docker compose down -v --remove-orphans` / `docker rm -f` cleanup on failure}
 - Runtime migration required: {yes/no + details}
 
-## Risk and rollback
+## Risk and recovery
 
 - Risk level: {low|medium|high}
-- Rollback: {how to revert safely}
+- Recovery: {how to revert safely}
 - Data impact: {none OR describe migrations/backfills}
 
 ## Reviewer focus

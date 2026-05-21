@@ -23,7 +23,7 @@
 
 - Do not expose secrets, tokens, credentials, or private deployment notes.
 - Follow `docs/runbooks/CI_POLICY.md` for validation.
-- Use NATS, Slack thread updates, and Husky-as-CI conventions when task touches orchestration.
+- Use Paperclip issue state and Hermes execution notes when task touches orchestration.
 - {project_specific_constraint_or_edge_case}
 
 ## Acceptance criteria

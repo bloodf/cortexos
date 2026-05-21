@@ -1,46 +1,19 @@
 # CortexOS Dashboard
 
-> Next.js administration interface for services, credentials, agents, storage, terminal access, and operational health.
+Dashboard is the Next.js 16 administration UI for CortexOS. It runs on loopback `127.0.0.1:3080` behind Tailscale Serve at `https://${CORTEX_DOMAIN}/`.
 
-## Contents
+## Capabilities
 
-- [Overview](#overview)
-- [Feature map](#feature-map)
-- [Local development](#local-development)
-- [Production deployment](#production-deployment)
-- [API surfaces](#api-surfaces)
-- [Security controls](#security-controls)
-- [Screenshots](#screenshots)
-- [Related docs](#related-docs)
+- Service registry, health checks, categories, open links.
+- Apps page with admin-only credential display from service `env_source` files.
+- Agents, dispatches, audit trails.
+- Environment browser with allowlisted file access.
+- Admin-only Docker/systemd actions.
+- Terminal workflows.
 
-## Overview
+## Deployment
 
-Dashboard is a Next.js 16 application in `packages/cortex-dashboard/`. It runs on loopback port 3080 behind Tailscale Serve, uses PostgreSQL for state, and probes local/host services through configured health checks.
-The legacy Docker Compose file at `stacks/cortex-dashboard/docker-compose.yml` is deprecated and preserved only for reference.
-
-## Feature map
-
-| Area | Capability |
-|---|---|
-| Services | Registry, health checks, categories, open links |
-| Credentials | Import, encrypted storage, masked viewing, reveal approval |
-| Agents | Activity, dispatches, audit trails |
-| Environment browser | Allowlisted env file viewing and editing flows |
-| Terminal | Controlled command workflows |
-| Admin projects | Per-project bot credential paths |
-
-## Local development
-
-```bash
-cd dashboard
-pnpm install
-pnpm run test
-pnpm run dev          # custom server on PORT=3000
-```
-
-## Production deployment
-
-Production runs as a native systemd service from the Next.js standalone build. Docker is not used for the dashboard.
+Production runs as native systemd from the standalone Next.js build. The legacy Docker Compose file is reference only.
 
 ```bash
 cd /opt/cortexos/packages/cortex-dashboard
@@ -51,34 +24,48 @@ sudo systemctl enable --now cortex-dashboard
 curl -fsS http://127.0.0.1:3080/api/health
 ```
 
-Key facts:
+Runtime env: `/opt/cortexos/.secrets/dashboard.env`.
+Migrations: `scripts/migrate.js`; dynamic service activation: `scripts/dynamic-seed.js`.
 
-- Runtime: `node .next/standalone/server.js` under `cortex-dashboard.service`.
-- Runtime env: `/opt/cortexos/.secrets/dashboard.env`.
-- Port: loopback `3080`; Tailscale Serve publishes `https://${CORTEX_DOMAIN}/`.
-- Migrations: run by `scripts/migrate.js`; dynamic catalog hydration runs via `scripts/dynamic-seed.js`.
+## Auth
 
-See [prompts/tools/70-dashboard.md](../prompts/tools/70-dashboard.md) for the full operator flow.
+Dashboard auth is Linux PAM-backed:
+
+- Login validates the Linux username/password with PAM.
+- First login auto-creates a `pam_users` row for session foreign keys.
+- Admin authorization is captured at login from membership in `cortexos-admin` or `sudo`.
+- `admin_sessions.is_admin` stores the admin flag for the session.
+- No dashboard-local password hashes or user-management UI exist.
+
+Manage users on the host:
+
+```bash
+sudo adduser <username>
+sudo passwd <username>
+sudo usermod -aG cortexos-admin <username>
+```
+
+`/api/auth/password` returns host password-change instructions; it does not change passwords.
 
 ## API surfaces
 
 | Route group | Purpose |
 |---|---|
-| `/api/auth/*` | Session and login flows |
-| `/api/env-browser/*` | Allowlisted env reads and writes |
-| `/api/cortex/*` | Agent and tool interactions |
-| `/api/admin/*` | Admin-only configuration |
+| `/api/auth` | PAM login, session status, logout |
+| `/api/auth/password` | System password-change instructions |
+| `/api/env-browser/*` | Allowlisted env reads/writes |
+| `/api/admin/*` | Admin-only config/actions |
+| `/api/cortex/*` | Agent/tool interactions |
 | `/api/health` | Health reporting |
 
 ## Security controls
 
-- Admin-only privileged endpoints.
+- HTTP-only `session_token` cookie.
+- Admin-only privileged endpoints via stored session admin flag.
 - Confirmation tokens for sensitive tools.
-- Path allowlist in `packages/cortex-dashboard/src/lib/secrets/allowlist.ts`.
-- Audit logging for reveal, write, and dispatch operations.
+- Path allowlist for env browsing.
+- Audit logging for reveal, write, dispatch, and admin denial events.
 
-## Related docs
+## Credential display
 
-- [Documentation index](README.md)
-- [Architecture](ARCHITECTURE.md)
-- [Security](SECURITY.md)
+The Apps page reads credentials from service `env_source` `.env` files under `/opt/cortexos/.secrets` or stack dirs. `APP_CREDENTIALS_JSON` overrides file discovery.

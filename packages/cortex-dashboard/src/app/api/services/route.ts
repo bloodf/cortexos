@@ -322,7 +322,7 @@ export async function PATCH(request: Request) {
 							return NextResponse.json({ error: "icon_image too large (max 350KB)" }, { status: 400 });
 						}
 						const fileSlug = updates.slug ? String(updates.slug) : `service-${id}`;
-						updates.icon_image = saveImage(img, fileSlug);
+						updates.icon_image = await saveImage(img, fileSlug);
 					} else {
 						updates.icon_image = img;
 					}

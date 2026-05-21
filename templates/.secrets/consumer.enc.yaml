@@ -1,9 +1,0 @@
-# SOPS-encrypted secrets for cortex-consumer (NATS daemon).
-# Before commit: `sops -e -i templates/.secrets/consumer.enc.yaml`
-# Committed plaintext as TEMPLATE. Operators encrypt with their real age recipients.
-NATS_URL: "nats://127.0.0.1:4222"
-NATS_USER: "cortex"
-NATS_PASSWORD: "<replace-me>"
-CORTEX_NATS_HMAC: "<replace-me>"
-PG_DSN: "postgres://cortex:<replace-me>@127.0.0.1:5432/cortex"
-CONSUMER_LOG_LEVEL: "info"

@@ -3,8 +3,7 @@
  *
  * Posts to `/api/paperclip/notify-test` with `X-Admin-Token`, then
  * asserts the upstream Paperclip notification was registered via the
- * bridge's `/paperclip/notifications/recent` endpoint. Requires live
- * NATS + bridge — marked `fixme` when env not provided.
+ * Paperclip notification endpoint. Marked `fixme` when env is not provided.
  */
 import { test, expect } from "@playwright/test";
 

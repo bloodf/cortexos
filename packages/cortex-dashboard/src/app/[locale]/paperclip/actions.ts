@@ -22,7 +22,7 @@ const SQL = `
 		paperclip_run_id,
 		paperclip_agent_id,
 		cortex_role,
-		nats_subject,
+		adapter_ref,
 		status,
 		cost_usd_cents,
 		created_at,
