@@ -8,16 +8,26 @@ import type { MachineSensor } from "@/hooks/use-dashboard-data";
 type Tone = { color: string; text: string; badge: string; panel: string };
 
 function formatSensor(sensor: MachineSensor) {
-	if (sensor.unit === "celsius") return `${Math.round(sensor.value)} C`;
+	if (sensor.unit === "celsius") return `${Math.round(sensor.value)} °C`;
 	if (sensor.unit === "rpm") return `${Math.round(sensor.value)} rpm`;
 	return `${sensor.value.toFixed(2)} V`;
 }
 
 function formatGaugeValue(value: number, unit: string) {
-	if (unit === "C") return `${Math.round(value)}C`;
+	if (unit === "C") return `${Math.round(value)}°C`;
 	if (unit === "rpm") return value >= 1000 ? `${(value / 1000).toFixed(1)}k` : `${Math.round(value)}`;
 	if (unit === "V") return `${value.toFixed(1)}V`;
 	return `${Math.round(value)}`;
+}
+
+function formatGaugeDisplay(value: number, unit: string) {
+	if (unit !== "C") return formatGaugeValue(value, unit);
+	return (
+		<span className="inline-flex items-start">
+			<span>{Math.round(value)}</span>
+			<span className="ml-0.5 pt-1 text-sm font-semibold leading-none">°C</span>
+		</span>
+	);
 }
 
 function sensorTone(sensor: MachineSensor): Tone {
@@ -82,22 +92,18 @@ function SensorGroup({ title, subtitle, sensors, averageValue, gaugeValue, unit,
 						{statusLabel(averageValue, unit)}
 					</span>
 				</div>
-				<div className="mt-3 grid gap-3 xl:grid-cols-[190px_minmax(0,1fr)] xl:items-start">
-					<div className="grid grid-cols-[104px_minmax(0,1fr)] items-center gap-3 rounded-lg bg-black/10 p-2 light:bg-slate-50">
+				<div className="mt-3 grid gap-3 xl:grid-cols-[132px_minmax(0,1fr)] xl:items-start">
+					<div className="flex items-center justify-center rounded-lg bg-black/10 p-2 light:bg-slate-50">
 						<Gauge
 							value={Math.round(gaugeValue)}
 							color={color}
-							label={`${formatGaugeValue(averageValue, unit)} avg`}
+							label={title}
 							sublabel={unit === "rpm" ? "fan speed" : unit === "V" ? "rail reading" : "temperature"}
 							icon={icon}
 							size={108}
 							strokeWidth={8}
-							valueLabel={formatGaugeValue(averageValue, unit)}
+							valueLabel={formatGaugeDisplay(averageValue, unit)}
 						/>
-						<div className="min-w-0">
-							<p className={`text-3xl font-bold tabular-nums ${tone.text}`}>{formatGaugeValue(averageValue, unit)}</p>
-							<p className="mt-1 text-xs text-white/40 light:text-slate-500">{sensors.length} readings</p>
-						</div>
 					</div>
 					<div className="max-h-40 overflow-y-auto rounded-lg border border-white/[0.05] bg-white/[0.02] px-2 py-1 light:border-slate-100 light:bg-white">
 						{sensors.map((sensor) => <SensorRow key={sensor.id} sensor={sensor} />)}
@@ -122,7 +128,7 @@ export function MachineSensorsWidget() {
 	const voltageAvg = average(voltages);
 
 	return (
-		<div className="h-full min-h-[520px] p-1">
+		<div className="h-full p-1">
 			<div className="mb-4 flex items-center justify-between">
 				<div>
 					<p className="text-sm font-semibold text-white/80 light:text-slate-800">Machine Sensors</p>

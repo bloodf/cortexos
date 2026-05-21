@@ -10,7 +10,7 @@ interface GaugeProps {
 	label: string;
 	sublabel?: string;
 	icon?: React.ReactNode;
-	valueLabel?: string;
+	valueLabel?: React.ReactNode;
 }
 
 export function Gauge({
