@@ -4,7 +4,8 @@ Requires=paperclip.service
 After=paperclip.service
 
 [Service]
-ExecStart=/lib/systemd/systemd-socket-proxyd 127.0.0.1:3034
+EnvironmentFile=-/opt/cortexos/.secrets/9router.env
+ExecStart=/usr/bin/node /opt/cortexos/scripts/paperclip-local-proxy.mjs
 PrivateTmp=true
 NoNewPrivileges=true
 
