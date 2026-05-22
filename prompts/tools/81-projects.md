@@ -12,6 +12,7 @@ Each project gets:
 - a secret file under `/opt/cortexos/.secrets/projects/<slug>.env`
 - a Hermes profile under `/opt/cortexos/hermes/profiles/<slug>`
 - Paperclip role bindings that point at the Hermes profile
+- an app attachment allowlist in `projects.settings.apps` copied from the factory definition
 
 ## Register
 
@@ -36,7 +37,7 @@ VALUES (
   '<name>',
   'https://github.com/<github-org>/<repo-name>',
   'single',
-  '{"hermes_profile":"<slug>","paperclip_adapter":"hermes_local"}'::jsonb
+  '{"hermes_profile":"<slug>","paperclip_adapter":"hermes_local","apps":["paperclip","honcho","9router","cortex-dashboard","langfuse"]}'::jsonb
 )
 ON CONFLICT (slug) DO UPDATE SET
   name = EXCLUDED.name,
@@ -45,6 +46,8 @@ ON CONFLICT (slug) DO UPDATE SET
   updated_at = NOW();
 SQL
 ```
+
+For factory-created projects, copy `agent_factories.definition.apps` into `projects.settings.apps`; generated agent profiles then inherit the same app allowlist. Use dashboard `services.slug` values only. Do not put app URLs, API keys, passwords, or env file contents in project settings.
 
 ## Verify
 

@@ -18,6 +18,7 @@ interface ProjectRow {
 	repo_url: string | null;
 	primary_pm_account: string | null;
 	messaging_mode: "single" | "distributed";
+	apps: string[];
 }
 
 const SLUG_RE = /^[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]$/;
@@ -64,6 +65,19 @@ export function AdminProjectsPanel({ initialProjects }: Props) {
 				accessorKey: "primary_pm_account",
 				header: "Primary PM",
 				cell: ({ row }) => row.original.primary_pm_account ?? "—",
+			},
+			{
+				id: "apps",
+				header: "Apps",
+				cell: ({ row }) => row.original.apps.length === 0 ? "—" : (
+					<div className="flex flex-wrap gap-1">
+						{row.original.apps.map((app) => (
+							<span key={app} className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
+								{app}
+							</span>
+						))}
+					</div>
+				),
 			},
 			{
 				id: "env_path",
@@ -115,7 +129,7 @@ export function AdminProjectsPanel({ initialProjects }: Props) {
 
 			{(creating || editing) && (
 				<ProjectEditor
-					initial={editing ?? { id: 0, slug: "", name: "", repo_url: null, primary_pm_account: null, messaging_mode: "single" }}
+					initial={editing ?? { id: 0, slug: "", name: "", repo_url: null, primary_pm_account: null, messaging_mode: "single", apps: [] }}
 					isNew={creating}
 					onClose={() => {
 						setCreating(false);
@@ -144,6 +158,7 @@ function ProjectEditor({
 	const [repoUrl, setRepoUrl] = React.useState(initial.repo_url ?? "");
 	const [pm, setPm] = React.useState(initial.primary_pm_account ?? "");
 	const [mode, setMode] = React.useState(initial.messaging_mode);
+	const [apps, setApps] = React.useState(initial.apps.join(", "));
 	const slugValid = !isNew || SLUG_RE.test(slug);
 
 	return (
@@ -183,6 +198,10 @@ function ProjectEditor({
 							<option value="distributed">distributed</option>
 						</select>
 					</div>
+					<div>
+						<label className="text-xs font-medium">Apps</label>
+						<Input value={apps} onChange={(e) => setApps(e.target.value)} placeholder="paperclip, honcho, 9router" />
+					</div>
 					<div className="flex justify-end gap-2 pt-2">
 						<Button variant="outline" size="sm" onClick={onClose}>
 							Cancel
@@ -199,6 +218,7 @@ function ProjectEditor({
 										repo_url: repoUrl || null,
 										primary_pm_account: pm || null,
 										messaging_mode: mode,
+										apps: apps.split(",").map((app) => app.trim()).filter(Boolean),
 									},
 									isNew,
 								)

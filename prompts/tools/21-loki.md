@@ -4,6 +4,8 @@
 
 Run Grafana Loki as a native systemd service to aggregate logs from Fluent Bit and make them queryable in Grafana.
 
+Loki is API-only; it has no built-in web UI. Operators query Loki through Grafana Explore using the Loki datasource.
+
 ## Prerequisites
 
 - `20-prometheus.md` completed.
@@ -63,7 +65,7 @@ curl -fsS http://127.0.0.1:3100/ready
 curl -sS "https://${CORTEX_DOMAIN}/loki/ready"
 ```
 
-Expected: `ready`.
+Expected: `ready`. Do not expect a Loki web UI on port `3100`; browser access is API endpoints only.
 
 ## CHECKPOINT 2
 

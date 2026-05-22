@@ -15,12 +15,14 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 RUN cd packages/cortex-audit && npm install --no-audit --no-fund
+RUN cd packages/cortex-telemetry && npm install --no-audit --no-fund
 RUN cd packages/cortex-dashboard && npm install --no-audit --no-fund
 # Replace npm's local file symlinks with real directories so Turbopack resolves
 # the internal packages consistently inside Docker.
-RUN rm -rf /repo/packages/cortex-dashboard/node_modules/@cortexos/audit \
- && mkdir -p /repo/packages/cortex-dashboard/node_modules/@cortexos/audit \
- && cp -a /repo/packages/cortex-audit/. /repo/packages/cortex-dashboard/node_modules/@cortexos/audit/
+RUN rm -rf /repo/packages/cortex-dashboard/node_modules/@cortexos/audit /repo/packages/cortex-dashboard/node_modules/@cortexos/telemetry \
+ && mkdir -p /repo/packages/cortex-dashboard/node_modules/@cortexos/audit /repo/packages/cortex-dashboard/node_modules/@cortexos/telemetry \
+ && cp -a /repo/packages/cortex-audit/. /repo/packages/cortex-dashboard/node_modules/@cortexos/audit/ \
+ && cp -a /repo/packages/cortex-telemetry/. /repo/packages/cortex-dashboard/node_modules/@cortexos/telemetry/
 
 WORKDIR /repo/packages/cortex-dashboard
 RUN npm run build:next

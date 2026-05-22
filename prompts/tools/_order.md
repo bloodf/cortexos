@@ -123,7 +123,7 @@ spokes:
     optional: false
 
   40-hermes:
-    deps: [31-9router, 32-honcho]
+    deps: [31-9router, 32-honcho, 13-tailscale-serve]
     optional: false
 
   41-hermes-profiles:

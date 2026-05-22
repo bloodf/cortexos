@@ -8,6 +8,7 @@ Type=simple
 User={VPS_USER}
 Group={VPS_USER}
 EnvironmentFile=-{CORTEX_SECRETS_DIR}/mcp.env
+EnvironmentFile=-{CORTEX_SECRETS_DIR}/langfuse-client.env
 EnvironmentFile={CORTEX_SECRETS_DIR}/hermes/%i.env
 Environment=HERMES_COMMAND={HERMES_COMMAND}
 WorkingDirectory={CORTEX_HERMES_ROOT}/profiles/%i

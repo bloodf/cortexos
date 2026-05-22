@@ -90,22 +90,18 @@ export function UsersAdminPanel({ initialUsers, initialSessions }: { initialUser
 
 	return (
 		<div className="space-y-6">
-			<div className="flex items-center justify-between gap-3">
-				<div>
-					<h2 className="text-lg font-semibold">User Management</h2>
-					<p className="text-sm text-muted-foreground">Local machine users and active dashboard sessions.</p>
-				</div>
-				<div className="flex gap-2">
-					<Button type="button" variant="outline" onClick={() => mutate()}><RefreshCw className="size-4" />Refresh</Button>
-					<Button type="button" onClick={() => setCreateOpen(true)}><UserPlus className="size-4" />Create User</Button>
-				</div>
-			</div>
 			{message && <p className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">{message}</p>}
 			<Tabs defaultValue="local">
-				<TabsList variant="line">
-					<TabsTrigger value="local">Local Users</TabsTrigger>
-					<TabsTrigger value="sessions">Dashboard Sessions</TabsTrigger>
-				</TabsList>
+				<div className="flex items-center justify-between gap-3">
+					<TabsList variant="line">
+						<TabsTrigger value="local">Local Users</TabsTrigger>
+						<TabsTrigger value="sessions">Dashboard Sessions</TabsTrigger>
+					</TabsList>
+					<div className="flex gap-2">
+						<Button type="button" variant="outline" onClick={() => mutate()}><RefreshCw className="size-4" />Refresh</Button>
+						<Button type="button" onClick={() => setCreateOpen(true)}><UserPlus className="size-4" />Create User</Button>
+					</div>
+				</div>
 				<TabsContent value="local" className="space-y-2">
 				<div className="overflow-hidden rounded-lg border border-border">
 					<Table>

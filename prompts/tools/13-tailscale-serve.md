@@ -72,6 +72,7 @@ sudo tailscale serve --bg --https=3001  http://localhost:3001   # Langfuse
 sudo tailscale serve --bg --https=18690 http://localhost:18690  # Honcho API
 sudo tailscale serve --bg --https=18691 http://localhost:18691  # Hermes primary API
 sudo tailscale serve --bg --https=18692 http://localhost:18692  # Hermes secondary API
+sudo tailscale serve --bg --https=9119  http://localhost:9120   # Hermes Web UI host-header proxy
 sudo tailscale serve --bg --https=3333  http://localhost:3333   # Kernel Browser
 sudo tailscale serve --bg --https=5050  http://localhost:5050   # pgAdmin
 sudo tailscale serve --bg --https=5540  http://localhost:5540   # RedisInsight
@@ -101,9 +102,10 @@ the tailnet interface only.
 | Loki API | `https://${CORTEX_DOMAIN}:3100/` |
 | cAdvisor | `https://${CORTEX_DOMAIN}:8081/` |
 | Langfuse | `https://${CORTEX_DOMAIN}:3001/` |
-| Honcho API | `https://${CORTEX_DOMAIN}:18690/` |
-| Hermes Primary API | `https://${CORTEX_DOMAIN}:18691/v1/` |
-| Hermes Secondary API | `https://${CORTEX_DOMAIN}:18692/v1/` |
+| Honcho API | health/services only; not listed in Apps |
+| Hermes Primary API | health/services only; not listed in Apps |
+| Hermes Secondary API | health/services only; not listed in Apps |
+| Hermes Web UI | `https://${CORTEX_DOMAIN}:9119/` |
 | Kernel Browser | `https://${CORTEX_DOMAIN}:3333/json/version?token={KERNEL_BROWSER_TOKEN}` |
 | pgAdmin | `https://${CORTEX_DOMAIN}:5050/` |
 | RedisInsight | `https://${CORTEX_DOMAIN}:5540/` |

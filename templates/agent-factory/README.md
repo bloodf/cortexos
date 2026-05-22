@@ -61,6 +61,7 @@ Supplementary (not in REQUIRED_FILES):
 - **Plan-First**: writing-plans → executing-plans with batch checkpoints. No coding without a plan.
 - **First Work: Green CI**: every project agent's first implementation task is to make CI green under `CI_POLICY.md`: unit tests, lint, typecheck/build as applicable; no e2e, ESP32/hardware, or iOS/Android native app builds until the owner asks to restore them.
 - **Operational Guidance**: local policy files (`CI_POLICY.md`, `TELEGRAM_APPROVAL.md`, `ESCALATION.md`, `STACK.md`) define repo-specific verification, approvals, escalation, and stack context.
+- **App Attachments**: factory promotion must copy `agent_factories.definition.apps` into the generated project/agent metadata. Values are dashboard `services.slug` entries only; credentials remain in service `env_source` files and runtime secrets. Baseline agent apps: `paperclip`, `honcho`, `9router`, `cortex-dashboard`, `langfuse`.
 
 ## Reusable Workflow Packs
 

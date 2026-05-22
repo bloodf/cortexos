@@ -5,6 +5,8 @@
 Install self-hosted Honcho as the only CortexOS memory backend. Paperclip and
 Hermes are the only agent orchestration path.
 
+Honcho exposes a REST API, not a web UI. `/` may return 404; use `/health`, `/docs` if enabled, and dashboard integration for operator workflows.
+
 ## Prerequisites
 
 - `11-docker.md` completed.
@@ -142,6 +144,7 @@ curl -fsS -H "Authorization: Bearer ${NINEROUTER_API_KEY}" \
   "${NINEROUTER_BASE_URL%/}/v1/models" | jq -e '.data[].id | select(.=="cx/gpt-5.5")'
 
 curl -fsS http://127.0.0.1:18690/health
+# Honcho is API-only: `/` returning 404 is not a failure.
 
 cd /opt/cortexos/stacks/honcho
 docker compose exec -T api /app/.venv/bin/python - <<'PY'

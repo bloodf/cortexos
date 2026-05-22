@@ -23,10 +23,10 @@ Docker. DB admin UIs are containerized. Persistent data MUST use named volumes.
 
 ## Install
 
-`/opt/cortexos/.secrets/pgadmin.env`:
+`/opt/cortexos/.secrets/pgadmin.env` (and the compose-resolved repo `.secrets/pgadmin.env` if running compose from the checkout):
 
 ```bash
-PGADMIN_DEFAULT_EMAIL=admin@cortexos.tailfd052e.ts.net
+PGADMIN_DEFAULT_EMAIL=admin@cortexos.local
 PGADMIN_DEFAULT_PASSWORD=<random>
 ```
 
@@ -34,4 +34,4 @@ Start from `/opt/cortexos/stacks/pgadmin`.
 
 ## CHECKPOINT 2
 
-Confirm `curl -fsS http://127.0.0.1:5050/misc/ping` returns 200.
+Confirm `curl -fsS http://localhost:5050/misc/ping` returns 200 and `http://localhost:5050/login` returns the login page. Login uses `PGADMIN_DEFAULT_EMAIL` + `PGADMIN_DEFAULT_PASSWORD`.

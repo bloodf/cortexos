@@ -10,6 +10,7 @@ export default async function ProjectsPage() {
 		repo_url: p.repo_url,
 		primary_pm_account: p.primary_pm_account,
 		messaging_mode: p.messaging_mode,
+		apps: Array.isArray(p.settings?.apps) ? p.settings.apps.filter((app): app is string => typeof app === "string") : [],
 	}));
 	return (
 		<div className="space-y-4">

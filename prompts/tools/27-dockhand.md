@@ -17,7 +17,7 @@ Docker.
 - [ ] CHECKPOINT 1 confirmed — port 3420 free
 - [ ] Copy `stacks/dockhand/docker-compose.yml`
 - [ ] Start the stack with `docker compose up -d`
-- [ ] Confirm Dockhand loads
+- [ ] Confirm Dockhand loads; create the first user in the UI if no user exists
 
 ## CHECKPOINT 1
 
@@ -38,7 +38,7 @@ docker compose up -d
 curl -fsS http://127.0.0.1:3420 >/dev/null
 ```
 
-Expected: Dockge/Dockhand UI responds.
+Expected: Dockge/Dockhand UI responds. Dockge has no env-var auth bootstrap; first user is created through the setup UI. If a user already exists, use the existing account or reset/update the SQLite `user` row with Dockge's password hash helper.
 
 ## CHECKPOINT 2
 

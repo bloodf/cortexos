@@ -133,6 +133,7 @@ registry.profiles.push({
   reasoning,
   honchoWorkspace: profile,
   secretPath,
+  apps: [],
 });
 registry.profiles.sort((a, b) => a.profile.localeCompare(b.profile));
 
