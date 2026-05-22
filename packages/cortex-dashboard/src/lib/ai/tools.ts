@@ -8,8 +8,8 @@
  */
 
 import { createHash } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
 import { z } from "zod";
 import { tool, type Tool } from "ai";
 
@@ -347,7 +347,7 @@ function hermesBase(): string {
 	return process.env.HERMES_PROFILES_ROOT || "/opt/cortexos/hermes/profiles";
 }
 
-function renderFactoryProfileConfig(model = "cx/gpt-5.5"): string {
+function renderFactoryProfileConfig(model = "cx/gpt-5.5", reasoning = "medium"): string {
 	return [
 		"model:",
 		`  default: ${model}`,
@@ -362,6 +362,7 @@ function renderFactoryProfileConfig(model = "cx/gpt-5.5"): string {
 		"    transport: openai_chat",
 		"agent:",
 		"  max_turns: 120",
+		`  reasoning_effort: ${reasoning}`,
 		"mcp_servers:",
 		"  filesystem:",
 		"    command: sh",
@@ -388,6 +389,70 @@ function projectPositions(definition: Record<string, unknown>): Array<Record<str
 		...(Array.isArray(p.required_positions) ? p.required_positions : []),
 		...(Array.isArray(p.optional_positions) ? p.optional_positions : []),
 	].filter((item): item is Record<string, unknown> => item !== null && typeof item === "object");
+}
+
+
+const FACTORY_TEMPLATE_FILES = [
+	"SOUL.md",
+	"IDENTITY.md",
+	"BOOTSTRAP.md",
+	"AGENTS.md",
+	"TOOLS.md",
+	"MEMORY.md",
+	"HEARTBEAT.md",
+	"USER.md",
+	"WORKFLOW.md",
+	"PIPELINE.md",
+	"SLACK.md",
+] as const;
+
+const STARTUP_POSITIONS = [
+	{ seat: "ceo", title: "CEO", paperclip_role: "CEO", count: 1, boss: null, model: "cx/gpt-5.5", reasoning: "high", antagonist_model: "cc/claude-opus-4-7", emoji: "👔", creature_type: "digital executive", vibe: "Strategic, decisive, business-focused", project_scope: "both" },
+	{ seat: "cto", title: "CTO", paperclip_role: "CTO", count: 1, boss: "CEO", model: "cc/claude-opus-4-7", reasoning: "high", antagonist_model: "cx/gpt-5.5", emoji: "🏗️", creature_type: "systems architect", vibe: "Technical, rigorous, architecture-focused", project_scope: "both" },
+	{ seat: "pm", title: "Product Manager", paperclip_role: "PM", count: 1, boss: "CEO", model: "cx/gpt-5.5", reasoning: "medium", antagonist_model: "cc/claude-opus-4-7", emoji: "📋", creature_type: "product operator", vibe: "User-focused, sequencing-driven, pragmatic", project_scope: "both" },
+	{ seat: "po", title: "Product Owner", paperclip_role: "PO", count: 1, boss: "CTO", model: "cc/claude-opus-4-7", reasoning: "medium", antagonist_model: "cx/gpt-5.5", emoji: "📦", creature_type: "backlog steward", vibe: "Precise, acceptance-driven, delivery-aware", project_scope: "both" },
+	{ seat: "staff-eng", title: "Staff Engineer", paperclip_role: "STAFF-ENG", count: 1, boss: "CTO", model: "cc/claude-opus-4-7", reasoning: "medium", antagonist_model: "cx/gpt-5.5", emoji: "🧙", creature_type: "principal builder", vibe: "Load-bearing, simple, correctness-first", project_scope: "both" },
+	{ seat: "eng-frontend", title: "Web/Frontend Engineer", paperclip_role: "ENG-FRONTEND", count: 1, boss: "STAFF-ENG", model: "kimi/kimi-k2.6", reasoning: "medium", antagonist_model: "cx/gpt-5.5", emoji: "💻", creature_type: "frontend specialist", vibe: "Fast, UX-aware, test-focused", project_scope: "website" },
+	{ seat: "eng-mobile", title: "React Native Engineer", paperclip_role: "ENG-MOBILE", count: 1, boss: "STAFF-ENG", model: "kimi/kimi-k2.6", reasoning: "medium", antagonist_model: "cx/gpt-5.5", emoji: "📱", creature_type: "mobile specialist", vibe: "Device-aware, reliable, product-minded", project_scope: "react-native" },
+	{ seat: "qa", title: "QA Engineer", paperclip_role: "QA", count: 1, boss: "STAFF-ENG", model: "cx/gpt-5.5", reasoning: "medium", antagonist_model: "cc/claude-opus-4-7", emoji: "🔍", creature_type: "quality sentinel", vibe: "Skeptical, exhaustive, evidence-driven", project_scope: "both" },
+	{ seat: "reviewer", title: "Reviewer", paperclip_role: "REVIEWER", count: 1, boss: "CTO", model: "glm/glm-5.1", reasoning: "medium", antagonist_model: "cx/gpt-5.5", emoji: "📝", creature_type: "code reviewer", vibe: "Critical, concise, maintainability-focused", project_scope: "both" },
+];
+
+function templateContext(factory: { slug: string; definition: Record<string, unknown> }, projectSlug: string, agentSlug: string, position: Record<string, unknown>): Record<string, string> {
+	const repo = typeof factory.definition.repo_url === "string" ? factory.definition.repo_url : "";
+	const now = new Date();
+	const model = String(position.model || "cx/gpt-5.5");
+	return {
+		agent_name: agentSlug,
+		role: String(position.paperclip_role || position.title || position.seat || "agent"),
+		model,
+		review_model: String(position.antagonist_model || model),
+		repo,
+		emoji: String(position.emoji || "🤖"),
+		creature_type: String(position.creature_type || "agent"),
+		vibe: String(position.vibe || "Pragmatic, precise, reliable"),
+		date: now.toISOString().slice(0, 10),
+		timestamp: now.toISOString(),
+		default_model: model,
+		Honcho_port: String(process.env.HONCHO_PORT || "18690"),
+		project: projectSlug,
+		factory: factory.slug,
+		reasoning: String(position.reasoning || "medium"),
+	};
+}
+
+function substituteTemplate(content: string, values: Record<string, string>): string {
+	return content.replace(/\{([A-Za-z0-9_]+)\}/g, (match, key: string) => values[key] ?? match);
+}
+
+async function readFactoryTemplate(file: string, values: Record<string, string>): Promise<string> {
+	const source = await readFile(resolve(process.cwd(), "../../templates/agent-factory", file), "utf8");
+	return substituteTemplate(source, values);
+}
+
+async function readRoleTemplate(role: string, values: Record<string, string>): Promise<string> {
+	const source = await readFile(resolve(process.cwd(), "../../templates/agent-roles", `${role}.md`), "utf8");
+	return substituteTemplate(source, values);
 }
 
 async function postPaperclipPromotion(factorySlug: string, payload: Record<string, unknown>) {
@@ -556,16 +621,44 @@ export function getAllTools(ctx: ToolContext): Record<string, Tool> {
 	});
 
 	const proposeRole = tool({
-		description: "Generate a role factory proposal for a Hermes/Paperclip agent.",
+		description: "Generate a role or startup project factory proposal for Hermes/Paperclip agents.",
 		inputSchema: z.object({
 			title: z.string().min(1),
 			description: z.string().min(1),
 			role: z.string().optional(),
+			kind: factoryKindSchema.optional(),
+			model: z.string().optional(),
+			reasoning: z.enum(["low", "medium", "high"]).optional(),
+			antagonist_model: z.string().optional(),
+			boss: z.string().nullable().optional(),
+			emoji: z.string().optional(),
 			confirmationToken: confirmationField,
 		}),
 		execute: async (input) => {
 			const approval = await ensureApproval(ctx, "propose_role", input as Record<string, unknown>);
 			if (approval.kind !== "ok") return approval;
+			if (input.kind === "project") {
+				return {
+					kind: "proposal" as const,
+					factory: {
+						slug: slugify(input.title),
+						name: input.title,
+						kind: "project",
+						schema_version: 3,
+						definition: {
+							markdownFile: "README.md",
+							repo_url: "",
+							slack: { channel_name: slugify(input.title), channel_id: "" },
+							paperclip: {
+								organization_kind: "project_team",
+								project_slug: slugify(input.title),
+								agent_slug_pattern: "{project}-{seat}",
+								required_positions: STARTUP_POSITIONS,
+							},
+						},
+					},
+				};
+			}
 			const role = input.role || slugify(input.title).toUpperCase();
 			return {
 				kind: "proposal" as const,
@@ -574,11 +667,14 @@ export function getAllTools(ctx: ToolContext): Record<string, Tool> {
 					name: input.title,
 					kind: "role",
 					definition: {
-						role,
-						files: {
-							"ROLE.md": `# ${input.title}\n\n${input.description}\n`,
-							"WORKFLOW.md": `# ${input.title} Workflow\n\n- Review assigned Paperclip/Hermes work.\n- Produce concise status updates.\n- Escalate blocked or destructive actions.\n`,
-						},
+						markdownFile: `${role}.md`,
+						paperclip: { paperclip_role: role },
+						model: input.model || "cx/gpt-5.5",
+						reasoning: input.reasoning || "medium",
+						antagonist_model: input.antagonist_model || "cc/claude-opus-4-7",
+						boss: input.boss ?? null,
+						emoji: input.emoji || "🤖",
+						description: input.description,
 					},
 				},
 			};
@@ -703,34 +799,34 @@ export function getAllTools(ctx: ToolContext): Record<string, Tool> {
 			if (approval.kind !== "ok") return approval;
 			const factory = await getAgentFactory(input.factory_slug);
 			if (!factory) return { kind: "not_found" as const, factory_slug: input.factory_slug };
-				const projectSlug = input.project_slug || slugify(factory.name);
-				const positions = projectPositions(factory.definition);
-				if (positions.length === 0) {
-					return { kind: "empty" as const, factory_slug: factory.slug, reason: "factory definition has no Paperclip positions" };
-				}
-				const written: string[] = [];
+			const projectSlug = input.project_slug || slugify(factory.name);
+			const positions = projectPositions(factory.definition);
+			if (positions.length === 0) {
+				return { kind: "empty" as const, factory_slug: factory.slug, reason: "factory definition has no Paperclip positions" };
+			}
+			const written: string[] = [];
 			const registered: string[] = [];
 			const projectHome = join(hermesBase(), projectSlug);
 			await mkdir(projectHome, { recursive: true });
-			await writeFile(join(projectHome, "config.yaml"), renderFactoryProfileConfig(), "utf-8");
-			written.push(join(projectHome, "config.yaml"));
 			for (const position of positions) {
 				const seat = slugify(String(position.seat || position.paperclip_role || position.title || "agent"));
 				const agentSlug = `${projectSlug}-${seat}`;
-				const dir = join(hermesBase(), projectSlug, "agents", agentSlug);
+				const dir = join(projectHome, "agents", agentSlug);
+				const role = String(position.paperclip_role || position.title || seat);
+				const values = templateContext({ slug: factory.slug, definition: factory.definition }, projectSlug, agentSlug, position);
 				await mkdir(dir, { recursive: true });
-				const title = String(position.title || position.paperclip_role || seat);
-				const role = String(position.paperclip_role || title);
-				const files = {
-					"ROLE.md": `# ${title}\n\nPaperclip role: ${role}\nFactory: ${factory.slug}\n`,
-					"WORKFLOW.md": `# ${title} Workflow\n\n- Accept work from Paperclip.\n- Execute through the ${projectSlug} Hermes profile.\n- Ask for approval before destructive actions.\n`,
-					"AGENTS.md": `# ${title}\n\nYou are the ${title} agent for ${projectSlug}. Follow ROLE.md and WORKFLOW.md.\n`,
-				};
-				for (const [name, content] of Object.entries(files)) {
-					const filePath = join(dir, name);
-					await writeFile(filePath, content, "utf-8");
+				await writeFile(join(dir, "config.yaml"), renderFactoryProfileConfig(values.model, values.reasoning), "utf-8");
+				written.push(join(dir, "config.yaml"));
+				for (const file of FACTORY_TEMPLATE_FILES) {
+					const filePath = join(dir, file);
+					await writeFile(filePath, await readFactoryTemplate(file, values), "utf-8");
 					written.push(filePath);
 				}
+				const rolePath = join(dir, "ROLE.md");
+				await writeFile(rolePath, await readRoleTemplate(role, values), "utf-8");
+				written.push(rolePath);
+				await writeFile(join(dir, "cortexos-profile.json"), JSON.stringify({ slug: agentSlug, project: projectSlug, factory: factory.slug, seat, role, model: values.model, reasoning: values.reasoning, review_model: values.review_model, apps: Array.isArray(factory.definition.apps) ? factory.definition.apps : [], boss: position.boss ?? null, paperclip: { role, organization: projectSlug }, honcho: { workspace: projectSlug } }, null, 2) + "\n", "utf-8");
+				written.push(join(dir, "cortexos-profile.json"));
 				registered.push(`hermes:${projectSlug}:${agentSlug}`);
 			}
 			const paperclip = input.call_paperclip === false

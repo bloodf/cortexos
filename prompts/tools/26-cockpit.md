@@ -24,6 +24,7 @@ sudo -v
 - [ ] CHECKPOINT 1 confirmed — port 9091 free or already Cockpit
 - [ ] Install Cockpit package
 - [ ] Enable `cockpit.socket`
+- [ ] Configure Cockpit CSP origins for `${CORTEX_DOMAIN}:9091`
 - [ ] Confirm local HTTPS endpoint responds
 
 ## CHECKPOINT 1
@@ -45,6 +46,13 @@ ListenStream=9091
 EOF
 sudo systemctl daemon-reload
 sudo systemctl enable --now cockpit.socket
+sudo install -d -m 0755 /etc/cockpit
+sudo tee /etc/cockpit/cockpit.conf >/dev/null <<EOF
+[WebService]
+Origins = https://${CORTEX_DOMAIN}:9091
+EOF
+
+sudo systemctl restart cockpit.socket
 ```
 
 ## Verify
@@ -53,7 +61,7 @@ sudo systemctl enable --now cockpit.socket
 curl -kfsS https://127.0.0.1:9091 >/dev/null
 ```
 
-Expected: Cockpit responds. Sign in with a Linux user.
+Expected: Cockpit responds. Sign in with a Linux user. The `Origins` entry is required; otherwise Cockpit WebSockets can be blocked by CSP when accessed through Tailscale Serve.
 
 ## CHECKPOINT 2
 

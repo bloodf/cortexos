@@ -1,16 +1,15 @@
 services:
   floci:
-    image: localstack/localstack:3
+    image: floci/floci:latest
     container_name: cortex-floci
     restart: unless-stopped
     ports:
       - "127.0.0.1:4566:4566"
     environment:
-      SERVICES: s3,lambda,dynamodb,sqs,sns,iam,cloudformation
       DEBUG: "0"
       PERSISTENCE: "1"
     volumes:
-      - floci_data:/var/lib/localstack
+      - floci_data:/app/data
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - cortex-internal

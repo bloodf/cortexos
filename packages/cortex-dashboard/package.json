@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@cortexos/audit": "file:../cortex-audit",
+    "@cortexos/telemetry": "file:../cortex-telemetry",
     "@ai-sdk/openai-compatible": "^2.0.47",
     "@ai-sdk/react": "^3.0.185",
     "@base-ui/react": "^1.4.1",

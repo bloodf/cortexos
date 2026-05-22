@@ -1,6 +1,6 @@
 ---
 paperclip:
-  title:            "CEO"
+  title:            "Chief Executive Officer"
   role:             "CEO"
   boss:             "none"
   monthlyBudgetUsd: 500

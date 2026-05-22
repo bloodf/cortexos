@@ -6,6 +6,9 @@
   "scripts": {
     "check:repo-leaks": "node scripts/check-repo-leaks.mjs"
   },
+  "dependencies": {
+    "@cortexos/telemetry": "workspace:*"
+  },
   "engines": {
     "node": ">=22"
   }

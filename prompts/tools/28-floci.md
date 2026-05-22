@@ -17,7 +17,8 @@ Docker.
 - [ ] CHECKPOINT 1 confirmed — port 4566 free
 - [ ] Copy `stacks/floci/docker-compose.yml`
 - [ ] Start the stack with `docker compose up -d`
-- [ ] Confirm LocalStack health endpoint responds
+- [ ] Confirm `SERVICES` is unset so LocalStack/Floci enables all free-tier services
+- [ ] Confirm LocalStack health endpoint responds with many available services
 
 ## CHECKPOINT 1
 
@@ -35,10 +36,11 @@ docker compose up -d
 ## Verify
 
 ```bash
+docker compose config | grep -q 'SERVICES:' && { echo 'SERVICES must be unset'; exit 1; }
 curl -fsS http://127.0.0.1:4566/_localstack/health
 ```
 
-Expected: JSON health document.
+Expected: JSON health document with the free-tier LocalStack/Floci services available. Do not set `SERVICES=s3,lambda,...`; that restricts all other services.
 
 ## CHECKPOINT 2
 

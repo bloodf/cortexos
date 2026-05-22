@@ -18,13 +18,18 @@ const MODELS = [
 	{ id: "cx/gpt-5.5", label: "gpt-5.5" },
 	{ id: "cc/claude-opus-4-7", label: "Opus 4.7" },
 	{ id: "kimi/kimi-k2.6", label: "K2.6" },
+	{ id: "glm/glm-5.1", label: "GLM-5.1" },
 	{ id: "minimax/MiniMax-M2.7", label: "Minimax 2.7" },
 ];
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 async function fileToDataUrl(file: File): Promise<string> { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = () => reject(reader.error); reader.readAsDataURL(file); }); }
 function messageText(message: { parts?: unknown[] }): string { return (message.parts ?? []).map((part) => typeof part === "object" && part !== null && "text" in part ? String((part as { text?: unknown }).text ?? "") : "").join(""); }
 function emptyFactory(): FactorySummary { return { id: 0, slug: "", name: "", kind: "role", schema_version: 1, definition: {} }; }
-function mdFile(factory: FactorySummary): string { const raw = typeof factory.definition?.markdownFile === "string" ? factory.definition.markdownFile : `${factory.slug.toUpperCase().replace(/-/g, "_")}.md`; return raw.endsWith(".md") ? raw : `${raw}.md`; }
+function mdFile(factory: FactorySummary): string {
+	const role = factory.definition?.paperclip && typeof factory.definition.paperclip === "object" ? (factory.definition.paperclip as Record<string, unknown>).paperclip_role : undefined;
+	const raw = factory.kind === "role" && typeof role === "string" ? role : typeof factory.definition?.markdownFile === "string" ? factory.definition.markdownFile : factory.kind === "project" ? "README.md" : `${factory.slug.toUpperCase().replace(/-/g, "_")}.md`;
+	return raw.endsWith(".md") ? raw : `${raw}.md`;
+}
 
 export function FactoryChat({ factories }: Props) {
 	const { data, mutate } = useSWR<{ factories: FactorySummary[] }>("/api/agent-factory", fetcher, { fallbackData: { factories } });
@@ -46,7 +51,7 @@ export function FactoryChat({ factories }: Props) {
 	const busy = chat.status === "submitted" || chat.status === "streaming";
 
 	async function loadMarkdown(factory: FactorySummary) {
-		if (factory.kind !== "role") { setMarkdownText(""); return; }
+		if (factory.kind !== "role" && factory.kind !== "project") { setMarkdownText(""); return; }
 		const res = await fetch(`/api/agent-factory?markdown=${encodeURIComponent(mdFile(factory))}`);
 		if (!res.ok) { setMarkdownText(""); return; }
 		const body = await res.json() as { content?: string };

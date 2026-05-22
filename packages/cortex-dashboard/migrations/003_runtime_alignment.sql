@@ -23,8 +23,9 @@ BEGIN
   UPDATE services SET open_url = origin || ':8081/' WHERE slug = 'cadvisor';
   UPDATE services SET open_url = origin || ':3001/' WHERE slug = 'langfuse';
   UPDATE services SET open_url = origin || ':18690/' WHERE slug = 'honcho';
-  UPDATE services SET open_url = origin || ':18691/v1/' WHERE slug = 'hermes-primary';
-  UPDATE services SET open_url = origin || ':18692/v1/' WHERE slug = 'hermes-secondary';
+  UPDATE services SET open_url = origin || ':18691/health' WHERE slug = 'hermes-primary';
+  UPDATE services SET open_url = origin || ':18692/health' WHERE slug = 'hermes-secondary';
+  UPDATE services SET open_url = origin || ':9119/' WHERE slug = 'hermes-dashboard';
   UPDATE services SET open_url = origin || ':5050/' WHERE slug = 'pgadmin';
   UPDATE services SET open_url = origin || ':5540/' WHERE slug = 'redisinsight';
   UPDATE services SET open_url = origin || ':8083/' WHERE slug = 'mongo-express';

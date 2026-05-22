@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+
 import http from "node:http";
 import { execFile } from "node:child_process";
 import { access, readFile } from "node:fs/promises";
@@ -10,6 +11,9 @@ const model = process.env.HERMES_MODEL || "cx/gpt-5.5";
 const reasoning = process.env.HERMES_REASONING || "medium";
 const hermesCommand = process.env.HERMES_COMMAND || "hermes";
 const hermesHome = process.env.HERMES_HOME || `/opt/cortexos/hermes/profiles/${profile}`;
+
+const telemetry = await import("@cortexos/telemetry").catch(() => null);
+telemetry?.instrument({ service: `hermes-profile-${profile}`, env: process.env.NODE_ENV || process.env.CORTEX_ENV });
 const apiKey = process.env.HERMES_API_KEY || "";
 const defaultArgs = (process.env.HERMES_CHAT_ARGS || "chat -q").split(/\s+/).filter(Boolean);
 const maxBuffer = Number(process.env.HERMES_API_MAX_BUFFER || 1024 * 1024 * 8);
@@ -107,7 +111,9 @@ const server = http.createServer(async (req, res) => {
         send(res, 400, { error: "messages are required" });
         return;
       }
-      const result = await runHermes(prompt);
+      const result = await (telemetry?.traceLLMCall
+        ? telemetry.traceLLMCall({ name: "hermes.chat", model, input: prompt, metadata: { profile } }, () => runHermes(prompt))
+        : runHermes(prompt));
       send(res, 200, {
         id: `hermes-${profile}-${Date.now()}`,
         object: "chat.completion",

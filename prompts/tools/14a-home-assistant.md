@@ -14,9 +14,10 @@ Docker with host networking. Home Assistant needs mDNS/SSDP discovery.
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed — port 8123 free
+- [ ] CHECKPOINT 1 confirmed — port 8123 free, or only Tailscale Serve is listening on the tailnet IP
 - [ ] Copy `stacks/home-assistant/docker-compose.yml`
 - [ ] Start the stack with `docker compose up -d`
+- [ ] Configure `/config/configuration.yaml` trusted proxies for Tailscale Serve
 - [ ] Confirm the first-run wizard loads
 
 ## CHECKPOINT 1
@@ -32,10 +33,26 @@ cd /opt/cortexos/stacks/home-assistant
 docker compose up -d
 ```
 
-## Verify
+## Configure + verify
+
+Home Assistant runs with host networking. If Tailscale Serve owns the tailnet-IP listener on `8123`, bind Home Assistant to loopback and trust the proxy:
+
+```yaml
+http:
+  server_host: localhost
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - localhost
+    - ::1
+    - tailnet-cgnat/10
+    - private-lan/12
+```
+
+Restart Home Assistant after writing config:
 
 ```bash
-curl -fsS http://127.0.0.1:8123 >/dev/null
+docker restart cortex-home-assistant
+curl -fsSL http://localhost:8123/ | grep -i 'Home Assistant'
 ```
 
 Expected: Home Assistant responds with the onboarding UI.

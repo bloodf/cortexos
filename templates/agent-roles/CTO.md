@@ -1,6 +1,6 @@
 ---
 paperclip:
-  title:            "CTO"
+  title:            "Chief Technology Officer"
   role:             "CTO"
   boss:             "CEO"
   monthlyBudgetUsd: 400

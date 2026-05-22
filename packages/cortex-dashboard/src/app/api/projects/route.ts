@@ -29,6 +29,11 @@ function auditMutation(
 	});
 }
 
+function parseApps(value: unknown): string[] {
+	if (!Array.isArray(value)) return [];
+	return value.filter((app): app is string => typeof app === "string" && app.trim().length > 0).map((app) => app.trim());
+}
+
 export async function GET(request: Request) {
 	const auth = await requireAuth(request);
 	if (auth.error) return auth.error;
@@ -64,7 +69,7 @@ export async function POST(request: Request) {
 			repo_url: body.repo_url ?? null,
 			primary_pm_account: body.primary_pm_account ?? null,
 			messaging_mode: body.messaging_mode,
-			settings: {},
+			settings: { apps: parseApps(body.apps) },
 		});
 
 		await auditMutation("project.upsert", auth.session?.user_id ?? null, slug);
@@ -98,7 +103,7 @@ export async function PUT(request: Request) {
 			repo_url: body.repo_url,
 			primary_pm_account: body.primary_pm_account,
 			messaging_mode: body.messaging_mode,
-			settings: body.settings,
+			settings: { apps: parseApps(body.apps) },
 		};
 
 		const project = await updateProject(slug, patch);

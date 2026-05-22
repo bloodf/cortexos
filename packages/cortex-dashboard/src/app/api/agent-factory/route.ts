@@ -14,13 +14,14 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const TEMPLATE_DIR = path.resolve(process.cwd(), "../../templates/agent-factory");
+const ROLES_DIR = path.resolve(process.cwd(), "../../templates/agent-roles");
 const MD_FILE_RE = /^[A-Z0-9_.-]+\.md$/i;
 
-function markdownPath(fileParam: string | null): string | null {
+function markdownPath(fileParam: string | null, baseDir = TEMPLATE_DIR): string | null {
 	const file = (fileParam ?? "").trim();
 	if (!MD_FILE_RE.test(file)) return null;
-	const resolved = path.resolve(TEMPLATE_DIR, file);
-	return resolved.startsWith(`${TEMPLATE_DIR}${path.sep}`) ? resolved : null;
+	const resolved = path.resolve(baseDir, file);
+	return resolved.startsWith(`${baseDir}${path.sep}`) ? resolved : null;
 }
 
 function auditMutation(tool: string, actorUserId: number | null, argsHash: string) {
@@ -47,7 +48,18 @@ export async function GET(request: Request) {
 			const content = await fs.readFile(markdownFile, "utf8");
 			return NextResponse.json({ file: path.basename(markdownFile), content });
 		} catch (err) {
-			if ((err as NodeJS.ErrnoException).code === "ENOENT") return NextResponse.json({ error: "Markdown file not found", code: "ENOTFOUND" }, { status: 404 });
+			if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+				const roleMarkdownFile = markdownPath(searchParams.get("markdown"), ROLES_DIR);
+				if (roleMarkdownFile) {
+					try {
+						const content = await fs.readFile(roleMarkdownFile, "utf8");
+						return NextResponse.json({ file: path.basename(roleMarkdownFile), content });
+					} catch (roleErr) {
+						if ((roleErr as NodeJS.ErrnoException).code !== "ENOENT") return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+					}
+				}
+				return NextResponse.json({ error: "Markdown file not found", code: "ENOTFOUND" }, { status: 404 });
+			}
 			return NextResponse.json({ error: "Internal server error" }, { status: 500 });
 		}
 	}

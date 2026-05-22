@@ -2,8 +2,7 @@
 
 ## Purpose
 
-Deploy self-hosted Langfuse for LLM observability. Hermes, Paperclip adapter
-runs, and dashboard AI routes may emit traces here.
+Deploy self-hosted Langfuse for LLM observability. Dashboard, Hermes profiles, and sandbox runner emit traces through `@cortexos/telemetry` when `LANGFUSE_*` env is present.
 
 ## Prerequisites
 
@@ -30,36 +29,46 @@ docker compose up -d
 
 ## Configure Clients
 
-Add the Langfuse project keys to services that emit model traces:
-
-- `/opt/cortexos/.secrets/hermes/primary.env`
-- `/opt/cortexos/.secrets/hermes/secondary.env`
-- `/opt/cortexos/.secrets/paperclip.env`
-- `/opt/cortexos/.secrets/dashboard.env`
-
-Use the host-reachable URL for native services:
+Create shared host-service client env:
 
 ```bash
-LANGFUSE_HOST=http://127.0.0.1:3001
+sudo tee /opt/cortexos/.secrets/langfuse-client.env >/dev/null <<'EOF'
+LANGFUSE_HOST=http://localhost:3001
+LANGFUSE_PUBLIC_KEY=pk-lf-...
+LANGFUSE_SECRET_KEY=sk-lf-...
+EOF
+sudo chmod 0600 /opt/cortexos/.secrets/langfuse-client.env
+```
+
+Load it from native systemd services:
+
+- `cortex-dashboard.service` → `EnvironmentFile=-/opt/cortexos/.secrets/langfuse-client.env`
+- `hermes-profile@.service` → `EnvironmentFile=-/opt/cortexos/.secrets/langfuse-client.env`
+
+Sandbox runner is on `cortex-net`; use internal Langfuse URL in `/opt/cortexos/.secrets/sandbox.env`:
+
+```bash
+LANGFUSE_HOST=http://cortex-langfuse-web:3000
 LANGFUSE_PUBLIC_KEY=pk-lf-...
 LANGFUSE_SECRET_KEY=sk-lf-...
 ```
 
-Restart the services whose env files changed.
+Services requiring restart after client env changes:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart cortex-dashboard hermes-profile@cortex hermes-profile@external-profile hermes-profile@operator-host
+cd /opt/cortexos/stacks/cortex-sandbox-runner && docker compose up -d --force-recreate cortex-sandbox-runner
+```
 
 ## Verify
 
 ```bash
-curl -fsS http://127.0.0.1:3001/api/public/health
+curl -fsS http://localhost:3001/api/public/health
+curl -fsS -u "$LANGFUSE_PUBLIC_KEY:$LANGFUSE_SECRET_KEY" http://localhost:3001/api/public/traces
 ```
 
-Open `https://${CORTEX_DOMAIN}:3001/` and confirm the `cortexos` project is
-available.
-
-## CHECKPOINT 1
-
-Confirm Langfuse health returns 200 and Hermes/Paperclip trace env is present
-where configured.
+Open `https://${CORTEX_DOMAIN}:3001/` and confirm dashboard/Hermes/sandbox traces appear after traffic.
 
 ## Next
 
