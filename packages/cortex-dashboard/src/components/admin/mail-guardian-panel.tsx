@@ -8,17 +8,17 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 type MailGuardianTab = "accounts" | "reviews";
 
 export function MailGuardianPanel() {
-	const [tab, setTab] = React.useState<MailGuardianTab>("accounts");
+	const [tab, setTab] = React.useState<MailGuardianTab>("reviews");
 
 	return (
 		<div className="space-y-4">
 			<Tabs value={tab} onValueChange={(value) => setTab(value as MailGuardianTab)}>
 				<TabsList variant="line">
-					<TabsTrigger value="accounts">Accounts</TabsTrigger>
 					<TabsTrigger value="reviews">Reviews</TabsTrigger>
+					<TabsTrigger value="accounts">Accounts</TabsTrigger>
 				</TabsList>
 			</Tabs>
-			{tab === "accounts" ? <MailGuardianAccountsPanel /> : <MailGuardianReviewsPanel />}
+			{tab === "reviews" ? <MailGuardianReviewsPanel /> : <MailGuardianAccountsPanel />}
 		</div>
 	);
 }

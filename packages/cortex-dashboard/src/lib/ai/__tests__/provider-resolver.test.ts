@@ -53,6 +53,24 @@ describe("getNineRouterModel", () => {
 		expect(m.modelId).toBe("claude-sonnet");
 	});
 
+	it("normalizes 9Router base URL to the OpenAI-compatible v1 endpoint", () => {
+		process.env.NINEROUTER_BASE_URL = "http://nr.local";
+		process.env.NINEROUTER_API_KEY = "k";
+		getNineRouterModel("a");
+		expect(createSpy).toHaveBeenCalledWith(
+			expect.objectContaining({ baseURL: "http://nr.local/v1" }),
+		);
+	});
+
+	it("does not duplicate v1 when already configured", () => {
+		process.env.NINEROUTER_BASE_URL = "http://nr.local/v1/";
+		process.env.NINEROUTER_API_KEY = "k";
+		getNineRouterModel("a");
+		expect(createSpy).toHaveBeenCalledWith(
+			expect.objectContaining({ baseURL: "http://nr.local/v1" }),
+		);
+	});
+
 	it("caches provider across calls with same env", () => {
 		process.env.NINEROUTER_BASE_URL = "http://nr.local";
 		process.env.NINEROUTER_API_KEY = "k";

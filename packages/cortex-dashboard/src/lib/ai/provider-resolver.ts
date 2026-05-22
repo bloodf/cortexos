@@ -37,6 +37,13 @@ interface EnvSnapshot {
 	apiKey: string;
 }
 
+function normalizeOpenAiBaseUrl(raw: string): string {
+	const trimmed = raw.trim().replace(/\/+$/, "");
+	if (!trimmed) return trimmed;
+	if (/\/v\d+(?:\/.*)?$/i.test(trimmed)) return trimmed;
+	return `${trimmed}/v1`;
+}
+
 function readEnv(): EnvSnapshot {
 	const baseUrl = process.env.NINEROUTER_BASE_URL;
 	const apiKey = process.env.NINEROUTER_API_KEY;
@@ -50,7 +57,7 @@ function readEnv(): EnvSnapshot {
 			"NINEROUTER_API_KEY is not set; cannot resolve AI provider.",
 		);
 	}
-	return { baseUrl, apiKey };
+	return { baseUrl: normalizeOpenAiBaseUrl(baseUrl), apiKey };
 }
 
 function getOrCreateProvider(env: EnvSnapshot): OpenAICompatibleProvider {

@@ -219,6 +219,13 @@ function defaultHermesCommand(): string {
 	return process.env.HERMES_COMMAND || "/opt/cortexos/bin/hermes-paperclip";
 }
 
+function normalizeOpenAiBaseUrl(raw: string): string {
+	const trimmed = raw.trim().replace(/\/+$/, "");
+	if (!trimmed) return trimmed;
+	if (/\/v\d+(?:\/.*)?$/i.test(trimmed)) return trimmed;
+	return `${trimmed}/v1`;
+}
+
 function hermesProfilePort(profile: string): string {
 	if (profile === "primary") return "18691";
 	if (profile === "secondary") return "18692";
@@ -265,7 +272,7 @@ function buildAdapterConfig(role: ParsedRole): Record<string, unknown> {
 			HERMES_REASONING: "medium",
 			HONCHO_BASE_URL: process.env.HONCHO_BASE_URL || "http://127.0.0.1:18690",
 			HONCHO_WORKSPACE: profile,
-			OPENAI_BASE_URL: process.env.NINEROUTER_BASE_URL || "http://127.0.0.1:11434/v1",
+			OPENAI_BASE_URL: normalizeOpenAiBaseUrl(process.env.NINEROUTER_BASE_URL || "http://127.0.0.1:11434"),
 		},
 		paperclipApiUrl: process.env.PAPERCLIP_API_URL || "http://127.0.0.1:3033",
 		baseUrl: process.env[`HERMES_${envName}_URL`] || `http://127.0.0.1:${port}/v1`,

@@ -11,6 +11,7 @@ WorkingDirectory=/opt/cortexos/packages/cortex-dashboard
 Environment=NODE_ENV=production
 Environment=PORT=3080
 EnvironmentFile=/opt/cortexos/.secrets/dashboard.env
+EnvironmentFile=-/opt/cortexos/.secrets/9router.env
 ExecStart=/usr/bin/env node .next/standalone/server.js
 Restart=always
 RestartSec=5
