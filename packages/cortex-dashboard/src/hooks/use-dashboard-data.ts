@@ -1,14 +1,18 @@
-import { useEffect, useState } from "react";
 import useSWR from "swr";
-import { useSocket } from "./use-socket";
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const REFRESH_INTERVAL_MS = 3000;
+
+const fetcher = async (url: string) => {
+	const res = await fetch(url, { cache: "no-store" });
+	if (!res.ok) throw new Error(`Request failed with ${res.status}`);
+	return res.json();
+};
 
 export interface ServiceCheck {
 	id: number;
 	slug: string;
 	name: string;
-	url: string;
+	open_url: string;
 	category: string;
 	status: "online" | "offline" | "unknown";
 	responseTime: number;
@@ -90,118 +94,42 @@ export interface DashboardData {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === "object" && value !== null;
 
-export function useDashboardData() {
-	const { connected, subscribe, unsubscribe } = useSocket();
-	const [socketData, setSocketData] = useState<Partial<DashboardData>>({});
-
-	useEffect(() => {
-		const onSystem = (payload: unknown) =>
-			setSocketData((d) => ({ ...d, system: payload as SystemData }));
-		const onServices = (payload: unknown) =>
-			setSocketData((d) => ({
-				...d,
-				services: Array.isArray(payload)
-					? payload
-					: isRecord(payload) && Array.isArray(payload.services)
-						? payload.services as ServiceCheck[]
-						: d.services,
-			}));
-		const onProcesses = (payload: unknown) =>
-			setSocketData((d) => ({
-				...d,
-				processes: Array.isArray(payload)
-					? payload
-					: isRecord(payload) && Array.isArray(payload.processes)
-						? payload.processes as ProcessInfo[]
-						: d.processes,
-			}));
-		const onNetwork = (payload: unknown) =>
-			setSocketData((d) => ({ ...d, network: payload as NetworkData }));
-		const onDocker = (payload: unknown) =>
-			setSocketData((d) => ({ ...d, docker: payload }));
-
-		subscribe("system:metrics", onSystem);
-		subscribe("services:status", onServices);
-		subscribe("processes:list", onProcesses);
-		subscribe("network:stats", onNetwork);
-		subscribe("docker:status", onDocker);
-
-		return () => {
-			unsubscribe("system:metrics", onSystem);
-			unsubscribe("services:status", onServices);
-			unsubscribe("processes:list", onProcesses);
-			unsubscribe("network:stats", onNetwork);
-			unsubscribe("docker:status", onDocker);
-		};
-	}, [subscribe, unsubscribe]);
-
-	const systemSWR = useSWR("/api/system", fetcher, { refreshInterval: 3000 });
-	const servicesSWR = useSWR("/api/services", fetcher, { refreshInterval: 3000 });
-	const processesSWR = useSWR("/api/processes", fetcher, { refreshInterval: 3000 });
-	const networkSWR = useSWR("/api/network", fetcher, { refreshInterval: 3000 });
-	const dockerSWR = useSWR("/api/docker", fetcher, { refreshInterval: 3000 });
-
-	const isLoading =
-		(!socketData.system && systemSWR.isLoading) ||
-		(!socketData.services && servicesSWR.isLoading);
-
-	const services = Array.isArray(socketData.services)
-		? socketData.services
-		: Array.isArray(servicesSWR.data?.services)
-			? servicesSWR.data.services
-			: undefined;
-	const processes = Array.isArray(socketData.processes)
-		? socketData.processes
-		: Array.isArray(processesSWR.data?.processes)
-			? processesSWR.data.processes
-			: undefined;
-
-	return {
-		system: socketData.system ?? systemSWR.data,
-		services,
-		processes,
-		network: socketData.network ?? networkSWR.data,
-		docker: socketData.docker ?? dockerSWR.data,
-		connected,
-		isLoading,
-		error:
-			systemSWR.error ||
-			servicesSWR.error ||
-			processesSWR.error ||
-			networkSWR.error ||
-			dockerSWR.error,
-	};
-}
-
-import { useContext } from "react";
-import { DashboardDataContext } from "./dashboard-data-context";
-
-function useDashboard() {
-	const ctx = useContext(DashboardDataContext);
-	const direct = useDashboardData();
-	return ctx ?? direct;
-}
-
 export function useSystemData() {
-	const { system, isLoading, error } = useDashboard();
-	return { data: system as SystemData | undefined, isLoading, error };
+	const swr = useSWR<SystemData>("/api/system", fetcher, {
+		refreshInterval: REFRESH_INTERVAL_MS,
+	});
+	return { data: swr.data, isLoading: swr.isLoading, error: swr.error };
 }
 
 export function useServicesData() {
-	const { services, isLoading, error } = useDashboard();
-	const safeServices = Array.isArray(services) ? services : [];
-	return { data: { services: safeServices }, isLoading, error };
+	const swr = useSWR<{ services: ServiceCheck[] }>("/api/services", fetcher, {
+		refreshInterval: REFRESH_INTERVAL_MS,
+	});
+	const safeServices = Array.isArray(swr.data?.services) ? swr.data.services : [];
+	return {
+		data: { services: safeServices },
+		isLoading: swr.isLoading,
+		error: swr.error,
+	};
 }
 
 export function useProcessesData() {
-	const { processes, isLoading, error } = useDashboard();
-	const safeProcesses = Array.isArray(processes) ? processes : [];
-	return { data: { processes: safeProcesses }, isLoading, error };
+	const swr = useSWR<{ processes: ProcessInfo[] }>("/api/processes", fetcher, {
+		refreshInterval: REFRESH_INTERVAL_MS,
+	});
+	const safeProcesses = Array.isArray(swr.data?.processes) ? swr.data.processes : [];
+	return {
+		data: { processes: safeProcesses },
+		isLoading: swr.isLoading,
+		error: swr.error,
+	};
 }
 
 export function useNetworkData() {
-	const { network, isLoading, error } = useDashboard();
-	return { data: network as NetworkData | undefined, isLoading, error };
+	const swr = useSWR<NetworkData>("/api/network", fetcher, {
+		refreshInterval: REFRESH_INTERVAL_MS,
+	});
+	return { data: swr.data, isLoading: swr.isLoading, error: swr.error };
 }
 
 export interface DockerData {
@@ -211,6 +139,36 @@ export interface DockerData {
 }
 
 export function useDockerData() {
-	const { docker, isLoading, error } = useDashboard();
-	return { data: docker as DockerData | undefined, isLoading, error };
+	const swr = useSWR<DockerData>("/api/docker", fetcher, {
+		refreshInterval: REFRESH_INTERVAL_MS,
+	});
+	return { data: swr.data, isLoading: swr.isLoading, error: swr.error };
+}
+
+export function useDashboardData() {
+	const system = useSystemData();
+	const services = useServicesData();
+	const processes = useProcessesData();
+	const network = useNetworkData();
+	const docker = useDockerData();
+
+	return {
+		system: system.data,
+		services: isRecord(services.data) && Array.isArray(services.data.services)
+			? services.data.services
+			: undefined,
+		processes: isRecord(processes.data) && Array.isArray(processes.data.processes)
+			? processes.data.processes
+			: undefined,
+		network: network.data,
+		docker: docker.data,
+		connected: false,
+		isLoading: system.isLoading || services.isLoading,
+		error:
+			system.error ||
+			services.error ||
+			processes.error ||
+			network.error ||
+			docker.error,
+	};
 }

@@ -1,176 +1,111 @@
-import { renderHook, act } from "@testing-library/react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
-import { useDashboardData, useSystemData, useServicesData } from "../use-dashboard-data";
+import { renderHook } from "@testing-library/react";
+import useSWR from "swr";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	useDashboardData,
+	useDockerData,
+	useNetworkData,
+	useProcessesData,
+	useServicesData,
+	useSystemData,
+} from "../use-dashboard-data";
 
-function createMockSocket(connected = false) {
-	const listeners = new Map<string, ((...args: unknown[]) => void)[]>();
-	return {
-		connected,
-		on: vi.fn((event: string, cb: (...args: unknown[]) => void) => {
-			if (!listeners.has(event)) listeners.set(event, []);
-			listeners.get(event)!.push(cb);
-		}),
-		off: vi.fn((event: string, cb: (...args: unknown[]) => void) => {
-			const arr = listeners.get(event) ?? [];
-			const idx = arr.indexOf(cb);
-			if (idx > -1) arr.splice(idx, 1);
-		}),
-		emit: (event: string, ...args: unknown[]) => {
-			(listeners.get(event) ?? []).forEach((cb) => cb(...args));
-		},
-		disconnect: vi.fn(),
-	};
-}
-
-let mockSocket = createMockSocket();
-
-vi.mock("../use-socket", () => ({
-	useSocket: () => ({
-		socket: mockSocket,
-		connected: mockSocket.connected,
-		subscribe: mockSocket.on,
-		unsubscribe: mockSocket.off,
-	}),
+vi.mock("swr", () => ({
+	default: vi.fn(),
 }));
 
-vi.mock("swr", () => {
+const mockUseSWR = vi.mocked(useSWR);
+
+function mockSWR(data: unknown) {
 	return {
-		default: (key: string | null) => {
-			if (!key) return { data: undefined, error: undefined, isLoading: false };
-			return {
-				data: key === "/api/services" ? { services: [{ id: 1, name: "SWR Service" }] } : { fallback: true },
-				error: undefined,
-				isLoading: false,
-			};
-		},
-	};
-});
+		data,
+		error: undefined,
+		isLoading: false,
+		mutate: vi.fn(),
+	} as never;
+}
 
-describe("useDashboardData", () => {
+describe("dashboard data hooks", () => {
 	beforeEach(() => {
-		mockSocket = createMockSocket();
-		vi.clearAllMocks();
-	});
-
-	it("subscribes to all socket events on mount", () => {
-		renderHook(() => useDashboardData());
-		expect(mockSocket.on).toHaveBeenCalledWith("system:metrics", expect.any(Function));
-		expect(mockSocket.on).toHaveBeenCalledWith("services:status", expect.any(Function));
-		expect(mockSocket.on).toHaveBeenCalledWith("processes:list", expect.any(Function));
-		expect(mockSocket.on).toHaveBeenCalledWith("network:stats", expect.any(Function));
-		expect(mockSocket.on).toHaveBeenCalledWith("docker:status", expect.any(Function));
-	});
-
-	it("unsubscribes from all socket events on unmount", () => {
-		const { unmount } = renderHook(() => useDashboardData());
-		unmount();
-		expect(mockSocket.off).toHaveBeenCalledWith("system:metrics", expect.any(Function));
-		expect(mockSocket.off).toHaveBeenCalledWith("services:status", expect.any(Function));
-		expect(mockSocket.off).toHaveBeenCalledWith("processes:list", expect.any(Function));
-		expect(mockSocket.off).toHaveBeenCalledWith("network:stats", expect.any(Function));
-		expect(mockSocket.off).toHaveBeenCalledWith("docker:status", expect.any(Function));
-	});
-
-	it("updates services data from socket event", () => {
-		const { result } = renderHook(() => useDashboardData());
-		act(() => {
-			mockSocket.emit("services:status", {
-				services: [{ id: 1, name: "Socket Service", status: "online", responseTime: 42 }],
-			});
+		mockUseSWR.mockReset();
+		mockUseSWR.mockImplementation((key: unknown) => {
+			if (key === "/api/system") return mockSWR({ cpu: 10 });
+			if (key === "/api/services") {
+				return mockSWR({ services: [{ id: 1, name: "Service" }] });
+			}
+			if (key === "/api/processes") {
+				return mockSWR({ processes: [{ pid: 1 }] });
+			}
+			if (key === "/api/network") return mockSWR({ interfaces: [] });
+			if (key === "/api/docker") {
+				return mockSWR({
+					containers: { data: [] },
+					volumes: { data: [] },
+					images: { data: [] },
+				});
+			}
+			return mockSWR(undefined);
 		});
-		expect(result.current.services).toEqual([
-			{ id: 1, name: "Socket Service", status: "online", responseTime: 42 },
-		]);
 	});
 
-	it("updates system data from socket event", () => {
-		const { result } = renderHook(() => useDashboardData());
-		act(() => {
-			mockSocket.emit("system:metrics", { cpu: 50 });
-		});
-		expect(result.current.system).toEqual({ cpu: 50 });
-	});
-
-	it("updates processes data from socket event", () => {
-		const { result } = renderHook(() => useDashboardData());
-		act(() => {
-			mockSocket.emit("processes:list", { processes: [{ pid: 1 }] });
-		});
-		expect(result.current.processes).toEqual([{ pid: 1 }]);
-	});
-
-	it("updates network data from socket event", () => {
-		const { result } = renderHook(() => useDashboardData());
-		act(() => {
-			mockSocket.emit("network:stats", { rx: 100 });
-		});
-		expect(result.current.network).toEqual({ rx: 100 });
-	});
-
-	it("updates docker data from socket event", () => {
-		const { result } = renderHook(() => useDashboardData());
-		act(() => {
-			mockSocket.emit("docker:status", { containers: [{ name: "app" }] });
-		});
-		expect(result.current.docker).toEqual({ containers: [{ name: "app" }] });
-	});
-
-	it("returns connected state", () => {
-		mockSocket = createMockSocket(true);
-		const { result } = renderHook(() => useDashboardData());
-		expect(result.current.connected).toBe(true);
-	});
-
-	it("falls back to SWR when disconnected", () => {
-		mockSocket = createMockSocket(false);
-		const { result } = renderHook(() => useDashboardData());
-		expect(result.current.connected).toBe(false);
-		expect(result.current.services).toEqual([{ id: 1, name: "SWR Service" }]);
-	});
-
-	it("prefers socket data over SWR when connected", () => {
-		mockSocket = createMockSocket(true);
-		const { result } = renderHook(() => useDashboardData());
-		act(() => {
-			mockSocket.emit("services:status", {
-				services: [{ id: 2, name: "Live Service" }],
-			});
-		});
-		expect(result.current.services).toEqual([{ id: 2, name: "Live Service" }]);
-	});
-
-	it("falls back to SWR when connected but socket data empty", () => {
-		mockSocket = createMockSocket(true);
-		const { result } = renderHook(() => useDashboardData());
-		expect(result.current.connected).toBe(true);
-		expect(result.current.services).toEqual([{ id: 1, name: "SWR Service" }]);
-	});
-
-	it("exposes isLoading when no data available", () => {
-		mockSocket = createMockSocket(false);
-		const { result } = renderHook(() => useDashboardData());
-		expect(result.current.isLoading).toBe(false);
-	});
-});
-
-describe("backward-compatible hooks", () => {
-	beforeEach(() => {
-		mockSocket = createMockSocket(true);
-	});
-
-	it("useSystemData returns system data", () => {
+	it("useSystemData only subscribes to system data", () => {
 		const { result } = renderHook(() => useSystemData());
-		act(() => {
-			mockSocket.emit("system:metrics", { cpu: 10 });
-		});
+
+		expect(mockUseSWR).toHaveBeenCalledTimes(1);
+		expect(mockUseSWR.mock.calls[0]?.[0]).toBe("/api/system");
 		expect(result.current.data).toEqual({ cpu: 10 });
 	});
 
-	it("useServicesData returns services data", () => {
+	it("useServicesData only subscribes to services data", () => {
 		const { result } = renderHook(() => useServicesData());
-		act(() => {
-			mockSocket.emit("services:status", { services: [{ id: 1 }] });
+
+		expect(mockUseSWR).toHaveBeenCalledTimes(1);
+		expect(mockUseSWR.mock.calls[0]?.[0]).toBe("/api/services");
+		expect(result.current.data).toEqual({
+			services: [{ id: 1, name: "Service" }],
 		});
-		expect(result.current.data).toEqual({ services: [{ id: 1 }] });
+	});
+
+	it("useProcessesData only subscribes to process data", () => {
+		const { result } = renderHook(() => useProcessesData());
+
+		expect(mockUseSWR).toHaveBeenCalledTimes(1);
+		expect(mockUseSWR.mock.calls[0]?.[0]).toBe("/api/processes");
+		expect(result.current.data).toEqual({ processes: [{ pid: 1 }] });
+	});
+
+	it("useNetworkData only subscribes to network data", () => {
+		const { result } = renderHook(() => useNetworkData());
+
+		expect(mockUseSWR).toHaveBeenCalledTimes(1);
+		expect(mockUseSWR.mock.calls[0]?.[0]).toBe("/api/network");
+		expect(result.current.data).toEqual({ interfaces: [] });
+	});
+
+	it("useDockerData only subscribes to docker data", () => {
+		const { result } = renderHook(() => useDockerData());
+
+		expect(mockUseSWR).toHaveBeenCalledTimes(1);
+		expect(mockUseSWR.mock.calls[0]?.[0]).toBe("/api/docker");
+		expect(result.current.data).toEqual({
+			containers: { data: [] },
+			volumes: { data: [] },
+			images: { data: [] },
+		});
+	});
+
+	it("useDashboardData remains available for pages that explicitly need every source", () => {
+		const { result } = renderHook(() => useDashboardData());
+
+		expect(mockUseSWR.mock.calls.map((call) => call[0])).toEqual([
+			"/api/system",
+			"/api/services",
+			"/api/processes",
+			"/api/network",
+			"/api/docker",
+		]);
+		expect(result.current.connected).toBe(false);
+		expect(result.current.services).toEqual([{ id: 1, name: "Service" }]);
+		expect(result.current.processes).toEqual([{ pid: 1 }]);
 	});
 });

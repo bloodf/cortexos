@@ -3,7 +3,6 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import { CommandPalette } from "@/components/command-palette";
 import { FavoritesBar } from "@/components/favorites-bar";
-import { DashboardDataProvider } from "@/hooks/dashboard-data-context";
 
 export const metadata: Metadata = {
 	title: "Cortex Dashboard",
@@ -25,11 +24,9 @@ export default async function LocaleLayout({
 
 	return (
 		<NextIntlClientProvider messages={messages}>
-			<DashboardDataProvider>
-				<CommandPalette />
-				<FavoritesBar />
-				{children}
-			</DashboardDataProvider>
+			<CommandPalette />
+			<FavoritesBar />
+			{children}
 		</NextIntlClientProvider>
 	);
 }
