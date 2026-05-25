@@ -4,6 +4,20 @@ set -euo pipefail
 failures=0
 ok() { printf '[ok] %s\n' "$*"; }
 bad() { printf '[bad] %s\n' "$*"; failures=$((failures + 1)); }
+load_env_file() {
+  local file="$1"
+  if [[ -f "$file" ]]; then
+    set -a
+    # shellcheck disable=SC1090
+    . "$file"
+    set +a
+  fi
+}
+
+load_env_file /opt/cortexos/.secrets/dashboard.env
+load_env_file /opt/cortexos/.secrets/9router.env
+load_env_file /opt/cortexos/.secrets/honcho.env
+load_env_file /opt/cortexos/.secrets/paperclip.env
 
 check_cmd() { command -v "$1" >/dev/null 2>&1 && ok "command: $1" || bad "missing command: $1"; }
 check_http() {

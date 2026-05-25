@@ -73,6 +73,7 @@ CLAUDE.md
 # GSD Planning
 .planning/
 .worktrees/
+.trash/
 
 # LanceDB (vector store)
 lancedb/
@@ -94,6 +95,7 @@ templates/.secrets/*.env
 !*.env.example
 !*.env.template
 *.pem
+*.crt
 *.key
 *.p12
 *.pfx

@@ -53,6 +53,8 @@ Required local endpoints:
 6. Run dashboard migrations. Seeded data must be generic and public-safe.
 7. Run final validation and the repository gates.
 
+Start new AI-led installs with [AI-INSTALLER-PROMPT.md](AI-INSTALLER-PROMPT.md).
+
 ## Dashboard Seeds
 
 Dashboard seeds must only describe generic services. They may include local
@@ -80,6 +82,7 @@ Run these before treating the repo as reproducible:
 
 ```bash
 rtk pnpm check:repo-leaks
+rtk pnpm audit:docker-names
 rtk pnpm audit:runtime-sync -- --strict
 rtk pnpm --filter cortexos-scripts test
 rtk pnpm --filter @cortexos/dashboard test
@@ -92,4 +95,5 @@ systemctl --failed --no-pager
 curl -fsS http://127.0.0.1:3033/api/health
 curl -fsS http://127.0.0.1:18690/health
 node scripts/cortex-runtime-sync-audit.mjs --strict
+scripts/cortex-production-readiness.sh
 ```

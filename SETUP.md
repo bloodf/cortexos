@@ -17,7 +17,8 @@ embeddings.
 
 ## Install Order
 
-Run the bootstrap prompt first:
+Paste [docs/AI-INSTALLER-PROMPT.md](docs/AI-INSTALLER-PROMPT.md) into the AI
+agent that will run the install, then run the bootstrap prompt first:
 
 ```text
 prompts/00-bootstrap.md

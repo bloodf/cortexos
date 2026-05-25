@@ -51,8 +51,7 @@ wanted on the target.
 35. `62-paperclip.md`
 36. `70-dashboard.md`
 37. `80-agent-factory.md`
-38. `81-projects.md`
-39. `99-final-validation.md`
+38. `99-final-validation.md`
 
 ## Optional
 
@@ -64,6 +63,8 @@ wanted on the target.
 - `57-redisinsight.md`
 - `58-mongo-express.md`
 - `59-phpmyadmin.md`
+- `81-projects.md` (only when onboarding a private project after the base
+  machine is healthy)
 - `82-mail-guardian.md`
 
 ## Rules
