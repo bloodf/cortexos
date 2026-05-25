@@ -19,7 +19,6 @@ import {
 	Tag,
 	FileCode,
 	Bell,
-	FolderKanban,
 	ScrollText,
 	Mail,
 	PackageOpen,
@@ -46,7 +45,6 @@ export const NAV_GROUPS: NavGroup[] = [
 			{ href: "/overview", labelKey: "Overview", icon: Activity },
 			{ href: "/apps", labelKey: "Apps", icon: LayoutGrid },
 			{ href: "/paperclip", labelKey: "Paperclip", icon: Paperclip, paperclip: true },
-			{ href: "/projects", labelKey: "Projects", icon: FolderKanban },
 			{ href: "/mail-guardian", labelKey: "Mail Guardian", icon: Mail },
 		],
 	},
@@ -98,7 +96,7 @@ export function quickNavItems(paperclipEnabled = PAPERCLIP_ENABLED): NavItem[] {
 	const items = visibleNavItems(paperclipEnabled);
 	const desired = paperclipEnabled
 		? ["/overview", "/apps", "/paperclip", "/healthcheck", "/agents"]
-		: ["/overview", "/apps", "/projects", "/healthcheck", "/agents"];
+		: ["/overview", "/apps", "/mail-guardian", "/healthcheck", "/agents"];
 
 	return desired
 		.map((href) => items.find((item) => item.href === href))
