@@ -55,8 +55,7 @@ else
 fi
 
 honcho_container_embed_dims="$(
-  cd /opt/cortexos/stacks/honcho
-  docker compose exec -T api /app/.venv/bin/python - <<'PY' 2>/dev/null || true
+  docker exec -i honcho-api /app/.venv/bin/python - <<'PY' 2>/dev/null || true
 import json
 import urllib.request
 
@@ -76,8 +75,7 @@ else
 fi
 
 honcho_router_chat="$(
-  cd /opt/cortexos/stacks/honcho
-  docker compose exec -T api /app/.venv/bin/python - <<'PY' 2>/dev/null || true
+  docker exec -i honcho-api /app/.venv/bin/python - <<'PY' 2>/dev/null || true
 import json
 import os
 import urllib.request
@@ -105,18 +103,16 @@ else
 fi
 
 honcho_deriver_count="$(
-  cd /opt/cortexos/stacks/honcho
-  docker compose ps --services --filter status=running 2>/dev/null | awk '$0 == "deriver" {n++} END {print n+0}'
+  docker ps --filter name='^/honcho-deriver$' --filter status=running --format '{{.Names}}' 2>/dev/null | awk '$0 == "honcho-deriver" {n++} END {print n+0}'
 )"
-if (( honcho_deriver_count > 0 )); then
-  ok "Honcho deriver is running"
+if [[ "$honcho_deriver_count" == "1" ]]; then
+  ok "Honcho deriver is running exactly once"
 else
-  bad "Honcho deriver is not running"
+  bad "Honcho deriver is not running exactly once"
 fi
 
 honcho_llm_config_missing="$(
-  cd /opt/cortexos/stacks/honcho
-  docker compose exec -T api env 2>/dev/null \
+  docker exec honcho-api env 2>/dev/null \
     | awk -F= '
       /^(DERIVER_MODEL_CONFIG|SUMMARY_MODEL_CONFIG|DIALECTIC_LEVELS__minimal__MODEL_CONFIG|DIALECTIC_LEVELS__low__MODEL_CONFIG|DIALECTIC_LEVELS__medium__MODEL_CONFIG|DIALECTIC_LEVELS__high__MODEL_CONFIG|DIALECTIC_LEVELS__max__MODEL_CONFIG|DREAM_DEDUCTION_MODEL_CONFIG|DREAM_INDUCTION_MODEL_CONFIG)__OVERRIDES__BASE_URL=/ {
         seen[$1]=1
@@ -144,8 +140,7 @@ else
 fi
 
 honcho_db_embed_dims="$(
-  cd /opt/cortexos/stacks/honcho
-  docker compose exec -T database psql -U postgres -d postgres -tAc "select coalesce(max(vector_dims(embedding)), 0) from message_embeddings where embedding is not null;" 2>/dev/null | tr -d '[:space:]' || true
+  docker exec honcho-database psql -U postgres -d postgres -tAc "select coalesce(max(vector_dims(embedding)), 0) from message_embeddings where embedding is not null;" 2>/dev/null | tr -d '[:space:]' || true
 )"
 if [[ "$honcho_db_embed_dims" == "768" ]]; then
   ok "Honcho pgvector embeddings are 768 dimensions"

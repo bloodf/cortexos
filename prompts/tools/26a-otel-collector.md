@@ -25,7 +25,7 @@ Docker.
 
 - [ ] CHECKPOINT 1 confirmed — ports 4317, 4318, 8889 free
 - [ ] Copy `stacks/otel/docker-compose.yml` and `stacks/otel/otel-config.yaml`
-- [ ] Start the stack with `docker compose up -d`
+- [ ] Start the stack with `docker compose up -d --remove-orphans`
 - [ ] Confirm collector metrics endpoint responds
 
 ## CHECKPOINT 1
@@ -38,7 +38,7 @@ Type `confirmed` to proceed.
 
 ```bash
 cd /opt/cortexos/stacks/otel
-docker compose up -d
+docker compose up -d --remove-orphans
 ```
 
 ## Verify

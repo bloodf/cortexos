@@ -134,6 +134,9 @@ Before merging a new or edited spoke:
 - [ ] Required operator-specific values are collected by a `STOP — input
       question` before use.
 - [ ] The prompt does not require pre-existing environment variables.
+- [ ] Docker Compose starts use explicit `container_name` values for CortexOS
+      services and `docker compose up -d --remove-orphans`, with no `--scale`
+      instructions that can create `-2`, `-3`, or other numbered containers.
 
 ## Reference
 

@@ -182,7 +182,7 @@ fi
 echo "=== [7/7] Bringing up cortex-dashboard via Docker Compose ==="
 STACK_DIR="${__repo_root}/stacks/cortex-dashboard"
 if [[ -f "${STACK_DIR}/docker-compose.yml" ]]; then
-  ( cd "${STACK_DIR}" && sudo docker compose up -d --build )
+  ( cd "${STACK_DIR}" && sudo docker compose up -d --build --remove-orphans )
 else
   echo "  WARN: ${STACK_DIR}/docker-compose.yml not found — skipping compose up."
   echo "        Re-run after the repo tree is fully materialized at ${__repo_root}."

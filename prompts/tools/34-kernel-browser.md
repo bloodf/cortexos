@@ -40,7 +40,7 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 - [ ] CHECKPOINT 1 confirmed — VPS has ≥ 2 GB free RAM
 - [ ] Write `/opt/cortexos/stacks/kernel-browser/docker-compose.yml` (image `browserless/chromium`)
 - [ ] Write `/opt/cortexos/.secrets/kernel-browser.env` (mode 0600) with `KERNEL_BROWSER_TOKEN`
-- [ ] `docker compose --env-file /opt/cortexos/.secrets/kernel-browser.env up -d`
+- [ ] `docker compose --env-file /opt/cortexos/.secrets/kernel-browser.env up -d --remove-orphans`
 - [ ] Confirm `curl http://localhost:3333/json/version?token=...` returns version JSON
 - [ ] CHECKPOINT 2 confirmed — `/json/version` returns version JSON
 
@@ -81,7 +81,7 @@ sudo chmod 600 /opt/cortexos/.secrets/kernel-browser.env
 
 ```bash
 cd /opt/cortexos/stacks/kernel-browser
-docker compose --env-file /opt/cortexos/.secrets/kernel-browser.env up -d
+docker compose --env-file /opt/cortexos/.secrets/kernel-browser.env up -d --remove-orphans
 ```
 
 ## Verify

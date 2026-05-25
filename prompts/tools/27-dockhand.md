@@ -24,7 +24,7 @@ Docker.
 
 - [ ] CHECKPOINT 1 confirmed — port 3420 free
 - [ ] Copy `stacks/dockhand/docker-compose.yml`
-- [ ] Start the stack with `docker compose up -d`
+- [ ] Start the stack with `docker compose up -d --remove-orphans`
 - [ ] Confirm Dockhand loads; create the first user in the UI if no user exists
 
 ## CHECKPOINT 1
@@ -37,7 +37,7 @@ Type `confirmed` to proceed.
 
 ```bash
 cd /opt/cortexos/stacks/dockhand
-docker compose up -d
+docker compose up -d --remove-orphans
 ```
 
 ## Verify

@@ -43,6 +43,7 @@ Expected:
 
 ```bash
 rtk pnpm check:repo-leaks
+rtk pnpm audit:docker-names
 rtk pnpm audit:runtime-sync -- --strict
 rtk pnpm --filter cortexos-scripts test
 rtk pnpm --filter @cortexos/dashboard test

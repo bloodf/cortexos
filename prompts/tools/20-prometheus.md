@@ -25,7 +25,7 @@ sudo install -d -m 0755 /opt/cortexos/stacks/monitoring/prometheus
 sudo cp -a stacks/monitoring/. /opt/cortexos/stacks/monitoring/
 cd /opt/cortexos/stacks/monitoring
 set -a; . /opt/cortexos/.secrets/monitoring.env; set +a
-docker compose up -d prometheus
+docker compose up -d --remove-orphans prometheus
 ```
 
 Prometheus config: `/opt/cortexos/stacks/monitoring/prometheus/prometheus.yml`.

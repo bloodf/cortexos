@@ -256,7 +256,7 @@ async function verifyHonchoEmbeddings() {
     },
   );
   for (let i = 0; i < 30; i += 1) {
-    const out = shell(`cd /opt/cortexos/stacks/honcho && docker compose exec -T database psql -U postgres -d postgres -tAc "select coalesce(max(vector_dims(embedding)), 0) from message_embeddings where content like '%${marker}%';"`);
+    const out = shell(`docker exec honcho-database psql -U postgres -d postgres -tAc "select coalesce(max(vector_dims(embedding)), 0) from message_embeddings where content like '%${marker}%';"`);
     const dims = Number(out.trim());
     if (dims === 768) {
       log("honcho-ollama-embedding", { workspace: honchoWorkspace, dims });

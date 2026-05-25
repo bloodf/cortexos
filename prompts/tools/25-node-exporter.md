@@ -22,7 +22,7 @@ Run Prometheus Node Exporter from the monitoring Docker compose stack and expose
 sudo -v
 sudo cp -a stacks/monitoring/. /opt/cortexos/stacks/monitoring/
 cd /opt/cortexos/stacks/monitoring
-docker compose up -d node-exporter
+docker compose up -d --remove-orphans node-exporter
 ```
 
 Node exporter runs with `network_mode: host` and must bind `0.0.0.0:9100`, not `127.0.0.1:9100`; Prometheus runs in Docker bridge networking and reaches it through `host.docker.internal:9100`.

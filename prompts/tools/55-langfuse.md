@@ -32,7 +32,7 @@ sudo chmod 0600 /opt/cortexos/.secrets/langfuse.env
 cd /opt/cortexos/stacks/cortex-langfuse
 set -a; . /opt/cortexos/.secrets/langfuse.env; set +a
 docker compose pull
-docker compose up -d
+docker compose up -d --remove-orphans
 ```
 
 ## Configure Clients
@@ -66,7 +66,7 @@ Services requiring restart after client env changes:
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl restart cortex-dashboard hermes-profile@default 'hermes-profile@<profile>'
-cd /opt/cortexos/stacks/cortex-sandbox-runner && docker compose up -d --force-recreate cortex-sandbox-runner
+cd /opt/cortexos/stacks/cortex-sandbox-runner && docker compose up -d --force-recreate --remove-orphans cortex-sandbox-runner
 ```
 
 ## Verify

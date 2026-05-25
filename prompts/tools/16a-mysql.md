@@ -26,7 +26,7 @@ Docker. Database engines are containerized in CortexOS. Persistent data MUST use
 - [ ] CHECKPOINT 1 confirmed — MySQL needed + port 3306 free
 - [ ] Write `/opt/cortexos/stacks/mysql/docker-compose.yml`
 - [ ] Write `/opt/cortexos/.secrets/mysql.env` mode 0600
-- [ ] `docker compose --env-file /opt/cortexos/.secrets/mysql.env up -d`
+- [ ] `docker compose --env-file /opt/cortexos/.secrets/mysql.env up -d --remove-orphans`
 - [ ] Confirm `mysqladmin ping` succeeds
 - [ ] CHECKPOINT 2 confirmed — container healthy
 
@@ -51,7 +51,7 @@ Start:
 
 ```bash
 cd /opt/cortexos/stacks/mysql
-docker compose --env-file /opt/cortexos/.secrets/mysql.env up -d
+docker compose --env-file /opt/cortexos/.secrets/mysql.env up -d --remove-orphans
 ```
 
 ## Verify

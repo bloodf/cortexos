@@ -44,7 +44,7 @@ former laptop-side `rsync`/systemd deploy path.
 
 ```bash
 cd /opt/cortexos/stacks/cortex-dashboard
-docker compose up -d --build
+docker compose up -d --build --remove-orphans
 ```
 
 Tail logs:
@@ -63,7 +63,7 @@ curl -fsS -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3080/en/login
 
 The container entrypoint (`docker-entrypoint.sh`) waits for Postgres,
 then runs `node scripts/migrate.js` before launching the server.
-Migrations are idempotent — re-running `docker compose up -d --build`
+Migrations are idempotent — re-running `docker compose up -d --build --remove-orphans`
 is safe.
 
 ## Rebuild after code changes
@@ -72,7 +72,7 @@ is safe.
 cd /opt/cortexos
 git pull   # or re-run bootstrap to refresh the tree
 cd stacks/cortex-dashboard
-docker compose up -d --build
+docker compose up -d --build --remove-orphans
 ```
 
 ## Stop / remove

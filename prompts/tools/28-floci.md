@@ -24,7 +24,7 @@ Docker.
 
 - [ ] CHECKPOINT 1 confirmed — port 4566 free
 - [ ] Copy `stacks/floci/docker-compose.yml`
-- [ ] Start the stack with `docker compose up -d`
+- [ ] Start the stack with `docker compose up -d --remove-orphans`
 - [ ] Confirm `SERVICES` is unset so LocalStack/Floci enables all free-tier services
 - [ ] Confirm LocalStack health endpoint responds with many available services
 
@@ -38,7 +38,7 @@ Type `confirmed` to proceed.
 
 ```bash
 cd /opt/cortexos/stacks/floci
-docker compose up -d
+docker compose up -d --remove-orphans
 ```
 
 ## Verify

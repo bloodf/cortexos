@@ -90,7 +90,7 @@ Tests inject a fake `spawn` so they run without podman or runsc.
 ```bash
 cd /opt/cortexos/stacks/cortex-sandbox-runner
 docker compose pull
-docker compose up -d
+docker compose up -d --remove-orphans
 curl -fsS http://127.0.0.1:8091/healthz
 ```
 

@@ -42,7 +42,7 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 - [ ] CHECKPOINT 1 confirmed — MongoDB needed and port 27017 free
 - [ ] Write `/opt/cortexos/stacks/mongodb/docker-compose.yml` (image `mongo`, root user env)
 - [ ] Write `/opt/cortexos/.secrets/mongodb.env` (mode 0600)
-- [ ] `docker compose --env-file /opt/cortexos/.secrets/mongodb.env up -d`
+- [ ] `docker compose --env-file /opt/cortexos/.secrets/mongodb.env up -d --remove-orphans`
 - [ ] Confirm `mongosh --eval "db.adminCommand('ping')"` returns `{ ok: 1 }`
 - [ ] CHECKPOINT 2 confirmed — ping returned `{ ok: 1 }`
 
@@ -94,7 +94,7 @@ sudo chmod 600 /opt/cortexos/.secrets/mongodb.env
 
 ```bash
 cd /opt/cortexos/stacks/mongodb
-docker compose --env-file /opt/cortexos/.secrets/mongodb.env up -d
+docker compose --env-file /opt/cortexos/.secrets/mongodb.env up -d --remove-orphans
 ```
 
 ## Verify

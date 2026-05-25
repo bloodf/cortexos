@@ -24,7 +24,7 @@ Docker with host networking. Home Assistant needs mDNS/SSDP discovery.
 
 - [ ] CHECKPOINT 1 confirmed — port 8123 free, or only Tailscale Serve is listening on the tailnet IP
 - [ ] Copy `stacks/home-assistant/docker-compose.yml`
-- [ ] Start the stack with `docker compose up -d`
+- [ ] Start the stack with `docker compose up -d --remove-orphans`
 - [ ] Configure `/config/configuration.yaml` trusted proxies for Tailscale Serve
 - [ ] Confirm the first-run wizard loads
 
@@ -38,7 +38,7 @@ Type `confirmed` to proceed.
 
 ```bash
 cd /opt/cortexos/stacks/home-assistant
-docker compose up -d
+docker compose up -d --remove-orphans
 ```
 
 ## Configure + verify

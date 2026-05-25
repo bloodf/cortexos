@@ -26,7 +26,7 @@ Docker. DB admin UIs are containerized. Persistent data MUST use named volumes.
 - [ ] CHECKPOINT 1 confirmed — Postgres reachable + port 5050 free
 - [ ] Copy `stacks/pgadmin/docker-compose.yml`
 - [ ] Write `/opt/cortexos/.secrets/pgadmin.env` mode 0600
-- [ ] `docker compose up -d`
+- [ ] `docker compose up -d --remove-orphans`
 - [ ] Confirm `/misc/ping` returns 200
 
 ## Install

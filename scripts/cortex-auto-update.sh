@@ -161,7 +161,7 @@ update_docker_compose() {
     [ -f "$compose" ] || continue
     dir="$(dirname "$compose")"
     run docker compose -f "$compose" pull
-    run docker compose -f "$compose" up -d
+    run docker compose -f "$compose" up -d --remove-orphans
     log "Updated compose stack: $dir"
   done
 }

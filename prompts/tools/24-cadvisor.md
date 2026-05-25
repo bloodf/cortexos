@@ -28,7 +28,7 @@ echo "OS family: $(pkg_family) $(pkg_version)"
 
 - [ ] CHECKPOINT 1 confirmed — port 8081 is free
 - [ ] Append `cadvisor` service to monitoring compose (host 8081 → container 8080)
-- [ ] `docker compose up -d cadvisor`
+- [ ] `docker compose up -d --remove-orphans cadvisor`
 - [ ] Confirm `curl http://localhost:8081/metrics | grep container_cpu_usage_seconds_total` prints metric lines
 - [ ] Query `http://127.0.0.1:9090/api/v1/targets` and confirm `cadvisor` health is `up`
 - [ ] CHECKPOINT 2 confirmed — UI loads via tailnet AND Prometheus target `up`
@@ -66,7 +66,7 @@ EOF
 
 ```bash
 cd /opt/cortexos/stacks/monitoring
-docker compose up -d cadvisor
+docker compose up -d --remove-orphans cadvisor
 ```
 
 > Tailscale Serve publishes cAdvisor directly at

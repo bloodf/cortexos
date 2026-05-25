@@ -196,11 +196,11 @@ main_backup() {
   run mkdir -p "${WORK_DIR}/databases" "${WORK_DIR}/services" "${WORK_DIR}/configs"
 
   dump_container cortex-postgresql "${WORK_DIR}/databases/postgresql_all.sql.gz" pg_dumpall -U postgres
-  dump_container honcho-database-1 "${WORK_DIR}/databases/honcho_postgresql_all.sql.gz" pg_dumpall -U postgres
+  dump_container honcho-database "${WORK_DIR}/databases/honcho_postgresql_all.sql.gz" pg_dumpall -U postgres
   dump_container cortex-mongodb "${WORK_DIR}/databases/mongodb_archive.gz" mongodump --archive
   dump_container cortex-mysql "${WORK_DIR}/databases/mysql_all.sql.gz" mysqldump --all-databases
   backup_redis cortex-redis "${WORK_DIR}/databases/redis_dump.rdb"
-  backup_redis honcho-redis-1 "${WORK_DIR}/databases/honcho_redis_dump.rdb"
+  backup_redis honcho-redis "${WORK_DIR}/databases/honcho_redis_dump.rdb"
   backup_clickhouse
 
   copy_path "${CORTEX_ROOT}/hermes" "${WORK_DIR}/services/hermes"

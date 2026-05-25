@@ -12,7 +12,7 @@
 # Postgres is reused from the core stack (`prompts/tools/14-postgresql.md`).
 # Operators MUST create the `langfuse` database + role and populate
 # `/opt/cortexos/.secrets/langfuse.env` from
-# `templates/.secrets/langfuse.enc.yaml` before `docker compose up -d`.
+# `templates/.secrets/langfuse.enc.yaml` before `docker compose up -d --remove-orphans`.
 #
 # Tailscale-only binding is enforced via `TAILSCALE_IP`.
 

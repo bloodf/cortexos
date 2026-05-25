@@ -23,7 +23,7 @@ sudo -v
 sudo cp -a stacks/monitoring/. /opt/cortexos/stacks/monitoring/
 cd /opt/cortexos/stacks/monitoring
 set -a; . /opt/cortexos/.secrets/monitoring.env; set +a
-docker compose up -d grafana
+docker compose up -d --remove-orphans grafana
 ```
 
 Datasource URLs inside the compose network:

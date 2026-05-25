@@ -69,7 +69,7 @@ Update scope:
 - `npm update -g`
 - pip package upgrades for `/opt/cortexos/stacks/*/.venv/`
 - `snap refresh`
-- `docker compose pull && docker compose up -d` for `/opt/cortexos/stacks/*/docker-compose.yml`
+- `docker compose pull && docker compose up -d --remove-orphans` for `/opt/cortexos/stacks/*/docker-compose.yml`
 
 Smart restarts compare binary checksums before/after updates:
 

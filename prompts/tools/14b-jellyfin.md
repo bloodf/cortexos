@@ -24,7 +24,7 @@ Docker.
 
 - [ ] CHECKPOINT 1 confirmed — port 8096 free + media path exists or is intentionally empty
 - [ ] Copy `stacks/jellyfin/docker-compose.yml`
-- [ ] Start the stack with `docker compose up -d`
+- [ ] Start the stack with `docker compose up -d --remove-orphans`
 - [ ] Confirm the first-run wizard loads
 
 ## CHECKPOINT 1
@@ -38,7 +38,7 @@ Type `confirmed` to proceed.
 ```bash
 sudo install -d -m 0755 /opt/cortexos/media
 cd /opt/cortexos/stacks/jellyfin
-docker compose up -d
+docker compose up -d --remove-orphans
 ```
 
 ## Verify

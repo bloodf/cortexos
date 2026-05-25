@@ -44,7 +44,7 @@ Postgres container. ClickHouse and MinIO are internal-only compose services
    ```bash
    cd /opt/cortexos/stacks/cortex-langfuse
    set -a; . /opt/cortexos/.secrets/langfuse.env; set +a
-   docker compose up -d
+   docker compose up -d --remove-orphans
    ```
 
 6. Verify:
