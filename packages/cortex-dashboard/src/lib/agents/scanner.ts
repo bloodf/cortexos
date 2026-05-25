@@ -125,6 +125,15 @@ function isWithinRoots(filePath: string, roots: string[]): boolean {
   });
 }
 
+async function getAllowedFileRoots(): Promise<string[]> {
+  const roots = new Set(getScanRoots());
+  const registry = await readRegistry();
+  for (const profile of registry?.profiles ?? []) {
+    if (profile.home) roots.add(profile.home);
+  }
+  return [...roots];
+}
+
 function displayName(slug: string): string {
   return slug
     .split("-")
@@ -208,13 +217,13 @@ export async function getAgentFiles(agentDir: string): Promise<AgentFile[]> {
 }
 
 export async function readAgentFile(filePath: string): Promise<string> {
-  const roots = getScanRoots();
+  const roots = await getAllowedFileRoots();
   if (!isWithinRoots(filePath, roots)) throw new Error("Access denied: path outside scan roots");
   return readFile(filePath, "utf-8");
 }
 
 export async function writeAgentFile(filePath: string, content: string): Promise<void> {
-  const roots = getScanRoots();
+  const roots = await getAllowedFileRoots();
   if (!isWithinRoots(filePath, roots)) throw new Error("Access denied: path outside scan roots");
   await writeFile(filePath, content, "utf-8");
 }
