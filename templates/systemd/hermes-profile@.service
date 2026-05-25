@@ -19,7 +19,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=full
 ProtectHome=read-only
-ReadWritePaths={CORTEX_HERMES_ROOT} {CORTEX_SECRETS_DIR}
+ReadWritePaths={CORTEX_HERMES_ROOT} {CORTEX_SECRETS_DIR} {VPS_HOME}/.sigstore {VPS_HOME}/.npm {VPS_HOME}/.cache
 
 [Install]
 WantedBy=multi-user.target

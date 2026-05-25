@@ -7,8 +7,7 @@ Current agent stack credentials:
 - `dashboard.env`
 - `9router.env`
 - `honcho.env`
-- `hermes/primary.env`
-- `hermes/secondary.env`
+- `hermes/<profile>.env`
 - `paperclip.env`
 - `langfuse.env`
 

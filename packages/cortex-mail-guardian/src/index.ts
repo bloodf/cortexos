@@ -10,8 +10,19 @@ async function buildDeps() {
 	const config = loadConfig();
 	const mail = new TlsImapMailClient();
 	const store = new GuardianStore(config);
-	const telegram = new BotApiTelegramClient(config.telegramBotToken);
+	await store.ensureSchema();
+	const telegram = config.telegramBotToken ? new BotApiTelegramClient(config.telegramBotToken) : disabledTelegramClient();
 	return { config, mail, store, telegram };
+}
+
+function disabledTelegramClient() {
+	return {
+		getMe: async () => { throw new Error("TELEGRAM_BOT_TOKEN is not configured"); },
+		getChat: async () => { throw new Error("TELEGRAM_BOT_TOKEN is not configured"); },
+		sendMessage: async () => undefined,
+		getUpdates: async () => [],
+		answerCallbackQuery: async () => undefined,
+	};
 }
 
 async function smoke(): Promise<void> {
@@ -37,8 +48,7 @@ async function runSweep(): Promise<void> {
 	const deps = await buildDeps();
 	try {
 		if (!deps.config.telegramOwnerChatId) {
-			process.stderr.write("[mail-guardian] Telegram owner chat missing; review notifications disabled and no trash actions will run.\n");
-			deps.config.dryRun = true;
+			process.stderr.write("[mail-guardian] Telegram owner chat missing; review notifications disabled.\n");
 		} else {
 			await assertTelegramReady(deps.telegram, deps.config.telegramOwnerChatId);
 		}
@@ -53,8 +63,7 @@ async function runSweep(): Promise<void> {
 async function listen(): Promise<void> {
 	const deps = await buildDeps();
 	if (!deps.config.telegramOwnerChatId) {
-		process.stderr.write("[mail-guardian] Telegram owner chat missing; running dry-run listener.\n");
-		deps.config.dryRun = true;
+		process.stderr.write("[mail-guardian] Telegram owner chat missing; Telegram polling disabled.\n");
 	} else {
 		await assertTelegramReady(deps.telegram, deps.config.telegramOwnerChatId);
 	}

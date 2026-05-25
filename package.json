@@ -4,7 +4,10 @@
   "private": true,
   "packageManager": "pnpm@10.12.1",
   "scripts": {
-    "check:repo-leaks": "node scripts/check-repo-leaks.mjs"
+    "audit:runtime-sync": "node scripts/cortex-runtime-sync-audit.mjs",
+    "check:prompt-chat-contract": "node scripts/check-prompt-chat-contract.mjs",
+    "check:repo-leaks": "node scripts/check-repo-leaks.mjs --all",
+    "hermes:install-skills": "node scripts/hermes-install-skills.mjs"
   },
   "dependencies": {
     "@cortexos/telemetry": "workspace:*"

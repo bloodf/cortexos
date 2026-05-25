@@ -27,6 +27,9 @@ interface ReviewRow {
 	requested_at: string;
 	resolved_at: string | null;
 	processed_action: string | null;
+	queued_decision: string | null;
+	queued_status: string | null;
+	queued_error: string | null;
 }
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -58,6 +61,13 @@ export function MailGuardianReviewsPanel() {
 			setError(body.error ?? `HTTP ${res.status}`);
 			return;
 		}
+		await mutate((current) => openOnly
+			? { reviews: (current?.reviews ?? []).filter((item) => item.id !== row.id) }
+			: {
+				reviews: (current?.reviews ?? []).map((item) => item.id === row.id
+					? { ...item, queued_decision: decision, queued_status: "pending", queued_error: null }
+					: item),
+			}, { revalidate: false });
 		await mutate();
 	}
 
@@ -68,9 +78,14 @@ export function MailGuardianReviewsPanel() {
 		{ accessorKey: "model_verdict", header: "Model", cell: ({ row }) => <div className="flex items-center gap-2"><DecisionBadge value={row.original.model_verdict} /><span className="font-mono text-xs text-muted-foreground">{Number(row.original.model_confidence).toFixed(2)}</span></div> },
 		{ accessorKey: "summary", header: "Summary", cell: ({ row }) => <span className="block max-w-[360px] truncate text-xs" title={row.original.summary}>{row.original.summary || "—"}</span> },
 		{ id: "hashes", header: "Hashes", cell: ({ row }) => <div className="space-y-1 font-mono text-[10px] text-muted-foreground"><div>from {shortHash(row.original.from_hash)}</div><div>subj {shortHash(row.original.subject_hash)}</div></div> },
-		{ id: "status", header: "Status", cell: ({ row }) => row.original.resolved_at ? <DecisionBadge value={row.original.owner_decision ?? "resolved"} /> : <Badge variant="outline" className="text-[10px]">open</Badge> },
-		{ id: "actions", header: "", cell: ({ row }) => row.original.resolved_at ? null : <div className="flex justify-end gap-1"><IconButton tooltip="Spam → trash" variant="danger" loading={running === `${row.original.id}:spam`} onClick={() => decide(row.original, "spam")}><Trash2 className="size-4" /></IconButton><IconButton tooltip="Keep" variant="primary" loading={running === `${row.original.id}:keep`} onClick={() => decide(row.original, "keep")}><Check className="size-4" /></IconButton><IconButton tooltip="Block sender" variant="danger" loading={running === `${row.original.id}:block_sender`} onClick={() => decide(row.original, "block_sender")}><X className="size-4" /></IconButton><IconButton tooltip="Allow sender" variant="ghost" loading={running === `${row.original.id}:allow_sender`} onClick={() => decide(row.original, "allow_sender")}><ShieldPlus className="size-4" /></IconButton></div> },
-	], [running, mutate]);
+		{ id: "status", header: "Status", cell: ({ row }) => {
+			if (row.original.resolved_at) return <DecisionBadge value={row.original.owner_decision ?? "resolved"} />;
+			if (row.original.queued_status === "pending" || row.original.queued_status === "processing") return <Badge variant="outline" className="text-[10px]">{row.original.queued_decision} queued</Badge>;
+			if (row.original.queued_status === "failed") return <span title={row.original.queued_error ?? undefined}><Badge variant="destructive" className="text-[10px]">failed</Badge></span>;
+			return <Badge variant="outline" className="text-[10px]">open</Badge>;
+		} },
+		{ id: "actions", header: "", cell: ({ row }) => row.original.resolved_at || row.original.queued_status === "pending" || row.original.queued_status === "processing" ? null : <div className="flex justify-end gap-1"><IconButton tooltip="Spam → trash" variant="danger" loading={running === `${row.original.id}:spam`} onClick={() => decide(row.original, "spam")}><Trash2 className="size-4" /></IconButton><IconButton tooltip="Keep" variant="primary" loading={running === `${row.original.id}:keep`} onClick={() => decide(row.original, "keep")}><Check className="size-4" /></IconButton><IconButton tooltip="Block sender" variant="danger" loading={running === `${row.original.id}:block_sender`} onClick={() => decide(row.original, "block_sender")}><X className="size-4" /></IconButton><IconButton tooltip="Allow sender" variant="ghost" loading={running === `${row.original.id}:allow_sender`} onClick={() => decide(row.original, "allow_sender")}><ShieldPlus className="size-4" /></IconButton></div> },
+	], [openOnly, running, mutate]);
 
 	return (
 		<div className="space-y-3">

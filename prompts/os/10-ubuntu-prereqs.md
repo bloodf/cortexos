@@ -1,5 +1,13 @@
 # Ubuntu prerequisites
 
+## Chat Input Gate
+
+This prompt follows `prompts/CHAT-INPUT-CONTRACT.md`. Do not assume any
+operator-specific environment variables are already defined. Before using a
+value such as a host, user, domain, token, password, project path, profile name,
+or service URL, ask a **STOP — input question**, wait for the operator's answer,
+and then substitute that answer into the commands you produce.
+
 ## Purpose
 
 Install the baseline packages required by every later `prompts/tools/` spoke on Ubuntu 24.04 / 25.x and Debian 13 hosts, then harden the operator shell (zsh + oh-my-zsh + autosuggestions / syntax-highlighting / completions). This prompt only runs when `CORTEX_OS_FAMILY` is `ubuntu` or `debian`.

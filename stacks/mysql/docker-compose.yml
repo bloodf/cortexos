@@ -24,7 +24,7 @@ services:
         condition: service_healthy
     environment:
       PMA_HOST: mysql
-      PMA_ABSOLUTE_URI: https://cortexos.tailfd052e.ts.net/phpmyadmin/
+      PMA_ABSOLUTE_URI: ${PMA_ABSOLUTE_URI:-https://${CORTEX_DOMAIN}/phpmyadmin/}
     ports:
       - "127.0.0.1:8082:80"
 

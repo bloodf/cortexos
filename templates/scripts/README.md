@@ -1,96 +1,40 @@
-# templates/scripts/
+# Template Scripts
 
-Phase 4b scaffolding scripts. Bash, `set -euo pipefail`, macOS bash 3.2 compatible.
+These scripts generate or verify project scaffolding. They are generic by
+design: no private project names, secrets, channel IDs, or hostnames belong in
+this directory.
 
 ## Scripts
 
-### `bootstrap-project.sh`
+| Script | Purpose |
+| --- | --- |
+| `bootstrap-project.sh` | Create `.agents/<role>/` from `templates/agent-factory` and `templates/agent-roles`. |
+| `regenerate-agents-md.sh` | Refresh generated agent files while preserving `MEMORY.md` and `HEARTBEAT.md`. |
+| `verify-pipeline.sh` | Check that a generated project has the expected agent files and workflow templates. |
+| `teardown-project.sh` | Remove a local project runtime after backup. Use with care. |
+| `cortex-env-writer.sh` | Safely update allowed `/opt/cortexos/.secrets/*.env` keys from JSON input. |
+| `test-9router.sh` | Verify model discovery through 9Router. |
 
-Bootstraps a project repo with `.agents/<role>/` from `templates/agent-factory/` + `templates/agent-roles/`.
-Idempotent — existing files are left intact; new candidates land as `<file>.new` with a warning.
+## Usage
 
 ```bash
 ./templates/scripts/bootstrap-project.sh \
-  --project example-project \
-  --repo-path ~/dev/example-project \
-  --roles CEO,CTO,PM,PO,QA,UXUI,ENG-BACKEND,ENG-FRONTEND \
-  --theme "example project theme" \
-  --emoji "✨" \
-  --lang typescript --framework next --db postgres \
-  --deployment railway --infra docker
+  --project example \
+  --repo-path /path/to/example \
+  --roles CEO,CTO,PM,ENG-BACKEND,ENG-FRONTEND,QA \
+  --theme "example product" \
+  --lang typescript \
+  --framework next \
+  --db postgres \
+  --deployment docker \
+  --infra docker
 ```
 
-Placeholders substituted in every copied file:
-`{agent_name} {agent_emoji} {theme} {project} {owner_name} {owner_telegram_chat_id}
-{model} {language_default} {language_technical} {lang} {framework} {deployment}
-{db} {infra} {role}`
+## Rules
 
-Role file resolution: `templates/agent-roles/<ROLE>.md` → falls back to `ENGINEER.md` for
-`ENG-BACKEND`, `ENG-FRONTEND`, `ENG-MOBILE` and unknown roles.
-
-### `teardown-project.sh`
-
-Re-runnable Phase 1 teardown per project.
-
-```bash
-./templates/scripts/teardown-project.sh \
-  --project example-project \
-  --backup-dir ~/backups/agents \
-  --vps-host cortex
-```
-
-Steps:
-
-1. Tarball `<repo>/.agents/` → `<backup-dir>/<project>-agents-<ts>.tgz`
-2. Archive legacy profile config if present
-3. List + delete project Hermes profiles matching `<project>-*`
-4. Strip cron jobs and bindings
-5. Purge project-local cache rows
-6. `rm -rf ${CORTEX_WORKSPACE_ROOT}/<project>`
-
-### `regenerate-agents-md.sh`
-
-Re-applies templates onto an existing `.agents/` tree.
-`MEMORY.md` and `HEARTBEAT.md` are preserved (only restored if missing).
-All other factory files + `ROLE.md` get rewritten with current placeholder values.
-
-```bash
-./templates/scripts/regenerate-agents-md.sh \
-  --project example-project --repo-path ~/dev/example-project \
-  --theme "example project theme" --emoji "✨" \
-  --lang typescript --framework next
-```
-
-### `verify-pipeline.sh`
-
-PASS/FAIL audit. Non-zero exit on any failure.
-
-```bash
-./templates/scripts/verify-pipeline.sh \
-  --project example-project --repo-path ~/dev/example-project \
-  --vps-host cortex
-```
-
-Checks:
-
-- `.agents/` exists with role dirs
-- 14 required files per role: SOUL, IDENTITY, USER, BOOTSTRAP, MEMORY, HEARTBEAT,
-  AGENTS, CI_POLICY, TELEGRAM_APPROVAL, TOOLS, ESCALATION, STACK, PIPELINE, ROLE
-- `.github/labels.yml` matches `templates/labels.yml`
-- Required workflows present
-- Repo-root `AGENTS.md` + `CLAUDE.md`
-- (VPS) Hermes profiles, bindings, cron, telegram routes
-
-## chmod
-
-After pulling, make executable:
-
-```bash
-chmod +x templates/scripts/*.sh
-```
-
-## Notes
-
-- All scripts accept `--dry-run` where mutations occur.
-- Sed substitution is portable (no GNU-only flags); placeholder values are escaped for `/` and `&`.
-- Workers/agents never run git; orchestrator handles commits.
+- Scripts must be idempotent or provide `--dry-run`.
+- Project-specific generated output stays in the project repo, not here.
+- Runtime credentials stay in `/opt/cortexos/.secrets`.
+- Do not hardcode private profile names, Slack channels, Telegram IDs, or
+  machine hostnames.
+- Workers/agents do not run Git commands; the operator handles commits.

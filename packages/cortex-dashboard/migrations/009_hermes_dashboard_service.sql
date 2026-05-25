@@ -1,5 +1,5 @@
 INSERT INTO services (slug, name, kind, category, health_url, health_type, open_url, env_source, icon_type, sort_order, has_webui, show_in_webui)
-VALUES ('hermes-dashboard', 'Hermes Web UI', 'service', 'AI', 'http://localhost:9119/', 'http', 'https://cortexos.tailfd052e.ts.net:9119/', NULL, 'brain', 5, true, true)
+VALUES ('hermes-dashboard', 'Hermes Web UI', 'service', 'AI', 'http://127.0.0.1:9119/', 'http', '#', NULL, 'brain', 5, true, true)
 ON CONFLICT (slug) DO UPDATE SET
   name = EXCLUDED.name,
   kind = EXCLUDED.kind,

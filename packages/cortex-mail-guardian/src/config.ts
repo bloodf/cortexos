@@ -9,6 +9,7 @@ export interface MailAccountConfig {
 	username: string;
 	password: string;
 	inbox: string;
+	reviewMailbox: string;
 	trashMailbox?: string;
 }
 
@@ -17,7 +18,7 @@ export interface GuardianConfig {
 	model: string;
 	confidenceThreshold: number;
 	action: "trash";
-	telegramBotToken: string;
+	telegramBotToken?: string;
 	telegramOwnerChatId?: string;
 	nineRouterBaseUrl: string;
 	nineRouterApiKey: string;
@@ -87,6 +88,7 @@ function loadAccount(index: number, source: NodeJS.ProcessEnv): MailAccountConfi
 		username: requireEnv(`${prefix}USERNAME`, source),
 		password: decodeBase64Secret(`${prefix}PASSWORD_B64`, requireEnv(`${prefix}PASSWORD_B64`, source)),
 		inbox: env(`${prefix}INBOX`, source) ?? "INBOX",
+		reviewMailbox: env(`${prefix}REVIEW_MAILBOX`, source) ?? "INBOX.Cortex Mail Guardian Review",
 		trashMailbox: env(`${prefix}TRASH_MAILBOX`, source),
 	};
 }
@@ -97,7 +99,7 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): GuardianCon
 	const accounts = Array.from({ length: accountCount }, (_, idx) => loadAccount(idx + 1, source));
 	const slugs = new Set(accounts.map((account) => account.slug));
 	if (slugs.size !== accounts.length) throw new Error("mail account slugs must be unique");
-	const confidenceThreshold = Number(env("MAIL_GUARDIAN_CONFIDENCE_THRESHOLD", source) ?? "0.95");
+	const confidenceThreshold = Number(env("MAIL_GUARDIAN_CONFIDENCE_THRESHOLD", source) ?? "0.82");
 	if (!Number.isFinite(confidenceThreshold) || confidenceThreshold < 0 || confidenceThreshold > 1) {
 		throw new Error("MAIL_GUARDIAN_CONFIDENCE_THRESHOLD must be between 0 and 1");
 	}
@@ -109,8 +111,8 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): GuardianCon
 		model: env("MAIL_GUARDIAN_MODEL", source) ?? "minimax/MiniMax-M2.7-highspeed",
 		confidenceThreshold,
 		action,
-		telegramBotToken: requireEnv("TELEGRAM_BOT_TOKEN", source),
-		telegramOwnerChatId: env("MAIL_GUARDIAN_TELEGRAM_OWNER_CHAT_ID", source),
+		telegramBotToken: env("TELEGRAM_BOT_TOKEN", source),
+		telegramOwnerChatId: env("TELEGRAM_BOT_TOKEN", source) ? env("MAIL_GUARDIAN_TELEGRAM_OWNER_CHAT_ID", source) : undefined,
 		nineRouterBaseUrl: normalizeOpenAiBaseUrl(env("NINEROUTER_BASE_URL", source) ?? "http://localhost:11434/v1"),
 		nineRouterApiKey: requireEnv("NINEROUTER_API_KEY", source),
 		databaseUrl: env("DATABASE_URL", source) ?? env("PG_DSN", source),

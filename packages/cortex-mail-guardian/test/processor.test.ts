@@ -9,6 +9,9 @@ vi.mock("../src/model.js", () => ({
 		reasons: [],
 		riskSignals: [],
 	}),
+	heuristicSpamScore: () => 0,
+	shouldKeepInInbox: () => false,
+	shouldAutoQuarantine: () => false,
 	shouldAutoTrash: () => false,
 }));
 
@@ -22,6 +25,7 @@ function account(slug: string) {
 		username: `${slug}@example.test`,
 		password: "secret",
 		inbox: "INBOX",
+		reviewMailbox: "Cortex Mail Guardian Review",
 	};
 }
 
@@ -45,6 +49,7 @@ describe("mail guardian sweep", () => {
 				hasAllowRule: async () => false,
 				createPendingReview: async () => 10,
 				markProcessed: async () => undefined,
+				claimPendingActions: async () => [],
 			},
 			telegram: {
 				sendMessage: async () => undefined,
@@ -99,6 +104,7 @@ describe("mail guardian review decisions", () => {
 					id: 42,
 					account_slug: "one",
 					message_uid: 101,
+					message_id: "<message-101@example.test>",
 					from_hash: "sender-hash",
 					domain_hash: "domain-hash",
 				}),

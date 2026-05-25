@@ -24,6 +24,9 @@ interface ReviewRow {
 	requested_at: string;
 	resolved_at: string | null;
 	processed_action: string | null;
+	queued_decision: string | null;
+	queued_status: string | null;
+	queued_error: string | null;
 }
 
 async function listReviews(openOnly: boolean): Promise<ReviewRow[]> {
@@ -31,10 +34,21 @@ async function listReviews(openOnly: boolean): Promise<ReviewRow[]> {
 		`SELECT r.id::text, r.account_slug, r.message_uid::text, r.message_id,
 		        r.from_hash, r.domain_hash, r.subject_hash, r.body_hash, r.summary,
 		        r.model_verdict, r.model_confidence::text, r.owner_decision, r.approver,
-		        r.requested_at::text, r.resolved_at::text, p.action AS processed_action
+		        r.requested_at::text, r.resolved_at::text, p.action AS processed_action,
+		        a.decision AS queued_decision, a.status AS queued_status, a.error AS queued_error
 		 FROM mail_guardian_reviews r
 		 LEFT JOIN mail_guardian_processed p ON p.account_slug = r.account_slug AND p.message_uid = r.message_uid
-		 WHERE ($1::boolean = false OR r.resolved_at IS NULL)
+		 LEFT JOIN LATERAL (
+		   SELECT decision, status, error
+		   FROM mail_guardian_actions
+		   WHERE review_id = r.id
+		   ORDER BY requested_at DESC, id DESC
+		   LIMIT 1
+		 ) a ON true
+		 WHERE ($1::boolean = false OR (
+		   r.resolved_at IS NULL
+		   AND COALESCE(a.status, '') NOT IN ('pending', 'processing', 'done')
+		 ))
 		 ORDER BY r.requested_at DESC, r.id DESC
 		 LIMIT 200`,
 		[openOnly],
@@ -71,8 +85,8 @@ export async function POST(request: Request) {
 		return NextResponse.json({ error: "Valid id and decision required", code: "EVALIDATION" }, { status: 400 });
 	}
 
-	const review = await queryOne<{ id: number; account_slug: string; message_uid: string; from_hash: string }>(
-		`SELECT id, account_slug, message_uid::text, from_hash
+	const review = await queryOne<{ id: number }>(
+		`SELECT id
 		 FROM mail_guardian_reviews
 		 WHERE id = $1 AND resolved_at IS NULL`,
 		[id],
@@ -80,45 +94,23 @@ export async function POST(request: Request) {
 	if (!review) return NextResponse.json({ error: "Review already resolved or missing", code: "ENOTFOUND" }, { status: 404 });
 
 	try {
-		if (decision === "spam" || decision === "block_sender") {
-			await execute(
-				`INSERT INTO mail_guardian_processed (account_slug, message_uid, action)
-				 VALUES ($1, $2, 'trashed')
-				 ON CONFLICT (account_slug, message_uid) DO UPDATE SET action = EXCLUDED.action, processed_at = now()`,
-				[review.account_slug, Number(review.message_uid)],
-			);
-			if (decision === "block_sender") {
-				await execute(
-					`INSERT INTO mail_guardian_rules (rule_type, scope, value_hash)
-					 VALUES ('block', 'sender', $1)
-					 ON CONFLICT (rule_type, scope, value_hash) DO NOTHING`,
-					[review.from_hash],
-				);
-			}
-		} else {
-			await execute(
-				`INSERT INTO mail_guardian_processed (account_slug, message_uid, action)
-				 VALUES ($1, $2, 'kept')
-				 ON CONFLICT (account_slug, message_uid) DO UPDATE SET action = EXCLUDED.action, processed_at = now()`,
-				[review.account_slug, Number(review.message_uid)],
-			);
-			if (decision === "allow_sender") {
-				await execute(
-					`INSERT INTO mail_guardian_rules (rule_type, scope, value_hash)
-					 VALUES ('allow', 'sender', $1)
-					 ON CONFLICT (rule_type, scope, value_hash) DO NOTHING`,
-					[review.from_hash],
-				);
-			}
+		const existing = await queryOne<{ id: string; status: string }>(
+			`SELECT id::text, status
+			 FROM mail_guardian_actions
+			 WHERE review_id = $1 AND status IN ('pending', 'processing')
+			 ORDER BY requested_at DESC, id DESC
+			 LIMIT 1`,
+			[id],
+		);
+		if (existing) {
+			return NextResponse.json({ success: true, queued: true, actionId: existing.id, status: existing.status });
 		}
-
 		await execute(
-			`UPDATE mail_guardian_reviews
-			 SET owner_decision = $2, approver = $3, resolved_at = now()
-			 WHERE id = $1`,
+			`INSERT INTO mail_guardian_actions (review_id, decision, approver)
+			 VALUES ($1, $2, $3)`,
 			[id, decision, auth.session?.username ?? "dashboard"],
 		);
-		return NextResponse.json({ success: true });
+		return NextResponse.json({ success: true, queued: true });
 	} catch (error) {
 		return NextResponse.json({ error: error instanceof Error ? error.message : "Internal server error" }, { status: 500 });
 	}

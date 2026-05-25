@@ -34,8 +34,9 @@ describe("config", () => {
 		expect(config.accounts).toHaveLength(3);
 		expect(config.accounts[0].password).toBe("dummy#password;with.symbols");
 		expect(config.accounts[2].host).toBe("mail.heitorramon.com");
+		expect(config.accounts[2].reviewMailbox).toBe("INBOX.Cortex Mail Guardian Review");
 		expect(config.model).toBe("minimax/MiniMax-M2.7-highspeed");
-		expect(config.confidenceThreshold).toBe(0.95);
+		expect(config.confidenceThreshold).toBe(0.82);
 	});
 
 	it("rejects invalid base64", () => {

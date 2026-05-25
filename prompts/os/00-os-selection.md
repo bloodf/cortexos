@@ -1,19 +1,28 @@
 # OS selection and family detection
 
+## Chat Input Gate
+
+This prompt follows `prompts/CHAT-INPUT-CONTRACT.md`. Do not assume any
+operator-specific environment variables are already defined. Before using a
+value such as a host, user, domain, token, password, project path, profile name,
+or service URL, ask a **STOP — input question**, wait for the operator's answer,
+and then substitute that answer into the commands you produce.
+
 > **Operator-laptop note**: when this prompt is reached via
 > `prompts/00-bootstrap.md`, OS detection has already run over SSH from
-> the laptop (`bootstrap_detect_remote_os`) and `CORTEX_OS_FAMILY` /
-> `CORTEX_OS_VERSION` are exported in the **laptop** shell. Steps 1 and 2
-> below then become a confirmation pass — re-run them via
-> `bootstrap_run_remote 'bash scripts/os-detect.sh'` if you need to
-> double-check from the laptop. The legacy on-host execution shown below
-> still applies when an operator chooses to log into the VPS directly.
+> the laptop (`bootstrap_detect_remote_os`). This prompt is still a
+> confirmation pass. Re-run `bootstrap_run_remote 'bash scripts/os-detect.sh'`
+> if you need to double-check from the laptop.
 
 ## Purpose
 
-Confirm the target host distribution before any other `prompts/os/` or `prompts/tools/` spoke runs. This prompt detects the OS family with `scripts/os-detect.sh`, exports `CORTEX_OS_FAMILY` for the rest of the prompt sequence, and pins the supported version matrix.
+Confirm the target host distribution before any other `prompts/os/` or
+`prompts/tools/` spoke runs. This prompt detects the OS family with
+`scripts/os-detect.sh` and pins the supported version matrix.
 
-All downstream prompts branch on `CORTEX_OS_FAMILY`. Distro-sensitive operations (package install, repo registration, firewall) are routed through `scripts/pkg.sh`.
+Downstream prompts must call `scripts/pkg.sh` or `scripts/os-detect.sh` when
+they need OS facts. They must not rely on an OS environment variable from a
+previous chat prompt.
 
 ## Supported matrix
 
@@ -42,15 +51,14 @@ debian 13 debian
 
 If the output begins with `unsupported`, HALT. Open an issue describing the host (`cat /etc/os-release`) before continuing.
 
-### Step 2 — Export the family
+### Step 2 — Confirm package helper detection
 
 ```bash
-read -r CORTEX_OS_FAMILY CORTEX_OS_VERSION _ < <(bash scripts/os-detect.sh)
-export CORTEX_OS_FAMILY CORTEX_OS_VERSION
-printf 'family=%s version=%s\n' "$CORTEX_OS_FAMILY" "$CORTEX_OS_VERSION"
+source scripts/pkg.sh
+printf 'family=%s version=%s\n' "$(pkg_family)" "$(pkg_version)"
 ```
 
-`CORTEX_OS_FAMILY` is the routing key for every later prompt. Keep it set for the remainder of the operator session; re-export it in any new shell.
+The package helper is the routing key for later prompts.
 
 ### Step 3 — Confirm the matrix entry
 
@@ -68,13 +76,13 @@ Type `confirmed` to proceed.
 
 ## CHECKPOINT 2
 
-**STOP — operator question:** Does `echo "$CORTEX_OS_FAMILY"` print `ubuntu` or `debian` in your current shell (not empty, proving the `export` took)?
+**STOP — operator question:** Does `source scripts/pkg.sh; pkg_family` print `ubuntu` or `debian` (not empty, not `unsupported`)?
 
 Type `confirmed` to proceed.
 
 ## Next
 
-Branch on `CORTEX_OS_FAMILY`:
+Branch on the `pkg_family` output:
 
 - `ubuntu` → `prompts/os/10-ubuntu-prereqs.md`
 - `debian` → `prompts/os/10-ubuntu-prereqs.md` (apt-based path; same prereqs)

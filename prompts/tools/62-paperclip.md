@@ -1,78 +1,68 @@
 # Paperclip
 
-## Purpose
+## Chat Input Gate
 
-Install Paperclip as the only CortexOS work orchestration surface. Paperclip
-assigns work directly to Hermes through `hermes-paperclip-adapter`.
+This prompt follows `prompts/CHAT-INPUT-CONTRACT.md`. Do not assume any
+operator-specific environment variables are already defined. Before using a
+value such as a host, user, domain, token, password, project path, profile name,
+or service URL, ask a **STOP — input question**, wait for the operator's answer,
+and then substitute that answer into the commands you produce.
 
-## Prerequisites
+Purpose: install Paperclip as the only workflow and issue surface for
+CortexOS. Paperclip calls Hermes profiles directly through the Hermes adapter.
 
-- `43-paperclip-hermes.md` completed.
-- `44-api-exposure.md` completed if local-machine API access is required.
-
-## Architecture
+## Contract
 
 ```text
-Paperclip -> hermes_local adapter -> Hermes profile -> Honcho -> Paperclip
+Paperclip -> hermes_local adapter -> Hermes profile -> Honcho
 ```
 
-Do not install a custom bridge, workflow bus, gateway workflow, or legacy
-runtime relay.
+Do not install a separate workflow bus, relay, or scheduler. Paperclip owns
+issues, approvals, runs, and heartbeat scheduling.
 
-## Install
+## Runtime Ports
 
-Install or update Paperclip following the project-approved pin. Then register
-Hermes-backed roles with:
+| Purpose | Endpoint |
+| --- | --- |
+| Local proxy | `http://127.0.0.1:3033` |
+| Paperclip upstream | `http://127.0.0.1:3034` |
+| Profile API example | `http://127.0.0.1:18691/v1` |
+
+## Register Hermes Roles
 
 ```bash
+set -euo pipefail
 set -a
 source /opt/cortexos/.secrets/paperclip.env
 source /opt/cortexos/.secrets/9router.env
 source /opt/cortexos/.secrets/honcho.env
-export HERMES_PROFILE_MAP='{"Secondary":"secondary"}'
+export ROLES_DIR=/opt/cortexos/templates/agent-roles
 export HERMES_COMMAND=/opt/cortexos/bin/hermes-paperclip
+export HERMES_PROFILE_MAP='{"Secondary":"secondary"}'
 set +a
 
-tsx scripts/paperclip-register-roles.ts --roles-dir templates/agent-roles
+pnpm --dir /opt/cortexos/scripts register-roles
 ```
 
-Required Paperclip adapter config:
-
-| Paperclip project | Hermes profile | API |
-| --- | --- | --- |
-| `primary` | `primary` | `http://127.0.0.1:18691/v1` |
-| `secondary` | `secondary` | `http://127.0.0.1:18692/v1` |
-
-Each role template must define a Paperclip `routine`. The registration script
-converts supported cron forms such as `0 */15 * * * *` into
-`runtimeConfig.heartbeat.intervalSec`, so Paperclip remains the only scheduler
-for Hermes work.
-
-The Hermes adapter config must use `provider: auto` plus
-`extraArgs: ["--provider", "9router"]`. The `9router` provider itself belongs
-in each Hermes profile `config.yaml`, with `NINEROUTER_API_KEY` loaded from the
-profile `.env`.
-
-If Paperclip cannot load `hermes-paperclip-adapter` directly, deploy only the
-minimal direct HTTP adapter shim described in `43-paperclip-hermes.md`.
+`HERMES_PROFILE_MAP` is optional. Any role not listed maps to `primary`.
+Private project role/profile routing is local runtime configuration and must
+not be committed.
 
 ## Verify
 
-Run one Paperclip issue/comment wake per profile and confirm:
-
-- Paperclip creates the run.
-- Hermes executes the run under the expected profile.
-- Honcho memory is scoped to that profile.
-- Paperclip receives the final status.
-- No custom workflow bus is involved.
-
-Then run the smoke helper:
-
 ```bash
+curl -fsS http://127.0.0.1:3033/api/health
+curl -fsS http://127.0.0.1:3034/api/health
 node scripts/paperclip-hermes-smoke.mjs
-HERMES_SMOKE_RUN=1 node scripts/paperclip-hermes-smoke.mjs
 ```
+
+Expected:
+
+- Paperclip health is `ok`.
+- A Hermes-backed run uses the expected profile.
+- Honcho workspace is scoped to that profile.
+- No custom workflow service is involved.
 
 ## Next
 
-→ `prompts/tools/70-dashboard.md`
+`70-dashboard.md`

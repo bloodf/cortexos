@@ -1,5 +1,13 @@
 # 9Router (latest)
 
+## Chat Input Gate
+
+This prompt follows `prompts/CHAT-INPUT-CONTRACT.md`. Do not assume any
+operator-specific environment variables are already defined. Before using a
+value such as a host, user, domain, token, password, project path, profile name,
+or service URL, ask a **STOP — input question**, wait for the operator's answer,
+and then substitute that answer into the commands you produce.
+
 ## Purpose
 
 Install 9Router, the OpenAI-compatible model gateway that proxies AI provider APIs and writes credentials to `/opt/cortexos/.secrets/9router.env`.
@@ -14,7 +22,6 @@ Install 9Router, the OpenAI-compatible model gateway that proxies AI provider AP
 ```bash
 source scripts/pkg.sh
 echo "OS family: $(pkg_family) $(pkg_version)"
-: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
 ```
 
 > **Node runtime.** Ubuntu/Debian provisioning uses NodeSource (or Linuxbrew Node 24). All `npm install -g` invocations below assume Node ≥ 20 is on `$PATH`.
@@ -149,10 +156,18 @@ sudo rm -rf /opt/cortexos/stacks/9router
 
 Provider API keys (OpenAI, Anthropic, Mistral, Groq, etc.) are entered in the 9Router WebUI — never pasted into prompts, shell history, or `.env` files.
 
+## Input Gate — WebUI Domain
+
+**STOP — input question:** What CortexOS domain should the operator open for
+9Router, for example the Tailscale MagicDNS FQDN?
+
+Do not continue until the operator answers. After the answer, substitute it for
+`<cortex_domain_from_chat>` in the command below.
+
 Print the URL the operator should open:
 
 ```bash
-: "${CORTEX_DOMAIN:?CORTEX_DOMAIN unset — re-run prompts/00-bootstrap.md so the Tailscale FQDN is exported}"
+CORTEX_DOMAIN='<cortex_domain_from_chat>'
 echo
 echo "Open 9Router WebUI:    https://${CORTEX_DOMAIN}:11434/dashboard"
 echo "Master admin token:    (NINEROUTER_API_KEY from /opt/cortexos/.secrets/9router.env)"

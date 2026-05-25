@@ -9,6 +9,8 @@ import {
 	CommandList,
 } from "@/components/ui/command";
 import { useRouter } from "@/i18n/routing";
+import { visibleNavItems } from "@/components/navigation/nav-config";
+import { useTranslations } from "next-intl";
 
 type Service = {
 	name: string;
@@ -16,30 +18,6 @@ type Service = {
 	category?: string;
 	slug: string;
 };
-
-const pages = [
-	{ label: "Overview", href: "/overview" },
-	{ label: "Apps", href: "/apps" },
-	{ label: "Services", href: "/services" },
-	{ label: "Healthcheck", href: "/healthcheck" },
-	{ label: "Agents", href: "/agents" },
-	{ label: "Agent Factory", href: "/agent-factory" },
-	{ label: "Docker", href: "/docker" },
-	{ label: "Systemd", href: "/systemd" },
-	{ label: "Updates", href: "/updates" },
-	{ label: "Storage", href: "/storage" },
-	{ label: "Network", href: "/network" },
-	{ label: "Processes", href: "/processes" },
-	{ label: "Terminal", href: "/terminal" },
-	{ label: "Alerts", href: "/alerts" },
-	{ label: "Mail Guardian", href: "/mail-guardian" },
-	{ label: "Projects", href: "/projects" },
-	{ label: "Users", href: "/users" },
-	{ label: "Badges", href: "/badges" },
-	{ label: "Env Browser", href: "/env-browser" },
-	{ label: "Audit", href: "/audit" },
-	{ label: "Tool Audit", href: "/tool-audit" },
-];
 
 function matches(query: string, values: Array<string | undefined>) {
 	const q = query.trim().toLowerCase();
@@ -52,6 +30,8 @@ export function CommandPalette() {
 	const [query, setQuery] = useState("");
 	const [services, setServices] = useState<Service[]>([]);
 	const router = useRouter();
+	const t = useTranslations("Navigation");
+	const tc = useTranslations("CommandPalette");
 
 	useEffect(() => {
 		const handler = (event: KeyboardEvent) => {
@@ -73,8 +53,11 @@ export function CommandPalette() {
 	}, [open]);
 
 	const filteredPages = useMemo(
-		() => pages.filter((page) => matches(query, [page.label, page.href])),
-		[query],
+		() =>
+			visibleNavItems().filter((page) =>
+				matches(query, [t(page.labelKey), page.labelKey, page.href]),
+			),
+		[query, t],
 	);
 	const filteredServices = useMemo(
 		() =>
@@ -87,10 +70,10 @@ export function CommandPalette() {
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogContent>
-				<DialogTitle>Command Palette</DialogTitle>
+				<DialogTitle>{tc("Title")}</DialogTitle>
 				<Command shouldFilter={false}>
 					<CommandInput
-						placeholder="Search pages and services..."
+						placeholder={tc("Placeholder")}
 						value={query}
 						onValueChange={setQuery}
 					/>
@@ -103,7 +86,7 @@ export function CommandPalette() {
 									setOpen(false);
 								}}
 							>
-								{page.label} <span className="ml-2 text-xs text-muted-foreground">{page.href}</span>
+								{t(page.labelKey)} <span className="ml-2 text-xs text-muted-foreground">{page.href}</span>
 							</CommandItem>
 						))}
 						{filteredServices.map((service) => (

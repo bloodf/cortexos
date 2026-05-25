@@ -1,5 +1,13 @@
 # Home Assistant
 
+## Chat Input Gate
+
+This prompt follows `prompts/CHAT-INPUT-CONTRACT.md`. Do not assume any
+operator-specific environment variables are already defined. Before using a
+value such as a host, user, domain, token, password, project path, profile name,
+or service URL, ask a **STOP — input question**, wait for the operator's answer,
+and then substitute that answer into the commands you produce.
+
 ## Purpose
 
 Run Home Assistant for local automation integrations.
@@ -39,20 +47,20 @@ Home Assistant runs with host networking. If Tailscale Serve owns the tailnet-IP
 
 ```yaml
 http:
-  server_host: localhost
+  server_host: 127.0.0.1
   use_x_forwarded_for: true
   trusted_proxies:
-    - localhost
+    - 127.0.0.1
     - ::1
-    - tailnet-cgnat/10
-    - private-lan/12
+    - 100.64.0.0/10
+    - 172.16.0.0/12
 ```
 
 Restart Home Assistant after writing config:
 
 ```bash
 docker restart cortex-home-assistant
-curl -fsSL http://localhost:8123/ | grep -i 'Home Assistant'
+curl -fsSL http://127.0.0.1:8123/ | grep -i 'Home Assistant'
 ```
 
 Expected: Home Assistant responds with the onboarding UI.

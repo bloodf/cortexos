@@ -15,8 +15,15 @@ export interface MailClient {
 	connect(): Promise<void>;
 	close(): Promise<void>;
 	listInbox(account: MailAccountConfig): Promise<MailMessage[]>;
-	moveToTrash(account: MailAccountConfig, uid: number): Promise<string>;
+	moveToReview(account: MailAccountConfig, uid: number): Promise<string>;
+	moveToInbox(account: MailAccountConfig, uid: number, options?: MoveOptions): Promise<string>;
+	moveToTrash(account: MailAccountConfig, uid: number, options?: MoveOptions): Promise<string>;
 	waitForNewMail(account: MailAccountConfig): Promise<void>;
+}
+
+export interface MoveOptions {
+	sourceMailbox?: string;
+	messageId?: string;
 }
 
 export class TlsImapMailClient implements MailClient {
@@ -42,13 +49,41 @@ export class TlsImapMailClient implements MailClient {
 		return messages;
 	}
 
-	async moveToTrash(account: MailAccountConfig, uid: number): Promise<string> {
+	async moveToReview(account: MailAccountConfig, uid: number): Promise<string> {
+		return this.moveToMailbox(account, uid, account.reviewMailbox, { sourceMailbox: account.inbox });
+	}
+
+	async moveToInbox(account: MailAccountConfig, uid: number, options: MoveOptions = {}): Promise<string> {
+		return this.moveToMailbox(account, uid, account.inbox, {
+			sourceMailbox: options.sourceMailbox ?? account.reviewMailbox,
+			messageId: options.messageId,
+		});
+	}
+
+	async moveToTrash(account: MailAccountConfig, uid: number, options: MoveOptions = {}): Promise<string> {
 		const session = await this.session(account);
-		await session.select(account.inbox);
 		const trash = account.trashMailbox ?? await session.discoverTrashMailbox();
 		if (!trash) throw new Error(`Trash mailbox not found for ${account.slug}`);
-		await session.move(uid, trash);
-		return trash;
+		return this.moveToMailbox(account, uid, trash, {
+			sourceMailbox: options.sourceMailbox ?? account.reviewMailbox,
+			messageId: options.messageId,
+		});
+	}
+
+	private async moveToMailbox(account: MailAccountConfig, uid: number, destination: string, options: MoveOptions): Promise<string> {
+		const session = await this.session(account);
+		await session.ensureMailbox(destination);
+		await session.select(options.sourceMailbox ?? account.inbox);
+		try {
+			await session.move(uid, destination);
+			return destination;
+		} catch (error) {
+			if (!options.messageId) throw error;
+			const replacementUid = await session.findUidByMessageId(options.messageId);
+			if (!replacementUid) throw error;
+			await session.move(replacementUid, destination);
+			return destination;
+		}
 	}
 
 	async waitForNewMail(account: MailAccountConfig): Promise<void> {
@@ -77,17 +112,27 @@ class ImapSession {
 
 	async ensureConnected(): Promise<void> {
 		if (this.socket && !this.socket.destroyed) return;
-		this.socket = tls.connect({
+		const socket = tls.connect({
 			host: this.account.host,
 			port: this.account.port,
 			servername: this.account.host,
 			rejectUnauthorized: true,
 			lookup: lookupWithFallback as never,
 		});
-		this.socket.setEncoding("utf8");
-		await once(this.socket, "secureConnect");
+		this.socket = socket;
+		socket.setTimeout(30_000);
+		socket.setEncoding("utf8");
+		const timeoutError = new Error(`IMAP connection timed out for ${this.account.slug}`);
+		socket.once("timeout", () => socket.destroy(timeoutError));
+		await Promise.race([
+			once(socket, "secureConnect"),
+			once(socket, "error").then(([error]) => { throw error; }),
+		]);
 		await this.readUntil(/^(\* OK|\* PREAUTH)/m);
 		await this.command("LOGIN", quote(this.account.username), quote(this.account.password));
+		socket.on("error", () => {
+			// Later command/read paths handle closed sockets; avoid process-level unhandled errors.
+		});
 	}
 
 	async close(): Promise<void> {
@@ -129,6 +174,21 @@ class ImapSession {
 			if (path && /^(trash|deleted items|lixeira)$/i.test(path.split(/[/.]/).pop() ?? path)) return path;
 		}
 		return undefined;
+	}
+
+	async ensureMailbox(mailbox: string): Promise<void> {
+		try {
+			await this.command("CREATE", quote(mailbox));
+		} catch {
+			// CREATE fails when the mailbox already exists on many servers.
+		}
+	}
+
+	async findUidByMessageId(messageId: string): Promise<number | undefined> {
+		const output = await this.command("UID", "SEARCH", "HEADER", quote("Message-ID"), quote(messageId));
+		const match = output.match(/^\* SEARCH[ \t]*([^\r\n]*)/m);
+		if (!match) return undefined;
+		return match[1].trim().split(/\s+/).map(Number).find(Number.isFinite);
 	}
 
 	async move(uid: number, destination: string): Promise<void> {

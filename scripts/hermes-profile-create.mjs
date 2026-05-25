@@ -2,6 +2,7 @@
 import { chmodSync, mkdirSync, readFileSync, symlinkSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { randomBytes } from "node:crypto";
+import net from "node:net";
 
 const [profile, portArg, model = "cx/gpt-5.5", reasoning = "medium"] = process.argv.slice(2);
 
@@ -25,19 +26,53 @@ if (existsSync(registryPath)) {
   if (!Array.isArray(registry.profiles)) registry.profiles = [];
 }
 
-function defaultPortFor(slug) {
+function isPortAvailable(port) {
+  return new Promise((resolve) => {
+    const socket = net.createConnection({ host: "127.0.0.1", port });
+    socket.once("connect", () => {
+      socket.destroy();
+      resolve(false);
+    });
+    socket.once("error", (error) => {
+      resolve(error?.code === "ECONNREFUSED");
+    });
+    socket.setTimeout(1000, () => {
+      socket.destroy();
+      resolve(false);
+    });
+  });
+}
+
+async function defaultPortFor(slug) {
+  const existing = registry.profiles.find((item) => item.profile === slug);
+  if (Number.isInteger(Number(existing?.apiPort))) return Number(existing.apiPort);
   if (slug === "primary") return 18691;
   if (slug === "secondary") return 18692;
-  const used = new Set(registry.profiles.map((item) => Number(item.apiPort)).filter(Number.isInteger));
+  const used = new Set(
+    registry.profiles
+      .filter((item) => item.profile !== slug)
+      .map((item) => Number(item.apiPort))
+      .filter(Number.isInteger),
+  );
   for (let candidate = 18693; candidate <= 18749; candidate += 1) {
-    if (!used.has(candidate)) return candidate;
+    if (!used.has(candidate) && await isPortAvailable(candidate)) return candidate;
   }
   throw new Error("no Hermes profile ports available in 18693-18749");
 }
 
-const port = portArg ? Number(portArg) : defaultPortFor(profile);
+const port = portArg ? Number(portArg) : await defaultPortFor(profile);
 if (!Number.isInteger(port) || port < 18691 || port > 18749) {
   throw new Error("port must be an integer in 18691-18749");
+}
+const existingWithPort = registry.profiles.find(
+  (item) => item.profile !== profile && Number(item.apiPort) === port,
+);
+if (existingWithPort) {
+  throw new Error(`port ${port} is already assigned to Hermes profile ${existingWithPort.profile}`);
+}
+const existingProfile = registry.profiles.find((item) => item.profile === profile);
+if (!existingProfile && !await isPortAvailable(port)) {
+  throw new Error(`port ${port} is already in use`);
 }
 
 mkdirSync(profileHome, { recursive: true, mode: 0o755 });

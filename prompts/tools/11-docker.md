@@ -1,5 +1,13 @@
 # Docker (latest)
 
+## Chat Input Gate
+
+This prompt follows `prompts/CHAT-INPUT-CONTRACT.md`. Do not assume any
+operator-specific environment variables are already defined. Before using a
+value such as a host, user, domain, token, password, project path, profile name,
+or service URL, ask a **STOP — input question**, wait for the operator's answer,
+and then substitute that answer into the commands you produce.
+
 ## Purpose
 
 Install Docker Engine and Docker Compose plugin from the official Docker apt repository; configure the daemon for CortexOS stack management.
@@ -14,7 +22,7 @@ Install Docker Engine and Docker Compose plugin from the official Docker apt rep
 ```bash
 source scripts/pkg.sh
 echo "OS family: $(pkg_family) $(pkg_version)"
-: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+# OS family is detected by scripts/pkg.sh; if detection is unsupported, stop and ask the operator before continuing.
 ```
 
 ## Sudo gate

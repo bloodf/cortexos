@@ -1,5 +1,13 @@
 # mongo-express
 
+## Chat Input Gate
+
+This prompt follows `prompts/CHAT-INPUT-CONTRACT.md`. Do not assume any
+operator-specific environment variables are already defined. Before using a
+value such as a host, user, domain, token, password, project path, profile name,
+or service URL, ask a **STOP — input question**, wait for the operator's answer,
+and then substitute that answer into the commands you produce.
+
 ## Purpose
 
 Run mongo-express for MongoDB administration.
@@ -37,8 +45,8 @@ ME_CONFIG_MONGODB_URL=mongodb://admin:<root-password>@mongodb:27017/
 `env_file: ../../.secrets/mongodb.env` resolves relative to the compose file's project path; confirm with `docker compose config --no-interpolate` before restarting.
 
 ```bash
-curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8083/
-curl -fsS -u "${ME_CONFIG_BASICAUTH_USERNAME}:${ME_CONFIG_BASICAUTH_PASSWORD}" http://localhost:8083/ >/dev/null
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8083/
+curl -fsS -u "${ME_CONFIG_BASICAUTH_USERNAME}:${ME_CONFIG_BASICAUTH_PASSWORD}" http://127.0.0.1:8083/ >/dev/null
 ```
 
 Expected: `401` before basic auth; `200` with basic auth. Existing Mongo volumes keep the original root user; if credentials are changed after first boot, create/update that Mongo admin user before restarting mongo-express.

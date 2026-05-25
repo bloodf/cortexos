@@ -1,6 +1,17 @@
 # Setup Guide
 
-Use `SETUP.md` and `prompts/tools/_order.md` for the canonical install graph.
+Use this order:
 
-The active agent path is Paperclip → Hermes Paperclip adapter → Hermes profile
-→ Honcho. Do not run retired agent communication spokes.
+1. Read [AI-REPLICATION.md](AI-REPLICATION.md).
+2. Run [../prompts/00-bootstrap.md](../prompts/00-bootstrap.md).
+3. Follow [../prompts/tools/_order.md](../prompts/tools/_order.md).
+4. Run [../prompts/tools/99-final-validation.md](../prompts/tools/99-final-validation.md).
+
+The only active agent path is:
+
+```text
+Paperclip -> Hermes profile -> Honcho memory
+```
+
+Model calls go through 9Router. Do not install retired workflow services or
+custom orchestration sidecars.

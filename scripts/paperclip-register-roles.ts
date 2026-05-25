@@ -183,22 +183,10 @@ function paperclipRoleToAgentRole(role: string): string {
 	const normalized = role.toUpperCase();
 	if (normalized === "CEO") return "ceo";
 	if (normalized === "CTO") return "cto";
-	if (normalized === "PM" || normalized === "PO" || normalized === "CPO") return "pm";
-	if (normalized === "QA" || normalized === "QA-LEAD" || normalized === "QA-E2E" || normalized === "QA-UNIT") return "qa";
-	if (normalized === "UXUI" || normalized === "MKT-CREATIVE") return "designer";
-	if (normalized === "CRO" || normalized === "MKT-CONTENT") return "general";
-	if (normalized === "BUG-BOUNTY") return "general";
-	if (
-		normalized === "ENG-WEB-FRONTEND" ||
-		normalized === "ENG-API" ||
-		normalized === "ENG-RN-IOS" ||
-		normalized === "ENG-RN-ANDROID" ||
-		normalized === "STAFF-FRONTEND" ||
-		normalized === "STAFF-BACKEND" ||
-		normalized === "STAFF-RN" ||
-		normalized.includes("ENG") ||
-		normalized === "ENGINEER"
-	) return "engineer";
+	if (normalized === "PM" || normalized === "PO") return "pm";
+	if (normalized === "QA") return "qa";
+	if (normalized === "UXUI") return "designer";
+	if (normalized.includes("ENG") || normalized === "ENGINEER" || normalized === "STAFF-ENG") return "engineer";
 	if (normalized.startsWith("BOOK-")) return "researcher";
 	if (normalized === "REVIEWER") return "general";
 	if (normalized === "PROJECT-SPECIALIST") return "general";
@@ -268,29 +256,27 @@ function buildAdapterConfig(role: ParsedRole): Record<string, unknown> {
 	return {
 		profile,
 		model: "cx/gpt-5.5",
-		provider: "openrouter",
+		provider: "auto",
 		maxIterations: 50,
 		timeoutSec: 900,
 		graceSec: 15,
-		persistSession: false,
+		persistSession: true,
 		toolsets: "terminal,file,web,browser,code_execution",
 		hermesCommand: defaultHermesCommand(),
 		quiet: true,
 		verbose: false,
+		extraArgs: ["--provider", "9router"],
 		env: {
 			HERMES_PROFILE: profile,
 			HERMES_HOME: `/opt/cortexos/hermes/profiles/${profile}`,
 			HERMES_MODEL: "cx/gpt-5.5",
 			HERMES_REASONING: "medium",
-			HONCHO_BASE_URL: process.env.HONCHO_BASE_URL || "http://localhost:18690",
+			HONCHO_BASE_URL: process.env.HONCHO_BASE_URL || "http://127.0.0.1:18690",
 			HONCHO_WORKSPACE: profile,
-			OPENAI_BASE_URL: normalizeOpenAiBaseUrl(process.env.NINEROUTER_BASE_URL || "http://localhost:11434"),
-			OPENAI_API_KEY: process.env.NINEROUTER_API_KEY || "",
-			OPENROUTER_BASE_URL: normalizeOpenAiBaseUrl(process.env.NINEROUTER_BASE_URL || "http://localhost:11434"),
-			OPENROUTER_API_KEY: process.env.NINEROUTER_API_KEY || "",
+			OPENAI_BASE_URL: normalizeOpenAiBaseUrl(process.env.NINEROUTER_BASE_URL || "http://127.0.0.1:11434"),
 		},
-		paperclipApiUrl: process.env.PAPERCLIP_API_URL || "http://localhost:3033",
-		baseUrl: process.env[`HERMES_${envName}_URL`] || `http://localhost:${port}/v1`,
+		paperclipApiUrl: process.env.PAPERCLIP_API_URL || "http://127.0.0.1:3033",
+		baseUrl: process.env[`HERMES_${envName}_URL`] || `http://127.0.0.1:${port}/v1`,
 		apiKeyEnv: `HERMES_${envName}_API_KEY`,
 		reasoningEffort: "medium",
 		sessionTemplate: `${profile}:${role.paperclip.role}:{{issueId}}`,

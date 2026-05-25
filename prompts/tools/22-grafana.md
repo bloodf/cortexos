@@ -1,5 +1,13 @@
 # Grafana (monitoring compose)
 
+## Chat Input Gate
+
+This prompt follows `prompts/CHAT-INPUT-CONTRACT.md`. Do not assume any
+operator-specific environment variables are already defined. Before using a
+value such as a host, user, domain, token, password, project path, profile name,
+or service URL, ask a **STOP — input question**, wait for the operator's answer,
+and then substitute that answer into the commands you produce.
+
 ## Purpose
 
 Run Grafana in the CortexOS monitoring compose stack with Prometheus and Loki datasources, then import the CortexOS dashboard template.
@@ -29,7 +37,7 @@ Do not append `/prometheus` to the Prometheus datasource URL.
 
 ```bash
 jq -n --argjson dashboard "$(cat templates/grafana/cortex-v1.json)" '{dashboard: $dashboard, overwrite: true, folderId: 0}' \
-  | curl -fsS -X POST "http://admin:${GRAFANA_ADMIN_PASSWORD}@localhost:3000/api/dashboards/import" \
+  | curl -fsS -X POST "http://admin:${GRAFANA_ADMIN_PASSWORD}@127.0.0.1:3000/api/dashboards/import" \
       -H "Content-Type: application/json" \
       -d @-
 ```
@@ -37,9 +45,9 @@ jq -n --argjson dashboard "$(cat templates/grafana/cortex-v1.json)" '{dashboard:
 ## Verify
 
 ```bash
-curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/login
-curl -fsS http://localhost:3000/api/datasources/name/Prometheus/health
-curl -fsS http://localhost:3000/api/datasources/name/Loki/health
+curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3000/login
+curl -fsS http://127.0.0.1:3000/api/datasources/name/Prometheus/health
+curl -fsS http://127.0.0.1:3000/api/datasources/name/Loki/health
 ```
 
 Expected: login `200`; both datasources healthy.

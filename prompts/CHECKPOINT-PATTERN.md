@@ -1,7 +1,23 @@
 # Checkpoint Pattern — Spoke Verifiability Contract
 
+## Chat Input Gate
+
+This prompt follows `prompts/CHAT-INPUT-CONTRACT.md`. Do not assume any
+operator-specific environment variables are already defined. Before using a
+value such as a host, user, domain, token, password, project path, profile name,
+or service URL, ask a **STOP — input question**, wait for the operator's answer,
+and then substitute that answer into the commands you produce.
+
 > Operating contract for every spoke under `prompts/tools/`. Applies to all
 > CHECKPOINT blocks the operator confirms manually.
+
+## Chat input rule
+
+Every prompt also follows [CHAT-INPUT-CONTRACT.md](CHAT-INPUT-CONTRACT.md).
+Prompts are chat-first, not preconfigured-shell-first: they must ask the
+operator for required values, wait for the answer, and then produce concrete
+commands using those answers. They must not require environment variables to be
+defined before the prompt starts.
 
 ## Stop-on-question rule
 
@@ -115,6 +131,9 @@ Before merging a new or edited spoke:
       `NOT_INSTALLED` rather than failing.
 - [ ] Any cross-service probe moved to `99-final-validation.md`.
 - [ ] Operator prose names the later spoke that owns each deferred check.
+- [ ] Required operator-specific values are collected by a `STOP — input
+      question` before use.
+- [ ] The prompt does not require pre-existing environment variables.
 
 ## Reference
 

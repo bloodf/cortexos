@@ -1,17 +1,32 @@
 # 80 — Agent Factory
 
+## Chat Input Gate
+
+This prompt follows `prompts/CHAT-INPUT-CONTRACT.md`. Do not assume any
+operator-specific environment variables are already defined. Before using a
+value such as a host, user, domain, token, password, project path, profile name,
+or service URL, ask a **STOP — input question**, wait for the operator's answer,
+and then substitute that answer into the commands you produce.
+
 ## Purpose
 
-Seed and verify dashboard project factories that create Paperclip roles backed
-by Hermes profiles. This spoke does not install a custom workflow bus.
+Install and verify the Cortex Hermes-only Agent Factory workflow that creates
+Paperclip roles backed by Hermes profiles. This spoke does not install a custom
+workflow bus and does not expose Agent Factory controls in the dashboard.
 
 ## Prerequisites
 
 - `70-dashboard.md` completed.
 - Paperclip service reachable.
 - Hermes profiles registered.
+- Cortex Hermes profile reachable.
 
 ## Contract
+
+Cortex Hermes is the only actor allowed to create, mutate, or promote factory
+definitions. The dashboard may keep the `agent_factories` table as durable
+state, but it must not expose an Agent Factory page, API, or dashboard chat
+tools.
 
 Factory definitions must use:
 
@@ -36,6 +51,12 @@ App attachment contract:
 - A seat may set `apps` to override the baseline for that role.
 - Runtime credentials still come from service `env_source` files and secrets; factory JSON never stores app secrets.
 - New factories must include at least the core agent apps: `paperclip`, `honcho`, `9router`, `cortex-dashboard`, `langfuse`.
+
+## Skill
+
+Install `templates/hermes/skills/cortex-factory-creation` into the Cortex Hermes
+profile only. Other project profiles may execute generated factory agents, but
+they are not allowed to act as the factory creator.
 
 ## Verify
 

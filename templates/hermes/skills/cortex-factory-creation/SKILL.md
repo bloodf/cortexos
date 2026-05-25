@@ -10,6 +10,10 @@ add agents, or set up a factory.
 
 ## Core Rule
 
+Cortex Hermes is the only runtime actor allowed to create, mutate, or promote
+agent factories. Do not route factory creation through the dashboard UI,
+dashboard API, dashboard chat tools, or non-Cortex Hermes profiles.
+
 Cortex is standalone and is not a Paperclip agent. Only agents created by a
 factory use Paperclip. Factory agents execute through Paperclip -> Hermes ->
 Honcho.
@@ -58,13 +62,14 @@ Optional:
    - Create a new Hermes profile for a new independent project.
    - Keep standalone bot profiles marked `paperclip.enabled=false`.
 4. Define roles with clear bosses, permissions, and schedule cadence.
-5. Create or update dashboard factory state.
+5. Create or update factory state through the dashboard database or approved
+   Cortex runtime script, never through dashboard UI/API tools.
 6. Register only factory-produced roles in Paperclip.
 7. Attach filesystem MCP through the runtime Hermes profile and external MCPs
    through the AgentGateway proxy/aggregator config. Do not write generated
    profile names, local paths, or secrets into repository files.
 8. Run a smoke test:
-   - Dashboard factory exists.
+   - Factory state exists in durable storage.
    - Hermes profile health is ok.
    - Paperclip agents exist only for factory roles.
    - A temporary assigned issue can run through Paperclip -> Hermes -> Honcho.

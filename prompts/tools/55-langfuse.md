@@ -1,5 +1,13 @@
 # 55 — Langfuse
 
+## Chat Input Gate
+
+This prompt follows `prompts/CHAT-INPUT-CONTRACT.md`. Do not assume any
+operator-specific environment variables are already defined. Before using a
+value such as a host, user, domain, token, password, project path, profile name,
+or service URL, ask a **STOP — input question**, wait for the operator's answer,
+and then substitute that answer into the commands you produce.
+
 ## Purpose
 
 Deploy self-hosted Langfuse for LLM observability. Dashboard, Hermes profiles, and sandbox runner emit traces through `@cortexos/telemetry` when `LANGFUSE_*` env is present.
@@ -33,7 +41,7 @@ Create shared host-service client env:
 
 ```bash
 sudo tee /opt/cortexos/.secrets/langfuse-client.env >/dev/null <<'EOF'
-LANGFUSE_HOST=http://localhost:3001
+LANGFUSE_HOST=http://127.0.0.1:3001
 LANGFUSE_PUBLIC_KEY=pk-lf-...
 LANGFUSE_SECRET_KEY=sk-lf-...
 EOF
@@ -57,15 +65,15 @@ Services requiring restart after client env changes:
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl restart cortex-dashboard hermes-profile@cortex hermes-profile@external-profile hermes-profile@operator-host
+sudo systemctl restart cortex-dashboard hermes-profile@default 'hermes-profile@<profile>'
 cd /opt/cortexos/stacks/cortex-sandbox-runner && docker compose up -d --force-recreate cortex-sandbox-runner
 ```
 
 ## Verify
 
 ```bash
-curl -fsS http://localhost:3001/api/public/health
-curl -fsS -u "$LANGFUSE_PUBLIC_KEY:$LANGFUSE_SECRET_KEY" http://localhost:3001/api/public/traces
+curl -fsS http://127.0.0.1:3001/api/public/health
+curl -fsS -u "$LANGFUSE_PUBLIC_KEY:$LANGFUSE_SECRET_KEY" http://127.0.0.1:3001/api/public/traces
 ```
 
 Open `https://${CORTEX_DOMAIN}:3001/` and confirm dashboard/Hermes/sandbox traces appear after traffic.

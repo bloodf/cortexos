@@ -1,6 +1,6 @@
 ---
 paperclip:
-  title:            "Code Reviewer"
+  title:            "Reviewer"
   role:             "REVIEWER"
   boss:             "CTO"
   monthlyBudgetUsd: 100

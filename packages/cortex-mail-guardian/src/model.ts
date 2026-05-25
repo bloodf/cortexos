@@ -49,14 +49,16 @@ export async function classifyEmail(config: ModelClientConfig, input: {
 	feedbackSummary?: string;
 }): Promise<ClassificationResult> {
 	const prompt = [
-		"Classify this email for a personal spam guardian.",
+		"Classify this email for a personal spam guardian that quarantines suspicious mail before owner review.",
 		"Return only JSON with keys: verdict, confidence, reasons, riskSignals.",
 		"verdict must be spam, not_spam, or uncertain. confidence is 0..1.",
-		"Prefer uncertain when personal, transactional, or relationship context may matter.",
+		"Use spam for unsolicited marketing, scams, phishing, suspicious attachments, fake invoices, credential requests, investment pitches, and mass outreach.",
+		"Use not_spam only when the message is clearly personal, expected, transactional, or account-related.",
+		"Use uncertain for borderline cases that should leave the Inbox for owner review.",
 		input.feedbackSummary ? `Prior owner feedback summary:\n${input.feedbackSummary}` : "",
 		`From: ${input.from}`,
 		`Subject: ${input.subject}`,
-		`Body:\n${input.text.slice(0, 12000)}`,
+		`Body:\n${input.text.slice(0, 60000)}`,
 	].filter(Boolean).join("\n\n");
 	const res = await fetch(`${config.baseUrl.replace(/\/+$/, "")}/chat/completions`, {
 		method: "POST",
@@ -68,7 +70,7 @@ export async function classifyEmail(config: ModelClientConfig, input: {
 		body: JSON.stringify({
 			model: config.model,
 			messages: [
-				{ role: "system", content: "You are a fast, conservative email spam classifier." },
+				{ role: "system", content: "You are a fast email spam classifier. Be aggressive about quarantining unsolicited or risky mail, but keep clearly legitimate mail." },
 				{ role: "user", content: prompt },
 			],
 			temperature: 0,
@@ -99,17 +101,68 @@ function parseChatCompletionBody(raw: string): { choices?: Array<{ message?: { c
 	return JSON.parse(trimmed) as { choices?: Array<{ message?: { content?: string } }> };
 }
 
-export function shouldAutoTrash(input: {
+export function heuristicSpamScore(input: { from: string; subject: string; text: string }): number {
+	const haystack = `${input.from}\n${input.subject}\n${input.text.slice(0, 20000)}`.toLowerCase();
+	const patterns = [
+		/\burgent action required\b/,
+		/\bverify (your )?(account|password|wallet)\b/,
+		/\b(password|account) (expires|suspended|locked)\b/,
+		/\bcrypto(currency)?\b/,
+		/\bforex\b/,
+		/\bcasino\b/,
+		/\bwinner\b/,
+		/\bprize\b/,
+		/\bgift card\b/,
+		/\bloans? approved\b/,
+		/\bseo\b/,
+		/\bleads? generation\b/,
+		/\bwhatsapp marketing\b/,
+		/\bexclusive offer\b/,
+		/\blimited time\b/,
+		/\bact now\b/,
+		/\bunsubscribe\b/,
+		/\bclick here\b/,
+		/\bbit\.ly\//,
+		/\btinyurl\.com\//,
+	];
+	return patterns.reduce((score, pattern) => score + (pattern.test(haystack) ? 1 : 0), 0);
+}
+
+export function shouldAutoQuarantine(input: {
 	classification: ClassificationResult;
 	verification: ClassificationResult;
 	threshold: number;
 	hasAllowRule: boolean;
+	heuristicScore?: number;
 }): boolean {
 	if (input.hasAllowRule) return false;
-	return input.classification.verdict === "spam" &&
+	const classifierSpam =
+		input.classification.verdict === "spam" &&
 		input.verification.verdict === "spam" &&
 		input.classification.confidence >= input.threshold &&
-		input.verification.confidence >= input.threshold &&
+		input.verification.confidence >= input.threshold;
+	const strongSinglePass =
+		(input.classification.verdict === "spam" && input.classification.confidence >= 0.9) ||
+		(input.verification.verdict === "spam" && input.verification.confidence >= 0.9);
+	return classifierSpam || (strongSinglePass && (input.heuristicScore ?? 0) >= 1) || (input.heuristicScore ?? 0) >= 3;
+}
+
+export function shouldKeepInInbox(input: {
+	classification: ClassificationResult;
+	verification: ClassificationResult;
+	hasAllowRule: boolean;
+	heuristicScore?: number;
+}): boolean {
+	if (input.hasAllowRule) return true;
+	return input.classification.verdict === "not_spam" &&
+		input.verification.verdict === "not_spam" &&
+		input.classification.confidence >= 0.8 &&
+		input.verification.confidence >= 0.8 &&
 		input.classification.riskSignals.length === 0 &&
-		input.verification.riskSignals.length === 0;
+		input.verification.riskSignals.length === 0 &&
+		(input.heuristicScore ?? 0) === 0;
+}
+
+export function shouldAutoTrash(input: Parameters<typeof shouldAutoQuarantine>[0]): boolean {
+	return shouldAutoQuarantine(input);
 }

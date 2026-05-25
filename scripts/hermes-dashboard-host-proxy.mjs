@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 import http from "node:http";
 
-const listenHost = process.env.HERMES_DASHBOARD_PROXY_HOST || "localhost";
+const listenHost = process.env.HERMES_DASHBOARD_PROXY_HOST || "127.0.0.1";
 const listenPort = Number(process.env.HERMES_DASHBOARD_PROXY_PORT || 9120);
-const upstreamHost = process.env.HERMES_DASHBOARD_HOST || "localhost";
+const upstreamHost = process.env.HERMES_DASHBOARD_HOST || "127.0.0.1";
 const upstreamPort = Number(process.env.HERMES_DASHBOARD_PORT || 9119);
 
 const server = http.createServer((req, res) => {

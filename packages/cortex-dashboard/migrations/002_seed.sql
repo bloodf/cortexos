@@ -30,15 +30,14 @@ ON CONFLICT (slug) DO UPDATE SET
 
 -- AI
 INSERT INTO services (slug, name, kind, category, health_url, health_type, open_url, env_source, icon_type, sort_order) VALUES
-  ('9router',        '9Router',        'service', 'AI', 'http://localhost:11434/v1/models',    'http',    '#', '/opt/cortexos/.secrets/9router.env',       'cloud',    1),
-  ('honcho',         'Honcho',         'docker',  'AI', 'http://localhost:18690/health',       'http',    '#', '/opt/cortexos/.secrets/honcho.env',        'database', 2),
-  ('hermes-primary', 'Hermes Primary', 'service', 'AI', 'http://localhost:18691/health',       'http',    '#', '/opt/cortexos/.secrets/hermes/primary.env', 'brain',    3),
-  ('hermes-secondary', 'Hermes Secondary', 'service', 'AI', 'http://localhost:18692/health',       'http',    '#', '/opt/cortexos/.secrets/hermes/secondary.env', 'brain',    4),
-  ('hermes-dashboard', 'Hermes Web UI', 'service', 'AI', 'http://localhost:9119/', 'http', '#', NULL, 'brain', 5),
-  ('ollama',         'Ollama',         'service', 'AI', 'ollama.service',                       'systemd', '#', NULL,                                      'ollama',   6),
-  ('ollama-honcho-embeddings-proxy', 'Ollama Honcho Embeddings Proxy', 'service', 'AI', 'ollama-honcho-embeddings-proxy.service', 'systemd', '#', NULL, 'ollama', 7),
-  ('paperclip',      'Paperclip',      'app',     'AI', 'http://localhost:3033/api/health',    'http',    '#', '/opt/cortexos/.secrets/paperclip.env',      'cloud',    8),
-  ('kernel-browser', 'Kernel Browser', 'docker',  'AI', 'http://localhost:9222/json/version',  'http',    '#', '/opt/cortexos/.secrets/kernel-browser.env', 'browser',  9)
+  ('9router',        '9Router',        'service', 'AI', 'http://127.0.0.1:11434/v1/models',    'http',    '#', '/opt/cortexos/.secrets/9router.env',       'cloud',    1),
+  ('honcho',         'Honcho',         'docker',  'AI', 'http://127.0.0.1:18690/health',       'http',    '#', '/opt/cortexos/.secrets/honcho.env',        'database', 2),
+  ('hermes-primary', 'Hermes Primary', 'service', 'AI', 'http://127.0.0.1:18691/health',       'http',    '#', '/opt/cortexos/.secrets/hermes/primary.env', 'brain',    3),
+  ('hermes-secondary', 'Hermes Secondary', 'service', 'AI', 'http://127.0.0.1:18692/health',       'http',    '#', '/opt/cortexos/.secrets/hermes/secondary.env', 'brain',    4),
+  ('ollama',         'Ollama',         'service', 'AI', 'ollama.service',                       'systemd', '#', NULL,                                      'ollama',   5),
+  ('ollama-honcho-embeddings-proxy', 'Ollama Honcho Embeddings Proxy', 'service', 'AI', 'ollama-honcho-embeddings-proxy.service', 'systemd', '#', NULL, 'ollama', 6),
+  ('paperclip',      'Paperclip',      'app',     'AI', 'http://127.0.0.1:3033/api/health',    'http',    '#', '/opt/cortexos/.secrets/paperclip.env',      'cloud',    7),
+  ('kernel-browser', 'Kernel Browser', 'docker',  'AI', 'http://127.0.0.1:9222/json/version',  'http',    '#', '/opt/cortexos/.secrets/kernel-browser.env', 'browser',  8)
 ON CONFLICT (slug) DO UPDATE SET
   name = EXCLUDED.name,
   kind = EXCLUDED.kind,
@@ -53,9 +52,9 @@ ON CONFLICT (slug) DO UPDATE SET
 
 -- Infrastructure
 INSERT INTO services (slug, name, kind, category, health_url, health_type, open_url, env_source, icon_type, sort_order) VALUES
-  ('floci',      'Floci',      'docker',  'Infrastructure', 'http://localhost:4566/_localstack/health', 'http',    '#', '/opt/cortexos/stacks/floci/.env',  'cloud',   2),
-  ('cockpit',    'Cockpit',    'service', 'Infrastructure', 'tcp://localhost:9091',                     'tcp',     '#', NULL,                             'server',  3),
-  ('webmin',     'Webmin',     'service', 'Infrastructure', 'tcp://localhost:10000',                    'tcp',     '#', NULL,                             'server',  4),
+  ('floci',      'Floci',      'docker',  'Infrastructure', 'http://127.0.0.1:4566/_localstack/health', 'http',    '#', '/opt/cortexos/stacks/floci/.env',  'cloud',   2),
+  ('cockpit',    'Cockpit',    'service', 'Infrastructure', 'tcp://127.0.0.1:9091',                     'tcp',     '#', NULL,                             'server',  3),
+  ('webmin',     'Webmin',     'service', 'Infrastructure', 'tcp://127.0.0.1:10000',                    'tcp',     '#', NULL,                             'server',  4),
   ('watchtower', 'Watchtower', 'docker',  'Infrastructure', 'watchtower',                                          'docker',  '#', NULL,                             'monitor', 5),
   ('tailscale',  'Tailscale',  'process', 'Infrastructure', 'tailscaled',                                          'process', '#', NULL,                             'server',  6),
   ('dnsmasq',    'DNSmasq',    'process', 'Infrastructure', 'dnsmasq',                                             'process', '#', NULL,                             'server',  7),
@@ -74,9 +73,9 @@ ON CONFLICT (slug) DO UPDATE SET
 
 -- Database (MySQL excluded per policy; MongoDB retained pending questionnaire flag)
 INSERT INTO services (slug, name, kind, category, health_url, health_type, open_url, env_source, icon_type, sort_order) VALUES
-  ('postgresql', 'PostgreSQL', 'docker',  'Database', 'tcp://localhost:5432',          'tcp',  '#', '/opt/cortexos/.secrets/postgres.env', 'postgresql', 1),
-  ('redis',      'Redis',      'docker',  'Database', 'tcp://localhost:6379',          'tcp',  '#', '/opt/cortexos/.secrets/redis.env',    'redis',      2),
-  ('mongodb',    'MongoDB',    'docker',  'Database', 'tcp://localhost:27017',         'tcp',  '#', '/opt/cortexos/.secrets/mongodb.env',  'database',   3)
+  ('postgresql', 'PostgreSQL', 'docker',  'Database', 'tcp://127.0.0.1:5432',          'tcp',  '#', '/opt/cortexos/.secrets/postgres.env', 'postgresql', 1),
+  ('redis',      'Redis',      'docker',  'Database', 'tcp://127.0.0.1:6379',          'tcp',  '#', '/opt/cortexos/.secrets/redis.env',    'redis',      2),
+  ('mongodb',    'MongoDB',    'docker',  'Database', 'tcp://127.0.0.1:27017',         'tcp',  '#', '/opt/cortexos/.secrets/mongodb.env',  'database',   3)
 ON CONFLICT (slug) DO UPDATE SET
   name = EXCLUDED.name,
   kind = EXCLUDED.kind,
@@ -91,7 +90,7 @@ ON CONFLICT (slug) DO UPDATE SET
 
 -- Home
 INSERT INTO services (slug, name, kind, category, health_url, health_type, open_url, env_source, icon_type, sort_order) VALUES
-  ('home-assistant', 'Home Assistant', 'docker', 'Home', 'http://localhost:8123', 'http', '#', '/opt/cortexos/stacks/home-assistant/.env', 'home', 1)
+  ('home-assistant', 'Home Assistant', 'docker', 'Home', 'http://127.0.0.1:8123', 'http', '#', '/opt/cortexos/stacks/home-assistant/.env', 'home', 1)
 ON CONFLICT (slug) DO UPDATE SET
   name = EXCLUDED.name,
   kind = EXCLUDED.kind,
@@ -106,7 +105,7 @@ ON CONFLICT (slug) DO UPDATE SET
 
 -- Media
 INSERT INTO services (slug, name, kind, category, health_url, health_type, open_url, env_source, icon_type, sort_order) VALUES
-  ('jellyfin', 'Jellyfin', 'docker', 'Media', 'http://localhost:8096/health', 'http', '#', '/opt/cortexos/stacks/jellyfin/.env', 'jellyfin', 1)
+  ('jellyfin', 'Jellyfin', 'docker', 'Media', 'http://127.0.0.1:8096/health', 'http', '#', '/opt/cortexos/stacks/jellyfin/.env', 'jellyfin', 1)
 ON CONFLICT (slug) DO UPDATE SET
   name = EXCLUDED.name,
   kind = EXCLUDED.kind,
@@ -121,18 +120,18 @@ ON CONFLICT (slug) DO UPDATE SET
 
 -- Monitoring (MySQL exporter excluded with MySQL)
 INSERT INTO services (slug, name, kind, category, health_url, health_type, open_url, env_source, icon_type, sort_order) VALUES
-  ('dockhand',       'Dockhand',       'docker',  'Monitoring', 'http://localhost:3420',            'http',    '#', '/opt/cortexos/stacks/dockhand/.env',       'monitor', 1),
-  ('grafana',        'Grafana',        'service', 'Monitoring', 'http://localhost:3000/api/health', 'http',    '#', '/opt/cortexos/stacks/grafana/.env',        'monitor', 2),
-  ('prometheus',     'Prometheus',     'service', 'Monitoring', 'http://localhost:9090/-/healthy',  'http',    '#', '/opt/cortexos/stacks/prometheus/.env',     'monitor', 3),
-  ('loki',           'Loki',           'service', 'Monitoring', 'http://localhost:3100/ready',      'http',    '#', '/opt/cortexos/stacks/loki/.env',           'monitor', 4),
+  ('dockhand',       'Dockhand',       'docker',  'Monitoring', 'http://127.0.0.1:3420',            'http',    '#', '/opt/cortexos/stacks/dockhand/.env',       'monitor', 1),
+  ('grafana',        'Grafana',        'service', 'Monitoring', 'http://127.0.0.1:3000/api/health', 'http',    '#', '/opt/cortexos/stacks/grafana/.env',        'monitor', 2),
+  ('prometheus',     'Prometheus',     'service', 'Monitoring', 'http://127.0.0.1:9090/-/healthy',  'http',    '#', '/opt/cortexos/stacks/prometheus/.env',     'monitor', 3),
+  ('loki',           'Loki',           'service', 'Monitoring', 'http://127.0.0.1:3100/ready',      'http',    '#', '/opt/cortexos/stacks/loki/.env',           'monitor', 4),
   ('fluent-bit',     'Fluent Bit',     'service', 'Monitoring', 'fluent-bit',                                  'process',  '#', '/opt/cortexos/stacks/fluent-bit/.env',     'monitor', 5),
   ('promtail',       'Promtail',       'process', 'Monitoring', 'promtail',                                    'process', '#', NULL,                                     'monitor', 6),
-  ('cadvisor',       'cAdvisor',       'docker',  'Monitoring', 'http://localhost:8081/metrics',    'http',    '#', NULL,                                     'monitor', 7),
-  ('node-exporter',  'Node Exporter',  'service', 'Monitoring', 'http://localhost:9100/metrics',    'http',    '#', NULL,                                     'monitor', 8),
-  ('otel-collector', 'OTel Collector', 'docker',  'Monitoring', 'tcp://localhost:4317',             'tcp',     '#', '/opt/cortexos/stacks/otel/.env',           'monitor', 9),
-  ('pg-exporter',    'PG Exporter',    'docker',  'Monitoring', 'http://localhost:9187/metrics',    'http',    '#', '/opt/cortexos/stacks/pg-exporter/.env',    'monitor', 10),
-  ('redis-exporter', 'Redis Exporter', 'docker',  'Monitoring', 'http://localhost:9121/metrics',    'http',    '#', '/opt/cortexos/stacks/redis-exporter/.env', 'monitor', 11),
-  ('mongo-exporter', 'Mongo Exporter', 'docker',  'Monitoring', 'http://localhost:9216/metrics',    'http',    '#', '/opt/cortexos/stacks/mongo-exporter/.env', 'monitor', 12)
+  ('cadvisor',       'cAdvisor',       'docker',  'Monitoring', 'http://127.0.0.1:8081/metrics',    'http',    '#', NULL,                                     'monitor', 7),
+  ('node-exporter',  'Node Exporter',  'service', 'Monitoring', 'http://127.0.0.1:9100/metrics',    'http',    '#', NULL,                                     'monitor', 8),
+  ('otel-collector', 'OTel Collector', 'docker',  'Monitoring', 'tcp://127.0.0.1:4317',             'tcp',     '#', '/opt/cortexos/stacks/otel/.env',           'monitor', 9),
+  ('pg-exporter',    'PG Exporter',    'docker',  'Monitoring', 'http://127.0.0.1:9187/metrics',    'http',    '#', '/opt/cortexos/stacks/pg-exporter/.env',    'monitor', 10),
+  ('redis-exporter', 'Redis Exporter', 'docker',  'Monitoring', 'http://127.0.0.1:9121/metrics',    'http',    '#', '/opt/cortexos/stacks/redis-exporter/.env', 'monitor', 11),
+  ('mongo-exporter', 'Mongo Exporter', 'docker',  'Monitoring', 'http://127.0.0.1:9216/metrics',    'http',    '#', '/opt/cortexos/stacks/mongo-exporter/.env', 'monitor', 12)
 ON CONFLICT (slug) DO UPDATE SET
   name = EXCLUDED.name,
   kind = EXCLUDED.kind,
@@ -147,7 +146,7 @@ ON CONFLICT (slug) DO UPDATE SET
 
 -- Dashboard (self)
 INSERT INTO services (slug, name, kind, category, health_url, health_type, open_url, env_source, icon_type, sort_order) VALUES
-  ('cortex-dashboard', 'Cortex Dashboard', 'service', 'Infrastructure', 'http://localhost:3080/en/login', 'http', '#', '/opt/cortexos/.secrets/dashboard.env', 'server', 9)
+  ('cortex-dashboard', 'Cortex Dashboard', 'service', 'Infrastructure', 'http://127.0.0.1:3080/en/login', 'http', '#', '/opt/cortexos/.secrets/dashboard.env', 'server', 9)
 ON CONFLICT (slug) DO UPDATE SET
   name = EXCLUDED.name,
   kind = EXCLUDED.kind,
@@ -186,19 +185,19 @@ UPDATE services SET has_webui = false, show_in_webui = false WHERE open_url  = '
 -- AI category
 INSERT INTO service_badges (service_id, badge_id)
 SELECT s.id, b.id FROM services s, badges b
-WHERE s.slug IN ('9router','honcho','hermes-primary','hermes-secondary','hermes-dashboard','ollama','ollama-honcho-embeddings-proxy','paperclip','kernel-browser')
+WHERE s.slug IN ('9router','honcho','hermes-primary','hermes-secondary','ollama','ollama-honcho-embeddings-proxy','paperclip','kernel-browser')
   AND b.slug = 'ai'
 ON CONFLICT (service_id, badge_id) DO NOTHING;
 
 INSERT INTO service_badges (service_id, badge_id)
 SELECT s.id, b.id FROM services s, badges b
-WHERE s.slug IN ('hermes-primary','hermes-secondary','hermes-dashboard')
+WHERE s.slug IN ('hermes-primary','hermes-secondary')
   AND b.slug = 'agent'
 ON CONFLICT (service_id, badge_id) DO NOTHING;
 
 INSERT INTO service_badges (service_id, badge_id)
 SELECT s.id, b.id FROM services s, badges b
-WHERE s.slug IN ('9router','honcho','hermes-primary','hermes-secondary','hermes-dashboard','paperclip')
+WHERE s.slug IN ('9router','honcho','hermes-primary','hermes-secondary','paperclip')
   AND b.slug = 'api'
 ON CONFLICT (service_id, badge_id) DO NOTHING;
 
@@ -267,59 +266,8 @@ WHERE s.slug IN ('grafana','dockhand')
   AND b.slug = 'app'
 ON CONFLICT (service_id, badge_id) DO NOTHING;
 
--- ============================================================
--- Current project/factory seeds. Secrets and personal channel tokens are never
--- stored here; runtime integration uses Paperclip, Hermes profiles, and Honcho.
--- ============================================================
-
--- Project/factory seeds are generic. Real projects are created through the
--- dashboard Projects page or installer configuration; do not seed private
--- project names in the public repo.
-
-INSERT INTO agent_factories (slug, name, kind, schema_version, definition, created_by)
-VALUES (
-  'paperclip-project-template',
-  'Paperclip Project Template',
-  'project',
-  3,
-  '{
-    "template":"templates/agent-factory/README.md",
-    "markdownFile":"README.md",
-    "apps":["paperclip","honcho","9router","cortex-dashboard","langfuse"],
-    "paperclip":{
-      "organization_kind":"project_team",
-      "project_slug":"example-project",
-      "seat_model":"position",
-      "adapter":"hermes_local",
-      "hermes_profile_pattern":"{project}",
-      "honcho_workspace_pattern":"{project}",
-      "required_positions":[
-        {"seat":"pm","title":"Product Manager","paperclip_role":"PM","count":1},
-        {"seat":"cto","title":"CTO","paperclip_role":"CTO","count":1},
-        {"seat":"eng-backend","title":"Backend Engineer","paperclip_role":"ENG-BACKEND","count":1},
-        {"seat":"eng-frontend","title":"Frontend Engineer","paperclip_role":"ENG-FRONTEND","count":1},
-        {"seat":"qa","title":"QA Engineer","paperclip_role":"QA","count":1}
-      ],
-      "optional_positions":[
-        {"seat":"ceo","title":"CEO","paperclip_role":"CEO","count":1},
-        {"seat":"po","title":"Product Owner","paperclip_role":"PO","count":1},
-        {"seat":"staff-eng","title":"Staff Engineer","paperclip_role":"STAFF-ENG","count":1},
-        {"seat":"uxui","title":"UX/UI Designer","paperclip_role":"UXUI","count":1},
-        {"seat":"eng-mobile","title":"Mobile Engineer","paperclip_role":"ENG-MOBILE","count":1},
-        {"seat":"eng-esp32","title":"ESP32 Engineer","paperclip_role":"ENG-ESP32","count":1}
-      ],
-      "agent_slug_pattern":"{project}-{seat}",
-      "ticket_link_table":"paperclip_ticket_link"
-    }
-  }'::jsonb,
-  'system'
-)
-ON CONFLICT (slug) DO UPDATE SET
-  name = EXCLUDED.name,
-  kind = EXCLUDED.kind,
-  schema_version = EXCLUDED.schema_version,
-  definition = EXCLUDED.definition,
-  updated_at = NOW();
+-- Agent factory definitions are not seeded by the dashboard. Cortex Hermes is
+-- the only actor allowed to create or mutate factories.
 
 -- Config
 INSERT INTO config (key, value) VALUES

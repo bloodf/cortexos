@@ -3,30 +3,6 @@
 import * as React from "react";
 import { usePathname, Link } from "@/i18n/routing";
 import {
-	Activity,
-	LayoutGrid,
-	HeartPulse,
-	Bot,
-	Container,
-	Server,
-	HardDrive,
-	Network,
-	Box,
-	Terminal,
-	Shield,
-	UserCog,
-	Paperclip,
-	Settings,
-	Tag,
-	FileCode,
-	Factory,
-	Bell,
-	FolderKanban,
-	ScrollText,
-	Mail,
-	PackageOpen,
-} from "lucide-react";
-import {
 	Sidebar,
 	SidebarHeader,
 	SidebarContent,
@@ -37,50 +13,14 @@ import {
 } from "@/components/ui/sidebar";
 import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
+import { visibleNavGroups, type NavItem } from "@/components/navigation/nav-config";
 import { cn } from "@/lib/utils";
-
-interface NavItem {
-	href: string;
-	label: string;
-	icon: React.ComponentType<{ className?: string }>;
-}
-
-const PRIMARY_NAV: NavItem[] = [
-	{ href: "/overview", label: "Overview", icon: Activity },
-	{ href: "/apps", label: "Apps", icon: LayoutGrid },
-	{ href: "/services", label: "Services", icon: Settings },
-	{ href: "/healthcheck", label: "Healthcheck", icon: HeartPulse },
-	{ href: "/agents", label: "Agents", icon: Bot },
-	{ href: "/agent-factory", label: "Agent Factory", icon: Factory },
-	{ href: "/docker", label: "Docker", icon: Container },
-	{ href: "/systemd", label: "Systemd", icon: Server },
-	{ href: "/updates", label: "Updates", icon: PackageOpen },
-	{ href: "/storage", label: "Storage", icon: HardDrive },
-	{ href: "/network", label: "Network", icon: Network },
-	{ href: "/processes", label: "Processes", icon: Box },
-	{ href: "/terminal", label: "Terminal", icon: Terminal },
-	{ href: "/alerts", label: "Alerts", icon: Bell },
-	{ href: "/mail-guardian", label: "Mail Guardian", icon: Mail },
-	{ href: "/projects", label: "Projects", icon: FolderKanban },
-	{ href: "/users", label: "Users", icon: UserCog },
-	{ href: "/badges", label: "Badges", icon: Tag },
-	{ href: "/env-browser", label: "Env Browser", icon: FileCode },
-	{ href: "/audit", label: "Audit", icon: ScrollText },
-	{ href: "/tool-audit", label: "Tool Audit", icon: Shield },
-];
-
-const PAPERCLIP_NAV: NavItem = {
-	href: "/paperclip",
-	label: "Paperclip",
-	icon: Paperclip,
-};
-const PAPERCLIP_ENABLED = Boolean(process.env.NEXT_PUBLIC_PAPERCLIP_API_URL);
-
 
 export function AppSidebar() {
 	const pathname = usePathname();
 	const { open, isMobile } = useSidebar();
 	const collapsed = !open && !isMobile;
+	const groups = visibleNavGroups();
 
 	return (
 		<Sidebar mobileTitle="Navigation">
@@ -94,21 +34,19 @@ export function AppSidebar() {
 				</div>
 			</SidebarHeader>
 			<SidebarContent>
-				<SidebarGroup>
-					{!collapsed && <SidebarGroupLabel>Main</SidebarGroupLabel>}
-					{PRIMARY_NAV.map((item) => (
-						<NavLink key={item.href} item={item} active={isActive(pathname, item.href)} collapsed={collapsed} />
-					))}
-					{PAPERCLIP_ENABLED && (
-						<NavLink
-							key={PAPERCLIP_NAV.href}
-							item={PAPERCLIP_NAV}
-							active={isActive(pathname, PAPERCLIP_NAV.href)}
-							collapsed={collapsed}
-						/>
-					)}
-				</SidebarGroup>
-
+				{groups.map((group) => (
+					<SidebarGroup key={group.label} className={collapsed ? "items-center" : undefined}>
+						{!collapsed && <SidebarGroupLabel>{group.label}</SidebarGroupLabel>}
+						{group.items.map((item) => (
+							<NavLink
+								key={item.href}
+								item={item}
+								active={isActive(pathname, item.href)}
+								collapsed={collapsed}
+							/>
+						))}
+					</SidebarGroup>
+				))}
 			</SidebarContent>
 			<SidebarFooter>
 				<div className={cn("flex items-center gap-2", collapsed && "flex-col")}>
@@ -147,10 +85,10 @@ function NavLink({
 				compact && "text-xs",
 				collapsed && "justify-center px-1.5",
 			)}
-			title={collapsed ? item.label : undefined}
+			title={collapsed ? item.labelKey : undefined}
 		>
 			<Icon className="size-4 shrink-0" />
-			{!collapsed && <span className="truncate">{item.label}</span>}
+			{!collapsed && <span className="truncate">{item.labelKey}</span>}
 		</Link>
 	);
 }

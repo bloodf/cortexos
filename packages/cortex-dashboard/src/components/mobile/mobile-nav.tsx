@@ -10,59 +10,15 @@ import {
 	SheetTitle,
 	SheetTrigger,
 } from "@/components/ui/sheet";
-import {
-	Activity,
-	LayoutGrid,
-	HeartPulse,
-	Bot,
-	Container,
-	Server,
-	Network,
-	Factory,
-	Tag,
-	FileCode,
-	FolderKanban,
-	ScrollText,
-	Shield,
-	Bell,
-	Box,
-	HardDrive,
-	Terminal,
-	Menu,
-	Mail,
-	PackageOpen,
-} from "lucide-react";
-
-const navConfig = [
-	{ href: "/overview", labelKey: "Overview", icon: Activity },
-	{ href: "/alerts", labelKey: "Alerts", icon: Bell },
-	{ href: "/mail-guardian", labelKey: "Mail Guardian", icon: Mail },
-	{ href: "/apps", labelKey: "Apps", icon: LayoutGrid },
-	{ href: "/services", labelKey: "Services", icon: HeartPulse },
-	{ href: "/agents", labelKey: "Agents", icon: Bot },
-	{ href: "/agent-factory", labelKey: "Agent Factory", icon: Factory },
-	{ href: "/docker", labelKey: "Docker", icon: Container },
-	{ href: "/systemd", labelKey: "Systemd", icon: Server },
-	{ href: "/updates", labelKey: "Updates", icon: PackageOpen },
-	{ href: "/storage", labelKey: "Storage", icon: HardDrive },
-	{ href: "/network", labelKey: "Network", icon: Network },
-	{ href: "/processes", labelKey: "Processes", icon: Box },
-	{ href: "/terminal", labelKey: "Terminal", icon: Terminal },
-	{ href: "/projects", labelKey: "Projects", icon: FolderKanban },
-	{ href: "/badges", labelKey: "Badges", icon: Tag },
-	{ href: "/env-browser", labelKey: "Env Browser", icon: FileCode },
-	{ href: "/audit", labelKey: "Audit", icon: ScrollText },
-	{ href: "/tool-audit", labelKey: "Tool Audit", icon: Shield },
-];
+import { Menu } from "lucide-react";
+import { quickNavItems, visibleNavGroups } from "@/components/navigation/nav-config";
 
 export function MobileNav() {
 	const pathname = usePathname();
 	const t = useTranslations("Navigation");
 	const [open, setOpen] = useState(false);
-
-	const _activeItem = navConfig.find(
-		(item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
-	);
+	const navGroups = visibleNavGroups();
+	const bottomItems = quickNavItems();
 
 	return (
 		<>
@@ -89,29 +45,36 @@ export function MobileNav() {
 								</SheetTitle>
 							</div>
 						</SheetHeader>
-						<nav className="flex flex-col gap-1 p-3" aria-label="Mobile navigation">
-							{navConfig.map((item) => {
-								const isActive =
-									pathname === item.href || pathname.startsWith(`${item.href}/`);
-								return (
-								<Link
-									key={item.href}
-									href={item.href}
-									onClick={() => setOpen(false)}
-									className={`flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors min-h-[44px] touch-manipulation ${
-										isActive
-											? "bg-secondary text-foreground"
-											: "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
-									}`}
-								>
-									<item.icon className="w-5 h-5 shrink-0" />
-									<span>{t(item.labelKey)}</span>
-								</Link>
-								);
-								})}
-							</nav>
-						</SheetContent>
-					</Sheet>
+						<nav className="flex flex-col gap-4 p-3" aria-label="Mobile navigation">
+							{navGroups.map((group) => (
+								<div key={group.label} className="space-y-1">
+									<div className="px-3 pb-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+										{group.label}
+									</div>
+									{group.items.map((item) => {
+										const isActive =
+											pathname === item.href || pathname.startsWith(`${item.href}/`);
+										return (
+										<Link
+											key={item.href}
+											href={item.href}
+											onClick={() => setOpen(false)}
+											className={`flex min-h-[44px] touch-manipulation items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors ${
+												isActive
+													? "bg-secondary text-foreground"
+													: "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+											}`}
+										>
+											<item.icon className="h-5 w-5 shrink-0" />
+											<span>{t(item.labelKey)}</span>
+										</Link>
+										);
+									})}
+								</div>
+							))}
+						</nav>
+					</SheetContent>
+				</Sheet>
 				</div>
 
 			{/* Bottom fixed nav bar for quick access */}
@@ -120,7 +83,7 @@ export function MobileNav() {
 				aria-label="Bottom navigation"
 			>
 				<div className="flex items-center justify-around px-2 py-2">
-					{navConfig.slice(0, 5).map((item) => {
+					{bottomItems.map((item) => {
 						const isActive =
 							pathname === item.href || pathname.startsWith(`${item.href}/`);
 						return (

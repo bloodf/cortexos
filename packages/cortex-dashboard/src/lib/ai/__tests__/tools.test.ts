@@ -168,9 +168,8 @@ describe("per-tool sliding-window rate limit (M-9)", () => {
 	});
 
 	it("tools without rate_limit_per_15min are unrestricted", async () => {
-		// Real policy.json — `propose_role` is safe and has no rate_limit field.
-		// vps_status uses real policy (60/15min) which is far above what this
-		// loop produces, so it's a safe negative check too.
+		// vps_status uses real policy (60/15min), which is far above what this
+		// loop produces, so this verifies unrestricted calls remain allowed.
 		const tools = getAllTools(ctx);
 		for (let i = 0; i < 10; i++) {
 			const out = await runExec(tools.vps_status, {});

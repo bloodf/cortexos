@@ -1,53 +1,70 @@
 # Final Validation
 
-## Purpose
+## Chat Input Gate
 
-Validate the Paperclip + Hermes + Honcho CortexOS stack.
+This prompt follows `prompts/CHAT-INPUT-CONTRACT.md`. Do not assume any
+operator-specific environment variables are already defined. Before using a
+value such as a host, user, domain, token, password, project path, profile name,
+or service URL, ask a **STOP — input question**, wait for the operator's answer,
+and then substitute that answer into the commands you produce.
 
-## Checks
+Purpose: prove the installed machine matches the public-safe CortexOS runtime
+contract.
 
-- 9Router exposes the configured Hermes chat models.
-- Honcho is healthy on `127.0.0.1:18690`.
-- Ollama is healthy on `127.0.0.1:11435` and returns 768-dimensional
-  `nomic-embed-text:latest` embeddings.
-- Honcho containers can reach Ollama through
-  `172.30.0.1:11435` and 9Router through `172.17.0.1:11434`.
-- Honcho deriver is running; deriver, summary, dialectic, and dream all route
-  through 9Router, while embeddings route through Ollama.
-- Hermes Primary is healthy on `127.0.0.1:18691`.
-- Hermes Secondary is healthy on `127.0.0.1:18692`.
-- Paperclip can execute a Hermes run for each profile.
-- Coding Hermes profiles expose the configured MCP tool names after MCP reload
-  or service restart.
-- Dashboard service catalog contains Hermes/Honcho/Paperclip and no active
-  retired agent-workflow services.
-- Local-machine API access works through Caddy/Tailscale with auth and fails
-  without auth.
-
-## Commands
+## Runtime Checks
 
 ```bash
+set -euo pipefail
+
+systemctl --failed --no-pager
+
 set -a
 source /opt/cortexos/.secrets/9router.env
 set +a
 
 curl -fsS -H "Authorization: Bearer ${NINEROUTER_API_KEY}" \
-  "${NINEROUTER_BASE_URL%/}/v1/models" | jq -e '.data[].id | select(.=="cx/gpt-5.5")'
+  "${NINEROUTER_BASE_URL%/}/v1/models" | jq -e '.data | length > 0'
 
 curl -fsS http://127.0.0.1:18690/health
 curl -fsS http://127.0.0.1:18691/health
 curl -fsS http://127.0.0.1:18692/health
-
-CORTEX_FULL_PIPELINE_SMOKE=1 bash scripts/cortex-production-readiness.sh
+curl -fsS http://127.0.0.1:3033/api/health
+curl -fsS http://127.0.0.1:3034/api/health
+curl -fsS -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3080/en/login
 ```
 
-## Repository Gate
+Expected:
 
-Active installer prompts, templates, dashboard code, and scripts must describe
-only the Paperclip, Hermes, Honcho, Ollama, and 9Router runtime.
-They must not contain live secrets, tenant URLs, private endpoints, local
-absolute paths, or tracked non-Cortex generated agent profiles.
+- No failed systemd units.
+- 9Router returns at least one model.
+- Honcho, baseline Hermes profiles, Paperclip, and dashboard respond locally.
+
+## Repository Gates
 
 ```bash
-node scripts/check-repo-leaks.mjs
+rtk pnpm check:repo-leaks
+rtk pnpm audit:runtime-sync -- --strict
+rtk pnpm --filter cortexos-scripts test
+rtk pnpm --filter @cortexos/dashboard test
 ```
+
+Expected: all pass.
+
+## Public-Safety Gate
+
+The repository must not contain tokens, provider keys, private hostnames,
+private project names, channel IDs, generated profile state, Paperclip data,
+Honcho data, or machine logs. Dashboard migrations may include generic
+loopback endpoints and `/opt/cortexos` paths only.
+
+## Paperclip Clean-State Check
+
+For a fresh machine:
+
+```bash
+psql "${PAPERCLIP_DB_URL:-postgres://paperclip:paperclip@127.0.0.1:54329/paperclip}" \
+  -v ON_ERROR_STOP=1 -At \
+  -c "select json_build_object('issues',(select count(*) from issues),'runs',(select count(*) from heartbeat_runs),'comments',(select count(*) from issue_comments));"
+```
+
+Expected before real work: zero issues, zero runs, zero comments.

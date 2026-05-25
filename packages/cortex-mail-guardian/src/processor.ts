@@ -2,7 +2,7 @@ import type { GuardianConfig, MailAccountConfig } from "./config.js";
 import type { MailClient, MailMessage } from "./imap.js";
 import type { GuardianStore } from "./store.js";
 import type { TelegramClient, TelegramUpdate } from "./telegram.js";
-import { classifyEmail, shouldAutoTrash } from "./model.js";
+import { classifyEmail, heuristicSpamScore, shouldAutoQuarantine, shouldKeepInInbox } from "./model.js";
 import { redactEmail } from "./redact.js";
 
 export interface ProcessDeps {
@@ -21,11 +21,12 @@ export function buildReviewMessage(input: {
 	reviewId: number;
 }): string {
 	return [
-		"Cortex mail guardian needs a decision.",
+		"📬 Cortex mail guardian needs a decision.",
 		`Account: ${input.accountAddress}`,
 		`From: ${input.from || "(unknown sender)"}`,
 		`Subject: ${input.subject || "(no subject)"}`,
 		`Verdict: ${input.verdict} (${input.confidence})`,
+		"Status: moved to the review folder while waiting.",
 		"",
 		"Reply to Cortex with one of:",
 		`mail guardian decide ${input.reviewId} spam`,
@@ -35,10 +36,11 @@ export function buildReviewMessage(input: {
 	].join("\n");
 }
 
-export async function processMessage(deps: ProcessDeps, account: MailAccountConfig, message: MailMessage): Promise<"trashed" | "review" | "skipped"> {
+export async function processMessage(deps: ProcessDeps, account: MailAccountConfig, message: MailMessage): Promise<"review" | "kept" | "skipped"> {
 	if (await deps.store.hasProcessed(account.slug, message.uid)) return "skipped";
 	const redacted = redactEmail({ from: message.from, subject: message.subject, text: message.text });
 	const hasAllowRule = await deps.store.hasAllowRule(redacted.fromHash, redacted.domainHash);
+	const heuristicScore = heuristicSpamScore(message);
 	const modelConfig = {
 		baseUrl: deps.config.nineRouterBaseUrl,
 		apiKey: deps.config.nineRouterApiKey,
@@ -57,25 +59,32 @@ export async function processMessage(deps: ProcessDeps, account: MailAccountConf
 		feedbackSummary: `Verify this action independently. Prior verdict: ${classification.verdict} at ${classification.confidence}.`,
 	});
 
-	if (shouldAutoTrash({
+	if (shouldKeepInInbox({
+		classification,
+		verification,
+		hasAllowRule,
+		heuristicScore,
+	})) {
+		await deps.store.markProcessed(account.slug, message.uid, "kept", message.messageId);
+		return "kept";
+	}
+
+	const autoQuarantine = shouldAutoQuarantine({
 		classification,
 		verification,
 		threshold: deps.config.confidenceThreshold,
 		hasAllowRule,
-	})) {
-		if (!deps.config.dryRun) await deps.mail.moveToTrash(account, message.uid);
-		await deps.store.markProcessed(account.slug, message.uid, deps.config.dryRun ? "would_trash" : "trashed", message.messageId);
-		return "trashed";
-	}
-
+		heuristicScore,
+	});
 	const reviewId = await deps.store.createPendingReview({
 		accountSlug: account.slug,
 		messageUid: message.uid,
 		messageId: message.messageId,
 		...redacted,
-		modelVerdict: classification.verdict,
+		modelVerdict: autoQuarantine ? "spam" : classification.verdict,
 		modelConfidence: classification.confidence,
 	});
+	if (!deps.config.dryRun) await deps.mail.moveToReview(account, message.uid);
 	if (deps.config.telegramOwnerChatId) {
 		await deps.telegram.sendMessage(
 			deps.config.telegramOwnerChatId,
@@ -89,11 +98,11 @@ export async function processMessage(deps: ProcessDeps, account: MailAccountConf
 			}),
 			{
 				inline_keyboard: [[
-					{ text: "Spam -> Trash", callback_data: `mg:${reviewId}:spam` },
-					{ text: "Not spam -> Keep", callback_data: `mg:${reviewId}:keep` },
+					{ text: "🗑️ Spam -> Trash", callback_data: `mg:${reviewId}:spam` },
+					{ text: "✅ Not spam -> Inbox", callback_data: `mg:${reviewId}:keep` },
 				], [
-					{ text: "Block sender", callback_data: `mg:${reviewId}:block_sender` },
-					{ text: "Allow sender", callback_data: `mg:${reviewId}:allow_sender` },
+					{ text: "🚫 Block sender", callback_data: `mg:${reviewId}:block_sender` },
+					{ text: "🛡️ Allow sender", callback_data: `mg:${reviewId}:allow_sender` },
 				]],
 			},
 		);
@@ -102,18 +111,37 @@ export async function processMessage(deps: ProcessDeps, account: MailAccountConf
 	return "review";
 }
 
-export async function sweep(deps: ProcessDeps): Promise<{ processed: number; trashed: number; review: number; skipped: number; failed: number }> {
+export async function sweep(deps: ProcessDeps): Promise<{ processed: number; trashed: number; review: number; kept: number; skipped: number; failed: number; actions: number }> {
 	let processed = 0;
 	let trashed = 0;
 	let review = 0;
+	let kept = 0;
 	let skipped = 0;
 	let failed = 0;
+	let actions = 0;
+	for (const action of await deps.store.claimPendingActions()) {
+		try {
+			await applyReviewDecision(deps, action.review_id, action.decision, action.approver);
+			await deps.store.completeAction(action.id);
+			actions += 1;
+		} catch (error) {
+			failed += 1;
+			await deps.store.failAction(action.id, error instanceof Error ? error.message : String(error));
+		}
+	}
 	for (const account of deps.config.accounts) {
 		let accountProcessed = 0;
-		const messages = await deps.mail.listInbox(account);
+		let messages: MailMessage[];
+		try {
+			messages = await deps.mail.listInbox(account);
+		} catch (error) {
+			failed += 1;
+			process.stderr.write(`[mail-guardian] ${account.slug} list failed: ${error instanceof Error ? error.message : String(error)}\n`);
+			continue;
+		}
 		for (const message of messages) {
 			if (accountProcessed >= deps.config.maxMessagesPerSweep) break;
-			let action: "trashed" | "review" | "skipped";
+			let action: "review" | "kept" | "skipped";
 			try {
 				action = await processMessage(deps, account, message);
 			} catch (error) {
@@ -127,11 +155,11 @@ export async function sweep(deps: ProcessDeps): Promise<{ processed: number; tra
 				continue;
 			}
 			accountProcessed += 1;
-			if (action === "trashed") trashed += 1;
-			else if (action === "review") review += 1;
+			if (action === "review") review += 1;
+			else if (action === "kept") kept += 1;
 		}
 	}
-	return { processed, trashed, review, skipped, failed };
+	return { processed, trashed, review, kept, skipped, failed, actions };
 }
 
 export async function handleTelegramUpdates(deps: ProcessDeps, updates: TelegramUpdate[]): Promise<number> {
@@ -170,10 +198,21 @@ export async function applyReviewDecision(deps: ProcessDeps, reviewId: number, d
 	const account = deps.config.accounts.find((item) => item.slug === review.account_slug);
 	if (!account) throw new Error(`account missing for review ${reviewId}`);
 	if (decision === "spam" || decision === "block_sender") {
-		if (!deps.config.dryRun) await deps.mail.moveToTrash(account, review.message_uid);
+		if (!deps.config.dryRun) {
+			await deps.mail.moveToTrash(account, review.message_uid, {
+				sourceMailbox: account.reviewMailbox,
+				messageId: review.message_id ?? undefined,
+			});
+		}
 		await deps.store.markProcessed(account.slug, review.message_uid, deps.config.dryRun ? "would_trash" : "trashed");
 		await deps.store.addRule("block", "sender", review.from_hash);
 	} else if (decision === "keep" || decision === "allow_sender") {
+		if (!deps.config.dryRun) {
+			await deps.mail.moveToInbox(account, review.message_uid, {
+				sourceMailbox: account.reviewMailbox,
+				messageId: review.message_id ?? undefined,
+			});
+		}
 		await deps.store.markProcessed(account.slug, review.message_uid, "kept");
 		if (decision === "allow_sender") await deps.store.addRule("allow", "sender", review.from_hash);
 	} else {

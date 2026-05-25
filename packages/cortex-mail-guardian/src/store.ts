@@ -18,8 +18,16 @@ export interface ReviewRecord {
 	id: number;
 	account_slug: string;
 	message_uid: number;
+	message_id?: string | null;
 	from_hash: string;
 	domain_hash: string;
+}
+
+export interface QueuedReviewDecision {
+	id: number;
+	review_id: number;
+	decision: "spam" | "keep" | "block_sender" | "allow_sender";
+	approver: string;
 }
 
 export class GuardianStore {
@@ -39,6 +47,26 @@ export class GuardianStore {
 
 	async close(): Promise<void> {
 		await this.pool.end();
+	}
+
+	async ensureSchema(): Promise<void> {
+		await this.pool.query(`
+			CREATE TABLE IF NOT EXISTS mail_guardian_actions (
+			  id BIGSERIAL PRIMARY KEY,
+			  review_id BIGINT NOT NULL REFERENCES mail_guardian_reviews(id) ON DELETE CASCADE,
+			  decision TEXT NOT NULL CHECK (decision IN ('spam','keep','block_sender','allow_sender')),
+			  approver TEXT NOT NULL DEFAULT 'dashboard',
+			  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','processing','done','failed')),
+			  requested_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+			  processed_at TIMESTAMPTZ,
+			  error TEXT
+			)
+		`);
+		await this.pool.query(`
+			CREATE INDEX IF NOT EXISTS idx_mail_guardian_actions_pending
+			  ON mail_guardian_actions (requested_at, id)
+			  WHERE status = 'pending'
+		`);
 	}
 
 	async hasProcessed(accountSlug: string, uid: number): Promise<boolean> {
@@ -106,7 +134,7 @@ export class GuardianStore {
 
 	async getReview(reviewId: number): Promise<ReviewRecord | null> {
 		const result = await this.pool.query<ReviewRecord>(
-			`SELECT id, account_slug, message_uid, from_hash, domain_hash
+			`SELECT id, account_slug, message_uid, message_id, from_hash, domain_hash
 			 FROM mail_guardian_reviews
 			 WHERE id = $1 AND resolved_at IS NULL`,
 			[reviewId],
@@ -120,6 +148,54 @@ export class GuardianStore {
 			 SET owner_decision = $2, approver = $3, resolved_at = now()
 			 WHERE id = $1`,
 			[reviewId, decision, approver],
+		);
+	}
+
+	async enqueueReviewDecision(reviewId: number, decision: string, approver: string): Promise<number> {
+		const result = await this.pool.query<{ id: number }>(
+			`INSERT INTO mail_guardian_actions (review_id, decision, approver)
+			 VALUES ($1, $2, $3)
+			 RETURNING id`,
+			[reviewId, decision, approver],
+		);
+		return result.rows[0].id;
+	}
+
+	async claimPendingActions(limit = 20): Promise<QueuedReviewDecision[]> {
+		const result = await this.pool.query<QueuedReviewDecision>(
+			`WITH next_actions AS (
+			   SELECT id
+			   FROM mail_guardian_actions
+			   WHERE status = 'pending'
+			   ORDER BY requested_at, id
+			   LIMIT $1
+			   FOR UPDATE SKIP LOCKED
+			 )
+			 UPDATE mail_guardian_actions a
+			 SET status = 'processing'
+			 FROM next_actions n
+			 WHERE a.id = n.id
+			 RETURNING a.id, a.review_id, a.decision, a.approver`,
+			[limit],
+		);
+		return result.rows;
+	}
+
+	async completeAction(actionId: number): Promise<void> {
+		await this.pool.query(
+			`UPDATE mail_guardian_actions
+			 SET status = 'done', processed_at = now(), error = NULL
+			 WHERE id = $1`,
+			[actionId],
+		);
+	}
+
+	async failAction(actionId: number, error: string): Promise<void> {
+		await this.pool.query(
+			`UPDATE mail_guardian_actions
+			 SET status = 'failed', processed_at = now(), error = $2
+			 WHERE id = $1`,
+			[actionId, error.slice(0, 1000)],
 		);
 	}
 }

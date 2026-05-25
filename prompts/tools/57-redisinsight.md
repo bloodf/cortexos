@@ -1,5 +1,13 @@
 # RedisInsight
 
+## Chat Input Gate
+
+This prompt follows `prompts/CHAT-INPUT-CONTRACT.md`. Do not assume any
+operator-specific environment variables are already defined. Before using a
+value such as a host, user, domain, token, password, project path, profile name,
+or service URL, ask a **STOP — input question**, wait for the operator's answer,
+and then substitute that answer into the commands you produce.
+
 ## Purpose
 
 Run RedisInsight for Redis administration.
@@ -23,10 +31,10 @@ Docker. DB admin UIs are containerized. Persistent data MUST use named volumes.
 ## Verify + configure databases
 
 ```bash
-curl -fsS http://localhost:5540 >/dev/null
+curl -fsS http://127.0.0.1:5540 >/dev/null
 docker network connect cortex-db cortex-redisinsight 2>/dev/null || true
 docker network connect honcho_default cortex-redisinsight 2>/dev/null || true
-curl -fsS http://localhost:5540/api/databases
+curl -fsS http://127.0.0.1:5540/api/databases
 ```
 
 Add databases through `POST /api/databases` if absent:

@@ -1,23 +1,31 @@
 # Tailscale Port Routing (latest)
 
+## Chat Input Gate
+
+This prompt follows `prompts/CHAT-INPUT-CONTRACT.md`. Do not assume any
+operator-specific environment variables are already defined. Before using a
+value such as a host, user, domain, token, password, project path, profile name,
+or service URL, ask a **STOP — input question**, wait for the operator's answer,
+and then substitute that answer into the commands you produce.
+
 ## Purpose
 
 Publish CortexOS web UIs on dedicated HTTPS ports through **Tailscale Serve**.
-Dashboard remains at `https://${CORTEX_DOMAIN}/`; every other UI uses its own
-tailnet port, not a shared path.
+Dashboard remains at the CortexOS tailnet domain root; every other UI uses its
+own tailnet port, not a shared path.
 
 Tailscale issues and rotates certificates automatically for the node's MagicDNS
 FQDN — **no public DNS, no Let's Encrypt, no public firewall ports required**.
 
-`CORTEX_DOMAIN` for a Tailscale-only install is the node's MagicDNS FQDN, e.g.
-`cortex.tailXXXX.ts.net` (printed by `tailscale status`).
+The CortexOS domain for a Tailscale-only install is the node's MagicDNS FQDN,
+e.g. `<machine>.<tailnet>.ts.net` (printed by `tailscale status`).
 
 ## Prerequisites
 
 - `12-tailscale.md` completed — node is online in your tailnet.
 - MagicDNS + HTTPS certs enabled in your Tailscale admin console
   (`Admin → DNS → MagicDNS = on`, `Admin → DNS → HTTPS Certificates = on`).
-- `${CORTEX_DOMAIN}` exported and set to the tailnet FQDN.
+- The operator can provide the node's tailnet FQDN when asked below.
 
 ## Sudo gate
 
@@ -45,13 +53,21 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 Type `confirmed` to proceed.
 
+## Input Gate — Tailnet Domain
+
+**STOP — input question:** What is this node's MagicDNS FQDN from
+`tailscale status`?
+
+Do not continue until the operator answers. After the answer, substitute it for
+`<cortex_domain_from_chat>` in the commands and URL map below.
+
 ## Publish over Tailscale
 
 Reset any old path-based Serve config, then publish each local service on a
 dedicated HTTPS port:
 
 ```bash
-: "${CORTEX_DOMAIN:?export CORTEX_DOMAIN to this node's MagicDNS FQDN}"
+CORTEX_DOMAIN='<cortex_domain_from_chat>'
 
 # Issue the node cert on first call (idempotent, refreshes on its own).
 sudo tailscale cert "${CORTEX_DOMAIN}"
@@ -72,7 +88,6 @@ sudo tailscale serve --bg --https=3001  http://localhost:3001   # Langfuse
 sudo tailscale serve --bg --https=18690 http://localhost:18690  # Honcho API
 sudo tailscale serve --bg --https=18691 http://localhost:18691  # Hermes primary API
 sudo tailscale serve --bg --https=18692 http://localhost:18692  # Hermes secondary API
-sudo tailscale serve --bg --https=9119  http://localhost:9120   # Hermes Web UI host-header proxy
 sudo tailscale serve --bg --https=3333  http://localhost:3333   # Kernel Browser
 sudo tailscale serve --bg --https=5050  http://localhost:5050   # pgAdmin
 sudo tailscale serve --bg --https=5540  http://localhost:5540   # RedisInsight
@@ -83,7 +98,7 @@ sudo tailscale serve --bg --https=3420  http://localhost:3420   # Dockhand
 sudo tailscale serve --bg --https=4566  http://localhost:4566   # Floci / LocalStack API
 sudo tailscale serve --bg --https=8123  http://localhost:8123   # Home Assistant
 sudo tailscale serve --bg --https=8096  http://localhost:8096   # Jellyfin
-sudo tailscale serve --bg --https=10000 https://localhost:10000 # Webmin
+sudo tailscale serve --bg --https=10000 https+insecure://127.0.0.1:10000 # Webmin
 
 sudo tailscale serve status
 ```
@@ -102,10 +117,9 @@ the tailnet interface only.
 | Loki API | `https://${CORTEX_DOMAIN}:3100/` |
 | cAdvisor | `https://${CORTEX_DOMAIN}:8081/` |
 | Langfuse | `https://${CORTEX_DOMAIN}:3001/` |
-| Honcho API | health/services only; not listed in Apps |
-| Hermes Primary API | health/services only; not listed in Apps |
-| Hermes Secondary API | health/services only; not listed in Apps |
-| Hermes Web UI | `https://${CORTEX_DOMAIN}:9119/` |
+| Honcho API | `https://${CORTEX_DOMAIN}:18690/` |
+| Hermes Primary API | `https://${CORTEX_DOMAIN}:18691/v1/` |
+| Hermes Secondary API | `https://${CORTEX_DOMAIN}:18692/v1/` |
 | Kernel Browser | `https://${CORTEX_DOMAIN}:3333/json/version?token={KERNEL_BROWSER_TOKEN}` |
 | pgAdmin | `https://${CORTEX_DOMAIN}:5050/` |
 | RedisInsight | `https://${CORTEX_DOMAIN}:5540/` |

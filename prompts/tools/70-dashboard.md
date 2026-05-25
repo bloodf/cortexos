@@ -1,5 +1,13 @@
 # Dashboard (native)
 
+## Chat Input Gate
+
+This prompt follows `prompts/CHAT-INPUT-CONTRACT.md`. Do not assume any
+operator-specific environment variables are already defined. Before using a
+value such as a host, user, domain, token, password, project path, profile name,
+or service URL, ask a **STOP — input question**, wait for the operator's answer,
+and then substitute that answer into the commands you produce.
+
 ## Purpose
 
 Build and deploy the CortexOS Next.js dashboard as a native systemd service using the Next.js standalone output. Docker is not used for the dashboard in the native-first install.
@@ -23,9 +31,8 @@ sudo -v
 - [ ] Copy dashboard package to `/opt/cortexos/packages/cortex-dashboard`
 - [ ] Run `packages/cortex-dashboard/scripts/native-build.sh`
 - [ ] Install `templates/systemd/cortex-dashboard.service`
-- [ ] Ensure `hermes-dashboard.service` is installed and running on loopback port `9119`
 - [ ] Run dashboard migrations and dynamic service seed before starting service
-- [ ] Configure terminal SSH, Hermes scan env, and Hermes Web UI service entry in `/opt/cortexos/.secrets/dashboard.env`
+- [ ] Configure terminal SSH and Hermes scan env in `/opt/cortexos/.secrets/dashboard.env`
 - [ ] `systemctl enable --now cortex-dashboard`
 - [ ] `/en/login` returns 200 locally
 - [ ] Public URL serves login page through Tailscale Serve
@@ -33,7 +40,7 @@ sudo -v
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** Does `test -f /opt/cortexos/.secrets/dashboard.env && pg_isready -h localhost -p 5432` show the env file and Postgres accepting connections?
+**STOP — operator question:** Does `test -f /opt/cortexos/.secrets/dashboard.env && pg_isready -h 127.0.0.1 -p 5432` show the env file and Postgres accepting connections?
 
 Type `confirmed` to proceed.
 
@@ -54,10 +61,10 @@ sudo /opt/cortexos/templates/scripts/cortex-env-writer.sh <<'JSON'
 {"path":"/opt/cortexos/.secrets/dashboard.env","updates":[
   {"key":"HERMES_PROFILES_REGISTRY","value":"/opt/cortexos/hermes/profiles.json"},
   {"key":"AGENT_SCAN_PATHS","value":"/opt/cortexos/hermes/profiles"},
-  {"key":"HERMES_PRIMARY_URL","value":"http://localhost:18691"},
-  {"key":"HERMES_SECONDARY_URL","value":"http://localhost:18692"},
-  {"key":"HONCHO_BASE_URL","value":"http://localhost:18690"},
-  {"key":"TERMINAL_SSH_HOST","value":"localhost"},
+  {"key":"HERMES_PRIMARY_URL","value":"http://127.0.0.1:18691"},
+  {"key":"HERMES_SECONDARY_URL","value":"http://127.0.0.1:18692"},
+  {"key":"HONCHO_BASE_URL","value":"http://127.0.0.1:18690"},
+  {"key":"TERMINAL_SSH_HOST","value":"127.0.0.1"},
   {"key":"TERMINAL_SSH_PORT","value":"22"},
   {"key":"TERMINAL_SSH_USER","value":"cortexos"},
   {"key":"TERMINAL_SSH_KEY","value":"/home/cortexos/.ssh/id_ed25519"},
@@ -65,25 +72,22 @@ sudo /opt/cortexos/templates/scripts/cortex-env-writer.sh <<'JSON'
 ]}
 JSON
 
-sudo systemctl enable --now hermes-dashboard hermes-dashboard-proxy
-curl -fsS -o /dev/null -w "%{http_code}\n" http://localhost:9120/
-
 cd /opt/cortexos/packages/cortex-dashboard
 bash scripts/native-build.sh
 set -a; . /opt/cortexos/.secrets/dashboard.env; set +a
-DB_HOST="${DB_HOST:-localhost}" node scripts/migrate.js
-DB_HOST="${DB_HOST:-localhost}" node scripts/dynamic-seed.js || true
+DB_HOST="${DB_HOST:-127.0.0.1}" node scripts/migrate.js
+DB_HOST="${DB_HOST:-127.0.0.1}" node scripts/dynamic-seed.js || true
 sudo install -m 0644 /opt/cortexos/templates/systemd/cortex-dashboard.service /etc/systemd/system/cortex-dashboard.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now cortex-dashboard
 ```
 
-The service starts `node .next/standalone/server.js` on loopback port `3080`, loads `/opt/cortexos/.secrets/dashboard.env`, and runs against host PostgreSQL. The dashboard auth middleware can gate `/api/health`; use `/en/login` for unauthenticated liveness. The Apps page is web-UI-only: API-only, metrics-only, health-only, and process-only services stay in Services/Healthcheck. Hermes Web UI is seeded as `hermes-dashboard` with local health URL `http://localhost:9119/` and public app URL `https://${CORTEX_DOMAIN}:9119/`. Tailscale Serve must proxy port `9119` to the host-header proxy at `http://localhost:9120`, not directly to `9119`; Hermes Dashboard rejects non-local Host headers. Hermes profile APIs stay out of Apps because `/v1/*` requires bearer auth and will show `401` in a browser. Migrations include only CortexOS dashboard runtime seeds; project-specific Agent Factory entries are created through the dashboard Projects page or installer configuration.
+The service starts `node .next/standalone/server.js` on loopback port `3080`, loads `/opt/cortexos/.secrets/dashboard.env`, and runs against host PostgreSQL. The dashboard auth middleware can gate `/api/health`; use `/en/login` for unauthenticated liveness. Migrations include only CortexOS dashboard runtime seeds. Agent Factory creation is not exposed in the dashboard; Cortex Hermes owns factory creation through its dedicated skill.
 
 ## Verify
 
 ```bash
-curl -fsS -o /dev/null -w "%{http_code}\n" http://localhost:3080/en/login
+curl -fsS -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3080/en/login
 curl -fsS -o /dev/null -w "%{http_code}\n" "https://${CORTEX_DOMAIN}/en/login"
 ```
 

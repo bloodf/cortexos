@@ -1,5 +1,13 @@
 # Hermes (latest)
 
+## Chat Input Gate
+
+This prompt follows `prompts/CHAT-INPUT-CONTRACT.md`. Do not assume any
+operator-specific environment variables are already defined. Before using a
+value such as a host, user, domain, token, password, project path, profile name,
+or service URL, ask a **STOP — input question**, wait for the operator's answer,
+and then substitute that answer into the commands you produce.
+
 ## Purpose
 
 Install Hermes as the only CortexOS agent runtime. Hermes replaces the retired
@@ -35,25 +43,6 @@ Create the CortexOS Hermes registry root:
 sudo install -d -m 0755 /opt/cortexos/hermes/profiles
 sudo chown -R "$USER:$USER" /opt/cortexos/hermes
 ```
-
-## Hermes Web UI service
-
-Run Hermes Dashboard as a loopback-only systemd service. Tailscale Serve exposes
-the port; do not bind Hermes Dashboard to a non-loopback address because it can
-manage API keys and sessions.
-
-```bash
-sudo install -m 0644 templates/systemd/hermes-dashboard.service /tmp/hermes-dashboard.service.template
-sudo sed \
-  -e "s|{VPS_USER}|${USER}|g" \
-  -e "s|{CORTEX_HERMES_ROOT}|/opt/cortexos/hermes|g" \
-  /tmp/hermes-dashboard.service.template | sudo tee /etc/systemd/system/hermes-dashboard.service >/dev/null
-sudo systemctl daemon-reload
-sudo systemctl enable --now hermes-dashboard hermes-dashboard-proxy
-curl -fsS -o /dev/null -w "%{http_code}\n" http://localhost:9120/
-```
-
-Expected: local proxy probe returns `200` or `302`. Hermes Dashboard itself remains bound to `localhost:9119`; `hermes-dashboard-proxy` listens on `localhost:9120` and rewrites the Host header for Tailscale Serve.
 
 ## Model gateway rule
 
