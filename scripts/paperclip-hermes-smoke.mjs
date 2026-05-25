@@ -27,6 +27,7 @@ const paperclipApiUrl =
   paperclipUrl && paperclipUrl.endsWith("/api") ? paperclipUrl : paperclipUrl ? `${paperclipUrl}/api` : "";
 const paperclipKey = process.env.PAPERCLIP_API_KEY || "";
 const companyId = process.env.PAPERCLIP_COMPANY_ID || "";
+const requireHeartbeat = process.env.PAPERCLIP_REQUIRE_HEARTBEAT === "1";
 
 function ok(name, extra = {}) {
   console.log(JSON.stringify({ ok: true, check: name, ...extra }));
@@ -72,42 +73,65 @@ for (const profile of profiles) {
 }
 
 if (paperclipApiUrl && paperclipKey && companyId) {
-  const res = await fetch(`${paperclipApiUrl}/companies/${encodeURIComponent(companyId)}/agents`, {
-    headers: { authorization: `Bearer ${paperclipKey}` },
-  });
-  if (!res.ok) fail("paperclip-agents", `HTTP ${res.status}`);
-  else {
+  const headers = { authorization: `Bearer ${paperclipKey}` };
+  const companyIds = new Set([companyId]);
+  const meRes = await fetch(`${paperclipApiUrl}/cli-auth/me`, { headers });
+  if (meRes.ok) {
+    const me = await meRes.json();
+    for (const id of me.companyIds || []) companyIds.add(id);
+  }
+
+  const hermesAgents = [];
+  for (const id of companyIds) {
+    const res = await fetch(`${paperclipApiUrl}/companies/${encodeURIComponent(id)}/agents`, { headers });
+    if (!res.ok) {
+      fail("paperclip-agents", `company ${id} HTTP ${res.status}`);
+      continue;
+    }
     const body = await res.json();
     const list = Array.isArray(body) ? body : body.agents || [];
-    const hermesAgents = list.filter((agent) => agent.adapterType === "hermes_local" || agent.adapter?.type === "hermes_local");
-    if (hermesAgents.length === 0) fail("paperclip-hermes-agents", "no hermes_local agents registered");
-    else ok("paperclip-hermes-agents", { count: hermesAgents.length });
-
-    const profiles = new Set(
-      hermesAgents
-        .map((agent) => agent.adapterConfig?.profile || plainValue(agent.adapterConfig?.env?.HERMES_PROFILE))
-        .filter(Boolean),
+    hermesAgents.push(
+      ...list.filter((agent) => agent.adapterType === "hermes_local" || agent.adapter?.type === "hermes_local"),
     );
-    for (const requiredProfile of requiredProfiles) {
-      if (!profiles.has(requiredProfile)) {
-        fail("paperclip-hermes-profile", `missing ${requiredProfile} hermes_local agent`);
-      } else {
-        ok("paperclip-hermes-profile", { profile: requiredProfile });
-      }
-    }
+  }
 
-    const inactiveSchedules = hermesAgents.filter((agent) => {
-      const heartbeat = agent.runtimeConfig?.heartbeat;
-      return heartbeat?.enabled !== true || Number(heartbeat?.intervalSec || 0) <= 0;
-    });
-    if (inactiveSchedules.length) {
-      fail(
-        "paperclip-hermes-schedules",
-        `${inactiveSchedules.length} hermes_local agents have disabled or invalid heartbeat schedules`,
-      );
+  if (hermesAgents.length === 0) fail("paperclip-hermes-agents", "no hermes_local agents registered");
+  else ok("paperclip-hermes-agents", { count: hermesAgents.length, companies: companyIds.size });
+
+  const profiles = new Set(
+    hermesAgents
+      .map((agent) => agent.adapterConfig?.profile || plainValue(agent.adapterConfig?.env?.HERMES_PROFILE))
+      .filter(Boolean),
+  );
+  const expectedProfiles = process.env.CORTEX_REQUIRED_HERMES_PROFILES
+    ? requiredProfiles
+    : [...profiles].sort();
+  for (const requiredProfile of expectedProfiles) {
+    if (!profiles.has(requiredProfile)) {
+      fail("paperclip-hermes-profile", `missing ${requiredProfile} hermes_local agent`);
     } else {
-      ok("paperclip-hermes-schedules", { count: hermesAgents.length });
+      ok("paperclip-hermes-profile", { profile: requiredProfile });
     }
+  }
+
+  const invalidSchedules = hermesAgents.filter((agent) => {
+    const heartbeat = agent.runtimeConfig?.heartbeat;
+    if (!heartbeat?.enabled) return false;
+    return Number(heartbeat.intervalSec || 0) <= 0;
+  });
+  const disabledSchedules = hermesAgents.filter((agent) => agent.runtimeConfig?.heartbeat?.enabled !== true);
+  if (invalidSchedules.length) {
+    fail(
+      "paperclip-hermes-schedules",
+      `${invalidSchedules.length} hermes_local agents have enabled heartbeat schedules with invalid intervals`,
+    );
+  } else if (requireHeartbeat && disabledSchedules.length) {
+    fail(
+      "paperclip-hermes-schedules",
+      `${disabledSchedules.length} hermes_local agents have disabled heartbeat schedules`,
+    );
+  } else {
+    ok("paperclip-hermes-schedules", { enabled: hermesAgents.length - disabledSchedules.length, disabled: disabledSchedules.length });
   }
 } else {
   ok("paperclip-api-skipped", { reason: "PAPERCLIP_API_URL, PAPERCLIP_API_KEY, or PAPERCLIP_COMPANY_ID not set" });

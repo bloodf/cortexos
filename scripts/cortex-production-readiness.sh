@@ -166,7 +166,11 @@ else
 fi
 
 test -x /home/cortexos/.local/bin/hermes && ok "Paperclip Hermes command exists" || bad "Paperclip Hermes command missing"
-import_count=$(find /opt/cortexos/backups/memory-import-pending -maxdepth 1 -type f -name '*-legacy-profile-import.jsonl' 2>/dev/null | wc -l | tr -d '[:space:]')
+if [[ -d /opt/cortexos/backups/memory-import-pending ]]; then
+  import_count=$(find /opt/cortexos/backups/memory-import-pending -maxdepth 1 -type f -name '*-legacy-profile-import.jsonl' | wc -l | tr -d '[:space:]')
+else
+  import_count=0
+fi
 if (( import_count > 0 )); then
   ok "Honcho import artifacts exist"
 else

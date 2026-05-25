@@ -41,6 +41,7 @@ export HERMES_COMMAND=/opt/cortexos/bin/hermes-paperclip
 export HERMES_PROFILE_MAP='{"Secondary":"secondary"}'
 set +a
 
+node /opt/cortexos/scripts/paperclip-ensure-readiness-auth.mjs
 pnpm --dir /opt/cortexos/scripts register-roles
 ```
 

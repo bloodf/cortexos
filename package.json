@@ -8,6 +8,7 @@
     "audit:runtime-sync": "node scripts/cortex-runtime-sync-audit.mjs",
     "check:prompt-chat-contract": "node scripts/check-prompt-chat-contract.mjs",
     "check:repo-leaks": "node scripts/check-repo-leaks.mjs --all",
+    "paperclip:ensure-readiness-auth": "node scripts/paperclip-ensure-readiness-auth.mjs",
     "hermes:install-skills": "node scripts/hermes-install-skills.mjs"
   },
   "dependencies": {
