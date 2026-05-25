@@ -16,10 +16,15 @@ interface UpdateItem {
 	description?: string;
 }
 
-const fetcher = (url: string) => fetch(url, { cache: "no-store" }).then((res) => res.json());
+const fetcher = async (url: string) => {
+	const res = await fetch(url, { cache: "no-store" });
+	const body = await res.json().catch(() => ({}));
+	if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
+	return body;
+};
 
 export function PackageUpdatesPanel() {
-	const { data, mutate, isLoading } = useSWR<{ updates: UpdateItem[]; error?: string }>("/api/updates", fetcher);
+	const { data, error, mutate, isLoading } = useSWR<{ updates: UpdateItem[]; error?: string }>("/api/updates", fetcher);
 	const [serviceMap, setServiceMap] = React.useState<Record<string, string>>({});
 	const [running, setRunning] = React.useState<string | null>(null);
 	const [message, setMessage] = React.useState<string | null>(null);
@@ -58,7 +63,7 @@ export function PackageUpdatesPanel() {
 					Check now
 				</Button>
 			</div>
-			{message && <p className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">{message}</p>}
+			{(message || error) && <p className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">{message || (error instanceof Error ? error.message : "Failed to check updates")}</p>}
 			<div className="overflow-hidden rounded-lg border border-border">
 				<Table>
 					<TableHeader>

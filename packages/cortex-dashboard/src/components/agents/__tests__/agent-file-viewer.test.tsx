@@ -21,9 +21,9 @@ const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
 const testFiles = [
-  { name: "agent.md", path: "/test/.agents/coder/agent.md" },
-  { name: "soul.md", path: "/test/.agents/coder/soul.md" },
-  { name: "user.md", path: "/test/.agents/coder/user.md" },
+  { id: "YWdlbnQubWQ", name: "agent.md", path: "/test/.agents/coder/agent.md" },
+  { id: "c291bC5tZA", name: "soul.md", path: "/test/.agents/coder/soul.md" },
+  { id: "dXNlci5tZA", name: "user.md", path: "/test/.agents/coder/user.md" },
 ];
 
 describe("AgentFileViewer", () => {
@@ -59,7 +59,7 @@ describe("AgentFileViewer", () => {
 
     // SWR should be called with the new file URL
     expect(mockUseSWR).toHaveBeenCalledWith(
-      "/api/agents/coder/files/soul.md",
+      "/api/agents/coder/files/c291bC5tZA",
       expect.any(Function),
     );
   });
@@ -101,7 +101,7 @@ describe("AgentFileViewer", () => {
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(
-        "/api/agents/coder/files/agent.md",
+        "/api/agents/coder/files/YWdlbnQubWQ",
         expect.objectContaining({
           method: "PUT",
           body: JSON.stringify({ content: "Updated content" }),

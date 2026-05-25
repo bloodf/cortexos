@@ -1,7 +1,8 @@
 import { readdir, readFile, writeFile, stat } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { isAbsolute, join, relative, resolve } from "node:path";
 
 export interface AgentFile {
+  id: string;
   name: string;
   path: string;
 }
@@ -41,6 +42,21 @@ interface HermesRegistry {
 
 const DEFAULT_HERMES_ROOT = "/opt/cortexos/hermes";
 const DEFAULT_HERMES_REGISTRY = `${DEFAULT_HERMES_ROOT}/profiles.json`;
+const MAX_MARKDOWN_SCAN_DEPTH = 5;
+const SKIPPED_MARKDOWN_DIRS = new Set([
+  ".git",
+  "audio_cache",
+  "cache",
+  "image_cache",
+  "logs",
+  "memories",
+  "node_modules",
+  "pairing",
+  "sandboxes",
+  "sessions",
+  "state",
+  "state-snapshots",
+]);
 
 function getRegistryPath(): string {
   return process.env.HERMES_PROFILES_REGISTRY || DEFAULT_HERMES_REGISTRY;
@@ -52,13 +68,45 @@ function getScanRoots(): string[] {
   ];
 }
 
+function fileId(relativePath: string): string {
+  return Buffer.from(relativePath).toString("base64url");
+}
+
 async function getMarkdownFiles(dir: string): Promise<AgentFile[]> {
+  const root = resolve(dir);
+  const files: AgentFile[] = [];
+
+  async function walk(current: string, depth: number): Promise<void> {
+    if (depth > MAX_MARKDOWN_SCAN_DEPTH) return;
+    let entries;
+    try {
+      entries = await readdir(current, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    for (const entry of entries) {
+      if (entry.name.includes(".bak")) continue;
+      const fullPath = join(current, entry.name);
+      if (entry.isDirectory()) {
+        if (!SKIPPED_MARKDOWN_DIRS.has(entry.name)) await walk(fullPath, depth + 1);
+        continue;
+      }
+      if (!entry.isFile() || !entry.name.endsWith(".md")) continue;
+      const rel = relative(root, fullPath);
+      files.push({
+        id: fileId(rel),
+        name: rel,
+        path: fullPath,
+      });
+    }
+  }
+
   try {
-    const entries = await readdir(dir, { withFileTypes: true });
-    return entries
-      .filter((entry) => entry.isFile() && entry.name.endsWith(".md") && !entry.name.includes(".bak"))
-      .map((entry) => ({ name: entry.name, path: join(dir, entry.name) }))
-      .sort((a, b) => a.name.localeCompare(b.name));
+    const rootStat = await stat(root);
+    if (!rootStat.isDirectory()) return [];
+    await walk(root, 0);
+    return files.sort((a, b) => a.name.localeCompare(b.name));
   } catch {
     return [];
   }
@@ -93,7 +141,10 @@ function hasWorkflow(files: AgentFile[]): boolean {
 
 function isWithinRoots(filePath: string, roots: string[]): boolean {
   const resolved = resolve(filePath);
-  return roots.some((root) => resolved.startsWith(resolve(root)));
+  return roots.some((root) => {
+    const rel = relative(resolve(root), resolved);
+    return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
+  });
 }
 
 function displayName(slug: string): string {

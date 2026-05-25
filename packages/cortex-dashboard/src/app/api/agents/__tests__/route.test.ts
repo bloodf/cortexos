@@ -4,14 +4,24 @@ vi.mock("@/lib/agents/scanner", () => ({
   scanAgents: vi.fn(),
 }));
 
+vi.mock("@/lib/auth", () => ({
+  requireAuth: vi.fn(),
+}));
+
 import { GET } from "../route";
 import { scanAgents } from "@/lib/agents/scanner";
+import { requireAuth } from "@/lib/auth";
 
 const mockScanAgents = vi.mocked(scanAgents);
+const mockRequireAuth = vi.mocked(requireAuth);
 
 describe("GET /api/agents", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockRequireAuth.mockResolvedValue({
+      error: null,
+      session: { user_id: 1, username: "admin", token: "token", is_admin: true },
+    });
   });
 
   it("returns agent groups with timestamp", async () => {
@@ -26,7 +36,7 @@ describe("GET /api/agents", () => {
             agentDir: "/opt/test/.agents/coder",
             model: "sonnet",
             workspace: "/opt/test/.agents/coder",
-            files: [{ name: "agent.md", path: "/opt/test/.agents/coder/agent.md" }],
+            files: [{ id: "YWdlbnQubWQ", name: "agent.md", path: "/opt/test/.agents/coder/agent.md" }],
           },
         ],
       },
@@ -34,7 +44,7 @@ describe("GET /api/agents", () => {
 
     mockScanAgents.mockResolvedValue(mockGroups);
 
-    const response = await GET();
+    const response = await GET(new Request("http://localhost/api/agents"));
     const body = await response.json();
 
     expect(body.groups).toEqual(mockGroups);
@@ -44,7 +54,7 @@ describe("GET /api/agents", () => {
   it("returns empty groups when no agents found", async () => {
     mockScanAgents.mockResolvedValue([]);
 
-    const response = await GET();
+    const response = await GET(new Request("http://localhost/api/agents"));
     const body = await response.json();
 
     expect(body.groups).toEqual([]);
@@ -53,7 +63,7 @@ describe("GET /api/agents", () => {
   it("returns 500 on scanner error", async () => {
     mockScanAgents.mockRejectedValue(new Error("Scan failed"));
 
-    const response = await GET();
+    const response = await GET(new Request("http://localhost/api/agents"));
     const body = await response.json();
 
     expect(response.status).toBe(500);

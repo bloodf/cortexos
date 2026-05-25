@@ -27,6 +27,42 @@ function validServiceName(name: string) {
 	return SAFE_SERVICE_RE.test(name);
 }
 
+async function findHostBin(name: string, fallbacks: string[]): Promise<string | null> {
+	try {
+		const { stdout } = await hostExecFile("bash", [
+			"-lc",
+			"command -v \"$1\" || for candidate in \"${@:2}\"; do [ -x \"$candidate\" ] && printf '%s\\n' \"$candidate\" && exit 0; done",
+			"find-host-bin",
+			name,
+			...fallbacks,
+		], { timeout: 10_000, maxBuffer: 1024 * 1024 });
+		return stdout.trim().split("\n")[0] || null;
+	} catch {
+		return null;
+	}
+}
+
+async function findNpmBin(): Promise<string | null> {
+	return findHostBin("npm", [
+		"/home/linuxbrew/.linuxbrew/bin/npm",
+		"/home/linuxbrew/.linuxbrew/opt/node@24/bin/npm",
+		"/usr/local/bin/npm",
+		"/usr/bin/npm",
+	]);
+}
+
+async function sudoHostExecFile(bin: string, args: string[], opts: { timeout?: number; maxBuffer?: number } = {}) {
+	try {
+		return await hostExecFile("sudo", ["-n", bin, ...args], opts);
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		if (message.includes("password is required") || message.includes("a password is required") || message.includes("not in the sudoers")) {
+			throw new Error(`Dashboard service user cannot run ${bin} through passwordless sudo. Install the required sudoers rule or apply the update from the host shell.`);
+		}
+		throw error;
+	}
+}
+
 async function listAptUpdates(): Promise<UpdateItem[]> {
 	try {
 		const { stdout } = await hostExecFile("apt", ["list", "--upgradable"], { timeout: 60_000, maxBuffer: 10 * 1024 * 1024 });
@@ -45,7 +81,9 @@ async function listAptUpdates(): Promise<UpdateItem[]> {
 
 async function listNpmUpdates(): Promise<UpdateItem[]> {
 	try {
-		const { stdout } = await hostExecFile("npm", ["outdated", "-g", "--json"], { timeout: 60_000, maxBuffer: 10 * 1024 * 1024 });
+		const npmBin = await findNpmBin();
+		if (!npmBin) return [];
+		const { stdout } = await hostExecFile(npmBin, ["outdated", "-g", "--json"], { timeout: 60_000, maxBuffer: 10 * 1024 * 1024 });
 		if (!stdout.trim()) return [];
 		const parsed = JSON.parse(stdout) as Record<string, { current?: string; wanted?: string; latest?: string }>;
 		return Object.entries(parsed).map(([name, info]) => ({
@@ -89,11 +127,14 @@ export async function POST(request: Request) {
 		if (restartService && !validServiceName(restartService)) return NextResponse.json({ error: "Invalid service name" }, { status: 400 });
 
 		const command = manager === "apt"
-			? { bin: "apt-get", args: ["install", "--only-upgrade", "-y", name] }
-			: { bin: "npm", args: ["i", "-g", `${name}@latest`, "--prefer-online"] };
-		const updated = await hostExecFile(command.bin, command.args, { timeout: 10 * 60_000, maxBuffer: 20 * 1024 * 1024 });
+			? { bin: "apt-get", args: ["install", "--only-upgrade", "-y", "-o", "Dpkg::Options::=--force-confold", name], sudo: true }
+			: { bin: await findNpmBin(), args: ["i", "-g", `${name}@latest`, "--prefer-online"], sudo: false };
+		if (!command.bin) return NextResponse.json({ error: `${manager} executable was not found on the host` }, { status: 424 });
+		const updated = command.sudo
+			? await sudoHostExecFile(command.bin, command.args, { timeout: 10 * 60_000, maxBuffer: 20 * 1024 * 1024 })
+			: await hostExecFile(command.bin, command.args, { timeout: 10 * 60_000, maxBuffer: 20 * 1024 * 1024 });
 		let restart: { stdout: string; stderr: string } | null = null;
-		if (restartService) restart = await hostExecFile("systemctl", ["restart", restartService], { timeout: 60_000, maxBuffer: 5 * 1024 * 1024 });
+		if (restartService) restart = await sudoHostExecFile("systemctl", ["restart", restartService], { timeout: 60_000, maxBuffer: 5 * 1024 * 1024 });
 
 		await createActionLog({
 			user_id: auth.session?.user_id ?? null,

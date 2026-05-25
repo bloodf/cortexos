@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import { scanAgents } from "@/lib/agents/scanner";
+import { requireAuth } from "@/lib/auth";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ slug: string }> },
 ) {
+  const auth = await requireAuth(request);
+  if (auth.error) return auth.error;
+
   try {
     const { slug } = await params;
     const groups = await scanAgents();
