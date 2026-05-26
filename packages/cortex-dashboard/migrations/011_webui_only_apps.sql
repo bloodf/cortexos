@@ -31,7 +31,6 @@ WHERE slug IN (
   'jellyfin',
   'cockpit',
   'webmin',
-  'cortex-dashboard',
   'dockhand',
   'grafana',
   'langfuse'

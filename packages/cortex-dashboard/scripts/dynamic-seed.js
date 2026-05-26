@@ -41,7 +41,6 @@ const SPOKE_TO_SERVICES = {
   "58-mongo-express": ["mongo-express"],
   "59-phpmyadmin": ["phpmyadmin"],
   "62-paperclip": ["paperclip"],
-  "70-dashboard": ["cortex-dashboard"],
   "47a-cortex-sandbox": ["cortex-sandbox-runner"],
 };
 

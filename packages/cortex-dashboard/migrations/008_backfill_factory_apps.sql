@@ -3,7 +3,7 @@ UPDATE agent_factories
 SET definition = jsonb_set(
   definition,
   '{apps}',
-  '["paperclip","honcho","9router","cortex-dashboard","langfuse"]'::jsonb
+  '["paperclip","honcho","9router","langfuse"]'::jsonb
 )
 WHERE definition->'apps' IS NULL
   AND kind IN ('project', 'role');
@@ -13,7 +13,7 @@ UPDATE projects
 SET settings = jsonb_set(
   settings,
   '{apps}',
-  '["paperclip","honcho","9router","cortex-dashboard","langfuse"]'::jsonb
+  '["paperclip","honcho","9router","langfuse"]'::jsonb
 )
 WHERE settings->'apps' IS NULL;
 

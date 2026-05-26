@@ -82,6 +82,12 @@ describe("middleware", () => {
     expect(getSessionByToken).not.toHaveBeenCalled();
   });
 
+  it("allows vendored app icons without DB lookup", async () => {
+    const res = await proxy(makeRequest({ pathname: "/vendor-icons/langfuse.svg" }));
+    expect(res.status).toBe(200);
+    expect(getSessionByToken).not.toHaveBeenCalled();
+  });
+
   it("allows internal token bypass without DB lookup", async () => {
     const res = await proxy(
       makeRequest({

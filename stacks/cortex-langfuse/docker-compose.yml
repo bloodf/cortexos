@@ -12,17 +12,21 @@
 # Postgres is reused from the core stack (`prompts/tools/14-postgresql.md`).
 # Operators MUST create the `langfuse` database + role and populate
 # `/opt/cortexos/.secrets/langfuse.env` from
-# `templates/.secrets/langfuse.enc.yaml` before `docker compose up -d --remove-orphans`.
+# `templates/.secrets/langfuse.enc.yaml` before starting the stack.
 #
 # Tailscale-only binding is enforced via `TAILSCALE_IP`.
 
 name: cortex-langfuse
+
+x-langfuse-env-file: &langfuse-env-file
+  - /opt/cortexos/.secrets/langfuse.env
 
 services:
   langfuse-web:
     container_name: cortex-langfuse-web
     image: docker.io/langfuse/langfuse:3
     restart: unless-stopped
+    env_file: *langfuse-env-file
     depends_on:
       clickhouse:
         condition: service_healthy
@@ -31,35 +35,12 @@ services:
       langfuse-worker:
         condition: service_started
     environment:
-      DATABASE_URL: ${LANGFUSE_DATABASE_URL}
-      # Tailscale Serve exposes Langfuse directly at this dedicated port.
-      NEXTAUTH_URL: ${LANGFUSE_NEXTAUTH_URL:-https://${CORTEX_DOMAIN}:3001}
-      NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET}
-      SALT: ${LANGFUSE_SALT}
-      ENCRYPTION_KEY: ${LANGFUSE_ENCRYPTION_KEY}
       TELEMETRY_ENABLED: "false"
-      LANGFUSE_INIT_ORG_ID: ${LANGFUSE_INIT_ORG_ID:-cortexos}
-      LANGFUSE_INIT_ORG_NAME: ${LANGFUSE_INIT_ORG_NAME:-CortexOS}
-      LANGFUSE_INIT_PROJECT_ID: ${LANGFUSE_INIT_PROJECT_ID:-cortexos}
-      LANGFUSE_INIT_PROJECT_NAME: ${LANGFUSE_INIT_PROJECT_NAME:-cortexos}
-      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY}
-      LANGFUSE_INIT_PROJECT_SECRET_KEY: ${LANGFUSE_SECRET_KEY}
-      LANGFUSE_INIT_USER_EMAIL: ${LANGFUSE_INIT_USER_EMAIL:-admin@cortexos.local}
-      LANGFUSE_INIT_USER_NAME: ${LANGFUSE_INIT_USER_NAME:-admin}
-      LANGFUSE_INIT_USER_PASSWORD: ${LANGFUSE_INIT_USER_PASSWORD}
       CLICKHOUSE_URL: http://clickhouse:8123
       CLICKHOUSE_MIGRATION_URL: clickhouse://clickhouse:9000
-      CLICKHOUSE_USER: ${LANGFUSE_CLICKHOUSE_USER:-langfuse}
-      CLICKHOUSE_PASSWORD: ${LANGFUSE_CLICKHOUSE_PASSWORD}
-      LANGFUSE_S3_EVENT_UPLOAD_BUCKET: ${LANGFUSE_S3_BUCKET:-langfuse-events}
       LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
-      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: ${LANGFUSE_MINIO_ROOT_USER}
-      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${LANGFUSE_MINIO_ROOT_PASSWORD}
       LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://minio:9000
       LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
-      REDIS_HOST: ${LANGFUSE_REDIS_HOST:-redis}
-      REDIS_PORT: ${LANGFUSE_REDIS_PORT:-6379}
-      REDIS_AUTH: ${LANGFUSE_REDIS_AUTH:-}
     ports:
       # Host 3001 → container 3000. Port 3000 on the host is Grafana.
       - "${TAILSCALE_IP:-127.0.0.1}:3001:3000"
@@ -76,28 +57,18 @@ services:
     container_name: cortex-langfuse-worker
     image: docker.io/langfuse/langfuse-worker:3
     restart: unless-stopped
+    env_file: *langfuse-env-file
     depends_on:
       clickhouse:
         condition: service_healthy
       minio:
         condition: service_healthy
     environment:
-      DATABASE_URL: ${LANGFUSE_DATABASE_URL}
-      SALT: ${LANGFUSE_SALT}
-      ENCRYPTION_KEY: ${LANGFUSE_ENCRYPTION_KEY}
       CLICKHOUSE_URL: http://clickhouse:8123
       CLICKHOUSE_MIGRATION_URL: clickhouse://clickhouse:9000
-      CLICKHOUSE_USER: ${LANGFUSE_CLICKHOUSE_USER:-langfuse}
-      CLICKHOUSE_PASSWORD: ${LANGFUSE_CLICKHOUSE_PASSWORD}
-      LANGFUSE_S3_EVENT_UPLOAD_BUCKET: ${LANGFUSE_S3_BUCKET:-langfuse-events}
       LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
-      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: ${LANGFUSE_MINIO_ROOT_USER}
-      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${LANGFUSE_MINIO_ROOT_PASSWORD}
       LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://minio:9000
       LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
-      REDIS_HOST: ${LANGFUSE_REDIS_HOST:-redis}
-      REDIS_PORT: ${LANGFUSE_REDIS_PORT:-6379}
-      REDIS_AUTH: ${LANGFUSE_REDIS_AUTH:-}
     networks:
       - cortex-net
 
@@ -105,10 +76,9 @@ services:
     container_name: cortex-langfuse-clickhouse
     image: docker.io/clickhouse/clickhouse-server:24.12-alpine
     restart: unless-stopped
+    env_file: *langfuse-env-file
     environment:
       CLICKHOUSE_DB: default
-      CLICKHOUSE_USER: ${LANGFUSE_CLICKHOUSE_USER:-langfuse}
-      CLICKHOUSE_PASSWORD: ${LANGFUSE_CLICKHOUSE_PASSWORD}
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
     ulimits:
       nofile:
@@ -130,10 +100,8 @@ services:
     container_name: cortex-langfuse-minio
     image: docker.io/minio/minio:RELEASE.2025-01-20T14-49-07Z
     restart: unless-stopped
+    env_file: *langfuse-env-file
     command: ["server", "/data", "--console-address", ":9001"]
-    environment:
-      MINIO_ROOT_USER: ${LANGFUSE_MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${LANGFUSE_MINIO_ROOT_PASSWORD}
     volumes:
       - minio-data:/data
     networks:
