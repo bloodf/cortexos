@@ -31,7 +31,15 @@ Postgres container. ClickHouse and MinIO are internal-only compose services
 
    ```text
    LANGFUSE_DATABASE_URL=postgresql://langfuse:<password>@host.docker.internal:5432/langfuse
+   DATABASE_URL=postgresql://langfuse:<password>@host.docker.internal:5432/langfuse
    ```
+
+   Keep the canonical Langfuse aliases in the same file (`DATABASE_URL`,
+   `NEXTAUTH_*`, `SALT`, `ENCRYPTION_KEY`, `CLICKHOUSE_*`, `MINIO_*`,
+   `LANGFUSE_S3_EVENT_UPLOAD_*`, and `REDIS_*`). Compose loads this file with
+   `env_file`; it does not interpolate prefixed variables from the file.
+   `REDIS_AUTH` must match `/opt/cortexos/.secrets/redis.env` `REDIS_PASSWORD`
+   when reusing the core Redis container.
 
 4. Ensure the external network exists:
 
@@ -43,7 +51,6 @@ Postgres container. ClickHouse and MinIO are internal-only compose services
 
    ```bash
    cd /opt/cortexos/stacks/cortex-langfuse
-   set -a; . /opt/cortexos/.secrets/langfuse.env; set +a
    docker compose up -d --remove-orphans
    ```
 

@@ -35,6 +35,13 @@ function readConfig({ service, env } = {}) {
   };
 }
 
+function langfuseOtelHeaders(publicKey, secretKey) {
+  return {
+    Authorization: `Basic ${Buffer.from(`${publicKey}:${secretKey}`).toString("base64")}`,
+    "x-langfuse-ingestion-version": "4",
+  };
+}
+
 /**
  * Initialise OpenLLMetry + Langfuse. Idempotent. Safe to call from every
  * service boot path — second and subsequent calls are no-ops. When
@@ -67,6 +74,7 @@ export function instrument(opts = {}) {
       appName: cfg.service,
       apiKey: cfg.secretKey,
       baseUrl: `${cfg.host.replace(/\/$/, "")}/api/public/otel`,
+      headers: langfuseOtelHeaders(cfg.publicKey, cfg.secretKey),
       disableBatch: cfg.env !== "production",
     });
     const LangfuseCtor = langfuseMod.Langfuse || langfuseMod.default?.Langfuse || langfuseMod.default;

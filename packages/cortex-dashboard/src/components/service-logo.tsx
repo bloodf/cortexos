@@ -134,6 +134,16 @@ const EXACT_ICON_ALIASES: Record<string, string> = {
 	"redis-exporter": "redis",
 };
 
+const OFFICIAL_GIT_LOGOS: Record<string, string> = {
+	"9router": "/vendor-icons/9router.svg",
+	honcho: "/vendor-icons/honcho.svg",
+	"hermes-dashboard": "/vendor-icons/hermes.svg",
+	"hermes-primary": "/vendor-icons/hermes.svg",
+	"hermes-secondary": "/vendor-icons/hermes.svg",
+	langfuse: "/vendor-icons/langfuse.svg",
+	paperclip: "/vendor-icons/paperclip.svg",
+};
+
 function iconTokens(...values: Array<string | undefined>): string[] {
 	const tokens = new Set<string>();
 	for (const value of values) {
@@ -153,6 +163,24 @@ function resolveDeveloperIcon(serviceId: string, serviceName?: string) {
 		if (match) return match;
 	}
 	return null;
+}
+
+function ImageLogo({ src, alt, size }: { src: string; alt: string; size: number }) {
+	return (
+		<div
+			className="flex items-center justify-center shrink-0 overflow-hidden bg-white"
+			style={{ width: size, height: size, borderRadius: size * 0.2 }}
+		>
+			{/* eslint-disable-next-line @next/next/no-img-element */}
+			<img
+				src={src}
+				alt={alt}
+				width={size}
+				height={size}
+				style={{ objectFit: "contain", width: size, height: size, padding: Math.max(2, size * 0.12) }}
+			/>
+		</div>
+	);
 }
 
 function InitialAvatar({
@@ -213,21 +241,12 @@ const BRAND_COLORS: Record<string, string> = {
 
 export function ServiceLogo({ serviceId, serviceName, size = 40, iconColor, iconImage }: ServiceLogoProps) {
 	if (iconImage) {
-		return (
-			<div
-				className="flex items-center justify-center shrink-0 overflow-hidden"
-				style={{ width: size, height: size, borderRadius: size * 0.2 }}
-			>
-				{/* eslint-disable-next-line @next/next/no-img-element */}
-				<img
-					src={iconImage}
-					alt={serviceId}
-					width={size}
-					height={size}
-					style={{ objectFit: "cover", width: size, height: size }}
-				/>
-			</div>
-		);
+		return <ImageLogo src={iconImage} alt={serviceName || serviceId} size={size} />;
+	}
+
+	const officialGitLogo = OFFICIAL_GIT_LOGOS[serviceId];
+	if (officialGitLogo) {
+		return <ImageLogo src={officialGitLogo} alt={serviceName || serviceId} size={size} />;
 	}
 
 	const developerIcon = resolveDeveloperIcon(serviceId, serviceName);

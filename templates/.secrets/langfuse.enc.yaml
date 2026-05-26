@@ -14,12 +14,19 @@ LANGFUSE_NEXTAUTH_SECRET: "<replace-me-32-byte-hex>"
 LANGFUSE_SALT: "<replace-me-32-byte-hex>"
 LANGFUSE_ENCRYPTION_KEY: "<replace-me-32-byte-hex>"
 LANGFUSE_DB_PASSWORD: "<replace-me>"
+DATABASE_URL: "postgresql://langfuse:<replace-me>@host.docker.internal:5432/langfuse"
+NEXTAUTH_URL: "http://127.0.0.1:3000"
+NEXTAUTH_SECRET: "<replace-me-32-byte-hex>"
+SALT: "<replace-me-32-byte-hex>"
+ENCRYPTION_KEY: "<replace-me-32-byte-hex>"
 
 # --- First-admin headless bootstrap (web container reads on first boot) ---
 LANGFUSE_INIT_ORG_ID: "cortexos"
 LANGFUSE_INIT_ORG_NAME: "CortexOS"
 LANGFUSE_INIT_PROJECT_ID: "cortexos"
 LANGFUSE_INIT_PROJECT_NAME: "cortexos"
+LANGFUSE_INIT_PROJECT_PUBLIC_KEY: "<replace-me>"
+LANGFUSE_INIT_PROJECT_SECRET_KEY: "<replace-me>"
 LANGFUSE_INIT_USER_EMAIL: "admin@cortexos.local"
 LANGFUSE_INIT_USER_NAME: "admin"
 LANGFUSE_INIT_USER_PASSWORD: "<replace-me-strong-password>"
@@ -27,16 +34,26 @@ LANGFUSE_INIT_USER_PASSWORD: "<replace-me-strong-password>"
 # --- ClickHouse credentials (internal compose service) ---
 LANGFUSE_CLICKHOUSE_USER: "langfuse"
 LANGFUSE_CLICKHOUSE_PASSWORD: "<replace-me>"
+CLICKHOUSE_USER: "langfuse"
+CLICKHOUSE_PASSWORD: "<replace-me>"
 
 # --- MinIO root credentials (internal compose service, not external bucket) ---
 LANGFUSE_MINIO_ROOT_USER: "langfuse"
 LANGFUSE_MINIO_ROOT_PASSWORD: "<replace-me>"
 LANGFUSE_S3_BUCKET: "langfuse-events"
+MINIO_ROOT_USER: "langfuse"
+MINIO_ROOT_PASSWORD: "<replace-me>"
+LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: "langfuse"
+LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: "<replace-me>"
+LANGFUSE_S3_EVENT_UPLOAD_BUCKET: "langfuse-events"
 
 # --- Optional Redis hookup (reuses core stack) ---
 LANGFUSE_REDIS_HOST: "redis"
 LANGFUSE_REDIS_PORT: "6379"
-LANGFUSE_REDIS_AUTH: ""
+LANGFUSE_REDIS_AUTH: "<core-redis-password>"
+REDIS_HOST: "redis"
+REDIS_PORT: "6379"
+REDIS_AUTH: "<core-redis-password>"
 
 # --- Tailscale bind address for the web UI (Caddy upstream) ---
 TAILSCALE_IP: "127.0.0.1"
