@@ -87,7 +87,7 @@ export function AppsPanel({ services, isAdmin }: Props) {
 	}
 
 	const columns = React.useMemo<ColumnDef<AppService>[]>(() => [
-		{ accessorKey: "name", header: "Name", cell: ({ row }) => <div className="flex items-center gap-3"><ServiceLogo serviceId={row.original.slug} size={28} iconColor={row.original.icon_color} iconImage={row.original.icon_image} /><span className="font-medium">{row.original.name}</span></div> },
+		{ accessorKey: "name", header: "Name", cell: ({ row }) => <div className="flex items-center gap-3"><ServiceLogo serviceId={row.original.slug} serviceName={row.original.name} size={28} iconColor={row.original.icon_color} iconImage={row.original.icon_image} /><span className="font-medium">{row.original.name}</span></div> },
 		{ accessorKey: "status", header: "Status", cell: ({ row }) => <StatusBadge status={row.original.status} responseTime={row.original.responseTime} /> },
 		{ accessorKey: "category", header: "Category" },
 		{ id: "badges", header: "Badges", cell: ({ row }) => <BadgeList badges={row.original.badges} /> },
@@ -152,5 +152,5 @@ function CredentialRow({ label, value }: { label: string; value?: string }) {
 }
 
 function AppCard({ service: s, isAdmin }: { service: AppService; isAdmin: boolean }) {
-	return <div className="rounded-xl border border-border bg-card p-4 transition-all hover:bg-muted/40"><div className="flex items-start gap-3"><ServiceLogo serviceId={s.slug} size={36} iconColor={s.icon_color} iconImage={s.icon_image} /><div className="min-w-0 flex-1"><div className="truncate text-sm font-medium">{s.name}</div><div className="mt-1.5"><StatusBadge status={s.status} responseTime={s.responseTime} /></div>{s.badges.length > 0 && <div className="mt-2"><BadgeList badges={s.badges} /></div>}</div></div><div className="mt-3 flex items-center justify-end gap-1"><AppActions service={s} isAdmin={isAdmin} /></div></div>;
+	return <div className="rounded-xl border border-border bg-card p-4 transition-all hover:bg-muted/40"><div className="flex items-start gap-3"><ServiceLogo serviceId={s.slug} serviceName={s.name} size={36} iconColor={s.icon_color} iconImage={s.icon_image} /><div className="min-w-0 flex-1"><div className="truncate text-sm font-medium">{s.name}</div><div className="mt-1.5"><StatusBadge status={s.status} responseTime={s.responseTime} /></div>{s.badges.length > 0 && <div className="mt-2"><BadgeList badges={s.badges} /></div>}</div></div><div className="mt-3 flex items-center justify-end gap-1"><AppActions service={s} isAdmin={isAdmin} /></div></div>;
 }

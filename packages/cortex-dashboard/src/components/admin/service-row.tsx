@@ -143,6 +143,7 @@ export function ServiceRow({
 					<div className="flex items-center gap-2">
 						<ServiceLogo
 							serviceId={svc.slug}
+							serviceName={svc.name}
 							size={28}
 							iconColor={editDraft.icon_color}
 							iconImage={editDraft.icon_image}
@@ -186,6 +187,7 @@ export function ServiceRow({
 				) : (
 					<ServiceLogo
 						serviceId={svc.slug}
+						serviceName={svc.name}
 						size={28}
 						iconColor={svc.icon_color}
 						iconImage={svc.icon_image}

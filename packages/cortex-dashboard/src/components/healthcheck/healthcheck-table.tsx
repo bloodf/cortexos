@@ -64,7 +64,7 @@ export function HealthcheckTable({ services, isMobile = false }: HealthcheckTabl
 				header: "Name",
 				cell: ({ row }) => (
 					<div className="flex items-center gap-3">
-						<ServiceLogo serviceId={row.original.slug} size={32} iconColor={row.original.icon_color} iconImage={row.original.icon_image} />
+						<ServiceLogo serviceId={row.original.slug} serviceName={row.original.name} size={32} iconColor={row.original.icon_color} iconImage={row.original.icon_image} />
 						<span className="text-sm font-medium">{row.original.name}</span>
 					</div>
 				),
@@ -120,7 +120,7 @@ export function HealthcheckTable({ services, isMobile = false }: HealthcheckTabl
 						<div key={s.slug} className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
 							<div className="flex items-center justify-between">
 								<div className="flex items-center gap-3">
-									<ServiceLogo serviceId={s.slug} size={36} iconColor={s.icon_color} iconImage={s.icon_image} />
+									<ServiceLogo serviceId={s.slug} serviceName={s.name} size={36} iconColor={s.icon_color} iconImage={s.icon_image} />
 									<div className="flex flex-col">
 										<span className="text-sm font-medium">{s.name}</span>
 										<span className="text-xs text-muted-foreground">{s.health_url}</span>

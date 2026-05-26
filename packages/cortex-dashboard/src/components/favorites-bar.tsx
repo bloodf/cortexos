@@ -1,6 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
+import { ServiceLogo } from "@/components/service-logo";
 import { useFavorites } from "@/hooks/use-favorites";
 
 export function FavoritesBar() {
@@ -19,8 +20,15 @@ export function FavoritesBar() {
 							href={favorite.open_url}
 							target="_blank"
 							rel="noopener noreferrer"
-							className="font-medium hover:text-indigo-300"
+							className="inline-flex items-center gap-1.5 font-medium hover:text-indigo-300"
 						>
+							<ServiceLogo
+								serviceId={favorite.slug}
+								serviceName={favorite.name}
+								size={18}
+								iconColor={favorite.icon_color}
+								iconImage={favorite.icon_image}
+							/>
 							{favorite.name}
 						</a>
 						<button

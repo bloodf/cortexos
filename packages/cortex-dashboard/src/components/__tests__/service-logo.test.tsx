@@ -18,10 +18,16 @@ describe('ServiceLogo', () => {
 		expect(screen.getByText('HA')).toBeInTheDocument();
 	});
 
-	it('uses brand color for known services', () => {
-		const { container } = render(<ServiceLogo serviceId="grafana" />);
-		const rect = container.querySelector('rect');
-		expect(rect).toHaveAttribute('fill', '#f46800');
+	it('uses developer-icons for detected services', () => {
+		render(<ServiceLogo serviceId="grafana" serviceName="Grafana" />);
+		const logo = screen.getByRole('img', { name: 'Grafana logo' });
+		expect(logo).toHaveAttribute('data-developer-icon', 'Grafana');
+	});
+
+	it('detects icons from aliases', () => {
+		render(<ServiceLogo serviceId="pg-exporter" serviceName="PG Exporter" />);
+		const logo = screen.getByRole('img', { name: 'PG Exporter logo' });
+		expect(logo).toHaveAttribute('data-developer-icon', 'PostgreSQL');
 	});
 
 	it('uses iconColor when provided', () => {

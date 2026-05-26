@@ -62,6 +62,7 @@ function AppGridItem({ service: s }: { service: ServiceData }) {
 				>
 					<ServiceLogo
 						serviceId={s.slug}
+						serviceName={s.name}
 						size={36}
 						iconColor={s.icon_color}
 						iconImage={s.icon_image}

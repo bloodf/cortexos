@@ -52,6 +52,7 @@ function ServiceGridItem({ service: s }: { service: ServiceData }) {
 			<div className="flex items-start gap-3">
 				<ServiceLogo
 					serviceId={s.slug}
+					serviceName={s.name}
 					size={36}
 					iconColor={s.icon_color}
 					iconImage={s.icon_image}
