@@ -14,6 +14,8 @@ Dashboard is the Next.js 16 administration UI for CortexOS. It runs on loopback 
 ## Deployment
 
 Production runs as native systemd from the standalone Next.js build. The legacy Docker Compose file is reference only.
+`scripts/native-build.sh` installs `libpam0g-dev` before `pnpm install` so `authenticate-pam` can build against `security/pam_appl.h`.
+
 
 ```bash
 cd /opt/cortexos/packages/cortex-dashboard

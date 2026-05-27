@@ -90,6 +90,8 @@ The Apps page reads credential keys from the service row's `env_source` file. `A
 ## Deployment
 
 Production deploy on VPS:
+`scripts/native-build.sh` installs `libpam0g-dev` before `pnpm install` so `authenticate-pam` can build its PAM native addon.
+
 
 ```bash
 cd /opt/cortexos/packages/cortex-dashboard
