@@ -167,7 +167,7 @@ compose_project="${COMPOSE_PROJECT_NAME:-$(basename "$PWD")-$run_id}"
 kube_namespace="${KUBE_NAMESPACE:-dev-$(basename "$PWD")-$run_id}"
 
 cleanup() {
-  COMPOSE_PROJECT_NAME="$compose_project" docker compose down -v --remove-orphans --rmi local 2>/dev/null || true
+  COMPOSE_PROJECT_NAME="$compose_project" docker compose down -v --remove-orphans --rmi all 2>/dev/null || true
   docker ps -a --filter "label=cortexos.run=$run_id" -q | xargs -r docker rm -f 2>/dev/null || true
   docker images --filter "label=cortexos.run=$run_id" -q | xargs -r docker rmi -f 2>/dev/null || true
   kubectl delete namespace "$kube_namespace" --ignore-not-found=true 2>/dev/null || true

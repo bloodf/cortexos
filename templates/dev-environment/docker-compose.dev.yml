@@ -1,0 +1,89 @@
+x-cortex-labels: &cortex-labels
+  cortexos.project: ${CORTEX_PROJECT:-project}
+  cortexos.worktree: ${CORTEX_WORKTREE:-unknown}
+  cortexos.run: ${CORTEX_RUN_ID:-local}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    labels: *cortex-labels
+    environment:
+      POSTGRES_USER: ${DEV_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${DEV_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${DEV_POSTGRES_DB:-app_dev}
+    ports:
+      - "${DEV_BIND_ADDRESS:-127.0.0.1}:${DEV_POSTGRES_PORT:-15432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DEV_POSTGRES_USER:-postgres} -d ${DEV_POSTGRES_DB:-app_dev}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    labels: *cortex-labels
+    ports:
+      - "${DEV_BIND_ADDRESS:-127.0.0.1}:${DEV_REDIS_PORT:-16379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  minio:
+    image: minio/minio:latest
+    labels: *cortex-labels
+    environment:
+      MINIO_ROOT_USER: ${DEV_MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${DEV_MINIO_ROOT_PASSWORD:-minioadmin}
+    command: server /data --console-address ":9001"
+    ports:
+      - "${DEV_BIND_ADDRESS:-127.0.0.1}:${DEV_MINIO_PORT:-19000}:9000"
+      - "${DEV_BIND_ADDRESS:-127.0.0.1}:${DEV_MINIO_CONSOLE_PORT:-19001}:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  minio-bootstrap:
+    image: minio/mc:latest
+    labels: *cortex-labels
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      DEV_MINIO_BUCKET: ${DEV_MINIO_BUCKET:-media}
+      DEV_MINIO_ROOT_USER: ${DEV_MINIO_ROOT_USER:-minioadmin}
+      DEV_MINIO_ROOT_PASSWORD: ${DEV_MINIO_ROOT_PASSWORD:-minioadmin}
+    entrypoint:
+      - /bin/sh
+      - -lc
+      - |
+        mc alias set local http://minio:9000 "$$DEV_MINIO_ROOT_USER" "$$DEV_MINIO_ROOT_PASSWORD"
+        mc mb --ignore-existing "local/$$DEV_MINIO_BUCKET"
+
+  mailpit:
+    image: axllent/mailpit:latest
+    labels: *cortex-labels
+    ports:
+      - "${DEV_BIND_ADDRESS:-127.0.0.1}:${DEV_MAILPIT_SMTP_PORT:-11025}:1025"
+      - "${DEV_BIND_ADDRESS:-127.0.0.1}:${DEV_MAILPIT_HTTP_PORT:-18025}:8025"
+
+networks:
+  default:
+    labels: *cortex-labels
+
+volumes:
+  postgres-data:
+    labels: *cortex-labels
+  redis-data:
+    labels: *cortex-labels
+  minio-data:
+    labels: *cortex-labels

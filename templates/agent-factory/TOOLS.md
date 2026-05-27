@@ -41,10 +41,11 @@ Required dev/staging/prod deployment path:
 Docker/Kubernetes development policy:
 
 - Application projects must use Docker/Docker Compose or Kubernetes for local development services so each project, worktree, and agent run has isolated databases, queues, caches, object storage, ports, and runtime state.
+- New product repos should install the starter files from `templates/dev-environment/`: `scripts/dev-env.sh`, `docker-compose.dev.yml`, and `k8s/dev/resources.yaml`.
 - Docker Compose runs must set a unique `COMPOSE_PROJECT_NAME` and use per-run volumes/networks.
 - Kubernetes runs must use a unique namespace and labels for repo, worktree, and run id.
 - Every script that starts containers or Kubernetes resources must define cleanup with `trap cleanup EXIT`.
-- Docker Compose scripts must run `docker compose down -v --remove-orphans --rmi local` for the current `COMPOSE_PROJECT_NAME` in cleanup.
+- Docker Compose scripts must run `docker compose down -v --remove-orphans --rmi all` for the current `COMPOSE_PROJECT_NAME` in cleanup.
 - Plain Docker scripts must remove only containers/images labelled or named for the current run.
 - Kubernetes scripts must delete only the namespace/resources created for the current run.
 - `act` may be used only as an explicit CI/CD validation tool, never as deployment; remove all `act-*` containers after the run.
