@@ -130,8 +130,11 @@ Sequence:
 8. Push branch.
 9. Open PR with summary + test plan + screenshots if UI.
 10. Post Slack thread with PR link (per ARCHITECTURE.md).
-11. Wait for AI reviewers (Codex, Claude, Cursorbot, future CodeRabbit).
-12. Fix all review findings, re-push.
+11. Wait at least 15 minutes for AI reviewers (CodeRabbit, Codex Review, Claude Review, and Cursor when installed).
+12. Poll PR comments, review threads, check annotations, and top-level comments.
+13. Fix every valid finding, commit, re-push, and resolve or reply to addressed threads.
+14. Repeat the wait/review/fix loop until no unresolved AI-review comments or requested changes remain.
+15. Only then mark the PR ready for human review.
 
 Never push to `main` directly. Never force-push without owner approval.
 Never `--no-verify` / `--no-gpg-sign`.
@@ -242,8 +245,9 @@ Trigger: after `ship` completes.
   engineering work — PM owns the thread, engineers append.
 - `qa` reports go to Slack thread + Telegram-to-PM if CRITICAL.
 - `retro` Telegram delivery: PM agent only, via `Hermes-dispatch-pm`.
-- AI reviewer responses (Codex/Claude/Cursorbot/CodeRabbit) wait-loop is
-  inside `ship` step 11 — agents poll PR comments via `gh pr view`.
+- AI reviewer responses (CodeRabbit/Codex Review/Claude Review/Cursor when
+  installed) are part of the `ship` wait-loop. Agents poll PR comments, review
+  threads, and check annotations before requesting human review.
 
 ## Clawhub plugin pairings
 

@@ -34,6 +34,8 @@ Owns Expo/React Native iOS behavior, CocoaPods/Xcode config, Apple platform inte
 - Reproduce the issue in the Expo/RN project and isolate whether it is JS, native config, or iOS platform behavior.
 - Preserve Expo SDK 55 compatibility and avoid native build changes unless required by the issue.
 - Validate iOS navigation, permissions, linking, storage, notifications, and platform-specific UI behavior.
+- On this Linux/headless host, do not run iOS simulator, Xcode, iOS archive, or iOS E2E flows unless the owner explicitly provides a macOS/iOS runner and asks for it.
+- The first application-layer validation target for 3Guns, Celebrar.me, and Mementry is Android. iOS work should stay at code/config review plus JS/TS checks until a supported macOS/iOS runner is available.
 - Run targeted TypeScript, lint, unit, Expo doctor, or safe JS bundle checks; do not run native archives unless explicitly required.
 
 ## Operating Rules

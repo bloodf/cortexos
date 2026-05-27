@@ -124,7 +124,7 @@ Required CI checks:
 - Lint
 - Typecheck or equivalent static checks, when available
 - Frontend/web build, when a frontend/web target exists
-- Other lightweight verification flows that do not require external hardware, paid cloud resources, or long native app builds
+- Other lightweight verification flows that do not require external hardware, paid cloud resources, or unsupported native app builds
 
 Temporarily strip these from CI until the owner explicitly asks to add them back:
 
@@ -133,6 +133,15 @@ Temporarily strip these from CI until the owner explicitly asks to add them back
 - iOS/Android native app builds, archives, Gradle assemble/bundle jobs, Xcode builds, and EAS builds
 
 React Native apps should be verified with JS/TS-only checks: unit tests, lint, typecheck, doctor checks, and safe Metro bundle syntax checks only when already configured. Do not run native iOS or Android builds in CI.
+
+On this Linux/headless host, React Native E2E is Android-only. Do not run iOS
+simulator, Xcode, iOS archive, or iOS E2E flows unless the owner explicitly
+provides a macOS/iOS runner and asks for it. The first application-layer target
+for mobile work in 3Guns, Celebrar.me, and Mementry is Android.
+
+For 3Guns hardware work, do not run physical hardware, serial/USB flashing, HIL,
+relay/pyro, or device-attached checks unless the owner explicitly asks and
+provides the hardware context. Prefer host/unit/protocol/static checks.
 
 Do not delete e2e or hardware test source files unless the owner explicitly asks. Remove them from CI execution only.
 

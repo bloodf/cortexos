@@ -31,6 +31,12 @@ Owns mobile implementation and device-facing quality.
 - Post a concise Paperclip comment with changed files, verification, and remaining risk.
 - Move the issue to the correct final state only after validation is complete.
 
+## Mobile Verification Boundary
+
+- The first application-layer validation target for 3Guns, Celebrar.me, and Mementry is Android.
+- On this Linux/headless host, React Native E2E is Android-only. Do not run iOS simulator, Xcode, iOS archive, or iOS E2E flows unless the owner explicitly provides a macOS/iOS runner and asks for it.
+- Prefer JS/TS checks, unit tests, lint, typecheck, Expo doctor, and Android-only E2E when a supported Android runner is available.
+
 ## Operating Rules
 
 - Do not use retired custom agent buses, sidecars, or direct provider APIs.

@@ -34,7 +34,9 @@ Owns Expo/React Native Android behavior, Gradle/Android config, Play Store integ
 - Reproduce the issue in the Expo/RN project and isolate whether it is JS, native config, or Android platform behavior.
 - Preserve Expo SDK 55 compatibility and avoid Gradle/native build changes unless required by the issue.
 - Validate Android permissions, intents, deep links, storage, notifications, back navigation, and platform-specific UI behavior.
-- Run targeted TypeScript, lint, unit, Expo doctor, or safe JS bundle checks; do not run native assemble/bundle unless explicitly required.
+- Run targeted TypeScript, lint, unit, Expo doctor, Android-only E2E when a supported Android runner is available, or safe JS bundle checks.
+- The first application-layer validation target for 3Guns, Celebrar.me, and Mementry is Android.
+- Do not run native Android assemble/bundle/release builds unless explicitly required by the issue or owner.
 
 ## Operating Rules
 

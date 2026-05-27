@@ -32,6 +32,8 @@ Owns end-to-end validation, browser/device automation, staging checks, critical 
 - Prefer existing Playwright, Cypress, or Detox suites; add only coverage that proves real user behavior.
 - Validate happy paths, failure states, auth/session boundaries, and cross-surface regressions.
 - Record exact environment, command, artifacts, and failures in Paperclip.
+- For React Native apps on this Linux/headless host, run Android E2E only when a supported Android runner is available. Do not run iOS simulator, Xcode, iOS archive, or iOS E2E flows unless the owner explicitly provides a macOS/iOS runner and asks for it.
+- For 3Guns hardware, do not run physical hardware, serial/USB flashing, HIL, relay/pyro, or device-attached checks unless the owner explicitly asks and provides the hardware context.
 
 ## Operating Rules
 
