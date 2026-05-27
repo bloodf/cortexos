@@ -147,15 +147,30 @@ Do not delete e2e or hardware test source files unless the owner explicitly asks
 
 ## Deployment & Container Policy
 
-Dev, staging, and production deployments are **Terraform + Floci only**. Do not deploy environments with Docker, Docker Compose, Coolify, ad-hoc containers, or manual cloud resources.
+Development, staging, and production deployments are **Terraform + Floci only**. Do not deploy environments with Docker, Docker Compose, Coolify, ad-hoc containers, or manual cloud resources.
 
-Docker and Docker Compose are allowed only for CI/CD scripts and validation jobs. If a CI/CD job starts containers, the script must remove them even when the job fails.
+Local development and agent validation must be isolated per project, worktree, and run. Use Docker/Docker Compose or Kubernetes for development services instead of shared host processes so concurrent agents do not touch each other's databases, caches, queues, ports, files, or runtime state.
 
-Required cleanup pattern for any CI/CD script that starts containers:
+Required isolation rules:
+
+- Docker Compose runs must set a unique `COMPOSE_PROJECT_NAME` such as `<repo>-<worktree>-<runid>`.
+- Kubernetes runs must use a unique namespace such as `dev-<repo>-<worktree>-<runid>`.
+- Every container, image, volume, network, and Kubernetes object created by an agent must include labels for repo, worktree, and run id when the tool supports labels.
+- Bind-mounted data and generated files must stay inside the current worktree or an explicitly named temp directory for the run.
+- Never attach development services to a shared project network or shared database unless the task explicitly requires it.
+
+Required cleanup pattern for any script that starts Docker/Docker Compose or Kubernetes resources:
 
 ```bash
+run_id="${CORTEX_RUN_ID:-$(date +%s)}"
+compose_project="${COMPOSE_PROJECT_NAME:-$(basename "$PWD")-$run_id}"
+kube_namespace="${KUBE_NAMESPACE:-dev-$(basename "$PWD")-$run_id}"
+
 cleanup() {
-  docker compose down -v --remove-orphans 2>/dev/null || true
+  COMPOSE_PROJECT_NAME="$compose_project" docker compose down -v --remove-orphans --rmi local 2>/dev/null || true
+  docker ps -a --filter "label=cortexos.run=$run_id" -q | xargs -r docker rm -f 2>/dev/null || true
+  docker images --filter "label=cortexos.run=$run_id" -q | xargs -r docker rmi -f 2>/dev/null || true
+  kubectl delete namespace "$kube_namespace" --ignore-not-found=true 2>/dev/null || true
   docker ps -a --filter "name=^/act-" -q | xargs -r docker rm -f 2>/dev/null || true
 }
 trap cleanup EXIT
@@ -164,10 +179,11 @@ trap cleanup EXIT
 Rules:
 
 1. **Deploy with Terraform through Floci** — dev/staging/prod infrastructure changes must be represented in Terraform and validated against Floci first.
-2. **Containers are CI/CD-only** — use Docker/Docker Compose only to run isolated CI validation, test services, or build checks.
-3. **Always cleanup** — remove CI containers, networks, and volumes on success and failure.
-4. **No lingering `act` containers** — if `act` is explicitly used for CI simulation, remove all `act-*` containers afterward.
-5. **No Docker Compose deployment stacks** — do not add new Compose stacks for environments.
+2. **Containers are dev/validation-only for product repos** — use Docker/Docker Compose/Kubernetes for isolated local development services, CI validation, test services, or build checks, not for deployment.
+3. **Always cleanup** — remove agent-created containers, networks, volumes, local images, and Kubernetes namespaces on success and failure.
+4. **No global pruning** — never run broad `docker system prune`, `docker volume prune`, `docker image prune`, or cluster-wide Kubernetes deletes. Remove only resources labelled/named for the current run.
+5. **No lingering `act` containers** — if `act` is explicitly used for CI simulation, remove all `act-*` containers afterward.
+6. **No Docker Compose deployment stacks** — do not add new Compose stacks for deployed environments.
 
 ---
 
