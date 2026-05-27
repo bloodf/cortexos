@@ -63,6 +63,7 @@ Start:
 5. Run the final gates:
 
    rtk pnpm check:repo-leaks
+   rtk pnpm check:script-inventory
    rtk pnpm audit:docker-names
    rtk pnpm audit:runtime-sync -- --strict
    rtk pnpm --filter cortexos-scripts test

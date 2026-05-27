@@ -2,11 +2,7 @@
 
 ## Chat Input Gate
 
-This prompt follows `prompts/CHAT-INPUT-CONTRACT.md`. Do not assume any
-operator-specific environment variables are already defined. Before using a
-value such as a host, user, domain, token, password, project path, profile name,
-or service URL, ask a **STOP — input question**, wait for the operator's answer,
-and then substitute that answer into the commands you produce.
+This prompt follows `prompts/CHAT-INPUT-CONTRACT.md` and the prompt skeleton in `docs/SCRIPT-PROMPT-POLICY.md`. Ask required operator-specific values through a **STOP — input question** before emitting commands that use them.
 
 > **Operator-laptop note**: when this prompt is reached via
 > `prompts/00-bootstrap.md`, OS detection has already run over SSH from

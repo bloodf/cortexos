@@ -2,11 +2,7 @@
 
 ## Chat Input Gate
 
-This prompt follows `prompts/CHAT-INPUT-CONTRACT.md`. Do not assume any
-operator-specific environment variables are already defined. Before using a
-value such as a host, user, domain, token, password, project path, profile name,
-or service URL, ask a **STOP — input question**, wait for the operator's answer,
-and then substitute that answer into the commands you produce.
+This prompt follows `prompts/CHAT-INPUT-CONTRACT.md` and the prompt skeleton in `docs/SCRIPT-PROMPT-POLICY.md`. Ask required operator-specific values through a **STOP — input question** before emitting commands that use them.
 
 ## Purpose
 
@@ -98,6 +94,31 @@ Install `scripts/hermes-paperclip-wrapper.sh` to
 `/opt/cortexos/bin/hermes-paperclip`. The wrapper normalizes `HOME`, derives
 the profile when Paperclip passes typed env objects to the adapter process, and
 execs the real Hermes CLI.
+
+## Paperclip API auth for Hermes runs
+
+Hermes agents must never call Paperclip without an auth header. For each
+Paperclip-managed Hermes agent, mint a scoped agent API key, store only the
+plaintext runtime map in a root/cortexos-owned secret file, and keep the DB with
+only Paperclip's hashed key rows.
+
+Use this runtime key map path:
+
+```bash
+/opt/cortexos/.secrets/paperclip-agent-runtime-keys.json
+```
+
+The `hermes-paperclip-adapter` execution environment must set
+`PAPERCLIP_API_KEY` from that key map for the current `agent.id`, and every
+prompted curl command must include:
+
+```bash
+-H "Authorization: Bearer $PAPERCLIP_API_KEY" -H "X-Paperclip-Run-Id: $PAPERCLIP_RUN_ID"
+```
+
+Do not depend on unauthenticated localhost access. Authenticated Paperclip
+deployments return `401` for those calls, which makes agents report "no work"
+or block issues even when the issue assignment is correct.
 
 ## Verify
 

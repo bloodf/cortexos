@@ -219,6 +219,7 @@ Run these before treating the repository and machine as reproducible:
 ```bash
 rtk pnpm check:prompt-chat-contract
 rtk pnpm check:repo-leaks
+rtk pnpm check:script-inventory
 rtk pnpm audit:docker-names
 rtk pnpm audit:runtime-sync -- --strict
 rtk pnpm --filter cortexos-scripts test
@@ -241,6 +242,8 @@ Expected runtime state:
 | --- | --- |
 | AI installer prompt | [docs/AI-INSTALLER-PROMPT.md](docs/AI-INSTALLER-PROMPT.md) |
 | Replication contract | [docs/AI-REPLICATION.md](docs/AI-REPLICATION.md) |
+| Script and prompt policy | [docs/SCRIPT-PROMPT-POLICY.md](docs/SCRIPT-PROMPT-POLICY.md) |
+| Script inventory | [docs/SCRIPT-INVENTORY.md](docs/SCRIPT-INVENTORY.md) |
 | Setup | [SETUP.md](SETUP.md) |
 | Requirements | [REQUIREMENTS.md](REQUIREMENTS.md) |
 | Architecture | [ARCHITECTURE.md](ARCHITECTURE.md) |

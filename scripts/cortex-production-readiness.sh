@@ -39,6 +39,12 @@ check_cmd curl
 check_cmd docker
 check_cmd psql
 
+node scripts/check-script-inventory.mjs >/dev/null && ok "Script inventory classified" || bad "Script inventory incomplete"
+node scripts/check-prompt-chat-contract.mjs >/dev/null && ok "Prompt chat contract" || bad "Prompt chat contract"
+node scripts/check-repo-leaks.mjs --all >/dev/null && ok "Repository leak gate" || bad "Repository leak gate"
+node scripts/cortex-docker-name-audit.mjs >/dev/null && ok "Docker name audit" || bad "Docker name audit"
+node scripts/cortex-runtime-sync-audit.mjs --strict >/dev/null && ok "Runtime sync audit" || bad "Runtime sync audit"
+
 test -f /opt/cortexos/hermes/profiles.json && ok "Hermes registry exists" || bad "Hermes registry missing"
 test -f /opt/cortexos/.secrets/honcho.env && ok "Honcho env exists" || bad "Honcho env missing"
 test -f /opt/cortexos/.secrets/paperclip.env && ok "Paperclip env exists" || bad "Paperclip env missing"

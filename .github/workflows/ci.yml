@@ -22,6 +22,7 @@ jobs:
           cache: pnpm
       - name: Install workspace deps
         run: pnpm install --frozen-lockfile
+      - run: pnpm check:script-inventory
       - run: pnpm --filter @cortexos/dashboard run lint
       - run: pnpm exec tsc --noEmit
         working-directory: packages/cortex-dashboard

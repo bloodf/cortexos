@@ -119,8 +119,22 @@ if (paperclipApiUrl && paperclipKey && companyId) {
     if (!heartbeat?.enabled) return false;
     return Number(heartbeat.intervalSec || 0) <= 0;
   });
+  const invalidAdapterConfigs = hermesAgents.filter((agent) => {
+    const config = agent.adapterConfig || {};
+    const env = config.env || {};
+    if (config.provider && config.provider !== "auto") return true;
+    if (!Array.isArray(config.extraArgs) || config.extraArgs.join(" ") !== "--provider 9router") return true;
+    if (Number(config.timeoutSec || 0) < 1800) return true;
+    if (env.OPENROUTER_API_KEY || env.OPENROUTER_BASE_URL || env.OPENAI_API_KEY) return true;
+    return false;
+  });
   const disabledSchedules = hermesAgents.filter((agent) => agent.runtimeConfig?.heartbeat?.enabled !== true);
-  if (invalidSchedules.length) {
+  if (invalidAdapterConfigs.length) {
+    fail(
+      "paperclip-hermes-adapter-config",
+      `${invalidAdapterConfigs.length} hermes_local agents are not using the 9Router adapter contract`,
+    );
+  } else if (invalidSchedules.length) {
     fail(
       "paperclip-hermes-schedules",
       `${invalidSchedules.length} hermes_local agents have enabled heartbeat schedules with invalid intervals`,

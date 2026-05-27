@@ -135,6 +135,8 @@ describe("registerRole", () => {
 			adapterType: "hermes_local",
 			adapterConfig: {
 				provider: "auto",
+				timeoutSec: 3600,
+				graceSec: 30,
 				extraArgs: ["--provider", "9router"],
 			},
 			runtimeConfig: {
@@ -182,6 +184,8 @@ describe("registerRole", () => {
 		expect(calls[0].body).toMatchObject({
 			adapterConfig: {
 				provider: "auto",
+				timeoutSec: 3600,
+				graceSec: 30,
 				extraArgs: ["--provider", "9router"],
 			},
 			runtimeConfig: {

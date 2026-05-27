@@ -7,6 +7,8 @@ Core references:
 | [AI-INSTALLER-PROMPT.md](AI-INSTALLER-PROMPT.md) | Copy-paste prompt for an AI agent starting a CortexOS install |
 | [AI-REPLICATION.md](AI-REPLICATION.md) | Public-safe machine replication contract |
 | [APPS.md](APPS.md) | Full app and service catalog |
+| [SCRIPT-PROMPT-POLICY.md](SCRIPT-PROMPT-POLICY.md) | Boundary between AI prompts and deterministic scripts |
+| [SCRIPT-INVENTORY.md](SCRIPT-INVENTORY.md) | Top-level script ownership and cleanup classification |
 | [SERVICES.md](SERVICES.md) | Active Hermes/Honcho/Paperclip service catalog |
 | [DASHBOARD.md](DASHBOARD.md) | Dashboard deployment and operations |
 | [PAPERCLIP.md](PAPERCLIP.md) | Paperclip workflow notes |

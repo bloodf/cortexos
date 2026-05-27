@@ -56,3 +56,9 @@ Do not read or use that file until the operator answers.
 
 Verification commands may read runtime env files only when those files were
 created or explicitly approved for reuse earlier in the same prompt.
+
+## Prompt Shape
+
+Prompts should reference this contract rather than restating it in full. Use
+the canonical prompt skeleton in `docs/SCRIPT-PROMPT-POLICY.md`: Purpose,
+Inputs, Desired State, Commands, Verification, and Failure Handling.

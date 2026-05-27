@@ -48,6 +48,9 @@ export interface MintedKey {
 
 const DEFAULT_KEYS_FILE = "/opt/cortexos/.secrets/paperclip-keys.json";
 const DEFAULT_ROLES_DIR = resolve(__dirname, "..", "templates", "agent-roles");
+const DEFAULT_HERMES_MODEL = "cx/gpt-5.5";
+const DEFAULT_HERMES_TIMEOUT_SEC = 3600;
+const DEFAULT_HERMES_GRACE_SEC = 30;
 
 /**
  * Minimal YAML frontmatter parser for the paperclip block.
@@ -227,6 +230,13 @@ function normalizeOpenAiBaseUrl(raw: string): string {
 	return `${trimmed}/v1`;
 }
 
+function positiveIntFromEnv(name: string, fallback: number): number {
+	const raw = process.env[name];
+	if (!raw) return fallback;
+	const value = Number(raw);
+	return Number.isInteger(value) && value > 0 ? value : fallback;
+}
+
 function hermesProfilePort(profile: string): string {
 	if (profile === "primary") return "18691";
 	if (profile === "secondary") return "18692";
@@ -253,13 +263,14 @@ function buildAdapterConfig(role: ParsedRole): Record<string, unknown> {
 	const profile = map[role.paperclip.role] || map[normalized] || "primary";
 	const envName = profile.toUpperCase().replace(/[^A-Z0-9]/g, "_");
 	const port = hermesProfilePort(profile);
+	const model = process.env.PAPERCLIP_HERMES_MODEL || DEFAULT_HERMES_MODEL;
 	return {
 		profile,
-		model: "cx/gpt-5.5",
+		model,
 		provider: "auto",
 		maxIterations: 50,
-		timeoutSec: 900,
-		graceSec: 15,
+		timeoutSec: positiveIntFromEnv("PAPERCLIP_HERMES_TIMEOUT_SEC", DEFAULT_HERMES_TIMEOUT_SEC),
+		graceSec: positiveIntFromEnv("PAPERCLIP_HERMES_GRACE_SEC", DEFAULT_HERMES_GRACE_SEC),
 		persistSession: true,
 		toolsets: "terminal,file,web,browser,code_execution",
 		hermesCommand: defaultHermesCommand(),
@@ -269,7 +280,7 @@ function buildAdapterConfig(role: ParsedRole): Record<string, unknown> {
 		env: {
 			HERMES_PROFILE: profile,
 			HERMES_HOME: `/opt/cortexos/hermes/profiles/${profile}`,
-			HERMES_MODEL: "cx/gpt-5.5",
+			HERMES_MODEL: model,
 			HERMES_REASONING: "medium",
 			HONCHO_BASE_URL: process.env.HONCHO_BASE_URL || "http://127.0.0.1:18690",
 			HONCHO_WORKSPACE: profile,

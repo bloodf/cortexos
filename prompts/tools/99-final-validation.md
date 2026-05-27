@@ -2,11 +2,7 @@
 
 ## Chat Input Gate
 
-This prompt follows `prompts/CHAT-INPUT-CONTRACT.md`. Do not assume any
-operator-specific environment variables are already defined. Before using a
-value such as a host, user, domain, token, password, project path, profile name,
-or service URL, ask a **STOP — input question**, wait for the operator's answer,
-and then substitute that answer into the commands you produce.
+This prompt follows `prompts/CHAT-INPUT-CONTRACT.md` and the prompt skeleton in `docs/SCRIPT-PROMPT-POLICY.md`. Ask required operator-specific values through a **STOP — input question** before emitting commands that use them.
 
 Purpose: prove the installed machine matches the public-safe CortexOS runtime
 contract.
@@ -43,6 +39,7 @@ Expected:
 
 ```bash
 rtk pnpm check:repo-leaks
+rtk pnpm check:script-inventory
 rtk pnpm audit:docker-names
 rtk pnpm audit:runtime-sync -- --strict
 rtk pnpm --filter cortexos-scripts test
