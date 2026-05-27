@@ -51,6 +51,10 @@ const DEFAULT_ROLES_DIR = resolve(__dirname, "..", "templates", "agent-roles");
 const DEFAULT_HERMES_MODEL = "cx/gpt-5.5";
 const DEFAULT_HERMES_TIMEOUT_SEC = 3600;
 const DEFAULT_HERMES_GRACE_SEC = 30;
+const HERMES_CLI_PROVIDER = "custom";
+const NINEROUTER_BASE_URL = normalizeOpenAiBaseUrl(
+	process.env.NINEROUTER_BASE_URL || "http://127.0.0.1:11434",
+);
 
 /**
  * Minimal YAML frontmatter parser for the paperclip block.
@@ -186,14 +190,46 @@ function paperclipRoleToAgentRole(role: string): string {
 	const normalized = role.toUpperCase();
 	if (normalized === "CEO") return "ceo";
 	if (normalized === "CTO") return "cto";
+	if (normalized === "CPO") return "pm";
+	if (normalized === "CRO") return "general";
 	if (normalized === "PM" || normalized === "PO") return "pm";
-	if (normalized === "QA") return "qa";
-	if (normalized === "UXUI") return "designer";
-	if (normalized.includes("ENG") || normalized === "ENGINEER" || normalized === "STAFF-ENG") return "engineer";
+	if (normalized.startsWith("QA")) return "qa";
+	if (normalized === "UXUI" || normalized.startsWith("MKT-")) return "designer";
+	if (normalized.includes("ENG") || normalized === "ENGINEER" || normalized.startsWith("STAFF-")) return "engineer";
+	if (normalized === "BUG-BOUNTY" || normalized === "REVIEWER") return "general";
 	if (normalized.startsWith("BOOK-")) return "researcher";
-	if (normalized === "REVIEWER") return "general";
 	if (normalized === "PROJECT-SPECIALIST") return "general";
 	throw new Error(`unmapped Paperclip role: ${role}`);
+}
+
+function fallbackForModel(model: string, fallback: string): string {
+	if (model === "cc/claude-opus-4-7") return "cx/gpt-5.5";
+	if (model === "cx/gpt-5.5") return "kimi/kimi-k2.6";
+	if (model === "kimi/kimi-k2.6") return "cx/gpt-5.5";
+	if (/m2\.7/i.test(model)) return "zai/glm-5.1";
+	return fallback;
+}
+
+function modelRouteForRole(role: ParsedRole): { key: string; label: string; model: string; fallbackModel: string } {
+	const normalized = role.paperclip.role.toUpperCase();
+	const title = role.paperclip.title.toLowerCase();
+
+	if (normalized === "CEO") return { key: "ceo", label: "CEO / executive decisions", model: "cx/gpt-5.5", fallbackModel: "kimi/kimi-k2.6" };
+	if (normalized === "CTO") return { key: "cto", label: "CTO / architecture", model: "cc/claude-opus-4-7", fallbackModel: "cx/gpt-5.5" };
+	if (normalized === "CPO") return { key: "cpo", label: "Chief Product Officer", model: "cc/claude-opus-4-7", fallbackModel: "cx/gpt-5.5" };
+	if (normalized === "CRO") return { key: "cro", label: "Chief Revenue Officer", model: "cc/claude-opus-4-7", fallbackModel: "cx/gpt-5.5" };
+	if (normalized === "PO") return { key: "po", label: "Product Owner", model: "cx/gpt-5.5", fallbackModel: "kimi/kimi-k2.6" };
+	if (normalized === "PM") return { key: "pm", label: "Product Manager", model: "cx/gpt-5.5", fallbackModel: "kimi/kimi-k2.6" };
+	if (normalized === "QA-LEAD" || title.includes("qa lead")) return { key: "qa-lead", label: "QA Lead", model: "cc/claude-opus-4-7", fallbackModel: "cx/gpt-5.5" };
+	if (normalized === "QA-E2E" || title.includes("e2e")) return { key: "qa-e2e", label: "QA E2E", model: "kimi/kimi-k2.6", fallbackModel: "cx/gpt-5.5" };
+	if (normalized === "QA-UNIT" || title.includes("unit")) return { key: "qa-unit", label: "QA Unit", model: "kimi/kimi-k2.6", fallbackModel: "cx/gpt-5.5" };
+	if (normalized === "QA") return { key: "qa", label: "QA", model: "cx/gpt-5.5", fallbackModel: "kimi/kimi-k2.6" };
+	if (normalized.startsWith("STAFF-") || title.includes("staff")) return { key: "staff-engineer", label: "Staff engineering", model: "cc/claude-opus-4-7", fallbackModel: "cx/gpt-5.5" };
+	if (normalized === "BUG-BOUNTY" || normalized === "REVIEWER" || title.includes("reviewer")) return { key: "review-security", label: "Code review / security", model: "cx/gpt-5.5", fallbackModel: "kimi/kimi-k2.6" };
+	if (normalized === "UXUI" || normalized.startsWith("MKT-") || title.includes("marketing")) return { key: "creative", label: "Creative / marketing", model: "cx/gpt-5.5", fallbackModel: "kimi/kimi-k2.6" };
+	if (normalized.includes("ENG") || normalized === "ENGINEER") return { key: "engineer", label: "Engineering implementation", model: "kimi/kimi-k2.6", fallbackModel: "cx/gpt-5.5" };
+
+	return { key: "default", label: "Default operations", model: DEFAULT_HERMES_MODEL, fallbackModel: "kimi/kimi-k2.6" };
 }
 
 export function routineToIntervalSec(routine: string): number {
@@ -210,11 +246,30 @@ export function routineToIntervalSec(routine: string): number {
 
 function buildRuntimeConfig(role: ParsedRole): Record<string, unknown> {
 	const intervalSec = routineToIntervalSec(role.paperclip.routine);
+	const route = modelRouteForRole(role);
 	return {
 		heartbeat: {
 			enabled: intervalSec > 0,
 			intervalSec,
 			maxConcurrentRuns: 20,
+		},
+		modelProfiles: {
+			cheap: {
+				enabled: true,
+				label: `${route.label} fallback lane`,
+				adapterConfig: {
+					model: route.fallbackModel,
+					provider: HERMES_CLI_PROVIDER,
+					extraArgs: [],
+					baseUrl: NINEROUTER_BASE_URL,
+					env: {
+						HERMES_MODEL: route.fallbackModel,
+						HERMES_FALLBACK_MODEL: route.model,
+						HERMES_FALLBACK_BASE_URL: NINEROUTER_BASE_URL,
+						OPENAI_BASE_URL: NINEROUTER_BASE_URL,
+					},
+				},
+			},
 		},
 	};
 }
@@ -262,33 +317,36 @@ function buildAdapterConfig(role: ParsedRole): Record<string, unknown> {
 	}
 	const profile = map[role.paperclip.role] || map[normalized] || "primary";
 	const envName = profile.toUpperCase().replace(/[^A-Z0-9]/g, "_");
-	const port = hermesProfilePort(profile);
-	const model = process.env.PAPERCLIP_HERMES_MODEL || DEFAULT_HERMES_MODEL;
+	const route = modelRouteForRole(role);
+	const model = process.env.PAPERCLIP_HERMES_MODEL || route.model;
+	const fallbackModel = process.env.PAPERCLIP_HERMES_FALLBACK_MODEL || fallbackForModel(model, route.fallbackModel);
 	return {
 		profile,
 		model,
-		provider: "auto",
+		provider: HERMES_CLI_PROVIDER,
 		maxIterations: 50,
 		timeoutSec: positiveIntFromEnv("PAPERCLIP_HERMES_TIMEOUT_SEC", DEFAULT_HERMES_TIMEOUT_SEC),
 		graceSec: positiveIntFromEnv("PAPERCLIP_HERMES_GRACE_SEC", DEFAULT_HERMES_GRACE_SEC),
-		persistSession: true,
+		persistSession: false,
 		toolsets: "terminal,file,web,browser,code_execution",
 		hermesCommand: defaultHermesCommand(),
 		quiet: true,
 		verbose: false,
-		extraArgs: ["--provider", "9router"],
+		extraArgs: [],
 		env: {
 			HERMES_PROFILE: profile,
 			HERMES_HOME: `/opt/cortexos/hermes/profiles/${profile}`,
 			HERMES_MODEL: model,
+			HERMES_FALLBACK_MODEL: fallbackModel,
+			HERMES_FALLBACK_BASE_URL: NINEROUTER_BASE_URL,
 			HERMES_REASONING: "medium",
 			HONCHO_BASE_URL: process.env.HONCHO_BASE_URL || "http://127.0.0.1:18690",
 			HONCHO_WORKSPACE: profile,
-			OPENAI_BASE_URL: normalizeOpenAiBaseUrl(process.env.NINEROUTER_BASE_URL || "http://127.0.0.1:11434"),
+			OPENAI_BASE_URL: NINEROUTER_BASE_URL,
 		},
 		paperclipApiUrl: process.env.PAPERCLIP_API_URL || "http://127.0.0.1:3033",
-		baseUrl: process.env[`HERMES_${envName}_URL`] || `http://127.0.0.1:${port}/v1`,
-		apiKeyEnv: `HERMES_${envName}_API_KEY`,
+		baseUrl: NINEROUTER_BASE_URL,
+		apiKeyEnv: process.env[`HERMES_${envName}_API_KEY`] ? `HERMES_${envName}_API_KEY` : "NINEROUTER_API_KEY",
 		reasoningEffort: "medium",
 		sessionTemplate: `${profile}:${role.paperclip.role}:{{issueId}}`,
 	};

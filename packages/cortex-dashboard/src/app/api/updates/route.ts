@@ -16,7 +16,12 @@ interface UpdateItem {
 	currentVersion?: string;
 	latestVersion?: string;
 	description?: string;
-	restartService?: string;
+	restartServices?: string[];
+}
+
+interface ExecErrorWithOutput extends Error {
+	stdout?: string | Buffer;
+	stderr?: string | Buffer;
 }
 
 function validPackageName(name: string) {
@@ -25,6 +30,13 @@ function validPackageName(name: string) {
 
 function validServiceName(name: string) {
 	return SAFE_SERVICE_RE.test(name);
+}
+
+function restartServicesForPackage(manager: UpdateItem["manager"], name: string): string[] {
+	if (manager === "npm" && name.toLowerCase() === "9router") {
+		return ["9router.service", "9router-docker-proxy.service"];
+	}
+	return [];
 }
 
 async function findHostBin(name: string, fallbacks: string[]): Promise<string | null> {
@@ -51,6 +63,28 @@ async function findNpmBin(): Promise<string | null> {
 	]);
 }
 
+function outputFromExecError(error: unknown): string {
+	if (!error || typeof error !== "object") return "";
+	const err = error as ExecErrorWithOutput;
+	if (typeof err.stdout === "string") return err.stdout;
+	if (Buffer.isBuffer(err.stdout)) return err.stdout.toString("utf-8");
+	return "";
+}
+
+function parseNpmOutdated(stdout: string): UpdateItem[] {
+	if (!stdout.trim()) return [];
+	const parsed = JSON.parse(stdout) as Record<string, { current?: string; wanted?: string; latest?: string }>;
+	return Object.entries(parsed).map(([name, info]) => ({
+		id: `npm:${name}`,
+		manager: "npm",
+		name,
+		currentVersion: info.current,
+		latestVersion: info.latest ?? info.wanted,
+		description: "Global npm package",
+		restartServices: restartServicesForPackage("npm", name),
+	}));
+}
+
 async function sudoHostExecFile(bin: string, args: string[], opts: { timeout?: number; maxBuffer?: number } = {}) {
 	try {
 		return await hostExecFile("sudo", ["-n", bin, ...args], opts);
@@ -71,7 +105,7 @@ async function listAptUpdates(): Promise<UpdateItem[]> {
 			const match = line.match(/^([^/]+)\/\S+\s+(\S+)\s+\S+\s+\[upgradable from:\s+([^\]]+)\]/);
 			if (!match) continue;
 			const [, name, latestVersion, currentVersion] = match;
-			updates.push({ id: `apt:${name}`, manager: "apt", name, currentVersion, latestVersion, description: "System package" });
+			updates.push({ id: `apt:${name}`, manager: "apt", name, currentVersion, latestVersion, description: "System package", restartServices: restartServicesForPackage("apt", name) });
 		}
 		return updates;
 	} catch {
@@ -84,19 +118,16 @@ async function listNpmUpdates(): Promise<UpdateItem[]> {
 		const npmBin = await findNpmBin();
 		if (!npmBin) return [];
 		const { stdout } = await hostExecFile(npmBin, ["outdated", "-g", "--json"], { timeout: 60_000, maxBuffer: 10 * 1024 * 1024 });
-		if (!stdout.trim()) return [];
-		const parsed = JSON.parse(stdout) as Record<string, { current?: string; wanted?: string; latest?: string }>;
-		return Object.entries(parsed).map(([name, info]) => ({
-			id: `npm:${name}`,
-			manager: "npm",
-			name,
-			currentVersion: info.current,
-			latestVersion: info.latest ?? info.wanted,
-			description: "Global npm package",
-		}));
+		return parseNpmOutdated(stdout);
 	} catch (error) {
-		const message = error instanceof Error ? error.message : "";
-		if (message.includes("Command failed")) return [];
+		const stdout = outputFromExecError(error);
+		if (stdout.trim()) {
+			try {
+				return parseNpmOutdated(stdout);
+			} catch {
+				return [];
+			}
+		}
 		return [];
 	}
 }
@@ -115,38 +146,49 @@ export async function POST(request: Request) {
 
 	let manager = "";
 	let name = "";
-	let restartService = "";
+	let restartServices: string[] = [];
 	try {
 		const body = await request.json();
 		manager = String(body.manager || "").trim().toLowerCase();
 		name = String(body.name || "").trim();
-		restartService = String(body.restartService || "").trim();
+		const requestedRestartServices = Array.isArray(body.restartServices)
+			? body.restartServices.map((service: unknown) => String(service).trim()).filter(Boolean)
+			: String(body.restartService || "")
+				.split(",")
+				.map((service) => service.trim())
+				.filter(Boolean);
+		restartServices = requestedRestartServices.length > 0
+			? requestedRestartServices
+			: restartServicesForPackage(manager as UpdateItem["manager"], name);
 
 		if (!["apt", "npm"].includes(manager)) return NextResponse.json({ error: "Invalid package manager" }, { status: 400 });
 		if (!validPackageName(name)) return NextResponse.json({ error: "Invalid package name" }, { status: 400 });
-		if (restartService && !validServiceName(restartService)) return NextResponse.json({ error: "Invalid service name" }, { status: 400 });
+		if (restartServices.some((service) => !validServiceName(service))) return NextResponse.json({ error: "Invalid service name" }, { status: 400 });
 
 		const command = manager === "apt"
 			? { bin: "apt-get", args: ["install", "--only-upgrade", "-y", "-o", "Dpkg::Options::=--force-confold", name], sudo: true }
-			: { bin: await findNpmBin(), args: ["i", "-g", `${name}@latest`, "--prefer-online"], sudo: false };
+			: { bin: await findNpmBin(), args: ["i", "-g", `${name}@latest`, "--prefer-online"], sudo: true };
 		if (!command.bin) return NextResponse.json({ error: `${manager} executable was not found on the host` }, { status: 424 });
 		const updated = command.sudo
 			? await sudoHostExecFile(command.bin, command.args, { timeout: 10 * 60_000, maxBuffer: 20 * 1024 * 1024 })
 			: await hostExecFile(command.bin, command.args, { timeout: 10 * 60_000, maxBuffer: 20 * 1024 * 1024 });
-		let restart: { stdout: string; stderr: string } | null = null;
-		if (restartService) restart = await sudoHostExecFile("systemctl", ["restart", restartService], { timeout: 60_000, maxBuffer: 5 * 1024 * 1024 });
+		const restarts: Array<{ service: string; stdout: string; stderr: string }> = [];
+		for (const service of restartServices) {
+			const restart = await sudoHostExecFile("systemctl", ["restart", service], { timeout: 60_000, maxBuffer: 5 * 1024 * 1024 });
+			restarts.push({ service, stdout: restart.stdout, stderr: restart.stderr });
+		}
 
 		await createActionLog({
 			user_id: auth.session?.user_id ?? null,
 			username: auth.session?.username ?? null,
 			target_type: "updates",
 			target_name: `${manager}:${name}`,
-			action: restartService ? `update+restart:${restartService}` : "update",
+			action: restartServices.length > 0 ? `update+restart:${restartServices.join(",")}` : "update",
 			status: "success",
-			message: updated.stderr || updated.stdout || restart?.stderr || restart?.stdout || null,
+			message: updated.stderr || updated.stdout || restarts.map((restart) => restart.stderr || restart.stdout).filter(Boolean).join("\n") || null,
 		});
 
-		return NextResponse.json({ success: true, stdout: updated.stdout, stderr: updated.stderr, restart });
+		return NextResponse.json({ success: true, stdout: updated.stdout, stderr: updated.stderr, restarts });
 	} catch (error) {
 		const message = error instanceof Error ? error.message : "Update failed";
 		await createActionLog({
@@ -154,7 +196,7 @@ export async function POST(request: Request) {
 			username: auth.session?.username ?? null,
 			target_type: "updates",
 			target_name: name ? `${manager}:${name}` : "unknown",
-			action: "update",
+			action: restartServices.length > 0 ? `update+restart:${restartServices.join(",")}` : "update",
 			status: "failure",
 			message,
 		}).catch(() => {});

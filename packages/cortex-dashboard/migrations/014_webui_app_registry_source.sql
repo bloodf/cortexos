@@ -1,5 +1,5 @@
--- Runtime alignment for the all-in-one Hermes/Honcho/Paperclip installer.
-
+-- Keep Apps limited to real browser UIs. API endpoints and health/metrics
+-- routes may still be healthchecked, but they are not launcher apps.
 CREATE OR REPLACE FUNCTION cortex_set_service_urls(base_url TEXT)
 RETURNS integer
 LANGUAGE plpgsql
@@ -59,7 +59,8 @@ BEGIN
     'kernel-browser','cortex-sandbox-runner','fluent-bit','promtail',
     'node-exporter','pg-exporter','redis-exporter','mongo-exporter',
     'otel-collector','postgresql','redis','mongodb','mysql','tailscale',
-    'dnsmasq','fail2ban','ollama','ollama-honcho-embeddings-proxy'
+    'dnsmasq','fail2ban','ollama','ollama-honcho-embeddings-proxy',
+    'cortex-mail-guardian'
   );
 
   UPDATE services
@@ -78,5 +79,58 @@ BEGIN
 END;
 $$;
 
-INSERT INTO migrations (name) VALUES ('003_runtime_alignment')
+UPDATE services
+   SET open_url = '#',
+       has_webui = false,
+       show_in_webui = false,
+       updated_at = NOW()
+ WHERE slug IN (
+   'honcho',
+   'hermes-primary',
+   'hermes-secondary',
+   'floci',
+   'loki',
+   'cortex-dashboard'
+ );
+
+UPDATE services
+   SET has_webui = slug IN (
+       '9router',
+       'hermes-dashboard',
+       'paperclip',
+       'pgadmin',
+       'redisinsight',
+       'mongo-express',
+       'phpmyadmin',
+       'home-assistant',
+       'jellyfin',
+       'cockpit',
+       'webmin',
+       'dockhand',
+       'grafana',
+       'prometheus',
+       'cadvisor',
+       'langfuse'
+     ) AND open_url <> '#',
+       show_in_webui = is_active AND slug IN (
+       '9router',
+       'hermes-dashboard',
+       'paperclip',
+       'pgadmin',
+       'redisinsight',
+       'mongo-express',
+       'phpmyadmin',
+       'home-assistant',
+       'jellyfin',
+       'cockpit',
+       'webmin',
+       'dockhand',
+       'grafana',
+       'prometheus',
+       'cadvisor',
+       'langfuse'
+     ) AND open_url <> '#',
+       updated_at = NOW();
+
+INSERT INTO migrations (name) VALUES ('014_webui_app_registry_source')
 ON CONFLICT (name) DO NOTHING;

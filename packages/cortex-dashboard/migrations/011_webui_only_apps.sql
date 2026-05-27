@@ -10,9 +10,7 @@ WHERE slug IN (
   'hermes-primary',
   'hermes-secondary',
   'floci',
-  'prometheus',
-  'loki',
-  'cadvisor'
+  'loki'
 );
 
 UPDATE services
@@ -33,6 +31,8 @@ WHERE slug IN (
   'webmin',
   'dockhand',
   'grafana',
+  'prometheus',
+  'cadvisor',
   'langfuse'
 )
   AND open_url <> '#';

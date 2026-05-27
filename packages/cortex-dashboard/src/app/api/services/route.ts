@@ -150,7 +150,7 @@ export async function GET(request: Request) {
 		services = services.filter((s) => s.health_type === checkType);
 	}
 	if (webui === "true") {
-		services = services.filter((s) => s.has_webui || s.show_in_webui);
+		services = services.filter((s) => s.has_webui && s.show_in_webui && s.open_url !== "#");
 	}
 	if (healthcheck === "true") {
 		services = services.filter((s) => s.show_in_healthcheck);

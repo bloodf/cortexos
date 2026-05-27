@@ -134,16 +134,35 @@ describe("registerRole", () => {
 		expect(calls[0].body).toMatchObject({
 			adapterType: "hermes_local",
 			adapterConfig: {
-				provider: "auto",
+				model: "kimi/kimi-k2.6",
+				provider: "custom",
 				timeoutSec: 3600,
 				graceSec: 30,
-				extraArgs: ["--provider", "9router"],
+				persistSession: false,
+				extraArgs: [],
+				baseUrl: "http://127.0.0.1:11434/v1",
+				env: {
+					HERMES_FALLBACK_MODEL: "cx/gpt-5.5",
+					HERMES_FALLBACK_BASE_URL: "http://127.0.0.1:11434/v1",
+					OPENAI_BASE_URL: "http://127.0.0.1:11434/v1",
+				},
 			},
 			runtimeConfig: {
 				heartbeat: {
 					enabled: true,
 					intervalSec: 900,
 					maxConcurrentRuns: 20,
+				},
+				modelProfiles: {
+					cheap: {
+						enabled: true,
+						adapterConfig: {
+							model: "cx/gpt-5.5",
+							provider: "custom",
+							extraArgs: [],
+							baseUrl: "http://127.0.0.1:11434/v1",
+						},
+					},
 				},
 			},
 		});
@@ -183,16 +202,35 @@ describe("registerRole", () => {
 		]);
 		expect(calls[0].body).toMatchObject({
 			adapterConfig: {
-				provider: "auto",
+				model: "kimi/kimi-k2.6",
+				provider: "custom",
 				timeoutSec: 3600,
 				graceSec: 30,
-				extraArgs: ["--provider", "9router"],
+				persistSession: false,
+				extraArgs: [],
+				baseUrl: "http://127.0.0.1:11434/v1",
+				env: {
+					HERMES_FALLBACK_MODEL: "cx/gpt-5.5",
+					HERMES_FALLBACK_BASE_URL: "http://127.0.0.1:11434/v1",
+					OPENAI_BASE_URL: "http://127.0.0.1:11434/v1",
+				},
 			},
 			runtimeConfig: {
 				heartbeat: {
 					enabled: true,
 					intervalSec: 900,
 					maxConcurrentRuns: 20,
+				},
+				modelProfiles: {
+					cheap: {
+						enabled: true,
+						adapterConfig: {
+							model: "cx/gpt-5.5",
+							provider: "custom",
+							extraArgs: [],
+							baseUrl: "http://127.0.0.1:11434/v1",
+						},
+					},
 				},
 			},
 		});

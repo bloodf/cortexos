@@ -39,9 +39,12 @@ Owner categories are defined in
 | `scripts/migrate-omc-to-paperclip.ts` | archive | migration | `scripts/package.json`, tests | Historical OMC backfill; move to recovery after package/test references are retired. |
 | `scripts/os-detect.sh` | keep | bootstrap-helper | prompts, distro CI | Supported OS detection. |
 | `scripts/paperclip-ensure-readiness-auth.mjs` | keep | renderer-installer | `prompts/tools/62-paperclip.md`, `package.json` | Idempotent Paperclip readiness auth repair. |
+| `scripts/paperclip-hermes-control-fix.mjs` | keep | renderer-installer | `templates/systemd/paperclip-recover-blocked-and-error-issues.service` | Enforces Hermes model/fallback/provider controls through the Paperclip API. |
 | `scripts/paperclip-hermes-smoke.mjs` | merge | validator | prompts, readiness | Paperclip/Hermes smoke used by readiness. |
 | `scripts/paperclip-local-proxy.mjs` | keep | runtime-entrypoint | `templates/systemd/paperclip-local-proxy.service` | Local Paperclip proxy service. |
+| `scripts/paperclip-prompt-guard.py` | keep | runtime-entrypoint | `scripts/hermes-paperclip-wrapper.sh` | Normalizes Paperclip prompts so agent curl examples include auth headers. |
 | `scripts/paperclip-reconcile-bootstrap-issues.mjs` | archive | migration | `recovery/` | One-off bootstrap issue repair moved out of the public script surface. |
+| `scripts/paperclip-recover-blocked-and-error-issues.mjs` | keep | runtime-entrypoint | `templates/systemd/paperclip-recover-blocked-and-error-issues.service` | Periodic Paperclip blocked/error recovery without node_modules patches. |
 | `scripts/paperclip-register-roles.ts` | keep | renderer-installer | `prompts/tools/43-paperclip-hermes.md`, tests | Paperclip role registration. |
 | `scripts/pkg.sh` | keep | bootstrap-helper | prompts, templates | Canonical package-manager abstraction. |
 | `scripts/preflight-tools.sh` | keep | bootstrap-helper | `prompts/00-bootstrap.md` | Preflight tool bootstrap. |

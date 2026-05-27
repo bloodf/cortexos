@@ -10,6 +10,8 @@
     "check:repo-leaks": "node scripts/check-repo-leaks.mjs --all",
     "check:script-inventory": "node scripts/check-script-inventory.mjs",
     "paperclip:ensure-readiness-auth": "node scripts/paperclip-ensure-readiness-auth.mjs",
+    "paperclip:hermes-control-fix": "node scripts/paperclip-hermes-control-fix.mjs",
+    "paperclip:recover": "node scripts/paperclip-recover-blocked-and-error-issues.mjs",
     "hermes:install-skills": "node scripts/hermes-install-skills.mjs"
   },
   "dependencies": {

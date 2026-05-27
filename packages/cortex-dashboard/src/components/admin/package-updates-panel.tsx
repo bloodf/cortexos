@@ -14,6 +14,7 @@ interface UpdateItem {
 	currentVersion?: string;
 	latestVersion?: string;
 	description?: string;
+	restartServices?: string[];
 }
 
 const fetcher = async (url: string) => {
@@ -34,14 +35,18 @@ export function PackageUpdatesPanel() {
 		setRunning(item.id);
 		setMessage(null);
 		try {
+			const restartServices = (serviceMap[item.id] ?? item.restartServices?.join(",") ?? "")
+				.split(",")
+				.map((service) => service.trim())
+				.filter(Boolean);
 			const res = await fetch("/api/updates", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ manager: item.manager, name: item.name, restartService: serviceMap[item.id] || undefined }),
+				body: JSON.stringify({ manager: item.manager, name: item.name, restartServices }),
 			});
 			const body = await res.json().catch(() => ({}));
 			if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
-			setMessage(`${item.name} updated${serviceMap[item.id] ? ` and ${serviceMap[item.id]} restarted` : ""}.`);
+			setMessage(`${item.name} updated${restartServices.length ? ` and ${restartServices.join(", ")} restarted` : ""}.`);
 			await mutate();
 		} catch (error) {
 			setMessage(error instanceof Error ? error.message : "Update failed");
@@ -88,7 +93,7 @@ export function PackageUpdatesPanel() {
 								<TableCell>
 									<Input
 										placeholder="optional systemd unit"
-										value={serviceMap[item.id] ?? ""}
+										value={serviceMap[item.id] ?? item.restartServices?.join(", ") ?? ""}
 										onChange={(event) => setServiceMap((prev) => ({ ...prev, [item.id]: event.target.value }))}
 									/>
 								</TableCell>

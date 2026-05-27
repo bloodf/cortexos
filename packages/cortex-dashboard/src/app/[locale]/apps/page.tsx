@@ -105,7 +105,7 @@ export default async function AppsPage() {
 
 	const withBadges = await Promise.all(
 		rawServices
-			.filter((s) => s.open_url !== "#")
+			.filter((s) => s.has_webui && s.show_in_webui && s.open_url !== "#")
 			.map(async (s) => {
 				const badges = await listBadgesForService(s.id).catch(() => []);
 				return {

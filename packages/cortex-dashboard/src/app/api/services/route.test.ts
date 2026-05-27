@@ -68,6 +68,8 @@ describe("services route GET filters", () => {
     (getAllServices as any).mockResolvedValue([
       baseService,
       { ...baseService, id: 2, slug: "noweb", has_webui: false, show_in_webui: false },
+      { ...baseService, id: 3, slug: "hidden-webui", has_webui: true, show_in_webui: false },
+      { ...baseService, id: 4, slug: "api-url", open_url: "#", has_webui: true, show_in_webui: true },
     ]);
 
     const res = await GET(new Request("http://localhost/api/services?raw=1&webui=true"));

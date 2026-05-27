@@ -44,6 +44,25 @@ const SPOKE_TO_SERVICES = {
   "47a-cortex-sandbox": ["cortex-sandbox-runner"],
 };
 
+const WEBUI_SERVICE_SLUGS = [
+  "9router",
+  "hermes-dashboard",
+  "paperclip",
+  "pgadmin",
+  "redisinsight",
+  "mongo-express",
+  "phpmyadmin",
+  "home-assistant",
+  "jellyfin",
+  "cockpit",
+  "webmin",
+  "dockhand",
+  "grafana",
+  "prometheus",
+  "cadvisor",
+  "langfuse",
+];
+
 function readJson(path) {
   try {
     return JSON.parse(readFileSync(path, "utf8"));
@@ -132,11 +151,20 @@ async function main() {
 
     const visibility = await client.query(`
       UPDATE services
-         SET has_webui = open_url <> '#',
-             show_in_webui = is_active AND open_url <> '#',
+         SET has_webui = slug = ANY($1::text[]) AND open_url <> '#',
+             show_in_webui = is_active AND slug = ANY($1::text[]) AND open_url <> '#',
              show_in_healthcheck = is_active,
              updated_at = NOW()
+    `, [WEBUI_SERVICE_SLUGS]);
+
+    await client.query(`
+      UPDATE services
+         SET has_webui = false,
+             show_in_webui = false,
+             updated_at = NOW()
+       WHERE slug = 'cortex-dashboard'
     `);
+
     console.log(
       `dynamic-seed refreshed ${visibility.rowCount} service rows, detected completed count: ${detected.size}` +
         (baseUrl ? `, public base: ${baseUrl}` : ", public base: unset"),

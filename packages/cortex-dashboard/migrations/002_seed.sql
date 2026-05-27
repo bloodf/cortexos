@@ -174,9 +174,45 @@ ON CONFLICT (slug) DO UPDATE SET
   sort_order = EXCLUDED.sort_order,
   updated_at = NOW();
 
--- Webui flags
-UPDATE services SET has_webui = true,  show_in_webui = true  WHERE open_url != '#';
-UPDATE services SET has_webui = false, show_in_webui = false WHERE open_url  = '#';
+-- WebUI flags are an explicit app-launcher allowlist, not inferred from any
+-- URL. API routes and health endpoints must stay out of Apps.
+UPDATE services
+SET has_webui = slug IN (
+    '9router',
+    'hermes-dashboard',
+    'paperclip',
+    'pgadmin',
+    'redisinsight',
+    'mongo-express',
+    'phpmyadmin',
+    'home-assistant',
+    'jellyfin',
+    'cockpit',
+    'webmin',
+    'dockhand',
+    'grafana',
+    'prometheus',
+    'cadvisor',
+    'langfuse'
+  ) AND open_url <> '#',
+    show_in_webui = is_active AND slug IN (
+    '9router',
+    'hermes-dashboard',
+    'paperclip',
+    'pgadmin',
+    'redisinsight',
+    'mongo-express',
+    'phpmyadmin',
+    'home-assistant',
+    'jellyfin',
+    'cockpit',
+    'webmin',
+    'dockhand',
+    'grafana',
+    'prometheus',
+    'cadvisor',
+    'langfuse'
+  ) AND open_url <> '#';
 
 -- ============================================================
 -- service_badges: tag seeded services with catalog badges
