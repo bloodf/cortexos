@@ -74,7 +74,7 @@ fi
 [ -n "$backup_dir" ] || die "--backup-dir is required"
 
 case "$phase" in
-  retired-runtime|dashboard-root-helper|dashboard-app|agentgateway|incus-foundation|incus-base-image|project-instances) ;;
+  retired-runtime|dashboard-root-helper|dashboard-app|agentgateway|incus-foundation|incus-base-image|project-instances|project-hermes-move) ;;
   *) die "unsupported phase: $phase" ;;
 esac
 
@@ -726,6 +726,91 @@ REMOTE
   ssh_host "MODE=$mode BACKUP_DIR=$backup_dir_q PROJECTS_MANIFEST=/tmp/cortexos-projects.tsv bash -s" <"$remote_script"
   exit 0
 fi
+if [ "$phase" = "project-hermes-move" ]; then
+  projects_manifest="$(require_manifest projects.tsv)"
+  remote_script="$(mktemp)"
+  trap 'rm -f "$remote_script"' EXIT
+
+  cat >"$remote_script" <<'REMOTE'
+set -Eeuo pipefail
+mode="${MODE:?}"
+backup_dir="${BACKUP_DIR:?}"
+projects_manifest="${PROJECTS_MANIFEST:?}"
+log() { printf '[apply:%s] %s\n' "$mode" "$*"; }
+run_shell() {
+  local command="$1"
+  if [ "$mode" = "dry-run" ]; then printf '+ bash -lc %q\n' "$command";
+  else bash -lc "$command" </dev/null; fi
+}
+project_count=0
+project_ok=0
+while IFS=$'\t' read -r slug repo instance hermes_profile migration_source data_mode web_access status; do
+  case "$slug" in ""|\#*) continue ;; esac
+  project_count=$((project_count + 1))
+  log "project $project_count: slug=$slug instance=$instance profile=$hermes_profile"
+  host_profile_dir="/opt/cortexos/hermes/profiles/$hermes_profile"
+  host_env_file="/opt/cortexos/.secrets/hermes/$hermes_profile.env"
+  if [ ! -d "$host_profile_dir" ]; then log "WARNING: host profile dir not found: $host_profile_dir"; continue; fi
+  if [ ! -f "$host_env_file" ]; then log "WARNING: host env file not found: $host_env_file"; continue; fi
+  run_shell 'state=$(sudo -n incus list "'"$instance"'" --format csv -c s 2>/dev/null || true); [ "$state" = RUNNING ] || { echo "instance not running: '"$instance"'"; exit 1; }'
+  for svc in 9router honcho; do
+    case "$svc" in 9router) port=11434 ;; honcho) port=18690 ;; esac
+    run_shell 'sudo -n incus config device remove "'"$instance"'" proxy-"'"$svc"'" >/dev/null 2>&1 || true'
+    run_shell 'sudo -n incus config device add "'"$instance"'" proxy-"'"$svc"'" proxy listen=tcp:127.0.0.1:"'"$port"'" connect=tcp:127.0.0.1:"'"$port"'" bind=instance'
+  done
+  run_shell 'sudo -n incus exec "'"$instance"'" -- bash -lc "mkdir -p /opt/cortexos/scripts /opt/cortexos/hermes/profiles/'"$hermes_profile"' /opt/cortexos/.secrets/hermes"'
+  run_shell 'sudo -n incus file push -q /opt/cortexos/scripts/hermes-profile-api.mjs "'"$instance"'"/opt/cortexos/scripts/'
+  run_shell 'sudo -n incus file push -r -q "'"$host_profile_dir"'" "'"$instance"'"/opt/cortexos/hermes/profiles/'
+  run_shell 'sudo -n incus file push -q "'"$host_env_file"'" "'"$instance"'"/opt/cortexos/.secrets/hermes/'
+  run_shell 'sudo -n incus exec "'"$instance"'" -- bash -lc "chown -R cortexos:cortexos /opt/cortexos/hermes/profiles/'"$hermes_profile"' /opt/cortexos/.secrets/hermes/'"$hermes_profile"'.env /opt/cortexos/scripts/hermes-profile-api.mjs; chmod 600 /opt/cortexos/.secrets/hermes/'"$hermes_profile"'.env"'
+  svc_tmp="$(mktemp /tmp/hermes-profile-XXXXXX.service)"
+  cat >"$svc_tmp" <<'SVC'
+[Unit]
+Description=CortexOS Hermes profile %i
+After=network-online.target
+Wants=network-online.target
+[Service]
+Type=simple
+User=cortexos
+Group=cortexos
+EnvironmentFile=/opt/cortexos/.secrets/hermes/%i.env
+Environment=HOME=/home/cortexos
+Environment=PATH=/home/cortexos/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/snap/bin
+WorkingDirectory=/opt/cortexos/hermes/profiles/%i
+ExecStart=/usr/bin/env node /opt/cortexos/scripts/hermes-profile-api.mjs %i
+Restart=always
+RestartSec=5
+[Install]
+WantedBy=multi-user.target
+SVC
+  run_shell 'sudo -n incus file push -q "'"$svc_tmp"'" "'"$instance"'"/etc/systemd/system/hermes-profile@'"$hermes_profile"'.service'
+  rm -f "$svc_tmp"
+  run_shell 'sudo -n incus exec "'"$instance"'" -- systemctl daemon-reload'
+  run_shell 'sudo -n incus exec "'"$instance"'" -- systemctl enable hermes-profile@'"$hermes_profile"'.service'
+  run_shell 'sudo -n incus exec "'"$instance"'" -- systemctl start hermes-profile@'"$hermes_profile"'.service'
+  run_shell 'for i in $(seq 1 30); do state=$(sudo -n incus exec "'"$instance"'" -- systemctl is-active hermes-profile@'"$hermes_profile"'.service 2>/dev/null || true); [ "$state" = active ] && exit 0; sleep 2; done; echo "hermes-profile@'"$hermes_profile"' did not become active"; exit 1'
+  api_port=$(grep HERMES_API_PORT "$host_env_file" | cut -d= -f2)
+  run_shell 'sudo -n incus exec "'"$instance"'" -- bash -lc "curl -s -o /dev/null -w %{http_code} http://127.0.0.1:'"$api_port"'/health 2>/dev/null || curl -s -o /dev/null -w %{http_code} http://127.0.0.1:'"$api_port"'/ 2>/dev/null || true"'
+  log "project $slug hermes profile moved and started"
+  project_ok=$((project_ok + 1))
+done <"$projects_manifest"
+log "projects: $project_ok/$project_count hermes profiles moved"
+if [ "$project_ok" -ne "$project_count" ]; then log "ERROR: not all hermes profiles validated"; exit 1; fi
+for inst in mementry celebrar-me 3guns; do
+  profile=""
+  case "$inst" in mementry) profile=mementry ;; celebrar-me) profile=celebrar ;; 3guns) profile=3guns ;; esac
+  run_shell 'sudo -n rm -rf /opt/cortexos/hermes/profiles/"'"$profile"'"'
+  run_shell 'sudo -n rm -f /opt/cortexos/.secrets/hermes/"'"$profile"'".env'
+done
+log "host project hermes profiles removed"
+log "completed $mode"
+REMOTE
+  if [ "$dry_run" -eq 1 ]; then mode="dry-run"; else mode="execute"; fi
+  scp -q "$projects_manifest" "$CORTEX_HOST:/tmp/cortexos-projects.tsv"
+  ssh_host "MODE=$mode BACKUP_DIR=$backup_dir_q PROJECTS_MANIFEST=/tmp/cortexos-projects.tsv bash -s" <"$remote_script"
+  exit 0
+fi
+
 
 retired_manifest="$(require_manifest runtime-retired.tsv)"
 protected_manifest="$(require_manifest runtime-protected.tsv)"

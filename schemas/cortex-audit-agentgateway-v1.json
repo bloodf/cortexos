@@ -2,7 +2,7 @@
   "$id": "https://cortexos/schemas/cortex-audit-agentgateway-v1.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "cortex.audit.agentgateway.<verb>.v1 data payload",
-  "description": "AgentGateway tool-invoke audit event. Inherits the generic cortex-audit-v1 shape and constrains `payload` to a tool execution record. See stacks/cortex-agentgateway/index.js → AUDIT_EVENT_TYPE.",
+  "description": "AgentGateway allowlist audit event.",
   "type": "object",
   "required": ["event_id", "event_type", "subject", "payload_hash", "ts", "payload"],
   "additionalProperties": false,
@@ -33,7 +33,7 @@
         "tool_class": {
           "type": "string",
           "enum": ["safe", "destructive"],
-          "description": "Risk classification of the tool. Destructive calls require a confirmation_token."
+          "description": "Risk classification of the tool."
         },
         "args": {
           "type": "object",

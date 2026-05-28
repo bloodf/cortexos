@@ -1,0 +1,19 @@
+# kind	name	notes
+systemd_unit	hermes-profile@cieucpb.service	Protected Hermes profile
+systemd_unit	hermes-profile@netbook.service	Protected Hermes profile
+systemd_unit	hermes-gateway@cieucpb.service	Protected Hermes gateway
+systemd_unit	hermes-gateway@netbook.service	Protected Hermes gateway
+systemd_unit	hermes-gateway-cortex.service	Protected Hermes gateway
+systemd_unit	hermes-dashboard.service	Host Hermes dashboard
+systemd_unit	hermes-dashboard-proxy.service	Host Hermes dashboard proxy
+systemd_unit	9router.service	Host AI routing
+systemd_unit	9router-docker-proxy.service	Host 9Router transition proxy
+systemd_unit	honcho-mcp.service	Host memory MCP
+systemd_unit	ollama.service	Host model service
+systemd_unit	ollama-honcho-embeddings-proxy.service	Host embeddings proxy
+path	/opt/cortexos/hermes/profiles/cieucpb	Protected Hermes identity
+path	/opt/cortexos/hermes/profiles/netbook	Protected Hermes identity
+path	/opt/cortexos/hermes/profiles/cortex	Protected Hermes identity
+secret	/opt/cortexos/.secrets/hermes/cieucpb.env	Protected Hermes secret
+secret	/opt/cortexos/.secrets/hermes/netbook.env	Protected Hermes secret
+secret	/opt/cortexos/.secrets/hermes/cortex.env	Protected Hermes secret if present

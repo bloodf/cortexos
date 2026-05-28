@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+hostname_arg="${1:-$(hostname)}"
+
+args=(up --hostname "$hostname_arg" --ssh --accept-dns=false)
+if [ -n "${TS_AUTHKEY:-}" ]; then
+  args+=(--authkey "$TS_AUTHKEY")
+fi
+
+exec sudo tailscale "${args[@]}"

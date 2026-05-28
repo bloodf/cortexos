@@ -1,0 +1,19 @@
+# tmux plugin set for the main host and Incus base image.
+# Installed through TPM unless a plugin requires a different install method.
+tmux-plugins/tpm
+b0o/tmux-autoreload
+tmux-plugins/tmux-cowboy
+thepante/tmux-git-autofetch
+jaclu/tmux-menus
+tmux-plugins/tmux-sidebar
+tmux-plugins/tmux-sensible
+noscript/tmux-mighty-scroll
+tmux-plugins/tmux-continuum
+sainnhe/tmux-fzf
+tmux-plugins/tmux-resurrect
+spywhere/tmux-named-snapshot
+thewtex/tmux-mem-cpu-load
+tmux-plugins/tmux-prefix-highlight
+laktak/extrakto
+bjesus/muxile
+kiyoon/treemux

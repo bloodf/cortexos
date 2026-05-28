@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+local_only=0
+if [ "${1:-}" = "--local-only" ]; then
+  local_only=1
+fi
+
+if [ -f /etc/cortexos/host-services.env ]; then
+  # shellcheck disable=SC1091
+  . /etc/cortexos/host-services.env
+fi
+
+agentgateway_url="${CORTEX_AGENTGATEWAY_URL:-http://10.222.222.1:18800}"
+
+printf 'agentgateway %s\n' "$agentgateway_url"
+if curl -fsS --connect-timeout 2 "$agentgateway_url/health" >/dev/null; then
+  printf 'agentgateway ok\n'
+elif [ "$local_only" -eq 1 ]; then
+  printf 'agentgateway unavailable during image build\n'
+else
+  exit 1
+fi
+
+if [ "$local_only" -eq 0 ] && [ -n "${CORTEX_9ROUTER_URL:-}" ]; then
+  printf '9router %s\n' "$CORTEX_9ROUTER_URL"
+  curl -fsS --connect-timeout 4 "$CORTEX_9ROUTER_URL/health" >/dev/null || true
+fi

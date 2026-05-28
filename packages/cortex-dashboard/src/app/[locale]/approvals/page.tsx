@@ -1,9 +1,8 @@
 /**
  * V12 — Pending approvals queue.
  *
- * Lists rows from `pending_approvals` (populated by cortex-consumer when a
- * destructive op enters `awaitSignal`). Each row exposes an approve / deny
- * form that calls the `decideApproval` server action.
+ * Lists rows from `pending_approvals`. Each row exposes an approve / deny form
+ * that calls the `decideApproval` server action.
  */
 import { EmptyState } from "@/components/ui/empty-state";
 import { decideApprovalForm, loadPendingApprovals } from "./actions";

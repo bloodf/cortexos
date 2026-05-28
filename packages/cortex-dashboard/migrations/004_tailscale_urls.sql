@@ -24,18 +24,23 @@ BEGIN
   -- Trim trailing slash for predictable joins.
   base_url := regexp_replace(base_url, '/+$', '');
 
-  -- Slugs must match those seeded in 002_seed.sql. Retired services
-  -- (openviking-ui, hindsight, hindsight-ui, agentgateway-mcp) are intentionally
-  -- omitted — they no longer ship. Dashboard's own slug is 'cortex-dashboard'.
   UPDATE services SET open_url = base_url                        WHERE slug = 'cortex-dashboard';
-  UPDATE services SET open_url = base_url || '/9router'          WHERE slug = '9router';
-  UPDATE services SET open_url = base_url || '/openviking'       WHERE slug = 'openviking';
+  UPDATE services SET open_url = base_url || '/9router/'        WHERE slug = '9router';
   UPDATE services SET open_url = base_url || '/dockhand'         WHERE slug = 'dockhand';
-  UPDATE services SET open_url = base_url || '/grafana'          WHERE slug = 'grafana';
+  UPDATE services SET open_url = base_url || '/grafana/'         WHERE slug = 'grafana';
+  UPDATE services SET open_url = base_url || '/prometheus/'      WHERE slug = 'prometheus';
+  UPDATE services SET open_url = base_url || '/loki/'            WHERE slug = 'loki';
+  UPDATE services SET open_url = base_url || '/cadvisor/'        WHERE slug = 'cadvisor';
   UPDATE services SET open_url = base_url || '/jellyfin'         WHERE slug = 'jellyfin';
   UPDATE services SET open_url = base_url || '/ha'               WHERE slug = 'home-assistant';
-  UPDATE services SET open_url = base_url || '/agentgateway'     WHERE slug = 'agentgateway';
-  UPDATE services SET open_url = base_url || '/kernel-browser'   WHERE slug = 'kernel-browser';
+  UPDATE services SET open_url = base_url || '/cockpit/'         WHERE slug = 'cockpit';
+  UPDATE services SET open_url = base_url || '/webmin/'          WHERE slug = 'webmin';
+  UPDATE services SET open_url = base_url || '/pgadmin/'         WHERE slug = 'pgadmin';
+  UPDATE services SET open_url = base_url || '/phpmyadmin/'      WHERE slug = 'phpmyadmin';
+  UPDATE services SET open_url = base_url || '/redisinsight/'    WHERE slug = 'redisinsight';
+  UPDATE services SET open_url = base_url || '/mongo-express/'   WHERE slug = 'mongo-express';
+  UPDATE services SET open_url = base_url || '/minio/'           WHERE slug = 'minio';
+  UPDATE services SET open_url = base_url || '/rabbitmq/'        WHERE slug = 'rabbitmq';
 
   GET DIAGNOSTICS affected = ROW_COUNT;
   RETURN affected;

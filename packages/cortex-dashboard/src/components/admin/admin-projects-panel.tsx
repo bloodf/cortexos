@@ -167,7 +167,7 @@ function ProjectEditor({
 					</div>
 					<div>
 						<label className="text-xs font-medium">Primary PM Account</label>
-						<Input value={pm} onChange={(e) => setPm(e.target.value)} placeholder="@openclaw-account" />
+						<Input value={pm} onChange={(e) => setPm(e.target.value)} placeholder="@project-bot" />
 					</div>
 					<div>
 						<label className="text-xs font-medium">Messaging Mode</label>

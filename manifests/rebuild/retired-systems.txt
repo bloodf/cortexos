@@ -1,0 +1,12 @@
+# Systems to hard-remove after backup and validation gates.
+paperclip
+nats
+openviking
+leann
+openclaw
+agent-factory
+cortex-consumer
+cortex-graph
+floci
+langfuse-runtime
+

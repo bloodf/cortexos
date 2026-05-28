@@ -43,7 +43,7 @@ describe('assertPathAllowed — allowed', () => {
   });
 
   it('passes /opt/cortexos/stacks/<x>/* paths', () => {
-    expect(() => assertPathAllowed('/opt/cortexos/stacks/nats/docker-compose.yml')).not.toThrow();
+    expect(() => assertPathAllowed('/opt/cortexos/stacks/postgres/docker-compose.yml')).not.toThrow();
   });
 
   it('passes systemd .d/override.conf paths', () => {
@@ -52,9 +52,9 @@ describe('assertPathAllowed — allowed', () => {
     ).not.toThrow();
   });
 
-  it('passes ~/.openclaw/openclaw.json (exact)', () => {
+  it('rejects home-directory agent config outside the allowlist', () => {
     process.env.HOME = '/home/cortex';
-    expect(() => assertPathAllowed('~/.openclaw/openclaw.json')).not.toThrow();
+    expect(() => assertPathAllowed('~/.agent-runtime/config.json')).toThrowError(/Path denied/);
   });
 
   it('passes paths under __TEST_ALLOW_PREFIX__ override', () => {

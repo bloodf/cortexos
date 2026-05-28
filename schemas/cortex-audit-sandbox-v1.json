@@ -2,7 +2,7 @@
   "$id": "https://cortexos/schemas/cortex-audit-sandbox-v1.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "cortex.audit.sandbox.<verb>.v1 data payload",
-  "description": "cortex-sandbox-runner exec audit event. Inherits cortex-audit-v1 and constrains `payload` to a sandboxed container execution record. See stacks/cortex-sandbox-runner/app/server.js → emitAuditEvent.",
+  "description": "Sandbox runner execution audit event.",
   "type": "object",
   "required": ["event_id", "event_type", "subject", "payload_hash", "ts", "payload"],
   "additionalProperties": false,

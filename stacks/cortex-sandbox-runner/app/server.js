@@ -13,16 +13,7 @@
 import express from "express";
 import { spawn as defaultSpawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { instrument as instrumentTelemetry } from "@cortexos/telemetry";
 import { ExecRequestSchema, decide, buildPodmanArgs } from "./policy.js";
-
-// Boot OpenLLMetry + Langfuse at import time so any side-effect emission
-// inside this module is captured. Safe no-op when LANGFUSE_HOST is unset
-// (see packages/cortex-telemetry/src/index.js).
-instrumentTelemetry({
-  service: "cortex-sandbox-runner",
-  env: process.env.NODE_ENV || "production",
-});
 
 const PORT = Number(process.env.PORT || 8091);
 const API_TOKEN = process.env.CORTEX_SANDBOX_API_TOKEN || "";
@@ -32,8 +23,7 @@ const PODMAN_BIN = process.env.CORTEX_SANDBOX_PODMAN_BIN || "podman";
 // Postgres audit_log (no DB connection by design — minimal attack
 // surface). Instead it POSTs a CloudEvents-shaped record to an internal
 // audit-write endpoint when CORTEX_AUDIT_URL is configured; the
-// dashboard / consumer subscribes and calls `@cortexos/audit.append`.
-// See docs/NATS-CONTRACT.md → `cortex.audit.<scope>.<verb>`.
+// dashboard helper records the durable audit trail.
 const CORTEX_AUDIT_URL = (process.env.CORTEX_AUDIT_URL || "").replace(/\/$/, "");
 const CORTEX_AUDIT_TOKEN = process.env.CORTEX_AUDIT_TOKEN || "";
 const CORTEX_AUDIT_ENABLED = process.env.CORTEX_AUDIT_ENABLED !== "0";

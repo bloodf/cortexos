@@ -11,15 +11,18 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 COPY packages ./packages
 
-RUN cd packages/cortex-events && npm install --no-audit --no-fund
-RUN cd packages/cortex-audit && npm install --no-audit --no-fund
-RUN cd packages/cortex-dashboard && npm install --no-audit --no-fund
+RUN npm config set fetch-retries 5 \
+ && npm config set fetch-retry-mintimeout 20000 \
+ && npm config set fetch-retry-maxtimeout 120000 \
+ && npm config set fetch-timeout 600000
+RUN --mount=type=cache,target=/root/.npm \
+    cd packages/cortex-audit && npm install --no-audit --no-fund
+RUN --mount=type=cache,target=/root/.npm \
+    cd packages/cortex-dashboard && npm install --no-audit --no-fund
 # Replace npm's local file symlinks with real directories so Turbopack resolves
 # the internal packages consistently inside Docker.
-RUN rm -rf /repo/packages/cortex-dashboard/node_modules/@cortexos/events /repo/packages/cortex-dashboard/node_modules/@cortexos/audit \
- && mkdir -p /repo/packages/cortex-dashboard/node_modules/@cortexos/events \
+RUN rm -rf /repo/packages/cortex-dashboard/node_modules/@cortexos/audit \
  && mkdir -p /repo/packages/cortex-dashboard/node_modules/@cortexos/audit \
- && cp -a /repo/packages/cortex-events/. /repo/packages/cortex-dashboard/node_modules/@cortexos/events/ \
  && cp -a /repo/packages/cortex-audit/. /repo/packages/cortex-dashboard/node_modules/@cortexos/audit/
 
 WORKDIR /repo/packages/cortex-dashboard
@@ -83,21 +86,20 @@ RUN apt-get update \
       postgresql-client \
  && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /repo/packages/cortex-dashboard/package.json ./package.json
-COPY --from=builder /repo/packages/cortex-dashboard/node_modules ./node_modules
-COPY --from=builder /repo/packages/cortex-dashboard/.next ./.next
-COPY --from=builder /repo/packages/cortex-dashboard/public ./public
-COPY --from=builder /repo/packages/cortex-dashboard/messages ./messages
-COPY --from=builder /repo/packages/cortex-dashboard/migrations ./migrations
-COPY --from=builder /repo/packages/cortex-dashboard/scripts ./scripts
-COPY --from=builder /repo/packages/cortex-dashboard/docker-entrypoint.sh ./docker-entrypoint.sh
-COPY --from=builder /repo/packages/cortex-dashboard/server.js ./server.js
-COPY --from=builder /repo/packages/cortex-dashboard/next.config.ts ./next.config.ts
+COPY --chown=node:node --from=builder /repo/packages/cortex-dashboard/package.json ./package.json
+COPY --chown=node:node --from=builder /repo/packages/cortex-dashboard/node_modules ./node_modules
+COPY --chown=node:node --from=builder /repo/packages/cortex-dashboard/.next ./.next
+COPY --chown=node:node --from=builder /repo/packages/cortex-dashboard/public ./public
+COPY --chown=node:node --from=builder /repo/packages/cortex-dashboard/messages ./messages
+COPY --chown=node:node --from=builder /repo/packages/cortex-dashboard/migrations ./migrations
+COPY --chown=node:node --from=builder /repo/packages/cortex-dashboard/scripts ./scripts
+COPY --chown=node:node --from=builder /repo/packages/cortex-dashboard/docker-entrypoint.sh ./docker-entrypoint.sh
+COPY --chown=node:node --from=builder /repo/packages/cortex-dashboard/server.js ./server.js
+COPY --chown=node:node --from=builder /repo/packages/cortex-dashboard/next.config.ts ./next.config.ts
 
 RUN printf '%s\n' "module.exports = require('./lib/index.js');" > /app/node_modules/pg/index.js \
  && chmod +x docker-entrypoint.sh \
- && (chmod +x scripts/*.sh 2>/dev/null || true) \
- && chown -R node:node /app
+ && (chmod +x scripts/*.sh 2>/dev/null || true)
 
 USER node
 EXPOSE 3080

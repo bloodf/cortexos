@@ -26,11 +26,21 @@ export interface AgentGroup {
   agents: Agent[];
 }
 
-const DEFAULT_OPENCLAW_BASE = `${process.env.HOME || "/home/cortex"}/.openclaw`;
-const CONTAINER_PREFIX = "/home/node/.openclaw";
+const DEFAULT_HERMES_BASE = "/opt/cortexos/hermes";
+const DEFAULT_HERMES_PROFILES = `${DEFAULT_HERMES_BASE}/profiles`;
+const CONTAINER_PREFIX = "/home/node/hermes";
 
-function getOpenclawBase(): string {
-  return process.env.AGENT_SCAN_PATHS?.split(/[,:]/)[0] || process.env.OPENCLAW_BASE || DEFAULT_OPENCLAW_BASE;
+function getHermesBase(): string {
+  return process.env.HERMES_BASE || DEFAULT_HERMES_BASE;
+}
+
+function getHermesProfilesRoot(): string {
+  return (
+    process.env.AGENT_SCAN_PATHS?.split(/[,:]/)[0] ||
+    process.env.HERMES_PROFILES_ROOT ||
+    process.env.HERMES_PROFILES ||
+    DEFAULT_HERMES_PROFILES
+  );
 }
 
 // Group agents by the slug prefix before the first hyphen. Avoid hardcoding
@@ -45,13 +55,13 @@ function projectForSlug(slug: string): string {
 
 function hostPath(containerPath: string): string {
   if (containerPath.startsWith(CONTAINER_PREFIX)) {
-    return containerPath.replace(CONTAINER_PREFIX, getOpenclawBase());
+    return containerPath.replace(CONTAINER_PREFIX, getHermesBase());
   }
   return containerPath;
 }
 
 function getScanRoots(): string[] {
-  return process.env.AGENT_SCAN_PATHS?.split(/[,:]/).filter(Boolean) || [getOpenclawBase()];
+  return process.env.AGENT_SCAN_PATHS?.split(/[,:]/).filter(Boolean) || [getHermesProfilesRoot()];
 }
 
 async function getMarkdownFiles(dir: string): Promise<AgentFile[]> {
@@ -104,7 +114,7 @@ function isWithinRoots(filePath: string, roots: string[]): boolean {
   return roots.some((root) => resolved.startsWith(resolve(root)));
 }
 
-interface OpenClawAgent {
+interface HermesAgent {
   id: string;
   name?: string;
   workspace?: string;
@@ -112,9 +122,9 @@ interface OpenClawAgent {
   identity?: { name?: string; emoji?: string };
 }
 
-interface OpenClawConfig {
+interface HermesRegistry {
   agents?: {
-    list?: OpenClawAgent[];
+    list?: HermesAgent[];
   };
 }
 
@@ -160,11 +170,12 @@ async function scanLegacyAgentDirs(): Promise<AgentGroup[]> {
 }
 
 export async function scanAgents(): Promise<AgentGroup[]> {
-  const configPath = join(getOpenclawBase(), "openclaw.json");
-  let config: OpenClawConfig;
+  const profilesRoot = getHermesProfilesRoot();
+  const configPath = join(getHermesBase(), "registry.json");
+  let config: HermesRegistry;
   try {
     const raw = await readFile(configPath, "utf-8");
-    config = JSON.parse(raw) as OpenClawConfig;
+    config = JSON.parse(raw) as HermesRegistry;
   } catch {
     return scanLegacyAgentDirs();
   }
@@ -174,7 +185,7 @@ export async function scanAgents(): Promise<AgentGroup[]> {
 
   for (const entry of agentList) {
     const workspace = entry.workspace ? hostPath(entry.workspace) : "";
-    const agentDir = join(getOpenclawBase(), "agents", entry.id, "agent");
+    const agentDir = join(profilesRoot, entry.id);
     const files = await getMarkdownFiles(agentDir);
     const model = typeof entry.model === "string" ? entry.model : (entry.model?.primary ?? "unknown");
     const shortModel = model.split("/").pop() ?? model;

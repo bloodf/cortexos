@@ -2,15 +2,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { POST } from "./route";
 
-const { mockExec } = vi.hoisted(() => ({ mockExec: vi.fn().mockResolvedValue({ stdout: "", stderr: "" }) }));
+const { mockExecuteRootCommand } = vi.hoisted(() => ({
+	mockExecuteRootCommand: vi.fn().mockResolvedValue({ stdout: "", stderr: "" }),
+}));
 
-vi.mock("util", async () => {
-	const actual = await vi.importActual<typeof import("util")>("util");
-	return {
-		...actual,
-		promisify: vi.fn(() => mockExec),
-	};
-});
+vi.mock("@/lib/root-helper/executor", () => ({
+	executeRootCommand: mockExecuteRootCommand,
+}));
 
 vi.mock("@/lib/auth", () => {
 	const handler = vi.fn().mockImplementation(async (req: Request) => {
@@ -62,14 +60,18 @@ describe("docker actions route", () => {
 	});
 
 	it("calls docker start and logs success", async () => {
-		mockExec.mockResolvedValueOnce({ stdout: "started", stderr: "" });
+		mockExecuteRootCommand.mockResolvedValueOnce({ stdout: "started", stderr: "" });
 		const res = await POST(authReq("http://localhost/api/docker/actions", { method: "POST", body: JSON.stringify({ action: "start", name: "nginx" }) }));
 		expect(res.status).toBe(200);
-		expect(mockExec).toHaveBeenCalledWith("docker", ["start", "nginx"], expect.any(Object));
+		expect(mockExecuteRootCommand).toHaveBeenCalledWith(expect.objectContaining({
+			command: "docker",
+			argv: ["start", "nginx"],
+			mutationClass: "docker-control",
+		}));
 	});
 
 	it("returns 500 on docker error and logs failure", async () => {
-		mockExec.mockRejectedValueOnce(new Error("container not found"));
+		mockExecuteRootCommand.mockRejectedValueOnce(new Error("container not found"));
 		const res = await POST(authReq("http://localhost/api/docker/actions", { method: "POST", body: JSON.stringify({ action: "start", name: "nginx" }) }));
 		expect(res.status).toBe(500);
 		const json = await res.json();

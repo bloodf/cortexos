@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { hostExecFile } from "@/lib/host-exec";
 import { requireAdmin } from "@/lib/auth";
 import { createActionLog } from "@/lib/db/action-log";
+import { executeRootCommand } from "@/lib/root-helper/executor";
 
 const VALID_ACTIONS = new Set(["start", "stop", "restart", "pull", "prune"]);
 const VALID_PRUNE_TARGETS = new Set([
@@ -37,11 +37,16 @@ export async function POST(request: Request) {
 			if (!VALID_PRUNE_TARGETS.has(target)) {
 				return NextResponse.json({ error: "Invalid prune target" }, { status: 400 });
 			}
-			const { stdout, stderr } = await hostExecFile(
-				"docker",
-				[target.replace(/s$/, ""), "prune", "-f"],
-				{ timeout: 60000, maxBuffer: 5 * 1024 * 1024 },
-			);
+			const { stdout, stderr } = await executeRootCommand({
+				command: "docker",
+				argv: [target.replace(/s$/, ""), "prune", "-f"],
+				timeoutMs: 60000,
+				requestedBy: auth.session?.username ?? "trusted-dashboard",
+				dashboardSessionId: auth.session ? `user-${auth.session.user_id}` : null,
+				mutationClass: "docker-prune",
+				targetScope: "host",
+				metadata: { route: "/api/docker/actions", target, action: "prune" },
+			});
 			await createActionLog({
 				user_id: auth.session?.user_id ?? null,
 				username: auth.session?.username ?? null,
@@ -59,9 +64,15 @@ export async function POST(request: Request) {
 		}
 
 		const args = [action, name];
-		const { stdout, stderr } = await hostExecFile("docker", args, {
-			timeout: 30000,
-			maxBuffer: 5 * 1024 * 1024,
+		const { stdout, stderr } = await executeRootCommand({
+			command: "docker",
+			argv: args,
+			timeoutMs: 30000,
+			requestedBy: auth.session?.username ?? "trusted-dashboard",
+			dashboardSessionId: auth.session ? `user-${auth.session.user_id}` : null,
+			mutationClass: "docker-control",
+			targetScope: "host",
+			metadata: { route: "/api/docker/actions", name, action },
 		});
 
 		await createActionLog({

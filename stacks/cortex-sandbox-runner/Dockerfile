@@ -43,7 +43,6 @@ RUN install -d /etc/containers \
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@10 --activate
 COPY stacks/cortex-sandbox-runner/app/package.json ./app/package.json
-COPY packages/cortex-telemetry ./packages/cortex-telemetry
 RUN cd app && pnpm install --prod
 
 COPY stacks/cortex-sandbox-runner/app ./app

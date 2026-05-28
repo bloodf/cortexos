@@ -49,32 +49,32 @@ describe("scanner", () => {
 
   describe("scanAgents", () => {
     it("finds agents in .agents directories", async () => {
-      // /test/root -> readdir returns [openclaw-agents]
+      // /test/root -> readdir returns [hermes-agents]
       mockStat.mockResolvedValue({ isDirectory: () => true } as Stats);
 
       // Walk: /test/root
       mockReaddir.mockImplementation(((path: string, _opts?: unknown) => {
         if (path === "/test/root") {
-          return Promise.resolve([makeDirent("openclaw-agents", true)]);
+          return Promise.resolve([makeDirent("hermes-agents", true)]);
         }
-        if (path === "/test/root/openclaw-agents") {
+        if (path === "/test/root/hermes-agents") {
           return Promise.resolve([makeDirent(".agents", true)]);
         }
         // .agents dir lists agent subdirs
-        if (path === "/test/root/openclaw-agents/.agents") {
+        if (path === "/test/root/hermes-agents/.agents") {
           return Promise.resolve([
             makeDirent("coder", true),
             makeDirent("reviewer", true),
           ]);
         }
         // Agent dirs list .md files
-        if (path === "/test/root/openclaw-agents/.agents/coder") {
+        if (path === "/test/root/hermes-agents/.agents/coder") {
           return Promise.resolve([
             makeDirent("agent.md", false),
             makeDirent("soul.md", false),
           ]);
         }
-        if (path === "/test/root/openclaw-agents/.agents/reviewer") {
+        if (path === "/test/root/hermes-agents/.agents/reviewer") {
           return Promise.resolve([makeDirent("agent.md", false)]);
         }
         return Promise.resolve([]);
@@ -83,7 +83,7 @@ describe("scanner", () => {
       const groups = await scanAgents();
 
       expect(groups).toHaveLength(1);
-      expect(groups[0].project).toBe("openclaw-agents");
+      expect(groups[0].project).toBe("hermes-agents");
       expect(groups[0].agents).toHaveLength(2);
       expect(groups[0].agents[0].slug).toBe("coder");
       expect(groups[0].agents[0].name).toBe("Coder");
@@ -132,21 +132,22 @@ describe("scanner", () => {
       expect(groups[0].agents[0].slug).toBe("writer");
     });
 
-    it("reads openclaw string models and agent role files", async () => {
-      process.env.AGENT_SCAN_PATHS = "/openclaw";
+    it("reads Hermes registry string models and profile role files", async () => {
+      process.env.AGENT_SCAN_PATHS = "/hermes/profiles";
+      process.env.HERMES_BASE = "/hermes";
       mockReadFile.mockResolvedValue(JSON.stringify({
         agents: {
           list: [{
             id: "cortex-coder",
             name: "Coder",
-            workspace: "/home/node/.openclaw/workspaces/cortex",
+            workspace: "/home/node/hermes/workspaces/cortex",
             model: "9router/cx/gpt-5.5",
             identity: { name: "Cortex Coder", emoji: "🤖" },
           }],
         },
       }) as never);
       mockReaddir.mockImplementation(((path: string, _opts?: unknown) => {
-        if (path === "/openclaw/agents/cortex-coder/agent") {
+        if (path === "/hermes/profiles/cortex-coder") {
           return Promise.resolve([
             makeDirent("agent.md", false),
             makeDirent("tools.md", false),
@@ -159,12 +160,13 @@ describe("scanner", () => {
 
       expect(groups).toHaveLength(1);
       expect(groups[0].agents[0].model).toBe("gpt-5.5");
-      expect(groups[0].agents[0].workspace).toBe("/openclaw/workspaces/cortex");
+      expect(groups[0].agents[0].workspace).toBe("/hermes/workspaces/cortex");
       expect(groups[0].agents[0].files).toHaveLength(2);
       expect(mockReaddir).toHaveBeenCalledWith(
-        "/openclaw/agents/cortex-coder/agent",
+        "/hermes/profiles/cortex-coder",
         { withFileTypes: true },
       );
+      delete process.env.HERMES_BASE;
     });
   });
 

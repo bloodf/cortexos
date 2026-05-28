@@ -1,0 +1,19 @@
+# component	target	version_policy	notes
+os	ubuntu-26.04	match-host	Use same Ubuntu release/codename as host
+container_type	unprivileged	default	Privileged containers require explicit exception
+tailscale	instance	systemd	Each instance gets its own Tailscale identity and SSH
+zsh	instance	apt	oh-my-zsh installed for cortexos user
+tmux	instance	apt-plus-plugins	Use tmux plugin manifest
+git	instance	apt	Project clones from GitHub main
+github-cli	instance	apt-or-upstream	Agent GitHub identity setup
+node	instance	upstream-or-apt	Project dependent; base includes common JS tooling
+python	instance	apt	AI harness and MCP proxy support
+uv	instance	upstream	Shared Python package tool
+docker-cli	instance	optional-client	No daemon by default inside project containers
+hermes	instance	latest-upstream	Accepted reproducibility risk
+ohmypi	instance	latest-upstream	AI harness
+pi	instance	latest-upstream	AI harness and 9router model access
+codex	instance	latest-upstream	AI harness
+claude	instance	latest-upstream	AI harness
+cursor	instance	latest-upstream	Optional editor/agent tooling
+service-env	instance	host-owned-env	Only project-scoped credentials copied into instance

@@ -113,7 +113,7 @@ export default async function AuditViewerPage({ searchParams }: PageProps) {
 							{rows.length === 0 && (
 								<tr>
 									<td colSpan={7} className="p-4 text-center text-muted-foreground">
-										No audit rows. Run a paperclip transition to populate the log.
+										No audit rows. Run an audited helper action to populate the log.
 									</td>
 								</tr>
 							)}

@@ -25,12 +25,12 @@ const PATH_GROUPS: { id: string; label: string; paths: string[] }[] = [
 	{
 		id: "docker",
 		label: "Docker",
-		paths: ["/opt/cortexos/stacks/nats/.env", "/opt/cortexos/stacks/cortex-consumer/.env"],
-	},
-	{
-		id: "openclaw",
-		label: "OpenClaw",
-		paths: ["~/.openclaw/openclaw.json"],
+		paths: [
+			"/opt/cortexos/stacks/postgresql/.env",
+			"/opt/cortexos/stacks/redis/.env",
+			"/opt/cortexos/stacks/mongodb/.env",
+			"/opt/cortexos/stacks/honcho/.env",
+		],
 	},
 ];
 

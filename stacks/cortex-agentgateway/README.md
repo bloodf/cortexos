@@ -1,79 +1,32 @@
-# cortex-agentgateway
+# Cortex AgentGateway
 
-Vendored, minimal AgentGateway implementation for CortexOS. Enforces the tool
-taxonomy defined in `config/tools.json` (mirror of
-`templates/agentgateway/tools.json`): per-role allow-lists, confirmation tokens
-for destructive-class tools, and CloudEvents-wrapped audit emission to NATS.
+AgentGateway is now a small Python MCP control proxy. It keeps a global
+allowlist, exposes health and policy endpoints, and writes one-line JSON audit
+events to stdout for journald/Loki ingestion.
 
-This stack replaces the external `agentgateway/agentgateway` clone that
-`prompts/tools/50-agentgateway.md` previously fetched. Source of truth lives in
-this repo so installs are reproducible and audit subjects are pinned.
-
-## Run (local)
-
-```bash
-docker network create cortex-net 2>/dev/null || true
-cd stacks/cortex-agentgateway
-docker compose up -d --build
-curl -fsS http://127.0.0.1:18800/health
-```
+It intentionally has no retired bus, tracing, bearer-token, role-factory, or
+event-envelope dependency. Network trust is provided by the LAN/tailnet
+boundary defined in `PLAN.md`; policy enforcement is the global allowlist in
+`config/tools.json`.
 
 ## Endpoints
 
-| Method | Path             | Auth   | Purpose                                     |
-| ------ | ---------------- | ------ | ------------------------------------------- |
-| GET    | `/health`        | none   | Liveness + policy version.                  |
-| GET    | `/tools`         | Bearer | Registered tools (name, class, description).|
-| POST   | `/tool/invoke`   | Bearer | Invoke a tool. Body: `{tool, args, runId, agentId, role, confirmationToken?}`. |
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/health` | Liveness plus policy version. |
+| `GET` | `/tools` | Allowed tool names and descriptions. |
+| `POST` | `/mcp/invoke` | Validate a tool request against the allowlist and echo a proxy-ready response. |
 
-Bearer header: `Authorization: Bearer ${AGENTGATEWAY_BEARER_TOKEN}`.
+`POST /mcp/invoke` accepts:
 
-## Environment contract
-
-Mounted from `/opt/cortexos/.secrets/agentgateway.env` (mode `0600`):
-
-| Var                          | Purpose                                          |
-| ---------------------------- | ------------------------------------------------ |
-| `AGENTGATEWAY_PORT`          | Listen port (default `18800`).                   |
-| `AGENTGATEWAY_BEARER_TOKEN`  | Shared secret for inbound auth.                  |
-| `AGENTGATEWAY_CONFIG`        | Optional override for tools.json path.           |
-| `NATS_URL`                   | NATS endpoint (default `nats://127.0.0.1:4222`). |
-| `CORTEX_NATS_HMAC`           | HMAC secret for the `{data, sig}` envelope.      |
-| `DATABASE_URL`               | Postgres URL for `@cortexos/audit` chain append. |
-| `CORTEX_AUDIT_ENABLED`       | Set `0` to skip Postgres audit appends.          |
-| `LANGFUSE_HOST`              | Optional — enables `@cortexos/telemetry`.        |
-
-## NATS contract
-
-Audit publish: subject **`cortex.audit.agentgateway.tool-invoke.v1`**.
-Payload is a CloudEvents 1.0 envelope (`@cortexos/events.envelope()`) wrapped
-in the standard CortexOS `{ data, sig }` HMAC envelope.
-`Nats-Msg-Id` is stamped with the CloudEvents `id` for JetStream dedup.
-
-Schema URL pointer (placeholder): `schemas/cortex-audit-agentgateway-v1.json`.
-
-## Auth model
-
-- All mutating / introspective endpoints require a static bearer token.
-- Tool class enforcement happens inside `/tool/invoke`:
-  - `safe` — allowed if the role's `safe` list is `"*"` or contains the tool.
-  - `privileged` — allowed if the role's `privileged` list contains the tool.
-  - `destructive` — allowed if the role's `destructive` list contains the
-    tool **and** the request includes a non-empty `confirmationToken`.
-- Unknown tool or unknown role → `403`.
-
-## Tool taxonomy
-
-See `config/tools.json`. It is a verbatim copy of
-`templates/agentgateway/tools.json` and is updated in lockstep with that file.
-
-## Tests
-
-```bash
-cd stacks/cortex-agentgateway
-pnpm install
-pnpm test
+```json
+{
+  "tool": "service.status",
+  "arguments": {"service": "postgresql"},
+  "agent_id": "cortex",
+  "project": "host"
+}
 ```
 
-The Vitest suite covers `/health` (no auth), missing bearer (`401`),
-non-destructive happy path (`200`), and destructive-without-token (`403`).
+Allowed calls return `{"ok": true, "proxied": false, ...}` until backend MCP
+connectors are wired. Denied calls return HTTP `403` and are audited.

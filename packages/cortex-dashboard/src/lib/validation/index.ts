@@ -104,16 +104,10 @@ export const notifyTestInputSchema = z.object({
 
 export type NotifyTestInput = z.infer<typeof notifyTestInputSchema>;
 
-/** Paperclip link refresh action — currently no inputs, but reserved. */
-export const paperclipRefreshInputSchema = z.object({}).strict();
-
-export type PaperclipRefreshInput = z.infer<typeof paperclipRefreshInputSchema>;
-
 /**
- * V12 — POST /api/paperclip/approve.
+ * Dashboard approval decision.
  *
- * Operator decision payload. Subject pattern enforced server-side; we only
- * validate the inputs we let the client send.
+ * Operator decision payload for local pending_approvals rows.
  */
 export const approvalSignalInputSchema = z.object({
 	runId: z
@@ -129,6 +123,6 @@ export const approvalSignalInputSchema = z.object({
 		.default("approval"),
 	decision: z.enum(["approve", "deny"]),
 	reason: z.string().trim().max(2000).optional(),
-});
+}).strict();
 
 export type ApprovalSignalInput = z.infer<typeof approvalSignalInputSchema>;
