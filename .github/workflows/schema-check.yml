@@ -5,7 +5,6 @@ on:
   pull_request:
     paths:
       - "schemas/**"
-      - "packages/cortex-events/**"
       - "scripts/schema-version-check.js"
       - ".github/workflows/schema-check.yml"
 
@@ -34,11 +33,6 @@ jobs:
             ajv compile -c ajv-formats -s "$f"
             echo "::endgroup::"
           done
-
-      - name: Install workspace deps + run @cortexos/events unit tests
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm --filter @cortexos/events test
 
       - name: Schema version-bump policy
         run: BASE_REF=origin/${{ github.base_ref }} node scripts/schema-version-check.js

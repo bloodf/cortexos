@@ -23,13 +23,6 @@ updates:
       eslint:
         patterns: ['eslint', 'eslint-*', '@eslint/*', 'typescript-eslint']
 
-  - package-ecosystem: npm
-    directory: /stacks/cortex-consumer
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-    labels: [dependencies, consumer]
-
   - package-ecosystem: docker
     directory: /packages/cortex-dashboard
     schedule:
