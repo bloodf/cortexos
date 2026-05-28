@@ -557,6 +557,16 @@ Evidence (verified 2026-05-28):
   (`mementry` 18697, `celebrar-me` 18696, `3guns` 18695).
 - Final re-audit: units CLEAN, docker CLEAN, ports CLEAN, caddy CLEAN, serve
   CLEAN, natscli/nats-bin CLEAN.
+- Monitoring restore (pre-existing outage found during wrap-up, not a Phase 8
+  regression): the host monitoring `docker-compose.yml` had been rewritten on
+  May 27 down to only the two exporters, dropping the `prometheus`, `grafana`,
+  and `loki` services, so all three were down (`/grafana` returned 502). Rebuilt
+  the full compose from `prompts/tools/{20-prometheus,21-loki,22-grafana}.md`,
+  recreated the missing grafana datasource provisioning file, and brought the
+  stack up reusing the surviving `monitoring_{prometheus,grafana,loki}_data`
+  volumes. Verified grafana 200 (direct + Caddy `/grafana/`), prometheus
+  healthy, loki ready, tailscale serve `:3000` intact. Backup of the reduced
+  compose at `docker-compose.yml.pre-grafana-restore-<ts>`.
 
 ### Phase 9 - Final Validation
 

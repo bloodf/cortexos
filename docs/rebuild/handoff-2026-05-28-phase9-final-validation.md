@@ -78,9 +78,19 @@ Prove the rebuilt machine is coherent and repo-declared.
   instances pass checks.
 - MCP proxy (`cortex-agentgateway`, port 18800) health + global allowlist
   checks pass (`GET /health` ok, allow/deny `POST /mcp/invoke`).
-- Monitoring (Prometheus/Grafana/Loki) and dashboard health are green. Note:
-  Grafana was `inactive` and `/grafana` returned 502 during Phase 8 — confirm
-  whether Grafana should be running and bring it up if so.
+- Monitoring (Prometheus/Grafana/Loki) and dashboard health are green.
+  Monitoring was restored at the end of Phase 8: the host
+  `/opt/cortexos/stacks/monitoring/docker-compose.yml` had been rewritten
+  (May 27) down to just the two exporters, dropping the `prometheus`, `grafana`,
+  and `loki` service definitions, so all three were down. The full compose was
+  rebuilt from `prompts/tools/{20-prometheus,21-loki,22-grafana}.md`, the
+  missing grafana datasource provisioning file
+  (`grafana/provisioning/datasources/cortex.yml`) was recreated, and the stack
+  was brought up reusing the surviving `monitoring_{prometheus,grafana,loki}_data`
+  volumes. Verified: grafana 200 (direct + via Caddy `/grafana/`), prometheus
+  healthy, loki ready, tailscale serve `:3000` intact. Backup of the reduced
+  compose: `docker-compose.yml.pre-grafana-restore-<ts>`. Phase 9 should
+  re-confirm all three are still up.
 
 ## Execution Steps
 
