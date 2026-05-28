@@ -1,6 +1,6 @@
 # CortexOS Rebuild Plan V2
 
-Status: phase 7 project Hermes move complete; ready for retired-infra removal
+Status: phase 8 retired-infra removal complete; ready for final validation
 Last updated: 2026-05-28
 
 ## Operating Rule
@@ -472,7 +472,7 @@ Note:
 
 ### Phase 8 - Retired Infra Removal
 
-Status: pending
+Status: complete
 
 Goal: hard-remove retired systems and stale repo/runtime residue.
 
@@ -493,6 +493,70 @@ Validation gate:
 
 - No retired systemd units, containers, ports, Caddy routes, dashboard entries,
   prompts, scripts, schemas, migrations, packages, or docs remain active.
+
+Evidence (verified 2026-05-28):
+
+- Pre-flight passed: `bash -n` + `shellcheck scripts/rebuild/apply.sh`,
+  `scripts/rebuild/validate.sh --local`.
+- Repo residue (tracked) was already purged in Phase 3 (no retired prompts,
+  schemas, stack source, or package source tracked in git). Confirmed clean
+  tracked trees: `stacks/` = `cortex-agentgateway`, `cortex-dashboard`,
+  `cortex-dashboard-root-helper`, `cortex-incus`, `cortex-sandbox-runner`;
+  `packages/` = `cortex-audit`, `cortex-dashboard`.
+- Stale CI/repo references to removed dirs were fixed:
+  - `.github/workflows/ci.yml`: removed the `consumer` job and the
+    `stacks/nats/docker-compose.yml` config check.
+  - `.github/workflows/release.yml`: artifact matrix reduced to `dashboard`
+    only (dropped `cortex-paperclip-bridge`, `cortex-consumer`,
+    `paperclip-adapter`, `cortex-graph`).
+  - `.github/workflows/schema-check.yml`: dropped `packages/cortex-events/**`
+    path filter and the `@cortexos/events` unit-test step.
+  - `.github/dependabot.yml`: removed the `/stacks/cortex-consumer` npm entry.
+  - `.github/ISSUE_TEMPLATE/feature_request.md`: dropped `cortex-consumer` and
+    `NATS pipeline` area options.
+  - `CLAUDE.md`: removed retired-architecture rules (Paperclip governance,
+    CloudEvents envelope, JetStream contracts, NATS subject prefix, retired arch
+    reminders for `cortex-consumer`/`cortex-paperclip-bridge`/`paperclip-adapter`/
+    `prompts/paperclip/*`); rewrote the hash-chained-audit rule around live
+    surfaces (sandbox, AgentGateway, root-helper, approvals). Kept SOPS, sandbox,
+    supply-chain, operator-laptop rules.
+  - `migrations/017_retired_infra_cleanup.sql` retained (it is the cleanup
+    migration). `scripts/rebuild/backup.sh` retired-config archiving and
+    `validate.sh` manifest guards retained intentionally.
+- Untracked working-tree build residue removed from the laptop clone:
+  `stacks/cortex-consumer`, `stacks/cortex-graph`,
+  `stacks/cortex-paperclip-bridge`, `packages/paperclip-adapter`,
+  `packages/cortex-events`, `packages/cortex-telemetry` (node_modules/dist/
+  coverage only; source already git-removed).
+- Live host audit (`cortexos@cortexos.tailfd052e.ts.net`): no retired systemd
+  units or unit files, no retired Docker containers, no retired `/opt/cortexos`
+  paths, no retired secrets, `natscli` not installed, no `/usr/local/bin/nats`.
+- Caddy residue removed: deleted the `/nats`, `/langfuse` (x3), `/openclaw`,
+  `/openviking`, `/leann`, and `/graph` handle blocks from `/etc/caddy/Caddyfile`
+  (backup `/etc/caddy/Caddyfile.pre-phase8-20260528T185941Z`). `caddy validate`
+  passed; service restarted (admin API is off, so reload is unsupported and a
+  restart is required). `healthz` 200; kept routes (`/9router`, `/api`,
+  `/grafana`, `/prometheus`, `/loki`, `/cadvisor`, `/pgadmin`, `/mongo-admin`,
+  `/phpmyadmin`, default dashboard) preserved; retired paths now fall through to
+  the dashboard catch-all.
+- Tailscale serve residue removed: `tailscale serve --https=<port> off` for
+  `8222` (NATS), `3001` (Langfuse), `18791` (LEANN), `8020`→`18790` (OpenViking),
+  and `8090` (cortex-graph). All retired tailnet binds gone; remaining serve
+  ports are all live services. Port `3000` (Grafana) left intact — monitoring is
+  protected, not retired.
+- Retired-runtime apply re-run from verified backup
+  `/mnt/hdd/cortexos-backups/20260528T042259Z`: dry-run and execute both
+  completed; every retired unit/compose/package/path reported already-absent
+  (idempotent no-op).
+- Protected unaffected: 11/11 protected host services active
+  (`hermes-profile@cieucpb`, `hermes-profile@netbook`, `hermes-gateway@cieucpb`,
+  `hermes-gateway@netbook`, `hermes-gateway-cortex`, `hermes-dashboard`,
+  `hermes-dashboard-proxy`, `9router`, `honcho-mcp`, `ollama`,
+  `ollama-honcho-embeddings-proxy`); protected profile dirs `cieucpb`,
+  `netbook`, `cortex` present; project instances RUNNING with Hermes health 200
+  (`mementry` 18697, `celebrar-me` 18696, `3guns` 18695).
+- Final re-audit: units CLEAN, docker CLEAN, ports CLEAN, caddy CLEAN, serve
+  CLEAN, natscli/nats-bin CLEAN.
 
 ### Phase 9 - Final Validation
 
@@ -584,6 +648,12 @@ Validation gate:
    GitHub `main` using `cortexos-base/latest`.~~ ✅ Complete.
 4. ~~Move project Hermes profiles after each project instance validates.~~
    ✅ Complete — profiles run inside instances (health 200), host copies removed.
-5. Phase 8: hard-remove retired infra (Paperclip, NATS, OpenViking, LEANN,
+5. ~~Phase 8: hard-remove retired infra (Paperclip, NATS, OpenViking, LEANN,
    OpenClaw, Agent Factory, Cortex Consumer, Cortex Graph, Floci, Langfuse
-   runtime) and sweep stale repo/runtime residue.
+   runtime) and sweep stale repo/runtime residue.~~ ✅ Complete — host + repo
+   residue removed (Caddy routes, tailscale serve maps, CI refs, CLAUDE.md);
+   retired-runtime apply re-run idempotent; protected services + instances
+   unaffected.
+6. Phase 9: final validation — prove repo manifests match live state, backup
+   restore dry-run passes, protected Hermes + project instances pass, MCP proxy
+   health + allowlist pass, monitoring + dashboard health green.

@@ -27,21 +27,9 @@ jobs:
       fail-fast: false
       matrix:
         artifact:
-          - name: cortex-paperclip-bridge
-            path: stacks/cortex-paperclip-bridge
-            required: true
-          - name: cortex-consumer
-            path: stacks/cortex-consumer
-            required: true
           - name: dashboard
             path: packages/cortex-dashboard
             required: true
-          - name: paperclip-adapter
-            path: packages/paperclip-adapter
-            required: true
-          - name: cortex-graph
-            path: stacks/cortex-graph
-            required: false
 
     steps:
       - name: Checkout

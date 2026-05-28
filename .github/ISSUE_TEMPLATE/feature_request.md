@@ -31,8 +31,6 @@ body:
         - dashboard
         - prompts
         - agent roles
-        - cortex-consumer
-        - NATS pipeline
         - docs
         - templates
         - other
