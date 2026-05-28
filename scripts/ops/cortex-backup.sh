@@ -75,13 +75,16 @@ copy_glob() {
   done
 }
 
-dump_container() {
-  name="$1"; outfile="$2"; shift 2
+dump_db_sh() {
+  # Runs the dump command via `sh -c` *inside* the container so that the
+  # container's own credential env vars (POSTGRES_USER, MONGO_INITDB_ROOT_*,
+  # MYSQL_ROOT_PASSWORD, ...) expand in-container — host has no such vars.
+  name="$1"; outfile="$2"; cmd="$3"
   if ! have docker; then warn "docker unavailable for $name"; return; fi
   if ! container_running "$name"; then warn "container not running: $name"; return; fi
   run mkdir -p "$(dirname "$outfile")"
-  if dry; then printf '[dry-run] docker exec %q ... > %q\n' "$name" "$outfile"; return; fi
-  if ! docker exec "$name" "$@" | gzip -c > "$outfile"; then warn "dump failed: $name"; rm -f "$outfile"; fi
+  if dry; then printf '[dry-run] docker exec %q sh -c %q | gzip > %q\n' "$name" "$cmd" "$outfile"; return; fi
+  if ! docker exec "$name" sh -c "$cmd" | gzip -c > "$outfile"; then warn "dump failed: $name"; rm -f "$outfile"; fi
 }
 
 copy_from_container() {
@@ -171,10 +174,18 @@ main_backup() {
   preflight
   run mkdir -p "${WORK_DIR}/databases" "${WORK_DIR}/services" "${WORK_DIR}/configs"
 
-  dump_container cortex-postgresql "${WORK_DIR}/databases/postgresql_all.sql.gz" pg_dumpall -U postgres
-  dump_container honcho-database "${WORK_DIR}/databases/honcho_postgresql_all.sql.gz" pg_dumpall -U postgres
-  dump_container cortex-mongodb "${WORK_DIR}/databases/mongodb_archive.gz" mongodump --archive
-  dump_container cortex-mysql "${WORK_DIR}/databases/mysql_all.sql.gz" mysqldump --all-databases
+  # shellcheck disable=SC2016  # $VARS intentionally expand in-container, not on host
+  dump_db_sh cortex-postgresql "${WORK_DIR}/databases/postgresql_all.sql.gz" \
+    'PGPASSWORD="$POSTGRES_PASSWORD" pg_dumpall -U "$POSTGRES_USER"'
+  # shellcheck disable=SC2016
+  dump_db_sh honcho-database "${WORK_DIR}/databases/honcho_postgresql_all.sql.gz" \
+    'PGPASSWORD="$POSTGRES_PASSWORD" pg_dumpall -U "$POSTGRES_USER"'
+  # shellcheck disable=SC2016
+  dump_db_sh cortex-mongodb "${WORK_DIR}/databases/mongodb_archive.gz" \
+    'mongodump --quiet --archive -u "$MONGO_INITDB_ROOT_USERNAME" -p "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin'
+  # shellcheck disable=SC2016
+  dump_db_sh cortex-mysql "${WORK_DIR}/databases/mysql_all.sql.gz" \
+    'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysqldump --all-databases -uroot'
   backup_redis cortex-redis "${WORK_DIR}/databases/redis_dump.rdb"
   backup_redis honcho-redis "${WORK_DIR}/databases/honcho_redis_dump.rdb"
 
