@@ -239,9 +239,12 @@ B5. ✅ DONE. **Reconciled `dynamic-seed.js` spoke keys** to real prompt
 - **Backup DB-dump auth fixed** (`scripts/ops/cortex-backup.sh`, deployed to host
   `/opt/cortexos/scripts/cortex-backup.sh`): postgres/honcho/mongo/redis logical
   dumps now authenticate (run via in-container `sh -c` so credential env vars
-  expand). **mysql dump still blocked**: the live `mysql_mysql_data` volume's
-  root password ≠ current `mysql.env` (env changed after volume init) — operator
-  must supply the real root password, reset it, or accept mysql excluded.
+  expand). The live `mysql_mysql_data` root password had drifted from
+  `mysql.env` (env changed after volume init); reset to the env value via MySQL
+  `--init-file`. **Verified end-to-end**: `sudo cortex-backup.sh` completes with
+  zero dump failures and writes `/mnt/hdd/backups/2026-05-28_2259.tar.gz.age`
+  (3.18 GB). Note the unit runs as **root** (no `User=`); run manual backups with
+  `sudo`.
 - **dynamic-seed always-active allowlist**: `dynamic-seed.js` now activates the
   core un-spoked services (`cortex-dashboard`, `incus`, `webmin`, `cockpit`,
   `watchtower`) regardless of `completed_spokes` (replaces 4 guessed spoke keys).
