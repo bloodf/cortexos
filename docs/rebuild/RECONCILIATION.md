@@ -1,0 +1,190 @@
+# CortexOS Repo ↔ Host Reconciliation Plan
+
+Created: 2026-05-28
+Owner: operator
+Status: in progress (Phase A executing)
+
+## Why this exists
+
+After the phase 0–9 rebuild, a full three-way audit (repo OSS-readiness,
+dashboard correctness, live host drift) found the laptop repo `main` is a
+**thinner slice** than what actually runs on the host. The host carries working
+features the rebuild branch dropped. This plan reconciles them.
+
+### Decisions (operator, 2026-05-28)
+
+1. **Direction: expand repo to match host.** The repo becomes the true
+   source-of-truth by re-declaring the good live features, so a fresh machine
+   reproduces what runs now.
+2. **Personal/host apps (Jellyfin, Home Assistant, Dockhand, kernel-browser):
+   include as _optional_ install prompts.**
+3. **Data-plane reconciliation off the stale old clone: defer + document only**
+   (touches live databases — separate careful task).
+4. **Optional installs must prompt the operator interactively. Never assume
+   pre-set env vars exist.** Every optional prompt asks for its config at run
+   time (with sane defaults offered, but confirmed by the operator), rather than
+   reading an env var that may be unset.
+
+## Three divergent source trees (root cause)
+
+| Tree | State | Role |
+|------|-------|------|
+| Laptop repo `main` (rebuild) | clean; 5 stacks + 22 tool prompts | intended SoT |
+| `/opt/cortexos` | **not a git repo**; 21 stacks + extra dirs; unversioned | live runtime |
+| `/home/cortexos/Developer/github.com/cortexos` | old `main` @ `16adbd4`, **dirty**, 59 retired files (paperclip/floci/langfuse) | **still serves 6 prod data-plane stacks** |
+
+The old clone is the *source* for the dropped install prompts and several live
+docker stacks — it is both the recovery source (for re-import) and a hazard
+(stale, retired-laden, serving prod data).
+
+## Gap inventory
+
+### G1 — Dropped working features (live on host, absent from repo)
+
+Run live, source in old clone + `/opt/cortexos`, **not in laptop repo**:
+
+- `cortex-mail-guardian` — IMAP AI listener; package `cortex-mail-guardian`
+  (`/opt/cortexos/packages/cortex-mail-guardian`) + `cortex-mail-guardian.service`
+  + `cortex-mail-guardian-sweep.{service,timer}` + dashboard pages/APIs
+  (`[locale]/mail-guardian/*`, `api/mail-guardian/*`, admin panels, widget).
+- `cortex-auto-update.{service,timer}` → `/opt/cortexos/scripts/cortex-auto-update.sh`
+  (6964 B) — **this is the operator's "update checks".**
+- `cortex-degraded-service-watcher.{service,timer}` →
+  `/opt/cortexos/scripts/cortex-degraded-service-watcher.mjs` (8459 B) — **AI
+  "healthcheck" watcher.**
+- `cortex-9router-health.{service,timer}` →
+  `/usr/local/sbin/cortex-9router-healthcheck.sh` (1456 B).
+- `cortex-synthetic@.{service,timer}` →
+  `/usr/local/bin/cortex-synthetic-publish.sh` (364 B).
+- `cortex-backup.{service,timer}` → `/opt/cortexos/scripts/cortex-backup.sh`
+  (9712 B). (Repo has `scripts/rebuild/backup.sh`, a different rebuild-time tool.)
+- `9router-docker-proxy.service`, drop-ins for several units.
+
+13 unit files total to import + 3 standalone scripts + 1 package + dashboard UI.
+
+### G2 — Missing install prompts (running, no repo prompt → fresh machine can't reproduce)
+
+Present in **old clone** `prompts/tools/`, dropped from rebuild:
+
+- `16a-mysql.md` (PLAN *declares* MySQL but rebuild has no prompt)
+- `32-honcho.md`, `42-hermes-honcho.md`
+- `56-pgadmin.md`, `58-mongo-express.md`, `59-phpmyadmin.md`
+- `25-node-exporter.md`, `26a-otel-collector.md`
+- `27-dockhand.md` (optional), `14a-home-assistant.md` (optional),
+  `14b-jellyfin.md` (optional)
+- `82-mail-guardian.md`
+- Plus extra exporters running with no prompt: pg / redis / mongo / snmp /
+  adguard exporters.
+
+### G3 — Declared-but-absent (stale repo claims)
+
+- PLAN "Key Architecture Decisions" lists **MinIO + RabbitMQ** as host
+  control-plane → neither runs as cortex infra. Remove or mark aspirational.
+- Prompt `24-cadvisor.md` exists; **cadvisor container is not running** → Caddy
+  `/cadvisor` route + dashboard catalog row are dead.
+- Prompts `25-node-exporter`, `23-fluent-bit` exist; not running (`:9100` dead).
+
+### G4 — Dashboard catalog/seed bugs (repo-only, safe to fix)
+
+From the dashboard audit (`packages/cortex-dashboard`):
+
+- **[HIGH]** `opik` missing from `migrations/017_retired_infra_cleanup.sql`
+  DELETE lists — retired but not cleaned.
+- **[HIGH]** `mongo-express` health URL wrong: seed uses `:8081`; live host port
+  is `:8083` (→ container 8081). Fix `002_seed.sql` + `015_service_health_targets.sql`.
+- **[HIGH]** `cadvisor` health `:8081/cadvisor/healthz` — collides with
+  mongo-express AND cadvisor isn't running. Mark cadvisor optional/inactive.
+- **[MEDIUM]** `mongo-express` `open_url` = `/mongo-express/` but live Caddy
+  route is `/mongo-admin`. Reconcile (new migration 019 + catalog fn).
+- **[MEDIUM]** `dynamic-seed.js` `SPOKE_TO_SERVICES` missing ~16 services →
+  any unmapped slug is forced `is_active=false` on a fully-provisioned host.
+- **[MEDIUM]** `cockpit` health `tcp :9093` — live cockpit is `:9090` (which
+  itself collides with Prometheus on loopback — host port mess, see G5).
+- **[MEDIUM]** migration numbering gaps (005–007, 016 no stub).
+- **[LOW]** no test asserts retired-absent / live-present catalog integrity.
+
+### G5 — Host-state messes (document, fix carefully later)
+
+- **Cockpit and Prometheus both bind `127.0.0.1:9090`** — port conflict on the
+  live host. Needs a port reassignment decision before the seed can be correct.
+- Project docker stacks (`api`/mementry, `celebrarme-laravel`, `mementry-local`)
+  **still running on host** despite Incus migration — PLAN said host worktrees
+  removed after instance validation. Duplication; decide teardown vs keep.
+- `/opt/cortexos` is not version-controlled; config lives only on the host.
+
+### G6 — OSS-readiness issues (repo-only, safe to fix)
+
+From the repo audit:
+
+- **[CRITICAL-lowrisk]** live tailnet ID `<your-tailnet>` + Incus IPs `10.222.222.x`
+  committed in `PLAN.md` + `docs/rebuild/handoff-*.md`. Redact for public.
+- **[HIGH]** `scripts/rebuild/lib.sh:6` hardcodes
+  `cortexos@cortexos.<your-tailnet>.ts.net` as default — require env, no fallback.
+- **[HIGH]** `scripts/rebuild/apply.sh:701-705` hardcodes `bloodf` org path →
+  parameterize `${CORTEX_GH_ORG:-bloodf}`.
+- **[HIGH]** `README.md` too thin — no pitch, prerequisites, bootstrap flow,
+  license/contributing links.
+- **[HIGH]** `.github/ISSUE_TEMPLATE/agent-task.md` references NATS + dangling
+  `docs/runbooks/CI_POLICY.md`.
+- **[HIGH]** workflow headers (agent-mention-router, gate-enforcement,
+  workflow-pipeline) cite "NATS event bus"; reference non-existent
+  `bootstrap-project.sh`.
+- **[MEDIUM]** `CLAUDE.md:41` → `templates/agent-roles/` doesn't exist.
+- **[MEDIUM]** `backup-scope.tsv` absolute laptop path; `projects.tsv` personal
+  repos unlabeled; JetStream comment in `confirmation-token.ts`; Ubuntu version
+  inconsistency (README 26.04 vs os-detect 24.04/25.x); `SECURITY.md` lacks
+  reporting channel; root `package.json` lacks `"license"`; `docs/README.md`
+  index incomplete; handoff docs need tombstone headers.
+- **[LOW]** empty untracked dirs (`templates/agent-workflows`,
+  `templates/cortex-orchestration`, `scripts/smoke`); thin `CONTRIBUTING.md`.
+
+## Execution phases
+
+### Phase A — repo-only safe fixes (NO host risk) — IN PROGRESS
+
+A1. OSS-readiness fixes (G6).
+A2. Dashboard catalog/seed bugs (G4, the verified-port subset).
+
+Both are repo edits, reviewed via tests/build; no live mutation.
+
+### Phase B — import live features into repo (G1 + G2)
+
+Re-import from old clone + `/opt/cortexos`, adapted to rebuild conventions:
+
+- B1. cortex ops units + scripts (auto-update, degraded-watcher, 9router-health,
+  synthetic, backup) → `templates/systemd/` + `scripts/` + tool prompts.
+- B2. `cortex-mail-guardian` package + units + dashboard pages.
+- B3. Missing install prompts (mysql, honcho, pgadmin, mongo-express,
+  phpmyadmin, node-exporter, otel-collector, extra exporters) — **interactive,
+  ask-the-operator, no assumed env vars** (operator directive 2026-05-28).
+- B4. Optional prompts (dockhand, home-assistant, jellyfin) — same interactive
+  rule, clearly marked optional.
+
+B5. **Reconcile `dynamic-seed.js` spoke keys.** Phase A2 added spoke→service
+  mappings using *guessed* keys (`19-mysql`, `40-45`, etc.) because the real
+  install prompts didn't exist yet. When B3 imports the actual prompts from the
+  old clone, rename those keys to match the real prompt filenames
+  (`16a-mysql`, `32-honcho`, `56-pgadmin`, `58-mongo-express`, `59-phpmyadmin`,
+  `26a-otel-collector`, …) so `.setup-state.json` `completed_spokes` activates
+  the right services. Guessed keys are tagged `// GUESSED:` in the file.
+
+### Phase C — deferred (document only this round)
+
+- C1. Data-plane reconciliation: move postgres/mysql/mongo/redis-insight/
+  watchtower/pg-exporter compose off the stale old clone into repo-declared
+  `/opt/cortexos/stacks` + tool prompts, then retire the old clone. Touches live
+  data — separate careful task.
+- C2. Resolve cockpit↔prometheus `:9090` conflict (G5).
+- C3. Decide fate of host-resident project docker stacks vs Incus instances.
+- C4. Make `/opt/cortexos` reproducible from repo (no unversioned drift).
+
+## Acceptance (when is this done)
+
+- A fresh machine running `prompts/00-bootstrap.md` reproduces every non-optional
+  live cortex service, including update checks, health watchers, backup, and
+  mail-guardian.
+- Optional services install only when the operator opts in interactively.
+- Dashboard catalog/seed matches live ports/URLs; no retired rows; healthchecks
+  green for all active services.
+- No personal infra identifiers in public-facing files.
+- The stale old clone no longer serves any live stack (Phase C).

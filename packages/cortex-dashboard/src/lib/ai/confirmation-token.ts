@@ -133,7 +133,7 @@ class InMemoryConsumedStore implements TokenConsumedStore {
 
 let consumedStore: TokenConsumedStore = new InMemoryConsumedStore();
 
-/** Inject alternative store (JetStream KV, test doubles). */
+/** Inject alternative store (Redis/Valkey KV, test doubles). */
 export function setTokenConsumedStore(impl: TokenConsumedStore): void {
   consumedStore = impl;
 }

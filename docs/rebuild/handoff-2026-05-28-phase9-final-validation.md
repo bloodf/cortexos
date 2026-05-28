@@ -65,7 +65,7 @@ state first.**
 
 ## Prod Access
 
-- Host: `cortexos@cortexos.tailfd052e.ts.net`.
+- Host: `cortexos@cortexos.<your-tailnet>.ts.net`.
 - The Claude Code auto-classifier re-blocks prod SSH at session start. Ask the
   user to approve prod SSH for the session before host audits.
 

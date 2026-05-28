@@ -18,7 +18,7 @@ snapshot remains local in `/tmp/cortexos-inventory-remote-test` for this run.
 - Kernel: Linux 7.0.0-15-generic x86_64.
 - SSH user: `cortexos`.
 - User groups include `sudo`, `docker`, and `ollama`.
-- Tailscale is running as `cortexos.tailfd052e.ts.net` with Tailscale SSH
+- Tailscale is running as `cortexos.<your-tailnet>.ts.net` with Tailscale SSH
   capability and a visible DNS health warning about `resolvconf`.
 - Caddy config exists at `/etc/caddy/Caddyfile` and validates successfully.
 

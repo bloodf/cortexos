@@ -21,7 +21,7 @@ new project and agent work moves into Incus instances.
 ## Current State Assessment
 
 Read-only inventory was captured from
-`cortexos@cortexos.tailfd052e.ts.net` on 2026-05-28. Durable summary:
+`cortexos@cortexos.<your-tailnet>.ts.net` on 2026-05-28. Durable summary:
 `docs/rebuild/current-host-inventory.md`.
 
 Confirmed host facts:
@@ -528,7 +528,7 @@ Evidence (verified 2026-05-28):
   `stacks/cortex-paperclip-bridge`, `packages/paperclip-adapter`,
   `packages/cortex-events`, `packages/cortex-telemetry` (node_modules/dist/
   coverage only; source already git-removed).
-- Live host audit (`cortexos@cortexos.tailfd052e.ts.net`): no retired systemd
+- Live host audit (`cortexos@cortexos.<your-tailnet>.ts.net`): no retired systemd
   units or unit files, no retired Docker containers, no retired `/opt/cortexos`
   paths, no retired secrets, `natscli` not installed, no `/usr/local/bin/nats`.
 - Caddy residue removed: deleted the `/nats`, `/langfuse` (x3), `/openclaw`,
@@ -642,7 +642,7 @@ matches repo-declared state.
 - `scripts/rebuild/plan.sh` renders service placement, Incus base image, tmux
   plugin/session model, validation gates, and backup scope.
 - Read-only live inventory completed against
-  `cortexos@cortexos.tailfd052e.ts.net`.
+  `cortexos@cortexos.<your-tailnet>.ts.net`.
 - Backup/restore gate passed for
   `/mnt/hdd/cortexos-backups/20260528T042259Z`.
 - Retired-runtime dry-run apply passed against that backup.

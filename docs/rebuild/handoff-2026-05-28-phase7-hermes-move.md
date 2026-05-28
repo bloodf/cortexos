@@ -1,5 +1,7 @@
 # CortexOS Rebuild Handoff — Phase 7: Project Hermes Move
 
+> **Operator session notes — historical record, not install instructions.**
+
 Generated: 2026-05-28
 Workspace: `/Users/heitor/Developer/github.com/bloodf/cortexos`
 Supersedes: `handoff-2026-05-28-incus-base-image.md` (now stale — base image + project instances are done).
@@ -47,7 +49,7 @@ start another fresh session. **One phase per session, fresh context each time.**
 
 ## Prod Access
 
-- Host: `cortexos@cortexos.tailfd052e.ts.net`.
+- Host: `cortexos@cortexos.<your-tailnet>.ts.net`.
 - Read/write SSH was approved for the rebuild. The Claude Code auto-classifier may **re-block
   prod SSH at the start of each new session** — if it does, ask the user to approve prod SSH
   for the session (or have the user run the command with `! <cmd>`).
@@ -86,7 +88,7 @@ Supports `--dry-run` (prints `+ bash -lc ...`) and `--execute`.
    ```
 2. Confirm host preconditions (prod SSH):
    ```bash
-   ssh -o BatchMode=yes -o ConnectTimeout=12 cortexos@cortexos.tailfd052e.ts.net '
+   ssh -o BatchMode=yes -o ConnectTimeout=12 cortexos@cortexos.<your-tailnet>.ts.net '
      sudo -n incus list --format csv -c ns
      ls -1 /opt/cortexos/hermes/profiles
      ls -1 /opt/cortexos/.secrets/hermes
@@ -115,7 +117,7 @@ Supports `--dry-run` (prints `+ bash -lc ...`) and `--execute`.
 - Host project profile dirs + env files removed (`mementry`,`celebrar`,`3guns`).
 - Protected host profiles `cieucpb`,`netbook`,`cortex` still present and their services active:
   ```bash
-  ssh -o BatchMode=yes -o ConnectTimeout=12 cortexos@cortexos.tailfd052e.ts.net '
+  ssh -o BatchMode=yes -o ConnectTimeout=12 cortexos@cortexos.<your-tailnet>.ts.net '
     sudo -n systemctl is-active \
       hermes-profile@cieucpb.service hermes-profile@netbook.service \
       hermes-gateway@cieucpb.service hermes-gateway@netbook.service \

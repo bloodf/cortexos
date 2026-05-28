@@ -1,9 +1,9 @@
-# DEPRECATED under CortexOS doctrine — agent mention routing moves to NATS+Slack thread SoT.
-# Kept for repos that opt in via bootstrap-project.sh --include-gh-workflows.
+# DEPRECATED under CortexOS doctrine — agent mention routing moves to AgentGateway + hash-chained audit log.
+# Kept as a manual-trigger reference; bootstrap-project.sh does not exist and these workflows are not auto-included.
 name: Agent Mention Router
 
 # Manual-trigger only per CortexOS policy: E2E GitHub workflows are never automated.
-# Workflow itself is DEPRECATED — canonical mention routing is NATS+Slack thread SoT.
+# Workflow itself is DEPRECATED — canonical mention routing is AgentGateway + hash-chained audit log.
 on:
   workflow_dispatch:
     inputs:

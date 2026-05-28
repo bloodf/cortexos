@@ -38,7 +38,7 @@ Use targeted tests when possible. Dashboard uses Next.js 16, TypeScript, Vitest,
 
 - Prompts in `prompts/` are operator-facing product surface. Use formal, stepwise language.
 - Templates in `templates/` must be safe to copy to VPS.
-- Agent roles in `templates/agent-roles/` must define scope, escalation, review standards, and stop conditions.
+- Agent role definitions (when present) must define scope, escalation, review standards, and stop conditions.
 - Docs should link related docs and include verification steps.
 
 ## Architecture reminders

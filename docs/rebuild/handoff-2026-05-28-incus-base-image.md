@@ -1,5 +1,7 @@
 # CortexOS Rebuild Handoff - Incus Base Image
 
+> **Operator session notes — historical record, not install instructions.**
+
 Generated: 2026-05-28
 
 Workspace: `/Users/heitor/Developer/github.com/bloodf/cortexos`
@@ -143,7 +145,7 @@ The `incus-base-image` phase currently:
 2. If the session is no longer available, inspect host state before rerunning:
 
    ```bash
-   ssh -o BatchMode=yes -o ConnectTimeout=12 cortexos@cortexos.tailfd052e.ts.net '
+   ssh -o BatchMode=yes -o ConnectTimeout=12 cortexos@cortexos.<your-tailnet>.ts.net '
      pgrep -af "apply.sh --phase incus-base-image|base-image-provision|apt-get|dpkg" || true
      sudo -n incus list --format table
      sudo -n incus image alias list | grep -E "cortexos-base/(latest|ubuntu-26.04)" || true
@@ -172,7 +174,7 @@ The `incus-base-image` phase currently:
 6. On success, verify protected host services:
 
    ```bash
-   ssh -o BatchMode=yes -o ConnectTimeout=12 cortexos@cortexos.tailfd052e.ts.net '
+   ssh -o BatchMode=yes -o ConnectTimeout=12 cortexos@cortexos.<your-tailnet>.ts.net '
      sudo -n incus image alias list | grep -E "cortexos-base/(latest|ubuntu-26.04)"
      sudo -n incus list --format table
      sudo -n systemctl is-active \
