@@ -1,6 +1,6 @@
 # CortexOS Rebuild Plan V2
 
-Status: phase 6 project instances complete; ready for project Hermes move
+Status: phase 7 project Hermes move complete; ready for retired-infra removal
 Last updated: 2026-05-28
 
 ## Operating Rule
@@ -427,7 +427,7 @@ Evidence:
 
 ### Phase 7 - Project Hermes Move
 
-Status: pending
+Status: complete
 
 Goal: move project Hermes profiles into their Incus instances and remove host
 copies from runtime and backup scope.
@@ -437,6 +437,38 @@ Validation gate:
 - Project Hermes profiles work inside instances.
 - Host project Hermes units/profiles are removed after validation.
 - Backup scripts exclude removed host project agent copies.
+
+Evidence (verified 2026-05-28):
+
+- The `project-hermes-move` apply executed against the prod host (host project
+  profile dirs were removed at 17:57; instance profiles, units, and proxy
+  devices match the `scripts/rebuild/apply.sh` handler end-state exactly).
+- Project profiles confirmed backed up before move in
+  `/mnt/hdd/cortexos-backups/20260528T042259Z` (`archives/hermes.tgz` contains
+  `mementry`,`celebrar`,`3guns` profile dirs; `archives/secrets.tgz` contains
+  `mementry.env`,`celebrar.env`,`3guns.env`).
+- `hermes-profile@<profile>.service` is `active` inside each instance and the
+  Hermes API health probe returned HTTP 200:
+  - `mementry` — profile `mementry`, port 18697, health 200
+  - `celebrar-me` — profile `celebrar`, port 18696, health 200
+  - `3guns` — profile `3guns`, port 18695, health 200
+- Each instance has `proxy-9router` and `proxy-honcho` Incus proxy devices.
+- Host project profile dirs and env files are removed: no
+  `mementry`/`celebrar`/`3guns` under `/opt/cortexos/hermes/profiles` or
+  `/opt/cortexos/.secrets/hermes`.
+- Protected host profile dirs `cieucpb`, `cortex`, `netbook` still present and
+  11/11 protected host services active:
+  `hermes-profile@cieucpb`, `hermes-profile@netbook`,
+  `hermes-gateway@cieucpb`, `hermes-gateway@netbook`,
+  `hermes-gateway-cortex`, `hermes-dashboard`, `hermes-dashboard-proxy`,
+  `9router`, `honcho-mcp`, `ollama`, `ollama-honcho-embeddings-proxy`.
+
+Note:
+
+- The host project profiles were removed by a prior session before this
+  verification session ran. Re-running the phase is a no-op/error (host source
+  is gone); the end-state was verified directly instead. The backup retains the
+  pre-move project profile state.
 
 ### Phase 8 - Retired Infra Removal
 
@@ -548,6 +580,10 @@ Validation gate:
    service connectivity.~~ ✅ Complete.
 2. ~~Validate Tailscale SSH from an Incus test instance.~~ ✅ Complete (tailscaled
    enabled in image; per-instance join uses `cortex-tailscale-up`).
-3. Create `mementry`, `celebrar-me`, and `3guns` instances from clean
-   GitHub `main` using `cortexos-base/latest`.
-4. Move project Hermes profiles after each project instance validates.
+3. ~~Create `mementry`, `celebrar-me`, and `3guns` instances from clean
+   GitHub `main` using `cortexos-base/latest`.~~ ✅ Complete.
+4. ~~Move project Hermes profiles after each project instance validates.~~
+   ✅ Complete — profiles run inside instances (health 200), host copies removed.
+5. Phase 8: hard-remove retired infra (Paperclip, NATS, OpenViking, LEANN,
+   OpenClaw, Agent Factory, Cortex Consumer, Cortex Graph, Floci, Langfuse
+   runtime) and sweep stale repo/runtime residue.
