@@ -140,19 +140,23 @@ From the repo audit:
 
 ## Execution phases
 
-### Phase A — repo-only safe fixes (NO host risk) — IN PROGRESS
+### Phase A — repo-only safe fixes (NO host risk) — DONE (commit 2f3aec9)
 
-A1. OSS-readiness fixes (G6).
-A2. Dashboard catalog/seed bugs (G4, the verified-port subset).
+A1. OSS-readiness fixes (G6). ✅
+A2. Dashboard catalog/seed bugs (G4, the verified-port subset). ✅
 
-Both are repo edits, reviewed via tests/build; no live mutation.
+Both were repo edits, reviewed via tests/build; no live mutation.
 
 ### Phase B — import live features into repo (G1 + G2)
 
 Re-import from old clone + `/opt/cortexos`, adapted to rebuild conventions:
 
-- B1. cortex ops units + scripts (auto-update, degraded-watcher, 9router-health,
-  synthetic, backup) → `templates/systemd/` + `scripts/` + tool prompts.
+- B1. cortex ops units + scripts → `scripts/ops/` + `templates/systemd/` +
+  `prompts/tools/90-cortex-ops.md`. ✅ DONE. Imported + de-retired:
+  cortex-auto-update (update checks), cortex-9router-health, cortex-degraded-
+  service-watcher (AI health watcher), cortex-backup. **cortex-synthetic@ was
+  NOT imported** — it is a pure NATS/cortex-consumer feature (both retired); it
+  is dead residue still enabled on the host → see C5.
 - B2. `cortex-mail-guardian` package + units + dashboard pages.
 - B3. Missing install prompts (mysql, honcho, pgadmin, mongo-express,
   phpmyadmin, node-exporter, otel-collector, extra exporters) — **interactive,
@@ -177,6 +181,11 @@ B5. **Reconcile `dynamic-seed.js` spoke keys.** Phase A2 added spoke→service
 - C2. Resolve cockpit↔prometheus `:9090` conflict (G5).
 - C3. Decide fate of host-resident project docker stacks vs Incus instances.
 - C4. Make `/opt/cortexos` reproducible from repo (no unversioned drift).
+- C5. **Host cleanup: retired residue Phase 8 missed.** `cortex-synthetic@.service`
+  + `.timer` are still enabled on the host but depend on retired `nats.service`
+  + `cortex-consumer.service` and `nats pub` to a dead bus. Disable + remove the
+  units and `/usr/local/bin/cortex-synthetic-publish.sh` on the host. (Repo did
+  not import them.)
 
 ## Acceptance (when is this done)
 
