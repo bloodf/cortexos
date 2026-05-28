@@ -234,6 +234,28 @@ B5. ✅ DONE. **Reconciled `dynamic-seed.js` spoke keys** to real prompt
   units + `/usr/local/bin/cortex-synthetic-publish.sh`; `daemon-reload`. No
   residue remains. (Repo never imported them.)
 
+### Phase C follow-ups (2026-05-28)
+
+- **Backup DB-dump auth fixed** (`scripts/ops/cortex-backup.sh`, deployed to host
+  `/opt/cortexos/scripts/cortex-backup.sh`): postgres/honcho/mongo/redis logical
+  dumps now authenticate (run via in-container `sh -c` so credential env vars
+  expand). **mysql dump still blocked**: the live `mysql_mysql_data` volume's
+  root password ≠ current `mysql.env` (env changed after volume init) — operator
+  must supply the real root password, reset it, or accept mysql excluded.
+- **dynamic-seed always-active allowlist**: `dynamic-seed.js` now activates the
+  core un-spoked services (`cortex-dashboard`, `incus`, `webmin`, `cockpit`,
+  `watchtower`) regardless of `completed_spokes` (replaces 4 guessed spoke keys).
+  Live DB still shows `cockpit`/`watchtower`/`webmin` `is_active=false` (the bug
+  this fixes) — converges on next dashboard re-seed, or apply a one-off UPDATE.
+- **systemd units drift = legacy `/opt` layout**: the host's `/opt/cortexos` was
+  materialized by the pre-rebuild flow (flat `scripts/`, no `scripts/ops/`, units
+  at `/usr/local/sbin` etc.). Repo paths converge on a bootstrap redeploy — not
+  hand-patched on live units. `9router.service` template updated to the real
+  working invocation (`9router --host 127.0.0.1 --port 11434 ...`; the old
+  `cli.js`/"no `--port`" template was stale). `cortex-dashboard-env-writer.service`
+  has no host analog (host uses `cortex-env-writer.sh` + active root-helper).
+- **Orphaned C3 volumes** prunable after Incus coverage re-confirmed.
+
 ## Acceptance (when is this done)
 
 - A fresh machine running `prompts/00-bootstrap.md` reproduces every non-optional
