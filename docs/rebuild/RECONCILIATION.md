@@ -2,7 +2,7 @@
 
 Created: 2026-05-28
 Owner: operator
-Status: in progress (Phase A executing)
+Status: Phase A + Phase B complete (commits 2f3aec9, 96fa8ed, 9e32f25, 4a2de9b). Phase C deferred (host-side, documented below).
 
 ## Why this exists
 
@@ -147,9 +147,10 @@ A2. Dashboard catalog/seed bugs (G4, the verified-port subset). ✅
 
 Both were repo edits, reviewed via tests/build; no live mutation.
 
-### Phase B — import live features into repo (G1 + G2)
+### Phase B — import live features into repo (G1 + G2) — DONE
 
-Re-import from old clone + `/opt/cortexos`, adapted to rebuild conventions:
+Commits: B1 `96fa8ed`, B3/B4/B5 `9e32f25`, B2 `4a2de9b`.
+Re-imported from old clone + `/opt/cortexos`, de-retired, adapted to rebuild conventions:
 
 - B1. cortex ops units + scripts → `scripts/ops/` + `templates/systemd/` +
   `prompts/tools/90-cortex-ops.md`. ✅ DONE. Imported + de-retired:
@@ -157,14 +158,24 @@ Re-import from old clone + `/opt/cortexos`, adapted to rebuild conventions:
   service-watcher (AI health watcher), cortex-backup. **cortex-synthetic@ was
   NOT imported** — it is a pure NATS/cortex-consumer feature (both retired); it
   is dead residue still enabled on the host → see C5.
-- B2. `cortex-mail-guardian` package + units + dashboard pages.
-- B3. Missing install prompts (mysql, honcho, pgadmin, mongo-express,
-  phpmyadmin, node-exporter, otel-collector, extra exporters) — **interactive,
-  ask-the-operator, no assumed env vars** (operator directive 2026-05-28).
-- B4. Optional prompts (dockhand, home-assistant, jellyfin) — same interactive
-  rule, clearly marked optional.
+- B2. ✅ DONE. `cortex-mail-guardian` package + 3 systemd units + full dashboard
+  UI (page/layout/3 API routes/3 admin panels/2 widgets) + 4 renumbered
+  migrations (020 tables+catalog, 021 actions, 022 widgets, 023 action_log
+  target) + nav/widget/action-log wiring + spoke `82-mail-guardian` + interactive
+  `prompts/tools/82-mail-guardian.md`. Old `014_webui_app_registry_source` NOT
+  imported (superseded + retired refs). 558 dashboard tests + 12 package tests +
+  tsc + next build all green.
+- B3. ✅ DONE. Required install prompts: `16a-mysql`, `32-honcho`,
+  `42-hermes-honcho`, `56-pgadmin`, `58-mongo-express`, `59-phpmyadmin`,
+  `25-node-exporter`, `26a-otel-collector`, `28-db-exporters` — de-retired,
+  pkg.sh/CORTEX_OS_FAMILY, interactive.
+- B4. ✅ DONE. Optional prompts: `14a-home-assistant`, `14b-jellyfin`,
+  `27-dockhand` — interactive, marked OPTIONAL.
 
-B5. **Reconcile `dynamic-seed.js` spoke keys.** Phase A2 added spoke→service
+B5. ✅ DONE. **Reconciled `dynamic-seed.js` spoke keys** to real prompt
+  filenames (dropped guesses). `incus`/`webmin`/`cockpit`/`watchtower` remain
+  `// TODO: confirm spoke key` (core always-on, no numbered install prompt).
+  Original note: Phase A2 added spoke mappings with *guessed* keys. Phase A2 added spoke→service
   mappings using *guessed* keys (`19-mysql`, `40-45`, etc.) because the real
   install prompts didn't exist yet. When B3 imports the actual prompts from the
   old clone, rename those keys to match the real prompt filenames
