@@ -41,6 +41,7 @@ const SPOKE_TO_SERVICES = {
   "59-phpmyadmin": ["phpmyadmin"],
   "70-dashboard": ["cortex-dashboard"],
   "71-root-helper": ["cortex-dashboard-root-helper"],
+  "82-mail-guardian": ["cortex-mail-guardian"],
 };
 
 function readJson(path) {

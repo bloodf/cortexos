@@ -68,4 +68,5 @@ phases:
   `42` (hermes-honcho), `50` (agentgateway), `56–59` (db admin UIs),
   `70` (dashboard), `81` (projects), `90` (cortex-ops), `99` (final validation).
 - Optional spokes: `14a` (home-assistant), `14b` (jellyfin), `16a` (mysql),
-  `27` (dockhand), `56` (pgadmin), `58` (mongo-express), `59` (phpmyadmin).
+  `27` (dockhand), `56` (pgadmin), `58` (mongo-express), `59` (phpmyadmin),
+  `82` (mail-guardian).

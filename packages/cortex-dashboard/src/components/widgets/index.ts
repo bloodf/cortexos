@@ -14,3 +14,5 @@ export * from './container-ops-widget';
 export * from './docker-status-widget';
 export * from './uptime-widget';
 export * from './alerts-widget';
+export * from './mail-guardian-widget';
+export * from './mail-guardian-reviews-widget';
