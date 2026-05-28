@@ -1,6 +1,6 @@
 # CortexOS Rebuild Plan V2
 
-Status: phase 8 retired-infra removal complete; ready for final validation
+Status: phase 9 final validation complete — rebuild done (phases 0–9 all validated live)
 Last updated: 2026-05-28
 
 ## Operating Rule
@@ -570,7 +570,7 @@ Evidence (verified 2026-05-28):
 
 ### Phase 9 - Final Validation
 
-Status: pending
+Status: complete
 
 Goal: prove the rebuilt machine is coherent and repo-declared.
 
@@ -581,6 +581,48 @@ Validation gate:
 - Protected Hermes and project instances pass checks.
 - MCP proxy health and global allowlist checks pass.
 - Monitoring and dashboard health are green.
+
+Evidence (verified 2026-05-28):
+
+- Pre-flight (local): `bash -n` clean for all `scripts/rebuild/*.sh`,
+  `shellcheck scripts/rebuild/*.sh` clean, `scripts/rebuild/validate.sh --local`
+  passed (all manifest/script gates ok).
+- Backup restore dry-run:
+  `scripts/rebuild/restore.sh --verify-remote /mnt/hdd/cortexos-backups/20260528T042259Z`
+  passed — every archive/dump/inventory entry present, SHA256SUMS verified.
+- Protected Hermes: 11/11 services active
+  (`hermes-profile@cieucpb`, `hermes-profile@netbook`, `hermes-gateway@cieucpb`,
+  `hermes-gateway@netbook`, `hermes-gateway-cortex`, `hermes-dashboard`,
+  `hermes-dashboard-proxy`, `9router`, `honcho-mcp`, `ollama`,
+  `ollama-honcho-embeddings-proxy`); protected profile dirs `cieucpb`,
+  `cortex`, `netbook` present.
+- Project instances: `3guns` (10.222.222.23), `celebrar-me` (10.222.222.86),
+  `mementry` (10.222.222.175) all RUNNING; in-instance Hermes health 200 each
+  (`mementry` 18697, `celebrar-me` 18696, `3guns` 18695).
+- AgentGateway (port 18800): `GET /health` ok (`policy_version 2`,
+  `allowlist_count 11`); `POST /mcp/invoke {"tool":"service.status"}` → 200
+  (allowed), `{"tool":"service.restart"}` → 403 (denied). The live policy is
+  exactly the repo file `stacks/cortex-agentgateway/config/tools.json` (11
+  method-level tools). Note: `manifests/rebuild/mcp-global-allowlist.txt` is a
+  separate design-intent list of upstream MCP server names (context7, fetch,
+  git, sequentialthinking, time, honcho, 9router) — not the proxy's method
+  allowlist; the two are orthogonal, not contradictory.
+- Monitoring: `monitoring-prometheus-1`, `monitoring-grafana-1`,
+  `monitoring-loki-1` all Up; grafana `/api/health` 200, prometheus
+  `/prometheus/-/healthy` healthy, loki `/ready` ready.
+- Dashboard: `http://127.0.0.1:3080/en/login` returned HTTP 200.
+- Caddy: `caddy validate` = Valid configuration; live handle blocks are all
+  live services (`/9router`, `/api`, `/cadvisor`, `/grafana`, `/healthz`,
+  `/loki`, `/mongo-admin`, `/pgadmin`, `/phpmyadmin`, `/prometheus`); no
+  retired paths (`nats`/`langfuse`/`openclaw`/`openviking`/`leann`/`graph` all
+  absent).
+- Tailscale serve: bound ports are all live services; none of the Phase 8
+  retired ports (`8222`/`3001`/`18791`/`18790`/`8090`) remain.
+- Retired residue: no retired systemd units, no retired Docker containers.
+
+Outcome: all validation gates green with fresh evidence; no gaps found, no
+fixes required. The CortexOS rebuild (phases 0–9) is complete and the live host
+matches repo-declared state.
 
 ## Accepted Risks
 
@@ -664,6 +706,10 @@ Validation gate:
    residue removed (Caddy routes, tailscale serve maps, CI refs, CLAUDE.md);
    retired-runtime apply re-run idempotent; protected services + instances
    unaffected.
-6. Phase 9: final validation — prove repo manifests match live state, backup
+6. ~~Phase 9: final validation — prove repo manifests match live state, backup
    restore dry-run passes, protected Hermes + project instances pass, MCP proxy
-   health + allowlist pass, monitoring + dashboard health green.
+   health + allowlist pass, monitoring + dashboard health green.~~ ✅ Complete —
+   all gates green with fresh evidence; no gaps, no fixes required.
+
+The CortexOS rebuild is complete. All phases (0–9) validated live; the host
+matches repo-declared state. No further phase handoff is needed.

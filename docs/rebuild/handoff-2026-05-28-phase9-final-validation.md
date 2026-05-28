@@ -1,5 +1,10 @@
 # CortexOS Rebuild Handoff — Phase 9: Final Validation
 
+> **STATUS: COMPLETE (2026-05-28).** Phase 9 executed and all validation gates
+> passed with fresh live evidence (see `PLAN.md` Phase 9 evidence block). The
+> CortexOS rebuild (phases 0–9) is finished; no further phase handoff is needed.
+> This document is retained for history.
+
 Generated: 2026-05-28
 Workspace: `/Users/heitor/Developer/github.com/bloodf/cortexos`
 Supersedes: `handoff-2026-05-28-phase8-retired-infra-removal.md` (Phase 8 complete).
