@@ -38,7 +38,7 @@ VALUES
   -- Infrastructure and administration
   ('caddy', 'Caddy', 'service', 'Infrastructure', 'tcp://127.0.0.1:80', 'tcp', '#', '/opt/cortexos/.secrets/caddy.env', 'caddy', 1),
   ('tailscale', 'Tailscale', 'process', 'Infrastructure', 'tailscaled', 'process', '#', NULL, 'server', 2),
-  ('cockpit', 'Cockpit', 'service', 'Infrastructure', 'tcp://127.0.0.1:9093', 'tcp', '#', NULL, 'server', 3), -- port under reconciliation — see docs/rebuild/RECONCILIATION.md G5/C2
+  ('cockpit', 'Cockpit', 'service', 'Infrastructure', 'tcp://127.0.0.1:9091', 'tcp', '#', NULL, 'server', 3), -- moved off :9090 (Prometheus owns it); cockpit.socket.d/listen.conf binds 127.0.0.1:9091
   ('webmin', 'Webmin', 'service', 'Infrastructure', 'tcp://127.0.0.1:10000', 'tcp', '#', NULL, 'server', 4),
   ('incus', 'Incus', 'service', 'Infrastructure', 'incusd', 'process', '#', NULL, 'server', 5),
   ('cortex-dashboard', 'Cortex Dashboard', 'service', 'Infrastructure', 'http://127.0.0.1:3080/en/login', 'http', '#', '/opt/cortexos/.secrets/dashboard.env', 'server', 6),
