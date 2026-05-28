@@ -1,0 +1,25 @@
+[Unit]
+Description=Cortex Mail Guardian IMAP listener
+After=network-online.target postgresql.service 9router.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=cortexos
+Group=cortexos
+EnvironmentFile=/opt/cortexos/.secrets/9router.env
+EnvironmentFile=/opt/cortexos/.secrets/dashboard.env
+EnvironmentFile=-/opt/cortexos/.secrets/hermes/default.env
+EnvironmentFile=/opt/cortexos/.secrets/mail-guardian.env
+WorkingDirectory=/opt/cortexos/packages/cortex-mail-guardian
+ExecStart=/usr/bin/env node /opt/cortexos/packages/cortex-mail-guardian/dist/index.js listen
+Restart=always
+RestartSec=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=/opt/cortexos/.secrets
+
+[Install]
+WantedBy=multi-user.target

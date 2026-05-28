@@ -15,6 +15,7 @@ import {
 	Terminal,
 	Shield,
 	UserCog,
+	Mail,
 	ChevronDown,
 	ChevronRight,
 } from "lucide-react";
@@ -47,6 +48,7 @@ const PRIMARY_NAV: NavItem[] = [
 	{ href: "/network", label: "Network", icon: Network },
 	{ href: "/processes", label: "Processes", icon: Box },
 	{ href: "/terminal", label: "Terminal", icon: Terminal },
+	{ href: "/mail-guardian", label: "Mail Guardian", icon: Mail },
 ];
 
 const ADMIN_NAV: NavItem[] = [
