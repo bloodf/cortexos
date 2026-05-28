@@ -183,20 +183,28 @@ B5. ✅ DONE. **Reconciled `dynamic-seed.js` spoke keys** to real prompt
   `26a-otel-collector`, …) so `.setup-state.json` `completed_spokes` activates
   the right services. Guessed keys are tagged `// GUESSED:` in the file.
 
-### Phase C — deferred (document only this round)
+### Phase C — host-side reconciliation (in progress 2026-05-28)
 
 - C1. Data-plane reconciliation: move postgres/mysql/mongo/redis-insight/
   watchtower/pg-exporter compose off the stale old clone into repo-declared
   `/opt/cortexos/stacks` + tool prompts, then retire the old clone. Touches live
-  data — separate careful task.
-- C2. Resolve cockpit↔prometheus `:9090` conflict (G5).
+  data — separate careful task. **PENDING** (plan + operator approval required).
+- C2. ✅ DONE. Cockpit↔Prometheus `:9090` conflict already resolved on the host:
+  `cockpit.socket.d/listen.conf` binds Cockpit to `127.0.0.1:9091`, Prometheus
+  owns `127.0.0.1:9090`; both served via `tailscale serve` (9090/9091). Repo
+  aligned: `002_seed.sql` cockpit health_url `9093`→`9091` (guess removed) +
+  `024_cockpit_port_fix.sql` for provisioned DBs. Live DB verified already at
+  `tcp://127.0.0.1:9091`; cockpit `:9091` reachable (HTTP 200).
 - C3. Decide fate of host-resident project docker stacks vs Incus instances.
+  **PENDING** (investigation + operator decision).
 - C4. Make `/opt/cortexos` reproducible from repo (no unversioned drift).
-- C5. **Host cleanup: retired residue Phase 8 missed.** `cortex-synthetic@.service`
-  + `.timer` are still enabled on the host but depend on retired `nats.service`
-  + `cortex-consumer.service` and `nats pub` to a dead bus. Disable + remove the
-  units and `/usr/local/bin/cortex-synthetic-publish.sh` on the host. (Repo did
-  not import them.)
+  **PENDING**.
+- C5. ✅ DONE. Retired `cortex-synthetic@.service`/`.timer` residue (depended on
+  retired `nats.service` + `cortex-consumer.service`, published to a dead NATS
+  bus). Timer was already `disabled`, service `static`, zero active instances.
+  Archived to `/mnt/hdd/cortexos-backups/c5-synthetic-<ts>` then removed the two
+  units + `/usr/local/bin/cortex-synthetic-publish.sh`; `daemon-reload`. No
+  residue remains. (Repo never imported them.)
 
 ## Acceptance (when is this done)
 
