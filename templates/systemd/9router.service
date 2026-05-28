@@ -9,18 +9,19 @@ StartLimitBurst=5
 Type=simple
 User={VPS_USER}
 WorkingDirectory={VPS_HOME}
-# Headless flags MANDATORY. Without `--skip-update --no-browser` 9Router
-# renders interactive update prompt or browser-open menu, then exits with
-# status 0 the moment it detects no TTY — unit appears "active (exited)"
+# Bind loopback only; Tailscale Serve is the public entrypoint. Upstream npm
+# 9Router defaults to 0.0.0.0:20128, so keep CortexOS's canonical listener
+# (127.0.0.1:11434) explicit here. Headless flags MANDATORY: without
+# `--skip-update --no-browser` 9Router renders an interactive update/browser
+# prompt, detects no TTY, and exits 0 — the unit then shows "active (exited)"
 # with no logs.
-ExecStart={NODE_BIN} {NPM_PREFIX}/lib/node_modules/9router/cli.js --skip-update --no-browser
+ExecStart={NPM_PREFIX}/bin/9router --host 127.0.0.1 --port 11434 --skip-update --no-browser
 Restart=always
 RestartSec=5
 Environment=HOME={VPS_HOME}
 Environment=PATH={NODE_BIN_DIR}:/home/linuxbrew/.linuxbrew/bin:/usr/local/bin:/usr/bin:/bin
-# 9Router binds to the port set in NINEROUTER_PORT (canonical: 11434) loaded
-# from the EnvironmentFile below. The CLI does not take an explicit --port flag;
-# NINEROUTER_PORT in the env file is the single source of truth.
+# The ExecStart above is the source of truth for host/port (canonical 11434);
+# NINEROUTER_BASE_URL in the env file remains the downstream client contract.
 EnvironmentFile=-/opt/cortexos/.secrets/9router.env
 
 [Install]

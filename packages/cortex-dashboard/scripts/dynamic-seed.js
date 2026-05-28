@@ -30,12 +30,8 @@ const SPOKE_TO_SERVICES = {
   "31-9router": ["9router", "ollama"],
   "32-honcho": ["honcho", "honcho-mcp", "ollama-honcho-embeddings-proxy"],
   "34-kernel-browser": ["kernel-browser"],
-  "44-incus": ["incus"], // TODO: confirm spoke key
-  "45-webmin": ["webmin"], // TODO: confirm spoke key
-  "46-cockpit": ["cockpit"], // TODO: confirm spoke key
   "47a-cortex-sandbox": ["cortex-sandbox-runner"],
   "50-agentgateway": ["agentgateway"],
-  "52-watchtower": ["watchtower"], // TODO: confirm spoke key
   "56-pgadmin": ["pgadmin"],
   "58-mongo-express": ["mongo-express"],
   "59-phpmyadmin": ["phpmyadmin"],
@@ -43,6 +39,11 @@ const SPOKE_TO_SERVICES = {
   "71-root-helper": ["cortex-dashboard-root-helper"],
   "82-mail-guardian": ["cortex-mail-guardian"],
 };
+
+// Core infrastructure that is always installed on a CortexOS host and has no
+// numbered install spoke to gate on. These activate regardless of
+// completed_spokes so a fully provisioned host never marks them inactive.
+const ALWAYS_ACTIVE = ["cortex-dashboard", "incus", "webmin", "cockpit", "watchtower"];
 
 function readJson(path) {
   try {
@@ -114,6 +115,7 @@ async function main() {
     for (const spoke of completed) {
       for (const slug of SPOKE_TO_SERVICES[spoke] || []) active.add(slug);
     }
+    for (const slug of ALWAYS_ACTIVE) active.add(slug);
     if (active.size === 0) active.add("cortex-dashboard");
 
     const baseUrl = inferPublicBaseUrl(state);
