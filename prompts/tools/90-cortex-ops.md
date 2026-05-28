@@ -202,6 +202,22 @@ rm /etc/systemd/system/cortex-9router-health.{service,timer} \
 systemctl daemon-reload
 ```
 
+## Drift check
+
+After deploy, confirm the live host still matches repo-owned artifacts:
+
+```bash
+export CORTEX_HOST=user@host
+scripts/ops/drift-check.sh          # read-only report
+scripts/ops/drift-check.sh --diff   # show unified diffs for drifted files
+scripts/ops/drift-check.sh --strict # exit 1 on any repo-owned drift (CI)
+```
+
+Compares repo-owned `stacks/` + `templates/systemd/` against the host.
+Data-plane / admin stacks materialized from `prompts/tools/*` are reported as
+`host-managed` (informational), never as drift. Secrets, data volumes, and logs
+under `/opt/cortexos` are host-owned and never compared.
+
 ## Next
 
 → `prompts/tools/99-final-validation.md`

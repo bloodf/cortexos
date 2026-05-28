@@ -2,7 +2,7 @@
 
 Created: 2026-05-28
 Owner: operator
-Status: Phase A + Phase B complete (commits 2f3aec9, 96fa8ed, 9e32f25, 4a2de9b). Phase C deferred (host-side, documented below).
+Status: Phases A, B, and C complete. Phase A+B commits: 2f3aec9, 96fa8ed, 9e32f25, 4a2de9b. Phase C (2026-05-28): C2 cockpit-port `34d3c9d`; C1/C3/C4 host reconciliation executed live (old clone retired, host project stacks torn down, drift-check tooling added).
 
 ## Why this exists
 
@@ -183,22 +183,50 @@ B5. ✅ DONE. **Reconciled `dynamic-seed.js` spoke keys** to real prompt
   `26a-otel-collector`, …) so `.setup-state.json` `completed_spokes` activates
   the right services. Guessed keys are tagged `// GUESSED:` in the file.
 
-### Phase C — host-side reconciliation (in progress 2026-05-28)
+### Phase C — host-side reconciliation (COMPLETE 2026-05-28)
 
-- C1. Data-plane reconciliation: move postgres/mysql/mongo/redis-insight/
-  watchtower/pg-exporter compose off the stale old clone into repo-declared
-  `/opt/cortexos/stacks` + tool prompts, then retire the old clone. Touches live
-  data — separate careful task. **PENDING** (plan + operator approval required).
+- C1. ✅ DONE. Repointed the data-plane off the stale old clone onto
+  `/opt/cortexos/stacks`. Stacks moved: `postgresql`, `mongodb` (+mongo-express),
+  `mysql` phpmyadmin sidecar, `redis-insight`, `pg-exporter`, `watchtower`
+  (`cortex-mysql` was already on `/opt`). Compose files were byte-identical and
+  project names = dir basenames, so each repoint was `down` (never `-v`) from the
+  old path + `up` from `/opt` reusing the **same named volumes** — zero data
+  movement. Per-stack quiescent volume snapshots taken to
+  `/mnt/hdd/cortexos-backups/c1-<ts>/` before each `up`. Created missing
+  `/opt/cortexos/.secrets/postgres.env` (old clone resolved it via a relative
+  `../../.secrets` path); fixed root→cortexos ownership on `/opt` `mongodb.env`
+  and `mysql.env`. Verified: postgres 44 services/55 migrations rows intact,
+  mongo `listDatabases` ok, all containers healthy, redis-insight HTTP 200.
+  Old clone `/home/cortexos/Developer/github.com/cortexos` (`16adbd4`, 59 retired
+  files) archived to `c1-<ts>/old-cortex-clone-16adbd4.tar.gz` then removed; no
+  systemd/cron/script/process referenced it. `docker compose ls` confirms no
+  stack is served from the old clone.
 - C2. ✅ DONE. Cockpit↔Prometheus `:9090` conflict already resolved on the host:
   `cockpit.socket.d/listen.conf` binds Cockpit to `127.0.0.1:9091`, Prometheus
   owns `127.0.0.1:9090`; both served via `tailscale serve` (9090/9091). Repo
   aligned: `002_seed.sql` cockpit health_url `9093`→`9091` (guess removed) +
   `024_cockpit_port_fix.sql` for provisioned DBs. Live DB verified already at
   `tcp://127.0.0.1:9091`; cockpit `:9091` reachable (HTTP 200).
-- C3. Decide fate of host-resident project docker stacks vs Incus instances.
-  **PENDING** (investigation + operator decision).
-- C4. Make `/opt/cortexos` reproducible from repo (no unversioned drift).
-  **PENDING**.
+- C3. ✅ DONE. Host-resident project app stacks (`api`/mementry,
+  `celebrarme-laravel`, `mementry-mementry-local`, all under
+  `/home/cortexos/Developer/github/bloodf/`) are duplicated by the running Incus
+  instances (`3guns`, `celebrar-me`, `mementry`). Operator confirmed Incus
+  coverage and approved teardown. All 8 project data volumes snapshotted to
+  `/mnt/hdd/cortexos-backups/c3-<ts>/`; containers + project networks removed;
+  `mementry` + `celebrar.me` worktrees archived (`worktree-*.tar.gz`, incl
+  uncommitted changes + `.env`) then deleted (operator-confirmed despite 50+16
+  uncommitted files). `3guns` worktrees left intact (protected project). Orphaned
+  named volumes (`api_*`, `celebrarme-laravel_*`, `mementry-mementry-local_*`)
+  preserved as a safety net — operator may `docker volume rm` them later.
+- C4. ✅ DONE. Added `scripts/ops/drift-check.sh` (read-only; `--diff`,
+  `--strict`). Encodes the materialization contract: repo-owned (`stacks/` →
+  `/opt/cortexos/stacks`, `templates/systemd/` → `/etc/systemd/system`) must
+  match; prompt-materialized data-plane stacks are reported `host-managed` not
+  drift; secrets/data/logs are host-owned and never compared. Documented in
+  `prompts/tools/90-cortex-ops.md`. First run found 3 control-plane composes
+  match and 6 systemd units drift/missing — the live ops units predate the B1
+  de-retired import, so the repo is now SoT and a redeploy converges them
+  (follow-up, not a blocker).
 - C5. ✅ DONE. Retired `cortex-synthetic@.service`/`.timer` residue (depended on
   retired `nats.service` + `cortex-consumer.service`, published to a dead NATS
   bus). Timer was already `disabled`, service `static`, zero active instances.
