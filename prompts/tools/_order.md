@@ -64,5 +64,8 @@ phases:
 - Shared Incus bridge trust is accepted, but per-project databases, users,
   buckets, RabbitMQ vhosts, and credentials are still required.
 - Tool-install spokes run after `03-host-rebuild` in numeric order:
-  `10–25` (hardening/monitoring), `31` (9router), `50` (agentgateway),
+  `10–28` (hardening/monitoring/db-exporters), `31` (9router), `32` (honcho),
+  `42` (hermes-honcho), `50` (agentgateway), `56–59` (db admin UIs),
   `70` (dashboard), `81` (projects), `90` (cortex-ops), `99` (final validation).
+- Optional spokes: `14a` (home-assistant), `14b` (jellyfin), `16a` (mysql),
+  `27` (dockhand), `56` (pgadmin), `58` (mongo-express), `59` (phpmyadmin).
