@@ -1,9 +1,0 @@
-{
-  "role": "__ROLE__",
-  "monthlyBudgetUsdCents": 1,
-  "hardCap": true,
-  "metadata": {
-    "smokeRun": true,
-    "reason": "budget-enforcement-test"
-  }
-}
