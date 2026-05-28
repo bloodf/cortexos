@@ -1,6 +1,6 @@
 # target	type	source	preserve	validate	notes
 repo_state	git	/opt/cortexos	yes	git rev-parse --verify HEAD	Runtime repo state before cleanup
-local_repo	git	/Users/heitor/Developer/github.com/bloodf/cortexos	yes	git status --short	Local source of truth
+local_repo	git	<repo-root>	yes	git status --short	Local source of truth
 secrets_metadata	metadata	/opt/cortexos/.secrets	yes	find names and modes only	Do not write secret values to repo logs
 secrets_archive	archive	/opt/cortexos/.secrets	yes	archive exists and is mode 0600	Local backup only
 hermes_profiles	files	/opt/cortexos/hermes/profiles	yes	required profiles present	Protect cieucpb netbook cortex

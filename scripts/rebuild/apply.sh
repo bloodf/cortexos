@@ -698,11 +698,11 @@ while IFS=$'\t' read -r slug repo instance hermes_profile migration_source data_
   tmp_clone="/tmp/cortexos-project-$slug"
   run_shell 'rm -rf "'"$tmp_clone"'" && git clone --depth 1 --branch main '"$repo"' "'"$tmp_clone"'"'
   run_shell 'mv "'"$tmp_clone"'" /tmp/'"$slug"''
-  run_shell 'sudo -n incus file push -r -q /tmp/'"$slug"' "'"$instance"'"/home/cortexos/Developer/github/bloodf/'
+  run_shell 'sudo -n incus file push -r -q /tmp/'"$slug"' "'"$instance"'"/home/cortexos/Developer/github/'"${CORTEX_GH_ORG:-bloodf}"'/'
   run_shell 'rm -rf /tmp/'"$slug"''
-  run_shell 'sudo -n incus exec "'"$instance"'" -- bash -lc '"'"'chown -R cortexos:cortexos /home/cortexos/Developer/github/bloodf/'"$slug"''"'"''
+  run_shell 'sudo -n incus exec "'"$instance"'" -- bash -lc '"'"'chown -R cortexos:cortexos /home/cortexos/Developer/github/'"${CORTEX_GH_ORG:-bloodf}"'/'"$slug"''"'"''
 
-  run_shell 'sudo -n incus exec "'"$instance"'" -- sudo -H -u cortexos bash -lc '"'"'cd /home/cortexos/Developer/github/bloodf/'"$slug"' && git log -1 --oneline && printf "%s\n" "clean-clone-ok"'"'"''
+  run_shell 'sudo -n incus exec "'"$instance"'" -- sudo -H -u cortexos bash -lc '"'"'cd /home/cortexos/Developer/github/'"${CORTEX_GH_ORG:-bloodf}"'/'"$slug"' && git log -1 --oneline && printf "%s\n" "clean-clone-ok"'"'"''
 
   log "project $slug instance ready"
   project_ok=$((project_ok + 1))

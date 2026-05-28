@@ -1,5 +1,7 @@
 # CortexOS Rebuild Handoff — Phase 8: Retired Infra Removal
 
+> **Operator session notes — historical record, not install instructions.**
+
 Generated: 2026-05-28
 Workspace: `/Users/heitor/Developer/github.com/bloodf/cortexos`
 Supersedes: `handoff-2026-05-28-phase7-hermes-move.md` (Phase 7 complete).
@@ -54,7 +56,7 @@ already applied a phase. Do not assume the host matches the last handoff's
 
 ## Prod Access
 
-- Host: `cortexos@cortexos.tailfd052e.ts.net`.
+- Host: `cortexos@cortexos.<your-tailnet>.ts.net`.
 - The Claude Code auto-classifier may re-block prod SSH at session start. Ask the
   user to approve prod SSH for the session if blocked.
 

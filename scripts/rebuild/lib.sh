@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 REBUILD_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 MANIFEST_DIR="${REBUILD_ROOT}/manifests/rebuild"
-CORTEX_HOST="${CORTEX_HOST:-cortexos@cortexos.tailfd052e.ts.net}"
+CORTEX_HOST="${CORTEX_HOST:-}"
 BACKUP_ROOT="${BACKUP_ROOT:-/mnt/hdd/cortexos-backups}"
 
 die() {
@@ -46,6 +46,7 @@ print_tsv() {
 
 ssh_host() {
   require_cmd ssh
+  [ -n "$CORTEX_HOST" ] || die "CORTEX_HOST must be set, e.g. export CORTEX_HOST=user@host"
   ssh -o BatchMode=yes -o ConnectTimeout=12 "$CORTEX_HOST" "$@"
 }
 

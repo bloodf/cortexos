@@ -38,7 +38,7 @@ VALUES
   -- Infrastructure and administration
   ('caddy', 'Caddy', 'service', 'Infrastructure', 'tcp://127.0.0.1:80', 'tcp', '#', '/opt/cortexos/.secrets/caddy.env', 'caddy', 1),
   ('tailscale', 'Tailscale', 'process', 'Infrastructure', 'tailscaled', 'process', '#', NULL, 'server', 2),
-  ('cockpit', 'Cockpit', 'service', 'Infrastructure', 'tcp://127.0.0.1:9093', 'tcp', '#', NULL, 'server', 3),
+  ('cockpit', 'Cockpit', 'service', 'Infrastructure', 'tcp://127.0.0.1:9093', 'tcp', '#', NULL, 'server', 3), -- port under reconciliation — see docs/rebuild/RECONCILIATION.md G5/C2
   ('webmin', 'Webmin', 'service', 'Infrastructure', 'tcp://127.0.0.1:10000', 'tcp', '#', NULL, 'server', 4),
   ('incus', 'Incus', 'service', 'Infrastructure', 'incusd', 'process', '#', NULL, 'server', 5),
   ('cortex-dashboard', 'Cortex Dashboard', 'service', 'Infrastructure', 'http://127.0.0.1:3080/en/login', 'http', '#', '/opt/cortexos/.secrets/dashboard.env', 'server', 6),
@@ -58,7 +58,7 @@ VALUES
   ('pgadmin', 'pgAdmin', 'docker', 'Database', 'http://127.0.0.1:5050/misc/ping', 'http', '#', '/opt/cortexos/.secrets/pgadmin.env', 'postgresql', 7),
   ('phpmyadmin', 'phpMyAdmin', 'docker', 'Database', 'http://127.0.0.1:8082', 'http', '#', '/opt/cortexos/.secrets/phpmyadmin.env', 'mysql', 8),
   ('redisinsight', 'RedisInsight', 'docker', 'Database', 'http://127.0.0.1:5540/api/health', 'http', '#', '/opt/cortexos/.secrets/redisinsight.env', 'redis', 9),
-  ('mongo-express', 'Mongo Express', 'docker', 'Database', 'http://127.0.0.1:8081', 'http', '#', '/opt/cortexos/.secrets/mongo-express.env', 'database', 10),
+  ('mongo-express', 'Mongo Express', 'docker', 'Database', 'http://127.0.0.1:8083', 'http', '#', '/opt/cortexos/.secrets/mongo-express.env', 'database', 10),
 
   -- Home/media
   ('home-assistant', 'Home Assistant', 'service', 'Home', 'http://127.0.0.1:8123', 'http', '#', '/opt/cortexos/.secrets/home-assistant.env', 'home', 1),

@@ -51,6 +51,8 @@ UPDATE services SET health_url = 'http://127.0.0.1:9100/metrics', health_type = 
  WHERE slug = 'node-exporter';
 UPDATE services SET health_url = 'http://127.0.0.1:8081/cadvisor/healthz', health_type = 'http', updated_at = NOW()
  WHERE slug = 'cadvisor';
+UPDATE services SET health_url = 'http://127.0.0.1:8083', health_type = 'http', updated_at = NOW()
+ WHERE slug = 'mongo-express';
 UPDATE services SET health_url = 'http://127.0.0.1:9187/metrics', health_type = 'http', updated_at = NOW()
  WHERE slug = 'pg-exporter';
 UPDATE services SET health_url = 'http://127.0.0.1:9104/metrics', health_type = 'http', updated_at = NOW()

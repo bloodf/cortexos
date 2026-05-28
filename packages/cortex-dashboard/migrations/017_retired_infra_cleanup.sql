@@ -7,14 +7,14 @@ WHERE service_id IN (
   SELECT id FROM services
    WHERE slug IN (
      'paperclip','nats','nats-monitor','openviking','leann','openclaw',
-     'cortex-consumer','cortex-graph','floci','langfuse'
+     'cortex-consumer','cortex-graph','floci','langfuse','opik'
    )
 );
 
 DELETE FROM services
  WHERE slug IN (
    'paperclip','nats','nats-monitor','openviking','leann','openclaw',
-   'cortex-consumer','cortex-graph','floci','langfuse'
+   'cortex-consumer','cortex-graph','floci','langfuse','opik'
  );
 
 DROP TABLE IF EXISTS agent_factories;

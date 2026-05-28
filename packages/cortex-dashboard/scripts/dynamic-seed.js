@@ -12,21 +12,37 @@ const SPOKE_TO_SERVICES = {
   "13-caddy": ["caddy"],
   "14-postgresql": ["postgresql", "pg-exporter", "pgadmin"],
   "15-redis": ["redis", "redis-exporter", "redisinsight"],
-  "16-mongodb": ["mongodb", "mongo-exporter"],
+  "16-mongodb": ["mongodb", "mongo-exporter", "mongo-express"], // GUESSED: mongo-express grouped with mongodb spoke
   "17-dnsmasq": ["dnsmasq"],
   "18-fail2ban": ["fail2ban"],
+  "19-mysql": ["mysql", "mysql-exporter", "phpmyadmin"], // GUESSED: spoke key inferred from order; not yet in prompts/tools/_order.md
   "20-prometheus": ["prometheus"],
   "21-loki": ["loki"],
   "22-grafana": ["grafana"],
   "23-fluent-bit": ["fluent-bit"],
   "24-cadvisor": ["cadvisor"],
   "25-node-exporter": ["node-exporter"],
+  "26-otel-collector": ["otel-collector"], // GUESSED: spoke key inferred; not yet in prompts/tools/_order.md
+  "27-snmp-exporter": ["snmp-exporter"], // GUESSED: spoke key inferred; not yet in prompts/tools/_order.md
+  "28-adguard-exporter": ["adguard-exporter"], // GUESSED: spoke key inferred; not yet in prompts/tools/_order.md
   "31-9router": ["9router", "ollama"],
+  "32-honcho": ["honcho", "honcho-mcp", "ollama-honcho-embeddings-proxy"], // GUESSED: spoke key inferred from order
   "34-kernel-browser": ["kernel-browser"],
+  "40-pgadmin": ["pgadmin"], // pgadmin also covered by 14-postgresql; duplicate is harmless
+  "41-phpmyadmin": ["phpmyadmin"], // also covered by 19-mysql
+  "42-redisinsight": ["redisinsight"], // also covered by 15-redis
+  "43-mongo-express": ["mongo-express"], // also covered by 16-mongodb
+  "44-incus": ["incus"], // GUESSED: spoke key inferred; not yet in prompts/tools/_order.md
+  "45-webmin": ["webmin"], // GUESSED: spoke key inferred; not yet in prompts/tools/_order.md
+  "46-cockpit": ["cockpit"], // GUESSED: spoke key inferred; not yet in prompts/tools/_order.md
+  "47a-cortex-sandbox": ["cortex-sandbox-runner"],
+  "48-home-assistant": ["home-assistant"], // GUESSED: spoke key inferred; optional service
+  "49-jellyfin": ["jellyfin"], // GUESSED: spoke key inferred; optional service
   "50-agentgateway": ["agentgateway"],
+  "51-dockhand": ["dockhand"], // GUESSED: spoke key inferred; not yet in prompts/tools/_order.md
+  "52-watchtower": ["watchtower"], // GUESSED: spoke key inferred; not yet in prompts/tools/_order.md
   "70-dashboard": ["cortex-dashboard"],
   "71-root-helper": ["cortex-dashboard-root-helper"],
-  "47a-cortex-sandbox": ["cortex-sandbox-runner"],
 };
 
 function readJson(path) {
