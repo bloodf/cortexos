@@ -1,0 +1,29 @@
+# kind	name	action	notes
+systemd_unit	paperclip.service	disable-stop-remove	Retired Paperclip runtime
+systemd_unit	paperclip-local-proxy.service	disable-stop-remove	Retired Paperclip proxy
+systemd_unit	paperclip-local-proxy.socket	disable-stop-remove	Retired Paperclip proxy socket
+systemd_unit	paperclip-agent-url-invariant.service	disable-stop-remove	Retired Paperclip invariant check
+systemd_unit	paperclip-agent-url-invariant.timer	disable-stop-remove	Retired Paperclip invariant timer
+systemd_unit	paperclip-recover-blocked-and-error-issues.service	disable-stop-remove	Retired Paperclip recovery
+systemd_unit	paperclip-recover-blocked-and-error-issues.timer	disable-stop-remove	Retired Paperclip recovery timer
+docker_compose	floci	down	Retired Floci stack
+docker_compose	cortex-langfuse	down	Disable/archive Langfuse runtime
+docker_compose	cortex-consumer	down	Retired NATS consumer if present
+docker_compose	cortex-paperclip-bridge	down	Retired Paperclip bridge if present
+docker_compose	nats	down	Retired NATS if present
+docker_compose	cortex-graph	down	Retired graph sidecar if present
+package	natscli	audit-remove	Remove after runtime cleanup if no dependency remains
+local_bin	nats	audit-remove	Remove after runtime cleanup if no dependency remains
+secret	/opt/cortexos/.secrets/paperclip.env	config-exported-remove	Remove after verified backup
+secret	/opt/cortexos/.secrets/paperclip-app.env	config-exported-remove	Remove after verified backup
+secret	/opt/cortexos/.secrets/paperclip-keys.json	config-exported-remove	Remove after verified backup
+secret	/opt/cortexos/.secrets/paperclip-agent-runtime-keys.json	config-exported-remove	Remove after verified backup
+secret	/opt/cortexos/.secrets/langfuse.env	config-exported-remove	Remove after verified backup
+path	/opt/cortexos/paperclip	archive-remove	Retired Paperclip runtime dir
+path	/opt/cortexos/stacks/paperclip	archive-remove	Retired Paperclip stack dir
+path	/opt/cortexos/stacks/floci	archive-remove	Retired Floci stack dir
+path	/opt/cortexos/stacks/cortex-langfuse	archive-remove	Archived Langfuse runtime dir
+path	/opt/cortexos/stacks/cortex-consumer	archive-remove	Retired consumer stack dir
+path	/opt/cortexos/stacks/cortex-graph	archive-remove	Retired graph stack dir
+path	/opt/cortexos/stacks/cortex-paperclip-bridge	archive-remove	Retired Paperclip bridge stack dir
+path	/opt/cortexos/stacks/nats	archive-remove	Retired NATS stack dir

@@ -1,0 +1,22 @@
+[Unit]
+Description=Cortex Dashboard Root Helper
+Requires=cortex-dashboard-root-helper.socket
+After=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+Environment=PYTHONUNBUFFERED=1
+Environment=DASHBOARD_HELPER_SOCKET=/run/cortexos/dashboard-helper.sock
+ExecStartPre=/usr/bin/chgrp cortexos /run/cortexos
+ExecStartPre=/usr/bin/chmod 0750 /run/cortexos
+ExecStart=/usr/bin/python3 /opt/cortexos/stacks/cortex-dashboard-root-helper/helper.py
+Restart=on-failure
+RestartSec=2s
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cortex-dashboard-root-helper
+
+[Install]
+WantedBy=multi-user.target

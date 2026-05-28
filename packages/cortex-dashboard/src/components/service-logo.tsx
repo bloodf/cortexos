@@ -42,13 +42,9 @@ function InitialAvatar({
 const BRAND_COLORS: Record<string, string> = {
 	caddy: "#1f8dd6",
 	"9router": "#6366f1",
-	openviking: "#0ea5e9",
-	hindsight: "#f59e0b",
-	floci: "#ff9900",
 	dockhand: "#06b6d4",
-"home-assistant": "#03a9f4",
+	"home-assistant": "#03a9f4",
 	jellyfin: "#00a4dc",
-	openclaw: "#f97316",
 	webmin: "#881113",
 	cockpit: "#3e4245",
 	ollama: "#1a1a1a",
@@ -61,6 +57,9 @@ const BRAND_COLORS: Record<string, string> = {
 	"fluent-bit": "#49bda5",
 	cadvisor: "#2196f3",
 	tailscale: "#242424",
+	minio: "#c72e49",
+	rabbitmq: "#ff6600",
+	incus: "#0b7285",
 };
 
 export function ServiceLogo({ serviceId, size = 40, iconColor, iconImage }: ServiceLogoProps) {

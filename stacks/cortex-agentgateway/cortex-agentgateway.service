@@ -1,0 +1,22 @@
+[Unit]
+Description=Cortex AgentGateway MCP Allowlist Proxy
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=cortexos
+Group=cortexos
+WorkingDirectory=/opt/cortexos/stacks/cortex-agentgateway
+Environment=PYTHONUNBUFFERED=1
+Environment=AGENTGATEWAY_PORT=18800
+Environment=AGENTGATEWAY_CONFIG=/opt/cortexos/stacks/cortex-agentgateway/config/tools.json
+ExecStart=/usr/bin/python3 /opt/cortexos/stacks/cortex-agentgateway/app.py
+Restart=on-failure
+RestartSec=2s
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cortex-agentgateway
+
+[Install]
+WantedBy=multi-user.target

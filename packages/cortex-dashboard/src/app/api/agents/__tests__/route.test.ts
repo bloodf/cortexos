@@ -17,12 +17,12 @@ describe("GET /api/agents", () => {
   it("returns agent groups with timestamp", async () => {
     const mockGroups = [
       {
-        project: "openclaw-agents",
+        project: "hermes-agents",
         agents: [
           {
             slug: "coder",
             name: "Coder",
-            project: "openclaw-agents",
+            project: "hermes-agents",
             agentDir: "/opt/test/.agents/coder",
             model: "sonnet",
             workspace: "/opt/test/.agents/coder",

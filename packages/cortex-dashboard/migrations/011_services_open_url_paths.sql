@@ -1,15 +1,4 @@
--- Extend cortex_set_service_urls(base_url) with every tool that has a web UI
--- routed through Caddy. Keeps 004's contract (idempotent UPSERT of open_url
--- by slug) but adds the routes added in prompts/tools/13-caddy.md:
---   /9router, /prometheus, /loki, /cadvisor, /langfuse, /nats
---
--- Slugs absent from this list either have no web UI (OpenClaw, AgentGateway,
--- OpenViking, LEANN, kernel-browser, cortex-graph, cortex-sandbox-runner,
--- fluent-bit, paperclip bridge) or are already wired by 004
--- (cortex-dashboard, grafana, jellyfin, home-assistant, dockhand).
---
--- Re-running this migration overwrites previous open_url values — safe by
--- design.
+-- Recreate cortex_set_service_urls(base_url) for the rebuild catalog.
 
 CREATE OR REPLACE FUNCTION cortex_set_service_urls(base_url text)
 RETURNS integer
@@ -31,15 +20,24 @@ BEGIN
   UPDATE services SET open_url = base_url || '/prometheus/'      WHERE slug = 'prometheus';
   UPDATE services SET open_url = base_url || '/loki/'            WHERE slug = 'loki';
   UPDATE services SET open_url = base_url || '/cadvisor/'        WHERE slug = 'cadvisor';
-  UPDATE services SET open_url = base_url || '/langfuse/'        WHERE slug = 'langfuse';
-  UPDATE services SET open_url = base_url || '/nats/'            WHERE slug = 'nats-monitor';
   UPDATE services SET open_url = base_url || '/jellyfin'         WHERE slug = 'jellyfin';
   UPDATE services SET open_url = base_url || '/ha'               WHERE slug = 'home-assistant';
+  UPDATE services SET open_url = base_url || '/cockpit/'         WHERE slug = 'cockpit';
+  UPDATE services SET open_url = base_url || '/webmin/'          WHERE slug = 'webmin';
+  UPDATE services SET open_url = base_url || '/pgadmin/'         WHERE slug = 'pgadmin';
+  UPDATE services SET open_url = base_url || '/phpmyadmin/'      WHERE slug = 'phpmyadmin';
+  UPDATE services SET open_url = base_url || '/redisinsight/'    WHERE slug = 'redisinsight';
+  UPDATE services SET open_url = base_url || '/mongo-express/'   WHERE slug = 'mongo-express';
+  UPDATE services SET open_url = base_url || '/minio/'           WHERE slug = 'minio';
+  UPDATE services SET open_url = base_url || '/rabbitmq/'        WHERE slug = 'rabbitmq';
 
-  -- Backend-only services: keep open_url pinned to '#'. Listed explicitly so
-  -- prior runs against a stale base get cleaned up.
   UPDATE services SET open_url = '#' WHERE slug IN (
-    'openviking','openclaw','agentgateway','kernel-browser','leann'
+    'ollama','honcho','honcho-mcp','ollama-honcho-embeddings-proxy',
+    'agentgateway','kernel-browser','cortex-sandbox-runner',
+    'postgresql','mysql','redis','mongodb','caddy','tailscale','incus',
+    'cortex-dashboard-root-helper','watchtower','dnsmasq','fail2ban',
+    'node-exporter','fluent-bit','promtail','otel-collector',
+    'pg-exporter','mysql-exporter','redis-exporter','mongo-exporter'
   );
 
   GET DIAGNOSTICS affected = ROW_COUNT;

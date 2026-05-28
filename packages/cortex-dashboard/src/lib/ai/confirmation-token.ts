@@ -3,10 +3,9 @@
  * HMAC-SHA256 confirmation tokens for privileged/destructive tool calls.
  * Plan §4a: issue → UI echo → verify → execute.
  *
- * TODO §4g: swap InMemoryConsumedStore for JetStream KV bucket
- * `cortex_approvals_seen` once cortex-consumer is wired. Call
- * `setTokenConsumedStore(jetStreamKVStore)` at server startup.
- * The KV put provides cross-process atomicity; the in-memory store
+ * TODO: swap InMemoryConsumedStore for a durable approval store before
+ * multi-worker deployment. The durable put must provide cross-process
+ * atomicity; the in-memory store
  * is single-process only and has a TOCTOU window under concurrent load.
  */
 

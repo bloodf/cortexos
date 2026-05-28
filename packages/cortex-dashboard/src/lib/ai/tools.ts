@@ -1,8 +1,8 @@
 /**
  * Vercel AI SDK tool registry for the Cortex chat panel.
  *
- * Each tool definition consults the policy (loaded from `tools-data/policy.json`,
- * mirrored from `templates/agentgateway/tools.json`) for its class and rate-limit.
+ * Each tool definition consults the policy loaded from `tools-data/policy.json`
+ * for its class and rate-limit.
  * Privileged/destructive tools follow the confirmation-token issue/verify dance
  * before executing. Every invocation writes a row to `agent_gateway_audit`.
  */
@@ -391,51 +391,6 @@ export function getAllTools(ctx: ToolContext): Record<string, Tool> {
 		},
 	});
 
-	const memorySearch = tool({
-		description:
-			"Search the OpenViking unified memory store. Returns stub data until the OpenViking plugin is live.",
-		inputSchema: z.object({
-			query: z.string().min(1),
-			limit: z.number().int().min(1).max(50).optional(),
-			confirmationToken: confirmationField,
-		}),
-		execute: async (input) => {
-			const approval = await ensureApproval(
-				ctx,
-				"memory_search",
-				input as Record<string, unknown>,
-			);
-			if (approval.kind !== "ok") return approval;
-			return {
-				kind: "stub" as const,
-				note: "wire after OpenViking plugin live",
-				query: input.query,
-			};
-		},
-	});
-
-	const leannQuery = tool({
-		description: "Query the LEANN doc RAG index. Stubbed pending plugin wiring.",
-		inputSchema: z.object({
-			query: z.string().min(1),
-			top_k: z.number().int().min(1).max(20).optional(),
-			confirmationToken: confirmationField,
-		}),
-		execute: async (input) => {
-			const approval = await ensureApproval(
-				ctx,
-				"leann_query",
-				input as Record<string, unknown>,
-			);
-			if (approval.kind !== "ok") return approval;
-			return {
-				kind: "stub" as const,
-				note: "wire after LEANN plugin live",
-				query: input.query,
-			};
-		},
-	});
-
 	const envRead = tool({
 		description: "Read a masked env file from an allowlisted path on the VPS.",
 		inputSchema: z.object({
@@ -533,8 +488,6 @@ export function getAllTools(ctx: ToolContext): Record<string, Tool> {
 
 	return {
 		vps_status: vpsStatus,
-		memory_search: memorySearch,
-		leann_query: leannQuery,
 		env_read: envRead,
 		env_diff_propose: envDiffPropose,
 		service_restart: serviceRestart,

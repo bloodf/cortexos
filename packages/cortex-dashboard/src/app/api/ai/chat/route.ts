@@ -3,7 +3,7 @@
  *
  * - Admin gate via requireAuth (admin_users is the only kind).
  * - In-memory rate limiting: 60 req / 15min per user, 300 / 15min global.
- *   TODO: swap for Redis/Valkey-backed store once cortex-consumer is wired.
+ *   TODO: swap for Redis/Valkey-backed store before multi-worker deployment.
  * - Streams via Vercel AI SDK `streamText` against 9Router (openai-compatible).
  * - Persists messages to `chat_sessions.messages` jsonb via `appendChatMessages`.
  */

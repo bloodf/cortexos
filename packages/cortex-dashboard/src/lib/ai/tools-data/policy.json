@@ -22,98 +22,6 @@
   },
   "tools": [
     {
-      "name": "propose_role",
-      "class": "safe",
-      "description": "Generate an agent role definition proposal from a natural-language description.",
-      "args_schema": {
-        "type": "object",
-        "required": ["description"],
-        "properties": {
-          "description": { "type": "string" },
-          "base_role": { "type": "string" }
-        }
-      }
-    },
-    {
-      "name": "propose_workflow",
-      "class": "safe",
-      "description": "Generate a workflow YAML proposal for an agent factory.",
-      "args_schema": {
-        "type": "object",
-        "required": ["factory_slug"],
-        "properties": {
-          "factory_slug": { "type": "string" },
-          "stages": { "type": "array", "items": { "type": "string" } }
-        }
-      }
-    },
-    {
-      "name": "propose_pipeline",
-      "class": "safe",
-      "description": "Generate a CI/CD pipeline proposal for an agent factory.",
-      "args_schema": {
-        "type": "object",
-        "required": ["factory_slug"],
-        "properties": {
-          "factory_slug": { "type": "string" }
-        }
-      }
-    },
-    {
-      "name": "propose_project",
-      "class": "safe",
-      "description": "Generate a project scaffold proposal.",
-      "args_schema": {
-        "type": "object",
-        "required": ["name"],
-        "properties": {
-          "name": { "type": "string" },
-          "repo_url": { "type": "string" }
-        }
-      }
-    },
-    {
-      "name": "save_factory",
-      "class": "privileged",
-      "description": "Persist an agent factory definition to the database.",
-      "args_schema": {
-        "type": "object",
-        "required": ["slug", "kind", "definition"],
-        "properties": {
-          "slug": { "type": "string" },
-          "kind": { "type": "string", "enum": ["role", "workflow", "pipeline", "project"] },
-          "definition": { "type": "object" }
-        }
-      },
-      "rate_limit_per_15min": 20
-    },
-    {
-      "name": "validate_factory",
-      "class": "safe",
-      "description": "Validate a factory definition against its schema without persisting.",
-      "args_schema": {
-        "type": "object",
-        "required": ["kind", "definition"],
-        "properties": {
-          "kind": { "type": "string" },
-          "definition": { "type": "object" }
-        }
-      }
-    },
-    {
-      "name": "dry_run_dispatch",
-      "class": "safe",
-      "description": "Simulate dispatching a factory without side effects.",
-      "args_schema": {
-        "type": "object",
-        "required": ["factory_slug"],
-        "properties": {
-          "factory_slug": { "type": "string" },
-          "context": { "type": "object" }
-        }
-      }
-    },
-    {
       "name": "vps_status",
       "class": "safe",
       "description": "Read live VPS service status from the host. Read-only; no approval required.",
@@ -155,34 +63,6 @@
       },
       "cooldown_seconds": 300,
       "rate_limit_per_15min": 5
-    },
-    {
-      "name": "memory_search",
-      "class": "privileged",
-      "description": "Search OpenViking unified memory store.",
-      "args_schema": {
-        "type": "object",
-        "required": ["query"],
-        "properties": {
-          "query": { "type": "string" },
-          "limit": { "type": "integer", "default": 10 }
-        }
-      },
-      "rate_limit_per_15min": 60
-    },
-    {
-      "name": "leann_query",
-      "class": "privileged",
-      "description": "Query LEANN doc RAG index.",
-      "args_schema": {
-        "type": "object",
-        "required": ["query"],
-        "properties": {
-          "query": { "type": "string" },
-          "top_k": { "type": "integer", "default": 5 }
-        }
-      },
-      "rate_limit_per_15min": 60
     },
     {
       "name": "env_read",
@@ -263,19 +143,16 @@
       "rate_limit_per_15min": 60
     },
     {
-      "name": "agent_factory_promote",
-      "class": "destructive",
-      "description": "Promote an agent factory definition to active (operator-shell-only; not available via chat).",
+      "name": "project_status",
+      "class": "safe",
+      "description": "Read project and Incus instance status from the dashboard registry.",
       "args_schema": {
         "type": "object",
-        "required": ["factory_slug"],
         "properties": {
-          "factory_slug": { "type": "string" },
-          "confirmation_slug": { "type": "string" }
+          "project": { "type": "string" }
         }
       },
-      "operator_shell_only": true,
-      "cooldown_seconds": 300
+      "rate_limit_per_15min": 60
     }
   ],
   "roles": {
@@ -283,12 +160,9 @@
       "description": "Cortex VPS helper — broad safe access, scoped privileged, destructive with confirm+cooldown only.",
       "safe": "*",
       "privileged": [
-        "save_factory",
         "vps_status",
         "service_restart",
         "docker_action",
-        "memory_search",
-        "leann_query",
         "env_read",
         "env_diff_propose",
         "systemd_action",
@@ -304,21 +178,6 @@
         "requires_cooldown": true,
         "max_per_hour": 1
       }
-    },
-    "factory_agent": {
-      "description": "Generated agent factory role — safe + scoped propose/validate tools only.",
-      "safe": [
-        "propose_role",
-        "propose_workflow",
-        "propose_pipeline",
-        "propose_project",
-        "validate_factory",
-        "dry_run_dispatch"
-      ],
-      "privileged": [
-        "save_factory"
-      ],
-      "destructive": []
     }
   }
 }

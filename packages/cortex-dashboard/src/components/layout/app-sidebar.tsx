@@ -15,7 +15,6 @@ import {
 	Terminal,
 	Shield,
 	UserCog,
-	Paperclip,
 	ChevronDown,
 	ChevronRight,
 } from "lucide-react";
@@ -50,20 +49,12 @@ const PRIMARY_NAV: NavItem[] = [
 	{ href: "/terminal", label: "Terminal", icon: Terminal },
 ];
 
-const PAPERCLIP_NAV: NavItem = {
-	href: "/paperclip",
-	label: "Paperclip",
-	icon: Paperclip,
-};
-const PAPERCLIP_ENABLED = Boolean(process.env.NEXT_PUBLIC_PAPERCLIP_API_URL);
-
 const ADMIN_NAV: NavItem[] = [
 	{ href: "/admin/services", label: "Services", icon: Shield },
 	{ href: "/admin/badges", label: "Badges", icon: Shield },
 	{ href: "/admin/env-browser", label: "Env Browser", icon: Shield },
 	{ href: "/admin/systemd", label: "Systemd", icon: Shield },
 	{ href: "/admin/docker", label: "Docker", icon: Shield },
-	{ href: "/admin/agent-factory", label: "Agent Factory", icon: Shield },
 	{ href: "/admin/alerts", label: "Alerts", icon: Shield },
 	{ href: "/admin/users", label: "Users", icon: Shield },
 	{ href: "/admin/projects", label: "Projects", icon: Shield },
@@ -90,13 +81,6 @@ export function AppSidebar() {
 					{PRIMARY_NAV.map((item) => (
 						<NavLink key={item.href} item={item} active={isActive(pathname, item.href)} />
 					))}
-					{PAPERCLIP_ENABLED && (
-						<NavLink
-							key={PAPERCLIP_NAV.href}
-							item={PAPERCLIP_NAV}
-							active={isActive(pathname, PAPERCLIP_NAV.href)}
-						/>
-					)}
 				</SidebarGroup>
 
 				<SidebarGroup>

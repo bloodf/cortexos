@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { hostExecFile } from "@/lib/host-exec";
 import { requireAdmin } from "@/lib/auth";
 import { createActionLog } from "@/lib/db/action-log";
+import { executeRootCommand } from "@/lib/root-helper/executor";
 
 const VALID_ACTIONS = new Set(["start", "stop", "restart"]);
 
@@ -28,9 +28,15 @@ export async function POST(request: Request) {
 			return NextResponse.json({ error: "Invalid name" }, { status: 400 });
 		}
 
-		const { stdout, stderr } = await hostExecFile("systemctl", [action, name], {
-			timeout: 30000,
-			maxBuffer: 5 * 1024 * 1024,
+		const { stdout, stderr } = await executeRootCommand({
+			command: "systemctl",
+			argv: [action, name],
+			timeoutMs: 30000,
+			requestedBy: auth.session?.username ?? "trusted-dashboard",
+			dashboardSessionId: auth.session ? `user-${auth.session.user_id}` : null,
+			mutationClass: "service-control",
+			targetScope: "host",
+			metadata: { route: "/api/systemd/actions", unit: name, action },
 		});
 
 		await createActionLog({

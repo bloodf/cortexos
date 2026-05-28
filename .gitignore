@@ -144,6 +144,7 @@ docker-compose.override.yml
 # ============================================
 # Documentation (generated / private)
 # ============================================
+.rebuild/
 .dashboard_update/
 .playwright-mcp/
 *.png

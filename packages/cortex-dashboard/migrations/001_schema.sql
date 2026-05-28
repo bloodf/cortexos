@@ -68,20 +68,6 @@ CREATE TABLE IF NOT EXISTS alerts (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Agent factory registry
-CREATE TABLE IF NOT EXISTS agent_factories (
-  id SERIAL PRIMARY KEY,
-  slug VARCHAR(128) UNIQUE NOT NULL,
-  name VARCHAR(255) NOT NULL,
-  kind VARCHAR(16) NOT NULL
-    CHECK (kind IN ('role','workflow','pipeline','project')),
-  schema_version INTEGER NOT NULL DEFAULT 1,
-  definition JSONB NOT NULL DEFAULT '{}'::jsonb,
-  created_by VARCHAR(128) DEFAULT NULL,
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
-);
-
 -- Agent gateway audit (append-only; revoke UPDATE/DELETE from dashboard app role at deploy time)
 CREATE TABLE IF NOT EXISTS agent_gateway_audit (
   id BIGSERIAL PRIMARY KEY,
@@ -110,7 +96,7 @@ CREATE TABLE IF NOT EXISTS agent_gateway_audit (
 COMMENT ON TABLE agent_gateway_audit IS
   'Append-only. Dashboard app role must have INSERT,SELECT only; REVOKE UPDATE,DELETE at deploy.';
 
--- Projects (no tokens; live secrets via OpenClaw account_ref)
+-- Projects (no tokens; live secrets stay in host-owned env files)
 CREATE TABLE IF NOT EXISTS projects (
   id SERIAL PRIMARY KEY,
   slug VARCHAR(64) UNIQUE NOT NULL,
@@ -124,7 +110,7 @@ CREATE TABLE IF NOT EXISTS projects (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Messaging routes (no tokens; account_ref points to OpenClaw account)
+-- Messaging routes (no tokens; account_ref points to an operator-managed account)
 CREATE TABLE IF NOT EXISTS messaging_routes (
   id SERIAL PRIMARY KEY,
   project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
@@ -236,7 +222,6 @@ CREATE INDEX IF NOT EXISTS idx_services_active ON services(is_active);
 CREATE INDEX IF NOT EXISTS idx_service_badges_badge ON service_badges(badge_id);
 CREATE INDEX IF NOT EXISTS idx_alerts_unread ON alerts(created_at DESC) WHERE acknowledged_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_alerts_severity ON alerts(severity, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_agent_factories_kind ON agent_factories(kind);
 CREATE INDEX IF NOT EXISTS idx_agent_gateway_audit_ts ON agent_gateway_audit(ts DESC);
 CREATE INDEX IF NOT EXISTS idx_agent_gateway_audit_role_ts ON agent_gateway_audit(role, ts DESC);
 CREATE INDEX IF NOT EXISTS idx_agent_gateway_audit_actor_ts ON agent_gateway_audit(actor_user_id, ts DESC);

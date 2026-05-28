@@ -6,7 +6,7 @@ import {
 	parseInput,
 	notifyTestInputSchema,
 	auditViewerQuerySchema,
-	paperclipRefreshInputSchema,
+	approvalSignalInputSchema,
 } from "..";
 
 describe("parseInput", () => {
@@ -51,9 +51,9 @@ describe("parseInput", () => {
 
 	it("rejects unknown fields on strict schemas", () => {
 		const r = parseInput(
-			paperclipRefreshInputSchema,
-			{ extra: true },
-			{ action: "paperclip.refresh" },
+			approvalSignalInputSchema,
+			{ runId: "run-1", signalName: "approval", decision: "approve", extra: true },
+			{ action: "approvals.decide" },
 		);
 		expect(r.ok).toBe(false);
 	});
