@@ -63,3 +63,6 @@ phases:
 - Docker is allowed only as a transition runtime with explicit sunset criteria.
 - Shared Incus bridge trust is accepted, but per-project databases, users,
   buckets, RabbitMQ vhosts, and credentials are still required.
+- Tool-install spokes run after `03-host-rebuild` in numeric order:
+  `10–25` (hardening/monitoring), `31` (9router), `50` (agentgateway),
+  `70` (dashboard), `81` (projects), `90` (cortex-ops), `99` (final validation).
