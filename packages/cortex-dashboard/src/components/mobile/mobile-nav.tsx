@@ -10,31 +10,23 @@ import {
 	SheetTitle,
 	SheetTrigger,
 } from "@/components/ui/sheet";
+import { Menu } from "lucide-react";
 import {
 	Activity,
 	LayoutGrid,
 	HeartPulse,
-	Bot,
 	Container,
-	Shield,
-	Bell,
-	Box,
-	HardDrive,
 	Terminal,
-	Menu,
 } from "lucide-react";
+import { NAV_GROUPS, isNavActive } from "@/components/layout/nav-config";
 
-const navConfig = [
-	{ href: "/overview", labelKey: "Overview", icon: Activity },
-	{ href: "/alerts", labelKey: "Alerts", icon: Bell },
-	{ href: "/apps", labelKey: "Apps", icon: LayoutGrid },
-	{ href: "/services", labelKey: "Services", icon: HeartPulse },
-	{ href: "/agents", labelKey: "Agents", icon: Bot },
-	{ href: "/docker", labelKey: "Docker", icon: Container },
-	{ href: "/processes", labelKey: "Processes", icon: Box },
-	{ href: "/storage", labelKey: "Storage", icon: HardDrive },
-	{ href: "/terminal", labelKey: "Terminal", icon: Terminal },
-	{ href: "/admin", labelKey: "Admin", icon: Shield },
+/** Five quick-access items for the fixed bottom bar. */
+const BOTTOM_NAV = [
+	{ href: "/overview", label: "Overview", icon: Activity },
+	{ href: "/apps", label: "Apps", icon: LayoutGrid },
+	{ href: "/healthcheck", label: "Healthcheck", icon: HeartPulse },
+	{ href: "/docker", label: "Docker", icon: Container },
+	{ href: "/terminal", label: "Terminal", icon: Terminal },
 ];
 
 export function MobileNav() {
@@ -42,17 +34,20 @@ export function MobileNav() {
 	const t = useTranslations("Navigation");
 	const [open, setOpen] = useState(false);
 
-	const _activeItem = navConfig.find(
-		(item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
-	);
+	// Translate a nav label key, falling back to the raw label when no
+	// translation exists (the identity-mock in tests returns the key as-is).
+	const label = (value: string) => {
+		const translated = t(value);
+		return translated === value ? value : translated;
+	};
 
 	return (
 		<>
-			{/* Hamburger trigger for sheet */}
+			{/* Hamburger trigger for the grouped drawer */}
 			<div className="flex items-center lg:hidden">
 				<Sheet open={open} onOpenChange={setOpen}>
 					<SheetTrigger
-						aria-label={t("Overview")}
+						aria-label={label("Overview")}
 						className="inline-flex items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 size-8 hover:bg-muted hover:text-foreground touch-manipulation"
 					>
 						<Menu className="w-5 h-5" />
@@ -71,30 +66,40 @@ export function MobileNav() {
 								</SheetTitle>
 							</div>
 						</SheetHeader>
-						<nav className="flex flex-col gap-1 p-3" aria-label="Mobile navigation">
-							{navConfig.map((item) => {
-								const isActive =
-									pathname === item.href || pathname.startsWith(`${item.href}/`);
-								return (
-								<Link
-									key={item.href}
-									href={item.href}
-									onClick={() => setOpen(false)}
-									className={`flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors min-h-[44px] touch-manipulation ${
-										isActive
-											? "bg-secondary text-foreground"
-											: "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
-									}`}
-								>
-									<item.icon className="w-5 h-5 shrink-0" />
-									<span>{t(item.labelKey)}</span>
-								</Link>
-								);
-								})}
-							</nav>
-						</SheetContent>
-					</Sheet>
-				</div>
+						<nav
+							className="flex flex-col gap-4 overflow-y-auto p-3"
+							aria-label="Mobile navigation"
+						>
+							{NAV_GROUPS.map((group) => (
+								<div key={group.label} className="flex flex-col gap-1">
+									<span className="px-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+										{group.label}
+									</span>
+									{group.items.map((item) => {
+										const active = isNavActive(pathname, item.href);
+										const Icon = item.icon;
+										return (
+											<Link
+												key={item.href}
+												href={item.href}
+												onClick={() => setOpen(false)}
+												className={`flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors min-h-[44px] touch-manipulation ${
+													active
+														? "bg-secondary text-foreground"
+														: "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+												}`}
+											>
+												<Icon className="w-5 h-5 shrink-0" />
+												<span>{label(item.label)}</span>
+											</Link>
+										);
+									})}
+								</div>
+							))}
+						</nav>
+					</SheetContent>
+				</Sheet>
+			</div>
 
 			{/* Bottom fixed nav bar for quick access */}
 			<nav
@@ -102,24 +107,22 @@ export function MobileNav() {
 				aria-label="Bottom navigation"
 			>
 				<div className="flex items-center justify-around px-2 py-2">
-					{navConfig.slice(0, 5).map((item) => {
-						const isActive =
-							pathname === item.href || pathname.startsWith(`${item.href}/`);
+					{BOTTOM_NAV.map((item) => {
+						const active = isNavActive(pathname, item.href);
+						const Icon = item.icon;
 						return (
 							<Link
 								key={item.href}
 								href={item.href}
 								className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg min-w-[56px] min-h-[44px] justify-center touch-manipulation transition-colors ${
-									isActive
-										? "text-foreground"
-										: "text-muted-foreground"
+									active ? "text-foreground" : "text-muted-foreground"
 								}`}
 							>
-								<item.icon className="w-5 h-5" />
+								<Icon className="w-5 h-5" />
 								<span className="text-[10px] font-medium leading-tight">
-									{t(item.labelKey)}
+									{label(item.label)}
 								</span>
-								{isActive && (
+								{active && (
 									<span className="absolute bottom-1 w-1 h-1 rounded-full bg-foreground" />
 								)}
 							</Link>
