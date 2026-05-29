@@ -34,6 +34,7 @@ VALUES
   ('obot', 'Obot', 'service', 'AI', 'http://127.0.0.1:8090/', 'http', '#', '/opt/cortexos/.secrets/obot.env', 'cloud', 6),
   ('kernel-browser', 'Kernel Browser', 'service', 'AI', 'http://127.0.0.1:9222/json/version', 'http', '#', '/opt/cortexos/.secrets/kernel-browser.env', 'browser', 7),
   ('cortex-sandbox-runner', 'Cortex Sandbox Runner', 'service', 'AI', 'http://127.0.0.1:8091/healthz', 'http', '#', '/opt/cortexos/.secrets/sandbox.env', 'cloud', 8),
+  ('hermes-dashboard', 'Hermes Dashboard', 'service', 'AI', 'http://127.0.0.1:9119/', 'http', '#', NULL, 'monitor', 10),
 
   -- Infrastructure and administration
   ('caddy', 'Caddy', 'service', 'Infrastructure', 'tcp://127.0.0.1:80', 'tcp', '#', '/opt/cortexos/.secrets/caddy.env', 'caddy', 1),
@@ -96,7 +97,7 @@ UPDATE services SET has_webui = false, show_in_webui = false WHERE open_url = '#
 
 INSERT INTO service_badges (service_id, badge_id)
 SELECT s.id, b.id FROM services s, badges b
-WHERE s.slug IN ('9router','ollama','honcho','honcho-mcp','ollama-honcho-embeddings-proxy','obot','kernel-browser','cortex-sandbox-runner')
+WHERE s.slug IN ('9router','ollama','honcho','honcho-mcp','ollama-honcho-embeddings-proxy','obot','kernel-browser','cortex-sandbox-runner','hermes-dashboard')
   AND b.slug = 'ai'
 ON CONFLICT (service_id, badge_id) DO NOTHING;
 
@@ -221,6 +222,7 @@ BEGIN
   UPDATE services SET open_url = base || ':5540/'               WHERE slug = 'redisinsight';
   UPDATE services SET open_url = base || ':8083'                WHERE slug = 'mongo-express';
   UPDATE services SET open_url = base || ':8090/'               WHERE slug = 'obot';
+  UPDATE services SET open_url = base || ':9119/'               WHERE slug = 'hermes-dashboard';
 
   UPDATE services SET open_url = '#' WHERE slug IN (
     'ollama','honcho','honcho-mcp','ollama-honcho-embeddings-proxy',

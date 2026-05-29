@@ -43,7 +43,7 @@ const SPOKE_TO_SERVICES = {
 // Core infrastructure that is always installed on a CortexOS host and has no
 // numbered install spoke to gate on. These activate regardless of
 // completed_spokes so a fully provisioned host never marks them inactive.
-const ALWAYS_ACTIVE = ["cortex-dashboard", "incus", "webmin", "cockpit", "watchtower"];
+const ALWAYS_ACTIVE = ["cortex-dashboard", "incus", "webmin", "cockpit", "watchtower", "hermes-dashboard"];
 
 function readJson(path) {
   try {
