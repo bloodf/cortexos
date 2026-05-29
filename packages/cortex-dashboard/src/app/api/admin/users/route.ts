@@ -7,7 +7,7 @@ import {
 	getUserById,
 	updateUserPassword,
 } from "@/lib/db/admin";
-import { insertAuditRow } from "@/lib/db/agent-gateway-audit";
+import { insertAuditRow } from "@/lib/db/dashboard-audit";
 
 // L-6: args_hash must be a hash, not raw identifying data.
 function argsHashOf(target: Record<string, unknown>): string {

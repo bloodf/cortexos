@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { requireAuth, requireAdmin } from "@/lib/auth";
 import { readEnvFile, readEnvFileRaw } from "@/lib/secrets/vps-reader";
 import { writeEnvFile } from "@/lib/secrets/vps-writer";
-import { insertAuditRow } from "@/lib/db/agent-gateway-audit";
+import { insertAuditRow } from "@/lib/db/dashboard-audit";
 import { deriveCortexSessionId } from "@/lib/ai/session-binding";
 import type { PathDeniedError } from "@/lib/secrets/allowlist";
 

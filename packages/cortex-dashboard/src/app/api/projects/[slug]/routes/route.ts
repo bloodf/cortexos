@@ -3,7 +3,7 @@ import { requireAuth, requireAdmin } from "@/lib/auth";
 import { getProject } from "@/lib/db/projects";
 import { listRoutes, addRoute, removeRoute } from "@/lib/db/messaging-routes";
 import type { MessagingPlatform } from "@/lib/db/messaging-routes";
-import { insertAuditRow } from "@/lib/db/agent-gateway-audit";
+import { insertAuditRow } from "@/lib/db/dashboard-audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

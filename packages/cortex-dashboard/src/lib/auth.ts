@@ -160,7 +160,7 @@ export async function requireAdmin(
 	if (!auth.session?.is_admin) {
 		// Best-effort audit. Lazy import to avoid a load-time cycle.
 		try {
-			const mod = await import("./db/agent-gateway-audit");
+			const mod = await import("./db/dashboard-audit");
 			await mod
 				.insertAuditRow({
 					actor_user_id: auth.session?.user_id ?? null,

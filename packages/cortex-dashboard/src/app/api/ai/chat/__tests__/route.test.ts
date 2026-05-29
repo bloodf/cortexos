@@ -5,7 +5,7 @@ vi.mock("@/lib/auth", () => {
 	const fn = vi.fn();
 	return { requireAuth: fn, requireAdmin: fn };
 });
-vi.mock("@/lib/db/agent-gateway-audit", () => ({
+vi.mock("@/lib/db/dashboard-audit", () => ({
 	insertAuditRow: vi.fn().mockResolvedValue({}),
 }));
 vi.mock("@/lib/db/chat-sessions", () => ({
@@ -31,7 +31,7 @@ vi.mock("@/lib/ai/tools", () => ({
 
 import { POST } from "../route";
 import { requireAuth } from "@/lib/auth";
-import { insertAuditRow } from "@/lib/db/agent-gateway-audit";
+import { insertAuditRow } from "@/lib/db/dashboard-audit";
 
 const mockRequireAuth = vi.mocked(requireAuth);
 const mockAudit = vi.mocked(insertAuditRow);

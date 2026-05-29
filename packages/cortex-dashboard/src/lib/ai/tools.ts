@@ -16,7 +16,7 @@ import {
 	issueConfirmationToken,
 	verifyAndConsume,
 } from "./confirmation-token";
-import { insertAuditRow } from "@/lib/db/agent-gateway-audit";
+import { insertAuditRow } from "@/lib/db/dashboard-audit";
 import { getAllServices } from "@/lib/db/service";
 import { readEnvFile } from "@/lib/secrets/vps-reader";
 import {

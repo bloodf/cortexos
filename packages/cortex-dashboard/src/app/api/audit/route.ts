@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
-import { listAudit, countAudit } from "@/lib/db/agent-gateway-audit";
-import type { ToolClass, Decision, AuditResult } from "@/lib/db/agent-gateway-audit";
+import { listAudit, countAudit } from "@/lib/db/dashboard-audit";
+import type { ToolClass, Decision, AuditResult } from "@/lib/db/dashboard-audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

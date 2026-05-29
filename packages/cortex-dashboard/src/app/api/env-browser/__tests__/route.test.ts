@@ -12,7 +12,7 @@ vi.mock("@/lib/secrets/vps-reader", () => ({
 vi.mock("@/lib/secrets/vps-writer", () => ({
 	writeEnvFile: vi.fn(),
 }));
-vi.mock("@/lib/db/agent-gateway-audit", () => ({
+vi.mock("@/lib/db/dashboard-audit", () => ({
 	insertAuditRow: vi.fn().mockResolvedValue({}),
 }));
 vi.mock("@/lib/ai/confirmation-token", () => ({
@@ -23,7 +23,7 @@ import { GET, POST } from "../route";
 import { requireAuth } from "@/lib/auth";
 import { readEnvFile, readEnvFileRaw } from "@/lib/secrets/vps-reader";
 import { writeEnvFile } from "@/lib/secrets/vps-writer";
-import { insertAuditRow } from "@/lib/db/agent-gateway-audit";
+import { insertAuditRow } from "@/lib/db/dashboard-audit";
 import { verifyAndConsume } from "@/lib/ai/confirmation-token";
 
 const mockRequireAuth = vi.mocked(requireAuth);
