@@ -705,8 +705,11 @@ while IFS=$'\t' read -r slug repo instance hermes_profile migration_source data_
   if [ ! -d "$host_profile_dir" ]; then log "WARNING: host profile dir not found: $host_profile_dir"; continue; fi
   if [ ! -f "$host_env_file" ]; then log "WARNING: host env file not found: $host_env_file"; continue; fi
   run_shell 'state=$(sudo -n incus list "'"$instance"'" --format csv -c s 2>/dev/null || true); [ "$state" = RUNNING ] || { echo "instance not running: '"$instance"'"; exit 1; }'
-  for svc in 9router honcho; do
-    case "$svc" in 9router) port=11434 ;; honcho) port=18690 ;; esac
+  # ollama (11435) is the direct LLM fallback path: Hermes fallback_providers
+  # points at http://127.0.0.1:11435/v1 so a 9Router outage still has a local
+  # model. The proxy device forwards the instance loopback to host ollama.
+  for svc in 9router honcho ollama; do
+    case "$svc" in 9router) port=11434 ;; honcho) port=18690 ;; ollama) port=11435 ;; esac
     run_shell 'sudo -n incus config device remove "'"$instance"'" proxy-"'"$svc"'" >/dev/null 2>&1 || true'
     run_shell 'sudo -n incus config device add "'"$instance"'" proxy-"'"$svc"'" proxy listen=tcp:127.0.0.1:"'"$port"'" connect=tcp:127.0.0.1:"'"$port"'" bind=instance'
   done
