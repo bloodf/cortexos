@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { token, expiresAt } = await createUserSession(user.id);
+    const { token, expiresAt } = await createUserSession(user.id, user.is_admin);
     await setSessionCookie(token, expiresAt);
 
     return NextResponse.json({ success: true, username: user.username });

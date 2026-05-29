@@ -1,14 +1,8 @@
 import { Shield } from "lucide-react";
 import { LoginForm } from "@/components/auth/login-form";
-import { redirect } from "@/i18n/routing";
-import { countAdminUsers } from "@/lib/db/admin";
 
 export default async function LoginPage({ params }: { params: Promise<{ locale: string }> }) {
-	const { locale } = await params;
-	const count = await countAdminUsers();
-	if (count === 0) {
-		redirect({ href: "/setup", locale });
-	}
+	await params;
 	return (
 		<div className="min-h-screen flex items-center justify-center bg-background">
 			<div className="glass-panel rounded-2xl p-8 w-full max-w-md">

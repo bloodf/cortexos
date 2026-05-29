@@ -1,7 +1,7 @@
 /**
  * /api/ai/chat — Cortex chat streaming endpoint.
  *
- * - Admin gate via requireAuth (admin_users is the only kind).
+ * - Admin gate via requireAdmin (PAM users in the cortexos-admin/sudo groups).
  * - In-memory rate limiting: 60 req / 15min per user, 300 / 15min global.
  *   TODO: swap for Redis/Valkey-backed store before multi-worker deployment.
  * - Streams via Vercel AI SDK `streamText` against 9Router (openai-compatible).

@@ -126,22 +126,22 @@ CREATE TABLE IF NOT EXISTS messaging_routes (
 );
 
 -- Admin / auth
--- H-1: is_admin gates destructive AI/admin routes. The first user created
--- via /api/auth/setup bootstrap is marked admin. Subsequent users default
--- to non-admin and must be elevated explicitly.
-CREATE TABLE IF NOT EXISTS admin_users (
+-- Authentication is delegated to Linux PAM. There are no DB-stored passwords;
+-- pam_users records each host system account that has logged in. Admin access
+-- is decided per-login from host group membership (cortexos-admin/sudo) and
+-- captured on the session row via is_admin.
+CREATE TABLE IF NOT EXISTS pam_users (
   id SERIAL PRIMARY KEY,
   username VARCHAR(64) UNIQUE NOT NULL,
-  password_hash VARCHAR(255) NOT NULL,
-  is_admin BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS admin_sessions (
   id SERIAL PRIMARY KEY,
-  user_id INTEGER NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES pam_users(id) ON DELETE CASCADE,
   token VARCHAR(255) UNIQUE NOT NULL,
   expires_at TIMESTAMP NOT NULL,
+  is_admin BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -206,7 +206,7 @@ CREATE TABLE IF NOT EXISTS dashboard_layouts (
 -- Chat sessions (per-user server-side chat state; redacted tool outputs)
 -- H-6: FK + retention TTL + size cap. Orphan-free on user delete.
 CREATE TABLE IF NOT EXISTS chat_sessions (
-  user_id INTEGER PRIMARY KEY REFERENCES admin_users(id) ON DELETE CASCADE,
+  user_id INTEGER PRIMARY KEY REFERENCES pam_users(id) ON DELETE CASCADE,
   panel_open BOOLEAN NOT NULL DEFAULT false,
   width INTEGER NOT NULL DEFAULT 360,
   messages JSONB NOT NULL DEFAULT '[]'::jsonb,
