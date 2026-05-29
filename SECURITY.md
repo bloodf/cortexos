@@ -3,7 +3,7 @@
 ## Reporting a Vulnerability
 
 Report security vulnerabilities **privately** via
-[GitHub Security Advisories](https://github.com/bloodf/cortexos/security/advisories/new)
+[GitHub Security Advisories](https://github.com/{owner}/cortexos/security/advisories/new)
 on this repository. Do not open a public issue for security bugs.
 
 We aim to acknowledge reports within 48 hours and provide a remediation timeline
@@ -12,7 +12,7 @@ within 7 days.
 The rebuild security model is documented in `PLAN.md`.
 
 Current accepted risks are explicit there: trusted LAN/tailnet dashboard access,
-network-trust AgentGateway, shared Incus bridge trust, local-only backups, and
+network-trust Obot MCP gateway, shared Incus bridge trust, local-only backups, and
 Hermes latest-upstream auto-update.
 
 Active controls:

@@ -4,6 +4,7 @@
     "Services": "Services",
     "Agents": "Agents",
     "Docker": "Docker",
+    "Incus": "Incus",
     "Admin": "Admin",
     "Apps": "Apps",
     "Processes": "Processes",

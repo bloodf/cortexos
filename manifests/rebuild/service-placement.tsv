@@ -27,7 +27,7 @@ grafana	host	systemd-or-container	lan-tailnet	planned	Monitoring
 loki	host	systemd-or-container	lan-tailnet	planned	Logs
 kernel-browser	host	systemd-where-possible	lan-tailnet	planned	Shared host tool
 cortex-sandbox-runner	host	systemd-where-possible	lan-tailnet	planned	Shared host tool
-cortex-agentgateway	host	python-systemd	lan-tailnet	planned	Central MCP proxy global allowlist
+obot	host	container-docker	lan-tailnet	planned	Obot MCP gateway platform
 cortex-mail-guardian	host	container-systemd	lan-tailnet	planned	Docker if feasible
 dockhand	host	container-systemd	lan-tailnet	transition	Keep during Docker transition
 watchtower	host	container-systemd	local	transition	Keep during Docker transition

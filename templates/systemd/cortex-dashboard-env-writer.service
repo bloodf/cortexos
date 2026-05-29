@@ -10,7 +10,7 @@
 
 [Unit]
 Description=CortexOS Dashboard Env Writer — atomic env-file write helper
-Documentation=https://github.com/bloodf/cortexos/blob/main/docs/SECURITY.md
+Documentation=https://github.com/{owner}/cortexos/blob/main/docs/SECURITY.md
 DefaultDependencies=no
 After=local-fs.target
 

@@ -7,7 +7,7 @@ Summary:
 - Host keeps shared services and protected Hermes identities.
 - Projects run in unprivileged Incus instances with their own Tailscale SSH.
 - Access to shared databases, buckets, queues, and secrets is per project.
-- AgentGateway is a Python allowlist MCP proxy with stdout audit records.
+- Obot MCP gateway platform with stdout audit records.
 - Dashboard root operations go through a Unix-socket helper with Postgres and
   journald audit.
 

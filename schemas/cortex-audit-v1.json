@@ -15,7 +15,7 @@
     "event_type": {
       "type": "string",
       "pattern": "^cortex\\.audit\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.v[0-9]+$",
-      "description": "Fully-qualified event type, e.g. cortex.audit.agentgateway.tool-invoke.v1."
+      "description": "Fully-qualified event type, e.g. cortex.audit.obot.tool-invoke.v1."
     },
     "actor": {
       "type": "string",
