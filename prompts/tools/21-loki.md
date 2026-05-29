@@ -76,6 +76,7 @@ cat >> /opt/cortexos/stacks/monitoring/docker-compose.yml <<'EOF'
 
   loki:
     image: grafana/loki
+    container_name: cortex-loki
     restart: unless-stopped
     ports:
       - "127.0.0.1:3100:3100"

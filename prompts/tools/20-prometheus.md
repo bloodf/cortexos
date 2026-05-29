@@ -73,6 +73,7 @@ tee /opt/cortexos/stacks/monitoring/docker-compose.yml <<'EOF'
 services:
   prometheus:
     image: prom/prometheus
+    container_name: cortex-prometheus
     restart: unless-stopped
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro

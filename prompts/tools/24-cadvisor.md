@@ -40,6 +40,7 @@ cat >> /opt/cortexos/stacks/monitoring/docker-compose.yml <<'EOF'
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor
+    container_name: cortex-cadvisor
     restart: unless-stopped
     privileged: true
     # Sub-path mount: Caddy serves cAdvisor at /cadvisor/ and does NOT
