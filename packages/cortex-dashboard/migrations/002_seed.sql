@@ -68,15 +68,14 @@ VALUES
   ('grafana', 'Grafana', 'service', 'Monitoring', 'http://127.0.0.1:3000/api/health', 'http', '#', '/opt/cortexos/.secrets/grafana.env', 'monitor', 1),
   ('prometheus', 'Prometheus', 'service', 'Monitoring', 'http://127.0.0.1:9090/-/healthy', 'http', '#', '/opt/cortexos/.secrets/prometheus.env', 'monitor', 2),
   ('loki', 'Loki', 'service', 'Monitoring', 'http://127.0.0.1:3100/ready', 'http', '#', '/opt/cortexos/.secrets/loki.env', 'monitor', 3),
-  ('node-exporter', 'Node Exporter', 'service', 'Monitoring', 'http://127.0.0.1:9100/metrics', 'http', '#', NULL, 'monitor', 4),
+  ('node-exporter', 'Node Exporter', 'docker', 'Monitoring', 'http://127.0.0.1:9100/metrics', 'http', '#', NULL, 'monitor', 4),
   ('cadvisor', 'cAdvisor', 'docker', 'Monitoring', 'http://127.0.0.1:8081/cadvisor/healthz', 'http', '#', NULL, 'monitor', 5),
-  ('fluent-bit', 'Fluent Bit', 'service', 'Monitoring', 'fluent-bit', 'process', '#', '/opt/cortexos/.secrets/fluent-bit.env', 'monitor', 6),
-  ('promtail', 'Promtail', 'service', 'Monitoring', 'promtail', 'process', '#', NULL, 'monitor', 7),
-  ('otel-collector', 'OTel Collector', 'service', 'Monitoring', 'tcp://127.0.0.1:4317', 'tcp', '#', '/opt/cortexos/.secrets/otel.env', 'monitor', 8),
-  ('pg-exporter', 'PG Exporter', 'service', 'Monitoring', 'http://127.0.0.1:9187/metrics', 'http', '#', NULL, 'monitor', 9),
-  ('mysql-exporter', 'MySQL Exporter', 'service', 'Monitoring', 'http://127.0.0.1:9104/metrics', 'http', '#', NULL, 'monitor', 10),
-  ('redis-exporter', 'Redis Exporter', 'service', 'Monitoring', 'http://127.0.0.1:9121/metrics', 'http', '#', NULL, 'monitor', 11),
-  ('mongo-exporter', 'Mongo Exporter', 'service', 'Monitoring', 'http://127.0.0.1:9216/metrics', 'http', '#', NULL, 'monitor', 12),
+  ('fluent-bit', 'Fluent Bit', 'docker', 'Monitoring', 'cortex-fluent-bit', 'docker', '#', NULL, 'monitor', 6),
+  ('otel-collector', 'OTel Collector', 'docker', 'Monitoring', 'tcp://127.0.0.1:4317', 'tcp', '#', '/opt/cortexos/.secrets/otel.env', 'monitor', 7),
+  ('pg-exporter', 'PG Exporter', 'docker', 'Monitoring', 'http://127.0.0.1:9187/metrics', 'http', '#', NULL, 'monitor', 8),
+  ('mysql-exporter', 'MySQL Exporter', 'docker', 'Monitoring', 'http://127.0.0.1:9104/metrics', 'http', '#', NULL, 'monitor', 9),
+  ('redis-exporter', 'Redis Exporter', 'docker', 'Monitoring', 'http://127.0.0.1:9121/metrics', 'http', '#', NULL, 'monitor', 10),
+  ('mongo-exporter', 'Mongo Exporter', 'docker', 'Monitoring', 'http://127.0.0.1:9216/metrics', 'http', '#', NULL, 'monitor', 11),
   ('cortex-mail-guardian', 'Cortex Mail Guardian', 'service', 'AI', 'cortex-mail-guardian.service', 'systemd', '#', '/opt/cortexos/.secrets/mail-guardian.env', 'mail', 9),
   ('snmp-exporter', 'SNMP Exporter', 'docker', 'Monitoring', 'http://127.0.0.1:9116/metrics', 'http', '#', NULL, 'monitor', 13),
   ('adguard-exporter', 'AdGuard Exporter', 'docker', 'Monitoring', 'http://127.0.0.1:9617/metrics', 'http', '#', NULL, 'monitor', 14)
@@ -135,7 +134,7 @@ ON CONFLICT (service_id, badge_id) DO NOTHING;
 
 INSERT INTO service_badges (service_id, badge_id)
 SELECT s.id, b.id FROM services s, badges b
-WHERE s.slug IN ('grafana','prometheus','loki','node-exporter','cadvisor','fluent-bit','promtail','otel-collector','pg-exporter','mysql-exporter','redis-exporter','mongo-exporter')
+WHERE s.slug IN ('grafana','prometheus','loki','node-exporter','cadvisor','fluent-bit','otel-collector','pg-exporter','mysql-exporter','redis-exporter','mongo-exporter')
   AND b.slug = 'monitoring'
 ON CONFLICT (service_id, badge_id) DO NOTHING;
 
@@ -229,7 +228,7 @@ BEGIN
     'kernel-browser','cortex-sandbox-runner',
     'postgresql','mysql','redis','mongodb','caddy','tailscale','incus',
     'cortex-dashboard-root-helper','watchtower','dnsmasq','fail2ban',
-    'node-exporter','fluent-bit','promtail','otel-collector',
+    'node-exporter','fluent-bit','otel-collector',
     'pg-exporter','mysql-exporter','redis-exporter','mongo-exporter',
     'cortex-mail-guardian','snmp-exporter','adguard-exporter'
   );
