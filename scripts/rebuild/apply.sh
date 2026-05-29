@@ -483,7 +483,11 @@ run_shell 'if command -v ufw >/dev/null 2>&1 && sudo -n ufw status | grep -q "St
 fi'
 run_shell 'if ! sudo -n incus profile device get default root path >/dev/null 2>&1; then sudo -n incus profile device add default root disk path=/ pool="'"$pool_name"'"; else sudo -n incus profile device set default root pool "'"$pool_name"'"; sudo -n incus profile device set default root path /; fi'
 run_shell 'if ! sudo -n incus profile device get default eth0 network >/dev/null 2>&1; then sudo -n incus profile device add default eth0 nic name=eth0 network="'"$bridge_name"'"; else sudo -n incus profile device set default eth0 network "'"$bridge_name"'"; sudo -n incus profile device set default eth0 name eth0; fi'
-run_shell 'sudo -n incus delete -f "'"$smoke_name"'" >/dev/null 2>&1 || true'
+# security.nesting=true: required so systemd inside the container can manage
+# (kill/restart) its own service cgroups. Without it, cgroup.kill is denied,
+# a crashed service cannot be reaped, and units that bind a port enter an
+# EADDRINUSE restart loop (observed on the project Hermes profiles).
+run_shell 'sudo -n incus profile set default security.nesting true'
 run_shell 'timeout 300s sudo -n incus launch "'"$smoke_image"'" "'"$smoke_name"'"'
 run_shell 'for i in $(seq 1 60); do state=$(sudo -n incus list "'"$smoke_name"'" --format csv -c s 2>/dev/null || true); [ "$state" = RUNNING ] && exit 0; sleep 2; done; sudo -n incus info "'"$smoke_name"'" || true; exit 1'
 run_shell 'sudo -n incus exec "'"$smoke_name"'" -- sh -lc '"'"'. /etc/os-release && printf "%s %s\n" "$ID" "$VERSION_ID"'"'"''
