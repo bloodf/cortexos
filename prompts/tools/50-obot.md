@@ -59,20 +59,19 @@ cd /opt/cortexos/stacks/cortex-obot
 docker compose up -d
 ```
 
-### 4. Caddy Route
-
-Add `/obot/*` → `127.0.0.1:8090` reverse proxy in Caddy.
-
-### 5. Verify
-
+### 4. Tailscale Serve (no Caddy)
+Expose Obot on the tailnet port directly:
 ```bash
-curl -fsS http://127.0.0.1:8090/
+sudo tailscale serve --bg --https=8090 http://127.0.0.1:8090
+```
+Access: `https://<tailnet-host>:8090/`
+### 5. Verify
+```bash
+curl -fsS http://127.0.0.1:8090/api/
 docker logs cortex-obot 2>&1 | tail -20
 ```
-
 ### 6. Bootstrap
-
-Access `https://<tailnet-host>/obot/` and complete first-run setup with the
+Access `https://<tailnet-host>:8090/` and complete first-run setup with the
 bootstrap token.
 
 ### 7. Migrate MCP Tools
@@ -97,7 +96,7 @@ rm /etc/systemd/system/cortex-agentgateway.service
 systemctl daemon-reload
 ```
 
-Remove Caddy routes for `/agentgateway/` and `/agentgateway-mcp/`.
+Remove any legacy agentgateway systemd unit or Caddy routes if still present.
 
 ## Notes
 

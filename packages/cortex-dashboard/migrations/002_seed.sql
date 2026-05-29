@@ -75,7 +75,10 @@ VALUES
   ('pg-exporter', 'PG Exporter', 'service', 'Monitoring', 'http://127.0.0.1:9187/metrics', 'http', '#', NULL, 'monitor', 9),
   ('mysql-exporter', 'MySQL Exporter', 'service', 'Monitoring', 'http://127.0.0.1:9104/metrics', 'http', '#', NULL, 'monitor', 10),
   ('redis-exporter', 'Redis Exporter', 'service', 'Monitoring', 'http://127.0.0.1:9121/metrics', 'http', '#', NULL, 'monitor', 11),
-  ('mongo-exporter', 'Mongo Exporter', 'service', 'Monitoring', 'http://127.0.0.1:9216/metrics', 'http', '#', NULL, 'monitor', 12)
+  ('mongo-exporter', 'Mongo Exporter', 'service', 'Monitoring', 'http://127.0.0.1:9216/metrics', 'http', '#', NULL, 'monitor', 12),
+  ('cortex-mail-guardian', 'Cortex Mail Guardian', 'service', 'AI', 'cortex-mail-guardian.service', 'systemd', '#', '/opt/cortexos/.secrets/mail-guardian.env', 'mail', 9),
+  ('snmp-exporter', 'SNMP Exporter', 'docker', 'Monitoring', 'http://127.0.0.1:9116/metrics', 'http', '#', NULL, 'monitor', 13),
+  ('adguard-exporter', 'AdGuard Exporter', 'docker', 'Monitoring', 'http://127.0.0.1:9617/metrics', 'http', '#', NULL, 'monitor', 14)
 ON CONFLICT (slug) DO UPDATE SET
   name = EXCLUDED.name,
   kind = EXCLUDED.kind,
@@ -151,5 +154,112 @@ WHERE s.slug IN ('cockpit','webmin','tailscale','dnsmasq','fail2ban','watchtower
   AND b.slug = 'system'
 ON CONFLICT (service_id, badge_id) DO NOTHING;
 
+-- Mail guardian visibility flags (was 020_mail_guardian)
+UPDATE services SET
+  is_active = true,
+  has_webui = false,
+  show_in_webui = false,
+  show_in_healthcheck = true
+WHERE slug = 'cortex-mail-guardian';
+
+-- cadvisor not deployed on host (was 025_cadvisor_inactive)
+UPDATE services SET is_active = false, updated_at = NOW() WHERE slug = 'cadvisor';
+
+UPDATE services SET has_webui = false, show_in_webui = false
+WHERE slug IN ('snmp-exporter', 'adguard-exporter');
+
+INSERT INTO service_badges (service_id, badge_id)
+SELECT s.id, b.id FROM services s, badges b
+WHERE s.slug = 'cortex-mail-guardian' AND b.slug = 'ai'
+ON CONFLICT (service_id, badge_id) DO NOTHING;
+
+INSERT INTO service_badges (service_id, badge_id)
+SELECT s.id, b.id FROM services s, badges b
+WHERE s.slug IN ('snmp-exporter', 'adguard-exporter') AND b.slug = 'monitoring'
+ON CONFLICT (service_id, badge_id) DO NOTHING;
+
+-- Default dashboard widgets (was 022_mail_guardian_widgets)
+UPDATE dashboard_layouts
+SET layout = jsonb_set(
+  layout::jsonb,
+  '{rows}',
+  (layout::jsonb->'rows') || '[{"items":["mail-guardian","mail-guardian-reviews"]}]'::jsonb,
+  true
+),
+updated_at = NOW()
+WHERE user_id = 1
+  AND NOT (layout::jsonb::text LIKE '%mail-guardian%');
+
+-- Public URL resolver — final version (was 019_mongo_admin_url_fix)
+CREATE OR REPLACE FUNCTION cortex_set_service_urls(base_url text)
+RETURNS integer
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  affected integer := 0;
+BEGIN
+  IF base_url IS NULL OR length(trim(base_url)) = 0 THEN
+    RAISE EXCEPTION 'cortex_set_service_urls: base_url is required';
+  END IF;
+
+  base_url := regexp_replace(base_url, '/+$', '');
+
+  UPDATE services SET open_url = base_url                        WHERE slug = 'cortex-dashboard';
+  UPDATE services SET open_url = base_url || '/9router/'        WHERE slug = '9router';
+  UPDATE services SET open_url = base_url || '/dockhand'         WHERE slug = 'dockhand';
+  UPDATE services SET open_url = base_url || '/grafana/'         WHERE slug = 'grafana';
+  UPDATE services SET open_url = base_url || '/prometheus/'      WHERE slug = 'prometheus';
+  UPDATE services SET open_url = base_url || '/loki/'            WHERE slug = 'loki';
+  UPDATE services SET open_url = base_url || '/cadvisor/'        WHERE slug = 'cadvisor';
+  UPDATE services SET open_url = base_url || '/jellyfin'         WHERE slug = 'jellyfin';
+  UPDATE services SET open_url = base_url || '/ha'               WHERE slug = 'home-assistant';
+  UPDATE services SET open_url = base_url || '/cockpit/'         WHERE slug = 'cockpit';
+  UPDATE services SET open_url = base_url || '/webmin/'          WHERE slug = 'webmin';
+  UPDATE services SET open_url = base_url || '/pgadmin/'         WHERE slug = 'pgadmin';
+  UPDATE services SET open_url = base_url || '/phpmyadmin/'      WHERE slug = 'phpmyadmin';
+  UPDATE services SET open_url = base_url || '/redisinsight/'    WHERE slug = 'redisinsight';
+  UPDATE services SET open_url = base_url || '/mongo-admin'      WHERE slug = 'mongo-express';
+  UPDATE services SET open_url = base_url || '/obot/'            WHERE slug = 'obot';
+
+  UPDATE services SET open_url = '#' WHERE slug IN (
+    'ollama','honcho','honcho-mcp','ollama-honcho-embeddings-proxy',
+    'obot','kernel-browser','cortex-sandbox-runner',
+    'postgresql','mysql','redis','mongodb','caddy','tailscale','incus',
+    'cortex-dashboard-root-helper','watchtower','dnsmasq','fail2ban',
+    'node-exporter','fluent-bit','promtail','otel-collector',
+    'pg-exporter','mysql-exporter','redis-exporter','mongo-exporter',
+    'cortex-mail-guardian','snmp-exporter','adguard-exporter'
+  );
+
+  GET DIAGNOSTICS affected = ROW_COUNT;
+  RETURN affected;
+END;
+$$;
+
 INSERT INTO migrations (name) VALUES ('002_seed')
-ON CONFLICT DO NOTHING;
+ON CONFLICT (name) DO NOTHING;
+
+INSERT INTO migrations (name) VALUES
+  ('003_retention'),
+  ('004_tailscale_urls'),
+  ('008_audit_log'),
+  ('009_pending_approvals'),
+  ('010_services_catalog_extras'),
+  ('011_services_open_url_paths'),
+  ('012_catalog_fixes'),
+  ('013_backend_services'),
+  ('014_dynamic_service_visibility'),
+  ('015_service_health_targets'),
+  ('016_placeholder'),
+  ('017_retired_infra_cleanup'),
+  ('018_dashboard_command_audit'),
+  ('019_mongo_admin_url_fix'),
+  ('020_mail_guardian'),
+  ('021_mail_guardian_actions'),
+  ('022_mail_guardian_widgets'),
+  ('023_action_log_mail_guardian_target'),
+  ('024_cockpit_port_fix'),
+  ('025_cadvisor_inactive'),
+  ('026_agentgateway_to_obot'),
+  ('027_exporter_catalog')
+ON CONFLICT (name) DO NOTHING;

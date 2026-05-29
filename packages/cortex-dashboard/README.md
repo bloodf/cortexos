@@ -11,8 +11,9 @@ Current responsibilities:
 - Dashboard helper command audit.
 - Local chat tools guarded by confirmation tokens.
 
-The catalog source of truth is `migrations/002_seed.sql`; upgraded databases
-are cleaned by `migrations/017_retired_infra_cleanup.sql`.
+The catalog source of truth is `migrations/002_seed.sql`. Fresh databases apply
+only `001_schema.sql` and `002_seed.sql` (squashed from the pre-rebuild
+incremental migrations).
 
 Run locally:
 
