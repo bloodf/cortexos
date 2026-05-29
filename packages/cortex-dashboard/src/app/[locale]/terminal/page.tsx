@@ -77,7 +77,8 @@ const terminalThemes = {
 } as const;
 
 export default function TerminalPage() {
-	const { theme } = useTheme();
+	const { resolvedTheme } = useTheme();
+	const theme: "light" | "dark" = resolvedTheme === "light" ? "light" : "dark";
 	const [sessions, setSessions] = useState<SessionState[]>([]);
 	const [activeId, setActiveId] = useState<string | null>(null);
 	const containerRefs = useRef<Map<string, HTMLDivElement>>(new Map());

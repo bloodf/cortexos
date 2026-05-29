@@ -1,44 +1,45 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { ThemeSwitcher } from '../theme-switcher';
+import { ThemeSwitcher, ThemeSettings } from '../theme-switcher';
 
-// Mock the useTheme hook
-const mockToggleTheme = vi.fn();
-let mockTheme = 'dark';
+const mockSetTheme = vi.fn();
+const mockSetPreset = vi.fn();
 
-vi.mock('@/hooks/use-theme', () => ({
-	useTheme: () => ({
-		theme: mockTheme,
-		toggleTheme: mockToggleTheme,
-		setTheme: vi.fn(),
-	}),
-}));
+vi.mock('@/hooks/use-theme', async () => {
+	const actual = await vi.importActual<typeof import('@/hooks/use-theme')>(
+		'@/hooks/use-theme',
+	);
+	return {
+		...actual,
+		useTheme: () => ({
+			theme: 'dark',
+			resolvedTheme: 'dark',
+			setTheme: mockSetTheme,
+			toggleTheme: vi.fn(),
+		}),
+		usePreset: () => ({
+			preset: 'cortex',
+			setPreset: mockSetPreset,
+		}),
+	};
+});
 
 describe('ThemeSwitcher', () => {
-	it('renders a button', () => {
+	it('renders a trigger button', () => {
 		const { container } = render(<ThemeSwitcher />);
 		expect(container.querySelector('button')).toBeInTheDocument();
 	});
+});
 
-	it('shows Sun icon in dark mode', () => {
-		mockTheme = 'dark';
-		render(<ThemeSwitcher />);
-		const button = screen.getByTitle('Switch to light mode');
-		expect(button).toBeInTheDocument();
-	});
-
-	it('shows Moon icon in light mode', () => {
-		mockTheme = 'light';
-		render(<ThemeSwitcher />);
-		const button = screen.getByTitle('Switch to dark mode');
-		expect(button).toBeInTheDocument();
-	});
-
-	it('calls toggleTheme on click', () => {
-		mockTheme = 'dark';
-		render(<ThemeSwitcher />);
-		const button = screen.getByTitle('Switch to light mode');
-		fireEvent.click(button);
-		expect(mockToggleTheme).toHaveBeenCalledTimes(1);
+describe('ThemeSettings', () => {
+	it('renders mode and accent options', () => {
+		render(<ThemeSettings />);
+		expect(screen.getByText('Mode')).toBeInTheDocument();
+		expect(screen.getByText('Accent')).toBeInTheDocument();
+		// All four presets are offered.
+		expect(screen.getByTitle('Cortex')).toBeInTheDocument();
+		expect(screen.getByTitle('Teal')).toBeInTheDocument();
+		expect(screen.getByTitle('Emerald')).toBeInTheDocument();
+		expect(screen.getByTitle('Amber')).toBeInTheDocument();
 	});
 });

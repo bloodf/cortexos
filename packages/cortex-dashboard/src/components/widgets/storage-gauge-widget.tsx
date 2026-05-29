@@ -17,7 +17,7 @@ export function StorageGaugeWidget() {
 						<Gauge
 							key={d.name}
 							value={d.percent ?? 0}
-							color="#f59e0b"
+							color="var(--warning)"
 							label={d.name}
 							sublabel={d.used && d.total ? `${d.used} / ${d.total}` : d.size}
 							icon={<HardDrive className="w-5 h-5" />}

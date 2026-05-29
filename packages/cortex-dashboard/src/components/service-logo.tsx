@@ -1,5 +1,7 @@
 "use client";
 
+import { BRAND_COLORS, TechIcon } from "@/components/tech-icon";
+
 interface ServiceLogoProps {
 	serviceId: string;
 	size?: number;
@@ -7,61 +9,17 @@ interface ServiceLogoProps {
 	iconImage?: string | null;
 }
 
-function InitialAvatar({
-	text,
-	bg,
-	size,
-}: {
-	text: string;
-	bg: string;
-	size: number;
-}) {
-	return (
-		<div
-			className="flex items-center justify-center shrink-0"
-			style={{ width: size, height: size }}
-		>
-			<svg width={size} height={size} viewBox="0 0 100 100">
-				<rect width="100" height="100" rx="20" fill={bg} />
-				<text
-					x="50"
-					y="64"
-					textAnchor="middle"
-					fill="white"
-					fontSize={size * 0.45 * 2.2}
-					fontWeight="700"
-					fontFamily="system-ui"
-				>
-					{text}
-				</text>
-			</svg>
-		</div>
-	);
-}
+// Re-exported for backward compatibility with any existing importers.
+export { BRAND_COLORS };
 
-const BRAND_COLORS: Record<string, string> = {
-	caddy: "#1f8dd6",
-	"9router": "#6366f1",
-	dockhand: "#06b6d4",
-	"home-assistant": "#03a9f4",
-	jellyfin: "#00a4dc",
-	webmin: "#881113",
-	cockpit: "#3e4245",
-	ollama: "#1a1a1a",
-	postgresql: "#336791",
-	redis: "#dc382d",
-	mysql: "#00758f",
-	mongodb: "#47a248",
-	grafana: "#f46800",
-	prometheus: "#e6522c",
-	"fluent-bit": "#49bda5",
-	cadvisor: "#2196f3",
-	tailscale: "#242424",
-	minio: "#c72e49",
-	rabbitmq: "#ff6600",
-	incus: "#0b7285",
-};
-
+/**
+ * Service icon. Resolution order:
+ *   1. An explicit uploaded image (`iconImage`) — rendered as-is.
+ *   2. A real brand/tech icon via {@link TechIcon} (developer-icons → vendored
+ *      SVG → tinted monogram fallback).
+ *
+ * Props/signature are unchanged so existing call sites keep working.
+ */
 export function ServiceLogo({ serviceId, size = 40, iconColor, iconImage }: ServiceLogoProps) {
 	if (iconImage) {
 		return (
@@ -81,12 +39,12 @@ export function ServiceLogo({ serviceId, size = 40, iconColor, iconImage }: Serv
 		);
 	}
 
-	const bg = iconColor || BRAND_COLORS[serviceId] || "#525252";
-	const abbr = serviceId
-		.split("-")
-		.map((w) => w[0])
-		.join("")
-		.slice(0, 2)
-		.toUpperCase();
-	return <InitialAvatar text={abbr} bg={bg} size={size} />;
+	return (
+		<div
+			className="flex items-center justify-center shrink-0"
+			style={{ width: size, height: size }}
+		>
+			<TechIcon name={serviceId} size={size} color={iconColor ?? undefined} />
+		</div>
+	);
 }

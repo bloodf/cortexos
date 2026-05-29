@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Watchtower">
+  <rect width="256" height="256" rx="48" fill="#0b5394"/>
+  <g fill="#fff">
+    <path d="M128 76c-42 0-72 36-80 52 8 16 38 52 80 52s72-36 80-52c-8-16-38-52-80-52Zm0 84a32 32 0 1 1 0-64 32 32 0 0 1 0 64Z"/>
+    <circle cx="128" cy="128" r="16"/>
+  </g>
+</svg>

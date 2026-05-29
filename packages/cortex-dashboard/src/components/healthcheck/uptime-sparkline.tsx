@@ -25,7 +25,7 @@ interface UptimeSparklineProps {
 export function UptimeSparkline({
 	title,
 	data,
-	color = "#10b981",
+	color = "var(--success)",
 	unit = "%",
 }: UptimeSparklineProps) {
 	return (

@@ -35,12 +35,12 @@ export function NetChart({ data }: NetChartProps) {
 				>
 					<defs>
 						<linearGradient id="rxGrad" x1="0" y1="0" x2="0" y2="1">
-							<stop offset="0%" stopColor="#22d3ee" stopOpacity={0.35} />
-							<stop offset="100%" stopColor="#22d3ee" stopOpacity={0} />
+							<stop offset="0%" stopColor="var(--chart-2)" stopOpacity={0.35} />
+							<stop offset="100%" stopColor="var(--chart-2)" stopOpacity={0} />
 						</linearGradient>
 						<linearGradient id="txGrad" x1="0" y1="0" x2="0" y2="1">
-							<stop offset="0%" stopColor="#a78bfa" stopOpacity={0.25} />
-							<stop offset="100%" stopColor="#a78bfa" stopOpacity={0} />
+							<stop offset="0%" stopColor="var(--chart-4)" stopOpacity={0.25} />
+							<stop offset="100%" stopColor="var(--chart-4)" stopOpacity={0} />
 						</linearGradient>
 					</defs>
 					<CartesianGrid
@@ -77,7 +77,8 @@ export function NetChart({ data }: NetChartProps) {
 							const val = value as number;
 							const nm = name as string;
 							const label = nm === "rx" ? "Inbound" : "Outbound";
-							const color = nm === "rx" ? "#22d3ee" : "#a78bfa";
+							const color =
+								nm === "rx" ? "var(--chart-2)" : "var(--chart-4)";
 							return [
 								<span
 									key={nm}
@@ -93,7 +94,7 @@ export function NetChart({ data }: NetChartProps) {
 					<Area
 						type="monotone"
 						dataKey="rx"
-						stroke="#22d3ee"
+						stroke="var(--chart-2)"
 						strokeWidth={2}
 						fill="url(#rxGrad)"
 						isAnimationActive={false}
@@ -102,7 +103,7 @@ export function NetChart({ data }: NetChartProps) {
 					<Area
 						type="monotone"
 						dataKey="tx"
-						stroke="#a78bfa"
+						stroke="var(--chart-4)"
 						strokeWidth={2}
 						fill="url(#txGrad)"
 						isAnimationActive={false}

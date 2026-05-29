@@ -11,7 +11,7 @@ export function CpuGaugeWidget() {
 			{sys ? (
 				<Gauge
 					value={sys.cpu}
-					color="#10b981"
+					color="var(--success)"
 					label="CPU"
 					sublabel={`Load: ${sys.load.map((l) => l.toFixed(2)).join(" / ")}`}
 					icon={<Cpu className="w-5 h-5" />}
