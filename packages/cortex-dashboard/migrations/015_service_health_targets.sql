@@ -10,8 +10,8 @@ UPDATE services SET health_url = 'honcho-mcp', health_type = 'process', updated_
  WHERE slug = 'honcho-mcp';
 UPDATE services SET health_url = 'ollama-honcho-embeddings-proxy', health_type = 'process', updated_at = NOW()
  WHERE slug = 'ollama-honcho-embeddings-proxy';
-UPDATE services SET health_url = 'http://127.0.0.1:18800/health', health_type = 'http', updated_at = NOW()
- WHERE slug = 'agentgateway';
+UPDATE services SET health_url = 'http://127.0.0.1:8090/', health_type = 'http', updated_at = NOW()
+ WHERE slug = 'obot';
 UPDATE services SET health_url = 'http://127.0.0.1:9222/json/version', health_type = 'http', updated_at = NOW()
  WHERE slug = 'kernel-browser';
 UPDATE services SET health_url = 'http://127.0.0.1:8091/healthz', health_type = 'http', updated_at = NOW()

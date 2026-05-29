@@ -28,12 +28,11 @@ BEGIN
   UPDATE services SET open_url = base_url || '/phpmyadmin/'      WHERE slug = 'phpmyadmin';
   UPDATE services SET open_url = base_url || '/redisinsight/'    WHERE slug = 'redisinsight';
   UPDATE services SET open_url = base_url || '/mongo-express/'   WHERE slug = 'mongo-express';
-  UPDATE services SET open_url = base_url || '/minio/'           WHERE slug = 'minio';
-  UPDATE services SET open_url = base_url || '/rabbitmq/'        WHERE slug = 'rabbitmq';
+  UPDATE services SET open_url = base_url || '/obot/'            WHERE slug = 'obot';
 
   UPDATE services SET open_url = '#' WHERE slug IN (
     'ollama','honcho','honcho-mcp','ollama-honcho-embeddings-proxy',
-    'agentgateway','kernel-browser','cortex-sandbox-runner',
+    'obot','kernel-browser','cortex-sandbox-runner',
     'postgresql','mysql','redis','mongodb','caddy','tailscale','incus',
     'cortex-dashboard-root-helper','watchtower','dnsmasq','fail2ban',
     'node-exporter','fluent-bit','promtail','otel-collector',

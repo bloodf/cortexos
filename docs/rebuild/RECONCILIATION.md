@@ -2,7 +2,7 @@
 
 Created: 2026-05-28
 Owner: operator
-Status: Phases A, B, and C complete. Phase A+B commits: 2f3aec9, 96fa8ed, 9e32f25, 4a2de9b. Phase C (2026-05-28): C2 cockpit-port `34d3c9d`; C1/C3/C4 host reconciliation executed live (old clone retired, host project stacks torn down, drift-check tooling added).
+Status: Phases A, B, C complete. Phase A+B commits: 2f3aec9, 96fa8ed, 9e32f25, 4a2de9b. Phase C (2026-05-28): C2 cockpit-port `34d3c9d`; C1/C3/C4 host reconciliation executed live. Phase D (Obot MCP gateway migration): D1 repo prep `e8f5495`, D2 host deployment pending.
 
 ## Why this exists
 
@@ -258,14 +258,41 @@ B5. ✅ DONE. **Reconciled `dynamic-seed.js` spoke keys** to real prompt
   `cli.js`/"no `--port`" template was stale). `cortex-dashboard-env-writer.service`
   has no host analog (host uses `cortex-env-writer.sh` + active root-helper).
 - **Orphaned C3 volumes** prunable after Incus coverage re-confirmed.
+- Repo-side G3/G6 cleanup (2026-05-28 commit e8f5495): redacted leaked Incus
+  bridge IPs from handoff docs; removed stale MinIO/RabbitMQ from PLAN.md
+  control-plane list and backup scope; added migration 025 marking cadvisor
+  inactive (container not deployed, dead dashboard link).
 
-## Acceptance (when is this done)
+### Phase D — replace agentgateway with Obot MCP platform (2026-05-28)
 
-- A fresh machine running `prompts/00-bootstrap.md` reproduces every non-optional
-  live cortex service, including update checks, health watchers, backup, and
-  mail-guardian.
-- Optional services install only when the operator opts in interactively.
-- Dashboard catalog/seed matches live ports/URLs; no retired rows; healthchecks
-  green for all active services.
-- No personal infra identifiers in public-facing files.
-- The stale old clone no longer serves any live stack (Phase C).
+Replace the custom Python MCP allowlist proxy (`cortex-agentgateway`) with
+[Obot](https://obot.ai/), a full MCP gateway platform providing centralized
+server hosting, discovery, authentication, and audit.
+
+- D1. ✅ DONE. Repo prep: added `stacks/cortex-obot/` (docker-compose, README),
+  `prompts/tools/50-obot.md` (interactive install prompt), migration
+  `026_agentgateway_to_obot.sql` (catalog row slug rename + port update),
+  updated `dynamic-seed.js` spoke map (`50-obot` → `obot`), retired
+  `prompts/tools/50-agentgateway.md`, updated Caddy prompt and `_order.md`.
+- D2. Host: install pgvector extension in CortexOS PostgreSQL, create `obot`
+  database + user, write env file, deploy via docker compose, add Caddy
+  `/obot/*` route, verify health, complete first-run bootstrap, register MCP
+  tools from the old allowlist, then stop + remove agentgateway.
+
+Why: agentgateway is a thin proxy with 11 hardcoded tool allowlist entries and
+no auth. Obot provides: MCP server lifecycle management, per-user auth,
+built-in audit logs, tool catalog, OAuth flows, and a management web UI.
+
+Dashboard audit table `agent_gateway_audit` is **kept** — the dashboard's own
+audit module (15+ files) writes to it independently of the MCP gateway.
+ ## Acceptance (when is this done)
+
+ - A fresh machine running `prompts/00-bootstrap.md` reproduces every non-optional
+   live cortex service, including update checks, health watchers, backup, and
+   mail-guardian.
+ - Optional services install only when the operator opts in interactively.
+ - Dashboard catalog/seed matches live ports/URLs; no retired rows; healthchecks
+   green for all active services.
+ - No personal infra identifiers in public-facing files.
+ - The stale old clone no longer serves any live stack (Phase C).
+ - Obot replaces agentgateway as the MCP gateway (Phase D).

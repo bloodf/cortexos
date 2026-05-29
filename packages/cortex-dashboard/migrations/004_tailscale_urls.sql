@@ -39,8 +39,7 @@ BEGIN
   UPDATE services SET open_url = base_url || '/phpmyadmin/'      WHERE slug = 'phpmyadmin';
   UPDATE services SET open_url = base_url || '/redisinsight/'    WHERE slug = 'redisinsight';
   UPDATE services SET open_url = base_url || '/mongo-express/'   WHERE slug = 'mongo-express';
-  UPDATE services SET open_url = base_url || '/minio/'           WHERE slug = 'minio';
-  UPDATE services SET open_url = base_url || '/rabbitmq/'        WHERE slug = 'rabbitmq';
+  UPDATE services SET open_url = base_url || '/obot/'            WHERE slug = 'obot';
 
   GET DIAGNOSTICS affected = ROW_COUNT;
   RETURN affected;
