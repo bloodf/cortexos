@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { SkeletonTable } from "@/components/skeleton";
 
 interface IncusDetailData {
@@ -43,9 +44,54 @@ function formatBytes(bytes: number | undefined): string {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 }
 
-export function IncusInstanceDetails({ name, onClose }: { name: string; onClose: () => void }) {
+export function IncusInstanceDetails({
+  name,
+  status,
+  onClose,
+}: {
+  name: string;
+  status?: string;
+  onClose: () => void;
+}) {
   const [info, setInfo] = useState<IncusDetailData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [command, setCommand] = useState("");
+  const [execOutput, setExecOutput] = useState<string | null>(null);
+  const [execError, setExecError] = useState<string | null>(null);
+  const [execRunning, setExecRunning] = useState(false);
+
+  const isRunning = (status ?? info?.data?.status ?? "").toLowerCase() === "running";
+
+  async function runCommand(e: React.FormEvent) {
+    e.preventDefault();
+    const cmd = command.trim();
+    if (!cmd || execRunning) return;
+    setExecRunning(true);
+    setExecError(null);
+    setExecOutput(null);
+    try {
+      const res = await fetch(`/api/incus/${encodeURIComponent(name)}/shell`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ command: cmd }),
+      });
+      const json = (await res.json()) as {
+        stdout?: string;
+        stderr?: string;
+        error?: string;
+      };
+      if (!res.ok) {
+        setExecError(json.error || `HTTP ${res.status}`);
+      } else {
+        const out = [json.stdout, json.stderr].filter(Boolean).join("\n");
+        setExecOutput(out.length > 0 ? out : "(no output)");
+      }
+    } catch (err) {
+      setExecError(err instanceof Error ? err.message : "Network error");
+    } finally {
+      setExecRunning(false);
+    }
+  }
 
   useEffect(() => {
     let mounted = true;
@@ -153,6 +199,39 @@ export function IncusInstanceDetails({ name, onClose }: { name: string; onClose:
                 </div>
               </div>
             )}
+
+            <div>
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                Console
+              </p>
+              {isRunning ? (
+                <form onSubmit={runCommand} className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={command}
+                      onChange={(e) => setCommand(e.target.value)}
+                      placeholder="e.g. uname -a"
+                      className="font-mono text-xs"
+                    />
+                    <Button type="submit" size="sm" disabled={execRunning || command.trim().length === 0}>
+                      {execRunning ? "Running..." : "Run"}
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Runs <span className="font-mono">incus exec {name} -- sh -c &lt;command&gt;</span> via the
+                    audited root helper.
+                  </p>
+                  {execError && <p className="text-xs text-destructive">{execError}</p>}
+                  {execOutput !== null && (
+                    <pre className="max-h-64 overflow-auto rounded-md bg-secondary p-3 font-mono text-xs whitespace-pre-wrap text-foreground">
+                      {execOutput}
+                    </pre>
+                  )}
+                </form>
+              ) : (
+                <p className="text-xs text-muted-foreground">Instance must be running to execute commands.</p>
+              )}
+            </div>
           </div>
         )}
       </CardContent>

@@ -1,5 +1,7 @@
 export * from './cpu-gauge-widget';
+export * from './cpu-temperature-widget';
 export * from './memory-gauge-widget';
+export * from './machine-sensors-widget';
 export * from './storage-gauge-widget';
 export * from './service-online-widget';
 export * from './service-offline-widget';

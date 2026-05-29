@@ -1,6 +1,8 @@
-import { 
+import {
 	CpuGaugeWidget,
+	CpuTemperatureWidget,
 	MemoryGaugeWidget,
+	MachineSensorsWidget,
 	StorageGaugeWidget,
 	ServiceOnlineWidget,
 	ServiceOfflineWidget,
@@ -20,7 +22,9 @@ import {
 
 export const WIDGET_REGISTRY: Record<string, React.FC> = {
 	"cpu-gauge": CpuGaugeWidget,
+	"cpu-temperature": CpuTemperatureWidget,
 	"memory-gauge": MemoryGaugeWidget,
+	"machine-sensors": MachineSensorsWidget,
 	"storage-gauge": StorageGaugeWidget,
 	"service-online": ServiceOnlineWidget,
 	"service-offline": ServiceOfflineWidget,
@@ -40,7 +44,9 @@ export const WIDGET_REGISTRY: Record<string, React.FC> = {
 
 export const WIDGET_LABELS: Record<string, string> = {
 	"cpu-gauge": "CPU",
+	"cpu-temperature": "CPU Temp",
 	"memory-gauge": "Memory",
+	"machine-sensors": "Machine Sensors",
 	"storage-gauge": "Storage",
 	"service-online": "Services Online",
 	"service-offline": "Services Offline",

@@ -95,9 +95,12 @@ export function IncusCreateDialog({ onCreated }: IncusCreateDialogProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <Button size="sm" variant="outline" onClick={() => setOpen(true)}>+ Create</Button>
-      <DialogContent>
+    <>
+      <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+        + Create
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
         <DialogHeader>
           <DialogTitle>Create Instance</DialogTitle>
         </DialogHeader>
@@ -149,7 +152,8 @@ export function IncusCreateDialog({ onCreated }: IncusCreateDialogProps) {
             </Button>
           </div>
         </form>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

@@ -195,6 +195,7 @@ export function IncusTable() {
       {selectedInstance && (
         <IncusInstanceDetails
           name={selectedInstance.name}
+          status={selectedInstance.status}
           onClose={() => setSelectedInstance(null)}
         />
       )}

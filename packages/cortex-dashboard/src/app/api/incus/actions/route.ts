@@ -16,10 +16,13 @@ export async function POST(request: Request) {
 	const auth = await requireAdmin(request, { tool: "incus.action" });
 	if (auth.error) return auth.error;
 
+	let action = "";
+	let name = "";
+
 	try {
 		const body = await request.json();
-		const action = String(body.action || "").trim().toLowerCase();
-		const name = String(body.name || "").trim();
+		action = String(body.action || "").trim().toLowerCase();
+		name = String(body.name || "").trim();
 
 		if (!action || !VALID_ACTIONS.has(action)) {
 			return NextResponse.json({ error: "Invalid action" }, { status: 400 });
@@ -69,23 +72,16 @@ export async function POST(request: Request) {
 	} catch (e) {
 		const msg = e instanceof Error ? e.message : "incus action failed";
 
-		try {
-			const body = await request.json().catch(() => ({} as Record<string, unknown>));
-			const action = String(body.action || "").trim().toLowerCase();
-			const name = String(body.name || "").trim();
-			if (action && name) {
-				await createActionLog({
-					user_id: auth.session?.user_id ?? null,
-					username: auth.session?.username ?? null,
-					target_type: "incus",
-					target_name: name,
-					action,
-					status: "failure",
-					message: msg,
-				});
-			}
-		} catch {
-			// ignore logging failure
+		if (action && name) {
+			await createActionLog({
+				user_id: auth.session?.user_id ?? null,
+				username: auth.session?.username ?? null,
+				target_type: "incus",
+				target_name: name,
+				action,
+				status: "failure",
+				message: msg,
+			}).catch(() => {});
 		}
 
 		return NextResponse.json({ error: msg }, { status: 500 });

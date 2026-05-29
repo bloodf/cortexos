@@ -13,9 +13,11 @@ export async function POST(request: Request) {
 	const auth = await requireAdmin(request, { tool: "incus.create" });
 	if (auth.error) return auth.error;
 
+	let name = "";
+
 	try {
 		const body = await request.json();
-		const name = String(body.name || "").trim();
+		name = String(body.name || "").trim();
 		const image = String(body.image || "").trim();
 		const profiles = Array.isArray(body.profiles) ? body.profiles : ["default"];
 
@@ -58,22 +60,16 @@ export async function POST(request: Request) {
 	} catch (e) {
 		const msg = e instanceof Error ? e.message : "incus create failed";
 
-		try {
-			const body = await request.json().catch(() => ({} as Record<string, unknown>));
-			const name = String(body.name || "").trim();
-			if (name) {
-				await createActionLog({
-					user_id: auth.session?.user_id ?? null,
-					username: auth.session?.username ?? null,
-					target_type: "incus",
-					target_name: name,
-					action: "create",
-					status: "failure",
-					message: msg,
-				});
-			}
-		} catch {
-			// ignore logging failure
+		if (name) {
+			await createActionLog({
+				user_id: auth.session?.user_id ?? null,
+				username: auth.session?.username ?? null,
+				target_type: "incus",
+				target_name: name,
+				action: "create",
+				status: "failure",
+				message: msg,
+			}).catch(() => {});
 		}
 
 		return NextResponse.json({ error: msg }, { status: 500 });
