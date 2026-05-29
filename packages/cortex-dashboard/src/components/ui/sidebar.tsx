@@ -68,7 +68,7 @@ function SidebarProvider({
       <div
         data-slot="sidebar-provider"
         data-state={open ? "expanded" : "collapsed"}
-        className={cn("flex min-h-svh w-full", className)}
+        className={cn("flex h-svh w-full overflow-hidden", className)}
       >
         {children}
       </div>
