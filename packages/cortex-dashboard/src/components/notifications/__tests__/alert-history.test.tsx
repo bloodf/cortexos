@@ -39,7 +39,7 @@ describe('AlertHistory', () => {
     render(<AlertHistory limit={10} />);
 
     await waitFor(() => {
-      expect(screen.getByText('No alerts yet.')).toBeInTheDocument();
+      expect(screen.getByText('No alerts yet')).toBeInTheDocument();
     });
   });
 });

@@ -19,6 +19,8 @@ Usage: scripts/rebuild/apply.sh --phase retired-runtime --dry-run --backup-dir D
        scripts/rebuild/apply.sh --phase incus-foundation --execute --backup-dir DIR
        scripts/rebuild/apply.sh --phase incus-base-image --dry-run --backup-dir DIR
        scripts/rebuild/apply.sh --phase incus-base-image --execute --backup-dir DIR
+       INCUS_BASE_VARIANT=gastown scripts/rebuild/apply.sh --phase incus-base-image --dry-run --backup-dir DIR
+       INCUS_BASE_VARIANT=gastown scripts/rebuild/apply.sh --phase incus-base-image --execute --backup-dir DIR
        scripts/rebuild/apply.sh --phase project-instances --dry-run --backup-dir DIR
        scripts/rebuild/apply.sh --phase project-instances --execute --backup-dir DIR
 
@@ -29,6 +31,12 @@ Options:
   --dry-run        Print remote commands without mutating the host.
   --execute        Execute the phase on the host.
   --backup-dir DIR Verified backup directory under /mnt/hdd/cortexos-backups.
+
+Environment:
+  INCUS_BASE_VARIANT  For the incus-base-image phase: "" (default) builds the lean
+                      cortexos-base image; "gastown" additionally bakes in the gastown
+                      multi-agent CLI (Go + beads + Dolt + gt) and publishes
+                      cortexos-gastown-base instead.
 USAGE
 }
 
@@ -76,6 +84,12 @@ fi
 case "$phase" in
   retired-runtime|dashboard-root-helper|dashboard-app|obot|incus-foundation|incus-base-image|project-instances|project-hermes-move) ;;
   *) die "unsupported phase: $phase" ;;
+esac
+
+incus_base_variant="${INCUS_BASE_VARIANT:-}"
+case "$incus_base_variant" in
+  ""|gastown) ;;
+  *) die "unsupported INCUS_BASE_VARIANT: $incus_base_variant (expected \"\" or gastown)" ;;
 esac
 
 "$SCRIPT_DIR/validate.sh" --local >/dev/null
@@ -528,8 +542,19 @@ archive="${INCUS_ARCHIVE:?}"
 builder="${INCUS_BASE_BUILDER:-cortex-base-build}"
 smoke_name="${INCUS_BASE_SMOKE_NAME:-cortex-base-smoke}"
 source_image="${INCUS_BASE_SOURCE_IMAGE:-images:ubuntu/26.04}"
-version_alias="${INCUS_BASE_VERSION_ALIAS:-cortexos-base/ubuntu-26.04-$(date -u +%Y%m%d)}"
-latest_alias="${INCUS_BASE_LATEST_ALIAS:-cortexos-base/latest}"
+variant="${INCUS_BASE_VARIANT:-}"
+
+if [ "$variant" = "gastown" ]; then
+  image_prefix="cortexos-gastown-base"
+  image_description="CortexOS gastown + Hermes base image"
+else
+  image_prefix="cortexos-base"
+  image_description="CortexOS Ubuntu 26.04 AI agent base image"
+fi
+
+version_alias="${INCUS_BASE_VERSION_ALIAS:-$image_prefix/ubuntu-26.04-$(date -u +%Y%m%d)}"
+latest_alias="${INCUS_BASE_LATEST_ALIAS:-$image_prefix/latest}"
+alias_grep="${image_prefix}/(latest|ubuntu-26.04)"
 
 log() {
   printf '[apply:%s] %s\n' "$mode" "$*"
@@ -575,18 +600,27 @@ run_shell 'if sudo -n zfs list "cortex-zfs/containers/'"$builder"'" >/dev/null 2
 run_shell 'sudo -n incus file push "'"$archive"'" "'"$builder"'/tmp/cortexos-incus-base.tgz"'
 run_shell 'sudo -n incus exec "'"$builder"'" -- bash -lc "rm -rf /opt/cortexos-incus && mkdir -p /opt/cortexos-incus && tar -xzf /tmp/cortexos-incus-base.tgz -C /opt/cortexos-incus"'
 run_shell 'sudo -n incus exec "'"$builder"'" -- bash /opt/cortexos-incus/stacks/cortex-incus/base-image-provision.sh'
+if [ "$variant" = "gastown" ]; then
+  run_shell 'sudo -n incus exec "'"$builder"'" -- bash /opt/cortexos-incus/stacks/cortex-incus/gastown-provision.sh'
+fi
 run_shell 'sudo -n incus exec "'"$builder"'" -- sudo -H -u cortexos bash -lc '"'"'source ~/.profile; command -v codex pi omp oh-pi claude cursor cursor-agent hermes cortex-tmux cortex-tailscale-up cortex-host-health; tmux -V; zsh --version; tailscale version | head -5'"'"''
+if [ "$variant" = "gastown" ]; then
+  run_shell 'sudo -n incus exec "'"$builder"'" -- sudo -H -u cortexos bash -lc '"'"'source ~/.profile; command -v go dolt bd gt; go version; dolt version | head -3; gt --version || gt --help | head -5'"'"''
+fi
 run_shell 'if sudo -n zfs list "cortex-zfs/containers/'"$builder"'" >/dev/null 2>&1; then sudo -n zfs set sync=standard "cortex-zfs/containers/'"$builder"'"; fi'
 run_shell 'timeout 180s sudo -n incus stop -f "'"$builder"'"'
 run_shell 'sudo -n incus image alias delete "'"$latest_alias"'" >/dev/null 2>&1 || true'
 run_shell 'sudo -n incus image alias delete "'"$version_alias"'" >/dev/null 2>&1 || true'
-run_shell 'sudo -n incus publish "'"$builder"'" --alias "'"$version_alias"'" --alias "'"$latest_alias"'" description="CortexOS Ubuntu 26.04 AI agent base image"'
+run_shell 'sudo -n incus publish "'"$builder"'" --alias "'"$version_alias"'" --alias "'"$latest_alias"'" description="'"$image_description"'"'
 run_shell 'sudo -n incus delete -f "'"$builder"'"'
 run_shell 'timeout 300s sudo -n incus launch "'"$latest_alias"'" "'"$smoke_name"'"'
 run_shell 'for i in $(seq 1 60); do state=$(sudo -n incus list "'"$smoke_name"'" --format csv -c s 2>/dev/null || true); [ "$state" = RUNNING ] && exit 0; sleep 2; done; sudo -n incus info "'"$smoke_name"'" || true; exit 1'
 run_shell 'sudo -n incus exec "'"$smoke_name"'" -- sudo -H -u cortexos bash -lc '"'"'source ~/.profile; printf "user=%s\n" "$(whoami)"; codex --version; claude --version; pi --version || pi --help | head -5; omp --version || omp --help | head -5; cursor --version || true; hermes --version || hermes --help | head -5; cortex-host-health --local-only; systemctl is-enabled tailscaled || true'"'"''
+if [ "$variant" = "gastown" ]; then
+  run_shell 'sudo -n incus exec "'"$smoke_name"'" -- sudo -H -u cortexos bash -lc '"'"'source ~/.profile; command -v go dolt bd gt; go version; dolt version | head -3; gt --version || gt --help | head -5; test -d /gt/.dolt-data && echo "dolt-data dir present"'"'"''
+fi
 run_shell 'timeout 180s sudo -n incus delete -f "'"$smoke_name"'"'
-run_shell 'sudo -n incus image alias list | grep -E "cortexos-base/(latest|ubuntu-26.04)"'
+run_shell 'sudo -n incus image alias list | grep -E "'"$alias_grep"'"'
 log "completed $mode"
 REMOTE
 
@@ -596,7 +630,7 @@ REMOTE
     mode="execute"
   fi
 
-  ssh_host "MODE=$mode BACKUP_DIR=$backup_dir_q INCUS_ARCHIVE=$remote_archive bash -s" <"$remote_script"
+  ssh_host "MODE=$mode BACKUP_DIR=$backup_dir_q INCUS_ARCHIVE=$remote_archive INCUS_BASE_VARIANT=$(printf '%q' "$incus_base_variant") bash -s" <"$remote_script"
   exit 0
 fi
 
