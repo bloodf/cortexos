@@ -12,12 +12,12 @@ export function TotalDownloadWidget() {
 		: 0;
 
 	return (
-		<div className="h-full flex flex-col justify-center bg-white/[0.02] rounded-xl p-4 border border-white/[0.04] min-h-[80px]">
-			<div className="flex items-center gap-2 text-xs text-white/40 light:text-slate-700 mb-2">
-				<ArrowDown className="w-3.5 h-3.5 text-cyan-400" />
+		<div className="flex h-full min-h-[80px] flex-col justify-center rounded-xl border border-border bg-muted/30 p-4">
+			<div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
+				<ArrowDown className="h-3.5 w-3.5 text-chart-3" />
 				Total Downloaded
 			</div>
-			<div className="text-2xl font-bold text-cyan-400 font-mono">
+			<div className="font-mono text-2xl font-bold text-chart-3">
 				{formatBytes(totalRxBytes)}
 			</div>
 		</div>

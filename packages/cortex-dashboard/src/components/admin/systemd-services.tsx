@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
   TableBody,
@@ -80,32 +81,32 @@ export function SystemdServices() {
   }
 
   if (loading) {
-    return <div className="text-sm text-white/40 light:text-slate-700">Loading systemd services...</div>;
+    return <div className="text-sm text-muted-foreground">Loading systemd services...</div>;
   }
 
   if (error && services.length === 0) {
-    return <div className="text-sm text-red-400">{error}</div>;
+    return <div className="text-sm text-destructive">{error}</div>;
   }
 
   return (
     <div className="space-y-3">
-      {error && <div className="text-sm text-red-400">{error}</div>}
-      <div className="rounded-lg border border-white/[0.04] bg-white/[0.02] overflow-hidden">
+      {error && <div className="text-sm text-destructive">{error}</div>}
+      <div className="rounded-lg border border-border overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow className="border-b border-white/[0.04] hover:bg-transparent">
-              <TableHead className="text-white/40 light:text-slate-700 text-xs font-medium">Name</TableHead>
-              <TableHead className="text-white/40 light:text-slate-700 text-xs font-medium">State</TableHead>
-              <TableHead className="text-white/40 light:text-slate-700 text-xs font-medium">Description</TableHead>
-              <TableHead className="text-white/40 light:text-slate-700 text-xs font-medium">Actions</TableHead>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="text-xs font-medium text-muted-foreground">Name</TableHead>
+              <TableHead className="text-xs font-medium text-muted-foreground">State</TableHead>
+              <TableHead className="text-xs font-medium text-muted-foreground">Description</TableHead>
+              <TableHead className="text-xs font-medium text-muted-foreground">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {services.map((service) => (
-              <TableRow key={service.name} className="border-b border-white/[0.02] hover:bg-white/[0.02]">
-                <TableCell className="text-white/70 light:text-slate-700 text-sm font-mono">{service.name}</TableCell>
-                <TableCell className="text-white/40 light:text-slate-700 text-sm">{service.active}/{service.sub}</TableCell>
-                <TableCell className="text-white/40 light:text-slate-700 text-sm">{service.description}</TableCell>
+              <TableRow key={service.name}>
+                <TableCell className="font-mono text-sm text-foreground">{service.name}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{service.active}/{service.sub}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{service.description}</TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-2">
                     {["start", "stop", "restart"].map((action) => (

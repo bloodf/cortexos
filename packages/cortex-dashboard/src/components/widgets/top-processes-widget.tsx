@@ -9,28 +9,28 @@ export function TopProcessesWidget() {
 	const processes: ProcessInfo[] = data?.processes ?? [];
 	return (
 		<div className="h-full flex flex-col min-h-[200px]">
-			<h2 className="text-sm font-semibold text-white/80 light:text-slate-700 flex items-center gap-2 mb-4">
-				<Cpu className="w-4 h-4 text-cyan-400" />
+			<h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-foreground">
+				<Cpu className="h-4 w-4 text-chart-3" />
 				Top Processes
 			</h2>
-			<div className="space-y-0.5 overflow-auto flex-1">
+			<div className="flex-1 space-y-0.5 overflow-auto">
 				{processes.slice(0, 10).map((proc) => (
 					<div
 						key={proc.pid}
-						className="flex items-center gap-3 py-1.5 px-2 rounded hover:bg-white/[0.02]"
+						className="flex items-center gap-3 rounded px-2 py-1.5 hover:bg-muted/50"
 					>
-						<span className="w-12 text-[10px] font-mono text-white/30 light:text-slate-700">{proc.pid}</span>
-						<span className="w-14 text-[10px] text-white/40 light:text-slate-700 truncate">{proc.user}</span>
-						<span className="flex-1 text-[10px] text-white/60 light:text-slate-700 truncate" title={proc.command}>
+						<span className="w-12 font-mono text-[10px] text-muted-foreground">{proc.pid}</span>
+						<span className="w-14 truncate text-[10px] text-muted-foreground">{proc.user}</span>
+						<span className="flex-1 truncate text-[10px] text-foreground" title={proc.command}>
 							{proc.command}
 						</span>
 						<span
-							className={`text-[10px] font-mono font-semibold ${
+							className={`font-mono text-[10px] font-semibold ${
 								proc.cpu > 30
-									? "text-red-400"
+									? "text-destructive"
 									: proc.cpu > 10
-										? "text-amber-400"
-										: "text-emerald-400"
+										? "text-warning"
+										: "text-success"
 							}`}
 						>
 							{proc.cpu}%
@@ -38,7 +38,7 @@ export function TopProcessesWidget() {
 					</div>
 				))}
 				{!data && (
-					<div className="text-center text-white/20 light:text-slate-700 py-8 text-sm">Loading...</div>
+					<div className="py-8 text-center text-sm text-muted-foreground">Loading...</div>
 				)}
 			</div>
 		</div>

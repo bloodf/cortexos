@@ -29,11 +29,11 @@ export function MailGuardianReviewsWidget() {
 	}, []);
 
 	return (
-		<div className="-m-4 flex h-[calc(100%+2rem)] min-h-[112px] items-center gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-6 py-4">
-			<ShieldQuestion className="h-7 w-7 text-amber-300" />
+		<div className="-m-4 flex h-[calc(100%+2rem)] min-h-[112px] items-center gap-3 rounded-2xl border border-warning/20 bg-warning/10 px-6 py-4">
+			<ShieldQuestion className="h-7 w-7 text-warning" />
 			<div>
-				<div className="text-2xl font-bold text-amber-300">{openReviews}</div>
-				<div className="text-xs text-white/40 light:text-slate-700">Mail Reviews</div>
+				<div className="text-2xl font-bold text-warning">{openReviews}</div>
+				<div className="text-xs text-muted-foreground">Mail Reviews</div>
 			</div>
 		</div>
 	);

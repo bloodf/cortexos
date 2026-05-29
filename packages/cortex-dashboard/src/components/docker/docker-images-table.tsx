@@ -32,44 +32,41 @@ export function DockerImagesTable({ images }: { images: unknown[] }) {
   const rows = images as Image[];
 
   return (
-    <div className="glass-panel rounded-2xl p-6">
+    <div className="rounded-xl border border-border bg-card p-6">
       {rows.length === 0 ? (
-        <div className="text-sm text-white/30 light:text-slate-700">No images</div>
+        <div className="text-sm text-muted-foreground">No images</div>
       ) : (
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="border-b border-white/[0.06]">
-                <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
+              <TableRow className="border-b border-border">
+                <TableHead className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                   Repository
                 </TableHead>
-                <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
+                <TableHead className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                   Tag
                 </TableHead>
-                <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
+                <TableHead className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                   Size
                 </TableHead>
-                <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
+                <TableHead className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                   Created
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.map((img, i) => (
-                <TableRow
-                  key={i}
-                  className="border-b border-white/[0.03] hover:bg-white/[0.02]"
-                >
-                  <TableCell className="text-white/60 light:text-slate-700 text-xs">
+                <TableRow key={i} className="border-b border-border hover:bg-muted/50">
+                  <TableCell className="text-foreground text-xs">
                     {img.Repository || "—"}
                   </TableCell>
-                  <TableCell className="text-white/40 light:text-slate-700 text-xs font-mono">
+                  <TableCell className="text-muted-foreground text-xs font-mono">
                     {img.Tag || "—"}
                   </TableCell>
-                  <TableCell className="text-white/40 light:text-slate-700 text-xs font-mono">
+                  <TableCell className="text-muted-foreground text-xs font-mono">
                     {typeof img.Size === "number" ? formatBytes(img.Size) : "—"}
                   </TableCell>
-                  <TableCell className="text-white/40 light:text-slate-700 text-xs">
+                  <TableCell className="text-muted-foreground text-xs">
                     {typeof img.Created === "number" ? formatDate(img.Created) : "—"}
                   </TableCell>
                 </TableRow>

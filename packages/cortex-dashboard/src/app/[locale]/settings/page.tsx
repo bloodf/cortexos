@@ -5,12 +5,18 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import { ThemeSettings } from "@/components/ui/theme-switcher";
+import { SettingsIcon } from "lucide-react";
 
 export default function SettingsPage() {
 	return (
-		<div className="space-y-4">
-			<h1 className="text-2xl font-semibold">Settings</h1>
+		<div className="flex flex-col gap-6 p-6">
+			<PageHeader
+				title="Settings"
+				description="Personalize the dashboard appearance and workspace preferences."
+				icon={<SettingsIcon />}
+			/>
 			<Card>
 				<CardHeader>
 					<CardTitle>Appearance</CardTitle>

@@ -14,8 +14,11 @@ import Link from "next/link";
 import { query } from "@/lib/db/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ShieldCheckIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
+import { ScrollTextIcon } from "lucide-react";
 import { AuditChainVerifyBadge } from "./chain-verify-badge";
+import { AuditLogTable, type AuditTableRow } from "./audit-log-table";
 import { auditViewerQuerySchema, parseInput } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
@@ -23,17 +26,7 @@ export const runtime = "nodejs";
 
 const PAGE_SIZE = 50;
 
-interface AuditRow {
-	id: string;
-	occurred_at: string;
-	event_id: string;
-	event_type: string;
-	source: string;
-	subject: string | null;
-	actor: string | null;
-	chain_hash: string;
-	rekor_log_index: string | null;
-}
+type AuditRow = AuditTableRow;
 
 interface PageProps {
 	searchParams?: Promise<{ page?: string }>;
@@ -82,79 +75,45 @@ export default async function AuditViewerPage({ searchParams }: PageProps) {
 	const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
 	return (
-		<div className="space-y-6">
-			<div className="flex items-center gap-2">
-				<ShieldCheckIcon className="size-5" />
-				<h1 className="text-xl font-bold">Audit Log</h1>
-				<Badge variant="secondary">{total} rows</Badge>
-				<div className="ml-auto">
-					<AuditChainVerifyBadge from={firstTs} to={lastTs} />
-				</div>
-			</div>
+		<div className="flex flex-col gap-6 p-6">
+			<PageHeader
+				title="Audit Log"
+				description="Hash-chained, tamper-evident record of audited operations across CortexOS."
+				icon={<ScrollTextIcon />}
+				actions={
+					<div className="flex items-center gap-2">
+						<Badge variant="secondary">{total} rows</Badge>
+						<AuditChainVerifyBadge from={firstTs} to={lastTs} />
+					</div>
+				}
+			/>
 
 			<Card>
 				<CardHeader>
-					<CardTitle>Page {page} of {totalPages}</CardTitle>
+					<CardTitle>
+						Page {page} of {totalPages}
+					</CardTitle>
 				</CardHeader>
-				<CardContent className="overflow-x-auto">
-					<table className="w-full text-xs">
-						<thead>
-							<tr className="border-b">
-								<th className="text-left p-2">Occurred</th>
-								<th className="text-left p-2">Type</th>
-								<th className="text-left p-2">Source</th>
-								<th className="text-left p-2">Subject</th>
-								<th className="text-left p-2">Actor</th>
-								<th className="text-left p-2">Chain head</th>
-								<th className="text-left p-2">Rekor</th>
-							</tr>
-						</thead>
-						<tbody>
-							{rows.length === 0 && (
-								<tr>
-									<td colSpan={7} className="p-4 text-center text-muted-foreground">
-										No audit rows. Run an audited helper action to populate the log.
-									</td>
-								</tr>
-							)}
-							{rows.map((r) => (
-								<tr key={r.id} className="border-b last:border-0">
-									<td className="p-2 font-mono whitespace-nowrap">
-										{new Date(r.occurred_at).toISOString()}
-									</td>
-									<td className="p-2 font-mono">{r.event_type}</td>
-									<td className="p-2">{r.source}</td>
-									<td className="p-2 font-mono">{r.subject ?? "—"}</td>
-									<td className="p-2">{r.actor ?? "—"}</td>
-									<td className="p-2 font-mono" title={r.chain_hash}>
-										{r.chain_hash.slice(0, 12)}…
-									</td>
-									<td className="p-2 font-mono">
-										{r.rekor_log_index ?? <span className="text-muted-foreground">pending</span>}
-									</td>
-								</tr>
-							))}
-						</tbody>
-					</table>
+				<CardContent>
+					<AuditLogTable rows={rows} />
 				</CardContent>
 			</Card>
 
-			<nav className="flex gap-2">
+			<nav className="flex items-center gap-2">
 				{page > 1 && (
-					<Link
-						className="text-sm underline"
-						href={`?page=${page - 1}`}
-					>
+					<Button variant="outline" size="sm" render={<Link href={`?page=${page - 1}`} />}>
 						← Prev
-					</Link>
+					</Button>
 				)}
 				{page < totalPages && (
-					<Link
-						className="text-sm underline ml-auto"
-						href={`?page=${page + 1}`}
+					<Button
+						variant="outline"
+						size="sm"
+						className="ml-auto"
+						render={<Link href={`?page=${page + 1}`} />}
 					>
 						Next →
-					</Link>
+					</Button>
 				)}
 			</nav>
 		</div>

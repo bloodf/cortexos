@@ -1,5 +1,6 @@
 import { redirect } from "@/i18n/routing";
 import { getCurrentSession } from "@/lib/auth";
+import { PageHeader } from "@/components/ui/page-header";
 import {
 	Card,
 	CardContent,
@@ -7,6 +8,8 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { UserCircle } from "lucide-react";
+
 export default async function AccountPage({
 	params,
 }: {
@@ -19,13 +22,17 @@ export default async function AccountPage({
 	}
 
 	return (
-		<div className="space-y-4">
-			<div>
-				<h1 className="text-2xl font-semibold">Account</h1>
-				<p className="text-sm text-muted-foreground">
-					Signed in as <span className="font-mono">{session!.user.username}</span>
-				</p>
-			</div>
+		<div className="flex flex-col gap-6 p-6">
+			<PageHeader
+				title="Account"
+				description={
+					<>
+						Signed in as{" "}
+						<span className="font-mono text-foreground">{session!.user.username}</span>
+					</>
+				}
+				icon={<UserCircle />}
+			/>
 			<Card>
 				<CardHeader>
 					<CardTitle>Password</CardTitle>

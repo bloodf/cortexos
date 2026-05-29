@@ -1,5 +1,7 @@
 import { listAlerts, getAlertRules } from "@/lib/db/alerts";
 import { AdminAlertsPanel } from "@/components/admin/admin-alerts-panel";
+import { PageHeader } from "@/components/ui/page-header";
+import { BellRing } from "lucide-react";
 
 export default async function AdminAlertsPage() {
 	const [alerts, rules] = await Promise.all([
@@ -25,11 +27,12 @@ export default async function AdminAlertsPage() {
 		enabled: r.enabled,
 	}));
 	return (
-		<div className="space-y-4">
-			<h1 className="text-2xl font-semibold">Admin · Alerts</h1>
-			<p className="text-sm text-muted-foreground">
-				Operational alerts and rule management. Acknowledge or delete alerts; toggle rules.
-			</p>
+		<div className="flex flex-col gap-6 p-6">
+			<PageHeader
+				title="Alerts"
+				description="Operational alerts and rule management. Acknowledge or delete alerts; toggle rules."
+				icon={<BellRing />}
+			/>
 			<AdminAlertsPanel initialAlerts={safeAlerts} initialRules={safeRules} />
 		</div>
 	);

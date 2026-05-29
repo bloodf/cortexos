@@ -1,12 +1,15 @@
 import { EnvBrowser } from "@/components/admin/env-browser";
+import { PageHeader } from "@/components/ui/page-header";
+import { FileLock2 } from "lucide-react";
 
 export default function AdminEnvBrowserPage() {
 	return (
-		<div className="space-y-4">
-			<h1 className="text-2xl font-semibold">Admin · Env Browser</h1>
-			<p className="text-sm text-muted-foreground">
-				Live read/update of VPS env files. Secrets masked by default. Audit-logged.
-			</p>
+		<div className="flex flex-col gap-6 p-6">
+			<PageHeader
+				title="Env Browser"
+				description="Live read/update of VPS env files. Secrets masked by default. Audit-logged."
+				icon={<FileLock2 />}
+			/>
 			<EnvBrowser />
 		</div>
 	);

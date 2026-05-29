@@ -9,8 +9,8 @@ export function DockerStatusWidget() {
 	const count = containers.filter((c) => c.State === "running").length;
 	return (
 		<div className="h-full flex flex-col gap-3">
-			<h2 className="text-sm font-semibold text-white/80 light:text-slate-700 flex items-center gap-2">
-				<Container className="w-4 h-4 text-sky-400" />
+			<h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+				<Container className="h-4 w-4 text-chart-3" />
 				Docker
 			</h2>
 			<div className="text-3xl font-bold">{count}</div>

@@ -68,7 +68,7 @@ describe('HealthcheckTable', () => {
 	it('renders status badges', () => {
 		render(<HealthcheckTable services={mockServices} />);
 		expect(screen.getAllByText('Online').length).toBeGreaterThanOrEqual(1);
-		expect(screen.getByText('Offline')).toBeInTheDocument();
+		expect(screen.getAllByText('Offline').length).toBeGreaterThanOrEqual(1);
 	});
 
 	it('renders check type badges', () => {

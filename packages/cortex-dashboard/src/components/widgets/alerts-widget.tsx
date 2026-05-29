@@ -27,8 +27,8 @@ export function AlertsWidget() {
 
 	return (
 		<div className="h-full flex flex-col gap-3">
-			<h2 className="text-sm font-semibold text-white/80 light:text-slate-700 flex items-center gap-2">
-				<Bell className="w-4 h-4 text-amber-400" />
+			<h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+				<Bell className="h-4 w-4 text-warning" />
 				Alerts
 			</h2>
 			<div className="text-3xl font-bold">{count}</div>

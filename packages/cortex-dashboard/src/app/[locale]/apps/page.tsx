@@ -2,6 +2,8 @@ import { getAllServices } from "@/lib/db/service";
 import { listBadgesForService } from "@/lib/db/service-badges";
 import { getCurrentSession } from "@/lib/auth";
 import { AppsPanel } from "@/components/apps/apps-panel";
+import { PageHeader } from "@/components/ui/page-header";
+import { LayoutGrid } from "lucide-react";
 
 export default async function AppsPage() {
 	const rawServices = await getAllServices();
@@ -34,10 +36,12 @@ export default async function AppsPage() {
 	);
 
 	return (
-		<div className="space-y-4">
-			<h1 className="text-2xl font-semibold text-white/90 light:text-slate-800">
-				Apps
-			</h1>
+		<div className="flex flex-col gap-6 p-6">
+			<PageHeader
+				title="Apps"
+				description="Launch and filter every registered CortexOS service."
+				icon={<LayoutGrid />}
+			/>
 			<AppsPanel services={withBadges} isAdmin={isAdmin} />
 		</div>
 	);

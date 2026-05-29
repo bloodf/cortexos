@@ -8,6 +8,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Switch } from "@/components/ui/switch";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { Service } from "./service-row";
 
 export interface ServiceTogglesProps {
@@ -18,56 +20,45 @@ export interface ServiceTogglesProps {
 export function ServiceToggles({ services, onToggle }: ServiceTogglesProps) {
   if (services.length === 0) {
     return (
-      <div className="rounded-lg border border-white/[0.04] bg-white/[0.02] p-8 text-center text-sm text-white/40 light:text-slate-700">
-        No services to display.
-      </div>
+      <EmptyState
+        title="No services"
+        description="No services to display."
+      />
     );
   }
 
   return (
-    <div className="rounded-lg border border-white/[0.04] bg-white/[0.02] overflow-hidden">
+    <div className="rounded-lg border border-border overflow-hidden">
       <Table>
         <TableHeader>
-          <TableRow className="border-b border-white/[0.04] hover:bg-transparent">
-            <TableHead className="text-white/40 light:text-slate-700 text-xs font-medium">
+          <TableRow className="hover:bg-transparent">
+            <TableHead className="text-xs font-medium text-muted-foreground">
               Name
             </TableHead>
-            <TableHead className="text-white/40 light:text-slate-700 text-xs font-medium">
+            <TableHead className="text-xs font-medium text-muted-foreground">
               Category
             </TableHead>
-            <TableHead className="text-white/40 light:text-slate-700 text-xs font-medium w-24">
+            <TableHead className="w-24 text-xs font-medium text-muted-foreground">
               Active
             </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {services.map((svc) => (
-            <TableRow
-              key={svc.id}
-              className="border-b border-white/[0.02] hover:bg-white/[0.02]"
-            >
-              <TableCell className="text-white/70 light:text-slate-700 text-sm">
+            <TableRow key={svc.id}>
+              <TableCell className="text-sm text-foreground">
                 {svc.name}
               </TableCell>
-              <TableCell className="text-white/40 light:text-slate-700 text-sm">
+              <TableCell className="text-sm text-muted-foreground">
                 {svc.category}
               </TableCell>
               <TableCell>
-                <button
-                  onClick={() => onToggle(svc.id, !svc.is_active)}
+                <Switch
+                  checked={svc.is_active}
+                  onCheckedChange={(v) => onToggle(svc.id, v)}
                   data-testid={`toggle-${svc.id}`}
-                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                    svc.is_active ? "bg-emerald-500/30" : "bg-white/[0.06]"
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-3.5 w-3.5 rounded-full transition-transform ${
-                      svc.is_active
-                        ? "translate-x-4 bg-emerald-400"
-                        : "translate-x-0.5 bg-white/30 light:bg-slate-100"
-                    }`}
-                  />
-                </button>
+                  aria-label={`Toggle ${svc.name}`}
+                />
               </TableCell>
             </TableRow>
           ))}

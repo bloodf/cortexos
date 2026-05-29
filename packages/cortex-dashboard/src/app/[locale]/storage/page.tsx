@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useState, useRef, useMemo } from "react";
-import { Search, HardDrive, ArrowUpDown } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { HardDrive } from "lucide-react";
+import type { ColumnDef } from "@tanstack/react-table";
+import { PageHeader } from "@/components/ui/page-header";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { DataTable } from "@/components/ui/data-table";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface MountInfo {
 	filesystem: string;
@@ -18,26 +25,24 @@ interface DriveInfo {
 	type: string;
 }
 
-function fuzzyMatch(query: string, text: string): boolean {
-	if (!query) return true;
-	const q = query.toLowerCase().replace(/\s+/g, "");
-	const t = text.toLowerCase().replace(/\s+/g, "");
-	let qi = 0;
-	for (let ti = 0; ti < t.length && qi < q.length; ti++)
-		if (t[ti] === q[qi]) qi++;
-	return qi === q.length;
+function usageColor(pct: number): string {
+	if (pct > 90) return "var(--destructive)";
+	if (pct > 70) return "var(--warning)";
+	return "var(--success)";
 }
 
-type SortKey = "mount" | "total" | "used" | "free" | "percent";
+function usageTextClass(pct: number): string {
+	if (pct > 90) return "text-destructive";
+	if (pct > 70) return "text-warning";
+	return "text-success";
+}
 
 export default function StoragePage() {
+	const t = useTranslations("Infrastructure");
 	const [mounts, setMounts] = useState<MountInfo[]>([]);
 	const [drives, setDrives] = useState<DriveInfo[]>([]);
-	const [search, setSearch] = useState("");
-	const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({
-		key: "mount",
-		dir: "asc",
-	});
+	const [loading, setLoading] = useState(true);
+	const [filter, setFilter] = useState("");
 	const mountedRef = useRef(true);
 
 	useEffect(() => {
@@ -49,6 +54,7 @@ export default function StoragePage() {
 					const data = await res.json();
 					setMounts(data.mounts || []);
 					setDrives(data.drives || []);
+					setLoading(false);
 				}
 			} catch {
 				// polling retries in 5s
@@ -62,183 +68,117 @@ export default function StoragePage() {
 		};
 	}, []);
 
-	const filtered = useMemo(() => {
-		let list = mounts;
-		if (search)
-			list = list.filter(
-				(m) => fuzzyMatch(search, m.mount) || fuzzyMatch(search, m.filesystem),
-			);
-		list = [...list].sort((a, b) => {
-			const va = a[sort.key];
-			const vb = b[sort.key];
-			if (sort.key === "percent") {
-				return sort.dir === "asc"
-					? (va as number) - (vb as number)
-					: (vb as number) - (va as number);
-			}
-			return sort.dir === "asc"
-				? (va as string).localeCompare(vb as string)
-				: (vb as string).localeCompare(va as string);
-		});
-		return list;
-	}, [mounts, search, sort]);
-
-	function toggleSort(key: SortKey) {
-		setSort((prev) => ({
-			key,
-			dir: prev.key === key && prev.dir === "asc" ? "desc" : "asc",
-		}));
-	}
-
-	const thBtn = (label: string, k: SortKey, right?: boolean) => (
-		<button
-			onClick={() => toggleSort(k)}
-			className={`flex items-center gap-1 hover:text-white/80 light:hover:text-slate-950 light:text-slate-700 transition-colors ${right ? "justify-end w-full" : ""}`}
-		>
-			{label}
-			<ArrowUpDown
-				className={`w-3 h-3 ${sort.key === k ? "text-indigo-400" : "text-white/10 light:text-slate-700"}`}
-			/>
-		</button>
+	const columns: ColumnDef<MountInfo>[] = useMemo(
+		() => [
+			{
+				accessorKey: "mount",
+				header: "Mount",
+				cell: ({ row }) => (
+					<span className="font-mono text-xs text-foreground">{row.original.mount}</span>
+				),
+			},
+			{
+				accessorKey: "filesystem",
+				header: "Filesystem",
+				cell: ({ row }) => (
+					<span className="text-xs text-muted-foreground">{row.original.filesystem}</span>
+				),
+			},
+			{
+				accessorKey: "total",
+				header: "Size",
+				cell: ({ row }) => (
+					<span className="font-mono text-xs text-foreground">{row.original.total}</span>
+				),
+			},
+			{
+				accessorKey: "used",
+				header: "Used",
+				cell: ({ row }) => (
+					<span className="font-mono text-xs text-foreground">{row.original.used}</span>
+				),
+			},
+			{
+				accessorKey: "free",
+				header: "Free",
+				cell: ({ row }) => (
+					<span className="font-mono text-xs text-success">{row.original.free}</span>
+				),
+			},
+			{
+				accessorKey: "percent",
+				header: "Usage",
+				cell: ({ row }) => {
+					const pct = row.original.percent || 0;
+					return (
+						<div className="flex items-center gap-2">
+							<div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+								<div
+									className="h-full rounded-full"
+									style={{ width: `${pct}%`, backgroundColor: usageColor(pct) }}
+								/>
+							</div>
+							<span className={`text-xs font-mono font-medium ${usageTextClass(pct)}`}>
+								{pct}%
+							</span>
+						</div>
+					);
+				},
+			},
+		],
+		[],
 	);
 
 	return (
-		<div className="space-y-6 animate-[slide-in_0.4s_ease-out]">
-			<div className="glass-panel rounded-2xl p-6">
-				<h2 className="text-sm font-semibold text-white/80 light:text-slate-700 flex items-center gap-2 mb-4">
-					<HardDrive className="w-4 h-4 text-amber-400" />
-					Physical Drives
-				</h2>
-				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-					{drives.map((d) => (
-						<div
-							key={d.name}
-							className="bg-white/[0.02] rounded-xl p-4 border border-white/[0.04]"
-						>
-							<div className="text-xs text-white/30 light:text-slate-700 font-mono mb-1">
-								{d.name}
-							</div>
-							<div
-								className="text-sm font-medium text-white/70 light:text-slate-700 truncate"
-								title={d.model}
-							>
-								{d.model}
-							</div>
-							<div className="flex items-center gap-2 mt-2">
-								<span className="text-lg font-bold text-amber-400">
-									{d.size}
-								</span>
-								<span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.04] text-white/30 light:text-slate-700">
-									{d.type}
-								</span>
-							</div>
-						</div>
-					))}
-					{drives.length === 0 && (
-						<div className="text-white/20 light:text-slate-700 text-sm">No drives detected</div>
-					)}
-				</div>
-			</div>
+		<div className="flex flex-col gap-6 p-6">
+			<PageHeader
+				title={t("StorageTitle")}
+				description={t("StorageDescription")}
+				icon={<HardDrive />}
+			/>
 
-			<div className="glass-panel rounded-2xl p-6">
-				<div className="flex items-center justify-between mb-4">
-					<h2 className="text-sm font-semibold text-white/80 light:text-slate-700 flex items-center gap-2">
-						<HardDrive className="w-4 h-4 text-cyan-400" />
-						Mount Points
-					</h2>
-					<div className="relative max-w-xs">
-						<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/20 light:text-slate-700" />
-						<input
-							type="text"
-							value={search}
-							onChange={(e) => setSearch(e.target.value)}
-							placeholder="Search mounts..."
-							className="pl-9 pr-3 py-1.5 bg-white/[0.02] border border-white/[0.06] rounded-lg text-xs text-white/70 light:text-slate-700 placeholder:text-white/20 light:text-slate-700 focus:outline-none focus:border-indigo-500/40"
-						/>
+			<Card>
+				<CardHeader>
+					<CardTitle>{t("PhysicalDrives")}</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+						{drives.map((d) => (
+							<div key={d.name} className="rounded-xl border border-border bg-muted/30 p-4">
+								<div className="text-xs text-muted-foreground font-mono mb-1">{d.name}</div>
+								<div className="text-sm font-medium text-foreground truncate" title={d.model}>
+									{d.model}
+								</div>
+								<div className="flex items-center gap-2 mt-2">
+									<span className="text-lg font-bold text-foreground">{d.size}</span>
+									<Badge variant="secondary">{d.type}</Badge>
+								</div>
+							</div>
+						))}
+						{drives.length === 0 && !loading && (
+							<div className="text-muted-foreground text-sm">{t("NoDrives")}</div>
+						)}
 					</div>
-				</div>
-				<div className="overflow-x-auto">
-					<table className="w-full text-left">
-						<thead>
-							<tr className="border-b border-white/[0.06]">
-								<th className="pb-3 pr-4 text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-									{thBtn("Mount", "mount")}
-								</th>
-								<th className="pb-3 pr-4 text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-									{thBtn("Filesystem", "mount")}
-								</th>
-								<th className="pb-3 pr-4 text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider text-right">
-									{thBtn("Size", "total", true)}
-								</th>
-								<th className="pb-3 pr-4 text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider text-right">
-									{thBtn("Used", "used", true)}
-								</th>
-								<th className="pb-3 pr-4 text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider text-right">
-									{thBtn("Free", "free", true)}
-								</th>
-								<th className="pb-3 text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider text-right">
-									{thBtn("Usage", "percent", true)}
-								</th>
-							</tr>
-						</thead>
-						<tbody className="text-sm">
-							{filtered.map((m) => {
-								const pct = m.percent || 0;
-								return (
-									<tr
-										key={m.mount}
-										className="border-b border-white/[0.03] hover:bg-white/[0.02]"
-									>
-										<td className="py-3 pr-4 font-mono text-white/60 light:text-slate-700">
-											{m.mount}
-										</td>
-										<td className="py-3 pr-4 text-white/40 light:text-slate-700 text-xs">
-											{m.filesystem}
-										</td>
-										<td className="py-3 pr-4 text-right text-white/60 light:text-slate-700 font-mono">
-											{m.total}
-										</td>
-										<td className="py-3 pr-4 text-right text-white/60 light:text-slate-700 font-mono">
-											{m.used}
-										</td>
-										<td className="py-3 pr-4 text-right text-emerald-400/70 font-mono">
-											{m.free}
-										</td>
-										<td className="py-3 text-right">
-											<div className="flex items-center justify-end gap-2">
-												<div className="w-16 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
-													<div
-														className="h-full rounded-full"
-														style={{
-															width: `${pct}%`,
-															backgroundColor:
-																pct > 90
-																	? "#ef4444"
-																	: pct > 70
-																		? "#f59e0b"
-																		: "#10b981",
-														}}
-													/>
-												</div>
-												<span
-													className={`text-xs font-mono font-medium ${pct > 90 ? "text-red-400" : pct > 70 ? "text-amber-400" : "text-emerald-400"}`}
-												>
-													{pct}%
-												</span>
-											</div>
-										</td>
-									</tr>
-								);
-							})}
-						</tbody>
-					</table>
-					{filtered.length === 0 && (
-						<div className="text-center text-white/20 light:text-slate-700 py-12 text-sm">
-							No mount points found
-						</div>
-					)}
-				</div>
-			</div>
+				</CardContent>
+			</Card>
+
+			<Card>
+				<CardHeader>
+					<CardTitle>{t("MountPoints")}</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<DataTable
+						columns={columns}
+						data={mounts}
+						loading={loading}
+						enableFilter
+						globalFilter={filter}
+						onGlobalFilterChange={setFilter}
+						filterPlaceholder={t("SearchMounts")}
+						emptyState={<EmptyState title={t("NoMounts")} />}
+					/>
+				</CardContent>
+			</Card>
 		</div>
 	);
 }

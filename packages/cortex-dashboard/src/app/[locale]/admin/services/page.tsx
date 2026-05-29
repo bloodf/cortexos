@@ -1,5 +1,7 @@
 import { getAllServicesForAdmin } from "@/lib/db/service";
 import { AdminServicesTable } from "@/components/admin/admin-services-table";
+import { PageHeader } from "@/components/ui/page-header";
+import { Boxes } from "lucide-react";
 
 export default async function AdminServicesPage() {
 	const services = await getAllServicesForAdmin();
@@ -14,8 +16,12 @@ export default async function AdminServicesPage() {
 		badges: s.badges ?? [],
 	}));
 	return (
-		<div className="space-y-4">
-			<h1 className="text-2xl font-semibold">Admin · Services</h1>
+		<div className="flex flex-col gap-6 p-6">
+			<PageHeader
+				title="Services"
+				description="Service catalog registered with the dashboard. Toggle availability and review badges and env sources."
+				icon={<Boxes />}
+			/>
 			<AdminServicesTable services={minimal} />
 		</div>
 	);

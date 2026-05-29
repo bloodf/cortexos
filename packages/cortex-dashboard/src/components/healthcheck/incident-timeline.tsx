@@ -17,11 +17,11 @@ interface IncidentTimelineProps {
 function statusColor(status: string): string {
 	switch (status) {
 		case "online":
-			return "bg-emerald-500";
+			return "bg-success";
 		case "offline":
-			return "bg-red-500";
+			return "bg-destructive";
 		default:
-			return "bg-amber-500";
+			return "bg-warning";
 	}
 }
 

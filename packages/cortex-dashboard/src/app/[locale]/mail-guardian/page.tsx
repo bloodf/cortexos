@@ -1,12 +1,15 @@
 import { MailGuardianPanel } from "@/components/admin/mail-guardian-panel";
+import { PageHeader } from "@/components/ui/page-header";
+import { MailCheckIcon } from "lucide-react";
 
 export default function MailGuardianPage() {
 	return (
-		<div className="space-y-4">
-			<div>
-				<h1 className="text-2xl font-semibold">Mail Guardian</h1>
-				<p className="text-sm text-muted-foreground">Manage watched email accounts and review queued email decisions.</p>
-			</div>
+		<div className="flex flex-col gap-6 p-6">
+			<PageHeader
+				title="Mail Guardian"
+				description="Manage watched email accounts and review queued email decisions."
+				icon={<MailCheckIcon />}
+			/>
 			<MailGuardianPanel />
 		</div>
 	);

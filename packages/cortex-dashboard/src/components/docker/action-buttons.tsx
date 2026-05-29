@@ -52,7 +52,7 @@ export function DockerActionButtons({
           {loading === action ? "..." : action.charAt(0).toUpperCase() + action.slice(1)}
         </Button>
       ))}
-      {error && <span className="text-xs text-red-400">{error}</span>}
+      {error && <span className="text-xs text-destructive">{error}</span>}
     </div>
   );
 }

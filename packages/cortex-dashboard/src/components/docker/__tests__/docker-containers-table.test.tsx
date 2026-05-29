@@ -32,32 +32,32 @@ describe("DockerContainersTable", () => {
     expect(screen.getByText("running")).toBeInTheDocument();
   });
 
-  it("shows green dot for running state", () => {
+  it("shows success dot for running state", () => {
     const containers = [{ Names: ["/a"], Image: "img", Status: "Up", State: "running" }];
     render(<DockerContainersTable containers={containers} />);
     const dot = screen.getByLabelText("running");
-    expect(dot.className).toContain("bg-emerald");
+    expect(dot.className).toContain("bg-success");
   });
 
-  it("shows red dot for exited state", () => {
+  it("shows destructive dot for exited state", () => {
     const containers = [{ Names: ["/a"], Image: "img", Status: "Exited", State: "exited" }];
     render(<DockerContainersTable containers={containers} />);
     const dot = screen.getByLabelText("exited");
-    expect(dot.className).toContain("bg-red");
+    expect(dot.className).toContain("bg-destructive");
   });
 
-  it("shows yellow dot for paused state", () => {
+  it("shows warning dot for paused state", () => {
     const containers = [{ Names: ["/a"], Image: "img", Status: "Paused", State: "paused" }];
     render(<DockerContainersTable containers={containers} />);
     const dot = screen.getByLabelText("paused");
-    expect(dot.className).toContain("bg-amber");
+    expect(dot.className).toContain("bg-warning");
   });
 
-  it("shows gray dot for other state", () => {
+  it("shows muted dot for other state", () => {
     const containers = [{ Names: ["/a"], Image: "img", Status: "Dead", State: "dead" }];
     render(<DockerContainersTable containers={containers} />);
     const dot = screen.getByLabelText("dead");
-    expect(dot.className).toContain("bg-gray");
+    expect(dot.className).toContain("bg-muted-foreground");
   });
 
   it("strips leading slash from name", () => {

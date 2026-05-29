@@ -1,12 +1,17 @@
+import { getTranslations } from "next-intl/server";
+import { ServerIcon } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
 import { SystemdServices } from "@/components/admin/systemd-services";
 
-export default function SystemdPage() {
+export default async function SystemdPage() {
+	const t = await getTranslations("Infrastructure");
 	return (
-		<div className="space-y-4">
-			<h1 className="text-2xl font-semibold">Systemd</h1>
-			<p className="text-sm text-muted-foreground">
-				Read-only view of host systemd units. Use Admin · Systemd to start/stop/restart.
-			</p>
+		<div className="flex flex-col gap-6 p-6">
+			<PageHeader
+				title={t("SystemdTitle")}
+				description={t("SystemdDescription")}
+				icon={<ServerIcon />}
+			/>
 			<SystemdServices />
 		</div>
 	);

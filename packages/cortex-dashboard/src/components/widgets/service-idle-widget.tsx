@@ -11,13 +11,13 @@ export function ServiceIdleWidget() {
 	const services: ServiceCheck[] = data?.services ?? [];
 	const idle = services.filter((s) => s.status === "unknown").length;
 	return (
-		<div className="h-full flex items-center gap-3 border border-white/10 light:border-slate-200 rounded-xl px-4 py-3 bg-white/[0.01] min-h-[80px]">
-			<div className="w-10 h-10 rounded-lg bg-white/5 light:bg-slate-100 flex items-center justify-center">
-				<Server className="w-5 h-5 text-white/40 light:text-slate-700" />
+		<div className="flex h-full min-h-[80px] items-center gap-3 rounded-xl border border-border bg-muted/30 px-4 py-3">
+			<div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
+				<Server className="h-5 w-5 text-muted-foreground" />
 			</div>
 			<div>
-				<div className="text-2xl font-bold text-white/60 light:text-slate-700">{idle}</div>
-				<div className="text-xs text-white/40 light:text-slate-700">Idle</div>
+				<div className="text-2xl font-bold text-foreground">{idle}</div>
+				<div className="text-xs text-muted-foreground">Idle</div>
 			</div>
 		</div>
 	);
@@ -49,17 +49,17 @@ export function LivePerformanceWidget() {
 	return (
 		<div className="h-full flex flex-col min-h-[200px]">
 			<div className="flex items-center justify-between mb-4">
-				<h2 className="text-sm font-semibold text-white/80 light:text-slate-700 flex items-center gap-2">
-					<Activity className="w-4 h-4 text-indigo-400" />
+				<h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+					<Activity className="h-4 w-4 text-primary" />
 					Live Performance
 				</h2>
-				<div className="flex gap-3 text-xs">
+				<div className="flex gap-3 text-xs text-muted-foreground">
 					<span className="flex items-center gap-1.5">
-						<span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+						<span className="h-2.5 w-2.5 rounded-full bg-chart-1" />
 						CPU
 					</span>
 					<span className="flex items-center gap-1.5">
-						<span className="w-2.5 h-2.5 rounded-full bg-blue-400" />
+						<span className="h-2.5 w-2.5 rounded-full bg-chart-2" />
 						Mem
 					</span>
 				</div>

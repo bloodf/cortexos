@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Upload, RotateCcw } from "lucide-react";
 import { motion } from "framer-motion";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 const CATEGORIES = [
 	"AI",
@@ -43,6 +45,9 @@ function readFileAsDataUri(file: File): Promise<string> {
 	});
 }
 
+const selectClass =
+	"w-full rounded-lg border border-input bg-background px-3 py-1.5 text-xs text-foreground transition-all outline-none focus:border-ring focus:ring-1 focus:ring-ring";
+
 export function AddServiceForm({
 	onSuccess,
 	onCancel,
@@ -80,16 +85,13 @@ export function AddServiceForm({
 		}
 	};
 
-	const inputClass =
-		"w-full px-3 py-1.5 bg-black/40 border border-white/[0.08] rounded-lg text-xs text-white/90 light:text-slate-700 placeholder:text-white/20 light:text-slate-700 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/60 transition-all shadow-inner";
-
 	return (
-		<motion.div 
+		<motion.div
 			initial={{ opacity: 0, y: -10 }}
 			animate={{ opacity: 1, y: 0 }}
-			className="mx-6 mt-3 p-4 glass-panel border border-white/[0.08] rounded-xl space-y-3 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]"
+			className="mx-6 mt-3 space-y-3 rounded-xl border border-border bg-card p-4"
 		>
-			{error && <div className="text-xs text-red-400 mb-2">{error}</div>}
+			{error && <div className="mb-2 text-xs text-destructive">{error}</div>}
 			<div className="grid grid-cols-3 gap-3">
 				{[
 					{ key: "slug" as const, label: "Slug", placeholder: "my-app" },
@@ -98,26 +100,26 @@ export function AddServiceForm({
 					{ key: "check_target" as const, label: "Health Target", placeholder: "http://localhost:3000/health" },
 				].map((f) => (
 					<div key={f.key}>
-						<label className="block text-[10px] text-white/30 light:text-slate-700 uppercase tracking-wider mb-1">
+						<label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">
 							{f.label}
 						</label>
-						<input
+						<Input
 							type="text"
 							value={form[f.key]}
 							onChange={(e) => setForm((prev) => ({ ...prev, [f.key]: e.target.value }))}
 							placeholder={f.placeholder}
-							className={inputClass}
+							className="text-xs"
 						/>
 					</div>
 				))}
 				<div>
-					<label className="block text-[10px] text-white/30 light:text-slate-700 uppercase tracking-wider mb-1">
+					<label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">
 						Category
 					</label>
 					<select
 						value={form.category}
 						onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value }))}
-						className={inputClass}
+						className={selectClass}
 					>
 						{CATEGORIES.map((c) => (
 							<option key={c} value={c}>{c}</option>
@@ -125,13 +127,13 @@ export function AddServiceForm({
 					</select>
 				</div>
 				<div>
-					<label className="block text-[10px] text-white/30 light:text-slate-700 uppercase tracking-wider mb-1">
+					<label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">
 						Check Type
 					</label>
 					<select
 						value={form.check_type}
 						onChange={(e) => setForm((prev) => ({ ...prev, check_type: e.target.value as (typeof CHECK_TYPES)[number] }))}
-						className={inputClass}
+						className={selectClass}
 					>
 						{CHECK_TYPES.map((t) => (
 							<option key={t} value={t}>{t}</option>
@@ -139,9 +141,9 @@ export function AddServiceForm({
 					</select>
 				</div>
 			</div>
-			<div className="grid grid-cols-3 gap-3 mt-2">
+			<div className="mt-2 grid grid-cols-3 gap-3">
 				<div>
-					<label className="block text-[10px] text-white/30 light:text-slate-700 uppercase tracking-wider mb-1">
+					<label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">
 						Icon Color
 					</label>
 					<div className="flex items-center gap-2">
@@ -149,20 +151,20 @@ export function AddServiceForm({
 							type="color"
 							value={form.icon_color || "#525252"}
 							onChange={(e) => setForm((prev) => ({ ...prev, icon_color: e.target.value }))}
-							className="w-8 h-8 rounded cursor-pointer bg-transparent border-0"
+							className="h-8 w-8 cursor-pointer rounded border-0 bg-transparent"
 						/>
 						{form.icon_color && (
-							<span className="text-[10px] text-white/40 light:text-slate-700 font-mono">{form.icon_color}</span>
+							<span className="font-mono text-[10px] text-muted-foreground">{form.icon_color}</span>
 						)}
 					</div>
 				</div>
 				<div>
-					<label className="block text-[10px] text-white/30 light:text-slate-700 uppercase tracking-wider mb-1">
+					<label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">
 						Icon Image
 					</label>
 					<div className="flex items-center gap-2">
-						<label className="flex items-center gap-1.5 px-2 py-1 bg-white/[0.04] border border-white/[0.08] rounded text-[10px] text-white/50 light:text-slate-700 cursor-pointer hover:bg-white/[0.06]">
-							<Upload className="w-3 h-3" />
+						<label className="flex cursor-pointer items-center gap-1.5 rounded border border-input bg-background px-2 py-1 text-[10px] text-muted-foreground hover:bg-muted">
+							<Upload className="h-3 w-3" />
 							Upload
 							<input
 								type="file"
@@ -184,35 +186,32 @@ export function AddServiceForm({
 						</label>
 						{form.icon_image && (
 							// eslint-disable-next-line @next/next/no-img-element
-							<img src={form.icon_image} alt="preview" className="w-6 h-6 rounded object-cover" />
+							<img src={form.icon_image} alt="preview" className="h-6 w-6 rounded object-cover" />
 						)}
 					</div>
 				</div>
 				<div className="flex items-end">
 					{(form.icon_color || form.icon_image) && (
-						<button
+						<Button
+							type="button"
+							variant="ghost"
+							size="sm"
 							onClick={() => setForm((prev) => ({ ...prev, icon_color: "", icon_image: "" }))}
-							className="flex items-center gap-1 px-2 py-1 text-[10px] text-white/30 light:text-slate-700 hover:text-white/50 light:hover:text-slate-950 light:text-slate-700"
+							className="text-[10px] text-muted-foreground"
 						>
-							<RotateCcw className="w-3 h-3" />
+							<RotateCcw className="h-3 w-3" />
 							Reset Avatar
-						</button>
+						</Button>
 					)}
 				</div>
 			</div>
 			<div className="flex gap-2">
-				<button
-					onClick={handleAdd}
-					className="px-4 py-1.5 bg-emerald-500/20 text-emerald-300 rounded-lg text-xs font-medium hover:bg-emerald-500/30 transition-colors border border-emerald-500/20 shadow-[inset_0_1px_0_0_rgba(16,185,129,0.2)]"
-				>
+				<Button onClick={handleAdd} size="sm">
 					Save Service
-				</button>
-				<button
-					onClick={onCancel}
-					className="px-4 py-1.5 text-white/40 light:text-slate-700 rounded-lg text-xs font-medium hover:text-white/70 light:hover:text-slate-950 light:text-slate-700 hover:bg-white/[0.04] transition-colors"
-				>
+				</Button>
+				<Button onClick={onCancel} variant="ghost" size="sm">
 					Cancel
-				</button>
+				</Button>
 			</div>
 		</motion.div>
 	);
