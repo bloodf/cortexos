@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { readFileSync, existsSync } from "fs";
+import { existsSync, readdirSync, readFileSync } from "fs";
+import { join } from "path";
 import { hostExec } from "@/lib/host-exec";
 
 function getCpuUsage(): number {
@@ -178,6 +179,136 @@ function getMounts(): MountInfo[] {
 	return [];
 }
 
+interface MachineSensor {
+	id: string;
+	label: string;
+	value: number;
+	unit: "celsius" | "rpm" | "volts";
+	source: string;
+}
+
+function readNumber(path: string): number | null {
+	try {
+		const value = Number(readFileSync(path, "utf-8").trim());
+		return Number.isFinite(value) ? value : null;
+	} catch {
+		return null;
+	}
+}
+
+function readLabel(path: string, fallback: string): string {
+	try {
+		return readFileSync(path, "utf-8").trim() || fallback;
+	} catch {
+		return fallback;
+	}
+}
+
+function cleanSensorLabel(value: string): string {
+	return value.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function uniqueSensors(sensors: MachineSensor[]): MachineSensor[] {
+	const seen = new Set<string>();
+	return sensors.filter((sensor) => {
+		const key = `${sensor.unit}:${sensor.label.toLowerCase()}:${Math.round(sensor.value * 10)}`;
+		if (seen.has(key)) return false;
+		seen.add(key);
+		return true;
+	});
+}
+
+function getThermalZoneSensors(): MachineSensor[] {
+	if (!existsSync("/sys/class/thermal")) return [];
+	try {
+		return readdirSync("/sys/class/thermal")
+			.filter((entry) => entry.startsWith("thermal_zone"))
+			.map((entry): MachineSensor | null => {
+				const dir = join("/sys/class/thermal", entry);
+				const millidegrees = readNumber(join(dir, "temp"));
+				if (millidegrees === null) return null;
+				return {
+					id: entry,
+					label: cleanSensorLabel(readLabel(join(dir, "type"), entry)),
+					value: Math.round((millidegrees / 1000) * 10) / 10,
+					unit: "celsius",
+					source: "thermal",
+				};
+			})
+			.filter((sensor): sensor is MachineSensor => sensor !== null);
+	} catch {
+		return [];
+	}
+}
+
+function getHwmonSensors(): MachineSensor[] {
+	if (!existsSync("/sys/class/hwmon")) return [];
+	const sensors: MachineSensor[] = [];
+	try {
+		for (const hwmon of readdirSync("/sys/class/hwmon")) {
+			const dir = join("/sys/class/hwmon", hwmon);
+			const chip = cleanSensorLabel(readLabel(join(dir, "name"), hwmon));
+			for (const file of readdirSync(dir)) {
+				const tempMatch = file.match(/^temp(\d+)_input$/);
+				const fanMatch = file.match(/^fan(\d+)_input$/);
+				const voltageMatch = file.match(/^in(\d+)_input$/);
+				if (tempMatch) {
+					const id = tempMatch[1];
+					const value = readNumber(join(dir, file));
+					if (value === null) continue;
+					sensors.push({
+						id: `${hwmon}:temp${id}`,
+						label: cleanSensorLabel(readLabel(join(dir, `temp${id}_label`), `${chip} ${id}`)),
+						value: Math.round((value / 1000) * 10) / 10,
+						unit: "celsius",
+						source: chip,
+					});
+				} else if (fanMatch) {
+					const id = fanMatch[1];
+					const value = readNumber(join(dir, file));
+					if (value === null || value <= 0) continue;
+					sensors.push({
+						id: `${hwmon}:fan${id}`,
+						label: cleanSensorLabel(readLabel(join(dir, `fan${id}_label`), `${chip} fan ${id}`)),
+						value: Math.round(value),
+						unit: "rpm",
+						source: chip,
+					});
+				} else if (voltageMatch) {
+					const id = voltageMatch[1];
+					const value = readNumber(join(dir, file));
+					if (value === null || value <= 0) continue;
+					sensors.push({
+						id: `${hwmon}:in${id}`,
+						label: cleanSensorLabel(readLabel(join(dir, `in${id}_label`), `${chip} in ${id}`)),
+						value: Math.round((value / 1000) * 100) / 100,
+						unit: "volts",
+						source: chip,
+					});
+				}
+			}
+		}
+	} catch {
+		/* noop */
+	}
+	return sensors;
+}
+
+function getMachineSensors() {
+	const sensors = uniqueSensors([...getHwmonSensors(), ...getThermalZoneSensors()]);
+	const temperatures = sensors
+		.filter((sensor) => sensor.unit === "celsius" && sensor.value > -100 && sensor.value < 150)
+		.sort((a, b) => b.value - a.value);
+	const fans = sensors.filter((sensor) => sensor.unit === "rpm").sort((a, b) => b.value - a.value);
+	const voltages = sensors.filter((sensor) => sensor.unit === "volts").sort((a, b) => b.value - a.value);
+	const cpuTemperature =
+		temperatures.find((sensor) => /cpu|package|k10temp|core|x86/i.test(`${sensor.label} ${sensor.source}`)) ??
+		temperatures[0] ??
+		null;
+
+	return { cpuTemperature, temperatures, fans, voltages };
+}
+
 function getUptime(): string {
 	try {
 		if (existsSync("/proc/uptime")) {
@@ -220,6 +351,7 @@ export async function GET() {
 	const mounts = getMounts();
 	const uptime = getUptime();
 	const load = getLoadAverage();
+	const sensors = getMachineSensors();
 
 	return NextResponse.json({
 		cpu,
@@ -228,6 +360,7 @@ export async function GET() {
 		mounts,
 		uptime,
 		load,
+		sensors,
 		timestamp: Date.now(),
 	});
 }

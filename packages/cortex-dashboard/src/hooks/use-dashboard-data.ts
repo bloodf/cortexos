@@ -48,6 +48,14 @@ export interface MountInfo {
 	percent: number;
 }
 
+export interface MachineSensor {
+	id: string;
+	label: string;
+	value: number;
+	unit: "celsius" | "rpm" | "volts";
+	source: string;
+}
+
 export interface SystemData {
 	cpu: number;
 	memory: { percent: number; used: number; total: number };
@@ -55,6 +63,12 @@ export interface SystemData {
 	mounts: MountInfo[];
 	load: number[];
 	uptime?: number;
+	sensors?: {
+		cpuTemperature: MachineSensor | null;
+		temperatures: MachineSensor[];
+		fans: MachineSensor[];
+		voltages: MachineSensor[];
+	};
 }
 
 export interface ProcessInfo {

@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { WIDGET_REGISTRY, WIDGET_LABELS } from '../dashboard-widgets';
 
 describe('WIDGET_REGISTRY', () => {
-	it('contains all 17 widget entries', () => {
-		expect(Object.keys(WIDGET_REGISTRY).length).toBe(17);
+	it('contains all 19 widget entries', () => {
+		expect(Object.keys(WIDGET_REGISTRY).length).toBe(19);
 	});
 
 	it('maps widget keys to React components', () => {
@@ -20,7 +20,7 @@ describe('WIDGET_REGISTRY', () => {
 	});
 
 	const expectedWidgets = [
-		'cpu-gauge', 'memory-gauge', 'storage-gauge',
+		'cpu-gauge', 'cpu-temperature', 'memory-gauge', 'machine-sensors', 'storage-gauge',
 		'service-online', 'service-offline', 'service-idle',
 		'live-performance', 'top-processes', 'network-graph',
 		'total-download', 'total-upload',
@@ -33,13 +33,15 @@ describe('WIDGET_REGISTRY', () => {
 });
 
 describe('WIDGET_LABELS', () => {
-	it('contains all 17 label entries', () => {
-		expect(Object.keys(WIDGET_LABELS).length).toBe(17);
+	it('contains all 19 label entries', () => {
+		expect(Object.keys(WIDGET_LABELS).length).toBe(19);
 	});
 
 	it('has human-readable labels', () => {
 		expect(WIDGET_LABELS['cpu-gauge']).toBe('CPU');
+		expect(WIDGET_LABELS['cpu-temperature']).toBe('CPU Temp');
 		expect(WIDGET_LABELS['memory-gauge']).toBe('Memory');
+		expect(WIDGET_LABELS['machine-sensors']).toBe('Machine Sensors');
 		expect(WIDGET_LABELS['live-performance']).toBe('Live Performance');
 		expect(WIDGET_LABELS['database-ops']).toBe('Database Ops');
 	});
