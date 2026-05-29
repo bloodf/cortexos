@@ -5,14 +5,14 @@ import { NextIntlClientProvider } from "next-intl";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { AlertToastListener } from "@/components/notifications/alert-toast";
+import { ThemeProvider } from "@/hooks/use-theme";
 import {
-	ThemeProvider,
 	DEFAULT_PRESET,
 	PRESET_COOKIE,
 	presetClass,
 	PRESETS,
 	type ThemePreset,
-} from "@/hooks/use-theme";
+} from "@/lib/theme-presets";
 import "./globals.css";
 
 export const metadata: Metadata = {
