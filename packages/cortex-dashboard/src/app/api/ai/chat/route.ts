@@ -18,7 +18,7 @@ import {
 } from "@/lib/ai/provider-resolver";
 import { getAllTools } from "@/lib/ai/tools";
 import { deriveCortexSessionId } from "@/lib/ai/session-binding";
-import { insertAuditRow } from "@/lib/db/agent-gateway-audit";
+import { insertAuditRow } from "@/lib/db/dashboard-audit";
 import {
 	appendChatMessages,
 	type ChatMessage as DBChatMessage,

@@ -1,8 +1,8 @@
 {
-  "$id": "https://cortexos/schemas/cortex-audit-agentgateway-v1.json",
+  "$id": "https://cortexos/schemas/cortex-audit-mcp-v1.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "cortex.audit.agentgateway.<verb>.v1 data payload",
-  "description": "AgentGateway allowlist audit event.",
+  "title": "cortex.audit.mcp.<verb>.v1 data payload",
+  "description": "MCP gateway audit event.",
   "type": "object",
   "required": ["event_id", "event_type", "subject", "payload_hash", "ts", "payload"],
   "additionalProperties": false,
@@ -10,7 +10,7 @@
     "event_id": { "type": "string", "format": "uuid" },
     "event_type": {
       "type": "string",
-      "pattern": "^cortex\\.audit\\.agentgateway\\.[A-Za-z0-9_-]+\\.v[0-9]+$"
+      "pattern": "^cortex\\.audit\\.mcp\\.[A-Za-z0-9_-]+\\.v[0-9]+$"
     },
     "actor": { "type": "string" },
     "subject": { "type": "string", "minLength": 1 },

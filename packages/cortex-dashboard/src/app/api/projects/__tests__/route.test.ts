@@ -11,7 +11,7 @@ vi.mock("@/lib/db/projects", () => ({
 	updateProject: vi.fn(),
 	deleteProject: vi.fn(),
 }));
-vi.mock("@/lib/db/agent-gateway-audit", () => ({
+vi.mock("@/lib/db/dashboard-audit", () => ({
 	insertAuditRow: vi.fn().mockResolvedValue({}),
 }));
 
@@ -23,7 +23,7 @@ import {
 	updateProject,
 	deleteProject,
 } from "@/lib/db/projects";
-import { insertAuditRow } from "@/lib/db/agent-gateway-audit";
+import { insertAuditRow } from "@/lib/db/dashboard-audit";
 
 const mockRequireAuth = vi.mocked(requireAuth);
 const mockListProjects = vi.mocked(listProjects);

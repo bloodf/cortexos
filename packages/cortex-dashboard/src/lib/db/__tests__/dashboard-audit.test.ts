@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { query, queryOne } from '../client';
-import { insertAuditRow, listAudit } from '../agent-gateway-audit';
-import * as auditModule from '../agent-gateway-audit';
+import { insertAuditRow, listAudit } from '../dashboard-audit';
+import * as auditModule from '../dashboard-audit';
 
 vi.mock('../client', () => ({
   query: vi.fn(),
@@ -9,7 +9,7 @@ vi.mock('../client', () => ({
   execute: vi.fn(),
 }));
 
-describe('agent-gateway-audit (append-only)', () => {
+describe('dashboard-audit (append-only)', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('does NOT export update or delete functions', () => {
