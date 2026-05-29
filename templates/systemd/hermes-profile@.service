@@ -1,0 +1,25 @@
+[Unit]
+Description=CortexOS Hermes profile %i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={VPS_USER}
+Group={VPS_USER}
+EnvironmentFile=-{CORTEX_SECRETS_DIR}/mcp.env
+EnvironmentFile=-{CORTEX_SECRETS_DIR}/langfuse-client.env
+EnvironmentFile={CORTEX_SECRETS_DIR}/hermes/%i.env
+Environment=HERMES_COMMAND={VPS_HOME}/.local/bin/hermes
+WorkingDirectory={CORTEX_HERMES_ROOT}/profiles/%i
+ExecStart=/usr/bin/env node {CORTEX_ROOT}/scripts/hermes-profile-api.mjs %i
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths={CORTEX_HERMES_ROOT} {CORTEX_SECRETS_DIR} {VPS_HOME}/.sigstore {VPS_HOME}/.npm {VPS_HOME}/.cache
+
+[Install]
+WantedBy=multi-user.target
