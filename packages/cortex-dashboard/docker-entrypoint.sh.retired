@@ -1,4 +1,7 @@
 #!/bin/bash
+# RETIRED — replaced by the systemd unit's ExecStartPre (node scripts/migrate.js
+# + node scripts/dynamic-seed.js) and ExecStart=node server.js in
+# templates/systemd/cortex-dashboard.service. Kept for reference only.
 set -e
 
 : "${DB_HOST:=127.0.0.1}"

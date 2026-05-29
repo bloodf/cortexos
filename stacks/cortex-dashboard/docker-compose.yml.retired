@@ -1,3 +1,6 @@
+# RETIRED — the dashboard now runs as the native systemd unit
+# cortex-dashboard.service. This compose stack is no longer built or deployed.
+# Kept for reference only. See packages/cortex-dashboard/CLAUDE.md.
 # Cortex Dashboard — on-VPS Docker Compose build.
 #
 # Build context is the packages/cortex-dashboard/ source tree (materialized on the VPS by the

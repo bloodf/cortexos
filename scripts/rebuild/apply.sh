@@ -292,10 +292,11 @@ run "${sudo_cmd[@]}" chown -R cortexos:cortexos \
   /opt/cortexos/packages/cortex-audit \
   /opt/cortexos/packages/cortex-dashboard \
   /opt/cortexos/stacks/cortex-dashboard
-run_shell 'cd /opt/cortexos && docker compose -f stacks/cortex-dashboard/docker-compose.yml build cortex-dashboard'
-run_shell 'cd /opt/cortexos && docker compose -f stacks/cortex-dashboard/docker-compose.yml up -d cortex-dashboard'
+run_shell 'cd /opt/cortexos && sudo -u cortexos bash scripts/ops/cortex-dashboard-build.sh'
+run_shell 'cd /opt/cortexos && bash scripts/ops/cortex-render-units.sh cortex-dashboard.service'
+run_shell 'systemctl enable --now cortex-dashboard.service'
 run_shell 'for i in $(seq 1 30); do curl -fsS http://127.0.0.1:3080/en/login >/dev/null && exit 0; sleep 2; done; exit 1'
-run_shell 'docker ps --format "{{.Names}}\t{{.Image}}\t{{.Status}}" | grep "^cortex-dashboard[[:space:]]"'
+run_shell 'systemctl is-active cortex-dashboard.service'
 log "completed $mode"
 REMOTE
 
