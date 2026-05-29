@@ -52,6 +52,7 @@ cat >> /opt/cortexos/stacks/monitoring/docker-compose.yml <<'EOF'
 
   grafana:
     image: grafana/grafana
+    container_name: cortex-grafana
     restart: unless-stopped
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}

@@ -70,6 +70,7 @@ cat >> /opt/cortexos/stacks/monitoring/docker-compose.yml <<'EOF'
 
   fluent-bit:
     image: fluent/fluent-bit
+    container_name: cortex-fluent-bit
     restart: unless-stopped
     ports:
       - "127.0.0.1:24224:24224"
