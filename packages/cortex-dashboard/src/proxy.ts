@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getSessionByToken } from "@/lib/db/admin";
 
-const PUBLIC_PREFIXES = ["/api/auth", "/_next", "/favicon"];
+// /api/audit/events is a machine ingest endpoint guarded by its own
+// Bearer CORTEX_AUDIT_INGEST_TOKEN check (see the route handler) — it must
+// bypass the session-cookie gate so producers (sandbox runner, etc.) can post.
+const PUBLIC_PREFIXES = ["/api/auth", "/api/audit/events", "/_next", "/favicon"];
 const INTERNAL_TOKEN = process.env.CORTEX_INTERNAL_TOKEN || process.env.CORTEX_MASTER_KEY;
 const PUBLIC_PATHS = ["/", "/login", "/setup"];
 const SESSION_CACHE = new Map<string, number>();
