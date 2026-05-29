@@ -13,8 +13,8 @@ Usage: scripts/rebuild/apply.sh --phase retired-runtime --dry-run --backup-dir D
        scripts/rebuild/apply.sh --phase dashboard-root-helper --execute --backup-dir DIR
        scripts/rebuild/apply.sh --phase dashboard-app --dry-run --backup-dir DIR
        scripts/rebuild/apply.sh --phase dashboard-app --execute --backup-dir DIR
-       scripts/rebuild/apply.sh --phase agentgateway --dry-run --backup-dir DIR
-       scripts/rebuild/apply.sh --phase agentgateway --execute --backup-dir DIR
+       scripts/rebuild/apply.sh --phase obot --dry-run --backup-dir DIR
+       scripts/rebuild/apply.sh --phase obot --execute --backup-dir DIR
        scripts/rebuild/apply.sh --phase incus-foundation --dry-run --backup-dir DIR
        scripts/rebuild/apply.sh --phase incus-foundation --execute --backup-dir DIR
        scripts/rebuild/apply.sh --phase incus-base-image --dry-run --backup-dir DIR
@@ -25,7 +25,7 @@ Usage: scripts/rebuild/apply.sh --phase retired-runtime --dry-run --backup-dir D
 Apply a guarded rebuild phase. Execution is intentionally phase-scoped.
 
 Options:
-  --phase NAME     Phase to apply: retired-runtime, dashboard-root-helper, dashboard-app, agentgateway, incus-foundation, incus-base-image, project-instances.
+  --phase NAME     Phase to apply: retired-runtime, dashboard-root-helper, dashboard-app, obot, incus-foundation, incus-base-image, project-instances.
   --dry-run        Print remote commands without mutating the host.
   --execute        Execute the phase on the host.
   --backup-dir DIR Verified backup directory under /mnt/hdd/cortexos-backups.
@@ -74,7 +74,7 @@ fi
 [ -n "$backup_dir" ] || die "--backup-dir is required"
 
 case "$phase" in
-  retired-runtime|dashboard-root-helper|dashboard-app|agentgateway|incus-foundation|incus-base-image|project-instances|project-hermes-move) ;;
+  retired-runtime|dashboard-root-helper|dashboard-app|obot|incus-foundation|incus-base-image|project-instances|project-hermes-move) ;;
   *) die "unsupported phase: $phase" ;;
 esac
 
@@ -309,33 +309,27 @@ REMOTE
   exit 0
 fi
 
-if [ "$phase" = "agentgateway" ]; then
-  agentgateway_archive="$(mktemp -t cortexos-agentgateway.XXXXXX.tgz)"
-  remote_archive="/tmp/cortexos-agentgateway.tgz"
-  trap 'rm -f "$agentgateway_archive"' EXIT
-
+if [ "$phase" = "obot" ]; then
+  obot_archive="$(mktemp -t cortexos-obot.XXXXXX.tgz)"
+  remote_archive="/tmp/cortexos-obot.tgz"
+  trap 'rm -f "$obot_archive"' EXIT
   COPYFILE_DISABLE=1 tar --no-xattrs \
     --exclude '*/node_modules' \
     --exclude '*/__pycache__' \
     --exclude '*/.DS_Store' \
-    -C "$REBUILD_ROOT" -czf "$agentgateway_archive" \
-    stacks/cortex-agentgateway
-
-  scp -q "$agentgateway_archive" "$CORTEX_HOST:$remote_archive"
-
+    -C "$REBUILD_ROOT" -czf "$obot_archive" \
+    stacks/cortex-obot
+  scp -q "$obot_archive" "$CORTEX_HOST:$remote_archive"
   remote_script="$(mktemp)"
-  trap 'rm -f "$agentgateway_archive" "$remote_script"' EXIT
+  trap 'rm -f "$obot_archive" "$remote_script"' EXIT
   cat >"$remote_script" <<'REMOTE'
 set -Eeuo pipefail
-
 mode="${MODE:?}"
 backup_dir="${BACKUP_DIR:?}"
-archive="${AGENTGATEWAY_ARCHIVE:?}"
-
+archive="${OBOT_ARCHIVE:?}"
 log() {
   printf '[apply:%s] %s\n' "$mode" "$*"
 }
-
 run() {
   if [ "$mode" = "dry-run" ]; then
     printf '+'
@@ -345,81 +339,35 @@ run() {
     "$@"
   fi
 }
-
-run_shell() {
-  local command="$1"
-  if [ "$mode" = "dry-run" ]; then
-    printf '+ bash -lc %q\n' "$command"
-  else
-    bash -lc "$command" </dev/null
-  fi
-}
-
 test -d "$backup_dir"
 test -s "$backup_dir/SHA256SUMS"
 test -s "$backup_dir/archives/hermes.tgz"
 test -s "$backup_dir/archives/secrets.tgz"
-
 if sudo -n true 2>/dev/null; then
   sudo_cmd=(sudo -n)
 else
   sudo_cmd=()
 fi
-
-run "${sudo_cmd[@]}" rm -rf /opt/cortexos/stacks/cortex-agentgateway
+run "${sudo_cmd[@]}" rm -rf /opt/cortexos/stacks/cortex-obot
 run "${sudo_cmd[@]}" mkdir -p /opt/cortexos/stacks
 run "${sudo_cmd[@]}" tar -xzf "$archive" -C /opt/cortexos
-run "${sudo_cmd[@]}" chown -R cortexos:cortexos /opt/cortexos/stacks/cortex-agentgateway
-run "${sudo_cmd[@]}" install -o root -g root -m 0644 \
-  /opt/cortexos/stacks/cortex-agentgateway/cortex-agentgateway.service \
-  /etc/systemd/system/cortex-agentgateway.service
-run "${sudo_cmd[@]}" systemctl daemon-reload
-run "${sudo_cmd[@]}" systemctl enable --now cortex-agentgateway.service
-run "${sudo_cmd[@]}" systemctl restart cortex-agentgateway.service
-run_shell 'for i in $(seq 1 30); do curl -fsS http://127.0.0.1:18800/health >/dev/null && exit 0; sleep 1; done; exit 1'
-run_shell 'python3 - <<'"'"'PY'"'"'
-import json
-import urllib.error
-import urllib.request
-
-base = "http://127.0.0.1:18800"
-
-def post(payload):
-    req = urllib.request.Request(
-        f"{base}/mcp/invoke",
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"content-type": "application/json"},
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=5) as res:
-            return res.status, json.loads(res.read().decode("utf-8"))
-    except urllib.error.HTTPError as err:
-        body = json.loads(err.read().decode("utf-8"))
-        err.close()
-        return err.code, body
-
-status, body = post({"tool": "service.status", "arguments": {"service": "postgresql"}, "agent_id": "rebuild"})
-print(status, json.dumps(body, sort_keys=True))
-if status != 200 or not body.get("ok"):
-    raise SystemExit(1)
-
-status, body = post({"tool": "service.restart", "arguments": {"service": "postgresql"}, "agent_id": "rebuild"})
-print(status, json.dumps(body, sort_keys=True))
-if status != 403 or body.get("error") != "tool_not_allowed":
-    raise SystemExit(1)
-PY'
-run "${sudo_cmd[@]}" systemctl is-active cortex-agentgateway.service
-log "completed $mode"
+run "${sudo_cmd[@]}" chown -R cortexos:cortexos /opt/cortexos/stacks/cortex-obot
+# Stop and remove old agentgateway if present
+if systemctl is-active cortex-agentgateway.service >/dev/null 2>&1; then
+  run "${sudo_cmd[@]}" systemctl stop cortex-agentgateway.service
+fi
+if [ -f /etc/systemd/system/cortex-agentgateway.service ]; then
+  run "${sudo_cmd[@]}" rm /etc/systemd/system/cortex-agentgateway.service
+  run "${sudo_cmd[@]}" systemctl daemon-reload
+fi
+log "completed $mode (docker compose up handled by spoke 50-obot)"
 REMOTE
-
   if [ "$dry_run" -eq 1 ]; then
     mode="dry-run"
   else
     mode="execute"
   fi
-
-  ssh_host "MODE=$mode BACKUP_DIR=$backup_dir_q AGENTGATEWAY_ARCHIVE=$remote_archive bash -s" <"$remote_script"
+  ssh_host "MODE=$mode BACKUP_DIR=$backup_dir_q OBOT_ARCHIVE=$remote_archive bash -s" <"$remote_script"
   exit 0
 fi
 
@@ -445,7 +393,7 @@ pool_source="${INCUS_POOL_SOURCE:-/mnt/hdd/incus-zfs.img}"
 pool_source_dir="$(dirname "$pool_source")"
 pool_size="${INCUS_POOL_SIZE:-300GiB}"
 bridge_name="${INCUS_BRIDGE_NAME:-incusbr0}"
-bridge_ipv4="${INCUS_BRIDGE_IPV4:-10.222.222.1/24}"
+bridge_ipv4="${INCUS_BRIDGE_IPV4:-<bridge-cidr>}"
 egress_if="$(ip route show default 0.0.0.0/0 2>/dev/null | awk '{print $5; exit}')"
 smoke_name="${INCUS_SMOKE_NAME:-cortex-incus-smoke}"
 smoke_image="${INCUS_SMOKE_IMAGE:-images:ubuntu/26.04}"

@@ -364,7 +364,7 @@ Evidence:
 - Incus storage pool `cortex-zfs` uses driver `zfs` and source `cortex-zfs`.
 - `cortex-incus-zpool.service` is active and an `incus.service` drop-in makes
   Incus start after the file-backed ZFS pool import service on future boots.
-- Managed Incus bridge `incusbr0` exists at `10.222.222.1/24` with NAT enabled
+- Managed Incus bridge `incusbr0` exists at `<bridge-cidr>` with NAT enabled
   and IPv6 disabled.
 - Default Incus profile has `root` disk on `cortex-zfs` and `eth0` on
   `incusbr0`.
@@ -415,9 +415,9 @@ Evidence:
 - `scripts/rebuild/apply.sh --phase project-instances --execute --backup-dir /mnt/hdd/cortexos-backups/20260528T042259Z`
   completed successfully.
 - Instance states:
-  - `mementry`: RUNNING, 10.222.222.175, commit `28d4ba3`
-  - `celebrar-me`: RUNNING, 10.222.222.86, commit `1f0ab27`
-  - `3guns`: RUNNING, 10.222.222.23, commit `5c7a234`
+  - `mementry`: RUNNING, <instance-ip>, commit `28d4ba3`
+  - `celebrar-me`: RUNNING, <instance-ip>, commit `1f0ab27`
+  - `3guns`: RUNNING, <instance-ip>, commit `5c7a234`
 - Each project clone is owned by `cortexos:cortexos` and reports `clean-clone-ok`.
 - Host project worktrees remain untouched; instances have independent clean clones.
 
@@ -592,8 +592,8 @@ Evidence (verified 2026-05-28):
   `hermes-dashboard-proxy`, `9router`, `honcho-mcp`, `ollama`,
   `ollama-honcho-embeddings-proxy`); protected profile dirs `cieucpb`,
   `cortex`, `netbook` present.
-- Project instances: `3guns` (10.222.222.23), `celebrar-me` (10.222.222.86),
-  `mementry` (10.222.222.175) all RUNNING; in-instance Hermes health 200 each
+- Project instances: `3guns` (<instance-ip>), `celebrar-me` (<instance-ip>),
+  `mementry` (<instance-ip>) all RUNNING; in-instance Hermes health 200 each
   (`mementry` 18697, `celebrar-me` 18696, `3guns` 18695).
 - AgentGateway (port 18800): `GET /health` ok (`policy_version 2`,
   `allowlist_count 11`); `POST /mcp/invoke {"tool":"service.status"}` → 200
@@ -682,8 +682,8 @@ matches repo-declared state.
 - Dashboard unit suite, typecheck, and Next build passed after the repo rewrite.
 - AgentGateway Python unittest passed.
 - Project instances created from `cortexos-base/latest`:
-  `mementry` (10.222.222.175), `celebrar-me` (10.222.222.86), `3guns`
-  (10.222.222.23). Each has a clean `main` clone owned by `cortexos:cortexos`.
+  `mementry` (<instance-ip>), `celebrar-me` (<instance-ip>), `3guns`
+  (<instance-ip>). Each has a clean `main` clone owned by `cortexos:cortexos`.
 
 ## Next Actions
 

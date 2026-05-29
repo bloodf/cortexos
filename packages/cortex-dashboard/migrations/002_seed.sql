@@ -31,7 +31,7 @@ VALUES
   ('honcho', 'Honcho', 'service', 'AI', 'honcho', 'process', '#', '/opt/cortexos/.secrets/honcho.env', 'database', 3),
   ('honcho-mcp', 'Honcho MCP', 'service', 'AI', 'honcho-mcp', 'process', '#', '/opt/cortexos/.secrets/honcho.env', 'database', 4),
   ('ollama-honcho-embeddings-proxy', 'Ollama Honcho Embeddings Proxy', 'service', 'AI', 'ollama-honcho-embeddings-proxy', 'process', '#', '/opt/cortexos/.secrets/honcho.env', 'cloud', 5),
-  ('agentgateway', 'AgentGateway', 'service', 'AI', 'http://127.0.0.1:18800/health', 'http', '#', '/opt/cortexos/.secrets/agentgateway.env', 'cloud', 6),
+  ('obot', 'Obot', 'service', 'AI', 'http://127.0.0.1:8090/', 'http', '#', '/opt/cortexos/.secrets/obot.env', 'cloud', 6),
   ('kernel-browser', 'Kernel Browser', 'service', 'AI', 'http://127.0.0.1:9222/json/version', 'http', '#', '/opt/cortexos/.secrets/kernel-browser.env', 'browser', 7),
   ('cortex-sandbox-runner', 'Cortex Sandbox Runner', 'service', 'AI', 'http://127.0.0.1:8091/healthz', 'http', '#', '/opt/cortexos/.secrets/sandbox.env', 'cloud', 8),
 
@@ -53,8 +53,7 @@ VALUES
   ('mysql', 'MySQL', 'service', 'Database', 'tcp://127.0.0.1:3306', 'tcp', '#', '/opt/cortexos/.secrets/mysql.env', 'mysql', 2),
   ('redis', 'Redis', 'service', 'Database', 'tcp://127.0.0.1:6379', 'tcp', '#', '/opt/cortexos/.secrets/redis.env', 'redis', 3),
   ('mongodb', 'MongoDB', 'service', 'Database', 'tcp://127.0.0.1:27017', 'tcp', '#', '/opt/cortexos/.secrets/mongodb.env', 'database', 4),
-  ('minio', 'MinIO', 'service', 'Database', 'http://127.0.0.1:9000/minio/health/live', 'http', '#', '/opt/cortexos/.secrets/minio.env', 'database', 5),
-  ('rabbitmq', 'RabbitMQ', 'service', 'Database', 'http://127.0.0.1:15672/api/health/checks/local-alarms', 'http', '#', '/opt/cortexos/.secrets/rabbitmq.env', 'database', 6),
+
   ('pgadmin', 'pgAdmin', 'docker', 'Database', 'http://127.0.0.1:5050/misc/ping', 'http', '#', '/opt/cortexos/.secrets/pgadmin.env', 'postgresql', 7),
   ('phpmyadmin', 'phpMyAdmin', 'docker', 'Database', 'http://127.0.0.1:8082', 'http', '#', '/opt/cortexos/.secrets/phpmyadmin.env', 'mysql', 8),
   ('redisinsight', 'RedisInsight', 'docker', 'Database', 'http://127.0.0.1:5540/api/health', 'http', '#', '/opt/cortexos/.secrets/redisinsight.env', 'redis', 9),
@@ -94,18 +93,18 @@ UPDATE services SET has_webui = false, show_in_webui = false WHERE open_url = '#
 
 INSERT INTO service_badges (service_id, badge_id)
 SELECT s.id, b.id FROM services s, badges b
-WHERE s.slug IN ('9router','ollama','honcho','honcho-mcp','ollama-honcho-embeddings-proxy','agentgateway','kernel-browser','cortex-sandbox-runner')
+WHERE s.slug IN ('9router','ollama','honcho','honcho-mcp','ollama-honcho-embeddings-proxy','obot','kernel-browser','cortex-sandbox-runner')
   AND b.slug = 'ai'
 ON CONFLICT (service_id, badge_id) DO NOTHING;
 
 INSERT INTO service_badges (service_id, badge_id)
 SELECT s.id, b.id FROM services s, badges b
-WHERE s.slug IN ('agentgateway','cortex-dashboard-root-helper') AND b.slug = 'agent'
+WHERE s.slug IN ('obot','cortex-dashboard-root-helper') AND b.slug = 'agent'
 ON CONFLICT (service_id, badge_id) DO NOTHING;
 
 INSERT INTO service_badges (service_id, badge_id)
 SELECT s.id, b.id FROM services s, badges b
-WHERE s.slug IN ('9router','agentgateway','cortex-sandbox-runner') AND b.slug = 'api'
+WHERE s.slug IN ('9router','obot','cortex-sandbox-runner') AND b.slug = 'api'
 ON CONFLICT (service_id, badge_id) DO NOTHING;
 
 INSERT INTO service_badges (service_id, badge_id)
@@ -121,13 +120,13 @@ ON CONFLICT (service_id, badge_id) DO NOTHING;
 
 INSERT INTO service_badges (service_id, badge_id)
 SELECT s.id, b.id FROM services s, badges b
-WHERE s.slug IN ('postgresql','mysql','redis','mongodb','minio','rabbitmq','pgadmin','phpmyadmin','redisinsight','mongo-express')
+WHERE s.slug IN ('postgresql','mysql','redis','mongodb','pgadmin','phpmyadmin','redisinsight','mongo-express')
   AND b.slug = 'db'
 ON CONFLICT (service_id, badge_id) DO NOTHING;
 
 INSERT INTO service_badges (service_id, badge_id)
 SELECT s.id, b.id FROM services s, badges b
-WHERE s.slug IN ('minio','postgresql','mysql','redis','mongodb') AND b.slug = 'storage'
+WHERE s.slug IN ('postgresql','mysql','redis','mongodb') AND b.slug = 'storage'
 ON CONFLICT (service_id, badge_id) DO NOTHING;
 
 INSERT INTO service_badges (service_id, badge_id)

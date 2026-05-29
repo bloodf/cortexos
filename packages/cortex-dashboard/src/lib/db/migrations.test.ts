@@ -20,6 +20,8 @@ const RETIRED_SLUGS = [
 	"floci",
 	"langfuse",
 	"opik",
+	"minio",
+	"rabbitmq",
 ];
 
 describe("002_seed.sql integrity", () => {
