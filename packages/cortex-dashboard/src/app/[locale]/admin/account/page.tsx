@@ -7,8 +7,6 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { ChangePasswordForm } from "@/components/auth/change-password-form";
-
 export default async function AccountPage({
 	params,
 }: {
@@ -30,15 +28,15 @@ export default async function AccountPage({
 			</div>
 			<Card>
 				<CardHeader>
-					<CardTitle>Change password</CardTitle>
+					<CardTitle>Password</CardTitle>
 					<CardDescription>
-						Use a strong password of at least 8 characters. Changes take effect
-						immediately; existing sessions remain valid.
+						Dashboard authentication is delegated to Linux PAM. Your password is
+						the password of your host system account, so it cannot be changed here.
+						Update it on the host with <span className="font-mono">passwd</span>,
+						Cockpit, Webmin, or SSH. The change takes effect on your next login.
 					</CardDescription>
 				</CardHeader>
-				<CardContent>
-					<ChangePasswordForm />
-				</CardContent>
+				<CardContent />
 			</Card>
 		</div>
 	);

@@ -1,11 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import bcrypt from 'bcryptjs';
+
+vi.mock('../pam', () => ({
+  authenticatePam: vi.fn(),
+}));
 
 vi.mock('../db/admin', () => ({
-  getUserByUsername: vi.fn(),
+  getOrCreatePamUser: vi.fn(),
   createSession: vi.fn(),
   deleteSession: vi.fn(),
   getSessionByToken: vi.fn(),
+}));
+
+vi.mock('node:child_process', () => ({
+  execFile: vi.fn((_cmd: string, _args: string[], _opts: unknown, cb: any) =>
+    cb(null, ''),
+  ),
 }));
 
 vi.mock('next/headers', () => ({
@@ -16,34 +25,15 @@ vi.mock('next/headers', () => ({
 }));
 
 import {
-  hashPassword,
-  verifyPassword,
   generateSessionToken,
   authenticateUser,
 } from '../auth';
-import { getUserByUsername } from '../db/admin';
+import { authenticatePam } from '../pam';
+import { getOrCreatePamUser } from '../db/admin';
 
 describe('auth helpers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  it('hashPassword returns bcrypt hash', async () => {
-    const hash = await hashPassword('password123');
-    expect(hash.startsWith('$2')).toBe(true);
-    expect(hash.length).toBeGreaterThan(50);
-  });
-
-  it('verifyPassword validates correct password', async () => {
-    const hash = await bcrypt.hash('secret', 10);
-    const result = await verifyPassword('secret', hash);
-    expect(result).toBe(true);
-  });
-
-  it('verifyPassword rejects wrong password', async () => {
-    const hash = await bcrypt.hash('secret', 10);
-    const result = await verifyPassword('wrong', hash);
-    expect(result).toBe(false);
   });
 
   it('generateSessionToken returns 64-char hex', () => {
@@ -55,33 +45,29 @@ describe('auth helpers', () => {
     expect(/^[a-f0-9]+$/.test(tok1)).toBe(true);
   });
 
-  it('authenticateUser returns user on valid credentials', async () => {
-    const hash = await bcrypt.hash('pass', 10);
-    (getUserByUsername as any).mockResolvedValue({
+  it('authenticateUser returns user when PAM accepts', async () => {
+    (authenticatePam as any).mockResolvedValue(undefined);
+    (getOrCreatePamUser as any).mockResolvedValue({
       id: 1,
       username: 'admin',
-      password_hash: hash,
       created_at: new Date(),
     });
     const result = await authenticateUser('admin', 'pass');
+    expect(authenticatePam).toHaveBeenCalledWith('admin', 'pass');
     expect(result?.username).toBe('admin');
+    expect(result?.is_admin).toBe(false);
   });
 
-  it('authenticateUser returns null on missing user', async () => {
-    (getUserByUsername as any).mockResolvedValue(null);
-    const result = await authenticateUser('nobody', 'pass');
-    expect(result).toBeNull();
-  });
-
-  it('authenticateUser returns null on wrong password', async () => {
-    const hash = await bcrypt.hash('right', 10);
-    (getUserByUsername as any).mockResolvedValue({
-      id: 1,
-      username: 'admin',
-      password_hash: hash,
-      created_at: new Date(),
-    });
+  it('authenticateUser returns null when PAM rejects', async () => {
+    (authenticatePam as any).mockRejectedValue(new Error('auth failed'));
     const result = await authenticateUser('admin', 'wrong');
     expect(result).toBeNull();
+    expect(getOrCreatePamUser).not.toHaveBeenCalled();
+  });
+
+  it('authenticateUser returns null on empty input', async () => {
+    const result = await authenticateUser('', '');
+    expect(result).toBeNull();
+    expect(authenticatePam).not.toHaveBeenCalled();
   });
 });
