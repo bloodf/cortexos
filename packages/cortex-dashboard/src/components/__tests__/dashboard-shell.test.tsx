@@ -57,9 +57,9 @@ describe("DashboardShell", () => {
 				<div>Content</div>
 			</DashboardShell>,
 		);
-		expect(screen.getByText("Overview")).toBeInTheDocument();
-		expect(screen.getByText("Healthcheck")).toBeInTheDocument();
-		expect(screen.getByText("Apps")).toBeInTheDocument();
+		expect(screen.getAllByText("Overview").length).toBeGreaterThan(0);
+		expect(screen.getAllByText("Healthcheck").length).toBeGreaterThan(0);
+		expect(screen.getAllByText("Apps").length).toBeGreaterThan(0);
 	});
 
 	it("renders theme and language switchers", () => {

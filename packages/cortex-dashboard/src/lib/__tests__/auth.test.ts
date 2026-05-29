@@ -11,11 +11,12 @@ vi.mock('../db/admin', () => ({
   getSessionByToken: vi.fn(),
 }));
 
-vi.mock('node:child_process', () => ({
-  execFile: vi.fn((_cmd: string, _args: string[], _opts: unknown, cb: any) =>
-    cb(null, ''),
-  ),
-}));
+vi.mock('node:child_process', () => {
+  const execFile = vi.fn(
+    (_cmd: string, _args: string[], _opts: unknown, cb: any) => cb(null, ''),
+  );
+  return { execFile, default: { execFile } };
+});
 
 vi.mock('next/headers', () => ({
   cookies: vi.fn(() => ({

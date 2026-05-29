@@ -1,4 +1,7 @@
 # component	target	version_policy	notes
+# image variants (see scripts/rebuild/apply.sh INCUS_BASE_VARIANT)
+variant:cortexos-base	default	additive-base	Lean dev/agent base: Hermes, AI CLIs, tmux, zsh, tailscale. Built with INCUS_BASE_VARIANT unset.
+variant:cortexos-gastown-base	gastown	superset-of-base	cortexos-base + gastown orchestration (Go, beads, Dolt, gt). Built with INCUS_BASE_VARIANT=gastown.
 os	ubuntu-26.04	match-host	Use same Ubuntu release/codename as host
 container_type	unprivileged	default	Privileged containers require explicit exception
 tailscale	instance	systemd	Each instance gets its own Tailscale identity and SSH
@@ -16,4 +19,8 @@ pi	instance	latest-upstream	AI harness and 9router model access
 codex	instance	latest-upstream	AI harness
 claude	instance	latest-upstream	AI harness
 cursor	instance	latest-upstream	Optional editor/agent tooling
+go	gastown-variant	pinned-tarball	Go toolchain in /usr/local/go; pinned in gastown-provision.sh (GO_VERSION)
+dolt	gastown-variant	pinned-release	Dolt versioned DB at /gt/.dolt-data; pinned in gastown-provision.sh (DOLT_VERSION)
+beads	gastown-variant	upstream-installer	bd task backend; install.sh unpinned upstream
+gastown	gastown-variant	build-from-source	gt CLI built via make build; published as cortexos-gastown-base only
 service-env	instance	host-owned-env	Only project-scoped credentials copied into instance
