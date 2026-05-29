@@ -32,9 +32,9 @@ start another fresh session. **One phase per session, fresh context each time.**
 - Phases 0–6: **complete and validated live.**
   - Base image: `cortexos-base/ubuntu-26.04-20260528` + `cortexos-base/latest` (fp `056afd491f33`).
   - Project instances RUNNING from `cortexos-base/latest`:
-    - `mementry` — 10.222.222.175, commit `28d4ba3`
-    - `celebrar-me` — 10.222.222.86, commit `1f0ab27`
-    - `3guns` — 10.222.222.23, commit `5c7a234`
+    - `mementry` — <instance-ip>, commit `28d4ba3`
+    - `celebrar-me` — <instance-ip>, commit `1f0ab27`
+    - `3guns` — <instance-ip>, commit `5c7a234`
 - **Phase 7 (project-hermes-move): pending — this is the next step.**
 - Phase 8 (retired-infra-removal): pending.
 - Phase 9 (final-validation): pending.

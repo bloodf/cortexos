@@ -27,9 +27,9 @@ per session, fresh context each time. After Phase 8, write
 - Phases 0–7: **complete and validated live.**
   - Base image `cortexos-base/latest` (fp `056afd491f33`).
   - Project instances RUNNING with project Hermes profiles inside:
-    - `mementry` — 10.222.222.175, profile `mementry`, hermes port 18697, health 200
-    - `celebrar-me` — 10.222.222.86, profile `celebrar`, hermes port 18696, health 200
-    - `3guns` — 10.222.222.23, profile `3guns`, hermes port 18695, health 200
+    - `mementry` — <instance-ip>, profile `mementry`, hermes port 18697, health 200
+    - `celebrar-me` — <instance-ip>, profile `celebrar`, hermes port 18696, health 200
+    - `3guns` — <instance-ip>, profile `3guns`, hermes port 18695, health 200
   - Host project Hermes profiles + env files removed; protected
     `cieucpb`/`netbook`/`cortex` profiles + 11 protected host services active.
 - **Phase 8 (retired-infra-removal): pending — this is the next step.**
