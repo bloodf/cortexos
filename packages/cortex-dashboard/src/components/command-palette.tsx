@@ -1,14 +1,30 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Moon, Palette, Sun } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
 	Command,
+	CommandEmpty,
+	CommandGroup,
 	CommandInput,
 	CommandItem,
 	CommandList,
+	CommandSeparator,
+	CommandShortcut,
 } from "@/components/ui/command";
 import { useRouter } from "@/i18n/routing";
+import { useTheme, usePreset, PRESETS } from "@/hooks/use-theme";
+import { TechIcon } from "@/components/tech-icon";
+import { ALL_NAV_ITEMS } from "@/components/layout/nav-config";
+
+const COMMAND_PALETTE_EVENT = "cortex:command-palette";
+
+/** Open the global command palette from anywhere (e.g. the top-bar button). */
+export function openCommandPalette() {
+	if (typeof window === "undefined") return;
+	window.dispatchEvent(new CustomEvent(COMMAND_PALETTE_EVENT));
+}
 
 type Service = {
 	name: string;
@@ -16,19 +32,6 @@ type Service = {
 	category?: string;
 	slug: string;
 };
-
-const pages = [
-	{ label: "Overview", href: "/overview" },
-	{ label: "Apps", href: "/apps" },
-	{ label: "Services", href: "/services" },
-	{ label: "Docker", href: "/docker" },
-	{ label: "Admin", href: "/admin" },
-	{ label: "Alerts", href: "/alerts" },
-	{ label: "Processes", href: "/processes" },
-	{ label: "Agents", href: "/agents" },
-	{ label: "Storage", href: "/storage" },
-	{ label: "Terminal", href: "/terminal" },
-];
 
 function matches(query: string, values: Array<string | undefined>) {
 	const q = query.trim().toLowerCase();
@@ -41,6 +44,8 @@ export function CommandPalette() {
 	const [query, setQuery] = useState("");
 	const [services, setServices] = useState<Service[]>([]);
 	const router = useRouter();
+	const { resolvedTheme, toggleTheme } = useTheme();
+	const { preset, setPreset } = usePreset();
 
 	useEffect(() => {
 		const handler = (event: KeyboardEvent) => {
@@ -49,8 +54,13 @@ export function CommandPalette() {
 				setOpen((value) => !value);
 			}
 		};
+		const openHandler = () => setOpen(true);
 		window.addEventListener("keydown", handler);
-		return () => window.removeEventListener("keydown", handler);
+		window.addEventListener(COMMAND_PALETTE_EVENT, openHandler);
+		return () => {
+			window.removeEventListener("keydown", handler);
+			window.removeEventListener(COMMAND_PALETTE_EVENT, openHandler);
+		};
 	}, []);
 
 	useEffect(() => {
@@ -61,51 +71,122 @@ export function CommandPalette() {
 			.catch(() => setServices([]));
 	}, [open]);
 
-	const filteredPages = useMemo(
-		() => pages.filter((page) => matches(query, [page.label, page.href])),
+	const filteredNav = useMemo(
+		() => ALL_NAV_ITEMS.filter((item) => matches(query, [item.label, item.href])),
 		[query],
 	);
 	const filteredServices = useMemo(
 		() =>
 			services.filter((service) =>
-				matches(query, [service.name, service.category, service.slug, service.open_url]),
+				matches(query, [
+					service.name,
+					service.category,
+					service.slug,
+					service.open_url,
+				]),
 			),
 		[query, services],
 	);
 
+	const nextPreset = useMemo(() => {
+		const index = PRESETS.indexOf(preset);
+		return PRESETS[(index + 1) % PRESETS.length];
+	}, [preset]);
+
+	const go = (href: string) => {
+		router.push(href);
+		setOpen(false);
+	};
+
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogContent>
-				<DialogTitle>Command Palette</DialogTitle>
+				<DialogTitle className="sr-only">Command Palette</DialogTitle>
 				<Command shouldFilter={false}>
 					<CommandInput
-						placeholder="Search pages and services..."
+						placeholder="Search pages, services, and actions..."
 						value={query}
 						onValueChange={setQuery}
 					/>
 					<CommandList>
-						{filteredPages.map((page) => (
+						<CommandEmpty>No results found.</CommandEmpty>
+
+						{filteredNav.length > 0 && (
+							<CommandGroup heading="Navigation">
+								{filteredNav.map((item) => {
+									const Icon = item.icon;
+									return (
+										<CommandItem
+											key={item.href}
+											value={`${item.label} ${item.href}`}
+											onSelect={() => go(item.href)}
+										>
+											<Icon className="size-4" />
+											<span>{item.label}</span>
+											<CommandShortcut>{item.href}</CommandShortcut>
+										</CommandItem>
+									);
+								})}
+							</CommandGroup>
+						)}
+
+						{filteredServices.length > 0 && (
+							<>
+								<CommandSeparator />
+								<CommandGroup heading="Services">
+									{filteredServices.map((service) => (
+										<CommandItem
+											key={service.slug}
+											value={`${service.name} ${service.slug} ${service.category ?? ""}`}
+											onSelect={() => {
+												window.open(
+													service.open_url,
+													"_blank",
+													"noopener,noreferrer",
+												);
+												setOpen(false);
+											}}
+										>
+											<TechIcon name={service.slug} size={16} />
+											<span>{service.name}</span>
+											<CommandShortcut>
+												{service.category || "App"}
+											</CommandShortcut>
+										</CommandItem>
+									))}
+								</CommandGroup>
+							</>
+						)}
+
+						<CommandSeparator />
+						<CommandGroup heading="Actions">
 							<CommandItem
-								key={page.href}
+								value="toggle theme dark light mode"
 								onSelect={() => {
-									router.push(page.href);
+									toggleTheme();
 									setOpen(false);
 								}}
 							>
-								{page.label} <span className="ml-2 text-xs text-muted-foreground">{page.href}</span>
+								{resolvedTheme === "dark" ? (
+									<Sun className="size-4" />
+								) : (
+									<Moon className="size-4" />
+								)}
+								<span>
+									Switch to {resolvedTheme === "dark" ? "light" : "dark"} mode
+								</span>
 							</CommandItem>
-						))}
-						{filteredServices.map((service) => (
 							<CommandItem
-								key={service.slug}
+								value="switch accent preset theme color"
 								onSelect={() => {
-									window.open(service.open_url, "_blank", "noopener,noreferrer");
+									setPreset(nextPreset);
 									setOpen(false);
 								}}
 							>
-								{service.name} <span className="ml-2 text-xs text-muted-foreground">{service.category || "App"}</span>
+								<Palette className="size-4" />
+								<span>Switch accent to {nextPreset}</span>
 							</CommandItem>
-						))}
+						</CommandGroup>
 					</CommandList>
 				</Command>
 			</DialogContent>
