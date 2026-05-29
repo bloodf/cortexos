@@ -57,7 +57,7 @@ mkdir -p /opt/cortexos/stacks/mongodb
 tee /opt/cortexos/stacks/mongodb/docker-compose.yml <<'EOF'
 services:
   mongodb:
-    image: mongo
+    image: mongo:7
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
