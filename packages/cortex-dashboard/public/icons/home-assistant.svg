@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Home Assistant">
+  <path fill="#18bcf2" d="M124 28 24 116a12 12 0 0 0-4 9v95a12 12 0 0 0 12 12h192a12 12 0 0 0 12-12v-95a12 12 0 0 0-4-9L132 28a6 6 0 0 0-8 0Z"/>
+  <g fill="#fff">
+    <circle cx="128" cy="132" r="16"/>
+    <rect x="122" y="60" width="12" height="72" rx="6"/>
+    <rect x="122" y="126" width="72" height="12" rx="6"/>
+    <rect x="62" y="126" width="72" height="12" rx="6" transform="rotate(45 98 132)"/>
+  </g>
+</svg>

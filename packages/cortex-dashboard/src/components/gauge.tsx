@@ -34,8 +34,8 @@ export function Gauge({
 	}, [value]);
 
 	const getColor = (v: number) => {
-		if (v > 85) return "#ef4444";
-		if (v > 60) return "#f59e0b";
+		if (v > 85) return "var(--destructive)";
+		if (v > 60) return "var(--warning)";
 		return color;
 	};
 
@@ -77,7 +77,7 @@ export function Gauge({
 						style={{
 							transition:
 								"stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.5s ease",
-							filter: `drop-shadow(0 0 6px ${activeColor}40)`,
+							filter: `drop-shadow(0 0 6px color-mix(in oklch, ${activeColor} 25%, transparent))`,
 						}}
 					/>
 				</svg>

@@ -4,14 +4,18 @@
 @custom-variant dark (&:is(.dark *));
 @custom-variant light (&:is(.light *));
 
+/* ============================================================================
+   Tailwind v4 token bridge — semantic shadcn tokens -> utilities.
+   Colors are defined as CSS custom properties below (:root = light default,
+   .dark = dark override) and re-tinted per brand preset (.theme-*).
+   ========================================================================== */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-dashboard-sans);
-  --font-mono: var(--font-dashboard-mono);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
@@ -21,89 +25,177 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --font-sans: var(--font-dashboard-sans);
+  --font-mono: var(--font-dashboard-mono);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
+/* ============================================================================
+   Base tokens — LIGHT is the :root default; .dark overrides.
+   Neutral (zinc) surfaces; brand accent supplied by the preset layer below.
+   ========================================================================== */
 :root {
-  --radius: 0.75rem;
-  --font-dashboard-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-dashboard-mono: "SFMono-Regular", "Cascadia Code", "Liberation Mono", Menlo, Consolas, monospace;
+  --radius: 0.625rem;
+  --font-dashboard-sans: "Geist", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-dashboard-mono: "Geist Mono", "SFMono-Regular", "Cascadia Code", "Liberation Mono", Menlo, Consolas, monospace;
+
+  --background: oklch(0.99 0 0);
+  --foreground: oklch(0.21 0.006 285.9);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.21 0.006 285.9);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.21 0.006 285.9);
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
+  --secondary: oklch(0.967 0.001 286.4);
+  --secondary-foreground: oklch(0.21 0.006 285.9);
+  --muted: oklch(0.967 0.001 286.4);
+  --muted-foreground: oklch(0.552 0.014 285.9);
+  --accent: oklch(0.967 0.001 286.4);
+  --accent-foreground: oklch(0.21 0.006 285.9);
+  --destructive: oklch(0.577 0.245 27.3);
+  --destructive-foreground: oklch(0.985 0 0);
+  --success: oklch(0.6 0.13 160);
+  --success-foreground: oklch(0.985 0 0);
+  --warning: oklch(0.77 0.16 70);
+  --warning-foreground: oklch(0.21 0.006 285.9);
+  --border: oklch(0.92 0.004 286.3);
+  --input: oklch(0.92 0.004 286.3);
+  --ring: var(--brand);
+
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.21 0.006 285.9);
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: var(--brand-foreground);
+  --sidebar-accent: oklch(0.967 0.001 286.4);
+  --sidebar-accent-foreground: oklch(0.21 0.006 285.9);
+  --sidebar-border: oklch(0.92 0.004 286.3);
+  --sidebar-ring: var(--brand);
+
+  --chart-1: var(--brand);
+  --chart-2: oklch(0.6 0.118 184.7);
+  --chart-3: oklch(0.398 0.07 227.4);
+  --chart-4: oklch(0.828 0.189 84.4);
+  --chart-5: oklch(0.769 0.188 70.1);
 }
 
-/* ── Dark theme (default) ── */
 .dark {
-  --background: #000000;
-  --foreground: #f0f0f5;
-  --card: rgba(255, 255, 255, 0.03);
-  --card-foreground: #f0f0f5;
-  --popover: #0a0a0a;
-  --popover-foreground: #f0f0f5;
-  --primary: #818cf8;
-  --primary-foreground: #ffffff;
-  --secondary: rgba(255, 255, 255, 0.06);
-  --secondary-foreground: #f0f0f5;
-  --muted: rgba(255, 255, 255, 0.04);
-  --muted-foreground: rgba(255, 255, 255, 0.4);
-  --accent: rgba(255, 255, 255, 0.06);
-  --accent-foreground: #f0f0f5;
-  --destructive: #f87171;
-  --border: rgba(255, 255, 255, 0.08);
-  --input: rgba(255, 255, 255, 0.08);
-  --ring: #818cf8;
+  --background: oklch(0.16 0.004 285.9);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.21 0.006 285.9);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.21 0.006 285.9);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: var(--brand-dark);
+  --primary-foreground: var(--brand-dark-foreground);
+  --secondary: oklch(0.274 0.006 286.0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.274 0.006 286.0);
+  --muted-foreground: oklch(0.712 0.013 286.1);
+  --accent: oklch(0.274 0.006 286.0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.2);
+  --destructive-foreground: oklch(0.985 0 0);
+  --success: oklch(0.696 0.17 162.5);
+  --success-foreground: oklch(0.16 0.004 285.9);
+  --warning: oklch(0.828 0.189 84.4);
+  --warning-foreground: oklch(0.16 0.004 285.9);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: var(--brand-dark);
+
+  --sidebar: oklch(0.21 0.006 285.9);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: var(--brand-dark);
+  --sidebar-primary-foreground: var(--brand-dark-foreground);
+  --sidebar-accent: oklch(0.274 0.006 286.0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: var(--brand-dark);
+
+  --chart-1: var(--brand-dark);
+  --chart-2: oklch(0.696 0.17 162.5);
+  --chart-3: oklch(0.769 0.188 70.1);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.4);
 }
 
-/* ── Light theme ── */
-.light {
-  --background: #f8f9fc;
-  --foreground: #1a1a2e;
-  --card: rgba(255, 255, 255, 0.7);
-  --card-foreground: #1a1a2e;
-  --popover: #ffffff;
-  --popover-foreground: #1a1a2e;
-  --primary: #6366f1;
-  --primary-foreground: #ffffff;
-  --secondary: rgba(0, 0, 0, 0.04);
-  --secondary-foreground: #1a1a2e;
-  --muted: rgba(0, 0, 0, 0.03);
-  --muted-foreground: rgba(0, 0, 0, 0.45);
-  --accent: rgba(0, 0, 0, 0.04);
-  --accent-foreground: #1a1a2e;
-  --destructive: #ef4444;
-  --border: rgba(0, 0, 0, 0.08);
-  --input: rgba(0, 0, 0, 0.06);
-  --ring: #6366f1;
+/* ============================================================================
+   Brand presets — each sets the accent (light + dark) consumed above.
+   Applied as a class on <html> alongside light/dark. Default = Cortex (violet).
+   ========================================================================== */
+:root,
+.theme-cortex {
+  --brand: oklch(0.546 0.245 292.7);            /* violet-600 */
+  --brand-foreground: oklch(0.985 0 0);
+  --brand-dark: oklch(0.68 0.19 292.7);         /* violet-400 */
+  --brand-dark-foreground: oklch(0.16 0.004 285.9);
+}
+.theme-teal {
+  --brand: oklch(0.6 0.12 184.7);
+  --brand-foreground: oklch(0.985 0 0);
+  --brand-dark: oklch(0.78 0.13 184.7);
+  --brand-dark-foreground: oklch(0.16 0.004 285.9);
+}
+.theme-emerald {
+  --brand: oklch(0.596 0.145 163.2);
+  --brand-foreground: oklch(0.985 0 0);
+  --brand-dark: oklch(0.765 0.177 163.2);
+  --brand-dark-foreground: oklch(0.16 0.004 285.9);
+}
+.theme-amber {
+  --brand: oklch(0.666 0.179 58.3);
+  --brand-foreground: oklch(0.21 0.006 285.9);
+  --brand-dark: oklch(0.828 0.189 84.4);
+  --brand-dark-foreground: oklch(0.16 0.004 285.9);
 }
 
 @layer base {
-  *,
-  *::before,
-  *::after {
-    transition: none !important;
-    animation: none !important;
-    scroll-behavior: auto !important;
-  }
-
   * {
     @apply border-border;
   }
-  .dark body {
+  body {
     @apply bg-background text-foreground;
-    background: radial-gradient(circle at 50% 0%, #1a1a2e 0%, #000000 70%);
-    background-attachment: fixed;
     min-height: 100vh;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
-  .light body {
-    @apply bg-background text-foreground;
-    background: linear-gradient(135deg, #f8f9fc 0%, #e8eaf6 50%, #f0f4ff 100%);
-    background-attachment: fixed;
-    min-height: 100vh;
+  /* Respect reduced-motion; otherwise allow subtle UI transitions. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
@@ -111,104 +203,48 @@
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
+.animate-slide-in { animation: slide-in 0.3s ease-out forwards; }
 
-.animate-slide-in {
-  animation: slide-in 0.4s ease-out forwards;
+/* ── Glass / elevated surface (token-based; subtle) ── */
+.glass-panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 1px 2px 0 oklch(0 0 0 / 4%);
 }
-
-/* Glass panel — dark */
 .dark .glass-panel {
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05), 0 4px 24px -4px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 1px 2px 0 oklch(0 0 0 / 30%), inset 0 1px 0 0 oklch(1 0 0 / 4%);
 }
 
-/* Glass panel — light */
-.light .glass-panel {
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.92) 0%, rgba(248, 250, 252, 0.82) 100%);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(15, 23, 42, 0.10);
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.75), 0 8px 28px -12px rgba(15, 23, 42, 0.22);
-  color: #0f172a;
+/* ── Status glows (kept for widgets) ── */
+.glow-green { box-shadow: 0 0 20px color-mix(in oklch, var(--success) 22%, transparent); }
+.glow-blue { box-shadow: 0 0 20px color-mix(in oklch, var(--chart-3) 22%, transparent); }
+.glow-amber { box-shadow: 0 0 20px color-mix(in oklch, var(--warning) 22%, transparent); }
+
+/* ── Terminal (xterm) ── */
+.xterm, .xterm-viewport, .xterm-screen { background: var(--card) !important; }
+.xterm .xterm-rows { color: var(--card-foreground) !important; }
+.xterm-cursor-layer .xterm-cursor {
+  background-color: var(--primary) !important;
+  border-color: var(--primary) !important;
 }
 
-
-.light [class*="text-white/"] {
-  color: #334155 !important;
-}
-
-.light .text-white\/80,
-.light .text-white\/90,
-.light [class*="text-white/[0.8"],
-.light [class*="text-white/[0.9"] {
-  color: #0f172a !important;
-}
-
-.light .text-white\/20,
-.light .text-white\/30,
-.light .text-white\/40,
-.light [class*="text-white/[0.2"],
-.light [class*="text-white/[0.3"],
-.light [class*="text-white/[0.4"] {
-  color: #64748b !important;
-}
-
-.light .border-white\/10,
-.light [class*="border-white/"] {
-  border-color: rgba(15, 23, 42, 0.12) !important;
-}
-
-.light [class*="bg-white/"] {
-  background-color: rgba(15, 23, 42, 0.045) !important;
-}
-
-.xterm,
-.xterm-viewport,
-.xterm-screen {
-  background: rgba(0, 0, 0, 0.85) !important;
-}
-
-.light .xterm,
-.light .xterm-viewport,
-.light .xterm-screen {
-  background: rgba(248, 250, 252, 0.85) !important;
-}
-
-.light .xterm .xterm-rows,
-.light .xterm .xterm-helper-textarea {
-  color: #0f172a !important;
-}
-
-.light .xterm-cursor-layer .xterm-cursor {
-  background-color: #4f46e5 !important;
-  border-color: #4f46e5 !important;
-}
-
-.glow-green {
-  box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
-}
-
-.glow-blue {
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
-}
-
-.glow-amber {
-  box-shadow: 0 0 20px rgba(245, 158, 11, 0.15);
-}
-
-.scrollbar-thin::-webkit-scrollbar {
-  width: 4px;
-}
-.scrollbar-thin::-webkit-scrollbar-track {
-  background: transparent;
-}
+/* ── Thin scrollbars ── */
+.scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 2px;
+  background: var(--border);
+  border-radius: 3px;
 }
-.light .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.12);
-}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
+
+/* ============================================================================
+   TRANSITIONAL COMPAT — many components still hardcode `text-white/N`,
+   `bg-white/N`, `border-white/N` from the old dark-only theme. Map them to
+   semantic tokens so light mode is legible until each component is migrated
+   to tokens (Phase 4). Remove this block once migration is complete.
+   ========================================================================== */
+.light [class*="text-white/"] { color: var(--muted-foreground); }
+.light .text-white\/80, .light .text-white\/90 { color: var(--foreground); }
+.light [class*="bg-white/"] { background-color: var(--secondary); }
+.light [class*="border-white/"] { border-color: var(--border); }

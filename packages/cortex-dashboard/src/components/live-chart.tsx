@@ -30,12 +30,12 @@ export function LiveChart({ data }: LiveChartProps) {
 				>
 					<defs>
 						<linearGradient id="cpuGrad" x1="0" y1="0" x2="0" y2="1">
-							<stop offset="0%" stopColor="#10b981" stopOpacity={0.35} />
-							<stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+							<stop offset="0%" stopColor="var(--success)" stopOpacity={0.35} />
+							<stop offset="100%" stopColor="var(--success)" stopOpacity={0} />
 						</linearGradient>
 						<linearGradient id="memGrad" x1="0" y1="0" x2="0" y2="1">
-							<stop offset="0%" stopColor="#3b82f6" stopOpacity={0.25} />
-							<stop offset="100%" stopColor="#3b82f6" stopOpacity={0} />
+							<stop offset="0%" stopColor="var(--chart-3)" stopOpacity={0.25} />
+							<stop offset="100%" stopColor="var(--chart-3)" stopOpacity={0} />
 						</linearGradient>
 					</defs>
 					<CartesianGrid
@@ -73,7 +73,8 @@ export function LiveChart({ data }: LiveChartProps) {
 							const val = value as number;
 							const nm = name as string;
 							const label = nm === "cpu" ? "CPU" : "Memory";
-							const color = nm === "cpu" ? "#10b981" : "#3b82f6";
+							const color =
+								nm === "cpu" ? "var(--success)" : "var(--chart-3)";
 							return [
 								<span
 									key={nm}
@@ -89,7 +90,7 @@ export function LiveChart({ data }: LiveChartProps) {
 					<Area
 						type="monotone"
 						dataKey="cpu"
-						stroke="#10b981"
+						stroke="var(--success)"
 						strokeWidth={2}
 						fill="url(#cpuGrad)"
 						isAnimationActive={false}
@@ -98,7 +99,7 @@ export function LiveChart({ data }: LiveChartProps) {
 					<Area
 						type="monotone"
 						dataKey="mem"
-						stroke="#3b82f6"
+						stroke="var(--chart-3)"
 						strokeWidth={2}
 						fill="url(#memGrad)"
 						isAnimationActive={false}

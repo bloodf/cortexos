@@ -11,7 +11,7 @@ export function MemoryGaugeWidget() {
 			{sys ? (
 				<Gauge
 					value={sys.memory.percent}
-					color="#3b82f6"
+					color="var(--chart-3)"
 					label="Memory"
 					sublabel={`${sys.memory.used} / ${sys.memory.total} MB`}
 					icon={<MemoryStick className="w-5 h-5" />}
