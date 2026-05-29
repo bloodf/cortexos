@@ -1,0 +1,25 @@
+[Unit]
+Description=CortexOS Hermes Web UI host-header proxy
+After=network-online.target hermes-dashboard.service
+Wants=network-online.target hermes-dashboard.service
+
+[Service]
+Type=simple
+User={VPS_USER}
+Group={VPS_USER}
+Environment=HERMES_DASHBOARD_PROXY_HOST=localhost
+Environment=HERMES_DASHBOARD_PROXY_PORT=9120
+Environment=HERMES_DASHBOARD_HOST=localhost
+Environment=HERMES_DASHBOARD_PORT=9119
+WorkingDirectory={CORTEX_ROOT}
+ExecStart=/usr/bin/env node {CORTEX_ROOT}/scripts/hermes-dashboard-host-proxy.mjs
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths={CORTEX_ROOT}
+
+[Install]
+WantedBy=multi-user.target
