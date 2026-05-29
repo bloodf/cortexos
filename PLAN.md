@@ -43,9 +43,7 @@ Confirmed host facts:
 
 ## Key Architecture Decisions
 
-- Main host stays the control/data plane: PostgreSQL, MySQL, Redis, MinIO,
-  RabbitMQ, MongoDB, Caddy, Tailscale, Cockpit, Webmin, 9Router, Ollama,
-  Honcho, Cortex Dashboard, and monitoring.
+- Main host stays the control/data plane: PostgreSQL, MySQL, Redis, MongoDB, Caddy, Tailscale, Cockpit, Webmin, 9Router, Ollama, Honcho, Cortex Dashboard, and monitoring.
 - Incus uses unprivileged containers by default, versioned base images, and a
   file-backed ZFS pool under `/mnt/hdd`.
 - First Incus project instances: `mementry`, `celebrar.me`, and `3guns`, each
@@ -87,7 +85,7 @@ Confirmed host facts:
   state.
 - Define Hermes identity explicitly: profile dirs, env files, Honcho
   memory/state, sessions, tokens, and verification checks.
-- Define exact backup scope: database dumps, MinIO data, MongoDB, Honcho,
+- Define exact backup scope: database dumps, MongoDB, Honcho,
   Hermes, secrets, Caddy, Tailscale state, Docker volumes, Incus/ZFS, and repo
   state.
 - Add host/project network model: shared Incus bridge trust is accepted, but
@@ -173,8 +171,6 @@ Backup scope:
 - Honcho data volumes and database exports.
 - PostgreSQL, MySQL, MongoDB logical dumps.
 - Redis metadata/config snapshot.
-- MinIO object storage data and bucket/policy metadata where available.
-- RabbitMQ definitions when installed.
 - Caddy config/certs, Tailscale state metadata, systemd units/drop-ins, Docker
   compose files/volume names, cron/timers.
 - Config exports for retired systems.

@@ -33,7 +33,7 @@ phase with decisions, status, validation evidence, risks, and next actions.
   - Incus version: 6.0.5
   - File-backed ZFS image: `/mnt/hdd/incus-zfs.img`
   - Incus storage pool: `cortex-zfs`
-  - Bridge: `incusbr0`, `10.222.222.1/24`, NAT enabled, IPv6 disabled
+  - Bridge: `incusbr0`, `<bridge-cidr>`, NAT enabled, IPv6 disabled
   - UFW rules were added for Incus DHCP, DNS, and routed egress.
   - Network smoke previously verified IPv4, default route, DNS, and HTTP egress.
 - Incus base image phase is in progress and not complete.
