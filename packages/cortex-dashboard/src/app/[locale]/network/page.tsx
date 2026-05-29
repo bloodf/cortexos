@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Activity } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { ActivityIcon, ArrowDownIcon, ArrowUpIcon, NetworkIcon } from "lucide-react";
+import type { ColumnDef } from "@tanstack/react-table";
+import { PageHeader } from "@/components/ui/page-header";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatCard } from "@/components/ui/stat-card";
+import { DataTable } from "@/components/ui/data-table";
+import { EmptyState } from "@/components/ui/empty-state";
 import { NetChart } from "@/components/net-chart";
 
 interface NetInterface {
@@ -34,6 +41,7 @@ function formatBytes(bytes: number): string {
 }
 
 export default function NetworkPage() {
+	const t = useTranslations("Infrastructure");
 	const [interfaces, setInterfaces] = useState<NetInterface[]>([]);
 	const [history, setHistory] = useState<NetPoint[]>([]);
 	const [loading, setLoading] = useState(true);
@@ -78,96 +86,99 @@ export default function NetworkPage() {
 	const rxBytesTotal = interfaces.reduce((s, i) => s + i.rxBytesTotal, 0);
 	const txBytesTotal = interfaces.reduce((s, i) => s + i.txBytesTotal, 0);
 
+	const columns: ColumnDef<NetInterface>[] = [
+		{
+			accessorKey: "name",
+			header: "Interface",
+			cell: ({ row }) => (
+				<span className="font-mono text-xs text-foreground">{row.original.name}</span>
+			),
+		},
+		{
+			accessorKey: "rxKbps",
+			header: "RX",
+			cell: ({ row }) => (
+				<span className="font-mono text-xs text-chart-1">{formatRate(row.original.rxKbps)}</span>
+			),
+		},
+		{
+			accessorKey: "txKbps",
+			header: "TX",
+			cell: ({ row }) => (
+				<span className="font-mono text-xs text-chart-2">{formatRate(row.original.txKbps)}</span>
+			),
+		},
+		{
+			accessorKey: "rxBytesTotal",
+			header: t("TotalRx"),
+			cell: ({ row }) => (
+				<span className="font-mono text-xs text-muted-foreground">
+					{formatBytes(row.original.rxBytesTotal)}
+				</span>
+			),
+		},
+		{
+			accessorKey: "txBytesTotal",
+			header: t("TotalTx"),
+			cell: ({ row }) => (
+				<span className="font-mono text-xs text-muted-foreground">
+					{formatBytes(row.original.txBytesTotal)}
+				</span>
+			),
+		},
+	];
+
 	return (
-		<div className="space-y-4 animate-[slide-in_0.4s_ease-out]">
-			<div className="flex items-center gap-2 text-sm text-white/40 light:text-slate-700">
-				<Activity className="w-4 h-4" />
-				<span>{interfaces.length} interfaces</span>
-			</div>
+		<div className="flex flex-col gap-6 p-6">
+			<PageHeader
+				title={t("NetworkTitle")}
+				description={t("NetworkDescription")}
+				icon={<NetworkIcon />}
+				actions={
+					<span className="flex items-center gap-2 text-sm text-muted-foreground">
+						<ActivityIcon className="size-4" />
+						{interfaces.length} {t("Interfaces")}
+					</span>
+				}
+			/>
 
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-				<StatCard label="Inbound" value={formatRate(rxTotalKbps)} accent="text-cyan-400" />
-				<StatCard label="Outbound" value={formatRate(txTotalKbps)} accent="text-violet-400" />
-				<StatCard label="Total RX" value={formatBytes(rxBytesTotal)} accent="text-cyan-400" />
-				<StatCard label="Total TX" value={formatBytes(txBytesTotal)} accent="text-violet-400" />
+				<StatCard
+					label={t("Inbound")}
+					value={formatRate(rxTotalKbps)}
+					icon={<ArrowDownIcon />}
+				/>
+				<StatCard
+					label={t("Outbound")}
+					value={formatRate(txTotalKbps)}
+					icon={<ArrowUpIcon />}
+				/>
+				<StatCard label={t("TotalRx")} value={formatBytes(rxBytesTotal)} />
+				<StatCard label={t("TotalTx")} value={formatBytes(txBytesTotal)} />
 			</div>
 
-			<div className="glass-panel rounded-2xl p-4">
-				<div className="mb-3 text-xs uppercase tracking-wider text-white/40 light:text-slate-700">
-					Throughput history
-				</div>
-				<NetChart data={history} />
-			</div>
+			<Card>
+				<CardHeader>
+					<CardTitle>{t("ThroughputHistory")}</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<NetChart data={history} />
+				</CardContent>
+			</Card>
 
-			<div className="glass-panel rounded-2xl p-4 overflow-x-auto">
-				<table className="w-full text-left text-xs">
-					<thead>
-						<tr className="border-b border-white/[0.06]">
-							<th className="pb-3 pr-4 text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-								Interface
-							</th>
-							<th className="pb-3 pr-4 text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider text-right">
-								RX
-							</th>
-							<th className="pb-3 pr-4 text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider text-right">
-								TX
-							</th>
-							<th className="pb-3 pr-4 text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider text-right">
-								Total RX
-							</th>
-							<th className="pb-3 text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider text-right">
-								Total TX
-							</th>
-						</tr>
-					</thead>
-					<tbody>
-						{loading && (
-							<tr>
-								<td colSpan={5} className="py-6 text-center text-white/20 light:text-slate-700">
-									Loading…
-								</td>
-							</tr>
-						)}
-						{!loading && interfaces.length === 0 && (
-							<tr>
-								<td colSpan={5} className="py-6 text-center text-white/20 light:text-slate-700">
-									No interfaces detected
-								</td>
-							</tr>
-						)}
-						{interfaces.map((i) => (
-							<tr key={i.name} className="border-b border-white/[0.02] hover:bg-white/[0.02]">
-								<td className="py-2 pr-4 font-mono text-white/70 light:text-slate-700">{i.name}</td>
-								<td className="py-2 pr-4 text-right font-mono text-cyan-400">{formatRate(i.rxKbps)}</td>
-								<td className="py-2 pr-4 text-right font-mono text-violet-400">{formatRate(i.txKbps)}</td>
-								<td className="py-2 pr-4 text-right font-mono text-white/40 light:text-slate-700">
-									{formatBytes(i.rxBytesTotal)}
-								</td>
-								<td className="py-2 text-right font-mono text-white/40 light:text-slate-700">
-									{formatBytes(i.txBytesTotal)}
-								</td>
-							</tr>
-						))}
-					</tbody>
-				</table>
-			</div>
-		</div>
-	);
-}
-
-interface StatCardProps {
-	label: string;
-	value: string;
-	accent: string;
-}
-
-function StatCard({ label, value, accent }: StatCardProps) {
-	return (
-		<div className="glass-panel rounded-2xl p-4">
-			<div className="text-[11px] uppercase tracking-wider text-white/40 light:text-slate-700">
-				{label}
-			</div>
-			<div className={`mt-1 font-mono text-xl font-semibold ${accent}`}>{value}</div>
+			<Card>
+				<CardHeader>
+					<CardTitle>{t("Interfaces")}</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<DataTable
+						columns={columns}
+						data={interfaces}
+						loading={loading}
+						emptyState={<EmptyState title={t("NoInterfaces")} />}
+					/>
+				</CardContent>
+			</Card>
 		</div>
 	);
 }

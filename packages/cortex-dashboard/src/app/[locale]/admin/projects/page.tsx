@@ -1,5 +1,7 @@
 import { listProjects } from "@/lib/db/projects";
 import { AdminProjectsPanel } from "@/components/admin/admin-projects-panel";
+import { PageHeader } from "@/components/ui/page-header";
+import { FolderGit2 } from "lucide-react";
 
 export default async function AdminProjectsPage() {
 	const projects = await listProjects();
@@ -12,11 +14,12 @@ export default async function AdminProjectsPage() {
 		messaging_mode: p.messaging_mode,
 	}));
 	return (
-		<div className="space-y-4">
-			<h1 className="text-2xl font-semibold">Admin · Projects</h1>
-			<p className="text-sm text-muted-foreground">
-				Operator-registered projects. Bot tokens live on the VPS, never in the dashboard DB.
-			</p>
+		<div className="flex flex-col gap-6 p-6">
+			<PageHeader
+				title="Projects"
+				description="Operator-registered projects. Bot tokens live on the VPS, never in the dashboard DB."
+				icon={<FolderGit2 />}
+			/>
 			<AdminProjectsPanel initialProjects={safe} />
 		</div>
 	);

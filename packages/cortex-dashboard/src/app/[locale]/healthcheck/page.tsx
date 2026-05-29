@@ -1,5 +1,7 @@
 import { getAllServices } from "@/lib/db/service";
 import { LiveHealthcheckTable } from "@/components/healthcheck/live-healthcheck-table";
+import { PageHeader } from "@/components/ui/page-header";
+import { Activity } from "lucide-react";
 
 export default async function HealthcheckPage() {
 	const rawServices = await getAllServices();
@@ -20,8 +22,12 @@ export default async function HealthcheckPage() {
 	}));
 
 	return (
-		<div className="space-y-4">
-			<h1 className="text-2xl font-semibold">Healthcheck</h1>
+		<div className="flex flex-col gap-6 p-6">
+			<PageHeader
+				title="Healthcheck"
+				description="Live status, response times, and uptime for monitored services."
+				icon={<Activity />}
+			/>
 			<LiveHealthcheckTable initialServices={initialServices} />
 		</div>
 	);

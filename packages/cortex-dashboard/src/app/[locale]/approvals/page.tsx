@@ -4,7 +4,10 @@
  * Lists rows from `pending_approvals`. Each row exposes an approve / deny form
  * that calls the `decideApproval` server action.
  */
+import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/ui/page-header";
+import { CheckIcon, ShieldQuestionIcon, XIcon } from "lucide-react";
 import { decideApprovalForm, loadPendingApprovals } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -26,110 +29,97 @@ export default async function ApprovalsPage() {
 	const { rows, warning, error } = await loadPendingApprovals();
 
 	return (
-		<div className="space-y-6">
-			<div>
-				<h1 className="text-2xl font-semibold text-white/90 light:text-slate-800">
-					Pending approvals
-				</h1>
-				<p className="text-sm text-muted-foreground mt-1">
-					Destructive operations paused on{" "}
-					<code className="font-mono text-xs">cortex.signals.&lt;runId&gt;.&lt;name&gt;</code>.
-					Approve or deny to unblock the consumer.
-				</p>
-			</div>
+		<div className="flex flex-col gap-6 p-6">
+			<PageHeader
+				title="Pending approvals"
+				description={
+					<>
+						Destructive operations paused on{" "}
+						<code className="font-mono text-xs">cortex.signals.&lt;runId&gt;.&lt;name&gt;</code>.
+						Approve or deny to unblock the consumer.
+					</>
+				}
+				icon={<ShieldQuestionIcon />}
+			/>
 
 			{warning && (
-				<div className="rounded-md border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-200">
+				<div className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning">
 					{warning}
 				</div>
 			)}
 			{error && (
-				<div className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-200">
+				<div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
 					{error}
 				</div>
 			)}
 
 			{rows.length === 0 ? (
 				<EmptyState
+					icon={<ShieldQuestionIcon />}
 					title="No pending approvals"
 					description="Approvals will appear here when a role with approvalRequired: true emits a destructive op."
 				/>
 			) : (
 				<ul className="space-y-3">
 					{rows.map((row) => (
-						<li
-							key={row.id}
-							className="rounded-xl border border-border bg-background/40 p-4"
-						>
-							<div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-								<div className="space-y-1">
-									<div className="text-sm font-mono text-foreground">
-										{row.run_id}
-										<span className="ml-2 text-xs text-muted-foreground">
-											signal={row.signal_name}
-										</span>
-									</div>
-									<div className="text-xs text-muted-foreground">
-										{row.role ? `role=${row.role} ` : ""}
-										{row.issue_id ? `issue=${row.issue_id} ` : ""}
-										requested {formatRelative(row.requested_at)}
-										{row.timeout_at ? ` · timeout ${row.timeout_at}` : ""}
-									</div>
-									{row.reason && (
-										<div className="text-xs text-muted-foreground">
-											reason: {row.reason}
+						<li key={row.id}>
+							<Card>
+								<CardContent className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+									<div className="space-y-1">
+										<div className="text-sm font-mono text-foreground">
+											{row.run_id}
+											<span className="ml-2 text-xs text-muted-foreground">
+												signal={row.signal_name}
+											</span>
 										</div>
-									)}
-								</div>
-								<div className="flex gap-2">
-									<form action={decideApprovalForm}>
-										<input
-											type="hidden"
-											name="runId"
-											value={row.run_id}
-										/>
-										<input
-											type="hidden"
-											name="signalName"
-											value={row.signal_name}
-										/>
-										<input
-											type="hidden"
-											name="decision"
-											value="approve"
-										/>
-										<button
-											type="submit"
-											className="rounded-md bg-emerald-500/20 px-3 py-1.5 text-xs font-medium text-emerald-200 hover:bg-emerald-500/30"
-										>
-											Approve
-										</button>
-									</form>
-									<form action={decideApprovalForm}>
-										<input
-											type="hidden"
-											name="runId"
-											value={row.run_id}
-										/>
-										<input
-											type="hidden"
-											name="signalName"
-											value={row.signal_name}
-										/>
-										<input
-											type="hidden"
-											name="decision"
-											value="deny"
-										/>
-										<button
-											type="submit"
-											className="rounded-md bg-red-500/20 px-3 py-1.5 text-xs font-medium text-red-200 hover:bg-red-500/30"
-										>
-											Deny
-										</button>
-									</form>
-								</div>
-							</div>
+										<div className="text-xs text-muted-foreground">
+											{row.role ? `role=${row.role} ` : ""}
+											{row.issue_id ? `issue=${row.issue_id} ` : ""}
+											requested {formatRelative(row.requested_at)}
+											{row.timeout_at ? ` · timeout ${row.timeout_at}` : ""}
+										</div>
+										{row.reason && (
+											<div className="text-xs text-muted-foreground">
+												reason: {row.reason}
+											</div>
+										)}
+									</div>
+									<div className="flex gap-2">
+										<form action={decideApprovalForm}>
+											<input type="hidden" name="runId" value={row.run_id} />
+											<input
+												type="hidden"
+												name="signalName"
+												value={row.signal_name}
+											/>
+											<input type="hidden" name="decision" value="approve" />
+											<button
+												type="submit"
+												className="inline-flex items-center gap-1 rounded-md bg-success/15 px-3 py-1.5 text-xs font-medium text-success hover:bg-success/25"
+											>
+												<CheckIcon className="size-3.5" />
+												Approve
+											</button>
+										</form>
+										<form action={decideApprovalForm}>
+											<input type="hidden" name="runId" value={row.run_id} />
+											<input
+												type="hidden"
+												name="signalName"
+												value={row.signal_name}
+											/>
+											<input type="hidden" name="decision" value="deny" />
+											<button
+												type="submit"
+												className="inline-flex items-center gap-1 rounded-md bg-destructive/15 px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/25"
+											>
+												<XIcon className="size-3.5" />
+												Deny
+											</button>
+										</form>
+									</div>
+								</CardContent>
+							</Card>
 						</li>
 					))}
 				</ul>

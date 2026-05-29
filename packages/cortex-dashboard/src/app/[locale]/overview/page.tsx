@@ -1,6 +1,8 @@
 import { OverviewDashboard } from "@/components/overview-dashboard";
 import { queryOne } from "@/lib/db/client";
 import type { LayoutConfig } from "@/components/layout/types";
+import { PageHeader } from "@/components/ui/page-header";
+import { LayoutDashboard } from "lucide-react";
 
 const DEFAULT_LAYOUT = {
 	rows: [
@@ -27,5 +29,14 @@ async function getInitialLayout() {
 export default async function OverviewPage() {
 	const initialLayout = await getInitialLayout();
 
-	return <OverviewDashboard initialLayout={initialLayout as LayoutConfig} />;
+	return (
+		<div className="flex flex-col gap-6 p-6">
+			<PageHeader
+				title="Overview"
+				description="System health, service status, and live performance at a glance."
+				icon={<LayoutDashboard />}
+			/>
+			<OverviewDashboard initialLayout={initialLayout as LayoutConfig} />
+		</div>
+	);
 }

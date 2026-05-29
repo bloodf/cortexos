@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import {
 	Search,
 	Cpu,
@@ -8,6 +9,9 @@ import {
 	ChevronRight,
 	ChevronDown,
 } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
+import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonTable } from "@/components/skeleton";
 
 interface ProcessNode {
@@ -100,7 +104,7 @@ function TreeRow({ node, sort, expanded, onToggle }: TreeRowProps) {
 	return (
 		<>
 			<tr
-				className="border-b border-white/[0.02] hover:bg-white/[0.02]"
+				className="border-b border-border hover:bg-muted/50"
 				style={{ marginLeft: `${node.depth * 20}px` }}
 			>
 				<td className="py-2 pr-4">
@@ -111,7 +115,7 @@ function TreeRow({ node, sort, expanded, onToggle }: TreeRowProps) {
 						{hasChildren ? (
 							<button
 								onClick={() => onToggle(node.pid)}
-								className="text-white/30 light:text-slate-700 hover:text-white/60 light:hover:text-slate-950 light:text-slate-700 w-4 h-4 flex items-center justify-center"
+								className="text-muted-foreground hover:text-foreground w-4 h-4 flex items-center justify-center"
 							>
 								{isExpanded ? (
 									<ChevronDown className="w-3 h-3" />
@@ -122,34 +126,34 @@ function TreeRow({ node, sort, expanded, onToggle }: TreeRowProps) {
 						) : (
 							<span className="w-4" />
 						)}
-						<span className="font-mono text-white/50 light:text-slate-700 text-xs">{node.pid}</span>
+						<span className="font-mono text-foreground text-xs">{node.pid}</span>
 					</div>
 				</td>
-				<td className="py-2 pr-4 text-white/50 light:text-slate-700 text-xs">{node.user}</td>
+				<td className="py-2 pr-4 text-foreground text-xs">{node.user}</td>
 				<td className="py-2 pr-4 text-right">
 					<span
-						className={`font-mono font-medium text-xs ${cpu > 30 ? "text-red-400" : cpu > 10 ? "text-amber-400" : "text-emerald-400"}`}
+						className={`font-mono font-medium text-xs ${cpu > 30 ? "text-destructive" : cpu > 10 ? "text-warning" : "text-success"}`}
 					>
 						{cpu.toFixed(1)}%
 					</span>
 				</td>
 				<td className="py-2 pr-4 text-right">
 					<span
-						className={`font-mono font-medium text-xs ${mem > 10 ? "text-red-400" : mem > 5 ? "text-amber-400" : "text-emerald-400"}`}
+						className={`font-mono font-medium text-xs ${mem > 10 ? "text-destructive" : mem > 5 ? "text-warning" : "text-success"}`}
 					>
 						{mem.toFixed(1)}%
 					</span>
 				</td>
-				<td className="py-2 pr-4 text-right font-mono text-white/30 light:text-slate-700 text-xs">
+				<td className="py-2 pr-4 text-right font-mono text-muted-foreground text-xs">
 					{node.vsz}
 				</td>
-				<td className="py-2 pr-4 text-right font-mono text-white/30 light:text-slate-700 text-xs">
+				<td className="py-2 pr-4 text-right font-mono text-muted-foreground text-xs">
 					{node.rss}
 				</td>
-				<td className="py-2 pr-4 text-white/30 light:text-slate-700 text-xs">{node.tty}</td>
-				<td className="py-2 pr-4 text-white/30 light:text-slate-700 text-xs">{node.stat}</td>
+				<td className="py-2 pr-4 text-muted-foreground text-xs">{node.tty}</td>
+				<td className="py-2 pr-4 text-muted-foreground text-xs">{node.stat}</td>
 				<td
-					className="py-2 text-white/60 light:text-slate-700 text-xs truncate max-w-[300px]"
+					className="py-2 text-foreground text-xs truncate max-w-[300px]"
 					title={node.command}
 				>
 					{node.command}
@@ -170,6 +174,7 @@ function TreeRow({ node, sort, expanded, onToggle }: TreeRowProps) {
 }
 
 export default function ProcessesPage() {
+	const t = useTranslations("Infrastructure");
 	const [processes, setProcesses] = useState<ProcessNode[]>([]);
 	const [search, setSearch] = useState("");
 	const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({
@@ -237,88 +242,93 @@ export default function ProcessesPage() {
 	const thBtn = (label: string, k: SortKey, right?: boolean) => (
 		<button
 			onClick={() => toggleSort(k)}
-			className={`flex items-center gap-1 hover:text-white/80 light:hover:text-slate-950 light:text-slate-700 transition-colors ${right ? "justify-end w-full" : ""}`}
+			className={`flex items-center gap-1 hover:text-foreground transition-colors ${right ? "justify-end w-full" : ""}`}
 		>
 			{label}
 			<ArrowUpDown
-				className={`w-3 h-3 ${sort.key === k ? "text-indigo-400" : "text-white/10 light:text-slate-700"}`}
+				className={`w-3 h-3 ${sort.key === k ? "text-primary" : "text-muted-foreground/40"}`}
 			/>
 		</button>
 	);
 
 	return (
-		<div className="space-y-4 animate-[slide-in_0.4s_ease-out]">
-			<div className="flex items-center justify-between">
-				<div className="flex items-center gap-2 text-sm text-white/40 light:text-slate-700">
-					<Cpu className="w-4 h-4" />
-					<span>{filtered.count} processes</span>
-				</div>
-				<div className="relative max-w-xs">
-					<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/20 light:text-slate-700" />
-					<input
-						type="text"
-						value={search}
-						onChange={(e) => setSearch(e.target.value)}
-						placeholder="Search by command, user, PID..."
-						className="pl-9 pr-3 py-1.5 bg-white/[0.02] border border-white/[0.06] rounded-lg text-xs text-white/70 light:text-slate-700 placeholder:text-white/20 light:text-slate-700 focus:outline-none focus:border-indigo-500/40"
-					/>
-				</div>
-			</div>
-			<div className="glass-panel rounded-2xl p-4 overflow-x-auto">
-				{loading ? (
-					<SkeletonTable rows={8} cols={9} />
-				) : (
-					<table className="w-full text-left">
-						<thead>
-							<tr className="border-b border-white/[0.06]">
-								<th className="pb-3 pr-4 text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-									{thBtn("PID", "pid")}
-								</th>
-								<th className="pb-3 pr-4 text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-									{thBtn("User", "user")}
-								</th>
-								<th className="pb-3 pr-4 text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider text-right">
-									{thBtn("CPU%", "cpu", true)}
-								</th>
-								<th className="pb-3 pr-4 text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider text-right">
-									{thBtn("Mem%", "mem", true)}
-								</th>
-								<th className="pb-3 pr-4 text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider text-right">
-									{thBtn("VSZ", "mem", true)}
-								</th>
-								<th className="pb-3 pr-4 text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider text-right">
-									{thBtn("RSS", "mem", true)}
-								</th>
-								<th className="pb-3 pr-4 text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-									{thBtn("TTY", "user")}
-								</th>
-								<th className="pb-3 pr-4 text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-									{thBtn("Stat", "user")}
-								</th>
-								<th className="pb-3 text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-									{thBtn("Command", "command")}
-								</th>
-							</tr>
-						</thead>
-						<tbody className="text-xs">
-							{filtered.nodes.map((n) => (
-								<TreeRow
-									key={n.pid}
-									node={n}
-									sort={sort}
-									expanded={expanded}
-									onToggle={toggleExpand}
-								/>
-							))}
-						</tbody>
-					</table>
-				)}
-				{!loading && filtered.nodes.length === 0 && (
-					<div className="text-center text-white/20 light:text-slate-700 py-12 text-sm">
-						No processes found
+		<div className="flex flex-col gap-6 p-6">
+			<PageHeader
+				title={t("ProcessesTitle")}
+				description={t("ProcessesDescription")}
+				icon={<Cpu />}
+				actions={
+					<div className="flex items-center gap-3">
+						<span className="text-sm text-muted-foreground">
+							{filtered.count} {t("ProcessesTitle").toLowerCase()}
+						</span>
+						<div className="relative max-w-xs">
+							<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+							<input
+								type="text"
+								value={search}
+								onChange={(e) => setSearch(e.target.value)}
+								placeholder={t("SearchProcesses")}
+								className="pl-9 pr-3 py-1.5 bg-secondary border border-border rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring"
+							/>
+						</div>
 					</div>
-				)}
-			</div>
+				}
+			/>
+			<Card>
+				<CardContent className="overflow-x-auto">
+					{loading ? (
+						<SkeletonTable rows={8} cols={9} />
+					) : filtered.nodes.length === 0 ? (
+						<EmptyState title={t("NoProcesses")} />
+					) : (
+						<table className="w-full text-left">
+							<thead>
+								<tr className="border-b border-border">
+									<th className="pb-3 pr-4 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+										{thBtn("PID", "pid")}
+									</th>
+									<th className="pb-3 pr-4 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+										{thBtn("User", "user")}
+									</th>
+									<th className="pb-3 pr-4 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-right">
+										{thBtn("CPU%", "cpu", true)}
+									</th>
+									<th className="pb-3 pr-4 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-right">
+										{thBtn("Mem%", "mem", true)}
+									</th>
+									<th className="pb-3 pr-4 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-right">
+										{thBtn("VSZ", "mem", true)}
+									</th>
+									<th className="pb-3 pr-4 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-right">
+										{thBtn("RSS", "mem", true)}
+									</th>
+									<th className="pb-3 pr-4 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+										{thBtn("TTY", "user")}
+									</th>
+									<th className="pb-3 pr-4 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+										{thBtn("Stat", "user")}
+									</th>
+									<th className="pb-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+										{thBtn("Command", "command")}
+									</th>
+								</tr>
+							</thead>
+							<tbody className="text-xs">
+								{filtered.nodes.map((n) => (
+									<TreeRow
+										key={n.pid}
+										node={n}
+										sort={sort}
+										expanded={expanded}
+										onToggle={toggleExpand}
+									/>
+								))}
+							</tbody>
+						</table>
+					)}
+				</CardContent>
+			</Card>
 		</div>
 	);
 }

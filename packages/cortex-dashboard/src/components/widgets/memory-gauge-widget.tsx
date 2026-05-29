@@ -17,7 +17,7 @@ export function MemoryGaugeWidget() {
 					icon={<MemoryStick className="w-5 h-5" />}
 				/>
 			) : (
-				<div className="animate-pulse bg-white/[0.04] rounded-full w-32 h-32" />
+				<div className="h-32 w-32 animate-pulse rounded-full bg-muted" />
 			)}
 		</div>
 	);

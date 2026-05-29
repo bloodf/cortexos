@@ -15,15 +15,15 @@ export function ContainerOpsWidget() {
 	return (
 		<motion.div
 			whileHover={{ scale: 1.02 }}
-			className="h-full flex flex-col justify-center bg-white/[0.02] rounded-xl p-4 border border-blue-500/20 min-h-[80px] shadow-[inset_0_0_20px_rgba(59,130,246,0.05)]"
+			className="flex h-full min-h-[80px] flex-col justify-center rounded-xl border border-chart-3/20 bg-chart-3/5 p-4"
 		>
-			<div className="flex items-center gap-2 text-xs text-white/50 light:text-slate-700 mb-2 font-medium tracking-wide uppercase">
-				<Box className="w-4 h-4 text-blue-400" />
+			<div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+				<Box className="h-4 w-4 text-chart-3" />
 				Container Ops
 			</div>
-			<div className="text-3xl font-bold text-blue-400 font-mono flex items-baseline gap-2">
-				{online} <span className="text-sm font-normal text-white/40 light:text-slate-700">online</span>
-				{offlineCount > 0 && <span className="text-sm font-normal text-red-400 ml-2">{offlineCount} offline</span>}
+			<div className="flex items-baseline gap-2 font-mono text-3xl font-bold text-chart-3">
+				{online} <span className="text-sm font-normal text-muted-foreground">online</span>
+				{offlineCount > 0 && <span className="ml-2 text-sm font-normal text-destructive">{offlineCount} offline</span>}
 			</div>
 		</motion.div>
 	);

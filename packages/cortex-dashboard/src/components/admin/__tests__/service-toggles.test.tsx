@@ -50,7 +50,7 @@ describe("ServiceToggles", () => {
     expect(onToggle).toHaveBeenCalledWith(3, false);
   });
 
-  it("toggle styling reflects active and inactive states", () => {
+  it("toggle reflects active and inactive states", () => {
     const services = [
       makeService({ id: 1, is_active: true }),
       makeService({ id: 2, is_active: false }),
@@ -60,7 +60,7 @@ describe("ServiceToggles", () => {
     const activeToggle = screen.getByTestId("toggle-1");
     const inactiveToggle = screen.getByTestId("toggle-2");
 
-    expect(activeToggle.className).toContain("bg-emerald-500/30");
-    expect(inactiveToggle.className).toContain("bg-white/[0.06]");
+    expect(activeToggle).toHaveAttribute("aria-checked", "true");
+    expect(inactiveToggle).toHaveAttribute("aria-checked", "false");
   });
 });

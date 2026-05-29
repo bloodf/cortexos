@@ -48,8 +48,8 @@ export function UptimeSparkline({
 							</defs>
 							<XAxis
 								dataKey="time"
-								stroke="rgba(255,255,255,0.1)"
-								tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10 }}
+								stroke="var(--border)"
+								tick={{ fill: "var(--muted-foreground)", fontSize: 10 }}
 								tickLine={false}
 								axisLine={false}
 								interval="preserveStartEnd"
@@ -57,21 +57,21 @@ export function UptimeSparkline({
 							/>
 							<YAxis
 								domain={[0, 100]}
-								stroke="rgba(255,255,255,0.1)"
-								tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10 }}
+								stroke="var(--border)"
+								tick={{ fill: "var(--muted-foreground)", fontSize: 10 }}
 								tickLine={false}
 								axisLine={false}
 								tickFormatter={(v) => `${v}${unit}`}
 							/>
 							<Tooltip
 								contentStyle={{
-									backgroundColor: "rgba(10,10,15,0.95)",
-									border: "1px solid rgba(255,255,255,0.1)",
+									backgroundColor: "var(--popover)",
+									border: "1px solid var(--border)",
 									borderRadius: "8px",
 									fontSize: "12px",
 								}}
-								itemStyle={{ color: "#fff" }}
-								labelStyle={{ color: "rgba(255,255,255,0.5)" }}
+								itemStyle={{ color: "var(--popover-foreground)" }}
+								labelStyle={{ color: "var(--muted-foreground)" }}
 								formatter={(value: unknown) => [
 									<span
 										key="val"

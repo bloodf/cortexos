@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Pencil, Trash2, Check, XCircle, AlertTriangle, Upload, RotateCcw } from "lucide-react";
 import { ServiceLogo } from "@/components/service-logo";
+import { Switch } from "@/components/ui/switch";
 
 const CATEGORIES = [
 	"AI",
@@ -126,16 +127,16 @@ export function ServiceRow({
 	};
 
 	const inputClass =
-		"w-full px-2 py-1 bg-black/40 border border-white/[0.08] rounded text-xs text-white/90 light:text-slate-700 placeholder:text-white/20 light:text-slate-700 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/60 transition-all shadow-inner";
+		"w-full rounded border border-input bg-background px-2 py-1 text-xs text-foreground transition-all outline-none focus:border-ring focus:ring-1 focus:ring-ring";
 
 	return (
 		<tr
-			className={`border-b border-white/[0.02] transition-colors ${
+			className={`border-b border-border transition-colors ${
 				isDeleting
-					? "bg-red-500/[0.05]"
+					? "bg-destructive/5"
 					: isEditing
-						? "bg-indigo-500/[0.03]"
-						: "hover:bg-white/[0.02]"
+						? "bg-primary/5"
+						: "hover:bg-muted/50"
 			}`}
 		>
 			<td className="py-2.5 pr-3">
@@ -151,11 +152,11 @@ export function ServiceRow({
 							type="color"
 							value={editDraft.icon_color || "#525252"}
 							onChange={(e) => setEditDraft((d) => ({ ...d, icon_color: e.target.value }))}
-							className="w-6 h-6 rounded cursor-pointer bg-transparent border-0"
+							className="h-6 w-6 cursor-pointer rounded border-0 bg-transparent"
 							title="Icon color"
 						/>
-						<label className="flex items-center p-1 bg-white/[0.04] rounded cursor-pointer hover:bg-white/[0.06]" title="Upload image">
-							<Upload className="w-3 h-3 text-white/40 light:text-slate-700" />
+						<label className="flex cursor-pointer items-center rounded bg-muted p-1 hover:bg-muted/70" title="Upload image">
+							<Upload className="h-3 w-3 text-muted-foreground" />
 							<input
 								type="file"
 								accept="image/*"
@@ -176,10 +177,10 @@ export function ServiceRow({
 						{(editDraft.icon_color || editDraft.icon_image) && (
 							<button
 								onClick={() => setEditDraft((d) => ({ ...d, icon_color: null, icon_image: null }))}
-								className="p-1 text-white/30 light:text-slate-700 hover:text-white/50 light:hover:text-slate-950 light:text-slate-700"
+								className="p-1 text-muted-foreground hover:text-foreground"
 								title="Reset avatar"
 							>
-								<RotateCcw className="w-3 h-3" />
+								<RotateCcw className="h-3 w-3" />
 							</button>
 						)}
 					</div>
@@ -202,7 +203,7 @@ export function ServiceRow({
 						autoFocus
 					/>
 				) : (
-					<span className="text-white/70 light:text-slate-700">{svc.name}</span>
+					<span className="text-foreground">{svc.name}</span>
 				)}
 			</td>
 
@@ -214,7 +215,7 @@ export function ServiceRow({
 						className={`${inputClass} font-mono`}
 					/>
 				) : (
-					<span className="font-mono text-white/40 light:text-slate-700">{svc.slug}</span>
+					<span className="font-mono text-muted-foreground">{svc.slug}</span>
 				)}
 			</td>
 
@@ -230,7 +231,7 @@ export function ServiceRow({
 						))}
 					</select>
 				) : (
-					<span className="text-white/40 light:text-slate-700">{svc.category}</span>
+					<span className="text-muted-foreground">{svc.category}</span>
 				)}
 			</td>
 
@@ -246,7 +247,7 @@ export function ServiceRow({
 						))}
 					</select>
 				) : (
-					<span className="text-white/40 light:text-slate-700">{svc.health_type}</span>
+					<span className="text-muted-foreground">{svc.health_type}</span>
 				)}
 			</td>
 
@@ -258,57 +259,50 @@ export function ServiceRow({
 						className={`${inputClass} font-mono`}
 					/>
 				) : (
-					<span className="font-mono text-white/40 light:text-slate-700 truncate max-w-[200px] block">
+					<span className="block max-w-[200px] truncate font-mono text-muted-foreground">
 						{svc.health_url}
 					</span>
 				)}
 			</td>
 
 			<td className="py-2.5 pr-3">
-				<button
-					onClick={toggleActive}
-					className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-						svc.is_active ? "bg-emerald-500/30" : "bg-white/[0.06]"
-					}`}
-				>
-					<span
-						className={`inline-block h-3.5 w-3.5 rounded-full transition-transform ${
-							svc.is_active ? "translate-x-4 bg-emerald-400" : "translate-x-0.5 bg-white/30 light:bg-slate-100"
-						}`}
-					/>
-				</button>
+				<Switch
+					checked={svc.is_active}
+					onCheckedChange={toggleActive}
+					aria-label={`Toggle ${svc.name}`}
+				/>
 			</td>
 
 			<td className="py-2.5">
 				<div className="flex items-center justify-end gap-1">
 					{isEditing ? (
 						<>
-							<button onClick={saveEdit} className="p-1.5 text-emerald-400 hover:bg-emerald-500/10 rounded transition-colors" title="Save">
-								<Check className="w-3.5 h-3.5" />
+							<button onClick={saveEdit} className="rounded p-1.5 text-success transition-colors hover:bg-success/10" title="Save">
+								<Check className="h-3.5 w-3.5" />
 							</button>
-							<button onClick={onCancelEdit} className="p-1.5 text-white/30 light:text-slate-700 hover:text-white/60 light:hover:text-slate-950 light:text-slate-700 hover:bg-white/[0.04] rounded transition-colors" title="Cancel">
-								<XCircle className="w-3.5 h-3.5" />
+							<button onClick={onCancelEdit} className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="Cancel">
+								<XCircle className="h-3.5 w-3.5" />
 							</button>
 						</>
 					) : (
 						<>
-							<button onClick={handleStartEdit} className="p-1.5 text-white/20 light:text-slate-700 hover:text-indigo-400 hover:bg-indigo-500/10 rounded transition-colors" title="Edit">
-								<Pencil className="w-3.5 h-3.5" />
+							<button onClick={handleStartEdit} className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary" title="Edit">
+								<Pencil className="h-3.5 w-3.5" />
 							</button>
 							<div className="relative">
 								<button
 									onClick={onDeleteClick}
-									className={`p-1.5 rounded transition-colors ${
-										isDeleting ? "text-red-400 bg-red-500/10" : "text-white/20 light:text-slate-700 hover:text-red-400 hover:bg-red-500/10"
+									className={`rounded p-1.5 transition-colors ${
+										isDeleting ? "bg-destructive/10 text-destructive" : "text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
 									}`}
 									title={isDeleting ? deleteLabel() : "Delete"}
 								>
-									{isDeleting ? <AlertTriangle className="w-3.5 h-3.5" /> : <Trash2 className="w-3.5 h-3.5" />}
+									{isDeleting ? <AlertTriangle className="h-3.5 w-3.5" /> : <Trash2 className="h-3.5 w-3.5" />}
 								</button>
 								{isDeleting && (
-									<div className="absolute right-0 top-full mt-1 whitespace-nowrap bg-red-500/20 text-red-300 text-[10px] px-2 py-1 rounded z-20">
+									<div className="absolute right-0 top-full z-20 mt-1 whitespace-nowrap rounded bg-destructive/20 px-2 py-1 text-[10px] text-destructive">
 										{deleteLabel()}
-										<button onClick={onCancelDelete} className="ml-2 text-white/30 light:text-slate-700 hover:text-white/60 light:hover:text-slate-950 light:text-slate-700">✕</button>
+										<button onClick={onCancelDelete} className="ml-2 text-muted-foreground hover:text-foreground">✕</button>
 									</div>
 								)}
 							</div>

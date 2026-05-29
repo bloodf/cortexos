@@ -1,13 +1,15 @@
 import { AdminSystemdTable } from "@/components/admin/admin-systemd-table";
+import { PageHeader } from "@/components/ui/page-header";
+import { Cog } from "lucide-react";
 
 export default function AdminSystemdPage() {
 	return (
-		<div className="space-y-4">
-			<h1 className="text-2xl font-semibold">Admin · Systemd</h1>
-			<p className="text-sm text-muted-foreground">
-				Manage systemd units on the host. Start/stop/restart actions require confirmation
-				and are audit-logged.
-			</p>
+		<div className="flex flex-col gap-6 p-6">
+			<PageHeader
+				title="Systemd"
+				description="Manage systemd units on the host. Start/stop/restart actions require confirmation and are audit-logged."
+				icon={<Cog />}
+			/>
 			<AdminSystemdTable />
 		</div>
 	);

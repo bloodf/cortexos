@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { useTheme } from "@/hooks/use-theme";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
-import { Plus, X, Monitor, Copy, ClipboardPaste, Trash } from "lucide-react";
+import { Plus, X, Monitor, Copy, ClipboardPaste, Trash, TerminalIcon } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
 import "@xterm/xterm/css/xterm.css";
 
 interface SessionMeta {
@@ -77,6 +79,7 @@ const terminalThemes = {
 } as const;
 
 export default function TerminalPage() {
+	const t = useTranslations("Infrastructure");
 	const { resolvedTheme } = useTheme();
 	const theme: "light" | "dark" = resolvedTheme === "light" ? "light" : "dark";
 	const [sessions, setSessions] = useState<SessionState[]>([]);
@@ -266,10 +269,13 @@ export default function TerminalPage() {
 	}, [sessions, theme]);
 
 	return (
-		<div
-			className="flex flex-col animate-[slide-in_0.4s_ease-out]"
-			style={{ height: "calc(100vh - 130px)" }}
-		>
+		<div className="flex flex-col gap-4 p-6" style={{ height: "calc(100vh - 64px)" }}>
+			<PageHeader
+				title={t("TerminalTitle")}
+				description={t("TerminalDescription")}
+				icon={<TerminalIcon />}
+			/>
+
 			{/* Tabs + Toolbar */}
 			<div className="flex items-end gap-2">
 				<div className="flex items-end gap-1 overflow-x-auto flex-1">
@@ -279,21 +285,21 @@ export default function TerminalPage() {
 							onClick={() => setActiveId(s.meta.id)}
 							className={`flex items-center gap-2 px-3 py-1.5 rounded-t-lg text-xs cursor-pointer border-t border-l border-r shrink-0 ${
 								activeId === s.meta.id
-									? "-mb-px bg-black/85 light:bg-slate-50/85 text-white/80 light:text-slate-900 border-white/[0.06] light:border-slate-300 border-b-0"
-									: "bg-black light:bg-slate-100 text-white/30 light:text-slate-600 border-transparent hover:text-white/50 light:hover:text-slate-950"
+									? "-mb-px bg-card text-foreground border-border border-b-0"
+									: "bg-muted text-muted-foreground border-transparent hover:text-foreground"
 							}`}
 						>
 							<Monitor className="w-3 h-3" />
 							<span>{s.meta.name}</span>
 							{s.meta.connected && (
-								<span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+								<span className="w-1.5 h-1.5 rounded-full bg-success" />
 							)}
 							<button
 								onClick={(e) => {
 									e.stopPropagation();
 									closeSession(s.meta.id);
 								}}
-								className="ml-1 hover:text-red-400"
+								className="ml-1 hover:text-destructive"
 							>
 								<X className="w-3 h-3" />
 							</button>
@@ -301,32 +307,32 @@ export default function TerminalPage() {
 					))}
 					<button
 						onClick={createSession}
-						className="flex items-center gap-1 px-2 py-1.5 text-xs text-white/30 light:text-slate-700 hover:text-white/60 light:hover:text-slate-950 light:text-slate-700 transition-colors shrink-0"
+						className="flex items-center gap-1 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0"
 					>
 						<Plus className="w-3.5 h-3.5" />
-						New
+						{t("NewSession")}
 					</button>
 				</div>
 
 				{/* Toolbar */}
-				<div className="flex items-center gap-1 shrink-0 bg-black light:bg-white">
+				<div className="flex items-center gap-1 shrink-0">
 					<button
 						onClick={handleCopy}
-						className="p-1.5 text-white/30 light:text-slate-700 hover:text-white/60 light:hover:text-slate-950 light:text-slate-700 rounded transition-colors"
+						className="p-1.5 text-muted-foreground hover:text-foreground rounded transition-colors"
 						title="Copy"
 					>
 						<Copy className="w-3.5 h-3.5" />
 					</button>
 					<button
 						onClick={handlePaste}
-						className="p-1.5 text-white/30 light:text-slate-700 hover:text-white/60 light:hover:text-slate-950 light:text-slate-700 rounded transition-colors"
+						className="p-1.5 text-muted-foreground hover:text-foreground rounded transition-colors"
 						title="Paste"
 					>
 						<ClipboardPaste className="w-3.5 h-3.5" />
 					</button>
 					<button
 						onClick={handleClear}
-						className="p-1.5 text-white/30 light:text-slate-700 hover:text-white/60 light:hover:text-slate-950 light:text-slate-700 rounded transition-colors"
+						className="p-1.5 text-muted-foreground hover:text-foreground rounded transition-colors"
 						title="Clear"
 					>
 						<Trash className="w-3.5 h-3.5" />
@@ -334,8 +340,8 @@ export default function TerminalPage() {
 				</div>
 			</div>
 
-			{/* Terminal containers */}
-			<div className="flex-1 relative border border-white/[0.06] light:border-slate-300 rounded-b-lg rounded-tr-lg bg-black/85 light:bg-slate-50/85 overflow-hidden">
+			{/* Terminal containers — surface kept aligned with xterm JS theme backgrounds */}
+			<div className="flex-1 relative border border-border rounded-b-lg rounded-tr-lg bg-black/85 light:bg-slate-50/85 overflow-hidden">
 				{sessions.map((s) => (
 					<div
 						key={s.meta.id}
@@ -347,8 +353,8 @@ export default function TerminalPage() {
 					/>
 				))}
 				{sessions.length === 0 && (
-					<div className="absolute inset-0 flex items-center justify-center text-white/20 light:text-slate-700 text-sm">
-						No active sessions
+					<div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">
+						{t("NoSessions")}
 					</div>
 				)}
 			</div>

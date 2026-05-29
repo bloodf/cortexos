@@ -7,11 +7,11 @@ interface CheckTypeBadgeProps {
 }
 
 const TYPE_STYLES: Record<string, string> = {
-	http: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-	tcp: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-	docker: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
-	process: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-	systemd: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+	http: "bg-chart-1/10 text-chart-1 border-chart-1/20",
+	tcp: "bg-chart-2/10 text-chart-2 border-chart-2/20",
+	docker: "bg-chart-3/10 text-chart-3 border-chart-3/20",
+	process: "bg-chart-4/10 text-chart-4 border-chart-4/20",
+	systemd: "bg-chart-5/10 text-chart-5 border-chart-5/20",
 };
 
 const TYPE_LABELS: Record<string, string> = {

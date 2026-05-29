@@ -97,14 +97,14 @@ export function IncusActionButtons({ name, status, onComplete }: IncusActionButt
         <Button
           size="sm"
           variant="ghost"
-          className="text-red-400 hover:text-red-300"
+          className="text-destructive hover:text-destructive"
           disabled={loading !== null}
           onClick={() => setConfirmDelete(true)}
         >
           Delete
         </Button>
       )}
-      {error && <span className="text-xs text-red-400">{error}</span>}
+      {error && <span className="text-xs text-destructive">{error}</span>}
     </div>
   );
 }

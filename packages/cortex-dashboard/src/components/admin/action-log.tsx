@@ -9,6 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { ActionLogEntry } from "@/lib/db/action-log";
 
 interface ActionLogProps {
@@ -18,54 +19,47 @@ interface ActionLogProps {
 export function ActionLog({ entries = [] }: ActionLogProps) {
   return (
     <div className="space-y-2">
-      <h3 className="text-sm font-semibold text-white/80 light:text-slate-700">
-        Action Log
-      </h3>
+      <h3 className="text-sm font-semibold text-foreground">Action Log</h3>
       {entries.length === 0 ? (
-        <p className="text-sm text-white/30 light:text-slate-700">
-          No actions recorded.
-        </p>
+        <EmptyState title="No actions recorded" />
       ) : (
-        <div className="border border-white/[0.06] rounded-lg overflow-hidden">
+        <div className="rounded-lg border border-border overflow-hidden">
           <Table>
             <TableHeader>
-              <TableRow className="border-white/[0.06] hover:bg-transparent">
-                <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Time
                 </TableHead>
-                <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
+                <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   User
                 </TableHead>
-                <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
+                <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Target
                 </TableHead>
-                <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
+                <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Action
                 </TableHead>
-                <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
+                <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Status
                 </TableHead>
-                <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
+                <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Message
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {entries.map((entry) => (
-                <TableRow
-                  key={entry.id}
-                  className="border-white/[0.03] hover:bg-white/[0.02]"
-                >
-                  <TableCell className="text-xs text-white/60 light:text-slate-700">
+                <TableRow key={entry.id}>
+                  <TableCell className="text-xs text-muted-foreground">
                     {new Date(entry.created_at).toLocaleString()}
                   </TableCell>
-                  <TableCell className="text-xs text-white/60 light:text-slate-700">
+                  <TableCell className="text-xs text-muted-foreground">
                     {entry.username || "—"}
                   </TableCell>
-                  <TableCell className="text-xs text-white/60 light:text-slate-700">
+                  <TableCell className="text-xs text-muted-foreground">
                     {entry.target_type}:{entry.target_name}
                   </TableCell>
-                  <TableCell className="text-xs text-white/60 light:text-slate-700">
+                  <TableCell className="text-xs text-muted-foreground">
                     {entry.action}
                   </TableCell>
                   <TableCell>
@@ -78,7 +72,7 @@ export function ActionLog({ entries = [] }: ActionLogProps) {
                       {entry.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-xs text-white/60 light:text-slate-700 max-w-xs truncate">
+                  <TableCell className="max-w-xs truncate text-xs text-muted-foreground">
                     {entry.message || "—"}
                   </TableCell>
                 </TableRow>

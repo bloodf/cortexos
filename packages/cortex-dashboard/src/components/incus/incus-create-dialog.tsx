@@ -97,29 +97,28 @@ export function IncusCreateDialog({ onCreated }: IncusCreateDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <Button size="sm" variant="outline" onClick={() => setOpen(true)}>+ Create</Button>
-      <DialogContent className="glass-panel border-white/[0.06]">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle className="text-white/80 light:text-slate-700">Create Instance</DialogTitle>
+          <DialogTitle>Create Instance</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div>
-            <label className="text-xs text-white/40 light:text-slate-700 block mb-1">Name</label>
+            <label className="text-xs text-muted-foreground block mb-1">Name</label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="my-instance"
-              className="bg-white/[0.03] border-white/[0.06]"
             />
           </div>
           <div>
-            <label className="text-xs text-white/40 light:text-slate-700 block mb-1">Image</label>
+            <label className="text-xs text-muted-foreground block mb-1">Image</label>
             {fetchingImages ? (
-              <p className="text-xs text-white/40">Loading images...</p>
+              <p className="text-xs text-muted-foreground">Loading images...</p>
             ) : (
               <select
                 value={selectedImage}
                 onChange={(e) => setSelectedImage(e.target.value)}
-                className="w-full text-sm bg-white/[0.03] border border-white/[0.06] rounded-md px-3 py-2 text-white/60 light:text-slate-700"
+                className="w-full text-sm bg-secondary border border-border rounded-md px-3 py-2 text-foreground"
               >
                 {images.map((img) => {
                   const label = img.aliases[0] || img.fingerprint.slice(0, 12);
@@ -133,15 +132,14 @@ export function IncusCreateDialog({ onCreated }: IncusCreateDialogProps) {
             )}
           </div>
           <div>
-            <label className="text-xs text-white/40 light:text-slate-700 block mb-1">Profiles (comma-separated)</label>
+            <label className="text-xs text-muted-foreground block mb-1">Profiles (comma-separated)</label>
             <Input
               value={profiles}
               onChange={(e) => setProfiles(e.target.value)}
               placeholder="default"
-              className="bg-white/[0.03] border-white/[0.06]"
             />
           </div>
-          {error && <p className="text-xs text-red-400">{error}</p>}
+          {error && <p className="text-xs text-destructive">{error}</p>}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={() => setOpen(false)} disabled={loading}>
               Cancel

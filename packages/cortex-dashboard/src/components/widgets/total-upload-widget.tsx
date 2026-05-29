@@ -15,13 +15,13 @@ export function TotalUploadWidget() {
 	return (
 		<motion.div
 			whileHover={{ scale: 1.02 }}
-			className="h-full flex flex-col justify-center bg-white/[0.02] rounded-xl p-4 border border-white/[0.04] min-h-[80px]"
+			className="flex h-full min-h-[80px] flex-col justify-center rounded-xl border border-border bg-muted/30 p-4"
 		>
-			<div className="flex items-center gap-2 text-xs text-white/40 light:text-slate-700 mb-2">
-				<ArrowUp className="w-3.5 h-3.5 text-violet-400" />
+			<div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
+				<ArrowUp className="h-3.5 w-3.5 text-chart-4" />
 				Total Uploaded
 			</div>
-			<div className="text-2xl font-bold text-violet-400 font-mono">
+			<div className="font-mono text-2xl font-bold text-chart-4">
 				{formatBytes(totalTxBytes)}
 			</div>
 		</motion.div>

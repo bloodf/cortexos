@@ -9,6 +9,8 @@ import { IconButton } from "@/components/ui/icon-button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Inbox } from "lucide-react";
 
 interface ReviewRow {
 	id: string;
@@ -89,13 +91,26 @@ export function MailGuardianReviewsPanel() {
 	], [openOnly, running]);
 
 	return (
-		<div className="space-y-3">
-			<div className="flex items-center justify-between gap-2">
-				<p className="text-sm text-muted-foreground">Raw subjects/bodies stay out of Postgres; rows show redacted summaries and hashes only.</p>
-				<Button type="button" variant="outline" size="sm" onClick={() => setOpenOnly((value) => !value)}>{openOnly ? "Show all" : "Show open"}</Button>
-			</div>
-			{error && <p className="text-sm text-destructive">{error}</p>}
-			{rows.length === 0 ? <EmptyState title="No mail reviews" description={openOnly ? "No open reviews are waiting." : "No reviews recorded."} /> : <DataTable columns={columns} data={rows} />}
-		</div>
+		<Card>
+			<CardHeader>
+				<CardTitle>Review Queue</CardTitle>
+				<div className="flex items-center justify-between gap-2">
+					<p className="text-sm text-muted-foreground">Raw subjects/bodies stay out of Postgres; rows show redacted summaries and hashes only.</p>
+					<Button type="button" variant="outline" size="sm" onClick={() => setOpenOnly((value) => !value)}>{openOnly ? "Show all" : "Show open"}</Button>
+				</div>
+			</CardHeader>
+			<CardContent className="space-y-3">
+				{error && <p className="text-sm text-destructive">{error}</p>}
+				{rows.length === 0 ? (
+					<EmptyState
+						icon={<Inbox />}
+						title="No mail reviews"
+						description={openOnly ? "No open reviews are waiting." : "No reviews recorded."}
+					/>
+				) : (
+					<DataTable columns={columns} data={rows} />
+				)}
+			</CardContent>
+		</Card>
 	);
 }

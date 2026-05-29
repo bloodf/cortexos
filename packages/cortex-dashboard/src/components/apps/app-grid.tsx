@@ -27,7 +27,7 @@ export function AppGrid({ services }: AppGridProps) {
 				</AnimatePresence>
 			</motion.div>
 			{services.length === 0 && (
-				<div className="text-center text-white/20 light:text-slate-700 py-20 text-sm">
+				<div className="py-20 text-center text-sm text-muted-foreground">
 					No apps available
 				</div>
 			)}
@@ -51,7 +51,7 @@ function AppGridItem({ service: s }: { service: ServiceData }) {
 				layout: { type: "spring", stiffness: 500, damping: 30 },
 			}}
 			key={s.slug}
-			className="glass-panel rounded-xl p-4 border border-white/[0.04] hover:border-white/[0.1] hover:bg-white/[0.03] transition-all group shadow-[inset_0_1px_0_0_rgba(255,255,255,0.02)]"
+			className="group rounded-xl border border-border bg-card p-4 ring-1 ring-foreground/10 transition-colors hover:bg-muted/50"
 		>
 			<div className="flex items-start gap-3">
 				<a
@@ -67,7 +67,7 @@ function AppGridItem({ service: s }: { service: ServiceData }) {
 						iconImage={s.icon_image}
 					/>
 					<div className="min-w-0 flex-1">
-						<div className="text-sm font-medium text-white/80 light:text-slate-700 truncate">
+						<div className="truncate text-sm font-medium text-foreground">
 							{s.name}
 						</div>
 						<div className="mt-1.5">

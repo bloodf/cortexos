@@ -1,15 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { SkeletonTable } from "@/components/skeleton";
+import { useTranslations } from "next-intl";
+import { RefreshCwIcon } from "lucide-react";
+import type { ColumnDef } from "@tanstack/react-table";
+import { PageHeader } from "@/components/ui/page-header";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/ui/data-table";
+import { EmptyState } from "@/components/ui/empty-state";
+import { TechIcon } from "@/components/tech-icon";
 import { DockerActionButtons } from "./action-buttons";
 
 interface CliContainer {
@@ -52,7 +53,30 @@ interface DockerData {
   images: DockerResult<CliImage>;
 }
 
+function stateVariant(state: string): "default" | "secondary" | "destructive" {
+  switch (state) {
+    case "running":
+      return "default";
+    case "paused":
+      return "secondary";
+    default:
+      return "destructive";
+  }
+}
+
+function stateClasses(state: string): string {
+  switch (state) {
+    case "running":
+      return "bg-success/10 text-success";
+    case "paused":
+      return "bg-warning/10 text-warning";
+    default:
+      return "bg-destructive/10 text-destructive";
+  }
+}
+
 export function DockerTable() {
+  const t = useTranslations("Infrastructure");
   const [data, setData] = useState<DockerData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -98,185 +122,165 @@ export function DockerTable() {
   const volumes = Array.isArray(data?.volumes?.data) ? data.volumes.data : [];
   const images = Array.isArray(data?.images?.data) ? data.images.data : [];
 
+  const containerColumns: ColumnDef<CliContainer>[] = [
+    {
+      accessorKey: "Names",
+      header: "Name",
+      cell: ({ row }) => (
+        <span className="font-mono text-xs text-foreground">{row.original.Names}</span>
+      ),
+    },
+    {
+      accessorKey: "State",
+      header: "Status",
+      cell: ({ row }) => (
+        <Badge variant={stateVariant(row.original.State)} className={stateClasses(row.original.State)}>
+          {row.original.Status}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: "Image",
+      header: "Image",
+      cell: ({ row }) => (
+        <span className="text-xs text-muted-foreground">{row.original.Image}</span>
+      ),
+    },
+    {
+      accessorKey: "Ports",
+      header: "Ports",
+      cell: ({ row }) => (
+        <span className="font-mono text-xs text-muted-foreground">{row.original.Ports || "—"}</span>
+      ),
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      enableSorting: false,
+      cell: ({ row }) => (
+        <DockerActionButtons name={row.original.Names} onComplete={refreshData} />
+      ),
+    },
+  ];
+
+  const volumeColumns: ColumnDef<CliVolume>[] = [
+    {
+      accessorKey: "Name",
+      header: "Name",
+      cell: ({ row }) => (
+        <span className="font-mono text-xs text-foreground">{row.original.Name}</span>
+      ),
+    },
+    {
+      accessorKey: "Driver",
+      header: "Driver",
+      cell: ({ row }) => (
+        <span className="text-xs text-muted-foreground">{row.original.Driver}</span>
+      ),
+    },
+    {
+      accessorKey: "Mountpoint",
+      header: "Mountpoint",
+      cell: ({ row }) => (
+        <span className="font-mono text-xs text-muted-foreground truncate block max-w-[300px]">
+          {row.original.Mountpoint}
+        </span>
+      ),
+    },
+  ];
+
+  const imageColumns: ColumnDef<CliImage>[] = [
+    {
+      accessorKey: "Repository",
+      header: "Repository",
+      cell: ({ row }) => (
+        <span className="text-xs text-foreground">{row.original.Repository}</span>
+      ),
+    },
+    {
+      accessorKey: "Tag",
+      header: "Tag",
+      cell: ({ row }) => (
+        <span className="font-mono text-xs text-muted-foreground">{row.original.Tag}</span>
+      ),
+    },
+    {
+      accessorKey: "Size",
+      header: "Size",
+      cell: ({ row }) => (
+        <span className="font-mono text-xs text-muted-foreground">{row.original.Size}</span>
+      ),
+    },
+    {
+      accessorKey: "CreatedSince",
+      header: "Created",
+      cell: ({ row }) => (
+        <span className="text-xs text-muted-foreground">{row.original.CreatedSince}</span>
+      ),
+    },
+  ];
+
   return (
-    <div className="space-y-6 animate-[slide-in_0.4s_ease-out]">
-      {/* Containers */}
-      <div className="glass-panel rounded-2xl p-6">
-        <h2 className="text-sm font-semibold text-white/80 light:text-slate-700 mb-4">
-          Containers
-        </h2>
-        {loading ? (
-          <SkeletonTable rows={5} cols={4} />
-        ) : error ? (
-          <div className="text-sm text-red-400">{error}</div>
-        ) : containers.length === 0 ? (
-          <div className="text-sm text-white/30 light:text-slate-700">No containers</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-b border-white/[0.06]">
-                  <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-                    Name
-                  </TableHead>
-                  <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-                    Status
-                  </TableHead>
-                  <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-                    Image
-                  </TableHead>
-                  <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-                    Ports
-                  </TableHead>
-                  <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-                    Actions
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {containers.map((c) => (
-                  <TableRow
-                    key={c.ID}
-                    className="border-b border-white/[0.03] hover:bg-white/[0.02]"
-                  >
-                    <TableCell className="text-white/60 light:text-slate-700 font-mono text-xs">
-                      {c.Names}
-                    </TableCell>
-                    <TableCell>
-                      <span
-                        className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                          c.State === "running"
-                            ? "bg-emerald-500/10 text-emerald-400"
-                            : c.State === "paused"
-                            ? "bg-amber-500/10 text-amber-400"
-                            : "bg-red-500/10 text-red-400"
-                        }`}
-                      >
-                        {c.Status}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-white/40 light:text-slate-700 text-xs">
-                      {c.Image}
-                    </TableCell>
-                    <TableCell className="text-white/40 light:text-slate-700 text-xs font-mono">
-                      {c.Ports || "—"}
-                    </TableCell>
-                    <TableCell>
-                      <DockerActionButtons name={c.Names} onComplete={refreshData} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
+    <div className="flex flex-col gap-6 p-6">
+      <PageHeader
+        title={t("DockerTitle")}
+        description={t("DockerDescription")}
+        icon={<TechIcon name="docker" size={20} />}
+        actions={
+          <Button variant="outline" size="sm" onClick={refreshData}>
+            <RefreshCwIcon />
+            Refresh
+          </Button>
+        }
+      />
 
-      {/* Volumes */}
-      <div className="glass-panel rounded-2xl p-6">
-        <h2 className="text-sm font-semibold text-white/80 light:text-slate-700 mb-4">
-          Volumes
-        </h2>
-        {loading ? (
-          <SkeletonTable rows={5} cols={3} />
-        ) : error ? (
-          <div className="text-sm text-red-400">{error}</div>
-        ) : volumes.length === 0 ? (
-          <div className="text-sm text-white/30 light:text-slate-700">No volumes</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-b border-white/[0.06]">
-                  <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-                    Name
-                  </TableHead>
-                  <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-                    Driver
-                  </TableHead>
-                  <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-                    Mountpoint
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {volumes.map((v) => (
-                  <TableRow
-                    key={v.Name}
-                    className="border-b border-white/[0.03] hover:bg-white/[0.02]"
-                  >
-                    <TableCell className="text-white/60 light:text-slate-700 font-mono text-xs">
-                      {v.Name}
-                    </TableCell>
-                    <TableCell className="text-white/40 light:text-slate-700 text-xs">
-                      {v.Driver}
-                    </TableCell>
-                    <TableCell className="text-white/40 light:text-slate-700 text-xs font-mono truncate max-w-[300px]">
-                      {v.Mountpoint}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
+      {error && (
+        <p className="text-sm text-destructive" role="alert">
+          {error}
+        </p>
+      )}
 
-      {/* Images */}
-      <div className="glass-panel rounded-2xl p-6">
-        <h2 className="text-sm font-semibold text-white/80 light:text-slate-700 mb-4">
-          Images
-        </h2>
-        {loading ? (
-          <SkeletonTable rows={5} cols={4} />
-        ) : error ? (
-          <div className="text-sm text-red-400">{error}</div>
-        ) : images.length === 0 ? (
-          <div className="text-sm text-white/30 light:text-slate-700">No images</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-b border-white/[0.06]">
-                  <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-                    Repository
-                  </TableHead>
-                  <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-                    Tag
-                  </TableHead>
-                  <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-                    Size
-                  </TableHead>
-                  <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-                    Created
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {images.map((img) => (
-                  <TableRow
-                    key={img.ID}
-                    className="border-b border-white/[0.03] hover:bg-white/[0.02]"
-                  >
-                    <TableCell className="text-white/60 light:text-slate-700 text-xs">
-                      {img.Repository}
-                    </TableCell>
-                    <TableCell className="text-white/40 light:text-slate-700 text-xs font-mono">
-                      {img.Tag}
-                    </TableCell>
-                    <TableCell className="text-white/40 light:text-slate-700 text-xs font-mono">
-                      {img.Size}
-                    </TableCell>
-                    <TableCell className="text-white/40 light:text-slate-700 text-xs">
-                      {img.CreatedSince}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("Containers")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DataTable
+            columns={containerColumns}
+            data={containers}
+            loading={loading}
+            emptyState={<EmptyState title={t("NoContainers")} />}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("Volumes")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DataTable
+            columns={volumeColumns}
+            data={volumes}
+            loading={loading}
+            emptyState={<EmptyState title={t("NoVolumes")} />}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("Images")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DataTable
+            columns={imageColumns}
+            data={images}
+            loading={loading}
+            emptyState={<EmptyState title={t("NoImages")} />}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }

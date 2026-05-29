@@ -1,15 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { SkeletonTable } from "@/components/skeleton";
+import { useTranslations } from "next-intl";
+import type { ColumnDef } from "@tanstack/react-table";
+import { PageHeader } from "@/components/ui/page-header";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/ui/data-table";
+import { EmptyState } from "@/components/ui/empty-state";
+import { TechIcon } from "@/components/tech-icon";
 import { IncusActionButtons } from "./incus-action-buttons";
 import { IncusInstanceDetails } from "./incus-instance-details";
 import { IncusCreateDialog } from "./incus-create-dialog";
@@ -31,7 +31,30 @@ interface IncusData {
   error?: string;
 }
 
+function statusClasses(status: string): string {
+  switch (status.toLowerCase()) {
+    case "running":
+      return "bg-success/10 text-success";
+    case "stopped":
+      return "bg-destructive/10 text-destructive";
+    default:
+      return "bg-warning/10 text-warning";
+  }
+}
+
+function statusVariant(status: string): "default" | "secondary" | "destructive" {
+  switch (status.toLowerCase()) {
+    case "running":
+      return "default";
+    case "stopped":
+      return "destructive";
+    default:
+      return "secondary";
+  }
+}
+
 export function IncusTable() {
+  const t = useTranslations("Infrastructure");
   const [data, setData] = useState<IncusData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,92 +99,98 @@ export function IncusTable() {
 
   const instances = Array.isArray(data?.data) ? data.data : [];
 
-  return (
-    <div className="space-y-6 animate-[slide-in_0.4s_ease-out]">
-      <div className="glass-panel rounded-2xl p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-white/80 light:text-slate-700">
-            Instances
-          </h2>
-          <IncusCreateDialog onCreated={refreshData} />
+  const columns: ColumnDef<IncusInstance>[] = [
+    {
+      accessorKey: "name",
+      header: "Name",
+      cell: ({ row }) => (
+        <span className="font-mono text-xs text-foreground">{row.original.name}</span>
+      ),
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => (
+        <Badge
+          variant={statusVariant(row.original.status)}
+          className={statusClasses(row.original.status)}
+        >
+          {row.original.status}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: "type",
+      header: "Type",
+      cell: ({ row }) => (
+        <span className="text-xs text-foreground">{row.original.type}</span>
+      ),
+    },
+    {
+      accessorKey: "ipv4",
+      header: "IPv4",
+      cell: ({ row }) => (
+        <span className="font-mono text-xs text-foreground">{row.original.ipv4 || "—"}</span>
+      ),
+    },
+    {
+      accessorKey: "architecture",
+      header: "Architecture",
+      cell: ({ row }) => (
+        <span className="text-xs text-foreground">{row.original.architecture}</span>
+      ),
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      enableSorting: false,
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSelectedInstance(row.original)}
+          >
+            {t("Details")}
+          </Button>
+          <IncusActionButtons
+            name={row.original.name}
+            status={row.original.status}
+            onComplete={refreshData}
+          />
         </div>
-        {loading ? (
-          <SkeletonTable rows={5} cols={6} />
-        ) : error ? (
-          <div className="text-sm text-red-400">{error}</div>
-        ) : instances.length === 0 ? (
-          <div className="text-sm text-white/30 light:text-slate-700">No instances</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-b border-white/[0.06]">
-                  <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-                    Name
-                  </TableHead>
-                  <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-                    Status
-                  </TableHead>
-                  <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-                    Type
-                  </TableHead>
-                  <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-                    IPv4
-                  </TableHead>
-                  <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-                    Architecture
-                  </TableHead>
-                  <TableHead className="text-[11px] font-semibold text-white/40 light:text-slate-700 uppercase tracking-wider">
-                    Actions
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {instances.map((i) => (
-                  <TableRow
-                    key={i.name}
-                    className="border-b border-white/[0.03] hover:bg-white/[0.02] cursor-pointer"
-                    onClick={() => setSelectedInstance(i)}
-                  >
-                    <TableCell className="text-white/60 light:text-slate-700 font-mono text-xs">
-                      {i.name}
-                    </TableCell>
-                    <TableCell>
-                      <span
-                        className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                          i.status.toLowerCase() === "running"
-                            ? "bg-emerald-500/10 text-emerald-400"
-                            : i.status.toLowerCase() === "stopped"
-                            ? "bg-red-500/10 text-red-400"
-                            : "bg-amber-500/10 text-amber-400"
-                        }`}
-                      >
-                        {i.status}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-white/60 light:text-slate-700 text-xs">
-                      {i.type}
-                    </TableCell>
-                    <TableCell className="text-white/60 light:text-slate-700 font-mono text-xs">
-                      {i.ipv4 || "—"}
-                    </TableCell>
-                    <TableCell className="text-white/60 light:text-slate-700 text-xs">
-                      {i.architecture}
-                    </TableCell>
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <IncusActionButtons
-                        name={i.name}
-                        status={i.status}
-                        onComplete={refreshData}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
+      ),
+    },
+  ];
+
+  return (
+    <div className="flex flex-col gap-6 p-6">
+      <PageHeader
+        title={t("IncusTitle")}
+        description={t("IncusDescription")}
+        icon={<TechIcon name="incus" size={20} />}
+        actions={<IncusCreateDialog onCreated={refreshData} />}
+      />
+
+      {error && (
+        <p className="text-sm text-destructive" role="alert">
+          {error}
+        </p>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("Instances")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DataTable
+            columns={columns}
+            data={instances}
+            loading={loading}
+            emptyState={<EmptyState title={t("NoInstances")} />}
+          />
+        </CardContent>
+      </Card>
 
       {selectedInstance && (
         <IncusInstanceDetails

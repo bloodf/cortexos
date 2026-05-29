@@ -34,17 +34,17 @@ export function NetworkGraphWidget() {
 	return (
 		<div className="h-full flex flex-col min-h-[200px]">
 			<div className="flex items-center justify-between mb-4">
-				<h2 className="text-sm font-semibold text-white/80 light:text-slate-700 flex items-center gap-2">
-					<Wifi className="w-4 h-4 text-violet-400" />
+				<h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+					<Wifi className="h-4 w-4 text-chart-4" />
 					Network
 				</h2>
-				<div className="flex gap-3 text-xs">
+				<div className="flex gap-3 text-xs text-muted-foreground">
 					<span className="flex items-center gap-1.5">
-						<span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
+						<span className="h-2.5 w-2.5 rounded-full bg-chart-3" />
 						Inbound
 					</span>
 					<span className="flex items-center gap-1.5">
-						<span className="w-2.5 h-2.5 rounded-full bg-violet-400" />
+						<span className="h-2.5 w-2.5 rounded-full bg-chart-4" />
 						Outbound
 					</span>
 				</div>

@@ -5,10 +5,11 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import useSWR from "swr";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { ServiceLogo } from "@/components/service-logo";
 import { StatusBadge } from "@/components/services/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ExternalLink, Settings2 } from "lucide-react";
+import { ExternalLink, LayoutGrid, Settings2 } from "lucide-react";
 
 export interface AppService {
 	id: number;
@@ -148,11 +149,17 @@ export function AppsPanel({ services, isAdmin }: Props) {
 			<section>
 				{filtered.length === 0 ? (
 					<EmptyState
+						icon={<LayoutGrid />}
 						title="No apps match"
 						description={
 							selectedBadges.size > 0
 								? "Try clearing the badge filter."
 								: "No services registered yet."
+						}
+						cta={
+							selectedBadges.size > 0
+								? { label: "Clear filter", onClick: clearFilter }
+								: undefined
 						}
 					/>
 				) : (
@@ -169,7 +176,7 @@ export function AppsPanel({ services, isAdmin }: Props) {
 
 function AppCard({ service: s, isAdmin }: { service: AppService; isAdmin: boolean }) {
 	return (
-		<div className="glass-panel rounded-xl border border-white/[0.04] p-4 hover:border-white/[0.1] hover:bg-white/[0.03] transition-all">
+		<Card size="sm" className="gap-3 p-4 transition-colors hover:bg-muted/50">
 			<div className="flex items-start gap-3">
 				<ServiceLogo
 					serviceId={s.slug}
@@ -178,7 +185,7 @@ function AppCard({ service: s, isAdmin }: { service: AppService; isAdmin: boolea
 					iconImage={s.icon_image}
 				/>
 				<div className="min-w-0 flex-1">
-					<div className="text-sm font-medium text-white/80 light:text-slate-700 truncate">
+					<div className="truncate text-sm font-medium text-foreground">
 						{s.name}
 					</div>
 					<div className="mt-1.5">
@@ -200,7 +207,7 @@ function AppCard({ service: s, isAdmin }: { service: AppService; isAdmin: boolea
 					)}
 				</div>
 			</div>
-			<div className="mt-3 flex items-center justify-end gap-1">
+			<div className="flex items-center justify-end gap-1">
 				{s.open_url !== "#" ? (
 					<a
 						href={s.open_url}
@@ -231,6 +238,6 @@ function AppCard({ service: s, isAdmin }: { service: AppService; isAdmin: boolea
 					</Button>
 				)}
 			</div>
-		</div>
+		</Card>
 	);
 }
