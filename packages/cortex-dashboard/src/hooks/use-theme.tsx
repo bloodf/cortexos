@@ -20,29 +20,21 @@ import {
                  persisted in a cookie so SSR can apply it without a flash.
    ========================================================================== */
 
-export type ThemeMode = "light" | "dark" | "system";
-export type ThemePreset = "cortex" | "teal" | "emerald" | "amber";
+import {
+	type ThemeMode,
+	type ThemePreset,
+	PRESETS,
+	DEFAULT_PRESET,
+	PRESET_COOKIE,
+	PRESET_COOKIE_MAX_AGE,
+	presetClass,
+	PRESET_CLASSES,
+	isPreset,
+} from "@/lib/theme-presets";
 
-export const PRESETS: readonly ThemePreset[] = [
-	"cortex",
-	"teal",
-	"emerald",
-	"amber",
-] as const;
-
-export const DEFAULT_PRESET: ThemePreset = "cortex";
-
-/** Cookie name read by the no-flash inline script in the root layout. */
-export const PRESET_COOKIE = "cortex-preset";
-/** CSS class applied to <html> for a given preset: `theme-<preset>`. */
-export const presetClass = (preset: ThemePreset) => `theme-${preset}`;
-
-const PRESET_CLASSES = PRESETS.map(presetClass);
-const PRESET_COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
-
-function isPreset(value: string | null | undefined): value is ThemePreset {
-	return value != null && (PRESETS as readonly string[]).includes(value);
-}
+// Re-export so existing consumers keep importing from this module.
+export type { ThemeMode, ThemePreset };
+export { PRESETS, DEFAULT_PRESET, PRESET_COOKIE, presetClass };
 
 function readPresetCookie(): ThemePreset {
 	if (typeof document === "undefined") return DEFAULT_PRESET;
