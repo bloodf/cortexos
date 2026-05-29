@@ -1,7 +1,7 @@
 # Incus Project Instances — Own Tailnet Machines
 
 Created: 2026-05-29  
-Status: **PLANNING / READY TO EXECUTE**  
+Status: **DONE** — all three instances joined the tailnet as own machines (2026-05-29)  
 Related: `docs/rebuild/network-access-and-remaining-work.md`, `manifests/rebuild/projects.tsv`
 
 ## Operator requirement
@@ -19,17 +19,17 @@ Host Tailscale is for **shared infra only**. Project work uses the instance mach
 
 ---
 
-## Live host state (verified 2026-05-29)
+## Live host state (joined 2026-05-29)
 
-| Instance | Bridge IP | `tailscaled` | `tailscale status` | `/dev/net/tun` |
-|----------|-----------|--------------|--------------------|----------------|
-| `mementry` | `10.222.222.175` | active | **Logged out** | present |
-| `celebrar-me` | `10.222.222.86` | active | **Logged out** | present |
-| `3guns` | `10.222.222.23` | active | **Logged out** | present |
+| Instance | Tailnet IP | `tailscaled` | `tailscale status` | Hermes `/health` |
+|----------|------------|--------------|--------------------|------------------|
+| `mementry` | `100.111.46.75` | active | **Joined** | 200 (:18697) |
+| `celebrar-me` | `100.87.56.72` | active | **Joined** | 200 (:18696) |
+| `3guns` | `100.102.203.119` | active | **Joined** | 200 (:18695) |
 
 Base image already includes `tailscale`, enabled `tailscaled`, and `/usr/local/bin/cortex-tailscale-up`.
 
-**Gap:** instances were never joined (`tailscale up` + auth key).
+Joined interactively (`cortex-tailscale-up <instance>` → operator-approved login URL); no stored auth key. Each appears as its own machine in the Tailscale admin, distinct from the host `cortexos`.
 
 ---
 
