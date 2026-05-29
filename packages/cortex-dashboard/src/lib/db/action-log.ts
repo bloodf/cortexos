@@ -4,7 +4,7 @@ export interface ActionLogEntry {
   id: number;
   user_id: number | null;
   username: string | null;
-  target_type: "docker" | "systemd" | "updates" | "local-user" | "mail-guardian";
+	target_type: "docker" | "systemd" | "updates" | "local-user" | "mail-guardian" | "incus";
   target_name: string;
   action: string;
   status: "success" | "failure";
@@ -12,7 +12,7 @@ export interface ActionLogEntry {
   created_at: Date;
 }
 
-export type ActionTargetType = "docker" | "systemd" | "updates" | "local-user" | "mail-guardian";
+export type ActionTargetType = "docker" | "systemd" | "updates" | "local-user" | "mail-guardian" | "incus";
 export type ActionStatus = "success" | "failure";
 
 export async function createActionLog(data: {

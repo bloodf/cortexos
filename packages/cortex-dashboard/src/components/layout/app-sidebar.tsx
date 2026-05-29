@@ -18,7 +18,9 @@ import {
 	Mail,
 	ChevronDown,
 	ChevronRight,
+	Boxes,
 } from "lucide-react";
+
 import {
 	Sidebar,
 	SidebarHeader,
@@ -43,6 +45,7 @@ const PRIMARY_NAV: NavItem[] = [
 	{ href: "/healthcheck", label: "Healthcheck", icon: HeartPulse },
 	{ href: "/agents", label: "Agents", icon: Bot },
 	{ href: "/docker", label: "Docker", icon: Container },
+	{ href: "/incus", label: "Incus", icon: Boxes },
 	{ href: "/systemd", label: "Systemd", icon: Server },
 	{ href: "/storage", label: "Storage", icon: HardDrive },
 	{ href: "/network", label: "Network", icon: Network },

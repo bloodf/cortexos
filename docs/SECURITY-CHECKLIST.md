@@ -4,6 +4,6 @@
 - Backup/restore gate passed.
 - Secrets manifest has no values.
 - Dashboard helper audit schema exists.
-- AgentGateway allowlist is explicit.
+- Obot MCP allowlist is explicit.
 - Protected Hermes identities are present and validated.
 - Project instances use per-project credentials.

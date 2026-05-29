@@ -2,7 +2,7 @@
 
 CortexOS is a prompt-driven, self-hosted AI infrastructure and agent orchestration OS. It
 declaratively provisions a single Ubuntu host (or Debian 13) with a full agent stack:
-Next.js dashboard, AgentGateway MCP proxy, Incus project instances, Prometheus/Grafana/Loki
+Next.js dashboard, Obot MCP gateway, Incus project instances, Prometheus/Grafana/Loki
 monitoring, hash-chained audit log, and SOPS+age secret pipeline — all driven from operator
 prompts on your laptop via SSH dispatch.
 

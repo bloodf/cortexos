@@ -1,5 +1,5 @@
 # Global MCP proxy allowlist.
-# The rebuilt Python Cortex AgentGateway exposes these to trusted LAN/tailnet callers.
+# The Obot MCP gateway platform exposes these to trusted LAN/tailnet callers.
 context7
 fetch
 git

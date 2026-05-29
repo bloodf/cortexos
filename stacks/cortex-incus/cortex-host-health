@@ -11,13 +11,13 @@ if [ -f /etc/cortexos/host-services.env ]; then
   . /etc/cortexos/host-services.env
 fi
 
-agentgateway_url="${CORTEX_AGENTGATEWAY_URL:-http://10.222.222.1:18800}"
+obot_url="${CORTEX_OBOT_URL:-http://127.0.0.1:8090}"
 
-printf 'agentgateway %s\n' "$agentgateway_url"
-if curl -fsS --connect-timeout 2 "$agentgateway_url/health" >/dev/null; then
-  printf 'agentgateway ok\n'
+printf 'obot %s\n' "$obot_url"
+if curl -fsS --connect-timeout 2 "$obot_url/" >/dev/null; then
+  printf 'obot ok\n'
 elif [ "$local_only" -eq 1 ]; then
-  printf 'agentgateway unavailable during image build\n'
+  printf 'obot unavailable during image build\n'
 else
   exit 1
 fi

@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Security vulnerability
-    url: https://github.com/bloodf/cortexos/security/advisories/new
+    url: https://github.com/{owner}/cortexos/security/advisories/new
     about: Report vulnerabilities privately. Do not open public issues for secrets or exploitable bugs.
   - name: Setup documentation
-    url: https://github.com/bloodf/cortexos/blob/main/SETUP.md
+    url: https://github.com/{owner}/cortexos/blob/main/SETUP.md
     about: Start here before opening setup questions.
