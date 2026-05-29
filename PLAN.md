@@ -221,8 +221,9 @@ Deliverables:
   and service, applies the command-audit migration, and validates execution
   through `/run/cortexos/dashboard-helper.sock`.
 - Dashboard app apply executor replaces the dashboard/audit source packages,
-  rebuilds the dashboard image, recreates the container, and health-checks
-  `/en/login`.
+  rebuilds the dashboard on the host (`scripts/ops/cortex-dashboard-build.sh`),
+  renders + installs the `cortex-dashboard.service` systemd unit, enables it, and
+  health-checks `/en/login`.
 
 Validation gate:
 
