@@ -62,9 +62,19 @@ else
 fi
 
 # 3. install plugins (non-interactive)
+# TPM's bin/install_plugins needs TMUX_PLUGIN_MANAGER_PATH set AND a tmux
+# server that has sourced the conf (so the @plugin list is registered).
+# Bootstrap a throwaway server/session for that, then install.
 if [ "${MAKE_PLUGINS}" -eq 1 ]; then
   log "installing tmux plugins via TPM"
+  export TMUX_PLUGIN_MANAGER_PATH="${HOME}/.tmux/plugins/"
+  tmux start-server 2>/dev/null || true
+  if ! tmux has-session -t __tpm_bootstrap 2>/dev/null; then
+    tmux new-session -d -s __tpm_bootstrap 2>/dev/null || true
+  fi
+  tmux source-file "${HOME}/.tmux.conf" 2>/dev/null || true
   "${TPM_DIR}/bin/install_plugins" || log "plugin install reported non-zero (often benign)"
+  tmux kill-session -t __tpm_bootstrap 2>/dev/null || true
 fi
 
 # 4. named sessions

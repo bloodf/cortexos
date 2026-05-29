@@ -16,6 +16,9 @@ CORTEX_ROOT="${CORTEX_ROOT:-/opt/cortexos}"
 AUDIT="${CORTEX_ROOT}/packages/cortex-audit"
 DASH="${CORTEX_ROOT}/packages/cortex-dashboard"
 export NEXT_TELEMETRY_DISABLED=1
+# Skip husky's prepare hook (git-hooks installer) — not present on the host and
+# irrelevant to a production build. Does not affect real postinstalls (esbuild).
+export HUSKY=0
 
 log() { printf '[dashboard-build] %s\n' "$*"; }
 
@@ -23,11 +26,19 @@ command -v node >/dev/null || { echo "node not installed" >&2; exit 1; }
 command -v npm  >/dev/null || { echo "npm not installed" >&2; exit 1; }
 [ -d "$DASH" ] || { echo "missing $DASH" >&2; exit 1; }
 
+# --ignore-scripts: the local packages declare `prepare: husky`, which fails on
+# the host (husky is a git-hooks tool, not on PATH outside the dev workspace).
+# We then `npm rebuild` to run real dependency postinstalls (e.g. esbuild's
+# platform binary) without re-running the local `prepare`.
 log "installing @cortexos/audit deps"
-( cd "$AUDIT" && npm install --no-audit --no-fund )
+( cd "$AUDIT" && npm install --no-audit --no-fund --ignore-scripts )
 
 log "installing dashboard deps"
-( cd "$DASH" && npm install --no-audit --no-fund )
+# Rebuild ONLY the packages whose native/postinstall step we actually need
+# (targeted) — a broad `npm rebuild` walks the host pnpm workspace store and
+# re-triggers husky. esbuild: platform binary. authenticate-pam: node-gyp
+# build against libpam (PAM login).
+( cd "$DASH" && npm install --no-audit --no-fund --ignore-scripts && npm rebuild esbuild authenticate-pam )
 
 # npm leaves @cortexos/audit as a file: symlink; Turbopack resolves a real dir
 # more reliably. Replace the link with a real copy.
@@ -35,6 +46,12 @@ log "materializing @cortexos/audit as a real directory"
 rm -rf "${DASH}/node_modules/@cortexos/audit"
 mkdir -p "${DASH}/node_modules/@cortexos/audit"
 cp -a "${AUDIT}/." "${DASH}/node_modules/@cortexos/audit/"
+
+# Hoist @cortexos/audit's runtime deps into the dashboard node_modules so
+# Turbopack resolves them when it bundles the audit source (undici/uuid are
+# imported by rekor.js/index.js; pg already present as a dashboard dep).
+log "hoisting audit runtime deps (undici, uuid)"
+( cd "$DASH" && npm install --no-save --no-audit --no-fund --ignore-scripts undici@^7 uuid@^11 )
 
 cd "$DASH"
 log "next build"
