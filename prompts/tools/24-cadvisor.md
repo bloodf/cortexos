@@ -58,6 +58,13 @@ cat >> /opt/cortexos/stacks/monitoring/docker-compose.yml <<'EOF'
       - /dev/disk:/dev/disk:ro
     devices:
       - /dev/kmsg
+    # cAdvisor's built-in HEALTHCHECK probes /healthz, but --url_base_prefix
+    # moves it to /cadvisor/healthz — override so the container reports healthy.
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/cadvisor/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 EOF
 ```
 
