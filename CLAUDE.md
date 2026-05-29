@@ -47,7 +47,7 @@ Use targeted tests when possible. Dashboard uses Next.js 16, TypeScript, Vitest,
 - Host root: `/opt/cortexos`.
 - Secrets root: `/opt/cortexos/.secrets`.
 - Dashboard secret env: `/opt/cortexos/secrets/dashboard.env`.
-- AgentGateway: `stacks/cortex-agentgateway/` (Python allowlist MCP proxy, native systemd, port 18800).
+- Obot: `stacks/cortex-obot/` (MCP gateway platform, Docker, port 8090).
 - Dashboard root helper: `stacks/cortex-dashboard-root-helper/` (Unix-socket shell executor with PostgreSQL + journald command audit).
 - Incus rebuild tooling: `stacks/cortex-incus/`; Bash command wrappers under `scripts/rebuild/`.
 - OS dispatcher: `scripts/os-detect.sh` + `scripts/pkg.sh`. OS prereq prompts: `prompts/os/*`.

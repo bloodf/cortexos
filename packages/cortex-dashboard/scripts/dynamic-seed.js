@@ -31,7 +31,7 @@ const SPOKE_TO_SERVICES = {
   "32-honcho": ["honcho", "honcho-mcp", "ollama-honcho-embeddings-proxy"],
   "34-kernel-browser": ["kernel-browser"],
   "47a-cortex-sandbox": ["cortex-sandbox-runner"],
-  "50-agentgateway": ["agentgateway"],
+  "50-obot": ["obot"],
   "56-pgadmin": ["pgadmin"],
   "58-mongo-express": ["mongo-express"],
   "59-phpmyadmin": ["phpmyadmin"],

@@ -35,7 +35,7 @@ BEGIN
 
   UPDATE services SET open_url = '#' WHERE slug IN (
     'ollama','honcho','honcho-mcp','ollama-honcho-embeddings-proxy',
-    'agentgateway','kernel-browser','cortex-sandbox-runner',
+    'obot','kernel-browser','cortex-sandbox-runner',
     'postgresql','mysql','redis','mongodb','caddy','tailscale','incus',
     'cortex-dashboard-root-helper','watchtower','dnsmasq','fail2ban',
     'node-exporter','fluent-bit','promtail','otel-collector',
