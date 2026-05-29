@@ -19,7 +19,7 @@ const nextConfig: NextConfig = {
 			],
 		},
 	],
-	serverExternalPackages: ["ssh2"],
+	serverExternalPackages: ["ssh2", "authenticate-pam"],
 	output: "standalone",
 } as NextConfig;
 

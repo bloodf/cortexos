@@ -30,15 +30,28 @@ command -v npm  >/dev/null || { echo "npm not installed" >&2; exit 1; }
 # the host (husky is a git-hooks tool, not on PATH outside the dev workspace).
 # We then `npm rebuild` to run real dependency postinstalls (e.g. esbuild's
 # platform binary) without re-running the local `prepare`.
-log "installing @cortexos/audit deps"
-( cd "$AUDIT" && npm install --no-audit --no-fund --ignore-scripts )
+# Dependency install is skippable on re-runs (it is slow + the clean reinstall
+# is only needed when the tree is stale/changed). Force with FORCE_INSTALL=1.
+PAM_NODE="${DASH}/node_modules/authenticate-pam/build/Release/authenticate_pam.node"
+ESBUILD_BIN="${DASH}/node_modules/@esbuild"
+if [ "${FORCE_INSTALL:-0}" = "1" ] || [ ! -e "${PAM_NODE}" ] || [ ! -e "${ESBUILD_BIN}" ]; then
+  log "installing @cortexos/audit deps"
+  ( cd "$AUDIT" && npm install --no-audit --no-fund --ignore-scripts )
 
-log "installing dashboard deps"
-# Rebuild ONLY the packages whose native/postinstall step we actually need
-# (targeted) — a broad `npm rebuild` walks the host pnpm workspace store and
-# re-triggers husky. esbuild: platform binary. authenticate-pam: node-gyp
-# build against libpam (PAM login).
-( cd "$DASH" && npm install --no-audit --no-fund --ignore-scripts && npm rebuild esbuild authenticate-pam )
+  log "installing dashboard deps (clean tree)"
+  # Start from a clean dependency tree. Prior in-place builds inject a real-dir
+  # @cortexos/audit copy + turbopack shims into node_modules; reinstalling over
+  # that (esp. after a package.json change like adding authenticate-pam) makes
+  # npm's arborist choke ("Cannot read properties of null (reading 'edgesOut')").
+  rm -rf "${DASH}/node_modules" "${DASH}/package-lock.json"
+  # Rebuild ONLY the packages whose native/postinstall step we actually need
+  # (targeted) — a broad `npm rebuild` walks the host pnpm workspace store and
+  # re-triggers husky. esbuild: platform binary. authenticate-pam: node-gyp
+  # build against libpam (PAM login).
+  ( cd "$DASH" && npm install --no-audit --no-fund --ignore-scripts && npm rebuild esbuild authenticate-pam )
+else
+  log "deps present (authenticate-pam + esbuild built) — skipping install (FORCE_INSTALL=1 to override)"
+fi
 
 # npm leaves @cortexos/audit as a file: symlink; Turbopack resolves a real dir
 # more reliably. Replace the link with a real copy.
