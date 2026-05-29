@@ -8,7 +8,7 @@
 # Env file: /opt/cortexos/.secrets/obot.env
 #   OBOT_SERVER_DSN=postgres://obot:<password>@<pg-host>:5432/obot
 #   OPENAI_API_KEY=<key>
-#   OBOT_SERVER_HOSTNAME=cortexos.<tailnet>.ts.net:<caddy-port>
+#   OBOT_SERVER_HOSTNAME=cortexos.<tailnet>.ts.net:8090
 #   OBOT_SERVER_ENABLE_AUTHENTICATION=true
 #   OBOT_BOOTSTRAP_TOKEN=<token>
 
@@ -26,9 +26,15 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - "127.0.0.1:8090:8080"
+    networks:
+      - cortex-db
     labels:
       com.cortexos.service: obot
       com.cortexos.managed: true
 
 volumes:
   obot-data:
+
+networks:
+  cortex-db:
+    external: true
