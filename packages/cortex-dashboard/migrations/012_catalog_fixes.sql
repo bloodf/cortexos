@@ -2,7 +2,7 @@
 -- Codex readiness review (docs/plans/codex-readiness-review.md) flagged
 -- stale health_url and env_source values on backend-only AI catalog rows
 -- seeded by 002_seed.sql. Reconcile them to match the actual spoke
--- prompts (prompts/tools/31-9router.md, 50-agentgateway.md) and the
+-- prompts (prompts/tools/31-9router.md, 50-obot.md) and the
 -- canonical SOPS-decrypted secrets layout under /opt/cortexos/.secrets/.
 --
 -- Idempotent: targeted UPDATEs by slug. No INSERTs, no badge changes.
@@ -22,9 +22,9 @@ UPDATE services
 -- different spoke. Env file moves to the SOPS-managed location.
 UPDATE services
    SET health_url = 'http://127.0.0.1:18800/health',
-       env_source = '/opt/cortexos/.secrets/agentgateway.env',
+       env_source = '/opt/cortexos/.secrets/obot.env',
        updated_at = NOW()
- WHERE slug = 'agentgateway';
+ WHERE slug = 'obot';
 
 INSERT INTO migrations (name) VALUES ('012_catalog_fixes')
 ON CONFLICT (name) DO NOTHING;

@@ -30,8 +30,7 @@ BEGIN
   UPDATE services SET open_url = base_url || '/phpmyadmin/'      WHERE slug = 'phpmyadmin';
   UPDATE services SET open_url = base_url || '/redisinsight/'    WHERE slug = 'redisinsight';
   UPDATE services SET open_url = base_url || '/mongo-admin'      WHERE slug = 'mongo-express';
-  UPDATE services SET open_url = base_url || '/minio/'           WHERE slug = 'minio';
-  UPDATE services SET open_url = base_url || '/rabbitmq/'        WHERE slug = 'rabbitmq';
+  -- minio and rabbitmq removed (Phase A, not deployed on host)
 
   UPDATE services SET open_url = '#' WHERE slug IN (
     'ollama','honcho','honcho-mcp','ollama-honcho-embeddings-proxy',

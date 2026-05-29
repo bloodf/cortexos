@@ -73,25 +73,24 @@ Active or notable Cortex-related units:
   `hermes-gateway@netbook.service`, `hermes-profile@cieucpb.service`,
   `hermes-profile@default.service`, `hermes-profile@netbook.service`,
   `honcho-mcp.service`, `ollama.service`,
-  `ollama-honcho-embeddings-proxy.service`, `paperclip.service`,
+  `ollama-honcho-embeddings-proxy.service`,
   `tailscaled.service`, `webmin.service`.
-- Failed: `cortex-backup.service`,
-  `paperclip-recover-blocked-and-error-issues.service`.
+- Failed: `cortex-backup.service`.
+  Note: paperclip, floci, cortex-langfuse were retired in Phase 8.
+  cortex-synthetic@ was retired in Phase C5.
 - Inactive but installed: `postgresql.service`, `postgresql@18-main.service`,
   `cockpit.service`, several Cortex timer-activated services.
 - Timers include `cortex-backup.timer`, `cortex-auto-update.timer`,
   `cortex-9router-health.timer`, `cortex-degraded-service-watcher.timer`,
-  `cortex-mail-guardian-sweep.timer`, and a Paperclip recovery timer.
+  `cortex-mail-guardian-sweep.timer`. Note: Paperclip recovery timer retired in Phase C5.
 
 ## Active Docker Compose Surface
 
 Host/control-plane stacks currently running in Docker:
 
 - `cortex-dashboard`
-- `cortex-langfuse`
 - `cortex-sandbox-runner`
 - `dockhand`
-- `floci`
 - `home-assistant`
 - `honcho`
 - `jellyfin`
@@ -115,12 +114,12 @@ Project stacks currently running directly on the host:
 - `celebrar.me` Laravel stack: app/e2e container, Mailhog, MinIO, Postgres,
   Redis.
 
-Retired or to-be-removed active runtime:
+Retired runtime (Phase 8 cleanup completed):
 
-- `paperclip.service` is active.
-- `floci` Docker stack is active.
-- `cortex-langfuse` Docker stack is active and must be disabled/archived.
-- `nats` binaries/packages are installed.
+- `paperclip.service` — retired and removed.
+- `floci` Docker stack — retired and removed.
+- `cortex-langfuse` Docker stack — retired and removed.
+- `nats` binaries/packages — retired and removed.
 
 ## Hermes Identity Snapshot
 
@@ -165,18 +164,16 @@ Secret values were not read. File names show active and stale secret surfaces:
   `mongodb.env`, `mysql.env`, `pgadmin.env`, `redis.env`, `sandbox.env`.
 - Identity: `backup-identity.txt`, `terminal_id_ed25519`,
   `terminal_id_ed25519.pub`.
-- Retired/stale candidates: `langfuse.env`, `langfuse-client.env`,
+- Retired/stale (to be removed): `langfuse.env`, `langfuse-client.env`,
   `paperclip.env`, `paperclip-app.env`, `paperclip-keys.json`,
   `paperclip-agent-runtime-keys.json`, and backup variants.
 
-## Immediate Cleanup Implications
+## Post-Reconciliation Status (2026-05-28)
 
-- The host is not yet repo-declared; live Docker compose files come from both
-  `/opt/cortexos/stacks` and `/home/cortexos/Developer/github.com/cortexos`.
-- Several systems marked retired are still installed or active; removal must
-  wait until backup artifacts are created and restore listing passes.
-- Tailscale Serve still exposes routes for retired/transition services,
-  including Langfuse and Floci ports.
+- Phase C completed: data-plane repointed to /opt/cortexos/stacks, old clone archived
+  and removed, host project stacks torn down (Incus covers), drift-check tooling added.
+- Phase D in progress: agentgateway → Obot MCP gateway migration.
+- Remaining follow-ups: 6 systemd units drift (legacy /opt layout), orphaned C3 volumes.
 - The `[object Object]` Hermes profile is a likely corrupt/stale profile name
   and should be cleaned only after Hermes backup and identity verification.
 - `cortex-backup.service` is currently failed, so the rebuild backup flow must

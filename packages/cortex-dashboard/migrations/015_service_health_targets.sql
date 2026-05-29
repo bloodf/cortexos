@@ -36,10 +36,7 @@ UPDATE services SET health_url = 'tcp://127.0.0.1:6379', health_type = 'tcp', up
  WHERE slug = 'redis';
 UPDATE services SET health_url = 'tcp://127.0.0.1:27017', health_type = 'tcp', updated_at = NOW()
  WHERE slug = 'mongodb';
-UPDATE services SET health_url = 'http://127.0.0.1:9000/minio/health/live', health_type = 'http', updated_at = NOW()
- WHERE slug = 'minio';
-UPDATE services SET health_url = 'http://127.0.0.1:15672/api/health/checks/local-alarms', health_type = 'http', updated_at = NOW()
- WHERE slug = 'rabbitmq';
+-- minio and rabbitmq health targets removed (not deployed on host)
 
 UPDATE services SET health_url = 'http://127.0.0.1:3000/api/health', health_type = 'http', updated_at = NOW()
  WHERE slug = 'grafana';
