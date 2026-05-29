@@ -198,8 +198,8 @@ main_backup() {
   copy_glob "${WORK_DIR}/configs/docker-compose" "${CORTEX_ROOT}/stacks"/*/docker-compose.yml
   copy_path "${CORTEX_ROOT}/stacks/honcho" "${WORK_DIR}/configs/docker-compose/honcho"
   copy_from_container monitoring-grafana-1 /var/lib/grafana "${WORK_DIR}/configs/monitoring/grafana"
-  copy_glob "${WORK_DIR}/configs/monitoring/prometheus" '/etc/systemd/system/prometheus*' "${CORTEX_ROOT}/monitoring/prometheus" "${CORTEX_ROOT}/stacks/monitoring/prometheus"
-  copy_glob "${WORK_DIR}/configs/monitoring/loki" '/etc/systemd/system/loki*' "${CORTEX_ROOT}/monitoring/loki" "${WORK_DIR}/stacks/monitoring/loki"
+  copy_glob "${WORK_DIR}/configs/monitoring/prometheus" '/etc/systemd/system/prometheus*' "${CORTEX_ROOT}/stacks/monitoring/prometheus"
+  copy_glob "${WORK_DIR}/configs/monitoring/loki" '/etc/systemd/system/loki*' "${CORTEX_ROOT}/stacks/monitoring/loki"
 
   write_manifest
   if dry; then
