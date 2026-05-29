@@ -4,7 +4,6 @@ The rebuild plan in `../PLAN.md` is canonical.
 
 ## Core Reference
 
-- [OBOT.md](OBOT.md) — Obot MCP gateway platform contract (port 8090)
 - [ARCHITECTURE.md](ARCHITECTURE.md) — system architecture overview (see also `../ARCHITECTURE.md`)
 - [AUDIT.md](AUDIT.md) — hash-chained audit log requirements and append contract
 - [CREDENTIALS.md](CREDENTIALS.md) — machine/project identity policy for agents
