@@ -69,12 +69,12 @@ Active or notable Cortex-related units:
   `caddy.service`, `cortex-dashboard.service`,
   `cortex-mail-guardian.service`, `hermes-dashboard.service`,
   `hermes-dashboard-proxy.service`, `hermes-gateway-cortex.service`,
-  `hermes-gateway@cieucpb.service`, `hermes-gateway@default.service`,
-  `hermes-gateway@netbook.service`, `hermes-profile@cieucpb.service`,
-  `hermes-profile@default.service`, `hermes-profile@netbook.service`,
-  `honcho-mcp.service`, `ollama.service`,
+  `hermes-gateway@cieucpb.service`, `hermes-gateway@netbook.service`,
+  `hermes-profile@cortex.service`, `hermes-profile@cieucpb.service`,
+  `hermes-profile@netbook.service`, `honcho-mcp.service`, `ollama.service`,
   `ollama-honcho-embeddings-proxy.service`,
   `tailscaled.service`, `webmin.service`.
+- Retired: `hermes-profile@default`, `hermes-profile@primary`, `hermes-gateway@default`.
 - Failed: `cortex-backup.service`.
   Note: paperclip, floci, cortex-langfuse were retired in Phase 8.
   cortex-synthetic@ was retired in Phase C5.
@@ -125,17 +125,15 @@ Retired runtime (Phase 8 cleanup completed):
 
 Profile directories found under `/opt/cortexos/hermes/profiles`:
 
-- Protected host profiles: `cieucpb`, `netbook`, `cortex`.
-- Project profiles to move into Incus: `3guns`, `celebrar`, `mementry`.
-- Other profiles or cleanup candidates: `default`, `primary`,
-  `[object Object]`.
+- Active host profiles: `cortex`, `netbook`, `cieucpb` only.
+- Project profiles run inside Incus instances: `3guns`, `celebrar`, `mementry`.
+- Retired/removed: `default`, `primary`, `[object Object]`.
 
 Hermes-related secret env files found by name only:
 
 - `/opt/cortexos/.secrets/hermes/3guns.env`
 - `/opt/cortexos/.secrets/hermes/celebrar.env`
 - `/opt/cortexos/.secrets/hermes/cieucpb.env`
-- `/opt/cortexos/.secrets/hermes/default.env`
 - `/opt/cortexos/.secrets/hermes/mementry.env`
 - `/opt/cortexos/.secrets/hermes/netbook.env`
 

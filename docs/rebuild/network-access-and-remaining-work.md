@@ -22,7 +22,7 @@ Status: **ACTIVE** — operator decision recorded during reconciliation executio
 | Service | Loopback port | Tailscale Serve (tailnet) | Notes |
 |---------|---------------|---------------------------|-------|
 | Cortex Dashboard | `127.0.0.1:3080` | `443 → 3080` (already) | Primary UI |
-| Obot MCP gateway | `127.0.0.1:8090` | **TODO: `8090 → 8090`** | Replaces agentgateway `:18800` |
+| Obot MCP gateway | `127.0.0.1:8090` | `8090 → 8090` (done) | Replaces agentgateway `:18800` |
 | 9Router | `127.0.0.1:11434` | `11434` (already) | |
 | Grafana | `127.0.0.1:3000` | `3000` (already) | |
 | Prometheus | `127.0.0.1:9090` | `9090` (already) | Cockpit moved to `:9091` |
@@ -76,34 +76,24 @@ Project instances are **separate Tailscale nodes** (see P0 below). Incus bridge 
 
 
 ### P1 — Obot cutover (host)
-
 | Step | Status | Blocker / notes |
 |------|--------|-----------------|
-| Tailscale Serve `8090 → 127.0.0.1:8090` | **TODO** | `tailscale serve --bg 8090 http://127.0.0.1:8090` |
-| Verify Obot UI/API on tailnet `:8090` | **TODO** | Root `/` returns 404; UI likely under `/api/` |
-| Bootstrap / admin login | **TODO** | `OBOT_BOOTSTRAP_TOKEN` set; API auth shape unclear |
+| Tailscale Serve `8090 → 127.0.0.1:8090` | **DONE** | confirmed via `tailscale serve status` |
+| Verify Obot UI/API on tailnet `:8090` | **TODO** | Root `/` returns 404 until bootstrap |
+| Bootstrap / admin login | **TODO** | `OBOT_BOOTSTRAP_TOKEN` set; operator browser required |
 | Register 7 global MCP servers (allowlist) | **TODO** | Needs Obot API docs or UI walkthrough |
-| Stop + disable `cortex-agentgateway` | **TODO** | Still **active** on `:18800` |
-| Update Hermes `config.yaml`: remove `agentgateway` MCP | **TODO** | Profiles still reference agentgateway |
+| Stop + disable `cortex-agentgateway` | **DONE** | unit files removed, port 18800 free |
+| Update Hermes `config.yaml`: remove `agentgateway` MCP | **DONE** | all profiles clean on host + Incus |
 
 ### P2 — Hermes MCP filesystem (host + Incus)
 
-| Profile | Location | filesystem | agentgateway | Action |
-|---------|----------|------------|--------------|--------|
-| netbook | host | yes | yes | remove agentgateway; restart |
-| cortex | host | yes | yes | remove agentgateway; start unit |
-| cieucpb | host | no | yes | **no filesystem**; remove agentgateway only |
-| mementry | Incus | yes | yes | remove agentgateway; restart |
-| celebrar | Incus | yes | yes | remove agentgateway; restart |
-| 3guns | Incus | yes | yes | remove agentgateway; restart |
-
-Shared env: `/opt/cortexos/.secrets/mcp.env` defines `MCP_FILESYSTEM_ROOTS`.
+**DONE** — all `mcp_servers` stripped from host and Incus profile configs.
 
 ### P3 — Dashboard deploy (host)
 
-- Sync repo to `/opt/cortexos` (host is not a git repo)
+- Sync repo to `/opt/cortexos` via `git archive | tar` (host is not a git repo)
 - Rebuild/restart dashboard container (migrate + dynamic-seed)
-- Verify migration 027 + `/en/incus` page
+- Verify squashed migrations + `/en/incus` page
 
 ### P4 — C4/C3 follow-ups
 

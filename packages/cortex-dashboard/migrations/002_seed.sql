@@ -190,40 +190,41 @@ updated_at = NOW()
 WHERE user_id = 1
   AND NOT (layout::jsonb::text LIKE '%mail-guardian%');
 
--- Public URL resolver — final version (was 019_mongo_admin_url_fix)
+-- Public URL resolver — native-port Tailscale Serve URLs (no Caddy subpaths)
 CREATE OR REPLACE FUNCTION cortex_set_service_urls(base_url text)
 RETURNS integer
 LANGUAGE plpgsql
 AS $$
 DECLARE
   affected integer := 0;
+  base text;
 BEGIN
   IF base_url IS NULL OR length(trim(base_url)) = 0 THEN
     RAISE EXCEPTION 'cortex_set_service_urls: base_url is required';
   END IF;
+  -- Extract scheme+host (strip port and path) for per-service port URLs.
+  base := regexp_replace(base_url, '(https?://[^:/]+).*', '\1');
 
-  base_url := regexp_replace(base_url, '/+$', '');
-
-  UPDATE services SET open_url = base_url                        WHERE slug = 'cortex-dashboard';
-  UPDATE services SET open_url = base_url || '/9router/'        WHERE slug = '9router';
-  UPDATE services SET open_url = base_url || '/dockhand'         WHERE slug = 'dockhand';
-  UPDATE services SET open_url = base_url || '/grafana/'         WHERE slug = 'grafana';
-  UPDATE services SET open_url = base_url || '/prometheus/'      WHERE slug = 'prometheus';
-  UPDATE services SET open_url = base_url || '/loki/'            WHERE slug = 'loki';
-  UPDATE services SET open_url = base_url || '/cadvisor/'        WHERE slug = 'cadvisor';
-  UPDATE services SET open_url = base_url || '/jellyfin'         WHERE slug = 'jellyfin';
-  UPDATE services SET open_url = base_url || '/ha'               WHERE slug = 'home-assistant';
-  UPDATE services SET open_url = base_url || '/cockpit/'         WHERE slug = 'cockpit';
-  UPDATE services SET open_url = base_url || '/webmin/'          WHERE slug = 'webmin';
-  UPDATE services SET open_url = base_url || '/pgadmin/'         WHERE slug = 'pgadmin';
-  UPDATE services SET open_url = base_url || '/phpmyadmin/'      WHERE slug = 'phpmyadmin';
-  UPDATE services SET open_url = base_url || '/redisinsight/'    WHERE slug = 'redisinsight';
-  UPDATE services SET open_url = base_url || '/mongo-admin'      WHERE slug = 'mongo-express';
-  UPDATE services SET open_url = base_url || '/obot/'            WHERE slug = 'obot';
+  UPDATE services SET open_url = base_url                       WHERE slug = 'cortex-dashboard';
+  UPDATE services SET open_url = base || ':11434/'              WHERE slug = '9router';
+  UPDATE services SET open_url = base || ':3420'                WHERE slug = 'dockhand';
+  UPDATE services SET open_url = base || ':3000/'               WHERE slug = 'grafana';
+  UPDATE services SET open_url = base || ':9090/'               WHERE slug = 'prometheus';
+  UPDATE services SET open_url = base || ':3100/'               WHERE slug = 'loki';
+  UPDATE services SET open_url = base || ':8081/'               WHERE slug = 'cadvisor';
+  UPDATE services SET open_url = base || ':8096'                WHERE slug = 'jellyfin';
+  UPDATE services SET open_url = base || ':8123'                WHERE slug = 'home-assistant';
+  UPDATE services SET open_url = base || ':9091/'               WHERE slug = 'cockpit';
+  UPDATE services SET open_url = base || ':10000/'              WHERE slug = 'webmin';
+  UPDATE services SET open_url = base || ':5050/'               WHERE slug = 'pgadmin';
+  UPDATE services SET open_url = base || ':8082/'               WHERE slug = 'phpmyadmin';
+  UPDATE services SET open_url = base || ':5540/'               WHERE slug = 'redisinsight';
+  UPDATE services SET open_url = base || ':8083'                WHERE slug = 'mongo-express';
+  UPDATE services SET open_url = base || ':8090/'               WHERE slug = 'obot';
 
   UPDATE services SET open_url = '#' WHERE slug IN (
     'ollama','honcho','honcho-mcp','ollama-honcho-embeddings-proxy',
-    'obot','kernel-browser','cortex-sandbox-runner',
+    'kernel-browser','cortex-sandbox-runner',
     'postgresql','mysql','redis','mongodb','caddy','tailscale','incus',
     'cortex-dashboard-root-helper','watchtower','dnsmasq','fail2ban',
     'node-exporter','fluent-bit','promtail','otel-collector',

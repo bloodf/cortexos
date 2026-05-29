@@ -40,7 +40,7 @@ systemctl is-active hermes-profile@cortex hermes-profile@netbook hermes-profile@
 | Item | State |
 |------|--------|
 | `cortex-obot` | `127.0.0.1:8090` |
-| Tailscale Serve | TODO |
+| Tailscale Serve | DONE (`8090 → 8090`) |
 | Bootstrap | TODO (operator) |
 
 ### Incus
@@ -85,13 +85,20 @@ incus exec INSTANCE -- cortex-tailscale-up "$AUTHKEY" --hostname=HOSTNAME
 **Runbook:** `docs/rebuild/incus-tailscale-provision.md`
 
 ### T2 — Dashboard host rebuild
-
 ```bash
-cd /opt/cortexos && git pull origin main
-cd packages/cortex-dashboard && pnpm install --frozen-lockfile && pnpm run build:next
-sudo systemctl restart cortex-dashboard
+# From laptop (host is not a git repo):
+git archive --format=tar HEAD packages/ stacks/ scripts/ templates/ schemas/ prompts/ docs/ | \
+  ssh cortexos@cortexos.tailfd052e.ts.net 'cd /opt/cortexos && tar xf - --overwrite'
+# On host:
+ssh cortexos@cortexos.tailfd052e.ts.net '
+  cd /opt/cortexos/stacks/cortex-dashboard
+  docker compose build --no-cache
+  docker compose down
+  docker compose up -d
+  sleep 15
+  curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3080/en/login
+'
 ```
-
 **STOP:** login page HTTP 200. **MAX RETRIES:** 3.
 
 ### T3 — Obot bootstrap (operator)
@@ -151,4 +158,4 @@ After T1/T2/T4. Dashboard API + key ports + Incus Hermes.
 - [x] Migration squash
 - [x] Tests / tsc / build
 - [x] Handoff doc
-- [ ] Commit + push
+- [x] Commit + push
