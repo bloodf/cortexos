@@ -50,7 +50,7 @@ mkdir -p /opt/cortexos/stacks/redis
 tee /opt/cortexos/stacks/redis/docker-compose.yml <<'EOF'
 services:
   redis:
-    image: redis
+    image: redis:8-alpine
     restart: unless-stopped
     command: redis-server --save 60 1 --loglevel warning --requirepass ${REDIS_PASSWORD}
     ports:
