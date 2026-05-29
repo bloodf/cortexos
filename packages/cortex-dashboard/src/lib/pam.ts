@@ -1,6 +1,12 @@
 import { createRequire } from "node:module";
+import { join } from "node:path";
 
-const nodeRequire = createRequire(import.meta.url);
+// Resolve the require base from the process working directory, NOT
+// import.meta.url: the production server is an esbuild CJS bundle where
+// import.meta.url is stripped to undefined, which makes createRequire throw.
+// The systemd unit runs with WorkingDirectory = this package, and `next dev`
+// also runs from here, so cwd/node_modules resolves authenticate-pam in both.
+const nodeRequire = createRequire(join(process.cwd(), "server.js"));
 
 // Native addon (libpam). The module name is assembled at runtime so the
 // bundler (turbopack) cannot statically trace the .node file into the build
