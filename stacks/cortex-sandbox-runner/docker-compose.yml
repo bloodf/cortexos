@@ -6,6 +6,10 @@ services:
     image: cortex-sandbox-runner:local
     container_name: cortex-sandbox-runner
     restart: unless-stopped
+    # Reach the host-networked dashboard audit sink at host.docker.internal:3080
+    # (CORTEX_AUDIT_URL in sandbox.env) so exec events hash-chain into audit_log.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     env_file:
       - /opt/cortexos/.secrets/sandbox.env
     environment:
