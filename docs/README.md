@@ -15,9 +15,11 @@ The rebuild plan in `../PLAN.md` is canonical.
 - [SECRETS-ROTATION.md](SECRETS-ROTATION.md) — step-by-step secret rotation procedures
 - [SECURITY.md](SECURITY.md) — current security model and accepted risks
 - [SECURITY-CHECKLIST.md](SECURITY-CHECKLIST.md) — pre-deploy security checklist
+- [SERVER-DEV.md](SERVER-DEV.md) — host-side dashboard pull→build→restart loop and gastown Incus base-image build
 - [SERVICES.md](SERVICES.md) — host service placement summary (`manifests/rebuild/service-placement.tsv`)
 - [SETUP_GUIDE.md](SETUP_GUIDE.md) — rebuild script quick reference
 - [SUPPLY-CHAIN.md](SUPPLY-CHAIN.md) — signed image and SBOM/SLSA provenance rules
+- [TMUX.md](TMUX.md) — beginner-friendly tmux guide: prefix model, full keybinding table, the 17 plugins, persistence, and how the conf avoids plugin key conflicts
 - [TROUBLESHOOTING.md](TROUBLESHOOTING.md) — first-step troubleshooting checklist
 - [PROJECT-BOTS.md](PROJECT-BOTS.md) — project automation identity conventions
 - [A2A.md](A2A.md) — agent-to-agent handoff, review, and escalation conventions
