@@ -601,11 +601,15 @@ run_shell 'sudo -n incus file push "'"$archive"'" "'"$builder"'/tmp/cortexos-inc
 run_shell 'sudo -n incus exec "'"$builder"'" -- bash -lc "rm -rf /opt/cortexos-incus && mkdir -p /opt/cortexos-incus && tar -xzf /tmp/cortexos-incus-base.tgz -C /opt/cortexos-incus"'
 run_shell 'sudo -n incus exec "'"$builder"'" -- bash /opt/cortexos-incus/stacks/cortex-incus/base-image-provision.sh'
 if [ "$variant" = "gastown" ]; then
+  # base-image-provision.sh removes /opt/cortexos-incus (its clean-image step), so
+  # re-push + re-extract the stack archive before running the gastown layer.
+  run_shell 'sudo -n incus file push "'"$archive"'" "'"$builder"'/tmp/cortexos-incus-base.tgz"'
+  run_shell 'sudo -n incus exec "'"$builder"'" -- bash -lc "rm -rf /opt/cortexos-incus && mkdir -p /opt/cortexos-incus && tar -xzf /tmp/cortexos-incus-base.tgz -C /opt/cortexos-incus"'
   run_shell 'sudo -n incus exec "'"$builder"'" -- bash /opt/cortexos-incus/stacks/cortex-incus/gastown-provision.sh'
 fi
 run_shell 'sudo -n incus exec "'"$builder"'" -- sudo -H -u cortexos bash -lc '"'"'source ~/.profile; command -v codex pi omp oh-pi claude cursor cursor-agent hermes cortex-tmux cortex-tailscale-up cortex-host-health; tmux -V; zsh --version; tailscale version | head -5'"'"''
 if [ "$variant" = "gastown" ]; then
-  run_shell 'sudo -n incus exec "'"$builder"'" -- sudo -H -u cortexos bash -lc '"'"'source ~/.profile; command -v go dolt bd gt; go version; dolt version | head -3; gt --version || gt --help | head -5'"'"''
+  run_shell 'sudo -n incus exec "'"$builder"'" -- sudo -H -u cortexos bash -lc '"'"'cd ~; source ~/.profile; command -v go dolt bd gt; go version; dolt version | head -3; gt --version || gt --help | head -5'"'"''
 fi
 run_shell 'if sudo -n zfs list "cortex-zfs/containers/'"$builder"'" >/dev/null 2>&1; then sudo -n zfs set sync=standard "cortex-zfs/containers/'"$builder"'"; fi'
 run_shell 'timeout 180s sudo -n incus stop -f "'"$builder"'"'
@@ -617,7 +621,7 @@ run_shell 'timeout 300s sudo -n incus launch "'"$latest_alias"'" "'"$smoke_name"
 run_shell 'for i in $(seq 1 60); do state=$(sudo -n incus list "'"$smoke_name"'" --format csv -c s 2>/dev/null || true); [ "$state" = RUNNING ] && exit 0; sleep 2; done; sudo -n incus info "'"$smoke_name"'" || true; exit 1'
 run_shell 'sudo -n incus exec "'"$smoke_name"'" -- sudo -H -u cortexos bash -lc '"'"'source ~/.profile; printf "user=%s\n" "$(whoami)"; codex --version; claude --version; pi --version || pi --help | head -5; omp --version || omp --help | head -5; cursor --version || true; hermes --version || hermes --help | head -5; cortex-host-health --local-only; systemctl is-enabled tailscaled || true'"'"''
 if [ "$variant" = "gastown" ]; then
-  run_shell 'sudo -n incus exec "'"$smoke_name"'" -- sudo -H -u cortexos bash -lc '"'"'source ~/.profile; command -v go dolt bd gt; go version; dolt version | head -3; gt --version || gt --help | head -5; test -d /gt/.dolt-data && echo "dolt-data dir present"'"'"''
+  run_shell 'sudo -n incus exec "'"$smoke_name"'" -- sudo -H -u cortexos bash -lc '"'"'cd ~; source ~/.profile; command -v go dolt bd gt; go version; dolt version | head -3; gt --version || gt --help | head -5; test -d /gt/.dolt-data && echo "dolt-data dir present"'"'"''
 fi
 run_shell 'timeout 180s sudo -n incus delete -f "'"$smoke_name"'"'
 run_shell 'sudo -n incus image alias list | grep -E "'"$alias_grep"'"'
