@@ -590,6 +590,25 @@ else
   sudo_cmd=()
 fi
 
+# On a failed execute, the builder is launched with zfs sync=disabled (for build
+# speed) and is normally reset to sync=standard before publish. If the phase dies
+# in between, restore the safe sync setting. The builder itself is left running
+# for inspection — the next run's `incus delete -f` reclaims it.
+cleanup_on_exit() {
+  local rc=$?
+  [ "$mode" = "execute" ] && [ "$rc" -ne 0 ] || return 0
+  set +e
+  if sudo -n zfs list "cortex-zfs/containers/$builder" >/dev/null 2>&1; then
+    sudo -n zfs set sync=standard "cortex-zfs/containers/$builder" 2>/dev/null || true
+  fi
+  # The smoke instance is built from the already-published image, so it has no
+  # debug value — reclaim it. The builder IS left for inspection (its provisioning
+  # is the expensive, debuggable part); the next run's `incus delete -f` reclaims it.
+  sudo -n incus delete -f "$smoke_name" >/dev/null 2>&1 || true
+  log "phase failed (rc=$rc); restored zfs sync=standard, removed $smoke_name, left $builder for inspection"
+}
+trap cleanup_on_exit EXIT
+
 run_shell 'sudo -n incus storage show cortex-zfs >/dev/null'
 run_shell 'sudo -n incus network show incusbr0 >/dev/null'
 run_shell 'sudo -n incus delete -f "'"$smoke_name"'" >/dev/null 2>&1 || true'
@@ -602,15 +621,19 @@ run_shell 'sudo -n incus exec "'"$builder"'" -- bash -lc "rm -rf /opt/cortexos-i
 run_shell 'sudo -n incus exec "'"$builder"'" -- bash /opt/cortexos-incus/stacks/cortex-incus/base-image-provision.sh'
 if [ "$variant" = "gastown" ]; then
   # base-image-provision.sh removes /opt/cortexos-incus (its clean-image step), so
-  # re-push + re-extract the stack archive before running the gastown layer.
+  # re-push + re-extract the stack archive before running the gastown layer. rm the
+  # prior push first: the existing copy may be owned by a different (idmapped) uid,
+  # and `incus file push` can fail to overwrite it ("permission denied").
+  run_shell 'sudo -n incus exec "'"$builder"'" -- rm -f /tmp/cortexos-incus-base.tgz'
   run_shell 'sudo -n incus file push "'"$archive"'" "'"$builder"'/tmp/cortexos-incus-base.tgz"'
   run_shell 'sudo -n incus exec "'"$builder"'" -- bash -lc "rm -rf /opt/cortexos-incus && mkdir -p /opt/cortexos-incus && tar -xzf /tmp/cortexos-incus-base.tgz -C /opt/cortexos-incus"'
   run_shell 'sudo -n incus exec "'"$builder"'" -- bash /opt/cortexos-incus/stacks/cortex-incus/gastown-provision.sh'
 fi
 run_shell 'sudo -n incus exec "'"$builder"'" -- sudo -H -u cortexos bash -lc '"'"'source ~/.profile; command -v codex pi omp oh-pi claude cursor cursor-agent hermes cortex-tmux cortex-tailscale-up cortex-host-health; tmux -V; zsh --version; tailscale version | head -5'"'"''
 if [ "$variant" = "gastown" ]; then
-  run_shell 'sudo -n incus exec "'"$builder"'" -- sudo -H -u cortexos bash -lc '"'"'cd ~; source ~/.profile; command -v go dolt bd gt; go version; dolt version | head -3; gt --version || gt --help | head -5'"'"''
+  run_shell 'sudo -n incus exec "'"$builder"'" -- sudo -H -u cortexos bash -lc '"'"'cd ~; source ~/.profile; set -eo pipefail; command -v go dolt bd gt; go version; dolt version | head -3; gt --version || gt --help | head -5'"'"''
 fi
+run_shell 'sudo -n incus exec "'"$builder"'" -- rm -f /tmp/cortexos-incus-base.tgz'
 run_shell 'if sudo -n zfs list "cortex-zfs/containers/'"$builder"'" >/dev/null 2>&1; then sudo -n zfs set sync=standard "cortex-zfs/containers/'"$builder"'"; fi'
 run_shell 'timeout 180s sudo -n incus stop -f "'"$builder"'"'
 run_shell 'sudo -n incus image alias delete "'"$latest_alias"'" >/dev/null 2>&1 || true'
@@ -621,7 +644,7 @@ run_shell 'timeout 300s sudo -n incus launch "'"$latest_alias"'" "'"$smoke_name"
 run_shell 'for i in $(seq 1 60); do state=$(sudo -n incus list "'"$smoke_name"'" --format csv -c s 2>/dev/null || true); [ "$state" = RUNNING ] && exit 0; sleep 2; done; sudo -n incus info "'"$smoke_name"'" || true; exit 1'
 run_shell 'sudo -n incus exec "'"$smoke_name"'" -- sudo -H -u cortexos bash -lc '"'"'source ~/.profile; printf "user=%s\n" "$(whoami)"; codex --version; claude --version; pi --version || pi --help | head -5; omp --version || omp --help | head -5; cursor --version || true; hermes --version || hermes --help | head -5; cortex-host-health --local-only; systemctl is-enabled tailscaled || true'"'"''
 if [ "$variant" = "gastown" ]; then
-  run_shell 'sudo -n incus exec "'"$smoke_name"'" -- sudo -H -u cortexos bash -lc '"'"'cd ~; source ~/.profile; command -v go dolt bd gt; go version; dolt version | head -3; gt --version || gt --help | head -5; test -d /gt/.dolt-data && echo "dolt-data dir present"'"'"''
+  run_shell 'sudo -n incus exec "'"$smoke_name"'" -- sudo -H -u cortexos bash -lc '"'"'cd ~; source ~/.profile; set -eo pipefail; command -v go dolt bd gt; go version; dolt version | head -3; gt --version || gt --help | head -5; test -d /gt/.dolt-data && echo "dolt-data dir present"'"'"''
 fi
 run_shell 'timeout 180s sudo -n incus delete -f "'"$smoke_name"'"'
 run_shell 'sudo -n incus image alias list | grep -E "'"$alias_grep"'"'
@@ -635,6 +658,8 @@ REMOTE
   fi
 
   ssh_host "MODE=$mode BACKUP_DIR=$backup_dir_q INCUS_ARCHIVE=$remote_archive INCUS_BASE_VARIANT=$(printf '%q' "$incus_base_variant") bash -s" <"$remote_script"
+  # The scp'd host-side archive is not covered by the local trap above; remove it.
+  ssh_host "rm -f $remote_archive" >/dev/null 2>&1 || true
   exit 0
 fi
 
