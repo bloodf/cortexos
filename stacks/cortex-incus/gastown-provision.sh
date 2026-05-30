@@ -235,11 +235,16 @@ PROFILE
 }
 
 validate_gastown() {
-  run_as_user 'source ~/.profile; command -v go; go version'
-  run_as_user 'source ~/.profile; command -v dolt; dolt version | head -3'
-  run_as_user 'source ~/.profile; command -v bd; bd --version || bd --help | head -3 || true'
-  run_as_user 'source ~/.profile; command -v gt; gt --version || gt --help | head -5 || true'
-  run_as_user 'source ~/.profile; test -d "/gt/.dolt-data" && echo "dolt-data dir present"'
+  # `set -eo pipefail` AFTER sourcing the profile (so profile quirks don't trip it):
+  # this makes the gate actually fail when a tool is MISSING (`command -v` non-zero)
+  # or a `cmd | head` pipeline's producer crashes — both were previously swallowed
+  # because run_as_user's `bash -lc` runs without -e/pipefail. The `|| true` masks
+  # on bd/gt are also gone, so a present-but-broken binary fails the build.
+  run_as_user 'source ~/.profile; set -eo pipefail; command -v go; go version'
+  run_as_user 'source ~/.profile; set -eo pipefail; command -v dolt; dolt version | head -3'
+  run_as_user 'source ~/.profile; set -eo pipefail; command -v bd; bd --version || bd --help >/dev/null'
+  run_as_user 'source ~/.profile; set -eo pipefail; command -v gt; gt --version || gt --help >/dev/null'
+  run_as_user 'source ~/.profile; set -eo pipefail; test -d "/gt/.dolt-data"; echo "dolt-data dir present"'
 }
 
 cleanup_gastown_build() {
