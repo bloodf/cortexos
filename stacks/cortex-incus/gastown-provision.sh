@@ -37,7 +37,10 @@ log() {
 }
 
 run_as_user() {
-  sudo -H -u "$CORTEX_USER" bash -lc "$*"
+  # cd to the user's home first: incus exec inherits root's CWD (/root, mode 700),
+  # which $CORTEX_USER cannot stat — and tools like `go` abort on an unstattable
+  # working directory ("cannot determine current directory").
+  sudo -H -u "$CORTEX_USER" bash -lc "cd ~; $*"
 }
 
 apt_get() {
@@ -164,9 +167,12 @@ install_beads() {
   for attempt in 1 2 3; do
     log "installing beads (bd) (attempt $attempt)"
     tmpfile="$(mktemp)"
+    # Run the installer in a login shell so $HOME/.local/bin (where it drops bd)
+    # is already on PATH — the upstream install.sh exits non-zero if its install
+    # dir is not in PATH, even though the binary installed fine.
     if curl_retry "https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh" -o "$tmpfile" &&
       chmod +r "$tmpfile" &&
-      sudo -H -u "$CORTEX_USER" bash "$tmpfile"; then
+      sudo -H -u "$CORTEX_USER" bash -lc "bash \"$tmpfile\""; then
       rm -f "$tmpfile"
       return 0
     fi
