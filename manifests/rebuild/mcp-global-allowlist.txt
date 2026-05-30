@@ -1,0 +1,10 @@
+# Global MCP proxy allowlist.
+# The Obot MCP gateway platform exposes these to trusted LAN/tailnet callers.
+context7
+fetch
+git
+sequentialthinking
+time
+honcho
+9router
+

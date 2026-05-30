@@ -1,0 +1,30 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels: [dependencies, ci]
+
+  - package-ecosystem: npm
+    directory: /packages/cortex-dashboard
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    labels: [dependencies, dashboard]
+    groups:
+      next:
+        patterns: ['next', 'next-*', 'eslint-config-next']
+      react:
+        patterns: ['react', 'react-dom', '@types/react*']
+      vitest:
+        patterns: ['vitest', '@vitest/*']
+      eslint:
+        patterns: ['eslint', 'eslint-*', '@eslint/*', 'typescript-eslint']
+
+  - package-ecosystem: docker
+    directory: /packages/cortex-dashboard
+    schedule:
+      interval: weekly
+    labels: [dependencies, docker]

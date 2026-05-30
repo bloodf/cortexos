@@ -1,0 +1,38 @@
+name: schema-check
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "schemas/**"
+      - "scripts/schema-version-check.js"
+      - ".github/workflows/schema-check.yml"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - name: Install ajv-cli
+        run: pnpm add -g ajv-cli ajv-formats
+
+      - name: Compile every schema
+        run: |
+          for f in schemas/*.json; do
+            echo "::group::compile $f"
+            ajv compile -c ajv-formats -s "$f"
+            echo "::endgroup::"
+          done
+
+      - name: Schema version-bump policy
+        run: BASE_REF=origin/${{ github.base_ref }} node scripts/schema-version-check.js

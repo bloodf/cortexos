@@ -1,0 +1,45 @@
+# service	target	runtime	exposure	status	notes
+postgresql	host	systemd	lan-tailnet	planned	Per-project databases/users
+mysql	host	systemd	lan-tailnet	planned	Per-project databases/users
+redis	host	systemd	lan-tailnet	planned	ACL/key-prefix per project where feasible
+minio	host	systemd	lan-tailnet	planned	Per-project buckets/policies
+rabbitmq	host	systemd	lan-tailnet	planned	Per-project vhosts/users
+mongodb	host	systemd	lan-tailnet	planned	Keep with mongo-express admin UI
+caddy	host	systemd	lan-tailnet	planned	Canonical routing entrypoint
+tailscale	host-plus-instances	systemd	lan-tailnet	planned	Host and every Incus instance
+cockpit	host	systemd	lan-tailnet	planned	Admin UI
+webmin	host	systemd	lan-tailnet	planned	Admin UI
+pgadmin	host	container-systemd	lan-tailnet	planned	Admin UI
+phpmyadmin	host	container-systemd	lan-tailnet	planned	Admin UI
+redisinsight	host	container-systemd	lan-tailnet	planned	Admin UI
+mongo-express	host	container-systemd	lan-tailnet	planned	Admin UI
+home-assistant	host	container-systemd	lan-tailnet	planned	Host app
+jellyfin	host	systemd	lan-tailnet	planned	Native package if feasible
+9router	host	systemd	lan-tailnet	planned	AI access hub
+ollama	host	systemd	lan-tailnet	planned	Local model serving
+honcho	host	systemd	lan-tailnet	planned	Core memory
+honcho-mcp	host	systemd	lan-tailnet	planned	Core memory MCP
+ollama-honcho-embeddings-proxy	host	systemd	lan-tailnet	planned	Core memory embeddings
+cortex-dashboard	host	systemd	lan-tailnet	planned	Full-control console no app login
+cortex-dashboard-root-helper	host	systemd-unix-socket	local-only	planned	Shell executor with audit
+prometheus	host	systemd-or-container	lan-tailnet	planned	Monitoring
+grafana	host	systemd-or-container	lan-tailnet	planned	Monitoring
+loki	host	systemd-or-container	lan-tailnet	planned	Logs
+kernel-browser	host	systemd-where-possible	lan-tailnet	planned	Shared host tool
+cortex-sandbox-runner	host	systemd-where-possible	lan-tailnet	planned	Shared host tool
+obot	host	container-docker	lan-tailnet	planned	Obot MCP gateway platform
+cortex-mail-guardian	host	container-systemd	lan-tailnet	planned	Docker if feasible
+dockhand	host	container-systemd	lan-tailnet	transition	Keep during Docker transition
+watchtower	host	container-systemd	local	transition	Keep during Docker transition
+incus	host	systemd	lan-tailnet	planned	Unprivileged containers default
+paperclip	remove	none	none	retire	Hard remove after config export/full backup
+nats	remove	none	none	retire	Hard remove
+openviking	remove	none	none	retire	Hard remove
+leann	remove	none	none	retire	Hard remove
+openclaw	remove	none	none	retire	Hard remove
+agent-factory	remove	none	none	retire	Hard remove
+cortex-consumer	remove	none	none	retire	Hard remove
+cortex-graph	remove	none	none	retire	Hard remove
+floci	remove	none	none	retire	Hard remove
+langfuse-runtime	remove	none	none	retire	Disable/archive no restore
+

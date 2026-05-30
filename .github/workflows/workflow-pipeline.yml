@@ -1,0 +1,107 @@
+# DEPRECATED under CortexOS doctrine — superseded by husky-as-CI.
+# Kept as a manual-trigger reference; bootstrap-project.sh does not exist and these workflows are not auto-included.
+# Canonical surface: local husky hooks + AgentGateway + hash-chained audit log.
+name: Agent Pipeline
+
+# Manual-trigger only per CortexOS policy: E2E GitHub workflows are never automated.
+# Workflow itself is DEPRECATED — superseded by husky-as-CI.
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Issue or PR number to route through the agent pipeline'
+        required: true
+
+jobs:
+  route-stage:
+    runs-on: ubuntu-latest
+    if: >
+      startsWith(github.event.label.name, 'stage:') ||
+      github.event_name == 'pull_request'
+    steps:
+      - name: Extract stage
+        id: stage
+        run: |
+          LABEL="${{ github.event.label.name }}"
+          STAGE="${LABEL#stage:}"
+          echo "stage=$STAGE" >> $GITHUB_OUTPUT
+
+      - name: Validate transition
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const transitions = {
+              "triage": ["approved", "rejected", "blocked"],
+              "approved": ["planning", "blocked", "rejected"],
+              "planning": ["in-progress", "blocked"],
+              "in-progress": ["review-needed", "blocked"],
+              "review-needed": ["changes-requested", "antagonist-review", "blocked"],
+              "changes-requested": ["in-progress", "review-needed", "blocked"],
+              "antagonist-review": ["qa", "changes-requested", "blocked"],
+              "qa": ["ready-to-merge", "changes-requested", "blocked"],
+              "ready-to-merge": ["merged", "changes-requested"],
+              "merged": ["deployed"],
+              "deployed": ["verified"],
+              "verified": ["done"],
+              "blocked": ["triage", "approved", "planning", "in-progress", "review-needed", "changes-requested", "antagonist-review", "qa"]
+            };
+
+            const issue = context.payload.issue || context.payload.pull_request;
+            const newLabel = context.payload.label.name;
+            const newStage = newLabel.replace('stage:', '');
+
+            const previousStages = issue.labels
+              .filter(l => l.name.startsWith('stage:') && l.name !== newLabel)
+              .map(l => l.name.replace('stage:', ''));
+
+            if (previousStages.length === 0 && newStage !== 'triage') {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                name: newLabel
+              });
+              core.setFailed(`Invalid: first stage must be 'triage', got '${newStage}'`);
+              return;
+            }
+
+            for (const prev of previousStages) {
+              const allowed = transitions[prev] || [];
+              if (!allowed.includes(newStage)) {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  name: newLabel
+                });
+                core.setFailed(`Invalid transition: '${prev}' → '${newStage}'. Allowed: ${allowed.join(', ')}`);
+                return;
+              }
+            }
+
+            core.info(`Valid transition: ${previousStages.join(',')} → ${newStage}`);
+
+      - name: Remove previous stage labels
+        if: startsWith(github.event.label.name, 'stage:')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue || context.payload.pull_request;
+            const currentLabel = context.payload.label.name;
+            const stageLabels = issue.labels
+              .filter(l => l.name.startsWith('stage:') && l.name !== currentLabel)
+              .map(l => l.name);
+            for (const label of stageLabels) {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                name: label
+              });
+            }
+
+      - name: Log transition
+        run: |
+          echo "Issue #${{ github.event.issue.number || github.event.pull_request.number }}"
+          echo "New stage: ${{ steps.stage.outputs.stage }}"
+          echo "Actor: ${{ github.actor }}"

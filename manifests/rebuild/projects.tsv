@@ -1,0 +1,6 @@
+# slug	repo	instance	hermes_profile	migration_source	data_mode	web_access	status
+# NOTE: rows below are operator-specific examples — replace with your own project repos before running apply.sh
+mementry	https://github.com/bloodf/mementry.git	mementry	mementry	clean-main	host-scoped-services	direct-tailscale	pending
+celebrar-me	https://github.com/bloodf/celebrar.me.git	celebrar-me	celebrar	clean-main	host-scoped-services	direct-tailscale	pending
+3guns	https://github.com/bloodf/3guns.git	3guns	3guns	clean-main	host-scoped-services	direct-tailscale	pending
+

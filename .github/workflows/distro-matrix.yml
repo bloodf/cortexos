@@ -1,0 +1,89 @@
+# distro-matrix.yml — verify scripts/os-detect.sh and scripts/pkg.sh dispatch
+# correctly on every supported distro family (debian-family only).
+#
+# Supported: Ubuntu 24.04, Ubuntu 25.04, Debian 13 (Trixie).
+
+name: distro-matrix
+
+on:
+  push:
+    paths:
+      - "scripts/os-detect.sh"
+      - "scripts/pkg.sh"
+      - "scripts/__tests__/os-detect.bats"
+      - ".github/workflows/distro-matrix.yml"
+  pull_request:
+    paths:
+      - "scripts/os-detect.sh"
+      - "scripts/pkg.sh"
+      - "scripts/__tests__/os-detect.bats"
+      - ".github/workflows/distro-matrix.yml"
+  workflow_dispatch: {}
+
+jobs:
+  bats:
+    name: bats / os-detect fixtures
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install bats
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y bats
+      - name: Lint scripts
+        run: |
+          bash -n scripts/os-detect.sh
+          bash -n scripts/pkg.sh
+      - name: Run bats
+        run: bats scripts/__tests__/os-detect.bats
+
+  ubuntu-2404:
+    name: live / ubuntu-24.04
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detect
+        run: |
+          bash -n scripts/os-detect.sh
+          bash -n scripts/pkg.sh
+          out=$(bash scripts/os-detect.sh)
+          echo "out=$out"
+          test "$(echo "$out" | awk '{print $1}')" = "ubuntu"
+
+  ubuntu-2504:
+    name: container / ubuntu:25.04
+    runs-on: ubuntu-24.04
+    container:
+      image: ubuntu:25.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install minimal toolchain
+        run: |
+          apt-get update -y -qq
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends bash gawk
+      - name: Detect
+        run: |
+          bash -n scripts/os-detect.sh
+          bash -n scripts/pkg.sh
+          out=$(bash scripts/os-detect.sh)
+          echo "out=$out"
+          test "$(echo "$out" | awk '{print $1}')" = "ubuntu"
+
+  debian-13:
+    name: container / debian:13
+    runs-on: ubuntu-24.04
+    container:
+      image: debian:13
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install minimal toolchain
+        run: |
+          apt-get update -y -qq
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends bash gawk
+      - name: Detect
+        run: |
+          bash -n scripts/os-detect.sh
+          bash -n scripts/pkg.sh
+          out=$(bash scripts/os-detect.sh)
+          echo "out=$out"
+          test "$(echo "$out" | awk '{print $1}')" = "debian"

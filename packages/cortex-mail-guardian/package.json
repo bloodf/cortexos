@@ -1,0 +1,34 @@
+{
+  "name": "@cortexos/mail-guardian",
+  "version": "0.1.0",
+  "description": "CortexOS IMAP spam guardian with 9Router classification and Cortex Telegram review.",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "cortex-mail-guardian": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "pg": "^8.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/pg": "^8.11.10",
+    "typescript": "^5.6.0",
+    "vitest": "^3.0.0"
+  }
+}

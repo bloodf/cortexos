@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dashboard:
+    name: Dashboard (lint • types • test • build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - name: Install workspace deps
+        run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @cortexos/dashboard run lint
+      - run: pnpm exec tsc --noEmit
+        working-directory: packages/cortex-dashboard
+      - run: pnpm --filter @cortexos/dashboard test -- --reporter=verbose
+      - run: pnpm --filter @cortexos/dashboard run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+
+  shell:
+    name: Shell scripts (shellcheck + bash -n)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: bash -n parse-check
+        run: |
+          set -e
+          mapfile -d '' files < <(find scripts templates/scripts stacks -name '*.sh' -not -path '*/node_modules/*' -print0)
+          for f in "${files[@]}"; do bash -n "$f"; done
+      - name: shellcheck (warnings allowed)
+        run: |
+          shellcheck --severity=error \
+            $(find scripts templates/scripts stacks -name '*.sh' -not -path '*/node_modules/*')
+
+  compose:
+    name: Docker compose configs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Validates the local-db helper compose (postgres for local dev only).
+      # The dashboard itself runs as the native cortex-dashboard.service unit.
+      - run: DASHBOARD_DB_PASSWORD=x docker compose -f packages/cortex-dashboard/docker-compose.yml config >/dev/null

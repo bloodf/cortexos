@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Grafana Loki">
+  <rect width="256" height="256" rx="48" fill="#f6b545"/>
+  <g fill="#1f1d1d">
+    <rect x="56" y="40" width="22" height="176" rx="6"/>
+    <path d="M178 40h26L122 124l86 92h-30l-78-86 78-90Z"/>
+  </g>
+</svg>

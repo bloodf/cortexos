@@ -1,68 +1,156 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# ============================================
+# OS & Editor
+# ============================================
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
 
-# dependencies
-/node_modules
-/.pnp
+# ============================================
+# AI Coding Tools
+# ============================================
+
+# Claude Code / Anthropic
+.claude/
+CLAUDE.md
+
+# Gemini / Google
+.gemini/
+
+# Cursor
+.cursor/
+.cursorignore
+.cursorindexingignore
+.cursorrules
+
+# Windsurf / Codeium
+.windsurf/
+.windsurfrules
+.codeium/
+
+# Aider
+.aider*
+.aider.conf.yml
+.aider.tags.cache.v3/
+
+# GitHub Copilot
+.copilot/
+.github/copilot-instructions.md
+
+# Cline / Roo Code
+.cline/
+.clinerules
+.clineignore
+.clinecontext
+.roo/
+
+# Continue
+.continue/
+.continuerules
+
+# Bolt
+.bolt/
+
+# v0 (Vercel)
+.v0/
+
+# Codex (OpenAI)
+.codex/
+
+# OMC (Open Multi-agent Collaboration)
+.omc/
+
+# Pi / Pi-Lens (TaskPlane)
+.pi/
+.pi-lens/
+
+# Augment
+.augment/
+
+# GSD Planning
+.planning/
+.worktrees/
+
+# LanceDB (vector store)
+lancedb/
+
+# ============================================
+# Secrets & Credentials
+# ============================================
+# Runtime decrypted secrets on host — never committed.
+/opt/cortexos/.secrets/
+# Catch-all for stray local .secrets directories at repo root.
+/.secrets/
+# Allowlist under templates/.secrets: SOPS-encrypted YAML and *.env.example
+# templates MUST ship in git. Plaintext .env files are forbidden.
+templates/.secrets/*.env
+!templates/.secrets/*.env.example
+!templates/.secrets/*.enc.yaml
+*.env
+*.env.*
+!*.env.example
+!*.env.template
+*.pem
+*.key
+*.p12
+*.pfx
+
+# ============================================
+# Node.js / JavaScript
+# ============================================
+node_modules/
+.next/
+out/
+build/
+dist/
+.turbo/
+.vercel/
 .pnp.*
 .yarn/*
 !.yarn/patches
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
+*.tsbuildinfo
+next-env.d.ts
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+.pnpm-store/
+coverage/
 
-# env files (can opt-in for committing if needed)
-.env*
+# ============================================
+# Python
+# ============================================
+__pycache__/
+*.py[cod]
+*$py.class
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+*.egg-info/
 
-# vercel
-.vercel
+# ============================================
+# Docker
+# ============================================
+docker-compose.override.yml
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-# AI coding tools
-.claude/
-.omc/
-.pi/
-.pi-lens/
-.cursor/
-.windsurf/
-.codeium/
-.aider*
-.copilot/
-.cline/
-.continue/
-.bolt/
-.v0/
-.codex/
-.augment/
-.roo/
-.gemini/
-CLAUDE.md
-AGENTS.md
+# ============================================
+# Documentation (generated / private)
+# ============================================
+.rebuild/
 .dashboard_update/
+.playwright-mcp/
+*.png
+!.github/assets/*.png
+REVIEW.md
+.tmp-validation/
 
-# Playwright (V11)
-/playwright-report/
-/test-results/
-/playwright/.cache/
+# sandbox-runner app deps are installed fresh inside the container
+stacks/cortex-sandbox-runner/app/node_modules/

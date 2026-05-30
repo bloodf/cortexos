@@ -1,0 +1,72 @@
+# DEPRECATED under CortexOS doctrine — superseded by husky-as-CI.
+# Kept as a manual-trigger reference; bootstrap-project.sh does not exist and these workflows are not auto-included.
+# Canonical surface: local husky hooks + AgentGateway + hash-chained audit log.
+name: Gate Enforcement
+
+# Manual-trigger only per CortexOS policy: E2E GitHub workflows are never automated.
+# Workflow itself is DEPRECATED — superseded by husky-as-CI.
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to gate-check'
+        required: true
+
+jobs:
+  check-gates:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check required gates
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const labels = pr.labels.map(l => l.name);
+
+            const stage = labels.find(l => l.startsWith('stage:'));
+            if (!stage) {
+              core.info('No stage label found, skipping gate check');
+              return;
+            }
+
+            const gates = {
+              'stage:antagonist-review': ['gate:staff-reviewed'],
+              'stage:qa': ['gate:cto-approved', 'gate:security-reviewed'],
+              'stage:ready-to-merge': ['gate:qa-passed', 'gate:qa-video-attached', 'gate:visual-approved', 'gate:po-accepted'],
+            };
+
+            const required = gates[stage] || [];
+            const missing = required.filter(g => !labels.includes(g));
+
+            if (missing.length > 0) {
+              core.setFailed(`Missing gates for ${stage}: ${missing.join(', ')}`);
+            } else {
+              core.info(`All gates satisfied for ${stage}`);
+            }
+
+  block-merge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prevent merge without gates
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const labels = pr.labels.map(l => l.name);
+
+            const mergeReady = labels.includes('stage:ready-to-merge');
+            const allGates = [
+              'gate:staff-reviewed',
+              'gate:cto-approved',
+              'gate:security-reviewed',
+              'gate:qa-passed',
+              'gate:visual-approved',
+              'gate:po-accepted'
+            ];
+
+            if (mergeReady) {
+              const missing = allGates.filter(g => !labels.includes(g));
+              if (missing.length > 0) {
+                core.setFailed(`Cannot merge. Missing: ${missing.join(', ')}`);
+              }
+            }

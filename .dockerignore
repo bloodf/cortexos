@@ -1,51 +1,49 @@
-# Cortex Dashboard .dockerignore
-# Keep the build context lean. Source-only; build artifacts and
-# host-only tooling are excluded.
+# Repo-root .dockerignore for dashboard image build (context = .).
+# Keep context lean — only files needed for the build remain.
 
 # Build artifacts / caches
-node_modules
-.next
-.next/**
-.turbo
-dist
-build
-coverage
-*.tsbuildinfo
+**/node_modules
+**/.next
+**/.turbo
+**/dist
+**/build
+**/coverage
+**/*.tsbuildinfo
 
 # Git / IDE / OS
 .git
 .gitignore
 .gitattributes
+.github
 .idea
 .vscode
 .DS_Store
-**/.DS_Store
 
-# Tests & fixtures (not needed at runtime — entrypoint runs prod server)
-__tests__
-**/__tests__
-**/*.test.*
-**/*.spec.*
-vitest.config.ts
-vitest.setup.ts
-playwright.config.*
-e2e
-.playwright
-
-# Env / secrets — NEVER copy into the image
-.env
-.env.*
-*.env
-dashboard.env*
+# Secrets
+**/.env
+**/.env.*
+!**/.env.example
 .secrets
-.secrets/**
+.sops.yaml
+templates/.secrets
 
-# Docs (not needed at runtime)
-*.md
-docs
-
-# OMC / Claude tooling state
+# Local-only tooling
+.omx
 .omc
+.husky
 .claude
-AGENTS.md
-CLAUDE.md
+docs
+.planning
+docs/plans
+
+# Tests / fixtures
+**/__tests__
+**/*.test.ts
+**/*.test.js
+**/*.spec.ts
+**/*.spec.js
+packages/cortex-dashboard/e2e
+packages/cortex-dashboard/playwright.config.ts
+
+# Lima / VM
+lima

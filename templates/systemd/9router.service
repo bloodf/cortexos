@@ -1,0 +1,28 @@
+[Unit]
+Description=9Router AI Gateway
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User={VPS_USER}
+WorkingDirectory={VPS_HOME}
+# Bind loopback only; Tailscale Serve is the public entrypoint. Upstream npm
+# 9Router defaults to 0.0.0.0:20128, so keep CortexOS's canonical listener
+# (127.0.0.1:11434) explicit here. Headless flags MANDATORY: without
+# `--skip-update --no-browser` 9Router renders an interactive update/browser
+# prompt, detects no TTY, and exits 0 — the unit then shows "active (exited)"
+# with no logs.
+ExecStart={NPM_PREFIX}/bin/9router --host 127.0.0.1 --port 11434 --skip-update --no-browser
+Restart=always
+RestartSec=5
+Environment=HOME={VPS_HOME}
+Environment=PATH={NODE_BIN_DIR}:/home/linuxbrew/.linuxbrew/bin:/usr/local/bin:/usr/bin:/bin
+# The ExecStart above is the source of truth for host/port (canonical 11434);
+# NINEROUTER_BASE_URL in the env file remains the downstream client contract.
+EnvironmentFile=-/opt/cortexos/.secrets/9router.env
+
+[Install]
+WantedBy=multi-user.target

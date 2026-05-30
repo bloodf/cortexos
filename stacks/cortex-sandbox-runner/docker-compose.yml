@@ -1,0 +1,50 @@
+services:
+  cortex-sandbox-runner:
+    build:
+      context: ../..
+      dockerfile: stacks/cortex-sandbox-runner/Dockerfile
+    image: cortex-sandbox-runner:local
+    container_name: cortex-sandbox-runner
+    restart: unless-stopped
+    # Reach the host-networked dashboard audit sink at host.docker.internal:3080
+    # (CORTEX_AUDIT_URL in sandbox.env) so exec events hash-chain into audit_log.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    env_file:
+      - /opt/cortexos/.secrets/sandbox.env
+    environment:
+      OTEL_SERVICE_NAME: cortex-sandbox-runner
+      PORT: "8091"
+      # Preferred: runsc. Fallback: crun on hosts where nested gVisor cannot
+      # acquire the required cgroup/userns features.
+      CORTEX_SANDBOX_OCI_RUNTIME: ${CORTEX_SANDBOX_OCI_RUNTIME:-runsc}
+      CORTEX_SANDBOX_DISABLE_CGROUPS: ${CORTEX_SANDBOX_DISABLE_CGROUPS:-0}
+    ports:
+      - "127.0.0.1:8091:8091"
+    networks:
+      - cortex-net
+    # Nested container execution needs additional kernel capabilities on many
+    # VPS/container hosts. Keep the service privileged; guest workloads still
+    # run with a restricted runtime + dropped user.
+    privileged: true
+    security_opt:
+      - "no-new-privileges:true"
+      - "seccomp=unconfined"
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=512m
+      - /run/user/0:rw,nosuid,nodev,size=64m,uid=0,gid=0,mode=0700
+      - /home/sandbox/.local/share/containers:rw,nosuid,nodev,size=2048m,uid=2000,gid=2000,mode=0700
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8091/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 4g
+
+networks:
+  cortex-net:
+    external: true

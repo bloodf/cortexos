@@ -1,0 +1,8 @@
+[Unit]
+Description=CortexOS 9Router active health probe
+After=9router.service
+Wants=9router.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/cortexos/scripts/ops/cortex-9router-healthcheck.sh

@@ -1,0 +1,62 @@
+{
+  "$id": "https://cortexos/schemas/cortex-audit-v1.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cortex.audit.<scope>.<verb>.v1 data payload",
+  "description": "Shared audit payload. The combination of payload_hash and prev_hash participates in the hash-chained audit log.",
+  "type": "object",
+  "required": ["event_id", "event_type", "subject", "payload_hash", "ts", "payload"],
+  "additionalProperties": false,
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this audit event (UUID v4 or v7)."
+    },
+    "event_type": {
+      "type": "string",
+      "pattern": "^cortex\\.audit\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.v[0-9]+$",
+      "description": "Fully-qualified event type, e.g. cortex.audit.obot.tool-invoke.v1."
+    },
+    "actor": {
+      "type": "string",
+      "description": "User or service that initiated the audited action."
+    },
+    "subject": {
+      "type": "string",
+      "minLength": 1,
+      "description": "What is being audited (resource id, run id, ticket id, etc.)."
+    },
+    "payload_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256(JCS(payload)) — canonical hash of the inner payload object."
+    },
+    "prev_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 chain hash of the previous audit row. Omitted only for the genesis row."
+    },
+    "ts": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when the audited action occurred."
+    },
+    "runId": {
+      "type": "string",
+      "description": "Run identifier correlating related audit events."
+    },
+    "agentId": {
+      "type": "string",
+      "description": "Identifier of the agent executing the action, if applicable."
+    },
+    "role": {
+      "type": "string",
+      "description": "Agent role (eng-backend, design, governance, etc.)."
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Scope-specific audit body. Per-scope schemas tighten this shape."
+    }
+  }
+}
