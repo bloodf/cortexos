@@ -1,0 +1,33 @@
+// TODO: stub — replace with real types
+export type Service = any;
+export type DockerContainer = any;
+export type DockerImage = any;
+export type DockerVolume = any;
+export type AlertRule = any;
+export type AlertHistory = any;
+export type Project = any;
+export type AuditEntry = any;
+export type PamUser = any;
+export type SystemdUnit = any;
+export type IncusInstance = any;
+export type Badge = any;
+export type Agent = any;
+export type Healthcheck = any;
+export type Approval = any;
+export type NetworkInterface = any;
+export type Process = any;
+
+export type ApprovalRequest = any;
+export type Link = any;
+export type MailReview = any;
+export type MailAccount = any;
+export type ProcessInfo = any;
+export type ContainerInfo = any;
+export type ImageInfo = any;
+export type VolumeInfo = any;
+export type UnitInfo = any;
+export type InstanceInfo = any;
+export type BackupInfo = any;
+export type JobInfo = any;
+export type MountInfo = any;
+export type DriveInfo = any;

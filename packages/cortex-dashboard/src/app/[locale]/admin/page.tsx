@@ -1,4 +1,4 @@
-import { AdminDashboard } from "@/components/admin/admin-dashboard";
+import { AdminDashboard } from "@/components/sys-pilot/admin/admin-dashboard";
 import { getAllServicesForAdmin } from "@/lib/db/service";
 
 export default async function AdminPage() {

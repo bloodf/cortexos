@@ -1,6 +1,6 @@
-import { PageHeader } from "@/components/ui/page-header";
+import { PageHeader } from "@/components/sys-pilot/PageHeader";
 import { Boxes } from "lucide-react";
-import { ProvisionWizard } from "@/components/incus/provision-wizard";
+import { ProvisionWizard } from "@/components/sys-pilot/incus/provision-wizard";
 
 export default function IncusProvisionPage() {
 	return (

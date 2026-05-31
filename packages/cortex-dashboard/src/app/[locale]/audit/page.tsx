@@ -1,121 +1,57 @@
-/**
- * V9 audit viewer.
- *
- * Server component. Lists hash-chained audit_log rows paginated by
- * `occurred_at DESC`. Renders a client-side chain-verify badge that calls
- * `/api/audit/verify` for the visible window.
- *
- * Auth note: this page sits under `[locale]` so it inherits the dashboard
- * locale middleware and admin layout's auth check. The verify API itself
- * also enforces `requireAdmin`, so a non-admin reaching the page sees an
- * empty result rather than tampered output.
- */
-import Link from "next/link";
-import { query } from "@/lib/db/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+"use client";
+
+import { useState } from "react";
+import { ScrollText, ShieldCheck } from "lucide-react";
+import { PageHeader } from "@/components/sys-pilot/PageHeader";
+import { DataTable, type Column } from "@/components/sys-pilot/DataTable";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { KeyValueList } from "@/components/sys-pilot/KeyValueList";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/ui/page-header";
-import { ScrollTextIcon } from "lucide-react";
-import { AuditChainVerifyBadge } from "./chain-verify-badge";
-import { AuditLogTable, type AuditTableRow } from "./audit-log-table";
-import { auditViewerQuerySchema, parseInput } from "@/lib/validation";
+import { api } from "@/lib/api";
+import { useTranslations } from "next-intl";
+import { useQuery } from "@tanstack/react-query";
+import type { AuditEntry } from "@/lib/types";
+import { relativeTime } from "@/lib/sys-pilot/format";
+import { cn } from "@/lib/utils";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+export default function AuditPage() {
+  const t = useTranslations();
+  const { data: items = [] } = useQuery({ queryKey: ["audit"], queryFn: api.audit });
+  const [sel, setSel] = useState<AuditEntry | null>(null);
 
-const PAGE_SIZE = 50;
+  const cols: Column<AuditEntry>[] = [
+    { key: "ts", header: "When", sort: (r) => r.created_at, cell: (r) => <span className="text-xs text-muted-foreground">{relativeTime(r.created_at)}</span> },
+    { key: "actor", header: "Actor", sort: (r) => r.actor, cell: (r) => <code className="text-xs">{r.actor}</code> },
+    { key: "tool", header: "Tool", cell: (r) => <code className="text-xs">{r.tool}</code> },
+    { key: "class", header: "Class", cell: (r) => <Badge variant="outline">{r.tool_class}</Badge> },
+    { key: "decision", header: "Decision", sort: (r) => r.decision, cell: (r) => <Badge variant="outline" className={cn(r.decision === "allow" ? "border-[var(--success)] text-[var(--success)]" : "border-destructive text-destructive")}>{r.decision}</Badge> },
+    { key: "result", header: "Result", cell: (r) => <span className="text-xs">{r.result}</span> },
+    { key: "act", header: "", cell: (r) => <button onClick={() => setSel(r)} className="text-xs text-primary hover:underline">view</button> },
+  ];
 
-type AuditRow = AuditTableRow;
-
-interface PageProps {
-	searchParams?: Promise<{ page?: string }>;
-}
-
-export default async function AuditViewerPage({ searchParams }: PageProps) {
-	const sp = (await searchParams) ?? {};
-	const parsedQuery = parseInput(auditViewerQuerySchema, sp, {
-		action: "audit.viewer",
-	});
-	const page = parsedQuery.ok ? parsedQuery.data.page : 1;
-	const offset = (page - 1) * PAGE_SIZE;
-
-	let rows: AuditRow[] = [];
-	let total = 0;
-	let firstTs: string | null = null;
-	let lastTs: string | null = null;
-
-	try {
-		const result = await query<AuditRow>(
-			`SELECT id::text, occurred_at, event_id, event_type, source, subject,
-                actor, chain_hash, rekor_log_index::text
-           FROM audit_log
-          ORDER BY occurred_at DESC, id DESC
-          LIMIT $1 OFFSET $2`,
-			[PAGE_SIZE, offset],
-		);
-		rows = result;
-		const totals = await query<{ c: string }>(
-			`SELECT COUNT(*)::text AS c FROM audit_log`,
-		);
-		total = parseInt(totals[0]?.c ?? "0", 10);
-		if (rows.length > 0) {
-			lastTs = rows[0].occurred_at;
-			firstTs = rows[rows.length - 1].occurred_at;
-		}
-	} catch (e) {
-		// Table may not exist yet (pre-migration). Render empty state.
-		const msg = e instanceof Error ? e.message : "unknown";
-		rows = [];
-		total = 0;
-		// Stash error in a hidden HTML comment for operator debug.
-		console.error("[audit-viewer] query failed:", msg);
-	}
-
-	const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-
-	return (
-		<div className="flex flex-col gap-6 p-6">
-			<PageHeader
-				title="Audit Log"
-				description="Hash-chained, tamper-evident record of audited operations across CortexOS."
-				icon={<ScrollTextIcon />}
-				actions={
-					<div className="flex items-center gap-2">
-						<Badge variant="secondary">{total} rows</Badge>
-						<AuditChainVerifyBadge from={firstTs} to={lastTs} />
-					</div>
-				}
-			/>
-
-			<Card>
-				<CardHeader>
-					<CardTitle>
-						Page {page} of {totalPages}
-					</CardTitle>
-				</CardHeader>
-				<CardContent>
-					<AuditLogTable rows={rows} />
-				</CardContent>
-			</Card>
-
-			<nav className="flex items-center gap-2">
-				{page > 1 && (
-					<Button variant="outline" size="sm" render={<Link href={`?page=${page - 1}`} />}>
-						← Prev
-					</Button>
-				)}
-				{page < totalPages && (
-					<Button
-						variant="outline"
-						size="sm"
-						className="ml-auto"
-						render={<Link href={`?page=${page + 1}`} />}
-					>
-						Next →
-					</Button>
-				)}
-			</nav>
-		</div>
-	);
+  return (
+    <div className="space-y-5">
+      <PageHeader icon={<ScrollText className="size-5" />} title={"Audit"}
+        description={`${items.length} entries · hash-chained`}
+        actions={<Badge variant="outline" className="border-[var(--success)] text-[var(--success)]"><ShieldCheck className="size-3 mr-1" />chain valid</Badge>}
+      />
+      <DataTable rows={items} columns={cols} initialSort="ts" filterFn={(r, q) => r.actor.toLowerCase().includes(q) || r.tool.includes(q)} />
+      <Sheet open={!!sel} onOpenChange={(o) => !o && setSel(null)}>
+        <SheetContent className="w-full sm:max-w-md">
+          {sel && <><SheetHeader><SheetTitle>Audit entry</SheetTitle></SheetHeader>
+            <div className="mt-4"><KeyValueList items={[
+              { key: "ID", value: sel.id },
+              { key: "Actor", value: sel.actor },
+              { key: "Tool", value: sel.tool },
+              { key: "Class", value: sel.tool_class },
+              { key: "Decision", value: sel.decision },
+              { key: "Reason", value: sel.decision_reason },
+              { key: "Result", value: sel.result },
+              { key: "Hash", value: <span className="text-[10px]">{sel.args_hash}</span> },
+              { key: "Time", value: sel.created_at },
+            ]} /></div></>}
+        </SheetContent>
+      </Sheet>
+    </div>
+  );
 }

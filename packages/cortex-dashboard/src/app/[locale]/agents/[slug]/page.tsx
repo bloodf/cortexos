@@ -1,8 +1,8 @@
 import { scanAgents } from "@/lib/agents/scanner";
 import { Link } from "@/i18n/routing";
 import { ArrowLeft } from "lucide-react";
-import { AgentFileViewer } from "@/components/agents/agent-file-viewer";
-import { PageHeader } from "@/components/ui/page-header";
+import { AgentFileViewer } from "@/components/sys-pilot/agents/agent-file-viewer";
+import { PageHeader } from "@/components/sys-pilot/PageHeader";
 import { notFound } from "next/navigation";
 
 interface Props {
@@ -49,7 +49,7 @@ export default async function AgentDetailPage({ params }: Props) {
         }
       />
 
-      <AgentFileViewer slug={slug} files={filesForClient} />
+      <AgentFileViewer agentId={slug} />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { Shield } from "lucide-react";
-import { LoginForm } from "@/components/auth/login-form";
+import { LoginForm } from "@/components/sys-pilot/auth/login-form";
 
 export default async function LoginPage({ params }: { params: Promise<{ locale: string }> }) {
 	await params;

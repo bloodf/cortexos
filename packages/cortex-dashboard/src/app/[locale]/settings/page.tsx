@@ -5,8 +5,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { PageHeader } from "@/components/ui/page-header";
-import { ThemeSettings } from "@/components/ui/theme-switcher";
+import { PageHeader } from "@/components/sys-pilot/PageHeader";
 import { SettingsIcon } from "lucide-react";
 
 export default function SettingsPage() {
@@ -15,7 +14,8 @@ export default function SettingsPage() {
 			<PageHeader
 				title="Settings"
 				description="Personalize the dashboard appearance and workspace preferences."
-				icon={<SettingsIcon />}
+				icon={<SettingsIcon className="size-5" />}
+				actions={undefined}
 			/>
 			<Card>
 				<CardHeader>
@@ -25,7 +25,7 @@ export default function SettingsPage() {
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
-					<ThemeSettings />
+					<p className="text-sm text-muted-foreground">Theme settings coming soon.</p>
 				</CardContent>
 			</Card>
 		</div>

@@ -4,6 +4,7 @@ import { getLocale, getMessages } from "next-intl/server";
 import { NextIntlClientProvider } from "next-intl";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider } from "@/hooks/useAuth";
 import { AlertToastListener } from "@/components/notifications/alert-toast";
 import { ThemeProvider } from "@/hooks/use-theme";
 import {
@@ -70,7 +71,9 @@ export default async function RootLayout({
 			<body className="min-h-full flex flex-col">
 				<NextIntlClientProvider messages={messages}>
 					<ThemeProvider initialPreset={initialPreset}>
-						<TooltipProvider>{children}</TooltipProvider>
+						<AuthProvider>
+							<TooltipProvider>{children}</TooltipProvider>
+						</AuthProvider>
 						<Toaster />
 						<AlertToastListener />
 					</ThemeProvider>

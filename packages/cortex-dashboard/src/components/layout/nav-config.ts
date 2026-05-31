@@ -21,6 +21,8 @@ import {
 	Users,
 	FolderKanban,
 	UserCog,
+	Archive,
+	Calendar,
 } from "lucide-react";
 
 export interface NavItem {
@@ -61,6 +63,8 @@ export const NAV_GROUPS: NavGroup[] = [
 			{ href: "/network", label: "Network", icon: Network },
 			{ href: "/processes", label: "Processes", icon: Cpu },
 			{ href: "/terminal", label: "Terminal", icon: Terminal },
+			{ href: "/backups", label: "Backups", icon: Archive },
+			{ href: "/scheduler", label: "Scheduler", icon: Calendar },
 		],
 	},
 	{
@@ -84,6 +88,7 @@ export const NAV_GROUPS: NavGroup[] = [
 			{ href: "/admin/alerts", label: "Alerts", icon: Bell },
 			{ href: "/admin/users", label: "Users", icon: Users },
 			{ href: "/admin/projects", label: "Projects", icon: FolderKanban },
+			{ href: "/admin/incus", label: "Incus", icon: Boxes },
 			{ href: "/admin/audit", label: "Audit Log", icon: ScrollText },
 			{ href: "/admin/account", label: "Account", icon: UserCog },
 		],

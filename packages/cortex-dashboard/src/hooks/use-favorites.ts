@@ -60,5 +60,5 @@ export function useFavorites() {
 		save(favorites.filter((favorite) => favorite.slug !== slug));
 	}
 
-	return { favorites, isFavorite, toggleFavorite, removeFavorite };
+	return { favorites, isFavorite, toggleFavorite, toggle: toggleFavorite, removeFavorite };
 }

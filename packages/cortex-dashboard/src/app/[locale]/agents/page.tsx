@@ -1,88 +1,53 @@
-import { scanAgents } from "@/lib/agents/scanner";
-import { Link } from "@/i18n/routing";
-import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader } from "@/components/ui/page-header";
+"use client";
+
+import { useMemo, useState } from "react";
+import { FileText, FolderTree } from "lucide-react";
+import { PageHeader } from "@/components/sys-pilot/PageHeader";
+import { TechIcon } from "@/components/sys-pilot/TechIcon";
+import { CodeBlock } from "@/components/sys-pilot/CodeBlock";
 import { Card } from "@/components/ui/card";
-import { Bot, FileText } from "lucide-react";
+import { api } from "@/lib/api";
+import { useTranslations } from "next-intl";
+import { useQuery } from "@tanstack/react-query";
+import { cn } from "@/lib/utils";
 
-export default async function AgentsPage() {
-	const groups = await scanAgents();
-	const totalAgents = groups.reduce((sum, g) => sum + g.agents.length, 0);
+export default function AgentsPage() {
+  const t = useTranslations();
+  const { data: agents = [] } = useQuery({ queryKey: ["agents"], queryFn: api.agents });
+  const [activeSlug, setActiveSlug] = useState<string | null>(null);
+  const [activeFile, setActiveFile] = useState<string | null>(null);
 
-	if (groups.length === 0) {
-		return (
-			<div className="flex flex-col gap-6 p-6">
-				<PageHeader
-					title="Agents"
-					description="Hermes agent profiles discovered across your projects."
-					icon={<Bot />}
-				/>
-				<EmptyState
-					icon={<Bot />}
-					title="No agents"
-					description="No Hermes profiles were found in the configured scan roots."
-				/>
-			</div>
-		);
-	}
+  const active = useMemo(() => agents.find((a) => a.slug === activeSlug) ?? agents[0], [agents, activeSlug]);
+  const file = useMemo(() => active?.files.find((f: any) => f.path === activeFile) ?? active?.files[0], [active, activeFile]);
 
-	return (
-		<div className="flex flex-col gap-8 p-6">
-			<PageHeader
-				title="Agents"
-				description={`${totalAgents} agent${totalAgents === 1 ? "" : "s"} across ${groups.length} project${groups.length === 1 ? "" : "s"}.`}
-				icon={<Bot />}
-			/>
-
-			{groups.map((group) => (
-				<section key={group.project} className="flex flex-col gap-3">
-					<h2 className="text-lg font-semibold capitalize text-foreground">
-						{group.project}
-						<span className="ml-2 text-sm font-normal text-muted-foreground">
-							({group.agents.length})
-						</span>
-					</h2>
-					<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-						{group.agents.map((agent) => (
-							<Link
-								key={`${group.project}-${agent.slug}`}
-								href={`/agents/${agent.slug}`}
-								className="block"
-							>
-								<Card size="sm" className="gap-3 p-4 transition-colors hover:bg-muted/50">
-									<div className="flex items-start justify-between gap-2">
-										<div className="min-w-0">
-											<div className="truncate font-medium text-foreground">
-												{agent.emoji ? `${agent.emoji} ` : ""}{agent.name}
-											</div>
-											<div className="truncate font-mono text-xs text-muted-foreground">
-												{agent.slug}
-											</div>
-										</div>
-									</div>
-									<dl className="space-y-1 text-xs">
-										<div className="flex justify-between gap-2">
-											<dt className="text-muted-foreground">Model</dt>
-											<dd className="truncate font-mono text-foreground">
-												{agent.model}
-											</dd>
-										</div>
-										<div className="flex justify-between gap-2">
-											<dt className="text-muted-foreground">Files</dt>
-											<dd className="flex items-center gap-1 text-foreground">
-												<FileText className="size-3" />
-												{agent.files.length}
-											</dd>
-										</div>
-									</dl>
-								</Card>
-							</Link>
-						))}
-					</div>
-				</section>
-			))}
-		</div>
-	);
+  return (
+    <div className="space-y-5">
+      <PageHeader title="Agents" description="Inspect agent definitions, prompts and policies." />
+      <div className="grid gap-3 lg:grid-cols-[260px_240px_1fr] min-h-[60vh]">
+        <Card className="elev-1 p-2 space-y-1">
+          {agents.map((a) => (
+            <button key={a.slug} onClick={() => { setActiveSlug(a.slug); setActiveFile(null); }} className={cn("w-full text-left rounded-md px-2 py-2 flex items-center gap-2 hover:bg-muted/40", active?.slug === a.slug && "bg-accent text-accent-foreground")}>
+              <TechIcon slug={a.slug} name={a.name} size={28} />
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate">{a.name}</p>
+                <p className="text-[10px] text-muted-foreground truncate">{a.description}</p>
+              </div>
+            </button>
+          ))}
+        </Card>
+        <Card className="elev-1 p-2 space-y-0.5">
+          <div className="flex items-center gap-2 px-2 py-1 text-xs uppercase tracking-wider text-muted-foreground"><FolderTree className="size-3" />Files</div>
+          {active?.files.map((f: any) => (
+            <button key={f.path} onClick={() => setActiveFile(f.path)} className={cn("w-full text-left rounded px-2 py-1.5 text-sm flex items-center gap-2 hover:bg-muted/40 font-mono", file?.path === f.path && "bg-accent text-accent-foreground")}>
+              <FileText className="size-3.5 text-muted-foreground" />
+              <span className="truncate">{f.path}</span>
+            </button>
+          ))}
+        </Card>
+        <Card className="elev-1 p-0 overflow-hidden">
+          {file && <CodeBlock language={file.language} code={file.content} className="border-0 rounded-none h-full" />}
+        </Card>
+      </div>
+    </div>
+  );
 }
-
-export const dynamic = "force-dynamic";

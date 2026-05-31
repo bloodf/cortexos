@@ -1,363 +1,213 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
-import { useTranslations } from "next-intl";
-import { useTheme } from "@/hooks/use-theme";
+import { useEffect, useRef } from "react";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
-import { WebLinksAddon } from "@xterm/addon-web-links";
-import { Plus, X, Monitor, Copy, ClipboardPaste, Trash, TerminalIcon } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
 import "@xterm/xterm/css/xterm.css";
+import { Terminal as TermIcon, Lock } from "lucide-react";
+import { PageHeader } from "@/components/sys-pilot/PageHeader";
+import { EmptyState } from "@/components/sys-pilot/EmptyState";
+import { Card } from "@/components/ui/card";
+import { useTranslations } from "next-intl";
+import { useAuth } from "@/hooks/useAuth";
+import { useTheme } from "next-themes";
 
-interface SessionMeta {
-	id: string;
-	name: string;
-	connected: boolean;
+const PROMPT = (user: string) => `\x1b[32m${user}@cortex\x1b[0m:\x1b[34m~\x1b[0m$ `;
+
+const BANNER = [
+  "\x1b[1;36mCortexOS shell\x1b[0m · interactive mock terminal",
+  "Type \x1b[33mhelp\x1b[0m for available commands. Use \x1b[33mclear\x1b[0m to wipe the screen.",
+  "",
+];
+
+const HELP = [
+  "Available commands:",
+  "  \x1b[33mhelp\x1b[0m                — this message",
+  "  \x1b[33mwhoami\x1b[0m              — current user",
+  "  \x1b[33muname -a\x1b[0m            — host info",
+  "  \x1b[33muptime\x1b[0m              — system uptime",
+  "  \x1b[33mfree -h\x1b[0m             — memory usage",
+  "  \x1b[33mdf -h\x1b[0m               — disk usage",
+  "  \x1b[33msystemctl status\x1b[0m    — list managed units",
+  "  \x1b[33mjournalctl -u <unit>\x1b[0m — recent logs",
+  "  \x1b[33mdocker ps\x1b[0m           — running containers",
+  "  \x1b[33mincus list\x1b[0m          — incus instances",
+  "  \x1b[33mclear\x1b[0m               — clear screen",
+  "  \x1b[33mexit\x1b[0m                — close session",
+];
+
+function run(cmd: string, user: string): string[] {
+  const c = cmd.trim();
+  if (!c) return [];
+  if (c === "help") return HELP;
+  if (c === "whoami") return [user];
+  if (c === "uname -a") return ["Linux cortex 6.8.0-cortex #1 SMP x86_64 GNU/Linux"];
+  if (c === "uptime") return [` ${new Date().toTimeString().slice(0, 5)} up 14 days,  3:42,  2 users,  load average: 0.42, 0.51, 0.49`];
+  if (c === "free -h") return [
+    "              total        used        free      shared",
+    "Mem:           62Gi        24Gi        20Gi       1.2Gi",
+    "Swap:         8.0Gi          0B       8.0Gi",
+  ];
+  if (c === "df -h") return [
+    "Filesystem      Size  Used Avail Use% Mounted on",
+    "/dev/nvme0n1p2  1.8T  720G  1.1T  40% /",
+    "/dev/nvme1n1    3.6T  1.2T  2.4T  34% /var/lib/incus",
+    "tmpfs            32G  124M   32G   1% /tmp",
+  ];
+  if (c === "systemctl status") return [
+    "\x1b[32m●\x1b[0m caddy.service     – active (running)",
+    "\x1b[32m●\x1b[0m docker.service    – active (running)",
+    "\x1b[32m●\x1b[0m incus.service     – active (running)",
+    "\x1b[32m●\x1b[0m postgresql        – active (running)",
+    "\x1b[31m●\x1b[0m mysql.service     – \x1b[31mfailed\x1b[0m",
+  ];
+  if (c.startsWith("journalctl -u ")) {
+    const unit = c.slice(14);
+    return Array.from({ length: 8 }, (_, i) =>
+      `${new Date(Date.now() - i * 2000).toISOString().slice(11, 19)} cortex ${unit}: handled request in ${(8 + Math.random() * 40).toFixed(1)}ms`
+    );
+  }
+  if (c === "docker ps") return [
+    "CONTAINER ID  IMAGE                STATUS         PORTS              NAMES",
+    "a1b2c3d4e5f6  ollama/ollama:latest Up 4 days      11434->11434/tcp   ollama",
+    "b2c3d4e5f6a1  grafana/grafana      Up 4 days      3000->3000/tcp     grafana",
+    "c3d4e5f6a1b2  redis:7              Up 4 days      6379->6379/tcp     redis",
+  ];
+  if (c === "incus list") return [
+    "+----------+---------+------------------+-----------+",
+    "|   NAME   |  STATE  |      IPv4        |   TYPE    |",
+    "+----------+---------+------------------+-----------+",
+    "| dev-vm   | RUNNING | 10.42.0.12       | VIRTUAL   |",
+    "| build-c  | RUNNING | 10.42.0.13       | CONTAINER |",
+    "| pg-snap  | STOPPED | -                | CONTAINER |",
+    "+----------+---------+------------------+-----------+",
+  ];
+  if (c === "ls" || c === "ls -la") return [
+    "drwxr-xr-x  4 admin admin 4096 May 30 09:12 .",
+    "drwxr-xr-x  3 root  root  4096 May 28 12:00 ..",
+    "-rw-r--r--  1 admin admin  220 May 28 12:00 .bashrc",
+    "drwxr-xr-x  2 admin admin 4096 May 30 09:00 projects",
+    "drwxr-xr-x  2 admin admin 4096 May 30 09:00 .ssh",
+  ];
+  if (c === "exit") return ["\x1b[33msession closed.\x1b[0m"];
+  return [`\x1b[31mmock: command not found:\x1b[0m ${c}`];
 }
-
-interface SessionState {
-	meta: SessionMeta;
-	terminal?: XTerm;
-	fitAddon?: FitAddon;
-	eventSource?: EventSource;
-}
-
-const STORAGE_KEY = "cortex-terminal-sessions";
-
-function loadSessionMetas(): SessionMeta[] {
-	try {
-		const raw = localStorage.getItem(STORAGE_KEY);
-		if (raw) return JSON.parse(raw);
-	} catch (error) {
-		console.debug("Failed to load terminal sessions", error);
-	}
-	return [];
-}
-
-function saveSessionMetas(metas: SessionMeta[]) {
-	try {
-		localStorage.setItem(STORAGE_KEY, JSON.stringify(metas));
-	} catch (error) {
-		console.debug("Failed to save terminal sessions", error);
-	}
-}
-
-function makeId() {
-	return Math.random().toString(36).slice(2, 9);
-}
-
-const terminalThemes = {
-	dark: {
-		background: "rgba(0, 0, 0, 0.85)",
-		foreground: "#e2e8f0",
-		cursor: "#64748b",
-		selectionBackground: "#334155",
-		black: "#0f172a",
-		red: "#f87171",
-		green: "#4ade80",
-		yellow: "#facc15",
-		blue: "#60a5fa",
-		magenta: "#c084fc",
-		cyan: "#22d3ee",
-		white: "#e2e8f0",
-	},
-	light: {
-		background: "rgba(248, 250, 252, 0.85)",
-		foreground: "#0f172a",
-		cursor: "#4f46e5",
-		selectionBackground: "#c7d2fe",
-		black: "#0f172a",
-		red: "#dc2626",
-		green: "#16a34a",
-		yellow: "#ca8a04",
-		blue: "#2563eb",
-		magenta: "#9333ea",
-		cyan: "#0891b2",
-		white: "#f8fafc",
-	},
-} as const;
 
 export default function TerminalPage() {
-	const t = useTranslations("Infrastructure");
-	const { resolvedTheme } = useTheme();
-	const theme: "light" | "dark" = resolvedTheme === "light" ? "light" : "dark";
-	const [sessions, setSessions] = useState<SessionState[]>([]);
-	const [activeId, setActiveId] = useState<string | null>(null);
-	const containerRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-	const nextIndex = useRef(1);
+  const t = useTranslations();
+  const { user } = useAuth();
+  const { resolvedTheme } = useTheme();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const termRef = useRef<XTerm | null>(null);
 
-	const didInit = useRef(false);
-	// Initialize from localStorage or create default
-	useEffect(() => {
-		if (didInit.current) return;
-		didInit.current = true;
-		const metas = loadSessionMetas();
-		if (metas.length > 0) {
-			const states = metas.map((m) => ({ meta: { ...m, connected: false } }));
-			setTimeout(() => {
-				setSessions(states);
-				setActiveId(states[0].meta.id);
-			}, 0);
-			nextIndex.current = metas.length + 1;
-		} else {
-			const id = makeId();
-			const name = "Session 1";
-			const state: SessionState = { meta: { id, name, connected: false } };
-			setTimeout(() => {
-				setSessions([state]);
-				setActiveId(id);
-			}, 0);
-			saveSessionMetas([{ id, name, connected: false }]);
-			nextIndex.current = 2;
-		}
-	}, []);
+  useEffect(() => {
+    if (!user?.is_admin || !containerRef.current) return;
+    const dark = resolvedTheme === "dark";
+    const term = new XTerm({
+      fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+      fontSize: 13,
+      cursorBlink: true,
+      convertEol: true,
+      theme: dark
+        ? { background: "#0b0f17", foreground: "#e6edf3", cursor: "#7c3aed" }
+        : { background: "#fafafa", foreground: "#1a1a1a", cursor: "#7c3aed" },
+    });
+    const fit = new FitAddon();
+    term.loadAddon(fit);
+    term.open(containerRef.current);
+    fit.fit();
+    termRef.current = term;
 
-	const createSession = useCallback(() => {
-		const id = makeId();
-		const name = `Session ${nextIndex.current++}`;
-		const state: SessionState = { meta: { id, name, connected: false } };
-		setSessions((prev) => {
-			const next = [...prev, state];
-			saveSessionMetas(next.map((s) => s.meta));
-			return next;
-		});
-		setActiveId(id);
-	}, []);
+    const username = user.username;
+    let buffer = "";
+    const history: string[] = [];
+    let hIdx = -1;
 
-	const closeSession = useCallback(
-		(id: string) => {
-			setSessions((prev) => {
-				const session = prev.find((s) => s.meta.id === id);
-				if (session?.eventSource) session.eventSource.close();
-				if (session?.terminal) session.terminal.dispose();
-				// disconnect backend
-				fetch("/api/terminal", {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ action: "disconnect", sessionId: id }),
-				}).catch(() => {});
-				const next = prev.filter((s) => s.meta.id !== id);
-				saveSessionMetas(next.map((s) => s.meta));
-				if (activeId === id && next.length > 0) setActiveId(next[0].meta.id);
-				if (next.length === 0) setActiveId(null);
-				return next;
-			});
-		},
-		[activeId],
-	);
+    const writeBanner = () => {
+      BANNER.forEach((l) => term.writeln(l));
+      term.write(PROMPT(username));
+    };
+    writeBanner();
 
-	const handleCopy = useCallback(() => {
-		const session = sessions.find((s) => s.meta.id === activeId);
-		if (session?.terminal) {
-			const sel = session.terminal.getSelection();
-			if (sel) navigator.clipboard.writeText(sel);
-		}
-	}, [sessions, activeId]);
+    const onResize = () => { try { fit.fit(); } catch { /* noop */ } };
+    window.addEventListener("resize", onResize);
+    const ro = new ResizeObserver(onResize);
+    ro.observe(containerRef.current);
 
-	const handlePaste = useCallback(async () => {
-		const session = sessions.find((s) => s.meta.id === activeId);
-		if (session?.terminal) {
-			try {
-				const text = await navigator.clipboard.readText();
-				session.terminal.paste(text);
-			} catch (error) {
-				console.debug("Failed to read clipboard", error);
-			}
-		}
-	}, [sessions, activeId]);
+    term.onKey(({ key, domEvent }) => {
+      const ev = domEvent;
+      if (ev.key === "Enter") {
+        term.write("\r\n");
+        if (buffer.trim()) history.unshift(buffer);
+        hIdx = -1;
+        if (buffer.trim() === "clear") {
+          term.clear();
+        } else {
+          const out = run(buffer, username);
+          out.forEach((l) => term.writeln(l));
+        }
+        buffer = "";
+        term.write(PROMPT(username));
+      } else if (ev.key === "Backspace") {
+        if (buffer.length > 0) { buffer = buffer.slice(0, -1); term.write("\b \b"); }
+      } else if (ev.key === "ArrowUp") {
+        if (hIdx + 1 < history.length) {
+          hIdx++;
+          // clear current
+          term.write("\r" + PROMPT(username) + " ".repeat(buffer.length) + "\r" + PROMPT(username));
+          buffer = history[hIdx];
+          term.write(buffer);
+        }
+      } else if (ev.key === "ArrowDown") {
+        if (hIdx > 0) {
+          hIdx--;
+          term.write("\r" + PROMPT(username) + " ".repeat(buffer.length) + "\r" + PROMPT(username));
+          buffer = history[hIdx];
+          term.write(buffer);
+        } else if (hIdx === 0) {
+          hIdx = -1;
+          term.write("\r" + PROMPT(username) + " ".repeat(buffer.length) + "\r" + PROMPT(username));
+          buffer = "";
+        }
+      } else if (ev.ctrlKey && ev.key === "c") {
+        term.write("^C\r\n" + PROMPT(username));
+        buffer = "";
+      } else if (ev.ctrlKey && ev.key === "l") {
+        term.clear();
+        term.write(PROMPT(username) + buffer);
+      } else if (key.length === 1 && key.charCodeAt(0) >= 32) {
+        buffer += key;
+        term.write(key);
+      }
+    });
 
-	const handleClear = useCallback(() => {
-		const session = sessions.find((s) => s.meta.id === activeId);
-		if (session?.terminal) {
-			session.terminal.clear();
-		}
-	}, [sessions, activeId]);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      ro.disconnect();
+      term.dispose();
+      termRef.current = null;
+    };
+  }, [user, resolvedTheme]);
 
-	// Initialize terminals
-	useEffect(() => {
-		sessions.forEach((session) => {
-			if (session.terminal || !containerRefs.current.get(session.meta.id))
-				return;
-			const container = containerRefs.current.get(session.meta.id)!;
+  if (!user?.is_admin) {
+    return (
+      <div className="space-y-5">
+        <PageHeader icon={<TermIcon className="size-5" />} title={"Terminal"} description="Interactive shell on the host." />
+        <Card className="elev-1"><EmptyState icon={<Lock className="size-10" />} title="403 · Admin only" description="Terminal access is restricted to administrators." /></Card>
+      </div>
+    );
+  }
 
-			const term = new XTerm({
-				cursorBlink: true,
-				fontSize: 13,
-				fontFamily: "JetBrains Mono, monospace",
-				scrollback: 10000,
-				theme: terminalThemes[theme],
-			});
-
-			const fitAddon = new FitAddon();
-			term.loadAddon(fitAddon);
-			term.loadAddon(new WebLinksAddon());
-			term.open(container);
-			fitAddon.fit();
-
-			// Connect to backend
-			const sid = session.meta.id;
-			fetch("/api/terminal", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ action: "connect", sessionId: sid }),
-			})
-				.then(() => {
-					const es = new EventSource(`/api/terminal?sessionId=${sid}`);
-					es.onmessage = (ev) => {
-						try {
-							const msg = JSON.parse(ev.data);
-							if (msg.output) term.write(msg.output);
-						} catch (error) {
-							console.debug("Failed to parse terminal event", error);
-						}
-					};
-					es.onerror = () => {
-						term.writeln("\r\n\x1b[1;31m[Connection lost]\x1b[0m");
-					};
-					session.eventSource = es;
-					setSessions((prev) =>
-						prev.map((s) =>
-							s.meta.id === sid
-								? { ...s, meta: { ...s.meta, connected: true } }
-								: s,
-						),
-					);
-				})
-				.catch((err) => {
-					term.writeln(`\r\n\x1b[1;31m[SSH Error: ${err.message}]\x1b[0m`);
-				});
-
-			term.onData((data) => {
-				fetch("/api/terminal", {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ action: "exec", sessionId: sid, data }),
-				}).catch(() => {});
-			});
-
-			term.onResize(({ cols, rows }) => {
-				fetch("/api/terminal", {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({
-						action: "resize",
-						sessionId: sid,
-						cols,
-						rows,
-					}),
-				}).catch(() => {});
-			});
-
-			session.terminal = term;
-			session.fitAddon = fitAddon;
-		});
-
-		const handleResize = () => {
-			sessions.forEach((s) => s.fitAddon?.fit());
-		};
-		window.addEventListener("resize", handleResize);
-		return () => window.removeEventListener("resize", handleResize);
-	}, [sessions, theme]);
-
-	useEffect(() => {
-		sessions.forEach((session) => {
-			if (session.terminal) {
-				session.terminal.options.theme = terminalThemes[theme];
-			}
-		});
-	}, [sessions, theme]);
-
-	return (
-		<div className="flex flex-col gap-4 p-6" style={{ height: "calc(100vh - 64px)" }}>
-			<PageHeader
-				title={t("TerminalTitle")}
-				description={t("TerminalDescription")}
-				icon={<TerminalIcon />}
-			/>
-
-			{/* Tabs + Toolbar */}
-			<div className="flex items-end gap-2">
-				<div className="flex items-end gap-1 overflow-x-auto flex-1">
-					{sessions.map((s) => (
-						<div
-							key={s.meta.id}
-							onClick={() => setActiveId(s.meta.id)}
-							className={`flex items-center gap-2 px-3 py-1.5 rounded-t-lg text-xs cursor-pointer border-t border-l border-r shrink-0 ${
-								activeId === s.meta.id
-									? "-mb-px bg-card text-foreground border-border border-b-0"
-									: "bg-muted text-muted-foreground border-transparent hover:text-foreground"
-							}`}
-						>
-							<Monitor className="w-3 h-3" />
-							<span>{s.meta.name}</span>
-							{s.meta.connected && (
-								<span className="w-1.5 h-1.5 rounded-full bg-success" />
-							)}
-							<button
-								onClick={(e) => {
-									e.stopPropagation();
-									closeSession(s.meta.id);
-								}}
-								className="ml-1 hover:text-destructive"
-							>
-								<X className="w-3 h-3" />
-							</button>
-						</div>
-					))}
-					<button
-						onClick={createSession}
-						className="flex items-center gap-1 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0"
-					>
-						<Plus className="w-3.5 h-3.5" />
-						{t("NewSession")}
-					</button>
-				</div>
-
-				{/* Toolbar */}
-				<div className="flex items-center gap-1 shrink-0">
-					<button
-						onClick={handleCopy}
-						className="p-1.5 text-muted-foreground hover:text-foreground rounded transition-colors"
-						title="Copy"
-					>
-						<Copy className="w-3.5 h-3.5" />
-					</button>
-					<button
-						onClick={handlePaste}
-						className="p-1.5 text-muted-foreground hover:text-foreground rounded transition-colors"
-						title="Paste"
-					>
-						<ClipboardPaste className="w-3.5 h-3.5" />
-					</button>
-					<button
-						onClick={handleClear}
-						className="p-1.5 text-muted-foreground hover:text-foreground rounded transition-colors"
-						title="Clear"
-					>
-						<Trash className="w-3.5 h-3.5" />
-					</button>
-				</div>
-			</div>
-
-			{/* Terminal containers — surface kept aligned with xterm JS theme backgrounds */}
-			<div className="flex-1 relative border border-border rounded-b-lg rounded-tr-lg bg-black/85 light:bg-slate-50/85 overflow-hidden">
-				{sessions.map((s) => (
-					<div
-						key={s.meta.id}
-						ref={(el) => {
-							if (el) containerRefs.current.set(s.meta.id, el);
-						}}
-						className={`absolute inset-0 p-1 ${activeId === s.meta.id ? "visible z-10" : "invisible z-0"}`}
-						style={{ overflow: "hidden" }}
-					/>
-				))}
-				{sessions.length === 0 && (
-					<div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">
-						{t("NoSessions")}
-					</div>
-				)}
-			</div>
-		</div>
-	);
+  return (
+    <div className="space-y-5">
+      <PageHeader
+        icon={<TermIcon className="size-5" />}
+        title={"Terminal"}
+        description="Interactive shell on the host. Mock PTY — try help, systemctl status, journalctl -u caddy."
+      />
+      <Card className="elev-1 p-0 overflow-hidden">
+        <div ref={containerRef} className="h-[68vh] w-full" />
+      </Card>
+    </div>
+  );
 }
