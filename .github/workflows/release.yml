@@ -127,13 +127,13 @@ jobs:
 
       - name: Attest build provenance (SLSA L2)
         if: steps.src.outputs.exists == 'true'
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: ${{ steps.pkg.outputs.tarball }}
 
       - name: Attest SBOM
         if: steps.src.outputs.exists == 'true'
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: ${{ steps.sbom.outputs.sbom }}
 
