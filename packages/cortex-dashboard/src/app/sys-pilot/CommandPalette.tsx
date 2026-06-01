@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,18 +21,6 @@ export function CommandPalette({ open, onOpenChange, onOpenHelp }: Props) {
     try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); } catch { return []; }
   });
   const [q, setQ] = useState("");
-
-  // Re-read localStorage when the dialog opens (may have changed from another tab).
-  // Using a ref to avoid setState-in-effect lint error while still syncing external state.
-  const openRef = useRef(open);
-  if (open && !openRef.current) {
-    openRef.current = true;
-    try {
-      const stored = JSON.parse(localStorage.getItem(RECENT_KEY) || "[]");
-      if (JSON.stringify(stored) !== JSON.stringify(recent)) setRecent(stored);
-    } catch { /* noop */ }
-  }
-  if (!open) openRef.current = false;
 
   const navItems = useMemo(() => NAV_GROUPS.flatMap((g) => g.items), []);
 
