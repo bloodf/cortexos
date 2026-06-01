@@ -290,7 +290,7 @@ After=network.target
 [Service]
 Type=simple
 User=cortexos
-WorkingDirectory=/opt/cortexos/packages/cortex-dashboard
+WorkingDirectory=/opt/cortexos/packages/dashboard
 ExecStart=/usr/bin/node server.js
 Environment=PORT=3000
 Environment=HOSTNAME=0.0.0.0

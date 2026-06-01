@@ -247,11 +247,11 @@ Evidence:
 - `shellcheck scripts/rebuild/*.sh` passed.
 - `scripts/rebuild/validate.sh --local` passed.
 - `python3 -m unittest stacks/cortex-agentgateway/tests/test_app.py` passed.
-- `pnpm --dir packages/cortex-dashboard test` passed: 74 files, 553 tests.
-- `pnpm --dir packages/cortex-dashboard exec tsc --noEmit` passed.
-- `pnpm --dir packages/cortex-dashboard run build:next` passed with one
+- `pnpm --dir packages/dashboard test` passed: 74 files, 553 tests.
+- `pnpm --dir packages/dashboard exec tsc --noEmit` passed.
+- `pnpm --dir packages/dashboard run build:next` passed with one
   pre-existing Turbopack NFT tracing warning in the terminal route.
-- `pnpm --dir packages/cortex-dashboard run test:e2e:list` lists only
+- `pnpm --dir packages/dashboard run test:e2e:list` lists only
   `audit-viewer.spec.ts`.
 - Live retired-runtime apply completed from verified backup
   `/mnt/hdd/cortexos-backups/20260528T042259Z`; scope remained retired runtime

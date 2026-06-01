@@ -51,7 +51,7 @@ export function CommandPalette() {
 		open ? "/api/services?webui=true" : null,
 		(url: string) => fetch(url).then((r) => r.json()),
 	);
-	const services = servicesData?.services || [];
+	const services = useMemo(() => servicesData?.services || [], [servicesData]);
 
 	useEffect(() => {
 		const handler = (event: KeyboardEvent) => {

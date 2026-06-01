@@ -1,6 +1,6 @@
 # RETIRED — the dashboard now runs as the native systemd unit
 # cortex-dashboard.service (built on the host by scripts/ops/cortex-dashboard-build.sh).
-# Kept for reference only; not built or deployed. See packages/cortex-dashboard/CLAUDE.md.
+# Kept for reference only; not built or deployed. See packages/dashboard/CLAUDE.md.
 # syntax=docker/dockerfile:1.7
 # Cortex Dashboard — multi-stage build from repo-root context.
 # Builds fully inside Docker from source; no host-prebuilt Next assets needed.
@@ -21,14 +21,14 @@ RUN npm config set fetch-retries 5 \
 RUN --mount=type=cache,target=/root/.npm \
     cd packages/cortex-audit && npm install --no-audit --no-fund
 RUN --mount=type=cache,target=/root/.npm \
-    cd packages/cortex-dashboard && npm install --no-audit --no-fund
+    cd packages/dashboard && npm install --no-audit --no-fund
 # Replace npm's local file symlinks with real directories so Turbopack resolves
 # the internal packages consistently inside Docker.
-RUN rm -rf /repo/packages/cortex-dashboard/node_modules/@cortexos/audit \
- && mkdir -p /repo/packages/cortex-dashboard/node_modules/@cortexos/audit \
- && cp -a /repo/packages/cortex-audit/. /repo/packages/cortex-dashboard/node_modules/@cortexos/audit/
+RUN rm -rf /repo/packages/dashboard/node_modules/@cortexos/audit \
+ && mkdir -p /repo/packages/dashboard/node_modules/@cortexos/audit \
+ && cp -a /repo/packages/cortex-audit/. /repo/packages/dashboard/node_modules/@cortexos/audit/
 
-WORKDIR /repo/packages/cortex-dashboard
+WORKDIR /repo/packages/dashboard
 RUN npm run build:next
 RUN npx esbuild server.ts \
     --bundle \
@@ -89,16 +89,16 @@ RUN apt-get update \
       postgresql-client \
  && rm -rf /var/lib/apt/lists/*
 
-COPY --chown=node:node --from=builder /repo/packages/cortex-dashboard/package.json ./package.json
-COPY --chown=node:node --from=builder /repo/packages/cortex-dashboard/node_modules ./node_modules
-COPY --chown=node:node --from=builder /repo/packages/cortex-dashboard/.next ./.next
-COPY --chown=node:node --from=builder /repo/packages/cortex-dashboard/public ./public
-COPY --chown=node:node --from=builder /repo/packages/cortex-dashboard/messages ./messages
-COPY --chown=node:node --from=builder /repo/packages/cortex-dashboard/migrations ./migrations
-COPY --chown=node:node --from=builder /repo/packages/cortex-dashboard/scripts ./scripts
-COPY --chown=node:node --from=builder /repo/packages/cortex-dashboard/docker-entrypoint.sh ./docker-entrypoint.sh
-COPY --chown=node:node --from=builder /repo/packages/cortex-dashboard/server.js ./server.js
-COPY --chown=node:node --from=builder /repo/packages/cortex-dashboard/next.config.ts ./next.config.ts
+COPY --chown=node:node --from=builder /repo/packages/dashboard/package.json ./package.json
+COPY --chown=node:node --from=builder /repo/packages/dashboard/node_modules ./node_modules
+COPY --chown=node:node --from=builder /repo/packages/dashboard/.next ./.next
+COPY --chown=node:node --from=builder /repo/packages/dashboard/public ./public
+COPY --chown=node:node --from=builder /repo/packages/dashboard/messages ./messages
+COPY --chown=node:node --from=builder /repo/packages/dashboard/migrations ./migrations
+COPY --chown=node:node --from=builder /repo/packages/dashboard/scripts ./scripts
+COPY --chown=node:node --from=builder /repo/packages/dashboard/docker-entrypoint.sh ./docker-entrypoint.sh
+COPY --chown=node:node --from=builder /repo/packages/dashboard/server.js ./server.js
+COPY --chown=node:node --from=builder /repo/packages/dashboard/next.config.ts ./next.config.ts
 
 RUN printf '%s\n' "module.exports = require('./lib/index.js');" > /app/node_modules/pg/index.js \
  && chmod +x docker-entrypoint.sh \

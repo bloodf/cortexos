@@ -18,6 +18,6 @@ incremental migrations).
 Run locally:
 
 ```bash
-pnpm --dir packages/cortex-dashboard test
-pnpm --dir packages/cortex-dashboard run build:next
+pnpm --dir packages/dashboard test
+pnpm --dir packages/dashboard run build:next
 ```

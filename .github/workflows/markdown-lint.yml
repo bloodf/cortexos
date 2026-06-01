@@ -26,7 +26,7 @@ jobs:
             !node_modules
             !**/node_modules/**
             !**/CHANGELOG.md
-            !packages/cortex-dashboard/.next/**
+            !packages/dashboard/.next/**
             !templates/.pi/**
             !REVIEW.md
             !.tmp-validation/**

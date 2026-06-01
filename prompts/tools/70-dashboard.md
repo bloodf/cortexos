@@ -18,13 +18,13 @@ Required surfaces:
 
 - Unit: `cortex-dashboard.service` (template `templates/systemd/cortex-dashboard.service`,
   rendered by `scripts/ops/cortex-render-units.sh`).
-- Runs as `root`, `WorkingDirectory=/opt/cortexos/packages/cortex-dashboard`.
+- Runs as `root`, `WorkingDirectory=/opt/cortexos/packages/dashboard`.
 - `ExecStartPre` runs `node scripts/migrate.js` (fatal) then `node scripts/dynamic-seed.js`
   (best-effort), mirroring the retired `docker-entrypoint.sh`.
 - `ExecStart=/usr/bin/node server.js`, `EnvironmentFile=/opt/cortexos/.secrets/dashboard.env`,
   `HOSTNAME=0.0.0.0`, `PORT=3080`.
 - Built artifacts the unit runs: `server.js` + `.next` + `node_modules` under
-  `packages/cortex-dashboard/`.
+  `packages/dashboard/`.
 
 ## Prerequisites
 
@@ -38,7 +38,7 @@ The host must have (installed via `scripts/pkg.sh`, never raw `apt-get`):
 > `build-essential` and `libpam0g-dev` are installed, and that the operator has
 > pushed the repo to `/opt/cortexos` (via the laptop bootstrap
 > `git archive | ssh tar -x`). Do not proceed until the source tree exists at
-> `/opt/cortexos/packages/cortex-dashboard`.
+> `/opt/cortexos/packages/dashboard`.
 
 ## Build
 
@@ -59,7 +59,7 @@ The script:
 5. Generates the Turbopack external-module shims + the `pg` shim so
    `node server.js` resolves at runtime.
 
-Output: `packages/cortex-dashboard/server.js`, `.next/`, `node_modules/`.
+Output: `packages/dashboard/server.js`, `.next/`, `node_modules/`.
 
 ## Render and install the unit
 
@@ -92,6 +92,6 @@ OS account must authenticate but see no admin actions.
 ## Validation (local / CI)
 
 ```bash
-pnpm --dir packages/cortex-dashboard test
-pnpm --dir packages/cortex-dashboard run build:next
+pnpm --dir packages/dashboard test
+pnpm --dir packages/dashboard run build:next
 ```

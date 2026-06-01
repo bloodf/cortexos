@@ -4,7 +4,7 @@
 Port sys-pilot's design, UX, components, and NEW features INTO the existing Next.js 16 production dashboard. Keep all real backend, PAM auth, socket.io, audited root-helper, migrations, and 30 /api/* routes.
 
 ## State Baseline
-- Production dashboard at `/opt/cortexos/packages/cortex-dashboard`
+- Production dashboard at `/opt/cortexos/packages/dashboard`
 - Framework: Next.js 16 (App Router, Turbopack), Tailwind v4, shadcn/ui + base-ui
 - Tests: Vitest + Testing Library (89 test files)
 - Uncommitted Session-2 Incus feature exists (must preserve)

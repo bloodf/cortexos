@@ -14,7 +14,7 @@ CortexOS is a self-hosted AI infrastructure system. This repository contains:
 **Paths:**
 - Host root: `/opt/cortexos`
 - Secrets: `/opt/cortexos/.secrets/`
-- Dashboard: `packages/cortex-dashboard/`
+- Dashboard: `packages/dashboard/`
 
 ## Non-Negotiable Rules
 
@@ -58,7 +58,7 @@ ss -tlnp | grep -E ":(3000|5432|3306|6379)"
 
 ### Development
 ```bash
-cd /opt/cortexos/packages/cortex-dashboard
+cd /opt/cortexos/packages/dashboard
 pnpm install
 pnpm run build
 ```

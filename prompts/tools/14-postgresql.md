@@ -88,8 +88,8 @@ sudo chmod 600 /opt/cortexos/.secrets/dashboard.env
 Apply schema:
 
 ```bash
-psql -U dashboard -h 127.0.0.1 cortex_dashboard < packages/cortex-dashboard/migrations/001_schema.sql
-psql -U dashboard -h 127.0.0.1 cortex_dashboard < packages/cortex-dashboard/migrations/002_seed.sql
+psql -U dashboard -h 127.0.0.1 cortex_dashboard < packages/dashboard/migrations/001_schema.sql
+psql -U dashboard -h 127.0.0.1 cortex_dashboard < packages/dashboard/migrations/002_seed.sql
 ```
 
 ## Verify

@@ -28,7 +28,7 @@ jobs:
       matrix:
         artifact:
           - name: dashboard
-            path: packages/cortex-dashboard
+            path: packages/dashboard
             required: true
 
     steps:

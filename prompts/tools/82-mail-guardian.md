@@ -159,7 +159,7 @@ for migration in 020_mail_guardian 021_mail_guardian_actions \
     -U "${DB_USER:-dashboard}" \
     -d "${DB_NAME:-cortex_dashboard}" \
     -v ON_ERROR_STOP=1 \
-    -f /opt/cortexos/packages/cortex-dashboard/migrations/${migration}.sql \
+    -f /opt/cortexos/packages/dashboard/migrations/${migration}.sql \
     && echo "Applied ${migration}" || { echo "FAILED ${migration}"; exit 1; }
 done
 ```
@@ -249,7 +249,7 @@ for migration in 023_action_log_mail_guardian_target 022_mail_guardian_widgets \
     -U "${DB_USER:-dashboard}" \
     -d "${DB_NAME:-cortex_dashboard}" \
     -v ON_ERROR_STOP=1 \
-    -f /opt/cortexos/packages/cortex-dashboard/migrations/${migration}.rollback.sql \
+    -f /opt/cortexos/packages/dashboard/migrations/${migration}.rollback.sql \
     && echo "Rolled back ${migration}"
 done
 ```

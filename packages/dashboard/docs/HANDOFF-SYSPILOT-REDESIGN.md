@@ -2,7 +2,7 @@
 
 > Paste this whole file to the next engineer/agent. It is a self-contained brief to bring the full
 > new design + new features from the Lovable project `https://github.com/bloodf/sys-pilot` into the
-> production dashboard at `/opt/cortexos/packages/cortex-dashboard`, end-to-end. Everything below was
+> production dashboard at `/opt/cortexos/packages/dashboard`, end-to-end. Everything below was
 > audited directly from the cloned repo — it reflects what sys-pilot actually built, not guesses.
 
 ---
@@ -257,7 +257,7 @@ Manual E2E each page in all 3 locales, app-up and a service forced-down.
 - Migrations: idempotent `UPDATE/INSERT ... WHERE/ON CONFLICT`; runner (`src/lib/db/migrate.ts`)
   records by filename and skips applied; rollbacks in `migrations/rollback/` (not auto-scanned); do NOT
   self-record inside a migration the runner will run (UNIQUE clash).
-- Gate = `cd packages/cortex-dashboard && pnpm test` (0 real failures) + clean `next build`.
+- Gate = `cd packages/dashboard && pnpm test` (0 real failures) + clean `next build`.
 
 ## 8. Environment gotchas
 

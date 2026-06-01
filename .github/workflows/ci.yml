@@ -24,7 +24,7 @@ jobs:
         run: pnpm install --frozen-lockfile
       - run: pnpm --filter @cortexos/dashboard run lint
       - run: pnpm exec tsc --noEmit
-        working-directory: packages/cortex-dashboard
+        working-directory: packages/dashboard
       - run: pnpm --filter @cortexos/dashboard test -- --reporter=verbose
       - run: pnpm --filter @cortexos/dashboard run build
         env:
@@ -54,4 +54,4 @@ jobs:
       - uses: actions/checkout@v4
       # Validates the local-db helper compose (postgres for local dev only).
       # The dashboard itself runs as the native cortex-dashboard.service unit.
-      - run: DASHBOARD_DB_PASSWORD=x docker compose -f packages/cortex-dashboard/docker-compose.yml config >/dev/null
+      - run: DASHBOARD_DB_PASSWORD=x docker compose -f packages/dashboard/docker-compose.yml config >/dev/null
