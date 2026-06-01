@@ -192,16 +192,16 @@ function createTerminalStream(sessionId: string) {
 				}
 			};
 			send = (data: string) => {
-				enqueue(\`data: \${JSON.stringify({ output: data })}\n\n\`);
+				enqueue(`data: ${JSON.stringify({ output: data })}\n\n`);
 			};
 
 			const session = sessions.get(sessionId);
 			if (session) {
 				session.buffer.forEach(send);
 				session.listeners.add(send);
-				heartbeat = setInterval(() => enqueue(\`: keepalive\n\n\`), 15000);
+				heartbeat = setInterval(() => enqueue(`: keepalive\n\n`), 15000);
 			} else {
-				enqueue(\`data: \${JSON.stringify({ error: "Session not found" })}\n\n\`);
+				enqueue(`data: ${JSON.stringify({ error: "Session not found" })}\n\n`);
 				controller.close();
 			}
 		},

@@ -2,83 +2,122 @@
 
 ## Quick Navigation
 
-### Getting Started
+### 📚 For Everyone (Start Here!)
 | Doc | Description |
 |-----|-------------|
-| [INSTALL.md](INSTALL.md) | Fresh Ubuntu server setup from scratch |
-| [CONFIG.md](CONFIG.md) | Dotfiles: zsh, tmux, Claude Code, Qwen Code |
-| [SERVICES.md](SERVICES.md) | All running services with ports and configs |
+| [GUIDE.md](GUIDE.md) | Complete overview of CortexOS - what it is and how it works |
+| [GETTING-STARTED.md](GETTING-STARTED.md) | Quick intro for new users |
+| [TMUX-GUIDE.md](TMUX-GUIDE.md) | How to use tmux (terminal sessions) |
+| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Problems and solutions |
 
-### Core Documentation
+### 🛠️ For Operators
 | Doc | Description |
 |-----|-------------|
-| [../README.md](../README.md) | Project overview |
-| [../CLAUDE.md](../CLAUDE.md) | AI agent instructions |
-| [../SETUP.md](../SETUP.md) | Initial setup and bootstrap |
+| [INSTALL.md](INSTALL.md) | Set up a new CortexOS server |
+| [CONFIG.md](CONFIG.md) | Configure your development environment |
 
-### Infrastructure
+### 📊 For Engineers
 | Doc | Description |
 |-----|-------------|
-| [SECURITY.md](SECURITY.md) | Security model and practices |
-| [SECRETS.md](SECRETS.md) | SOPS encryption for secrets |
-| [BACKUP.md](BACKUP.md) | Backup strategy |
+| [SERVICES.md](SERVICES.md) | All services, ports, and configurations |
+| [APPS.md](APPS.md) | Application management |
 
-### Reference
-| Doc | Description |
-|-----|-------------|
-| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Common issues and solutions |
+---
 
-## Installation Flow
+## Documentation Map
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    FRESH UBUNTU SERVER                       │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│  docs/INSTALL.md                                           │
-│  - System setup                                            │
-│  - Docker + databases                                      │
-│  - 9Router + Ollama                                        │
-│  - Monitoring stack                                         │
-│  - Caddy + Tailscale                                       │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│  docs/CONFIG.md                                           │
-│  - zsh + Oh-My-Zsh                                        │
-│  - tmux + plugins                                          │
-│  - Claude Code + OMC                                       │
-│  - Qwen Code + 9Router                                     │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│  docs/SERVICES.md                                         │
-│  - Verify all services running                             │
-│  - Check ports                                             │
-│  - Health checks                                           │
-└─────────────────────────────────────────────────────────────┘
+NEW USER
+    │
+    ├─► GUIDE.md ────────────► What is CortexOS?
+    │
+    ├─► GETTING-STARTED.md ──► First steps
+    │
+    └─► TMUX-GUIDE.md ──────► Terminal sessions
+
+OPERATOR
+    │
+    ├─► INSTALL.md ──────────► Server setup
+    │
+    └─► CONFIG.md ───────────► Dotfiles & tools
+
+TROUBLESHOOTING
+    │
+    └─► TROUBLESHOOTING.md ──► Common problems
 ```
 
-## Automated Install
+---
+
+## Quick Commands
+
+### Check Everything is Working
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/cortexos/cortexos/main/docs/config-install.sh | bash
-```
+# Docker containers
+docker ps
 
-## Quick Verification
+# System services
+systemctl status 'cortex-*'
 
-```bash
-# Check services
-docker ps | grep cortex
-systemctl status caddy tailscaled
-
-# Check AI gateway
+# AI gateway
 curl -s http://127.0.0.1:11434/v1/models | jq '.data | length'
+```
 
-# Check ports
-ss -tlnp | grep -E ":(3000|5432|3306|6379|9090|3100)"
+### Common Tasks
+
+```bash
+# Restart a service
+sudo systemctl restart cortex-dashboard
+
+# View logs
+journalctl -u cortex-dashboard -n 50
+
+# Check disk/memory
+df -h && free -h
+```
+
+---
+
+## Need Help?
+
+1. **New to CortexOS?** → Start with [GUIDE.md](GUIDE.md)
+2. **Can't connect?** → Check [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+3. **Need to set up?** → Follow [INSTALL.md](INSTALL.md)
+4. **Configuring tools?** → See [CONFIG.md](CONFIG.md)
+
+---
+
+## Architecture Overview
+
+```
+┌─────────────────────────────────────────────────┐
+│                   YOU                            │
+│         (Browser or Terminal)                    │
+└────────────────┬────────────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────────────┐
+│              COREDNS / CADDY                     │
+│           (Reverse Proxy + TLS)                 │
+└────────────────┬────────────────────────────────┘
+                 │
+       ┌─────────┼─────────┐
+       │         │         │
+       ▼         ▼         ▼
+┌───────────┐ ┌──────┐ ┌──────────┐
+│ Dashboard │ │  DBs │ │  AI Stack │
+│ (Next.js)│ │      │ │          │
+└───────────┘ └──────┘ └──────────┘
+                          │
+                          ▼
+                   ┌──────────┐
+                   │  9Router │
+                   │(AI Gate) │
+                   └────┬─────┘
+                        │
+        ┌───────────────┼───────────────┐
+        ▼               ▼               ▼
+    ┌────────┐     ┌────────┐     ┌────────┐
+    │Claude  │     │  GPT   │     │ Gemini  │
+    └────────┘     └────────┘     └────────┘
 ```

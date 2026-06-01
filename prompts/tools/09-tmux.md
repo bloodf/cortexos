@@ -1,6 +1,38 @@
-# TMUX Config for CortexOS Incus Base Image
-# Clean, minimal - works for SSH session management
+# tmux Setup Prompt
 
+## Purpose
+
+Install and configure tmux with essential plugins for session management.
+
+## Ask User
+
+**Do you want to install tmux with plugins?** (yes/no)
+
+## Prerequisites
+
+- Ubuntu 24.04+ or Debian
+- `git` installed
+
+## Installation
+
+### 1. Install tmux
+
+```bash
+sudo apt update
+sudo apt install -y tmux
+```
+
+### 2. Install TPM (tmux Plugin Manager)
+
+```bash
+git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+```
+
+### 3. Create tmux configuration
+
+```bash
+cat > ~/.tmux.conf << 'EOF'
+# Terminal
 set -g default-terminal "tmux-256color"
 set -ag terminal-overrides ",xterm-256color:RGB"
 
@@ -32,6 +64,8 @@ bind - split-window -v -c "#{pane_current_path}"
 bind c new-window -c "#{pane_current_path}"
 bind x kill-pane
 bind X kill-session
+bind N new-session
+bind '$' command-prompt -p "Rename session: " "rename-session '%%'"
 
 # Status bar
 set -g status-position bottom
@@ -70,3 +104,52 @@ set -g @tmux_tab_right_separator " "
 
 # TPM
 run "~/.tmux/plugins/tpm/tpm"
+EOF
+```
+
+### 4. Install fonts for tmux-powerline
+
+```bash
+# Install Nerd Fonts (recommended)
+curl -fsSL https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FiraCode.zip -o /tmp/fira.zip
+sudo unzip -o /tmp/fira.zip -d /usr/share/fonts/
+sudo fc-cache -f -v
+```
+
+## Install Plugins
+
+After starting tmux for the first time, press:
+
+```
+prefix + I   (capital I)
+```
+
+This installs all plugins via TPM.
+
+## Verify
+
+```bash
+tmux new -s test
+# You should see status bar with session info
+# Press prefix + d to detach
+tmux ls  # Should show 'test' session
+```
+
+## Key Bindings Reference
+
+| Binding | Action |
+|---------|--------|
+| `prefix + r` | Reload config |
+| `prefix + |` | Split horizontal |
+| `prefix + -` | Split vertical |
+| `prefix + c` | New window |
+| `prefix + N` | New session |
+| `prefix + $` | Rename session |
+| `prefix + x` | Kill pane |
+| `prefix + S` | Save session |
+| `prefix + R` | Restore session |
+| `prefix + d` | Detach (leave running) |
+
+## Next
+
+→ `prompts/tools/10-os-hardening.md`

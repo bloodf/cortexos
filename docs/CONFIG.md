@@ -152,6 +152,8 @@ set -g @plugin "tmux-plugins/tmux-resurrect"
 set -g @plugin "tmux-plugins/tmux-continuum"
 set -g @plugin "tmux-plugins/tmux-prefix-highlight"
 set -g @plugin "b0o/tmux-autoreload"
+set -g @plugin "erikw/tmux-powerline"
+set -g @plugin "leohenon/tmux-tab"
 
 # Plugin options
 set -g @continuum-restore "on"
@@ -163,6 +165,13 @@ set -g @prefix_highlight_show_copy_mode "on"
 # Session save/restore
 set -g @resurrect-save 'S'
 set -g @resurrect-restore 'R'
+
+# tmux-powerline (status bar with segments)
+set -g @tmux-powerline-theme "powerline.default"
+
+# tmux-tab (tab list)
+set -g @tmux_tab_left_separator " "
+set -g @tmux_tab_right_separator " "
 
 # TPM (must be last)
 run "~/.tmux/plugins/tpm/tpm"
