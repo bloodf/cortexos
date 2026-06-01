@@ -40,6 +40,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# build artifacts / wrong package manager (esbuild emits to .next/standalone)
+/server.js
+package-lock.json
+
 # AI coding tools
 .claude/
 .omc/
