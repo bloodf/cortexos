@@ -1,21 +1,57 @@
-# CortexOS Ubuntu Setup Guide
+# Installing CortexOS - Complete Guide
 
-This guide sets up a complete CortexOS server from scratch on Ubuntu 24.04+.
+> **This guide walks you through setting up CortexOS from scratch on a new Ubuntu server.**
+
+---
 
 ## Prerequisites
 
-- Ubuntu 24.04 LTS or newer
-- Root or sudo access
-- SSH access from operator laptop
+### What You Need
 
-## Step 1: Initial System Setup
+| Item | Requirement |
+|------|------------|
+| Server | Ubuntu 24.04 LTS (or newer) |
+| Resources | 4GB RAM, 50GB disk |
+| Access | SSH with sudo privileges |
+| Domain | (Optional) Domain name for HTTPS |
 
-### Update System
+### Before You Start
+
+1. ✅ SSH key copied to server
+2. ✅ Domain pointing to server IP (if using HTTPS)
+3. ✅ 30-60 minutes of time
+
+---
+
+## Step 1: Connect to Your Server
+
+```bash
+ssh cortexos@your-server-ip
+```
+
+If you don't have a user yet:
+
+```bash
+# Create user
+sudo adduser cortexos
+sudo usermod -aG sudo cortexos
+
+# Copy your SSH key
+ssh-copy-id cortexos@your-server-ip
+```
+
+---
+
+## Step 2: Update System
+
 ```bash
 sudo apt update && sudo apt upgrade -y
 ```
 
-### Install Core Dependencies
+---
+
+## Step 3: Install Core Dependencies
+
 ```bash
 sudo apt install -y \
     curl \
@@ -29,87 +65,70 @@ sudo apt install -y \
     lsb-release \
     software-properties-common \
     apt-transport-https \
-    ca-certificates \
-    openssl
+    openssl \
+    build-essential
 ```
 
-### Create CortexOS User
-```bash
-sudo adduser cortexos
-sudo usermod -aG sudo,docker,systemd-journal cortexos
-```
+---
 
-## Step 2: Docker & Docker Compose
+## Step 4: Install Docker
 
-### Install Docker
+Docker runs all the services (databases, monitoring, etc.).
+
+### Option A: Quick Install (Recommended)
+
 ```bash
 curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker cortexos
-sudo systemctl enable docker
+sudo usermod -aG docker $USER
 ```
 
-### Install Docker Compose
+### Option B: Manual Install
+
 ```bash
-sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-sudo chmod +x /usr/local/bin/docker-compose
+# Add Docker repo
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list
+
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 ```
 
-### Verify
+### Verify Docker
+
 ```bash
 docker --version
-docker-compose --version
+docker compose version
+docker run hello-world
 ```
 
-## Step 3: Install AI Gateway (9Router)
+---
 
-### Pull & Start 9Router
-```bash
-docker run -d \
-  --name 9router \
-  --restart unless-stopped \
-  -p 127.0.0.1:11434:11434 \
-  -v 9router-data:/data \
-  ghcr.io/openrouter/9router:latest
-```
+## Step 5: Install Docker Compose Stack
 
-### Verify
-```bash
-curl -s http://127.0.0.1:11434/v1/models | jq '.data[].id'
-```
+### Create project directory
 
-## Step 4: Install Ollama
-
-### Install
-```bash
-curl -fsSL https://ollama.com/install.sh | sh
-```
-
-### Configure Service
-```bash
-sudo systemctl enable ollama
-sudo systemctl start ollama
-```
-
-### Pull Models
-```bash
-ollama pull llama3.2
-ollama pull codellama
-```
-
-## Step 5: Database Stack (Docker)
-
-### Create Docker Compose File
 ```bash
 sudo mkdir -p /opt/cortexos
-sudo chown cortexos:cortexos /opt/cortexos
+sudo chown $USER:$USER /opt/cortexos
 cd /opt/cortexos
 ```
 
-Create `docker-compose.yml`:
+### Create docker-compose.yml
+
+```bash
+nano docker-compose.yml
+```
+
+Paste this configuration:
+
 ```yaml
 version: '3.8'
 
 services:
+  # =========================================
+  # DATABASES
+  # =========================================
   postgres:
     image: postgres:16-alpine
     container_name: cortex-postgres
@@ -117,7 +136,7 @@ services:
     environment:
       POSTGRES_DB: cortex
       POSTGRES_USER: cortex
-      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -133,10 +152,10 @@ services:
     container_name: cortex-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: cortex
       MYSQL_USER: cortex
-      MYSQL_PASSWORD_FILE: /run/secrets/mysql_password
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - mysql_data:/var/lib/mysql
     ports:
@@ -153,7 +172,7 @@ services:
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: cortex
-      MONGO_INITDB_ROOT_PASSWORD_FILE: /run/secrets/mongo_password
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
     volumes:
       - mongodb_data:/data/db
     ports:
@@ -174,30 +193,13 @@ services:
       timeout: 5s
       retries: 5
 
-volumes:
-  postgres_data:
-  mysql_data:
-  mongodb_data:
-  redis_data:
-```
-
-### Start Databases
-```bash
-docker compose up -d
-```
-
-## Step 6: Monitoring Stack
-
-Add to `docker-compose.yml`:
-
-```yaml
+  # =========================================
+  # MONITORING
+  # =========================================
   prometheus:
     image: prom/prometheus:latest
     container_name: cortex-prometheus
     restart: unless-stopped
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
@@ -224,6 +226,9 @@ Add to `docker-compose.yml`:
     ports:
       - "127.0.0.1:3100:3100"
 
+  # =========================================
+  # EXPORTERS
+  # =========================================
   node-exporter:
     image: prom/node-exporter:latest
     container_name: cortex-node-exporter
@@ -236,8 +241,7 @@ Add to `docker-compose.yml`:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
-    ports:
-      - "127.0.0.1:9100:9100"
+    network_mode: host
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
@@ -250,38 +254,144 @@ Add to `docker-compose.yml`:
       - /var/lib/docker/:/var/lib/docker:ro
     ports:
       - "127.0.0.1:8081:8080"
+
+  # =========================================
+  # ADMIN TOOLS
+  # =========================================
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: cortex-phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mysql
+      PMA_USER: cortex
+      PMA_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "127.0.0.1:8082:80"
+
+  mongo-express:
+    image: mongo-express:latest
+    container_name: cortex-mongo-express
+    restart: unless-stopped
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongodb
+      ME_CONFIG_MONGODB_ADMIN: true
+    ports:
+      - "127.0.0.1:8083:8081"
+
+volumes:
+  postgres_data:
+  mysql_data:
+  mongodb_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+  loki_data:
 ```
 
-## Step 7: Caddy Reverse Proxy
+### Create environment file
 
-### Install
+```bash
+nano .env
+```
+
+Add your passwords:
+
+```env
+POSTGRES_PASSWORD=your-secure-postgres-password
+MYSQL_ROOT_PASSWORD=your-secure-mysql-root-password
+MYSQL_PASSWORD=your-secure-mysql-password
+MONGO_PASSWORD=your-secure-mongo-password
+GRAFANA_PASSWORD=your-secure-grafana-password
+```
+
+### Start the stack
+
+```bash
+docker compose up -d
+```
+
+### Verify databases
+
+```bash
+docker ps  # Should show all containers running
+```
+
+---
+
+## Step 6: Install 9Router (AI Gateway)
+
+9Router is the AI gateway that routes requests to different AI providers.
+
+```bash
+docker run -d \
+  --name 9router \
+  --restart unless-stopped \
+  -p 127.0.0.1:11434:11434 \
+  -v 9router-data:/data \
+  ghcr.io/openrouter/9router:latest
+```
+
+### Verify
+
+```bash
+curl -s http://127.0.0.1:11434/v1/models | jq '.data[].id'
+```
+
+---
+
+## Step 7: Install Ollama (Local AI)
+
+Ollama runs open-source AI models locally.
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
+### Enable service
+
+```bash
+sudo systemctl enable ollama
+sudo systemctl start ollama
+```
+
+### Pull models (optional)
+
+```bash
+ollama pull llama3.2
+ollama pull nomic-embed-text
+```
+
+---
+
+## Step 8: Install Caddy (Reverse Proxy)
+
+Caddy handles HTTPS automatically.
+
 ```bash
 sudo apt install -y caddy
 ```
 
 ### Configure
+
 ```bash
 sudo nano /etc/caddy/Caddyfile
 ```
 
-Example:
+Example configuration:
+
 ```caddy
-# Dashboard
-dashboard.yourdomain.com {
+# Main domain - Dashboard
+yourdomain.com {
     reverse_proxy localhost:3000
 }
 
-# Grafana
+# Monitoring - Grafana
 grafana.yourdomain.com {
     reverse_proxy localhost:3001
 }
 
-# Prometheus
-prometheus.yourdomain.com {
-    reverse_proxy localhost:9090
-}
-
-# PHPMyAdmin
+# Database Admin
 phpmyadmin.yourdomain.com {
     reverse_proxy localhost:8082
 }
@@ -291,95 +401,107 @@ phpmyadmin.yourdomain.com {
 sudo systemctl reload caddy
 ```
 
-## Step 8: Tailscale
+---
 
-### Install
+## Step 9: Install Tailscale (VPN)
+
+Tailscale creates a secure network between your devices.
+
 ```bash
 curl -fsSL https://tailscale.com/install.sh | sh
 ```
 
 ### Connect
+
 ```bash
-sudo tailscale up --accept-routes
+sudo tailscale up
 ```
 
-## Step 9: Dashboard (Next.js)
+You'll get a URL to authenticate. After connecting:
 
-### Install Node.js
+```bash
+tailscale status  # Shows your tailnet IP
+```
+
+---
+
+## Step 10: Install Node.js (for Dashboard)
+
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_22.x | sudo bash -
 sudo apt install -y nodejs
 npm install -g pnpm
 ```
 
-### Clone & Setup
-```bash
-cd /opt/cortexos
-pnpm install
-pnpm build
-```
+---
 
-### Run as Service
-```bash
-sudo nano /etc/systemd/system/cortex-dashboard.service
-```
+## Step 11: Configure Your Tools
 
-```ini
-[Unit]
-Description=CortexOS Dashboard
-After=network.target
+See [CONFIG.md](CONFIG.md) for:
+- Shell setup (zsh, tmux)
+- AI CLI tools (Claude Code, Qwen Code)
+- SSH and Git configuration
 
-[Service]
-Type=simple
-User=cortexos
-WorkingDirectory=/opt/cortexos
-ExecStart=/usr/bin/pnpm start
-Restart=always
+---
 
-[Install]
-WantedBy=multi-user.target
-```
+## Step 12: Verify Everything
+
+Run this to check all services:
 
 ```bash
-sudo systemctl enable cortex-dashboard
-sudo systemctl start cortex-dashboard
+#!/bin/bash
+echo "=== Docker Containers ==="
+docker ps --format "table {{.Names}}\t{{.Status}}"
+
+echo ""
+echo "=== System Services ==="
+systemctl is-active caddy tailscaled ollama
+
+echo ""
+echo "=== AI Gateway ==="
+curl -s http://127.0.0.1:11434/v1/models | jq '.data | length' | xargs -I{} echo "Models available: {}"
+
+echo ""
+echo "=== Database Connections ==="
+docker exec cortex-postgres pg_isready && echo "PostgreSQL: OK"
+docker exec cortex-mysql mysqladmin ping -h localhost && echo "MySQL: OK"
+docker exec cortex-mongodb mongosh --eval "db.adminCommand('ping')" && echo "MongoDB: OK"
+docker exec cortex-redis redis-cli ping && echo "Redis: OK"
 ```
 
-## Step 10: CLI Tools (Claude Code, Qwen Code)
+---
 
-### Claude Code
+## Troubleshooting
+
+### Docker won't start
+
 ```bash
-npm install -g @anthropic-ai/claude-code
+sudo systemctl enable docker
+sudo systemctl start docker
+sudo docker run hello-world
 ```
 
-### Qwen Code
+### Port already in use
+
 ```bash
-curl -fsSL https://qwen.ai/install.sh | sh
+sudo ss -tlnp | grep :PORT
+sudo kill PROCESS_ID
 ```
 
-## Verification
+### 9Router not responding
 
-### Check All Services
 ```bash
-# Docker
-docker ps | grep cortex
-
-# Systemd
-systemctl status caddy tailscaled cortex-dashboard ollama
-
-# Ports
-ss -tlnp | grep -E ":(3000|5432|3306|6379|9090|3100)"
+docker logs 9router
+docker restart 9router
 ```
 
-### Test AI Gateway
-```bash
-curl -s http://127.0.0.1:11434/v1/models | jq '.data | length'
-```
+See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for more solutions.
+
+---
 
 ## Next Steps
 
-1. Configure secrets in `/opt/cortexos/.secrets/`
-2. Set up SOPS encryption
-3. Configure backups
-4. Review `docs/CONFIG.md` for dotfiles
-5. See `docs/SERVICES.md` for service details
+1. 📖 Read [GUIDE.md](GUIDE.md) - Understand what you built
+2. 🔧 Set up your tools in [CONFIG.md](CONFIG.md)
+3. 🤖 Configure AI in [AI-SETUP.md](AI-SETUP.md)
+4. 📊 Access monitoring dashboards
