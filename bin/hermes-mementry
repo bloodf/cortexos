@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-set -euo pipefail
-export HERMES_PROFILE="mementry"
-export HERMES_HOME="/opt/cortexos/hermes/profiles/mementry"
-exec "${HERMES_COMMAND:-hermes}" "$@"

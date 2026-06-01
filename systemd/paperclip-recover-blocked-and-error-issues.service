@@ -1,8 +1,0 @@
-[Unit]
-Description=Paperclip blocked/error issue recovery
-After=paperclip.service
-Wants=paperclip.service
-
-[Service]
-Type=oneshot
-ExecStart=/usr/bin/flock -n /run/paperclip-recover-blocked-and-error-issues.lock /usr/bin/node /opt/cortexos/scripts/paperclip-recover-blocked-and-error-issues.mjs --apply

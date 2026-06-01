@@ -1,9 +1,0 @@
-# session	scope	owner	purpose	restore_policy	notes
-cortex-host	host	cortexos	Host control plane, protected Hermes, monitoring, rebuild operations	resurrect-continuum	No project development here after migration
-cortex-rebuild	host	cortexos	Rebuild execution and validation logs	named-snapshots	Explicit snapshots before each destructive phase
-hermes-cieucpb	host	hermes	Protected Hermes profile observation only	resurrect-continuum	Preserve identity and process state
-hermes-netbook	host	hermes	Protected Hermes profile observation only	resurrect-continuum	Preserve identity and process state
-hermes-cortex	host	hermes	Protected Hermes profile observation only	resurrect-continuum	Preserve identity and process state
-mementry	project-instance	cortexos	Project development and agent harness	resurrect-continuum	Direct Tailscale SSH into instance
-celebrar-me	project-instance	cortexos	Project development and agent harness	resurrect-continuum	Direct Tailscale SSH into instance
-3guns	project-instance	cortexos	Project development and agent harness	resurrect-continuum	Direct Tailscale SSH into instance

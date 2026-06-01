@@ -165,3 +165,28 @@ stacks/cortex-sandbox-runner/app/node_modules/
 # ============================================
 *.dump
 backups/
+
+# ============================================
+# Runtime / Generated / Non-essential
+# ============================================
+logs/
+recovery/
+systemd/
+bin/
+data/
+manifests/
+media/
+messages/
+migrations/
+schemas/
+src/
+stacks/
+templates/
+scripts/
+e2e/
+public/
+.omc/
+.cache/
+*.log
+*.tgz
+*.tar.gz

@@ -1,4 +1,0 @@
-[2026-05-30T00:00:39Z] WARN: container not running: monitoring-grafana-1
-[2026-05-30T00:06:08Z] Pruning backups in /mnt/hdd/backups older than 7d, keeping newest 14 encrypted snapshots
-[2026-05-30T00:07:20Z] WARN: backup completed with missing optional sources
-[2026-05-30T00:07:20Z] Backup complete: /mnt/hdd/backups/2026-05-30_0000.tar.gz.age

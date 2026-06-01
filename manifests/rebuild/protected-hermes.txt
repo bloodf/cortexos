@@ -1,6 +1,0 @@
-# Protected host-resident Hermes profiles.
-# Downtime is allowed during rebuild, but identity/data must be preserved.
-cieucpb
-netbook
-cortex
-

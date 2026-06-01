@@ -1,8 +1,0 @@
-[Unit]
-Description=CortexOS encrypted full backup
-Wants=docker.service
-After=docker.service
-
-[Service]
-Type=oneshot
-ExecStart=/opt/cortexos/scripts/ops/cortex-backup.sh

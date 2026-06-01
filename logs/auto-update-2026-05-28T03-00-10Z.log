@@ -1,206 +1,0 @@
-[2026-05-28T03:00:12Z] == apt ==
-Hit:1 https://cli.github.com/packages stable InRelease
-Hit:2 https://download.docker.com/linux/ubuntu resolute InRelease
-Get:3 https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version InRelease [14.8 kB]
-Hit:4 https://apt.postgresql.org/pub/repos/apt resolute-pgdg InRelease
-Hit:5 https://deb.nodesource.com/node_24.x nodistro InRelease
-Get:6 https://pkgs.tailscale.com/stable/ubuntu resolute InRelease
-Hit:7 http://security.ubuntu.com/ubuntu resolute-security InRelease
-Hit:8 http://archive.ubuntu.com/ubuntu resolute InRelease
-Hit:9 http://archive.ubuntu.com/ubuntu resolute-updates InRelease
-Hit:10 http://archive.ubuntu.com/ubuntu resolute-backports InRelease
-Hit:11 https://download.webmin.com/download/newkey/repository stable InRelease
-Fetched 21.4 kB in 2s (10.5 kB/s)
-Reading package lists...
-Reading package lists...
-Building dependency tree...
-Reading state information...
-Calculating upgrade...
-The following packages will be upgraded:
-  docker-buildx-plugin gh libgcrypt20
-3 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
-Need to get 14.4 MB/32.3 MB of archives.
-After this operation, 91.1 kB of additional disk space will be used.
-Get:1 https://cli.github.com/packages stable/main amd64 gh amd64 2.93.0 [14.4 MB]
-Fetched 14.4 MB in 0s (34.2 MB/s)
-(Reading database… (Reading database… 5%(Reading database… 10%(Reading database… 15%(Reading database… 20%(Reading database… 25%(Reading database… 30%(Reading database… 35%(Reading database… 40%(Reading database… 45%(Reading database… 50%(Reading database… 55%(Reading database… 60%(Reading database… 65%(Reading database… 70%(Reading database… 75%(Reading database… 80%(Reading database… 85%(Reading database… 90%(Reading database… 95%(Reading database… 100%(Reading database… 196513 files and directories currently installed.)
-Preparing to unpack …/libgcrypt20_1.12.0-2ubuntu0.1_amd64.deb…
-Unpacking libgcrypt20:amd64 (1.12.0-2ubuntu0.1) over (1.12.0-2)…
-Setting up libgcrypt20:amd64 (1.12.0-2ubuntu0.1)…
-(Reading database… (Reading database… 5%(Reading database… 10%(Reading database… 15%(Reading database… 20%(Reading database… 25%(Reading database… 30%(Reading database… 35%(Reading database… 40%(Reading database… 45%(Reading database… 50%(Reading database… 55%(Reading database… 60%(Reading database… 65%(Reading database… 70%(Reading database… 75%(Reading database… 80%(Reading database… 85%(Reading database… 90%(Reading database… 95%(Reading database… 100%(Reading database… 196513 files and directories currently installed.)
-Preparing to unpack …/docker-buildx-plugin_0.34.1-1~ubuntu.26.04~resolute_amd64.deb…
-Unpacking docker-buildx-plugin (0.34.1-1~ubuntu.26.04~resolute) over (0.34.0-1~ubuntu.26.04~resolute)…
-Preparing to unpack …/archives/gh_2.93.0_amd64.deb…
-Unpacking gh (2.93.0) over (2.92.0)…
-Setting up docker-buildx-plugin (0.34.1-1~ubuntu.26.04~resolute)…
-Setting up gh (2.93.0)…
-Processing triggers for man-db (2.13.1-1build1)…
-Processing triggers for libc-bin (2.43-2ubuntu2)…
-
-Running kernel seems to be up-to-date.
-
-The processor microcode seems to be up-to-date.
-
-Restarting services...
-
-Service restarts being deferred:
- systemctl restart NetworkManager.service
-
-No containers need to be restarted.
-
-No user sessions are running outdated binaries.
-
-No VM guests are running outdated hypervisor (qemu) binaries on this host.
-[2026-05-28T03:00:22Z] == brew ==
-[2026-05-28T03:00:22Z] == npm ==
-npm warn deprecated uv@1.4.0: Use NodeBuffer.isUtf8() instead, it is faster
-npm warn deprecated prebuild-install@7.1.3: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
-
-changed 82 packages in 8s
-
-24 packages are looking for funding
-  run `npm fund` for details
-[2026-05-28T03:00:31Z] == pip ==
-[2026-05-28T03:00:31Z] No pip venvs found
-[2026-05-28T03:00:31Z] == snap ==
-All snaps up to date.
-[2026-05-28T03:00:32Z] == docker ==
- Image cortex-dashboard:local Pulling 
- Image cortex-dashboard:local pull access denied for cortex-dashboard, repository does not exist or may require 'docker login' 
-time="2026-05-28T03:00:33Z" level=warning msg="WARNING: Some service image(s) must be built from source by running:\n    docker compose build cortex-dashboard"
-Error response from daemon: pull access denied for cortex-dashboard, repository does not exist or may require 'docker login'
- Container cortex-dashboard Running 
-[2026-05-28T03:00:33Z] Updated compose stack: /opt/cortexos/stacks/cortex-dashboard
- Image docker.io/clickhouse/clickhouse-server:24.12-alpine Pulling 
- Image docker.io/minio/minio:RELEASE.2025-01-20T14-49-07Z Pulling 
- Image docker.io/langfuse/langfuse-worker:3 Pulling 
- Image docker.io/langfuse/langfuse:3 Pulling 
- Image docker.io/langfuse/langfuse-worker:3 Pulled 
- Image docker.io/langfuse/langfuse:3 Pulled 
- Image docker.io/minio/minio:RELEASE.2025-01-20T14-49-07Z Pulled 
- Image docker.io/clickhouse/clickhouse-server:24.12-alpine Pulled 
- Container cortex-langfuse-minio Running 
- Container cortex-langfuse-clickhouse Running 
- Container cortex-langfuse-worker Running 
- Container cortex-langfuse-web Running 
- Container cortex-langfuse-minio Waiting 
- Container cortex-langfuse-clickhouse Waiting 
- Container cortex-langfuse-clickhouse Healthy 
- Container cortex-langfuse-minio Healthy 
- Container cortex-langfuse-clickhouse Waiting 
- Container cortex-langfuse-minio Waiting 
- Container cortex-langfuse-minio Healthy 
- Container cortex-langfuse-clickhouse Healthy 
-[2026-05-28T03:00:37Z] Updated compose stack: /opt/cortexos/stacks/cortex-langfuse
- Image cortex-sandbox-runner:local Pulling 
- Image cortex-sandbox-runner:local pull access denied for cortex-sandbox-runner, repository does not exist or may require 'docker login' 
-time="2026-05-28T03:00:38Z" level=warning msg="WARNING: Some service image(s) must be built from source by running:\n    docker compose build cortex-sandbox-runner"
-Error response from daemon: pull access denied for cortex-sandbox-runner, repository does not exist or may require 'docker login'
- Container cortex-sandbox-runner Running 
-[2026-05-28T03:00:38Z] Updated compose stack: /opt/cortexos/stacks/cortex-sandbox-runner
- Image louislam/dockge:1 Pulling 
- Image louislam/dockge:1 Pulled 
- Container cortex-dockhand Running 
-[2026-05-28T03:00:41Z] Updated compose stack: /opt/cortexos/stacks/dockhand
- Image floci/floci:latest Pulling 
- Image floci/floci:latest Pulled 
- Container cortex-floci Running 
-[2026-05-28T03:00:44Z] Updated compose stack: /opt/cortexos/stacks/floci
- Image ghcr.io/home-assistant/home-assistant:stable Pulling 
- Image ghcr.io/home-assistant/home-assistant:stable Pulled 
- Container cortex-home-assistant Running 
-[2026-05-28T03:00:46Z] Updated compose stack: /opt/cortexos/stacks/home-assistant
- api Skipped No image to be pulled
- deriver Skipped No image to be pulled
- Image pgvector/pgvector:pg15 Pulling 
- Image redis:8.2 Pulling 
- Image pgvector/pgvector:pg15 Pulled 
- Image redis:8.2 Pulled 
- Container honcho-redis Running 
- Container honcho-database Running 
- Container honcho-api Running 
- Container honcho-deriver Running 
- Container honcho-redis Waiting 
- Container honcho-database Waiting 
- Container honcho-database Healthy 
- Container honcho-redis Healthy 
- Container honcho-redis Waiting 
- Container honcho-api Waiting 
- Container honcho-database Waiting 
- Container honcho-redis Healthy 
- Container honcho-database Healthy 
- Container honcho-api Healthy 
-[2026-05-28T03:00:50Z] Updated compose stack: /opt/cortexos/stacks/honcho
- Image jellyfin/jellyfin:latest Pulling 
- Image jellyfin/jellyfin:latest Pulled 
- Container cortex-jellyfin Running 
-[2026-05-28T03:00:52Z] Updated compose stack: /opt/cortexos/stacks/jellyfin
- Image mongo-express:latest Pulling 
- Image mongo:7 Pulling 
- Image mongo-express:latest Pulled 
- Image mongo:7 Pulled 
- Container cortex-mongodb Running 
- Container cortex-mongo-express Running 
- Container cortex-mongodb Waiting 
- Container cortex-mongodb Healthy 
-[2026-05-28T03:00:55Z] Updated compose stack: /opt/cortexos/stacks/mongodb
- Image percona/mongodb_exporter:0.44 Pulling 
- Image percona/mongodb_exporter:0.44 Pulled 
- Container cortex-mongo-exporter Running 
-[2026-05-28T03:00:56Z] Updated compose stack: /opt/cortexos/stacks/mongo-exporter
- Image ghcr.io/henrywhitaker3/adguard-exporter:latest Pulling 
- Image prom/snmp-exporter:latest Pulling 
- Image ghcr.io/henrywhitaker3/adguard-exporter:latest Pulled 
- Image prom/snmp-exporter:latest Pulled 
- Container cortex-adguard-exporter Running 
- Container cortex-snmp-exporter Running 
-[2026-05-28T03:01:01Z] Updated compose stack: /opt/cortexos/stacks/monitoring
- Image phpmyadmin/phpmyadmin:latest Pulling 
- Image mysql:8 Pulling 
- Image phpmyadmin/phpmyadmin:latest Pulled 
- Image mysql:8 Pulled 
- Container cortex-mysql Running 
- Container cortex-phpmyadmin Running 
- Container cortex-mysql Waiting 
- Container cortex-mysql Healthy 
-[2026-05-28T03:01:04Z] Updated compose stack: /opt/cortexos/stacks/mysql
- Image otel/opentelemetry-collector-contrib:latest Pulling 
- Image otel/opentelemetry-collector-contrib:latest Pulled 
- Container cortex-otel-collector Running 
-[2026-05-28T03:01:06Z] Updated compose stack: /opt/cortexos/stacks/otel
- Image dpage/pgadmin4:latest Pulling 
- Image dpage/pgadmin4:latest Pulled 
- Container cortex-pgadmin Running 
-[2026-05-28T03:01:08Z] Updated compose stack: /opt/cortexos/stacks/pgadmin
-time="2026-05-28T03:01:08Z" level=warning msg="The \"POSTGRES_PASSWORD\" variable is not set. Defaulting to a blank string."
- Image prometheuscommunity/postgres-exporter:latest Pulling 
- Image prometheuscommunity/postgres-exporter:latest Pulled 
-time="2026-05-28T03:01:09Z" level=warning msg="The \"POSTGRES_PASSWORD\" variable is not set. Defaulting to a blank string."
-env file /opt/cortexos/.secrets/postgres.env not found: stat /opt/cortexos/.secrets/postgres.env: no such file or directory
-[2026-05-28T03:01:09Z] Updated compose stack: /opt/cortexos/stacks/pg-exporter
-time="2026-05-28T03:01:09Z" level=warning msg="The \"POSTGRES_PASSWORD\" variable is not set. Defaulting to a blank string."
- Image postgres:17-alpine Pulling 
- Image postgres:17-alpine Pulled 
-time="2026-05-28T03:01:27Z" level=warning msg="The \"POSTGRES_PASSWORD\" variable is not set. Defaulting to a blank string."
-env file /opt/cortexos/.secrets/postgres.env not found: stat /opt/cortexos/.secrets/postgres.env: no such file or directory
-[2026-05-28T03:01:27Z] Updated compose stack: /opt/cortexos/stacks/postgresql
- Image redis:7-alpine Pulling 
- Image redis:7-alpine Pulled 
- Container cortex-redis Running 
-[2026-05-28T03:01:29Z] Updated compose stack: /opt/cortexos/stacks/redis
-time="2026-05-28T03:01:29Z" level=warning msg="The \"REDIS_PASSWORD\" variable is not set. Defaulting to a blank string."
- Image oliver006/redis_exporter:latest Pulling 
- Image oliver006/redis_exporter:latest Pulled 
-time="2026-05-28T03:01:47Z" level=warning msg="The \"REDIS_PASSWORD\" variable is not set. Defaulting to a blank string."
- Container cortex-redis-exporter Running 
-[2026-05-28T03:01:47Z] Updated compose stack: /opt/cortexos/stacks/redis-exporter
- Image redis/redisinsight:latest Pulling 
- Image redis/redisinsight:latest Pulled 
- Container cortex-redisinsight Running 
-[2026-05-28T03:01:48Z] Updated compose stack: /opt/cortexos/stacks/redis-insight
- Image containrrr/watchtower:latest-dev Pulling 
- Image containrrr/watchtower:latest-dev Pulled 
- Container cortex-watchtower Running 
-[2026-05-28T03:01:49Z] Updated compose stack: /opt/cortexos/stacks/watchtower
-[2026-05-28T03:01:50Z] == restarts ==
-[2026-05-28T03:01:50Z] Report: /opt/cortexos/logs/auto-update-2026-05-28T03-00-10Z.json
