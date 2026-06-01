@@ -14,10 +14,10 @@ export function CpuGaugeWidget() {
 					color="var(--success)"
 					label="CPU"
 					sublabel={`Load: ${sys.load.map((l) => l.toFixed(2)).join(" / ")}`}
-					icon={<Cpu className="w-5 h-5" />}
+					icon={<Cpu className="size-5" />}
 				/>
 			) : (
-				<div className="h-32 w-32 animate-pulse rounded-full bg-muted" />
+				<div className="size-32 animate-pulse rounded-full bg-muted" />
 			)}
 		</div>
 	);

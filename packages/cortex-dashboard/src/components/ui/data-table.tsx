@@ -87,7 +87,7 @@ function DataTable<TData>({
   loading = false,
   loadingRows = 5,
   enableFilter = false,
-  filterPlaceholder = "Filter...",
+  filterPlaceholder = "Filter…",
   enableColumnVisibility = false,
   toolbar,
   className,

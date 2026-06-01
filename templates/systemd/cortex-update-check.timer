@@ -1,0 +1,9 @@
+[Unit]
+Description=Run CortexOS native app update check daily
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+
+[Install]
+WantedBy=timers.target

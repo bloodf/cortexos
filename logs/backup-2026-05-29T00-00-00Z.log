@@ -1,0 +1,8 @@
+[2026-05-29T00:00:34Z] WARN: no matches: /etc/systemd/system/prometheus*
+[2026-05-29T00:00:34Z] WARN: no matches: /opt/cortexos/monitoring/prometheus
+[2026-05-29T00:00:34Z] WARN: no matches: /etc/systemd/system/loki*
+[2026-05-29T00:00:34Z] WARN: no matches: /opt/cortexos/monitoring/loki
+[2026-05-29T00:00:34Z] WARN: no matches: /mnt/hdd/backups/2026-05-29_0000/stacks/monitoring/loki
+[2026-05-29T00:06:31Z] Pruning backups in /mnt/hdd/backups older than 7d, keeping newest 14 encrypted snapshots
+[2026-05-29T00:06:31Z] WARN: backup completed with missing optional sources
+[2026-05-29T00:06:31Z] Backup complete: /mnt/hdd/backups/2026-05-29_0000.tar.gz.age

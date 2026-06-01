@@ -1,0 +1,32 @@
+# /etc/systemd/system/paperclip.service
+[Unit]
+Description=Paperclip AI
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=cortexos
+Group=cortexos
+WorkingDirectory=/opt/cortexos/paperclip
+EnvironmentFile=/opt/cortexos/.secrets/paperclip-app.env
+ExecStart=/opt/cortexos/paperclip/runtime/node_modules/.bin/paperclipai run --data-dir /opt/cortexos/paperclip --instance default --bind tailnet
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+
+# /etc/systemd/system/paperclip.service.d/10-hermes-path.conf
+[Service]
+Environment=HOME=/home/cortexos
+Environment=PATH=/home/cortexos/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/snap/bin
+
+# /etc/systemd/system/paperclip.service.d/20-cortexos-loopback.conf
+[Service]
+ExecStart=
+ExecStart=/opt/cortexos/paperclip/runtime/node_modules/.bin/paperclipai run --data-dir /opt/cortexos/paperclip --instance default --bind loopback
+
+# /etc/systemd/system/paperclip.service.d/30-9router-env.conf
+[Service]
+EnvironmentFile=-/opt/cortexos/.secrets/9router.env

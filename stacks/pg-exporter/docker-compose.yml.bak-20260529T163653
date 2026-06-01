@@ -1,0 +1,22 @@
+services:
+  pg-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: cortex-pg-exporter
+    restart: unless-stopped
+    env_file:
+      - ../../.secrets/postgres.env
+    environment:
+      DATA_SOURCE_URI: postgresql:5432/cortex_dashboard?sslmode=disable
+      DATA_SOURCE_USER: dashboard
+      DATA_SOURCE_PASS: ${POSTGRES_PASSWORD}
+    ports:
+      - "127.0.0.1:9187:9187"
+    networks:
+      - cortex-db
+      - cortex-net
+
+networks:
+  cortex-db:
+    external: true
+  cortex-net:
+    external: true

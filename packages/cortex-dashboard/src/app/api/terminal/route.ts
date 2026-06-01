@@ -177,15 +177,12 @@ export async function DELETE(request: NextRequest) {
 	}
 }
 
-export async function GET(request: NextRequest) {
-	const sessionId = request.nextUrl.searchParams.get("sessionId");
-	if (!sessionId || !SESSION_ID_RE.test(sessionId)) {
-		return NextResponse.json({ error: "Invalid sessionId" }, { status: 400 });
-	}
-
+function createTerminalStream(sessionId: string) {
 	const encoder = new TextEncoder();
+	let heartbeat: ReturnType<typeof setInterval> | undefined;
+	let send: ((data: string) => void) | undefined;
 
-	const stream = new ReadableStream({
+	return new ReadableStream({
 		start(controller) {
 			const enqueue = (payload: string) => {
 				try {
@@ -194,28 +191,39 @@ export async function GET(request: NextRequest) {
 					// stream closed
 				}
 			};
-			const send = (data: string) => {
-				enqueue(`data: ${JSON.stringify({ output: data })}\n\n`);
+			send = (data: string) => {
+				enqueue(\`data: \${JSON.stringify({ output: data })}\n\n\`);
 			};
 
 			const session = sessions.get(sessionId);
 			if (session) {
 				session.buffer.forEach(send);
 				session.listeners.add(send);
-				const _removeListener = () => session.listeners.delete(send);
-				const heartbeat = setInterval(() => enqueue(": keepalive\n\n"), 15000);
-				// Clean up listener + heartbeat when the client disconnects
-				// (no Map mutations — only removes the SSE listener reference).
-				request.signal.addEventListener("abort", () => {
-					session.listeners.delete(send);
-					clearInterval(heartbeat);
-				});
+				heartbeat = setInterval(() => enqueue(\`: keepalive\n\n\`), 15000);
 			} else {
-				enqueue(`data: ${JSON.stringify({ error: "Session not found" })}\n\n`);
+				enqueue(\`data: \${JSON.stringify({ error: "Session not found" })}\n\n\`);
 				controller.close();
 			}
 		},
+		cancel() {
+			const session = sessions.get(sessionId);
+			if (session && send) {
+				session.listeners.delete(send);
+			}
+			if (heartbeat !== undefined) {
+				clearInterval(heartbeat);
+			}
+		},
 	});
+}
+
+export async function GET(request: NextRequest) {
+	const sessionId = request.nextUrl.searchParams.get("sessionId");
+	if (!sessionId || !SESSION_ID_RE.test(sessionId)) {
+		return NextResponse.json({ error: "Invalid sessionId" }, { status: 400 });
+	}
+
+	const stream = createTerminalStream(sessionId);
 
 	return new Response(stream, {
 		headers: {
@@ -225,5 +233,4 @@ export async function GET(request: NextRequest) {
 		},
 	});
 }
-
 export const dynamic = "force-dynamic";

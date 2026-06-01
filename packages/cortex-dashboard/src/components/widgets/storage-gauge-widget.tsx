@@ -20,12 +20,12 @@ export function StorageGaugeWidget() {
 							color="var(--warning)"
 							label={d.name}
 							sublabel={d.used && d.total ? `${d.used} / ${d.total}` : d.size}
-							icon={<HardDrive className="w-5 h-5" />}
+							icon={<HardDrive className="size-5" />}
 						/>
 					))}
 				</div>
 			) : (
-				<div className="h-32 w-32 animate-pulse rounded-full bg-muted" />
+				<div className="size-32 animate-pulse rounded-full bg-muted" />
 			)}
 		</div>
 	);

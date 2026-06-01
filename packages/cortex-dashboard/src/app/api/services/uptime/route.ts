@@ -14,8 +14,10 @@ export async function GET(request: Request) {
 			if (isNaN(serviceId) || serviceId < 1) {
 				return NextResponse.json({ error: "Invalid service_id" }, { status: 400 });
 			}
-			const stats = await getUptimeStats(serviceId, period);
-			const incidents = await getIncidentTransitions(serviceId);
+			const [stats, incidents] = await Promise.all([
+				getUptimeStats(serviceId, period),
+				getIncidentTransitions(serviceId),
+			]);
 			return NextResponse.json({ service_id: serviceId, stats, incidents });
 		}
 

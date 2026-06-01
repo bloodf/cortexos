@@ -1,0 +1,14 @@
+[Unit]
+Description=Paperclip agent paperclipApiUrl invariant check
+After=network-online.target paperclip.service
+Wants=paperclip.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/opt/cortexos/.secrets/paperclip.env
+ExecStart=/usr/bin/env node /opt/cortexos/scripts/paperclip-agent-url-invariant.mjs
+# exit 2 = drift, exit 3 = unreachable; we surface those as failure so the
+# systemd journal + status flags the alert. Other non-zero codes are real errors.
+SuccessExitStatus=0
+StandardOutput=journal
+StandardError=journal

@@ -50,7 +50,7 @@ export function MobileNav() {
 						aria-label={label("Overview")}
 						className="inline-flex items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 size-8 hover:bg-muted hover:text-foreground touch-manipulation"
 					>
-						<Menu className="w-5 h-5" />
+						<Menu className="size-5" />
 					</SheetTrigger>
 					<SheetContent side="left" className="w-[280px] p-0">
 						<SheetHeader className="p-4 border-b border-border">
@@ -89,7 +89,7 @@ export function MobileNav() {
 														: "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
 												}`}
 											>
-												<Icon className="w-5 h-5 shrink-0" />
+												<Icon className="size-5 shrink-0" />
 												<span>{label(item.label)}</span>
 											</Link>
 										);
@@ -118,12 +118,12 @@ export function MobileNav() {
 									active ? "text-foreground" : "text-muted-foreground"
 								}`}
 							>
-								<Icon className="w-5 h-5" />
+								<Icon className="size-5" />
 								<span className="text-[10px] font-medium leading-tight">
 									{label(item.label)}
 								</span>
 								{active && (
-									<span className="absolute bottom-1 w-1 h-1 rounded-full bg-foreground" />
+									<span className="absolute bottom-1 size-1 rounded-full bg-foreground" />
 								)}
 							</Link>
 						);

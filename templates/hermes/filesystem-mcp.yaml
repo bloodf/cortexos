@@ -1,0 +1,11 @@
+mcp_servers:
+  filesystem:
+    command: "sh"
+    args: ["-lc", "exec npx -y @modelcontextprotocol/server-filesystem ${MCP_FILESYSTEM_ROOTS}"]
+  agentgateway:
+    command: "node"
+    args: ["${CORTEX_AGENTGATEWAY_MCP_BIN}"]
+    env:
+      AGENTGATEWAY_MCP_CONFIG: "${AGENTGATEWAY_MCP_CONFIG}"
+      AGENTGATEWAY_MCP_TIMEOUT_MS: "${AGENTGATEWAY_MCP_TIMEOUT_MS}"
+      CORTEX_LOCAL_TIMEZONE: "${CORTEX_LOCAL_TIMEZONE}"

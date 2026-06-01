@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import useSWR from "swr";
 import { Moon, Palette, Sun } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -42,10 +43,15 @@ function matches(query: string, values: Array<string | undefined>) {
 export function CommandPalette() {
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
-	const [services, setServices] = useState<Service[]>([]);
 	const router = useRouter();
 	const { resolvedTheme, toggleTheme } = useTheme();
 	const { preset, setPreset } = usePreset();
+
+	const { data: servicesData } = useSWR<{ services: Service[] }>(
+		open ? "/api/services?webui=true" : null,
+		(url: string) => fetch(url).then((r) => r.json()),
+	);
+	const services = servicesData?.services || [];
 
 	useEffect(() => {
 		const handler = (event: KeyboardEvent) => {
@@ -62,14 +68,6 @@ export function CommandPalette() {
 			window.removeEventListener(COMMAND_PALETTE_EVENT, openHandler);
 		};
 	}, []);
-
-	useEffect(() => {
-		if (!open) return;
-		fetch("/api/services?webui=true")
-			.then((response) => response.json())
-			.then((data) => setServices(data.services || []))
-			.catch(() => setServices([]));
-	}, [open]);
 
 	const filteredNav = useMemo(
 		() => ALL_NAV_ITEMS.filter((item) => matches(query, [item.label, item.href])),
@@ -104,7 +102,7 @@ export function CommandPalette() {
 				<DialogTitle className="sr-only">Command Palette</DialogTitle>
 				<Command shouldFilter={false}>
 					<CommandInput
-						placeholder="Search pages, services, and actions..."
+						placeholder="Search pages, services, and actions…"
 						value={query}
 						onValueChange={setQuery}
 					/>

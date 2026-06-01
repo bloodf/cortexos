@@ -1,0 +1,49 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: node
+    static_configs:
+      - targets: ["host.docker.internal:9100"]
+
+  - job_name: cadvisor
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["cadvisor:8080"]
+
+  - job_name: prometheus
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: pg-exporter
+    static_configs:
+      - targets: ["cortex-pg-exporter:9187"]
+
+  - job_name: redis-exporter
+    static_configs:
+      - targets: ["cortex-redis-exporter:9121"]
+
+  - job_name: mongo-exporter
+    static_configs:
+      - targets: ["host.docker.internal:9216"]
+
+  - job_name: otel-collector
+    static_configs:
+      - targets: ["cortex-otel-collector:8889"]
+
+  - job_name: nexusgate-snmp
+    metrics_path: /snmp
+    params:
+      module: [if_mib]
+      auth: [cortexos_v2]
+      target: [nexusgate.tailfd052e.ts.net]
+    static_configs:
+      - targets: ["cortex-snmp-exporter:9116"]
+    relabel_configs:
+      - source_labels: [__param_target]
+        target_label: instance
+  - job_name: adguard
+    static_configs:
+      - targets: ["cortex-adguard-exporter:9618"]

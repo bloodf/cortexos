@@ -35,12 +35,12 @@ export default function AdminAccountPage() {
         <Card className="p-5 space-y-4">
           <h2 className="font-semibold flex items-center gap-2"><User className="size-4" />Profile</h2>
           <div className="space-y-2">
-            <Label className="text-xs">Username</Label>
-            <Input value={user?.username ?? "admin"} readOnly className="h-9" />
+            <Label htmlFor="acc-username" className="text-xs">Username</Label>
+            <Input id="acc-username" value={user?.username ?? "admin"} readOnly className="h-9" />
           </div>
           <div className="space-y-2">
-            <Label className="text-xs">Email</Label>
-            <Input value={email} onChange={(e) => setEmail(e.target.value)} className="h-9" />
+            <Label htmlFor="acc-email" className="text-xs">Email</Label>
+            <Input id="acc-email" value={email} onChange={(e) => setEmail(e.target.value)} className="h-9" />
           </div>
           <Button size="sm" onClick={() => toast.success("Profile saved")}>Save</Button>
         </Card>
@@ -48,12 +48,12 @@ export default function AdminAccountPage() {
         <Card className="p-5 space-y-4">
           <h2 className="font-semibold flex items-center gap-2"><Shield className="size-4" />Security</h2>
           <div className="space-y-2">
-            <Label className="text-xs">Current password</Label>
-            <Input type="password" className="h-9" />
+            <Label htmlFor="acc-current-pw" className="text-xs">Current password</Label>
+            <Input id="acc-current-pw" type="password" className="h-9" />
           </div>
           <div className="space-y-2">
-            <Label className="text-xs">New password</Label>
-            <Input type="password" className="h-9" />
+            <Label htmlFor="acc-new-pw" className="text-xs">New password</Label>
+            <Input id="acc-new-pw" type="password" className="h-9" />
           </div>
           <Button size="sm" onClick={() => toast.success("Password updated")}>Update password</Button>
         </Card>

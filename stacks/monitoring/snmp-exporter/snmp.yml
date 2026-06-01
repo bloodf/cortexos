@@ -1,0 +1,19 @@
+auths:
+  cortexos_v2:
+    version: 2
+    community: cortexos
+modules:
+  if_mib:
+    walk:
+      - 1.3.6.1.2.1.1
+      - 1.3.6.1.2.1.2
+      - 1.3.6.1.2.1.31.1.1
+    max_repetitions: 25
+    retries: 3
+    timeout: 10s
+  host_resources:
+    walk:
+      - 1.3.6.1.2.1.25
+    max_repetitions: 25
+    retries: 3
+    timeout: 10s

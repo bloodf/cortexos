@@ -18,7 +18,7 @@ export function TotalUploadWidget() {
 			className="flex h-full min-h-[80px] flex-col justify-center rounded-xl border border-border bg-muted/30 p-4"
 		>
 			<div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
-				<ArrowUp className="h-3.5 w-3.5 text-chart-4" />
+				<ArrowUp className="size-3.5 text-chart-4" />
 				Total Uploaded
 			</div>
 			<div className="font-mono text-2xl font-bold text-chart-4">

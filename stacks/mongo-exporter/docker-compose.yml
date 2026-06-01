@@ -1,0 +1,8 @@
+services:
+  mongo-exporter:
+    image: percona/mongodb_exporter:0.44
+    container_name: cortex-mongo-exporter
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      MONGODB_URI: "mongodb://127.0.0.1:27017"

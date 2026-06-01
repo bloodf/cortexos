@@ -53,7 +53,7 @@ export function IncusActionButtons({ name, status, onComplete }: IncusActionButt
             disabled={loading !== null}
             onClick={() => handleAction("stop")}
           >
-            {loading === "stop" ? "..." : "Stop"}
+            {loading === "stop" ? "…" : "Stop"}
           </Button>
           <Button
             size="sm"
@@ -61,7 +61,7 @@ export function IncusActionButtons({ name, status, onComplete }: IncusActionButt
             disabled={loading !== null}
             onClick={() => handleAction("restart")}
           >
-            {loading === "restart" ? "..." : "Restart"}
+            {loading === "restart" ? "…" : "Restart"}
           </Button>
         </>
       ) : (
@@ -71,7 +71,7 @@ export function IncusActionButtons({ name, status, onComplete }: IncusActionButt
           disabled={loading !== null}
           onClick={() => handleAction("start")}
         >
-          {loading === "start" ? "..." : "Start"}
+          {loading === "start" ? "…" : "Start"}
         </Button>
       )}
       {confirmDelete ? (
@@ -82,7 +82,7 @@ export function IncusActionButtons({ name, status, onComplete }: IncusActionButt
             disabled={loading !== null}
             onClick={() => handleAction("delete")}
           >
-            {loading === "delete" ? "..." : "Confirm"}
+            {loading === "delete" ? "…" : "Confirm"}
           </Button>
           <Button
             size="sm"

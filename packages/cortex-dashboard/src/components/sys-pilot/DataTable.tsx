@@ -56,7 +56,7 @@ export function DataTable<T>({
     if (!sortKey) return filtered;
     const col = columns.find((c) => c.key === sortKey);
     if (!col?.sort) return filtered;
-    return [...filtered].sort((a, b) => {
+    return filtered.toSorted((a, b) => {
       const av = col.sort!(a), bv = col.sort!(b);
       if (av === bv) return 0;
       const d = av > bv ? 1 : -1;

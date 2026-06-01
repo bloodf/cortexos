@@ -14,10 +14,10 @@ export function MemoryGaugeWidget() {
 					color="var(--chart-3)"
 					label="Memory"
 					sublabel={`${sys.memory.used} / ${sys.memory.total} MB`}
-					icon={<MemoryStick className="w-5 h-5" />}
+					icon={<MemoryStick className="size-5" />}
 				/>
 			) : (
-				<div className="h-32 w-32 animate-pulse rounded-full bg-muted" />
+				<div className="size-32 animate-pulse rounded-full bg-muted" />
 			)}
 		</div>
 	);

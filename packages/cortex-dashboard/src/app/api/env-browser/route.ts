@@ -68,8 +68,8 @@ export async function GET(request: Request) {
 				{ status: 400 },
 			);
 		}
-		const requestedKeys = keysParam.split(",").map((k) => k.trim()).filter(Boolean);
-		const sortedKeys = [...requestedKeys].sort();
+		const requestedKeys = keysParam.split(",").flatMap((k) => k.trim() ? [k.trim()] : []);
+		const sortedKeys = requestedKeys.toSorted();
 		const argsHash = sha256hex(`${absPath}|${sortedKeys.join(",")}`);
 
 		// H-2: reveal-mode reads of cleartext secrets are privileged. Require
@@ -137,9 +137,10 @@ export async function GET(request: Request) {
 
 		try {
 			const lines = await readEnvFileRaw(absPath, { reveal: true });
+			const kvBykey = new Map(lines.filter((l) => l.type === "kv").map((l) => [l.key, l]));
 			const result: Record<string, string | null> = {};
 			for (const key of requestedKeys) {
-				const line = lines.find((l) => l.type === "kv" && l.key === key);
+				const line = kvBykey.get(key);
 				result[key] = line?.value ?? null;
 			}
 			return NextResponse.json({ path: absPath, keys: result });

@@ -18,7 +18,7 @@ export function MonitoringOpsWidget() {
 			className="flex h-full min-h-[80px] flex-col justify-center rounded-xl border border-warning/20 bg-warning/5 p-4"
 		>
 			<div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-				<Activity className="h-4 w-4 text-warning" />
+				<Activity className="size-4 text-warning" />
 				Monitoring
 			</div>
 			<div className="flex items-baseline gap-2 font-mono text-3xl font-bold text-warning">

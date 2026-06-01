@@ -21,7 +21,7 @@ export function CpuTemperatureWidget() {
 					<p className="mt-1 text-xs text-muted-foreground">{sensor?.label ?? "No sensor"}</p>
 				</div>
 				<div className="rounded-lg bg-muted p-2 text-muted-foreground">
-					<Thermometer className="h-5 w-5" />
+					<Thermometer className="size-5" />
 				</div>
 			</div>
 			<div className="mt-8 flex items-end gap-2">

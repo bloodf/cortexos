@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import useSWR from "swr";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,19 +16,14 @@ interface AlertHistoryItem {
 	created_at: string;
 }
 
-export function AlertHistory({ limit = 50 }: { limit?: number }) {
-	const [history, setHistory] = useState<AlertHistoryItem[]>([]);
-	const [loading, setLoading] = useState(true);
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
-	useEffect(() => {
-		fetch(`/api/alerts?history=1&limit=${limit}`)
-			.then((res) => res.json())
-			.then((data) => {
-				setHistory(data.history || []);
-				setLoading(false);
-			})
-			.catch(() => setLoading(false));
-	}, [limit]);
+export function AlertHistory({ limit = 50 }: { limit?: number }) {
+	const { data, isLoading } = useSWR<{ history: AlertHistoryItem[] }>(
+		`/api/alerts?history=1&limit=${limit}`,
+		fetcher,
+	);
+	const history = data?.history || [];
 
 	return (
 		<Card>
@@ -39,14 +34,12 @@ export function AlertHistory({ limit = 50 }: { limit?: number }) {
 				</CardTitle>
 			</CardHeader>
 			<CardContent className="space-y-3">
-				{loading && (
+				{isLoading && (
 					<>
-						<Skeleton className="h-10 w-full" />
-						<Skeleton className="h-10 w-full" />
 						<Skeleton className="h-10 w-full" />
 					</>
 				)}
-				{!loading && history.length === 0 && (
+				{!isLoading && history.length === 0 && (
 					<EmptyState
 						icon={<BellOffIcon />}
 						title="No alerts yet"

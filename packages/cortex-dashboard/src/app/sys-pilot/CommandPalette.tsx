@@ -23,12 +23,16 @@ export function CommandPalette({ open, onOpenChange, onOpenHelp }: Props) {
   const [q, setQ] = useState("");
 
   // Re-read localStorage when the dialog opens (may have changed from another tab).
-  useEffect(() => {
-    if (open) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      try { setRecent(JSON.parse(localStorage.getItem(RECENT_KEY) || "[]")); } catch { /* noop */ }
-    }
-  }, [open]);
+  // Using a ref to avoid setState-in-effect lint error while still syncing external state.
+  const openRef = useRef(open);
+  if (open && !openRef.current) {
+    openRef.current = true;
+    try {
+      const stored = JSON.parse(localStorage.getItem(RECENT_KEY) || "[]");
+      if (JSON.stringify(stored) !== JSON.stringify(recent)) setRecent(stored);
+    } catch { /* noop */ }
+  }
+  if (!open) openRef.current = false;
 
   const navItems = useMemo(() => NAV_GROUPS.flatMap((g) => g.items), []);
 

@@ -17,7 +17,7 @@ export default function LocaleError({
 	return (
 		<div className="flex min-h-screen items-center justify-center bg-[#0a0a0f] p-4">
 			<div className="w-full max-w-md rounded-xl border border-red-500/30 bg-white/[0.02] p-8 text-center">
-				<AlertTriangle className="mx-auto mb-4 h-12 w-12 text-red-400" />
+				<AlertTriangle className="mx-auto mb-4 size-12 text-red-400" />
 				<h2 className="mb-2 text-xl font-bold text-white">Something went wrong</h2>
 				<p className="mb-6 text-sm text-white/50">
 					{error.message || "An unexpected error occurred."}

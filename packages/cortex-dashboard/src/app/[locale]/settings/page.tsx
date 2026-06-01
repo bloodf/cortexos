@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import {
 	Card,
 	CardContent,
@@ -7,6 +8,8 @@ import {
 } from "@/components/ui/card";
 import { PageHeader } from "@/components/sys-pilot/PageHeader";
 import { SettingsIcon } from "lucide-react";
+
+export const metadata: Metadata = { title: "Settings" };
 
 export default function SettingsPage() {
 	return (

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { AdminDashboard } from "@/components/sys-pilot/admin/admin-dashboard";
 import { getAllServicesForAdmin } from "@/lib/db/service";
 import type { Service as UIService } from "@/lib/types";
@@ -35,3 +36,5 @@ export default async function AdminPage() {
 }
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "Admin" };

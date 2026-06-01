@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { useTranslations } from "next-intl";
 import { RefreshCwIcon } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -77,46 +78,18 @@ function stateClasses(state: string): string {
 
 export function DockerTable() {
   const t = useTranslations("Infrastructure");
-  const [data, setData] = useState<DockerData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let mounted = true;
-    const fetchData = async () => {
-      try {
-        const res = await fetch("/api/docker", { cache: "no-store" });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = (await res.json()) as DockerData;
-        if (mounted) {
-          setData(json);
-          setError(null);
-        }
-      } catch (e) {
-        if (mounted) setError(e instanceof Error ? e.message : "Failed to fetch");
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-    fetchData();
-    const interval = setInterval(fetchData, 5000);
-    return () => {
-      mounted = false;
-      clearInterval(interval);
-    };
-  }, []);
-
-  async function refreshData() {
-    try {
-      const res = await fetch("/api/docker", { cache: "no-store" });
+  const { data, isLoading: loading, mutate: refreshData } = useSWR<DockerData>("/api/docker", {
+    fetcher: async (url: string) => {
+      const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = (await res.json()) as DockerData;
-      setData(json);
-      setError(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to fetch");
-    }
-  }
+      return res.json();
+    },
+    refreshInterval: 5000,
+    onError: (e) => setError(e instanceof Error ? e.message : "Failed to fetch"),
+    onSuccess: () => setError(null),
+  });
 
   const containers = Array.isArray(data?.containers?.data) ? data.containers.data : [];
   const volumes = Array.isArray(data?.volumes?.data) ? data.volumes.data : [];
@@ -227,7 +200,7 @@ export function DockerTable() {
         description={t("DockerDescription")}
         icon={<TechIcon name="docker" size={20} />}
         actions={
-          <Button variant="outline" size="sm" onClick={refreshData}>
+          <Button variant="outline" size="sm" onClick={() => refreshData()}>
             <RefreshCwIcon />
             Refresh
           </Button>

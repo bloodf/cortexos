@@ -1,0 +1,6 @@
+[Unit]
+Description=CortexOS native app update check
+
+[Service]
+Type=oneshot
+ExecStart=/opt/cortexos/scripts/cortex-update-check.sh

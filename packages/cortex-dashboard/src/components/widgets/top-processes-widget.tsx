@@ -10,7 +10,7 @@ export function TopProcessesWidget() {
 	return (
 		<div className="h-full flex flex-col min-h-[200px]">
 			<h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-foreground">
-				<Cpu className="h-4 w-4 text-chart-3" />
+				<Cpu className="size-4 text-chart-3" />
 				Top Processes
 			</h2>
 			<div className="flex-1 space-y-0.5 overflow-auto">
@@ -38,7 +38,7 @@ export function TopProcessesWidget() {
 					</div>
 				))}
 				{!data && (
-					<div className="py-8 text-center text-sm text-muted-foreground">Loading...</div>
+					<div className="py-8 text-center text-sm text-muted-foreground">Loading…</div>
 				)}
 			</div>
 		</div>

@@ -140,14 +140,14 @@ function ProvisionWizard({ open, onOpenChange, onCreated }: { open: boolean; onO
         {step === 4 && (
           <div className="space-y-2">
             <div className="rounded-md border bg-[oklch(0.14_0.01_260)] text-[oklch(0.92_0.01_260)] p-3 font-mono text-xs h-48 overflow-auto">
-              {log.map((l, i) => <div key={`${i}-${l.slice(0,20)}`} className="flex gap-2"><Loader2 className="size-3 animate-spin text-primary mt-0.5" />{l}</div>)}
+              {log.map((l, i) => <div key={`${i}-${l.length}-${l.charCodeAt(0) ?? 0}`} className="flex gap-2"><Loader2 className="size-3 animate-spin text-primary mt-0.5" />{l}</div>)}
               {done && <div className="flex items-center gap-2 text-[var(--success)] mt-2"><CheckCircle2 className="size-4" /> Provisioning complete</div>}
             </div>
           </div>
         )}
         <DialogFooter>
-          {step > 0 && step < 4 && <Button variant="outline" onClick={() => setStep(step - 1)}>Back</Button>}
-          {step < 3 && <Button onClick={() => setStep(step + 1)}>Next</Button>}
+          {step > 0 && step < 4 && <Button variant="outline" onClick={() => setStep((s) => s - 1)}>Back</Button>}
+          {step < 3 && <Button onClick={() => setStep((s) => s + 1)}>Next</Button>}
           {step === 3 && <Button onClick={start}>Provision</Button>}
           {step === 4 && done && <Button onClick={() => { onOpenChange(false); setStep(0); }}>Done</Button>}
         </DialogFooter>

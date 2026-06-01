@@ -1,11 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import * as React from "react";
+import useSWR from "swr";
 import { Button } from "@/components/ui/button";
 import { ServiceToggles } from "./service-toggles";
 import { BadgeManager } from "./badge-manager";
 import { SystemdServices } from "./systemd-services";
 import type { Service } from "./service-row";
+
+const fetcher = (url: string) =>
+	fetch(url, { cache: "no-store" }).then((res) =>
+		res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`)),
+	);
 
 type Tab = "toggles" | "badges" | "systemd";
 
@@ -15,30 +21,35 @@ export interface AdminDashboardProps {
 }
 
 export function AdminDashboard({ services = [], onToggle }: AdminDashboardProps) {
-	const [tab, setTab] = useState<Tab>("toggles");
-	const [serviceList, setServiceList] = useState<Service[]>(services);
-	const [selectedServiceId, setSelectedServiceId] = useState<number>(services[0]?.id ?? 0);
-	const selectedService = serviceList.find((service) => service.id === selectedServiceId) || serviceList[0];
+	const [tab, setTab] = React.useState<Tab>("toggles");
+	// Track optimistic toggle overrides keyed by service id
+	const [overrides, setOverrides] = React.useState<Map<number, Partial<Service>>>(new Map());
+	const [selectedServiceId, setSelectedServiceId] = React.useState<number>(services[0]?.id ?? 0);
 
-	useEffect(() => {
-		if (services.length > 0) return;
-		let mounted = true;
-		void fetch("/api/admin/services?all=1", { cache: "no-store" })
-			.then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
-			.then((data: { services?: Service[] }) => {
-				if (!mounted) return;
-				const next = data.services ?? [];
-				setServiceList(next);
-				setSelectedServiceId(next[0]?.id ?? 0);
-			})
-			.catch(() => undefined);
-		return () => {
-			mounted = false;
-		};
-	}, [services.length]);
+	// Only fetch when no services provided via props
+	const { data: fetchedData } = useSWR<{ services?: Service[] }>(
+		services.length > 0 ? null : "/api/admin/services?all=1",
+		fetcher,
+	);
+	const fetched = fetchedData?.services ?? [];
+
+	// Base list: props when available, otherwise fetched
+	const baseList = services.length > 0 ? services : fetched;
+
+	// Apply optimistic overrides on top of base list
+	const serviceList = React.useMemo(() => {
+		if (overrides.size === 0) return baseList;
+		return baseList.map((s) => {
+			const o = overrides.get(s.id);
+			return o ? { ...s, ...o } : s;
+		});
+	}, [baseList, overrides]);
+
+	const serviceMap = React.useMemo(() => new Map(serviceList.map((s) => [s.id, s])), [serviceList]);
+	const selectedService = serviceMap.get(selectedServiceId) ?? serviceList[0];
 
 	async function handleToggle(id: number, active: boolean) {
-		setServiceList((current) => current.map((service) => (service.id === id ? { ...service, is_active: active } : service)));
+		setOverrides((prev) => new Map(prev).set(id, { is_active: active }));
 		try {
 			if (onToggle) {
 				onToggle(id, active);
@@ -51,7 +62,12 @@ export function AdminDashboard({ services = [], onToggle }: AdminDashboardProps)
 			});
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
 		} catch {
-			setServiceList((current) => current.map((service) => (service.id === id ? { ...service, is_active: !active } : service)));
+			// Revert on failure
+			setOverrides((prev) => {
+				const next = new Map(prev);
+				next.delete(id);
+				return next;
+			});
 		}
 	}
 

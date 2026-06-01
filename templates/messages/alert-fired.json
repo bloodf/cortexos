@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "header": {
+    "emoji": "🚨",
+    "title": "Alert: {alert_kind}",
+    "subtitle": "Severity: {severity}"
+  },
+  "sections": [
+    {
+      "type": "kv",
+      "items": [
+        ["Kind", "{alert_kind}"],
+        ["Severity", "{severity}"],
+        ["Source", "{source}"],
+        ["Time", "{ts}"]
+      ]
+    },
+    {
+      "type": "text",
+      "markdown": "{body}"
+    }
+  ],
+  "actions": [
+    { "id": "ack", "label": "👍 Acknowledge", "style": "default" }
+  ],
+  "context": {
+    "factory_slug": "{factory_slug}",
+    "stage": "alert",
+    "ts": "{ts}"
+  }
+}

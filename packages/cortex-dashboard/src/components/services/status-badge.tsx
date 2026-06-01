@@ -37,11 +37,11 @@ export function StatusBadge({
 	return (
 		<div className={cn("flex items-center gap-2", className)}>
 			<div
-				className={`relative flex items-center justify-center w-5 h-5 rounded-full ${containerClass}`}
+				className={`relative flex items-center justify-center size-5 rounded-full ${containerClass}`}
 			>
-				<div className={`w-2 h-2 rounded-full ${dotClass}`} />
+				<div className={`size-2 rounded-full ${dotClass}`} />
 				{isOnline && (
-					<div className="absolute w-2 h-2 rounded-full bg-emerald-400 animate-ping opacity-30" />
+					<div className="absolute size-2 rounded-full bg-emerald-400 animate-ping opacity-30" />
 				)}
 			</div>
 			<span className={`text-[10px] font-medium ${textClass}`}>{label}</span>

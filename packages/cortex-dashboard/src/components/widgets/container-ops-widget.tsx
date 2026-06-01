@@ -18,7 +18,7 @@ export function ContainerOpsWidget() {
 			className="flex h-full min-h-[80px] flex-col justify-center rounded-xl border border-chart-3/20 bg-chart-3/5 p-4"
 		>
 			<div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-				<Box className="h-4 w-4 text-chart-3" />
+				<Box className="size-4 text-chart-3" />
 				Container Ops
 			</div>
 			<div className="flex items-baseline gap-2 font-mono text-3xl font-bold text-chart-3">

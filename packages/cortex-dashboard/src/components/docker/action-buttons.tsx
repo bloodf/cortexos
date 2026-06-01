@@ -49,7 +49,7 @@ export function DockerActionButtons({
           disabled={loading !== null}
           onClick={() => handleAction(action)}
         >
-          {loading === action ? "..." : action.charAt(0).toUpperCase() + action.slice(1)}
+          {loading === action ? "…" : action.charAt(0).toUpperCase() + action.slice(1)}
         </Button>
       ))}
       {error && <span className="text-xs text-destructive">{error}</span>}

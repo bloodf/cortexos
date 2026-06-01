@@ -1,4 +1,7 @@
+import type { Metadata } from "next";
 import { DashboardShell } from "@/components/sys-pilot/dashboard-shell";
+
+export const metadata: Metadata = { title: "Systemd" };
 
 export default function SystemdLayout({
 	children,

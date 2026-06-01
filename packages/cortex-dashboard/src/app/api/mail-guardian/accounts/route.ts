@@ -161,8 +161,10 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
 	const auth = await requireAdmin(request, { tool: "mail_guardian.accounts.create" });
 	if (auth.error) return auth.error;
-	const body = await request.json().catch(() => ({} as Record<string, unknown>));
-	const { raw, accounts } = await readAccounts();
+	const [body, { raw, accounts }] = await Promise.all([
+		request.json().catch(() => ({} as Record<string, unknown>)),
+		readAccounts(),
+	]);
 	const next = normalizeInput(body);
 	const validation = validateAccount(next);
 	if (validation) return NextResponse.json({ error: validation }, { status: 400 });
@@ -182,9 +184,11 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
 	const auth = await requireAdmin(request, { tool: "mail_guardian.accounts.update" });
 	if (auth.error) return auth.error;
-	const body = await request.json().catch(() => ({} as Record<string, unknown>));
+	const [body, { raw, accounts }] = await Promise.all([
+		request.json().catch(() => ({} as Record<string, unknown>)),
+		readAccounts(),
+	]);
 	const slug = String(body.slug ?? "").trim();
-	const { raw, accounts } = await readAccounts();
 	const existing = accounts.find((account) => account.slug === slug);
 	if (!existing) return NextResponse.json({ error: "Account not found" }, { status: 404 });
 	const next = normalizeInput(body, existing);

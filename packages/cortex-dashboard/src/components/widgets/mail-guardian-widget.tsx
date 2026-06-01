@@ -36,7 +36,7 @@ export function MailGuardianWidget() {
 
 	return (
 		<div className="-m-4 flex h-[calc(100%+2rem)] min-h-[112px] items-center gap-3 rounded-2xl border border-chart-3/20 bg-chart-3/10 px-6 py-4">
-			<MailCheck className="h-7 w-7 text-chart-3" />
+			<MailCheck className="size-7 text-chart-3" />
 			<div className="min-w-0">
 				<div className="text-2xl font-bold text-chart-3">{total}</div>
 				<div className="text-xs text-muted-foreground">Mail checked</div>

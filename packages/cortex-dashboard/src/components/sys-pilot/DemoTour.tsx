@@ -52,7 +52,7 @@ export function DemoTour() {
       </div>
       <div className="flex items-center justify-between border-t px-4 py-2.5">
         <button type="button" onClick={dismiss} className="text-xs text-muted-foreground hover:text-foreground">Skip</button>
-        <Button size="sm" onClick={() => (last ? dismiss() : setStep(step + 1))}>
+        <Button size="sm" onClick={() => (last ? dismiss() : setStep((prev) => prev! + 1))}>
           {last ? "Got it" : <>Next<ArrowRight className="size-3.5 ml-1" /></>}
         </Button>
       </div>

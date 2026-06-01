@@ -78,7 +78,7 @@ export function DockerContainersTable({ containers }: { containers: unknown[] })
                     <span className="inline-flex items-center gap-1.5">
                       <span
                         aria-label={c.State || "unknown"}
-                        className={`inline-block h-2 w-2 rounded-full ${stateDotClass(c.State || "")}`}
+                        className={`inline-block size-2 rounded-full ${stateDotClass(c.State || "")}`}
                       />
                       <span className="text-xs text-muted-foreground">
                         {c.State || "—"}

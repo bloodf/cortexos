@@ -107,19 +107,21 @@ export function IncusCreateDialog({ onCreated }: IncusCreateDialogProps) {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">Name</label>
+            <label htmlFor="incus-name" className="text-xs text-muted-foreground block mb-1">Name</label>
             <Input
+              id="incus-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="my-instance"
             />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">Image</label>
+            <label htmlFor="incus-image" className="text-xs text-muted-foreground block mb-1">Image</label>
             {fetchingImages ? (
-              <p className="text-xs text-muted-foreground">Loading images...</p>
+              <p className="text-xs text-muted-foreground">Loading images…</p>
             ) : (
               <select
+                id="incus-image"
                 value={selectedImage}
                 onChange={(e) => setSelectedImage(e.target.value)}
                 className="w-full text-sm bg-secondary border border-border rounded-md px-3 py-2 text-foreground"
@@ -136,8 +138,9 @@ export function IncusCreateDialog({ onCreated }: IncusCreateDialogProps) {
             )}
           </div>
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">Profiles (comma-separated)</label>
+            <label htmlFor="incus-profiles" className="text-xs text-muted-foreground block mb-1">Profiles (comma-separated)</label>
             <Input
+              id="incus-profiles"
               value={profiles}
               onChange={(e) => setProfiles(e.target.value)}
               placeholder="default"
@@ -149,7 +152,7 @@ export function IncusCreateDialog({ onCreated }: IncusCreateDialogProps) {
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? "Creating..." : "Create"}
+              {loading ? "Creating…" : "Create"}
             </Button>
           </div>
         </form>

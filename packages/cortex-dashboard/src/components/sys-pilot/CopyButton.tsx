@@ -12,7 +12,7 @@ export function CopyButton({ value, className, size = "sm" }: { value: string; c
       type="button"
       variant="ghost"
       size="icon"
-      className={cn(size === "xs" ? "h-6 w-6" : "h-7 w-7", className)}
+      className={cn(size === "xs" ? "size-6" : "size-7", className)}
       onClick={() => { navigator.clipboard.writeText(value).then(() => { setDone(true); setTimeout(() => setDone(false), 1200); }); }}
       aria-label="Copy"
     >

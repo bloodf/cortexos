@@ -8,7 +8,7 @@
 
 import { revalidatePath } from "next/cache";
 import { query } from "@/lib/db/client";
-import { getCurrentSession } from "@/lib/auth";
+import { getCurrentSession, auth } from "@/lib/auth";
 import {
 	approvalSignalInputSchema,
 	parseInput,
@@ -48,6 +48,7 @@ export interface LoadPendingResult {
 }
 
 export async function loadPendingApprovals(): Promise<LoadPendingResult> {
+	await auth();
 	const session = await getCurrentSession();
 	if (!session || !session.user.is_admin) {
 		return { rows: [], error: "Forbidden: admin required" };
@@ -79,6 +80,7 @@ export interface DecideResult {
 export async function decideApproval(
 	formData: FormData,
 ): Promise<DecideResult> {
+	await auth();
 	const raw = {
 		runId: String(formData.get("runId") ?? ""),
 		signalName: String(formData.get("signalName") ?? "approval"),
@@ -123,6 +125,7 @@ export async function decideApproval(
  * result and only triggers revalidation.
  */
 export async function decideApprovalForm(formData: FormData): Promise<void> {
+	await auth();
 	const session = await getCurrentSession();
 	if (!session || !session.user.is_admin) {
 		throw new Error("Forbidden: admin required");

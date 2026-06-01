@@ -104,9 +104,9 @@ function AppGridItem({ service: s }: { service: ServiceData }) {
 							icon_image: s.icon_image,
 						})
 					}
-					className="h-8 w-8 shrink-0"
+					className="size-8 shrink-0"
 				>
-					<Star className={favorite ? "h-4 w-4 fill-amber-400 text-amber-400" : "h-4 w-4"} />
+					<Star className={favorite ? "size-4 fill-amber-400 text-amber-400" : "size-4"} />
 				</Button>
 			</div>
 		</motion.div>

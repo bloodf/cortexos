@@ -1,0 +1,17 @@
+# SOPS-encrypted secrets for cortex-dashboard.
+# Before commit: `sops -e -i templates/.secrets/dashboard.enc.yaml`
+# Committed plaintext as TEMPLATE. Operators encrypt with their real age recipients.
+PORT: "3080"
+NODE_ENV: "production"
+HOSTNAME: "all-interfaces"
+DASHBOARD_ORIGIN: "<replace-me>"
+# Do NOT set PG_DSN or DATABASE_URL — dashboard uses DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD.
+DB_HOST: "localhost"
+DB_PORT: "5432"
+DB_NAME: "cortex_dashboard"
+DB_USER: "dashboard"
+DB_PASSWORD: "<replace-me>"
+CORTEX_MASTER_KEY: "<replace-me>"
+LANGFUSE_HOST: "http://localhost:3001"
+LANGFUSE_PUBLIC_KEY: "<replace-me>"
+LANGFUSE_SECRET_KEY: "<replace-me>"

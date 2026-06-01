@@ -1,0 +1,31 @@
+{
+  "policy_version": 2,
+  "trust_model": "lan-tailnet",
+  "auth": "network-trust-no-token",
+  "allowlist": [
+    "service.status",
+    "service.health",
+    "tmux.sessions",
+    "project.list",
+    "project.status",
+    "hermes.protected_status",
+    "incus.instances",
+    "incus.instance_status",
+    "database.project_grants",
+    "backup.latest",
+    "audit.search"
+  ],
+  "tools": [
+    {"name": "service.status", "description": "Read host service status."},
+    {"name": "service.health", "description": "Read dashboard service health state."},
+    {"name": "tmux.sessions", "description": "List managed tmux sessions."},
+    {"name": "project.list", "description": "List declared CortexOS projects."},
+    {"name": "project.status", "description": "Read one project instance status."},
+    {"name": "hermes.protected_status", "description": "Read protected Hermes profile status."},
+    {"name": "incus.instances", "description": "List Incus instances."},
+    {"name": "incus.instance_status", "description": "Read one Incus instance status."},
+    {"name": "database.project_grants", "description": "Read project database grant metadata."},
+    {"name": "backup.latest", "description": "Read latest local backup metadata."},
+    {"name": "audit.search", "description": "Search command and helper audit metadata."}
+  ]
+}

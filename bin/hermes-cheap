@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+export HERMES_PROFILE="cheap"
+export HERMES_HOME="/opt/cortexos/hermes/profiles/cheap"
+exec "${HERMES_COMMAND:-hermes}" "$@"

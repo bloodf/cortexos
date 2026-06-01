@@ -9,8 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 // TODO: rewire to real API
+const EMPTY_DATA: { path: string; keys: string[] }[] = [];
 export default function AdminEnvPage() {
-  const data: { path: string; keys: string[] }[] = [];
+  const data = EMPTY_DATA;
   const [selected, setSelected] = useState(0);
   const [reveal, setReveal] = useState<Record<string, boolean>>({});
   const mockValues = useMemo(() => {
@@ -21,8 +22,7 @@ export default function AdminEnvPage() {
       }
     }
     return vals;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [data]);
   const file = data[selected];
 
   return (

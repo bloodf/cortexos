@@ -1,0 +1,14 @@
+pg_dumpall: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  role "postgres" does not exist
+[2026-05-27T12:00:11Z] WARN: dump failed: cortex-postgresql
+2026-05-27T12:00:14.079+0000	Failed: error creating intents to dump: error getting database names: (Unauthorized) Command listDatabases requires authentication
+[2026-05-27T12:00:14Z] WARN: dump failed: cortex-mongodb
+mysqldump: Got error: 1045: Access denied for user 'root'@'localhost' (using password: NO) when trying to connect
+[2026-05-27T12:00:14Z] WARN: dump failed: cortex-mysql
+[2026-05-27T12:01:45Z] WARN: container not running: cortex-grafana
+[2026-05-27T12:01:45Z] WARN: no matches: /etc/systemd/system/prometheus*
+[2026-05-27T12:01:45Z] WARN: no matches: /opt/cortexos/monitoring/prometheus
+[2026-05-27T12:01:45Z] WARN: no matches: /etc/systemd/system/loki*
+[2026-05-27T12:01:45Z] WARN: no matches: /opt/cortexos/monitoring/loki
+[2026-05-27T12:11:35Z] Pruning backups in /mnt/hdd/backups older than 7d, keeping newest 14 encrypted snapshots
+[2026-05-27T12:11:36Z] WARN: backup completed with missing optional sources
+[2026-05-27T12:11:36Z] Backup complete: /mnt/hdd/backups/2026-05-27_1200.tar.gz.age

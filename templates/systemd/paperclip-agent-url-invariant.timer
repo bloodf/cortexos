@@ -1,0 +1,14 @@
+[Unit]
+Description=Run Paperclip agent paperclipApiUrl invariant check every 15 minutes
+Requires=paperclip-agent-url-invariant.service
+
+[Timer]
+# Run 2 min after boot to give the server time to bind, then every 15 min.
+OnBootSec=2min
+OnUnitActiveSec=15min
+AccuracySec=30s
+Persistent=true
+Unit=paperclip-agent-url-invariant.service
+
+[Install]
+WantedBy=timers.target

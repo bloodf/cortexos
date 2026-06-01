@@ -108,8 +108,7 @@ function CollapsibleNavGroup({
 		} catch {
 			/* localStorage unavailable — keep heuristic default */
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+	}, [storageKey]);
 
 	const handleOpenChange = (next: boolean) => {
 		setOpen(next);

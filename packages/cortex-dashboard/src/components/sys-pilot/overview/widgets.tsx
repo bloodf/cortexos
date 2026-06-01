@@ -115,7 +115,7 @@ function SensorsW() {
 }
 function ProcessesW() {
   const { data: procs = [] } = useQuery({ queryKey: ["processes"], queryFn: api.processes });
-  const top = useMemo(() => [...procs].sort((a, b) => b.cpu - a.cpu).slice(0, 6), [procs]);
+  const top = useMemo(() => procs.toSorted((a, b) => b.cpu - a.cpu).slice(0, 6), [procs]);
   return (
     <Card className="elev-1 h-full">
       <CardHeader className="pb-2"><CardTitle className="text-sm">Top processes</CardTitle></CardHeader>

@@ -1,0 +1,14 @@
+# /etc/systemd/system/paperclip-local-proxy.service
+[Unit]
+Description=Paperclip local compatibility proxy
+Requires=paperclip.service
+After=paperclip.service
+
+[Service]
+EnvironmentFile=-/opt/cortexos/.secrets/9router.env
+ExecStart=/usr/bin/node /opt/cortexos/scripts/paperclip-local-proxy.mjs
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

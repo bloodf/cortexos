@@ -1,0 +1,6 @@
+cp: cannot create directory '/mnt/nas/Work/cortex-backups-512/daily/2026-05-31_0000/services/hermes/profiles/netbook/lsp/node_modules/@bmewburn/vscode-html-languageserver/node_modules/.bin': No such file or directory
+cp: cannot create directory '/mnt/nas/Work/cortex-backups-512/daily/2026-05-31_0000/services/hermes/profiles/netbook/lsp/node_modules/cls-hooked/node_modules/.bin': No such file or directory
+cp: cannot create directory '/mnt/nas/Work/cortex-backups-512/daily/2026-05-31_0000/services/hermes/profiles/netbook/lsp/node_modules/async-listener/node_modules/.bin': No such file or directory
+cp: cannot create directory '/mnt/nas/Work/cortex-backups-512/daily/2026-05-31_0000/services/hermes/profiles/netbook/lsp/node_modules/.bin': No such file or directory
+cp: cannot create symbolic link '/mnt/nas/Work/cortex-backups-512/daily/2026-05-31_0000/services/hermes/profiles/cortex/lsp/bin/typescript-language-server': Operation not supported
+cp: cannot create directory '/mnt/nas/Work/cortex-backups-512/daily/2026-05-31_0000/services/hermes/profiles/cortex/lsp/node_modules/.bin': No such file or directory

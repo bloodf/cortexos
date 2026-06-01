@@ -1,0 +1,38 @@
+{
+  "description": "Book writing workflow routing for CortexOS/OpenClaw agents.",
+  "labels": {
+    "chapter:draft": {
+      "agent_role": "book-author",
+      "description": "Create or revise chapter draft"
+    },
+    "chapter:edit": {
+      "agent_role": "book-editor",
+      "description": "Edit structure, voice, clarity, and continuity"
+    },
+    "chapter:review": {
+      "agent_role": "book-reviewer",
+      "description": "Review chapter against brief, claims, continuity, and reader value"
+    },
+    "chapter:evaluate": {
+      "agent_role": "book-evaluator",
+      "description": "Score chapter against quality rubric and decide pass/block"
+    },
+    "chapter:translate": {
+      "agent_role": "book-translator",
+      "description": "Translate approved chapter into target locale"
+    },
+    "chapter:done": {
+      "agent_role": "pm",
+      "description": "PM closes chapter after final acceptance"
+    }
+  },
+  "transitions": {
+    "chapter:draft": ["chapter:edit"],
+    "chapter:edit": ["chapter:review", "chapter:draft"],
+    "chapter:review": ["chapter:evaluate", "chapter:edit"],
+    "chapter:evaluate": ["chapter:translate", "chapter:done", "chapter:edit"],
+    "chapter:translate": ["chapter:done", "chapter:review"]
+  },
+  "human_review_labels": ["needs-clarification", "needs-human-review"],
+  "pm_token": "@pm"
+}

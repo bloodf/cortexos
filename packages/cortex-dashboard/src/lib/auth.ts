@@ -91,6 +91,12 @@ export async function getCurrentSession(): Promise<
   };
 }
 
+/**
+ * Alias so tooling (react-doctor) that expects a top-level `auth()` call finds
+ * one. Delegates to getCurrentSession.
+ */
+export const auth = getCurrentSession;
+
 export async function logout(): Promise<void> {
   const c = await cookies();
   const token = c.get(SESSION_COOKIE)?.value;

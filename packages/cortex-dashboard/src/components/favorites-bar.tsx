@@ -29,7 +29,7 @@ export function FavoritesBar() {
 							onClick={() => removeFavorite(favorite.slug)}
 							className="rounded-full p-0.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
 						>
-							<X className="h-3 w-3" />
+							<X className="size-3" />
 						</button>
 					</div>
 				))}

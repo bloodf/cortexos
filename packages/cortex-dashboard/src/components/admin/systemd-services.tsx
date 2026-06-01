@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -19,50 +20,22 @@ interface SystemdService {
   description: string;
 }
 
+const fetcher = (url: string) => fetch(url, { cache: "no-store" }).then((r) => r.json());
+
 export function SystemdServices() {
-  const [services, setServices] = useState<SystemdService[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
-  async function fetchServices() {
-    try {
-      const res = await fetch("/api/systemd", { cache: "no-store" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-      setServices(data.services ?? []);
-      setError(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to fetch systemd services");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/systemd", { cache: "no-store" });
-        const data = await res.json();
-        if (cancelled) return;
-        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-        setServices(data.services ?? []);
-        setError(null);
-      } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : "Failed to fetch systemd services");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { data, error: fetchError, isLoading, mutate } = useSWR<{ services: SystemdService[]; error?: string }>(
+    "/api/systemd",
+    fetcher,
+  );
+  const services = data?.services ?? [];
+  const error = fetchError?.message ?? data?.error ?? actionError;
 
   async function runAction(name: string, action: string) {
     setActionLoading(`${name}:${action}`);
-    setError(null);
+    setActionError(null);
     try {
       const res = await fetch("/api/systemd/actions", {
         method: "POST",
@@ -71,16 +44,16 @@ export function SystemdServices() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-      await fetchServices();
+      await mutate();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Action failed");
+      setActionError(e instanceof Error ? e.message : "Action failed");
     } finally {
       setActionLoading(null);
     }
   }
 
-  if (loading) {
-    return <div className="text-sm text-muted-foreground">Loading systemd services...</div>;
+  if (isLoading) {
+    return <div className="text-sm text-muted-foreground">Loading systemd services…</div>;
   }
 
   if (error && services.length === 0) {
@@ -116,7 +89,7 @@ export function SystemdServices() {
                         disabled={actionLoading !== null}
                         onClick={() => runAction(service.name, action)}
                       >
-                        {actionLoading === `${service.name}:${action}` ? "..." : action.charAt(0).toUpperCase() + action.slice(1)}
+                        {actionLoading === `${service.name}:${action}` ? "…" : action.charAt(0).toUpperCase() + action.slice(1)}
                       </Button>
                     ))}
                   </div>

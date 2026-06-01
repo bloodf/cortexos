@@ -214,7 +214,7 @@ export function IncusInstanceDetails({
                       className="font-mono text-xs"
                     />
                     <Button type="submit" size="sm" disabled={execRunning || command.trim().length === 0}>
-                      {execRunning ? "Running..." : "Run"}
+                      {execRunning ? "Running…" : "Run"}
                     </Button>
                   </div>
                   <p className="text-[11px] text-muted-foreground">

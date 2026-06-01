@@ -52,7 +52,7 @@ const SidebarContext = React.createContext<SidebarContextValue>({
 })
 
 function useSidebar() {
-  return React.useContext(SidebarContext)
+  return React.use(SidebarContext)
 }
 
 // ─── Provider ────────────────────────────────────────────────────────────────
@@ -86,8 +86,7 @@ function SidebarProvider({
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setInternalOpen(stored)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [controlledOpen])
 
   React.useEffect(() => {
     const mq = window.matchMedia("(max-width: 767px)")

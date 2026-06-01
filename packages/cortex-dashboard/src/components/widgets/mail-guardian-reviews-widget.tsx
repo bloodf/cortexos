@@ -30,7 +30,7 @@ export function MailGuardianReviewsWidget() {
 
 	return (
 		<div className="-m-4 flex h-[calc(100%+2rem)] min-h-[112px] items-center gap-3 rounded-2xl border border-warning/20 bg-warning/10 px-6 py-4">
-			<ShieldQuestion className="h-7 w-7 text-warning" />
+			<ShieldQuestion className="size-7 text-warning" />
 			<div>
 				<div className="text-2xl font-bold text-warning">{openReviews}</div>
 				<div className="text-xs text-muted-foreground">Mail Reviews</div>

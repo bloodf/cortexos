@@ -122,7 +122,7 @@ export function AgentFileViewer({ slug, files }: Props) {
                   disabled={saving}
                   className="rounded-md bg-primary px-3 py-1 text-xs text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
                 >
-                  {saving ? "Saving..." : "Save"}
+                  {saving ? "Saving…" : "Save"}
                 </button>
               </>
             ) : (
@@ -149,7 +149,7 @@ export function AgentFileViewer({ slug, files }: Props) {
         <div className="p-4">
           {isLoading && (
             <div className="text-sm text-muted-foreground animate-pulse">
-              Loading...
+              Loading…
             </div>
           )}
 

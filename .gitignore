@@ -17,6 +17,11 @@ Thumbs.db
 .claude/
 CLAUDE.md
 
+# Hermes AI Agent (private - runtime data)
+hermes/
+# BUT allow Hermes templates/config
+!templates/hermes/
+
 # Gemini / Google
 .gemini/
 

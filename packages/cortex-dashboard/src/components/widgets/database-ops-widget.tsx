@@ -18,7 +18,7 @@ export function DatabaseOpsWidget() {
 			className="flex h-full min-h-[80px] flex-col justify-center rounded-xl border border-success/20 bg-success/5 p-4"
 		>
 			<div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-				<Database className="h-4 w-4 text-success" />
+				<Database className="size-4 text-success" />
 				Database
 			</div>
 			<div className="flex items-baseline gap-2 font-mono text-3xl font-bold text-success">

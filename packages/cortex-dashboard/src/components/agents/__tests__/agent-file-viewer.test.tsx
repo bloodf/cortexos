@@ -135,7 +135,7 @@ describe("AgentFileViewer", () => {
     } as ReturnType<typeof useSWR>);
 
     render(<AgentFileViewer slug="coder" files={testFiles} />);
-    expect(screen.getByText("Loading...")).toBeInTheDocument();
+    expect(screen.getByText("Loading…")).toBeInTheDocument();
   });
 
   it("shows error state", () => {

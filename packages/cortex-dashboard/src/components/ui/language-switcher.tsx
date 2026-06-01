@@ -30,7 +30,7 @@ export function LanguageSwitcher() {
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] hover:bg-white/[0.08] text-white/70 light:text-slate-700 transition-colors"
       >
-        <Globe className="w-4 h-4" />
+        <Globe className="size-4" />
         <span className="text-xs font-medium uppercase">{locale}</span>
       </button>
 

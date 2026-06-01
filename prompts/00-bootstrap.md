@@ -1,75 +1,382 @@
-# 00 - CortexOS Rebuild Bootstrap
+# CortexOS Interactive Installer
 
-This is the entrypoint for the CortexOS rebuild. The canonical source of truth
-is `PLAN.md`; every phase must update it with status, evidence, risks, and next
-actions before moving forward.
+> Guided setup for the complete CortexOS stack on Ubuntu 24.04+
 
-## Ground Rules
+## Before You Start
 
-- Do not run destructive cleanup until the backup/export flow has produced
-  local artifacts under `/mnt/hdd/cortexos-backups` and restore listing passes.
-- The host remains the control/data plane.
-- New project development and project agents move into Incus instances.
-- Secrets stay in host-owned env files. The repo tracks only manifests and
-  validation rules.
-- Protected Hermes identities `cieucpb`, `netbook`, and `cortex` must be
-  preserved and restored on the host.
-- Project Hermes profiles `mementry`, `celebrar`, and `3guns` move into their
-  project instances only after those instances validate.
-- Retired systems are removed after backup according to
-  `manifests/rebuild/retired-systems.txt`.
+Ensure you have:
+- Ubuntu 24.04 LTS or newer
+- SSH access to the target host
+- A user account with sudo privileges
 
-## Required First Commands
-
-Run from the repository root:
+## Step 1: OS Prerequisites
 
 ```bash
-scripts/rebuild/validate.sh --local
-scripts/rebuild/plan.sh
-scripts/rebuild/inventory.sh --output /tmp/cortexos-inventory-remote
-scripts/rebuild/backup.sh --dry-run
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Install core dependencies
+sudo apt install -y curl wget git vim jq unzip ca-certificates gnupg lsb-release \
+    software-properties-common apt-transport-https openssl build-essential
 ```
 
-`scripts/rebuild/apply.sh` is intentionally blocked until the backup/restore
-gate has passed.
+## Step 2: Install Docker
 
-## Execution Order
+```bash
+# Install Docker
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER
 
-1. Baseline inventory: systemd, Docker, ports, packages, repos, secret file
-   names, databases, Hermes profiles, Honcho state, Caddy, Tailscale, cron,
-   and timers.
-2. Repo source of truth: manifests and scripts under `manifests/rebuild/` and
-   `scripts/rebuild/`.
-3. Backup and restore gate under `/mnt/hdd/cortexos-backups`.
-4. Cortex-managed host rebuild.
-5. Protected Hermes, Honcho, 9Router, Ollama restoration.
-6. Incus foundation with Ubuntu 26.04 unprivileged containers and file-backed
-   ZFS under `/mnt/hdd`.
-7. Project instances for `mementry`, `celebrar-me`, and `3guns`.
-8. Project Hermes migration into instances.
-9. Retired-infra removal.
-10. Full validation.
+# Install Docker Compose
+sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
 
-## Validation Contract
+# Verify
+docker --version
+docker compose version
+```
 
-Each phase must prove its own gate before the next phase starts. Evidence goes
-into `PLAN.md` and durable details go into `docs/rebuild/` when useful.
+## Step 3: Deploy Databases
 
-Current durable inventory summary:
+**Question:** Do you want to deploy PostgreSQL, MySQL, MongoDB, and Redis? (yes/no)
 
-- `docs/rebuild/current-host-inventory.md`
+If yes, create `/opt/cortexos/docker-compose.yml`:
 
-Machine-readable rebuild decisions:
+```yaml
+version: '3.8'
 
-- `manifests/rebuild/service-placement.tsv`
-- `manifests/rebuild/projects.tsv`
-- `manifests/rebuild/protected-hermes.txt`
-- `manifests/rebuild/retired-systems.txt`
-- `manifests/rebuild/backup-scope.tsv`
-- `manifests/rebuild/secrets.manifest.tsv`
-- `manifests/rebuild/incus-base-image.tsv`
-- `manifests/rebuild/tmux-plugins.txt`
-- `manifests/rebuild/tmux-session-model.tsv`
-- `manifests/rebuild/dashboard-helper-audit.sql`
-- `manifests/rebuild/dashboard-helper-log-format.json`
-- `manifests/rebuild/mcp-global-allowlist.txt`
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cortex-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cortex
+      POSTGRES_USER: cortex
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cortex"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mysql:
+    image: mysql:8
+    container_name: cortex-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: cortex
+      MYSQL_USER: cortex
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "127.0.0.1:3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongodb:
+    image: mongo:7
+    container_name: cortex-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: cortex
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    volumes:
+      - mongodb_data:/data/db
+    ports:
+      - "127.0.0.1:27017:27017"
+
+  redis:
+    image: redis:7-alpine
+    container_name: cortex-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  mysql_data:
+  mongodb_data:
+  redis_data:
+```
+
+Deploy:
+```bash
+mkdir -p /opt/cortexos
+cd /opt/cortexos
+docker compose up -d
+```
+
+## Step 4: Deploy Monitoring Stack
+
+**Question:** Do you want to deploy Prometheus, Grafana, Loki, and exporters? (yes/no)
+
+If yes, add to your `docker-compose.yml`:
+
+```yaml
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: cortex-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: cortex-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+    volumes:
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3001:3000"
+
+  loki:
+    image: grafana/loki:latest
+    container_name: cortex-loki
+    restart: unless-stopped
+    volumes:
+      - loki_data:/loki
+    ports:
+      - "127.0.0.1:3100:3100"
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: cortex-node-exporter
+    restart: unless-stopped
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    network_mode: host
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cortex-cadvisor
+    restart: unless-stopped
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    ports:
+      - "127.0.0.1:8081:8080"
+```
+
+## Step 5: Install 9Router (AI Gateway)
+
+```bash
+# Pull and start 9Router
+docker run -d \
+  --name 9router \
+  --restart unless-stopped \
+  -p 127.0.0.1:11434:11434 \
+  -v 9router-data:/data \
+  ghcr.io/openrouter/9router:latest
+
+# Verify
+curl -s http://127.0.0.1:11434/v1/models | jq '.data[].id'
+```
+
+## Step 6: Install Ollama
+
+```bash
+# Install
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Enable and start
+sudo systemctl enable ollama
+sudo systemctl start ollama
+
+# Pull useful models
+ollama pull llama3.2
+ollama pull nomic-embed-text
+```
+
+## Step 7: Install Caddy (Reverse Proxy)
+
+```bash
+# Install
+sudo apt install -y caddy
+
+# Configure (edit /etc/caddy/Caddyfile)
+sudo nano /etc/caddy/Caddyfile
+```
+
+Example configuration:
+```caddy
+# Dashboard
+:80 {
+    reverse_proxy localhost:3000
+}
+
+# Grafana
+grafana.yourdomain.com {
+    reverse_proxy localhost:3001
+}
+```
+
+```bash
+sudo systemctl reload caddy
+```
+
+## Step 8: Install Tailscale
+
+```bash
+# Install
+curl -fsSL https://tailscale.com/install.sh | sh
+
+# Connect (you'll need to authenticate)
+sudo tailscale up
+
+# Get your tailnet IP
+tailscale ip
+```
+
+## Step 9: Install Dashboard
+
+**Question:** Do you want to install the CortexOS Dashboard? (yes/no)
+
+If yes:
+
+```bash
+# Install Node.js
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo bash -
+sudo apt install -y nodejs
+npm install -g pnpm
+
+# Clone repo (if not already)
+git clone https://github.com/cortexos/cortexos.git /opt/cortexos
+cd /opt/cortexos
+
+# Build
+pnpm install
+pnpm run build
+
+# Create systemd service
+sudo nano /etc/systemd/system/cortex-dashboard.service
+```
+
+```ini
+[Unit]
+Description=CortexOS Dashboard
+After=network.target
+
+[Service]
+Type=simple
+User=cortexos
+WorkingDirectory=/opt/cortexos/packages/cortex-dashboard
+ExecStart=/usr/bin/node server.js
+Environment=PORT=3000
+Environment=HOSTNAME=0.0.0.0
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl enable cortex-dashboard
+sudo systemctl start cortex-dashboard
+```
+
+## Step 10: CLI Tools
+
+**Question:** Do you want to install CLI AI tools? (yes/no)
+
+### Claude Code
+```bash
+npm install -g @anthropic-ai/claude-code
+```
+
+### Qwen Code
+```bash
+# Follow instructions at https://qwen.ai
+```
+
+### Configure Qwen Code for 9Router
+```bash
+# Run the update skill
+/qwen-code:update-9router
+```
+
+## Verification
+
+Run this to verify everything is working:
+
+```bash
+echo "=== Docker Containers ==="
+docker ps --format "table {{.Names}}\t{{.Status}}"
+
+echo ""
+echo "=== Systemd Services ==="
+systemctl status caddy tailscaled ollama 2>/dev/null | grep -E "active|loaded"
+
+echo ""
+echo "=== Listening Ports ==="
+ss -tlnp | grep -E ":(3000|5432|3306|6379|9090|3100|11434)"
+
+echo ""
+echo "=== AI Gateway ==="
+curl -s http://127.0.0.1:11434/v1/models | jq '.data | length'
+```
+
+## Next Steps
+
+1. Configure secrets in `/opt/cortexos/.secrets/`
+2. Set up backups (see `docs/BACKUP.md`)
+3. Review `docs/CONFIG.md` for dotfiles
+4. Join Tailscale from other devices
+
+## Troubleshooting
+
+### Docker not starting
+```bash
+sudo systemctl enable docker
+sudo systemctl start docker
+sudo docker run hello-world
+```
+
+### Port already in use
+```bash
+sudo ss -tlnp | grep :PORT
+sudo kill PROCESS_ID
+```
+
+### 9Router not responding
+```bash
+docker logs 9router
+docker restart 9router
+```
+
+## Questions?
+
+For help, see:
+- `docs/INSTALL.md` - Detailed installation guide
+- `docs/SERVICES.md` - Service documentation
+- `docs/CONFIG.md` - CLI tool configuration

@@ -1,0 +1,32 @@
+services:
+  snmp-exporter:
+    image: prom/snmp-exporter:latest
+    container_name: cortex-snmp-exporter
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9116:9116"
+    volumes:
+      - /opt/cortexos/stacks/monitoring/snmp-exporter/snmp.yml:/etc/snmp_exporter/snmp.yml:ro
+    command:
+      - --config.file=/etc/snmp_exporter/snmp.yml
+    networks:
+      - monitoring_default
+      - cortex-internal
+
+  adguard-exporter:
+    image: ghcr.io/henrywhitaker3/adguard-exporter:latest
+    container_name: cortex-adguard-exporter
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9618:9618"
+    env_file:
+      - /opt/cortexos/.secrets/adguard-exporter.env
+    networks:
+      - monitoring_default
+      - cortex-internal
+
+networks:
+  monitoring_default:
+    external: true
+  cortex-internal:
+    external: true

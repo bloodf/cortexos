@@ -67,7 +67,7 @@ export function IncidentTimeline({
 					<div key={`${incident.changed_at}-${incident.from_status}-${incident.to_status}`} className="flex items-start gap-3">
 						<div className="flex flex-col items-center gap-1 pt-1">
 							<div
-								className={`h-2 w-2 rounded-full ${statusColor(incident.to_status)}`}
+								className={`size-2 rounded-full ${statusColor(incident.to_status)}`}
 							/>
 							{idx < items.length - 1 && (
 								<div className="h-full w-px bg-border" />

@@ -66,7 +66,7 @@ export function HealthcheckTable({ services, isMobile = false }: HealthcheckTabl
 	}, [services, search]);
 
 	const sorted = useMemo(() => {
-		return [...filtered].sort((a, b) => {
+		return filtered.toSorted((a, b) => {
 			if (a.status === b.status) return 0;
 			if (a.status === "offline") return -1;
 			if (b.status === "offline") return 1;

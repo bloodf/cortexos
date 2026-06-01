@@ -22,7 +22,7 @@ function SensorRow({ sensor }: { sensor: MachineSensor }) {
 	return (
 		<div className="flex min-h-10 items-center justify-between gap-3 rounded-lg bg-muted/50 px-3 py-2">
 			<div className="flex min-w-0 items-center gap-2">
-				<Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+				<Icon className="size-4 shrink-0 text-muted-foreground" />
 				<div className="min-w-0">
 					<p className="truncate text-sm font-medium text-foreground">{sensor.label}</p>
 					<p className="truncate text-xs text-muted-foreground">{sensor.source}</p>
@@ -50,7 +50,7 @@ export function MachineSensorsWidget() {
 					<p className="text-sm font-semibold text-foreground">Machine Sensors</p>
 					<p className="mt-1 text-xs text-muted-foreground">Thermals, fans, and voltage rails</p>
 				</div>
-				<Gauge className="h-5 w-5 text-muted-foreground" />
+				<Gauge className="size-5 text-muted-foreground" />
 			</div>
 			{sys ? (
 				sensors.length ? (
@@ -61,7 +61,7 @@ export function MachineSensorsWidget() {
 					</div>
 				) : (
 					<div className="flex h-36 flex-col items-center justify-center text-center text-sm text-muted-foreground">
-						<Activity className="mb-2 h-5 w-5" />
+						<Activity className="mb-2 size-5" />
 						No machine sensors exposed by the host
 					</div>
 				)

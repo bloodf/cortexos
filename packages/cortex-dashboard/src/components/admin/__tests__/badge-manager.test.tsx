@@ -22,7 +22,7 @@ describe("BadgeManager", () => {
     });
 
     render(<BadgeManager serviceId={10} />);
-    expect(screen.getByText("Loading badges...")).toBeInTheDocument();
+    expect(screen.getByText("Loading badges…")).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByText("prod")).toBeInTheDocument();

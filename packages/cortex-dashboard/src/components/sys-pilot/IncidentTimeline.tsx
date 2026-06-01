@@ -4,7 +4,7 @@ import { relativeTime } from "@/lib/sys-pilot/format";
 import { cn } from "@/lib/utils";
 
 export function IncidentTimeline({ items }: { items: AlertHistory[] }) {
-  const sorted = [...items].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  const sorted = items.toSorted((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   if (sorted.length === 0) {
     return <p className="text-sm text-muted-foreground">No incidents recorded.</p>;
   }

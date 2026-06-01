@@ -12,8 +12,8 @@ export function ServiceIdleWidget() {
 	const idle = services.filter((s) => s.status === "unknown").length;
 	return (
 		<div className="flex h-full min-h-[80px] items-center gap-3 rounded-xl border border-border bg-muted/30 px-4 py-3">
-			<div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-				<Server className="h-5 w-5 text-muted-foreground" />
+			<div className="flex size-10 items-center justify-center rounded-lg bg-muted">
+				<Server className="size-5 text-muted-foreground" />
 			</div>
 			<div>
 				<div className="text-2xl font-bold text-foreground">{idle}</div>
@@ -50,16 +50,16 @@ export function LivePerformanceWidget() {
 		<div className="h-full flex flex-col min-h-[200px]">
 			<div className="flex items-center justify-between mb-4">
 				<h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-					<Activity className="h-4 w-4 text-primary" />
+					<Activity className="size-4 text-primary" />
 					Live Performance
 				</h2>
 				<div className="flex gap-3 text-xs text-muted-foreground">
 					<span className="flex items-center gap-1.5">
-						<span className="h-2.5 w-2.5 rounded-full bg-chart-1" />
+						<span className="size-2.5 rounded-full bg-chart-1" />
 						CPU
 					</span>
 					<span className="flex items-center gap-1.5">
-						<span className="h-2.5 w-2.5 rounded-full bg-chart-2" />
+						<span className="size-2.5 rounded-full bg-chart-2" />
 						Mem
 					</span>
 				</div>

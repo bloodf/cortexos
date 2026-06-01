@@ -20,7 +20,7 @@ export function LogViewer({ lines, className, height = 320, follow = true }: Pro
           const isWarn = /WARN|warning/i.test(l);
           const isInfo = /INFO|started|listening/i.test(l);
           return (
-            <div key={`${i}-${l.slice(0,20)}`} className="flex gap-2">
+            <div key={`${i}-${l.length}-${l.charCodeAt(0) ?? 0}`} className="flex gap-2">
               <span className="text-white/30 select-none w-10 text-right shrink-0">{i + 1}</span>
               <span className={cn(isErr && "text-[var(--destructive)]", isWarn && "text-[var(--warning)]", isInfo && "text-[var(--success)]")}>{l}</span>
             </div>

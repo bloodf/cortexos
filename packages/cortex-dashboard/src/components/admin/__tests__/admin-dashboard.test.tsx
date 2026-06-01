@@ -43,7 +43,7 @@ describe("AdminDashboard", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /badge manager/i }));
     await waitFor(() => {
-      expect(screen.getByText("Loading badges...")).toBeInTheDocument();
+      expect(screen.getByText("Loading badges…")).toBeInTheDocument();
     });
   });
 

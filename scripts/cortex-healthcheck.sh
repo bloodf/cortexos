@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT=/opt/cortexos
+
+load_env_file() {
+  local file="$1"
+  if [[ -f "$file" ]]; then
+    set -a
+    # shellcheck disable=SC1090
+    source "$file"
+    set +a
+  fi
+}
+
+load_env_file "${ROOT}/.secrets/9router.env"
+load_env_file "${ROOT}/.secrets/paperclip.env"
+
+ok() { printf '[ok] %s\n' "$*"; }
+bad() { printf '[bad] %s\n' "$*"; }
+
+check_http() {
+  local label="$1"
+  local url="$2"
+  if curl -fsS --max-time 10 "$url" >/dev/null; then ok "$label"; else bad "$label"; fi
+}
+
+echo "[models]"
+if [[ -n "${NINEROUTER_API_KEY:-}" ]]; then
+  base="${NINEROUTER_BASE_URL:-http://127.0.0.1:11434}"
+  base="${base%/}"
+  if [[ "$base" == */v1 ]]; then models_url="${base}/models"; else models_url="${base}/v1/models"; fi
+  curl -fsS --max-time 10 -H "Authorization: Bearer ${NINEROUTER_API_KEY}" \
+    "$models_url" | jq -e '.data | length > 0' >/dev/null \
+    && ok "9Router models available" || bad "9Router models available"
+else
+  bad "NINEROUTER_API_KEY missing"
+fi
+
+echo "[memory]"
+check_http "Honcho API" "http://127.0.0.1:18690/health"
+
+echo "[hermes]"
+check_http "Hermes primary API" "http://127.0.0.1:18691/health"
+check_http "Hermes secondary API" "http://127.0.0.1:18692/health"
+node "${ROOT}/scripts/paperclip-hermes-smoke.mjs" >/dev/null 2>&1 && ok "Paperclip/Hermes role smoke" || bad "Paperclip/Hermes role smoke"
+
+echo "[dashboard]"
+check_http "Cortex Dashboard" "http://127.0.0.1:3080/en/login"

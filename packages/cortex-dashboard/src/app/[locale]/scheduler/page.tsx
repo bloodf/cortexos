@@ -13,16 +13,16 @@ export default function SchedulerPage() {
 				description="Cron jobs and scheduled tasks."
 				actions={
 					<Button>
-						<Calendar className="mr-2 h-4 w-4" />
+						<Calendar className="mr-2 size-4" />
 						New Schedule
 					</Button>
 				}
 			/>
 			<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
 				<Card>
-					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+					<CardHeader className="flex flex-row items-center justify-between pb-2">
 						<CardTitle className="text-sm font-medium">Active Jobs</CardTitle>
-						<Play className="h-4 w-4 text-muted-foreground" />
+						<Play className="size-4 text-muted-foreground" />
 					</CardHeader>
 					<CardContent>
 						<div className="text-2xl font-bold">8</div>
@@ -30,9 +30,9 @@ export default function SchedulerPage() {
 					</CardContent>
 				</Card>
 				<Card>
-					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+					<CardHeader className="flex flex-row items-center justify-between pb-2">
 						<CardTitle className="text-sm font-medium">Next Run</CardTitle>
-						<Clock className="h-4 w-4 text-muted-foreground" />
+						<Clock className="size-4 text-muted-foreground" />
 					</CardHeader>
 					<CardContent>
 						<div className="text-2xl font-bold">5m</div>

@@ -97,7 +97,7 @@ function BellDropdown({ className }: { className?: string }) {
               className="py-8"
             />
           ) : (
-            <ul role="list">
+            <ul>
               {visible.map((alert) => (
                 <li
                   key={alert.id}

@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import { PageHeader } from "@/components/sys-pilot/PageHeader";
 import { Boxes } from "lucide-react";
 import { ProvisionWizard } from "@/components/sys-pilot/incus/provision-wizard";
+
+export const metadata: Metadata = { title: "Provision Instance" };
 
 export default function IncusProvisionPage() {
 	return (

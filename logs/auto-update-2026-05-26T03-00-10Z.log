@@ -1,0 +1,385 @@
+[2026-05-26T03:00:11Z] == apt ==
+Get:1 https://cli.github.com/packages stable InRelease [3,917 B]
+Hit:2 https://download.docker.com/linux/ubuntu resolute InRelease
+Get:3 https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version InRelease [14.8 kB]
+Hit:4 https://deb.nodesource.com/node_24.x nodistro InRelease
+Get:5 https://pkgs.tailscale.com/stable/ubuntu resolute InRelease
+Hit:6 https://apt.postgresql.org/pub/repos/apt resolute-pgdg InRelease
+Hit:7 http://archive.ubuntu.com/ubuntu resolute InRelease
+Hit:8 http://security.ubuntu.com/ubuntu resolute-security InRelease
+Hit:9 http://archive.ubuntu.com/ubuntu resolute-updates InRelease
+Hit:10 http://archive.ubuntu.com/ubuntu resolute-backports InRelease
+Hit:11 https://download.webmin.com/download/newkey/repository stable InRelease
+Fetched 25.3 kB in 2s (14.4 kB/s)
+Reading package lists...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+Calculating upgrade...
+The following packages will be upgraded:
+  vim vim-common vim-runtime vim-tiny xxd
+5 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+Need to get 11.0 MB of archives.
+After this operation, 0 B of additional disk space will be used.
+Get:1 http://archive.ubuntu.com/ubuntu resolute-updates/main amd64 vim amd64 2:9.1.2141-1ubuntu4.2 [2,067 kB]
+Get:2 http://archive.ubuntu.com/ubuntu resolute-updates/main amd64 vim-common all 2:9.1.2141-1ubuntu4.2 [494 kB]
+Get:3 http://archive.ubuntu.com/ubuntu resolute-updates/main amd64 vim-tiny amd64 2:9.1.2141-1ubuntu4.2 [867 kB]
+Get:4 http://archive.ubuntu.com/ubuntu resolute-updates/main amd64 vim-runtime all 2:9.1.2141-1ubuntu4.2 [7,511 kB]
+Get:5 http://archive.ubuntu.com/ubuntu resolute-updates/main amd64 xxd amd64 2:9.1.2141-1ubuntu4.2 [67.9 kB]
+Fetched 11.0 MB in 0s (34.3 MB/s)
+(Reading database… (Reading database… 5%(Reading database… 10%(Reading database… 15%(Reading database… 20%(Reading database… 25%(Reading database… 30%(Reading database… 35%(Reading database… 40%(Reading database… 45%(Reading database… 50%(Reading database… 55%(Reading database… 60%(Reading database… 65%(Reading database… 70%(Reading database… 75%(Reading database… 80%(Reading database… 85%(Reading database… 90%(Reading database… 95%(Reading database… 100%(Reading database… 196256 files and directories currently installed.)
+Preparing to unpack …/vim_2%3a9.1.2141-1ubuntu4.2_amd64.deb…
+Unpacking vim (2:9.1.2141-1ubuntu4.2) over (2:9.1.2141-1ubuntu4.1)…
+Preparing to unpack …/vim-common_2%3a9.1.2141-1ubuntu4.2_all.deb…
+Unpacking vim-common (2:9.1.2141-1ubuntu4.2) over (2:9.1.2141-1ubuntu4.1)…
+Preparing to unpack …/vim-tiny_2%3a9.1.2141-1ubuntu4.2_amd64.deb…
+Unpacking vim-tiny (2:9.1.2141-1ubuntu4.2) over (2:9.1.2141-1ubuntu4.1)…
+Preparing to unpack …/vim-runtime_2%3a9.1.2141-1ubuntu4.2_all.deb…
+Unpacking vim-runtime (2:9.1.2141-1ubuntu4.2) over (2:9.1.2141-1ubuntu4.1)…
+Preparing to unpack …/xxd_2%3a9.1.2141-1ubuntu4.2_amd64.deb…
+Unpacking xxd (2:9.1.2141-1ubuntu4.2) over (2:9.1.2141-1ubuntu4.1)…
+Setting up xxd (2:9.1.2141-1ubuntu4.2)…
+Setting up vim-common (2:9.1.2141-1ubuntu4.2)…
+Setting up vim-runtime (2:9.1.2141-1ubuntu4.2)…
+Setting up vim (2:9.1.2141-1ubuntu4.2)…
+Setting up vim-tiny (2:9.1.2141-1ubuntu4.2)…
+Processing triggers for hicolor-icon-theme (0.18-2build1)…
+Processing triggers for man-db (2.13.1-1build1)…
+
+Running kernel seems to be up-to-date.
+
+The processor microcode seems to be up-to-date.
+
+No services need to be restarted.
+
+No containers need to be restarted.
+
+No user sessions are running outdated binaries.
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+[2026-05-26T03:00:21Z] == brew ==
+[2026-05-26T03:00:21Z] == npm ==
+npm warn deprecated uv@1.4.0: Use NodeBuffer.isUtf8() instead, it is faster
+npm warn deprecated prebuild-install@7.1.3: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+
+changed 69 packages in 6s
+
+24 packages are looking for funding
+  run `npm fund` for details
+[2026-05-26T03:00:27Z] == pip ==
+[2026-05-26T03:00:27Z] No pip venvs found
+[2026-05-26T03:00:27Z] == snap ==
+All snaps up to date.
+[2026-05-26T03:00:28Z] == docker ==
+ Image cortex-dashboard:local Pulling 
+ Image cortex-dashboard:local pull access denied for cortex-dashboard, repository does not exist or may require 'docker login' 
+time="2026-05-26T03:00:29Z" level=warning msg="WARNING: Some service image(s) must be built from source by running:\n    docker compose build cortex-dashboard"
+Error response from daemon: pull access denied for cortex-dashboard, repository does not exist or may require 'docker login'
+ Container cortex-dashboard Recreate 
+ Container cortex-dashboard Recreated 
+ Container cortex-dashboard Starting 
+ Container cortex-dashboard Started 
+[2026-05-26T03:00:32Z] Updated compose stack: /opt/cortexos/stacks/cortex-dashboard
+time="2026-05-26T03:00:32Z" level=warning msg="The \"LANGFUSE_DATABASE_URL\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:32Z" level=warning msg="The \"LANGFUSE_PUBLIC_KEY\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:32Z" level=warning msg="The \"LANGFUSE_SECRET_KEY\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:32Z" level=warning msg="The \"LANGFUSE_ENCRYPTION_KEY\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:32Z" level=warning msg="The \"LANGFUSE_CLICKHOUSE_PASSWORD\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:32Z" level=warning msg="The \"CORTEX_DOMAIN\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:32Z" level=warning msg="The \"LANGFUSE_NEXTAUTH_SECRET\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:32Z" level=warning msg="The \"LANGFUSE_SALT\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:32Z" level=warning msg="The \"LANGFUSE_INIT_USER_PASSWORD\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:32Z" level=warning msg="The \"LANGFUSE_MINIO_ROOT_USER\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:32Z" level=warning msg="The \"LANGFUSE_MINIO_ROOT_PASSWORD\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:32Z" level=warning msg="The \"LANGFUSE_ENCRYPTION_KEY\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:32Z" level=warning msg="The \"LANGFUSE_MINIO_ROOT_USER\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:32Z" level=warning msg="The \"LANGFUSE_DATABASE_URL\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:32Z" level=warning msg="The \"LANGFUSE_SALT\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:32Z" level=warning msg="The \"LANGFUSE_CLICKHOUSE_PASSWORD\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:32Z" level=warning msg="The \"LANGFUSE_MINIO_ROOT_PASSWORD\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:32Z" level=warning msg="The \"LANGFUSE_CLICKHOUSE_PASSWORD\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:32Z" level=warning msg="The \"LANGFUSE_MINIO_ROOT_USER\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:32Z" level=warning msg="The \"LANGFUSE_MINIO_ROOT_PASSWORD\" variable is not set. Defaulting to a blank string."
+ Image docker.io/clickhouse/clickhouse-server:24.12-alpine Pulling 
+ Image docker.io/langfuse/langfuse-worker:3 Pulling 
+ Image docker.io/langfuse/langfuse:3 Pulling 
+ Image docker.io/minio/minio:RELEASE.2025-01-20T14-49-07Z Pulling 
+ Image docker.io/langfuse/langfuse-worker:3 Pulled 
+ Image docker.io/langfuse/langfuse:3 Pulled 
+ Image docker.io/clickhouse/clickhouse-server:24.12-alpine Pulled 
+ Image docker.io/minio/minio:RELEASE.2025-01-20T14-49-07Z Pulled 
+time="2026-05-26T03:00:35Z" level=warning msg="The \"LANGFUSE_MINIO_ROOT_USER\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:35Z" level=warning msg="The \"LANGFUSE_DATABASE_URL\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:35Z" level=warning msg="The \"LANGFUSE_MINIO_ROOT_PASSWORD\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:35Z" level=warning msg="The \"LANGFUSE_SALT\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:35Z" level=warning msg="The \"LANGFUSE_ENCRYPTION_KEY\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:35Z" level=warning msg="The \"LANGFUSE_CLICKHOUSE_PASSWORD\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:35Z" level=warning msg="The \"LANGFUSE_CLICKHOUSE_PASSWORD\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:35Z" level=warning msg="The \"LANGFUSE_MINIO_ROOT_USER\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:35Z" level=warning msg="The \"LANGFUSE_MINIO_ROOT_PASSWORD\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:35Z" level=warning msg="The \"LANGFUSE_PUBLIC_KEY\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:35Z" level=warning msg="The \"LANGFUSE_SECRET_KEY\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:35Z" level=warning msg="The \"LANGFUSE_CLICKHOUSE_PASSWORD\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:35Z" level=warning msg="The \"CORTEX_DOMAIN\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:35Z" level=warning msg="The \"LANGFUSE_NEXTAUTH_SECRET\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:35Z" level=warning msg="The \"LANGFUSE_MINIO_ROOT_USER\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:35Z" level=warning msg="The \"LANGFUSE_MINIO_ROOT_PASSWORD\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:35Z" level=warning msg="The \"LANGFUSE_DATABASE_URL\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:35Z" level=warning msg="The \"LANGFUSE_SALT\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:35Z" level=warning msg="The \"LANGFUSE_ENCRYPTION_KEY\" variable is not set. Defaulting to a blank string."
+time="2026-05-26T03:00:35Z" level=warning msg="The \"LANGFUSE_INIT_USER_PASSWORD\" variable is not set. Defaulting to a blank string."
+ Container cortex-langfuse-minio Recreate 
+ Container cortex-langfuse-clickhouse Recreate 
+ Container cortex-langfuse-minio Recreated 
+ Container cortex-langfuse-clickhouse Recreated 
+ Container cortex-langfuse-worker Recreate 
+ Container cortex-langfuse-worker Recreated 
+ Container cortex-langfuse-web Recreate 
+ Container cortex-langfuse-web Recreated 
+ Container cortex-langfuse-clickhouse Starting 
+ Container cortex-langfuse-minio Starting 
+ Container cortex-langfuse-clickhouse Started 
+ Container cortex-langfuse-minio Started 
+ Container cortex-langfuse-clickhouse Waiting 
+ Container cortex-langfuse-minio Waiting 
+ Container cortex-langfuse-minio Healthy 
+ Container cortex-langfuse-clickhouse Healthy 
+ Container cortex-langfuse-worker Starting 
+ Container cortex-langfuse-worker Started 
+ Container cortex-langfuse-clickhouse Waiting 
+ Container cortex-langfuse-minio Waiting 
+ Container cortex-langfuse-clickhouse Healthy 
+ Container cortex-langfuse-minio Healthy 
+ Container cortex-langfuse-web Starting 
+ Container cortex-langfuse-web Started 
+[2026-05-26T03:01:04Z] Updated compose stack: /opt/cortexos/stacks/cortex-langfuse
+ Image cortex-sandbox-runner:local Pulling 
+ Image cortex-sandbox-runner:local pull access denied for cortex-sandbox-runner, repository does not exist or may require 'docker login' 
+time="2026-05-26T03:01:05Z" level=warning msg="WARNING: Some service image(s) must be built from source by running:\n    docker compose build cortex-sandbox-runner"
+Error response from daemon: pull access denied for cortex-sandbox-runner, repository does not exist or may require 'docker login'
+ Container cortex-sandbox-runner Recreate 
+ Container cortex-sandbox-runner Recreated 
+ Container cortex-sandbox-runner Starting 
+ Container cortex-sandbox-runner Started 
+[2026-05-26T03:01:06Z] Updated compose stack: /opt/cortexos/stacks/cortex-sandbox-runner
+ Image louislam/dockge:1 Pulling 
+ Image louislam/dockge:1 Pulled 
+ Container cortex-dockhand Running 
+[2026-05-26T03:01:09Z] Updated compose stack: /opt/cortexos/stacks/dockhand
+ Image floci/floci:latest Pulling 
+ 8a08832f35da Pulling fs layer 0B
+ 9d751f04791c Pulling fs layer 0B
+ c06b8ad3393f Pulling fs layer 0B
+ a062792a78c7 Pulling fs layer 0B
+ 00b738c94e01 Pulling fs layer 0B
+ 76079d7dcd18 Pulling fs layer 0B
+ 5fe120c03c27 Pulling fs layer 0B
+ 62666f4cba43 Pulling fs layer 0B
+ 00b738c94e01 Download complete 0B
+ 8a08832f35da Download complete 0B
+ 9d751f04791c Downloading 7.34MB
+ c06b8ad3393f Downloading 5.243MB
+ c06b8ad3393f Downloading 8.389MB
+ 76079d7dcd18 Downloading 2.097MB
+ 9d751f04791c Downloading 9.437MB
+ a062792a78c7 Downloading 1.049MB
+ 5fe120c03c27 Downloading 1.031kB
+ c06b8ad3393f Downloading 14.68MB
+ 76079d7dcd18 Download complete 0B
+ 62666f4cba43 Download complete 0B
+ 9d751f04791c Downloading 13.63MB
+ a062792a78c7 Downloading 3.146MB
+ 5fe120c03c27 Download complete 0B
+ 9d751f04791c Downloading 15.73MB
+ a062792a78c7 Downloading 6.291MB
+ c06b8ad3393f Downloading 19.92MB
+ 9d751f04791c Downloading 18.87MB
+ a062792a78c7 Downloading 9.437MB
+ c06b8ad3393f Downloading 25.17MB
+ 9d751f04791c Downloading 22.02MB
+ a062792a78c7 Downloading 11.53MB
+ c06b8ad3393f Downloading 31.46MB
+ c06b8ad3393f Downloading 37.75MB
+ 9d751f04791c Downloading 25.17MB
+ a062792a78c7 Downloading 14.68MB
+ c06b8ad3393f Downloading 40.02MB
+ 9d751f04791c Downloading 29.36MB
+ a062792a78c7 Downloading 19.92MB
+ 9d751f04791c Downloading 34.6MB
+ a062792a78c7 Downloading 25.17MB
+ c06b8ad3393f Download complete 0B
+ c06b8ad3393f Extracting 1B
+ 9d751f04791c Downloading 40.89MB
+ a062792a78c7 Downloading 30.41MB
+ c06b8ad3393f Extracting 1B
+ 9d751f04791c Downloading 46.14MB
+ a062792a78c7 Downloading 36.7MB
+ 498ca993ad52 Download complete 0B
+ c06b8ad3393f Extracting 1B
+ 9d751f04791c Downloading 51.38MB
+ a062792a78c7 Downloading 41.94MB
+ c06b8ad3393f Extracting 1B
+ 9d751f04791c Downloading 52.75MB
+ a062792a78c7 Downloading 49.28MB
+ c06b8ad3393f Extracting 1B
+ 9d751f04791c Downloading 52.75MB
+ a062792a78c7 Downloading 52.75MB
+ c06b8ad3393f Extracting 1B
+ 9d751f04791c Downloading 52.75MB
+ a062792a78c7 Downloading 52.75MB
+ c06b8ad3393f Extracting 1B
+ 9d751f04791c Downloading 52.75MB
+ a062792a78c7 Downloading 52.75MB
+ c06b8ad3393f Extracting 1B
+ 9d751f04791c Download complete 0B
+ a062792a78c7 Download complete 0B
+ c06b8ad3393f Pull complete 0B
+ 76079d7dcd18 Pull complete 0B
+ 00b738c94e01 Pull complete 0B
+ 62666f4cba43 Pull complete 0B
+ 9d751f04791c Extracting 1B
+ 9d751f04791c Extracting 1B
+ 9d751f04791c Extracting 1B
+ 9d751f04791c Extracting 1B
+ 9d751f04791c Extracting 1B
+ 9d751f04791c Extracting 1B
+ 9d751f04791c Extracting 1B
+ 9d751f04791c Extracting 1B
+ 9d751f04791c Pull complete 0B
+ a062792a78c7 Extracting 1B
+ a062792a78c7 Extracting 1B
+ a062792a78c7 Extracting 1B
+ a062792a78c7 Extracting 1B
+ a062792a78c7 Extracting 1B
+ a062792a78c7 Extracting 1B
+ a062792a78c7 Extracting 1B
+ a062792a78c7 Extracting 1B
+ 5fe120c03c27 Pull complete 0B
+ a062792a78c7 Pull complete 0B
+ 8a08832f35da Pull complete 0B
+ Image floci/floci:latest Pulled 
+ Container cortex-floci Recreate 
+ Container cortex-floci Recreated 
+ Container cortex-floci Starting 
+ Container cortex-floci Started 
+[2026-05-26T03:01:19Z] Updated compose stack: /opt/cortexos/stacks/floci
+ Image ghcr.io/home-assistant/home-assistant:stable Pulling 
+ Image ghcr.io/home-assistant/home-assistant:stable Pulled 
+ Container cortex-home-assistant Recreate 
+ Container cortex-home-assistant Recreated 
+ Container cortex-home-assistant Starting 
+ Container cortex-home-assistant Started 
+[2026-05-26T03:01:32Z] Updated compose stack: /opt/cortexos/stacks/home-assistant
+ deriver Skipped No image to be pulled
+ api Skipped No image to be pulled
+ Image redis:8.2 Pulling 
+ Image pgvector/pgvector:pg15 Pulling 
+ Image redis:8.2 Pulled 
+ Image pgvector/pgvector:pg15 Pulled 
+ Container honcho-database Recreate 
+ Container honcho-redis Recreate 
+ Container honcho-database Recreated 
+ Container honcho-redis Recreated 
+ Container honcho-api Recreate 
+ Container honcho-api Recreated 
+ Container honcho-deriver Recreate 
+ Container honcho-deriver Recreated 
+ Container honcho-redis Starting 
+ Container honcho-database Starting 
+ Container honcho-redis Started 
+ Container honcho-database Started 
+ Container honcho-database Waiting 
+ Container honcho-redis Waiting 
+ Container honcho-database Healthy 
+ Container honcho-redis Healthy 
+ Container honcho-api Starting 
+ Container honcho-api Started 
+ Container honcho-redis Waiting 
+ Container honcho-api Waiting 
+ Container honcho-database Waiting 
+ Container honcho-redis Healthy 
+ Container honcho-database Healthy 
+ Container honcho-api Error dependency api failed to start
+dependency failed to start: container honcho-api is unhealthy
+[2026-05-26T03:01:50Z] Updated compose stack: /opt/cortexos/stacks/honcho
+ Image jellyfin/jellyfin:latest Pulling 
+ Image jellyfin/jellyfin:latest Pulled 
+ Container cortex-jellyfin Recreate 
+ Container cortex-jellyfin Recreated 
+ Container cortex-jellyfin Starting 
+ Container cortex-jellyfin Started 
+[2026-05-26T03:01:52Z] Updated compose stack: /opt/cortexos/stacks/jellyfin
+ Image mongo:7 Pulling 
+ Image mongo-express:latest Pulling 
+ Image mongo-express:latest Pulled 
+ Image mongo:7 Pulled 
+ Container cortex-mongodb Running 
+ Container cortex-mongo-express Running 
+ Container cortex-mongodb Waiting 
+ Container cortex-mongodb Healthy 
+[2026-05-26T03:01:55Z] Updated compose stack: /opt/cortexos/stacks/mongodb
+ Image percona/mongodb_exporter:0.44 Pulling 
+ Image percona/mongodb_exporter:0.44 Pulled 
+ Container cortex-mongo-exporter Running 
+[2026-05-26T03:01:56Z] Updated compose stack: /opt/cortexos/stacks/mongo-exporter
+ Image phpmyadmin/phpmyadmin:latest Pulling 
+ Image mysql:8 Pulling 
+ Image phpmyadmin/phpmyadmin:latest Pulled 
+ Image mysql:8 Pulled 
+ Container cortex-mysql Recreate 
+ Container cortex-mysql Recreated 
+ Container cortex-phpmyadmin Running 
+ Container cortex-mysql Starting 
+ Container cortex-mysql Started 
+ Container cortex-mysql Waiting 
+ Container cortex-mysql Healthy 
+[2026-05-26T03:02:31Z] Updated compose stack: /opt/cortexos/stacks/mysql
+ Image otel/opentelemetry-collector-contrib:latest Pulling 
+ Image otel/opentelemetry-collector-contrib:latest Pulled 
+ Container cortex-otel-collector Running 
+[2026-05-26T03:02:32Z] Updated compose stack: /opt/cortexos/stacks/otel
+ Image dpage/pgadmin4:latest Pulling 
+ Image dpage/pgadmin4:latest Pulled 
+ Container cortex-pgadmin Recreate 
+ Container cortex-pgadmin Recreated 
+ Container cortex-pgadmin Starting 
+ Container cortex-pgadmin Started 
+[2026-05-26T03:02:36Z] Updated compose stack: /opt/cortexos/stacks/pgadmin
+time="2026-05-26T03:02:36Z" level=warning msg="The \"POSTGRES_PASSWORD\" variable is not set. Defaulting to a blank string."
+ Image prometheuscommunity/postgres-exporter:latest Pulling 
+ Image prometheuscommunity/postgres-exporter:latest Pulled 
+time="2026-05-26T03:02:37Z" level=warning msg="The \"POSTGRES_PASSWORD\" variable is not set. Defaulting to a blank string."
+env file /opt/cortexos/.secrets/postgres.env not found: stat /opt/cortexos/.secrets/postgres.env: no such file or directory
+[2026-05-26T03:02:37Z] Updated compose stack: /opt/cortexos/stacks/pg-exporter
+time="2026-05-26T03:02:38Z" level=warning msg="The \"POSTGRES_PASSWORD\" variable is not set. Defaulting to a blank string."
+ Image postgres:17-alpine Pulling 
+ Image postgres:17-alpine Pulled 
+time="2026-05-26T03:02:40Z" level=warning msg="The \"POSTGRES_PASSWORD\" variable is not set. Defaulting to a blank string."
+env file /opt/cortexos/.secrets/postgres.env not found: stat /opt/cortexos/.secrets/postgres.env: no such file or directory
+[2026-05-26T03:02:40Z] Updated compose stack: /opt/cortexos/stacks/postgresql
+ Image redis:7-alpine Pulling 
+ Image redis:7-alpine Pulled 
+ Container cortex-redis Recreate 
+ Container cortex-redis Recreated 
+ Container cortex-redis Starting 
+ Container cortex-redis Started 
+[2026-05-26T03:02:43Z] Updated compose stack: /opt/cortexos/stacks/redis
+time="2026-05-26T03:02:43Z" level=warning msg="The \"REDIS_PASSWORD\" variable is not set. Defaulting to a blank string."
+ Image oliver006/redis_exporter:latest Pulling 
+ Image oliver006/redis_exporter:latest Pulled 
+time="2026-05-26T03:02:45Z" level=warning msg="The \"REDIS_PASSWORD\" variable is not set. Defaulting to a blank string."
+ Container cortex-redis-exporter Recreate 
+ Container cortex-redis-exporter Recreated 
+ Container cortex-redis-exporter Starting 
+ Container cortex-redis-exporter Started 
+[2026-05-26T03:02:46Z] Updated compose stack: /opt/cortexos/stacks/redis-exporter
+ Image redis/redisinsight:latest Pulling 
+ Image redis/redisinsight:latest Pulled 
+ Container cortex-redisinsight Running 
+[2026-05-26T03:02:47Z] Updated compose stack: /opt/cortexos/stacks/redis-insight
+ Image containrrr/watchtower:latest-dev Pulling 
+ Image containrrr/watchtower:latest-dev Pulled 
+ Container cortex-watchtower Running 
+[2026-05-26T03:02:48Z] Updated compose stack: /opt/cortexos/stacks/watchtower
+[2026-05-26T03:02:48Z] == restarts ==
+[2026-05-26T03:02:48Z] Report: /opt/cortexos/logs/auto-update-2026-05-26T03-00-10Z.json
