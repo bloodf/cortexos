@@ -1,17 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import * as RGL from "react-grid-layout";
-const Responsive: any = (RGL as any).Responsive ?? (RGL as any).default?.Responsive;
-const WidthProvider: any = (RGL as any).WidthProvider ?? (RGL as any).default?.WidthProvider;
-interface Layout { i: string; x: number; y: number; w: number; h: number; minW?: number; minH?: number; isDraggable?: boolean; isResizable?: boolean; }
+import { Responsive, WidthProvider } from "react-grid-layout/legacy";
+import type { Layout as _RGLLayout } from "react-grid-layout/legacy";
+interface LayoutItem { i: string; x: number; y: number; w: number; h: number; minW?: number; minH?: number; isDraggable?: boolean; isResizable?: boolean; }
 import { Plus, Pencil, Check, RotateCcw, X, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/sys-pilot/PageHeader";
 import { StatusHero } from "@/components/sys-pilot/StatusHero";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useTranslations } from "next-intl";
+
 import { WIDGETS, WIDGET_MAP, DEFAULT_LAYOUT } from "@/components/sys-pilot/overview/widgets";
 import { cn } from "@/lib/utils";
 
@@ -37,7 +36,6 @@ function save(s: Stored) {
 }
 
 export default function OverviewPage() {
-  const t = useTranslations();
   const [state, setState] = useState<Stored>(() => load());
   const [editing, setEditing] = useState(false);
 
@@ -47,15 +45,17 @@ export default function OverviewPage() {
   const usedIds = new Set(items.map((i) => i.i));
   const available = WIDGETS.filter((w) => !usedIds.has(w.id));
 
-  const layout: Layout[] = useMemo(() => items.map((it) => ({
+  const layout: LayoutItem[] = useMemo(() => items.map((it) => ({
     i: it.i, x: it.x, y: it.y, w: it.w, h: it.h,
     minW: WIDGET_MAP[it.i].min.w, minH: WIDGET_MAP[it.i].min.h,
     isDraggable: editing, isResizable: editing,
   })), [items, editing]);
 
-  const onLayoutChange = (next: Layout[]) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const onLayoutChange = (next: any) => {
     if (!editing) return;
-    setState({ items: next.map((l) => ({ i: l.i, x: l.x, y: l.y, w: l.w, h: l.h })) });
+    const arr = (Array.isArray(next) ? next : []) as { i: string; x: number; y: number; w: number; h: number }[];
+    setState({ items: arr.map((l) => ({ i: l.i, x: l.x, y: l.y, w: l.w, h: l.h })) });
   };
 
   const addWidget = (id: string) => {
@@ -96,7 +96,7 @@ export default function OverviewPage() {
                   ) : (
                     <div className="space-y-0.5 max-h-80 overflow-y-auto">
                       {available.map((w) => (
-                        <button key={w.id} onClick={() => addWidget(w.id)}
+                        <button type="button" key={w.id} onClick={() => addWidget(w.id)}
                           className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted text-left">
                           <w.icon className="size-3.5 text-muted-foreground" />
                           <span className="flex-1">{w.title}</span>
@@ -154,6 +154,7 @@ export default function OverviewPage() {
                     <GripVertical className="size-3.5 text-muted-foreground" />
                   </div>
                   <button
+                    type="button"
                     aria-label={`Remove ${spec.title}`}
                     onClick={() => removeWidget(it.i)}
                     className="absolute top-1 right-1 z-10 size-6 grid place-items-center rounded bg-background/80 border opacity-0 group-hover:opacity-100 hover:bg-destructive hover:text-destructive-foreground transition-all"

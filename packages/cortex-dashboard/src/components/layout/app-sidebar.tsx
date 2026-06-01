@@ -102,12 +102,14 @@ function CollapsibleNavGroup({
 	React.useEffect(() => {
 		try {
 			const stored = window.localStorage.getItem(storageKey);
+			// eslint-disable-next-line react-hooks/set-state-in-effect
 			if (stored === "open") setOpen(true);
 			else if (stored === "closed") setOpen(false);
 		} catch {
 			/* localStorage unavailable — keep heuristic default */
 		}
-	}, [storageKey]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	const handleOpenChange = (next: boolean) => {
 		setOpen(next);

@@ -140,6 +140,7 @@ export function DataTable<T>({
                   <th key={c.key} className={cn("font-medium px-3 py-2", c.className)} style={{ width: c.width }}>
                     {c.sort ? (
                       <button
+                        type="button"
                         onClick={() => toggle(c.key)}
                         aria-label={`Sort by ${typeof c.header === "string" ? c.header : c.key}`}
                         className="inline-flex items-center gap-1 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"

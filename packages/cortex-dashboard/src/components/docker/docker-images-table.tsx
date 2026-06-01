@@ -55,8 +55,8 @@ export function DockerImagesTable({ images }: { images: unknown[] }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((img, i) => (
-                <TableRow key={i} className="border-b border-border hover:bg-muted/50">
+              {rows.map((img) => (
+                <TableRow key={`${img.Repository}:${img.Tag}`} className="border-b border-border hover:bg-muted/50">
                   <TableCell className="text-foreground text-xs">
                     {img.Repository || "—"}
                   </TableCell>

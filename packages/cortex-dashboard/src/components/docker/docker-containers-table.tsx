@@ -63,8 +63,8 @@ export function DockerContainersTable({ containers }: { containers: unknown[] })
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((c, i) => (
-                <TableRow key={i} className="border-b border-border hover:bg-muted/50">
+              {rows.map((c) => (
+                <TableRow key={c.Names?.[0] ?? c.Image ?? "unknown"} className="border-b border-border hover:bg-muted/50">
                   <TableCell className="text-foreground font-mono text-xs">
                     {containerName(c)}
                   </TableCell>

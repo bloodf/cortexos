@@ -14,7 +14,7 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [_paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const pathname = usePathname() ?? "/";
 

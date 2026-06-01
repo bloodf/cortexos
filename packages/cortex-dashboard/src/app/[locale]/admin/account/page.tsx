@@ -90,7 +90,7 @@ export default function AdminAccountPage() {
             <Label className="text-xs flex items-center gap-1"><Globe className="size-3" />Language</Label>
             <div className="flex gap-1">
               {locales.map((l) => (
-                <Button key={l.code} size="sm" variant={locale === l.code ? "default" : "outline"} onClick={() => setLocale(l.code as any)}>{l.label}</Button>
+                <Button key={l.code} size="sm" variant={locale === l.code ? "default" : "outline"} onClick={() => setLocale(l.code)}>{l.label}</Button>
               ))}
             </div>
           </div>

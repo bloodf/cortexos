@@ -10,14 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LogStream } from "@/components/sys-pilot/LogStream";
 import { api } from "@/lib/api";
-import { useTranslations } from "next-intl";
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ms, relativeTime } from "@/lib/sys-pilot/format";
 import type { Service } from "@/lib/types";
 import { toast } from "sonner";
 
 export default function HealthcheckPage() {
-  const t = useTranslations();
   const qc = useQueryClient();
   const { data: services = [], isLoading } = useQuery({ queryKey: ["services"], queryFn: api.services, refetchInterval: 3000 });
   const { data: alerts = [] } = useQuery({ queryKey: ["alerts", "history"], queryFn: api.alerts.history, refetchInterval: 3000 });

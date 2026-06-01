@@ -1,12 +1,12 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem, CommandSeparator } from "@/components/ui/command";
+import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "next-themes";
-import { NAV_GROUPS, ALL_NAV_ITEMS } from "@/components/layout/nav-config";
-import { Lock, Moon, Sun, Palette, Globe, UserCog, AlertTriangle, Heart, Keyboard, LogOut } from "lucide-react";
+import { NAV_GROUPS } from "@/components/layout/nav-config";
+import { Moon, Sun, Keyboard, LogOut } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props { open: boolean; onOpenChange: (o: boolean) => void; onOpenHelp?: () => void }
@@ -17,14 +17,20 @@ export function CommandPalette({ open, onOpenChange, onOpenHelp }: Props) {
   const { user, logout } = useAuth();
   const { theme, setTheme } = useTheme();
   const router = useRouter();
-  const [recent, setRecent] = useState<string[]>([]);
+  const [recent, setRecent] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); } catch { return []; }
+  });
   const [q, setQ] = useState("");
 
+  // Re-read localStorage when the dialog opens (may have changed from another tab).
   useEffect(() => {
-    try { setRecent(JSON.parse(localStorage.getItem(RECENT_KEY) || "[]")); } catch { /* noop */ }
+    if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      try { setRecent(JSON.parse(localStorage.getItem(RECENT_KEY) || "[]")); } catch { /* noop */ }
+    }
   }, [open]);
 
-  const navItems = useMemo(() => NAV_GROUPS.flatMap((g) => g.items), [user]);
+  const navItems = useMemo(() => NAV_GROUPS.flatMap((g) => g.items), []);
 
   const close = () => onOpenChange(false);
 
@@ -36,7 +42,7 @@ export function CommandPalette({ open, onOpenChange, onOpenHelp }: Props) {
     router.push(to);
   };
 
-  const actions: { id: string; label: string; icon: any; admin?: boolean; run: () => void }[] = [
+  const actions: { id: string; label: string; icon: React.ComponentType<{ className?: string }>; admin?: boolean; run: () => void }[] = [
     { id: "act-theme", label: `Switch theme to ${theme === "dark" ? "light" : "dark"}`, icon: theme === "dark" ? Sun : Moon, run: () => { setTheme(theme === "dark" ? "light" : "dark"); toast.success("Theme switched"); } },
     { id: "act-help", label: "Show keyboard shortcuts", icon: Keyboard, run: () => onOpenHelp?.() },
     { id: "act-logout", label: "Sign out", icon: LogOut, run: () => { logout(); window.location.href = "/login"; } },

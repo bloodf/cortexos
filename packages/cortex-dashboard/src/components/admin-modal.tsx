@@ -194,6 +194,7 @@ export function AdminModal({ open, onClose, onUpdate }: AdminModalProps) {
 					<h2 className="text-sm font-semibold text-white/80 light:text-slate-700">Service Management</h2>
 					<div className="flex items-center gap-3">
 						<button
+							type="button"
 							onClick={() => {
 								setShowAdd(!showAdd);
 								setEditingId(null);
@@ -203,7 +204,7 @@ export function AdminModal({ open, onClose, onUpdate }: AdminModalProps) {
 							<Plus className="w-3.5 h-3.5" />
 							Add Service
 						</button>
-						<button onClick={onClose} className="text-white/30 light:text-slate-700 hover:text-white/60 light:hover:text-slate-950 light:text-slate-700 transition-colors">
+						<button type="button" onClick={onClose} className="text-white/30 light:text-slate-700 hover:text-white/60 light:hover:text-slate-950 light:text-slate-700 transition-colors">
 							<X className="w-5 h-5" />
 						</button>
 					</div>

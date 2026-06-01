@@ -20,7 +20,8 @@ export function AreaTrend({ data, series, height = 160, yDomain, xKey = "t" }: P
         <Tooltip
           contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
           labelStyle={{ color: "var(--muted-foreground)" }}
-          formatter={(v: any) => (typeof v === "number" ? v.toFixed(1) : String(v))}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          formatter={(v: any) => v != null ? (typeof v === "number" ? v.toFixed(1) : String(v)) : ""}
         />
         {series.map((s) => (
           <Area key={s.key} type="monotone" dataKey={s.key} name={s.name} stroke={s.color} strokeWidth={1.6} fill={`url(#g-${s.key})`} isAnimationActive={false} />

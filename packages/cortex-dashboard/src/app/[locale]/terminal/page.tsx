@@ -8,7 +8,7 @@ import { Terminal as TermIcon, Lock } from "lucide-react";
 import { PageHeader } from "@/components/sys-pilot/PageHeader";
 import { EmptyState } from "@/components/sys-pilot/EmptyState";
 import { Card } from "@/components/ui/card";
-import { useTranslations } from "next-intl";
+
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "next-themes";
 
@@ -94,7 +94,6 @@ function run(cmd: string, user: string): string[] {
 }
 
 export default function TerminalPage() {
-  const t = useTranslations();
   const { user } = useAuth();
   const { resolvedTheme } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);

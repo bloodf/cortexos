@@ -48,6 +48,10 @@ export interface LoadPendingResult {
 }
 
 export async function loadPendingApprovals(): Promise<LoadPendingResult> {
+	const session = await getCurrentSession();
+	if (!session || !session.user.is_admin) {
+		return { rows: [], error: "Forbidden: admin required" };
+	}
 	try {
 		const rows = await query<PendingApprovalRow>(SELECT_OPEN);
 		return { rows };
@@ -88,14 +92,14 @@ export async function decideApproval(
 		return { ok: false, error: parsed.error, validation: parsed };
 	}
 
-	const current = await getCurrentSession().catch(() => null);
-	if (!current || !current.user.is_admin) {
+	const session = await getCurrentSession();
+	if (!session || !session.user.is_admin) {
 		return { ok: false, error: "Forbidden: admin required" };
 	}
-	const session = current.user;
+	const user = session.user;
 
 	const { runId, signalName, decision, reason } = parsed.data;
-	const approver = session.username || "unknown";
+	const approver = user.username || "unknown";
 
 	try {
 		await query(
@@ -119,5 +123,9 @@ export async function decideApproval(
  * result and only triggers revalidation.
  */
 export async function decideApprovalForm(formData: FormData): Promise<void> {
+	const session = await getCurrentSession();
+	if (!session || !session.user.is_admin) {
+		throw new Error("Forbidden: admin required");
+	}
 	await decideApproval(formData);
 }

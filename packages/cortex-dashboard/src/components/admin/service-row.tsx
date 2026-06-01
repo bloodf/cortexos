@@ -176,6 +176,7 @@ export function ServiceRow({
 						</label>
 						{(editDraft.icon_color || editDraft.icon_image) && (
 							<button
+								type="button"
 								onClick={() => setEditDraft((d) => ({ ...d, icon_color: null, icon_image: null }))}
 								className="p-1 text-muted-foreground hover:text-foreground"
 								title="Reset avatar"
@@ -277,20 +278,21 @@ export function ServiceRow({
 				<div className="flex items-center justify-end gap-1">
 					{isEditing ? (
 						<>
-							<button onClick={saveEdit} className="rounded p-1.5 text-success transition-colors hover:bg-success/10" title="Save">
+							<button type="button" onClick={saveEdit} className="rounded p-1.5 text-success transition-colors hover:bg-success/10" title="Save">
 								<Check className="h-3.5 w-3.5" />
 							</button>
-							<button onClick={onCancelEdit} className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="Cancel">
+							<button type="button" onClick={onCancelEdit} className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="Cancel">
 								<XCircle className="h-3.5 w-3.5" />
 							</button>
 						</>
 					) : (
 						<>
-							<button onClick={handleStartEdit} className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary" title="Edit">
+							<button type="button" onClick={handleStartEdit} className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary" title="Edit">
 								<Pencil className="h-3.5 w-3.5" />
 							</button>
 							<div className="relative">
 								<button
+									type="button"
 									onClick={onDeleteClick}
 									className={`rounded p-1.5 transition-colors ${
 										isDeleting ? "bg-destructive/10 text-destructive" : "text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
@@ -302,7 +304,7 @@ export function ServiceRow({
 								{isDeleting && (
 									<div className="absolute right-0 top-full z-20 mt-1 whitespace-nowrap rounded bg-destructive/20 px-2 py-1 text-[10px] text-destructive">
 										{deleteLabel()}
-										<button onClick={onCancelDelete} className="ml-2 text-muted-foreground hover:text-foreground">✕</button>
+										<button type="button" onClick={onCancelDelete} className="ml-2 text-muted-foreground hover:text-foreground">✕</button>
 									</div>
 								)}
 							</div>

@@ -37,6 +37,7 @@ export function IncusCreateDialog({ onCreated }: IncusCreateDialogProps) {
 
   useEffect(() => {
     if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFetchingImages(true);
     fetch("/api/incus/images", { cache: "no-store" })
       .then((res) => res.json())

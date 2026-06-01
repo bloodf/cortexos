@@ -22,11 +22,11 @@ export function AdminOnly({ children, fallback, showTooltip = true, message = "R
   if (fallback !== undefined) return <>{fallback}</>;
   if (!isValidElement(children)) return null;
 
-  const disabled = cloneElement(children as ReactElement<any>, {
+  const disabled = cloneElement(children as ReactElement<Record<string, unknown>>, {
     disabled: true,
     "aria-disabled": true,
     onClick: (e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); },
-    className: `${(children as ReactElement<any>).props.className ?? ""} opacity-50 cursor-not-allowed`,
+    className: `${(children as ReactElement<Record<string, unknown>>).props.className ?? ""} opacity-50 cursor-not-allowed`,
   });
 
   if (!showTooltip) return disabled;

@@ -16,7 +16,7 @@ export function SimulateMenu() {
   };
 
   const crash = () => {
-    const target = (live as any).crashRandom?.();
+    const target = live.crashRandom?.();
     if (target) {
       toast.error(`${target.name} went down`, { description: "Simulated health-check failure." });
     } else {
@@ -26,28 +26,28 @@ export function SimulateMenu() {
   };
 
   const heal = () => {
-    (live as any).healAll?.();
+    live.healAll?.();
     toast.success("All services healed", { description: "Simulated recovery." });
     refresh();
   };
 
   const cpuSpike = () => {
-    const sys = (live as any).system?.() as any;
+    const sys = live.system?.();
     if (sys) sys.cpu = 96;
     toast.warning("CPU pinned to 96%");
     qc.setQueryData(["system"], { ...sys });
   };
 
   const networkBlip = () => {
-    const net = (live as any).network?.() as any;
-    if (net) net.interfaces = net.interfaces.map((i: any) => ({ ...i, rxKbps: 9500, txKbps: 5800 }));
+    const net = live.network?.();
+    if (net) net.interfaces = net.interfaces.map((i) => ({ ...i, rxKbps: 9500, txKbps: 5800 }));
     toast.warning("Network saturated");
     qc.setQueryData(["network"], { ...net });
   };
 
   const netCalm = () => {
-    const net = (live as any).network?.() as any;
-    if (net) net.interfaces = net.interfaces.map((i: any) => ({ ...i, rxKbps: 120, txKbps: 80 }));
+    const net = live.network?.();
+    if (net) net.interfaces = net.interfaces.map((i) => ({ ...i, rxKbps: 120, txKbps: 80 }));
     qc.setQueryData(["network"], { ...net });
     toast.success("Network back to baseline");
   };

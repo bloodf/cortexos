@@ -49,6 +49,7 @@ export function TimeRangeAreaTrend({ data, series, height = 180, defaultRange = 
         <div className="inline-flex rounded-md border bg-card p-0.5 text-xs">
           {(["1h", "24h", "7d"] as TimeRange[]).map((r) => (
             <button
+              type="button"
               key={r}
               onClick={() => setRange(r)}
               aria-pressed={range === r}

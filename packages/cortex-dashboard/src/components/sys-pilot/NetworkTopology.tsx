@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import type { NetworkData, NetworkInterface } from "@/lib/types";
 import { kbps } from "@/lib/sys-pilot/format";
 import { cn } from "@/lib/utils";
 
@@ -8,9 +9,9 @@ import { cn } from "@/lib/utils";
  * the active link tinted by current throughput.
  */
 export function NetworkTopology({ className }: { className?: string }) {
-  const { data: net } = useQuery({ queryKey: ["network"], queryFn: api.network, refetchInterval: 3000 });
-  const interfaces = ((net as any)?.interfaces ?? []) as any[];
-  const total = interfaces.reduce((a: number, i: any) => a + (i.rxKbps ?? 0) + (i.txKbps ?? 0), 0);
+  const { data: net } = useQuery<NetworkData>({ queryKey: ["network"], queryFn: api.network, refetchInterval: 3000 });
+  const interfaces: NetworkInterface[] = net?.interfaces ?? [];
+  const total = interfaces.reduce((a, i) => a + (i.rxKbps ?? 0) + (i.txKbps ?? 0), 0);
 
   return (
     <div className={cn("rounded-lg border bg-card p-4", className)}>
@@ -35,7 +36,7 @@ export function NetworkTopology({ className }: { className?: string }) {
         <Link x1={290} y1={110} x2={410} y2={110} primary />
         <Node x={450} y={110} label="Host" sub="cortex" highlighted />
 
-        {interfaces.slice(0, 5).map((iface: any, idx: number) => {
+        {interfaces.slice(0, 5).map((iface, idx) => {
           const y = 30 + idx * 38;
           const intensity = Math.min(1, (iface.rxKbps + iface.txKbps) / 4000);
           return (

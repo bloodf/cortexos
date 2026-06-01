@@ -19,6 +19,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const raw = typeof window !== "undefined" ? localStorage.getItem(KEY) : null;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (raw) setUser(JSON.parse(raw));
     } catch { /* noop */ }
   }, []);

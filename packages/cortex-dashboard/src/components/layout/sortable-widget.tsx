@@ -48,6 +48,7 @@ export function SortableWidget({
 				<div className="absolute -top-2 -right-2 z-20 flex items-center gap-0.5">
 					{rowIndex > 0 && (
 						<button
+							type="button"
 							onClick={() => onMoveRow(-1)}
 							className="w-5 h-5 rounded bg-white/10 light:bg-slate-100 hover:bg-white/20 light:hover:bg-slate-100 light:bg-slate-100 flex items-center justify-center text-white/60 light:text-slate-700"
 							title="Move to row above"
@@ -57,6 +58,7 @@ export function SortableWidget({
 					)}
 					{rowIndex < totalRows - 1 && (
 						<button
+							type="button"
 							onClick={() => onMoveRow(1)}
 							className="w-5 h-5 rounded bg-white/10 light:bg-slate-100 hover:bg-white/20 light:hover:bg-slate-100 light:bg-slate-100 flex items-center justify-center text-white/60 light:text-slate-700"
 							title="Move to row below"
@@ -65,6 +67,7 @@ export function SortableWidget({
 						</button>
 					)}
 					<button
+						type="button"
 						onClick={onRemove}
 						className="w-5 h-5 rounded bg-red-500/20 hover:bg-red-500/30 flex items-center justify-center text-red-400"
 						title="Remove widget"

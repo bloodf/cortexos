@@ -155,6 +155,28 @@ export async function POST(request: NextRequest) {
 	}
 }
 
+export async function DELETE(request: NextRequest) {
+	try {
+		const sessionId = request.nextUrl.searchParams.get("sessionId");
+		if (!sessionId || !SESSION_ID_RE.test(sessionId)) {
+			return NextResponse.json({ error: "Invalid sessionId" }, { status: 400 });
+		}
+
+		const session = sessions.get(sessionId);
+		if (session) {
+			session.process.kill("SIGTERM");
+			sessions.delete(sessionId);
+		}
+		return NextResponse.json({ success: true });
+	} catch (error) {
+		console.error("Terminal DELETE failed", error);
+		return NextResponse.json(
+			{ error: "Terminal delete failed" },
+			{ status: 500 },
+		);
+	}
+}
+
 export async function GET(request: NextRequest) {
 	const sessionId = request.nextUrl.searchParams.get("sessionId");
 	if (!sessionId || !SESSION_ID_RE.test(sessionId)) {
@@ -162,8 +184,6 @@ export async function GET(request: NextRequest) {
 	}
 
 	const encoder = new TextEncoder();
-	let removeListener: (() => void) | null = null;
-	let heartbeat: NodeJS.Timeout | null = null;
 
 	const stream = new ReadableStream({
 		start(controller) {
@@ -182,16 +202,18 @@ export async function GET(request: NextRequest) {
 			if (session) {
 				session.buffer.forEach(send);
 				session.listeners.add(send);
-				removeListener = () => session.listeners.delete(send);
-				heartbeat = setInterval(() => enqueue(": keepalive\n\n"), 15000);
+				const _removeListener = () => session.listeners.delete(send);
+				const heartbeat = setInterval(() => enqueue(": keepalive\n\n"), 15000);
+				// Clean up listener + heartbeat when the client disconnects
+				// (no Map mutations — only removes the SSE listener reference).
+				request.signal.addEventListener("abort", () => {
+					session.listeners.delete(send);
+					clearInterval(heartbeat);
+				});
 			} else {
 				enqueue(`data: ${JSON.stringify({ error: "Session not found" })}\n\n`);
 				controller.close();
 			}
-		},
-		cancel() {
-			if (removeListener) removeListener();
-			if (heartbeat) clearInterval(heartbeat);
 		},
 	});
 

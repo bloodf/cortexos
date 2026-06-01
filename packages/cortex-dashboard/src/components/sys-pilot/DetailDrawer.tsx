@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useMemo } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LogViewer } from "@/components/sys-pilot/LogViewer";
@@ -49,13 +50,18 @@ export function DetailDrawer({ open, onOpenChange, title, description, tabs, act
 
 /** Helper: generate mock log lines for a target. */
 export function MockLogs({ name, lines = 60 }: { name: string; lines?: number }) {
-  const out: string[] = [];
-  const now = Date.now();
-  for (let i = lines; i > 0; i--) {
-    const ts = new Date(now - i * 1500).toISOString().slice(11, 23);
-    const lvl = Math.random() < 0.05 ? "ERROR" : Math.random() < 0.15 ? "WARN" : "INFO";
-    out.push(`${ts} ${lvl.padEnd(5)} ${name}: ${randMsg()}`);
-  }
+  const out = useMemo(() => {
+    const result: string[] = [];
+    // eslint-disable-next-line react-hooks/purity
+    const now = Date.now();
+    for (let i = lines; i > 0; i--) {
+      const ts = new Date(now - i * 1500).toISOString().slice(11, 23);
+      // eslint-disable-next-line react-hooks/purity
+      const lvl = Math.random() < 0.05 ? "ERROR" : Math.random() < 0.15 ? "WARN" : "INFO";
+      result.push(`${ts} ${lvl.padEnd(5)} ${name}: ${randMsg()}`);
+    }
+    return result;
+  }, [name, lines]);
   return <LogViewer lines={out} />;
 }
 
@@ -76,14 +82,19 @@ function randMsg() {
 }
 
 export function MockMetrics() {
-  const cpu = Array.from({ length: 30 }, () => 20 + Math.random() * 60);
-  const mem = Array.from({ length: 30 }, () => 30 + Math.random() * 40);
-  const lat = Array.from({ length: 30 }, () => 20 + Math.random() * 120);
+  const data = useMemo(() => ({
+    // eslint-disable-next-line react-hooks/purity
+    cpu: Array.from({ length: 30 }, () => 20 + Math.random() * 60),
+    // eslint-disable-next-line react-hooks/purity
+    mem: Array.from({ length: 30 }, () => 30 + Math.random() * 40),
+    // eslint-disable-next-line react-hooks/purity
+    lat: Array.from({ length: 30 }, () => 20 + Math.random() * 120),
+  }), []);
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-      <MetricSparkCard label="CPU" data={cpu} unit="%" color="var(--chart-1)" />
-      <MetricSparkCard label="Memory" data={mem} unit="%" color="var(--chart-2)" />
-      <MetricSparkCard label="Latency p95" data={lat} unit="ms" color="var(--chart-3)" />
+      <MetricSparkCard label="CPU" data={data.cpu} unit="%" color="var(--chart-1)" />
+      <MetricSparkCard label="Memory" data={data.mem} unit="%" color="var(--chart-2)" />
+      <MetricSparkCard label="Latency p95" data={data.lat} unit="ms" color="var(--chart-3)" />
     </div>
   );
 }

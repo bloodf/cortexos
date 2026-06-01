@@ -9,14 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { IncidentTimeline } from "@/components/sys-pilot/IncidentTimeline";
 import { api } from "@/lib/api";
-import { useTranslations } from "next-intl";
+
 import { useQuery } from "@tanstack/react-query";
 import type { AlertRule, AlertHistory } from "@/lib/types";
 import { relativeTime } from "@/lib/sys-pilot/format";
 import { cn } from "@/lib/utils";
 
 export default function AlertsPage() {
-  const t = useTranslations();
   const { data: rules = [] } = useQuery({ queryKey: ["alerts", "rules"], queryFn: api.alerts.rules });
   const { data: history = [] } = useQuery({ queryKey: ["alerts", "history"], queryFn: api.alerts.history, refetchInterval: 3000 });
 

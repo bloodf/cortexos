@@ -39,8 +39,8 @@ export function DockerVolumesTable({ volumes }: { volumes: unknown[] }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((v, i) => (
-                <TableRow key={i} className="border-b border-border hover:bg-muted/50">
+              {rows.map((v) => (
+                <TableRow key={v.Name ?? "unknown"} className="border-b border-border hover:bg-muted/50">
                   <TableCell className="text-foreground font-mono text-xs">
                     {v.Name || "—"}
                   </TableCell>

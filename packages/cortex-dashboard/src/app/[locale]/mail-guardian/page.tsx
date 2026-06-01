@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
-import { useTranslations } from "next-intl";
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { MailReview } from "@/lib/types";
 import { relativeTime } from "@/lib/sys-pilot/format";
@@ -17,7 +17,6 @@ import { toast } from "sonner";
 const riskColor: Record<string, string> = { low: "border-[var(--success)] text-[var(--success)]", medium: "border-[var(--warning)] text-[var(--warning)]", high: "border-[var(--destructive)] text-[var(--destructive)]" };
 
 export default function MailGuardianPage() {
-  const t = useTranslations();
   const qc = useQueryClient();
   const { data: mails = [] } = useQuery({ queryKey: ["mail"], queryFn: api.mailGuardian });
   const [sel, setSel] = useState<string | null>(null);
@@ -34,7 +33,7 @@ export default function MailGuardianPage() {
       <div className="grid gap-3 lg:grid-cols-[400px_1fr]">
         <Card className="elev-1 divide-y">
           {mails.map((m) => (
-            <button key={m.id} onClick={() => setSel(m.id)} className={cn("w-full text-left px-3 py-2.5 hover:bg-muted/30", (active?.id === m.id) && "bg-accent/50")}>
+            <button type="button" key={m.id} onClick={() => setSel(m.id)} className={cn("w-full text-left px-3 py-2.5 hover:bg-muted/30", (active?.id === m.id) && "bg-accent/50")}>
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium truncate">{m.from}</p>

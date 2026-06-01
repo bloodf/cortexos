@@ -56,6 +56,7 @@ export function ThemeSwitcher() {
 
 	// Avoid hydration mismatch — next-themes resolves the mode on the client.
 	const [mounted, setMounted] = useState(false);
+	// eslint-disable-next-line react-hooks/set-state-in-effect
 	useEffect(() => setMounted(true), []);
 
 	const ActiveIcon =
@@ -122,6 +123,7 @@ export function ThemeSettings() {
 	const { preset, setPreset } = usePreset();
 
 	const [mounted, setMounted] = useState(false);
+	// eslint-disable-next-line react-hooks/set-state-in-effect
 	useEffect(() => setMounted(true), []);
 
 	return (

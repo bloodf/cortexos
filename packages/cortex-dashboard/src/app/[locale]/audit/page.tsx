@@ -8,14 +8,13 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { KeyValueList } from "@/components/sys-pilot/KeyValueList";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
-import { useTranslations } from "next-intl";
+
 import { useQuery } from "@tanstack/react-query";
 import type { AuditEntry } from "@/lib/types";
 import { relativeTime } from "@/lib/sys-pilot/format";
 import { cn } from "@/lib/utils";
 
 export default function AuditPage() {
-  const t = useTranslations();
   const { data: items = [] } = useQuery({ queryKey: ["audit"], queryFn: api.audit });
   const [sel, setSel] = useState<AuditEntry | null>(null);
 
@@ -26,7 +25,7 @@ export default function AuditPage() {
     { key: "class", header: "Class", cell: (r) => <Badge variant="outline">{r.tool_class}</Badge> },
     { key: "decision", header: "Decision", sort: (r) => r.decision, cell: (r) => <Badge variant="outline" className={cn(r.decision === "allow" ? "border-[var(--success)] text-[var(--success)]" : "border-destructive text-destructive")}>{r.decision}</Badge> },
     { key: "result", header: "Result", cell: (r) => <span className="text-xs">{r.result}</span> },
-    { key: "act", header: "", cell: (r) => <button onClick={() => setSel(r)} className="text-xs text-primary hover:underline">view</button> },
+    { key: "act", header: "", cell: (r) => <button type="button" onClick={() => setSel(r)} className="text-xs text-primary hover:underline">view</button> },
   ];
 
   return (

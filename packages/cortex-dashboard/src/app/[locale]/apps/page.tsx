@@ -11,16 +11,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
-import { useTranslations } from "next-intl";
 import { useFavorites } from "@/hooks/use-favorites";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
+import type { Service } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export default function AppsPage() {
-  const t = useTranslations();
-  const qc = useQueryClient();
   const { data: services = [], isLoading } = useQuery({ queryKey: ["services"], queryFn: api.services, refetchInterval: 3000 });
-  const { isFavorite, toggle } = useFavorites();
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const toggle = (s: Service) => toggleFavorite({ id: s.id, slug: s.slug, name: s.name, open_url: s.open_url, icon_color: s.icon_color, icon_image: s.icon_image });
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("All");
   const [statusFilter, setStatusFilter] = useState<"all" | "online" | "offline">("all");
@@ -60,12 +59,12 @@ export default function AppsPage() {
         </div>
         <div className="flex flex-wrap gap-1">
           {categories.map((c) => (
-            <button key={c} onClick={() => setCat(c)} className={cn("rounded-full px-3 py-1 text-xs border transition-colors", cat === c ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted")}>{c}</button>
+            <button type="button" key={c} onClick={() => setCat(c)} className={cn("rounded-full px-3 py-1 text-xs border transition-colors", cat === c ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted")}>{c}</button>
           ))}
         </div>
         <div className="flex gap-1 ml-auto">
           {(["all", "online", "offline"] as const).map((s) => (
-            <button key={s} onClick={() => setStatusFilter(s)} className={cn("rounded-full px-3 py-1 text-xs border", statusFilter === s ? "bg-accent text-accent-foreground border-accent" : "hover:bg-muted")}>{s}</button>
+            <button type="button" key={s} onClick={() => setStatusFilter(s)} className={cn("rounded-full px-3 py-1 text-xs border", statusFilter === s ? "bg-accent text-accent-foreground border-accent" : "hover:bg-muted")}>{s}</button>
           ))}
         </div>
       </div>
@@ -92,7 +91,7 @@ export default function AppsPage() {
   );
 }
 
-function ServiceList({ items, view, isFavorite, onToggle }: { items: any[]; view: "grid" | "list"; isFavorite: (s: string) => boolean; onToggle: (s: any) => void }) {
+function ServiceList({ items, view, isFavorite, onToggle }: { items: Service[]; view: "grid" | "list"; isFavorite: (s: string) => boolean; onToggle: (s: Service) => void }) {
   if (view === "list") {
     return (
       <Card className="divide-y elev-1">
@@ -104,7 +103,7 @@ function ServiceList({ items, view, isFavorite, onToggle }: { items: any[]; view
               <p className="text-xs text-muted-foreground truncate">{s.description}</p>
             </div>
             <StatusBadge status={s.status} responseTime={s.responseTime} />
-            <button onClick={() => onToggle(s.slug)} className="text-muted-foreground hover:text-foreground">{isFavorite(s.slug) ? <Star className="size-4 fill-current text-[var(--warning)]" /> : <StarOff className="size-4" />}</button>
+            <button type="button" onClick={() => onToggle(s)} className="text-muted-foreground hover:text-foreground">{isFavorite(s.slug) ? <Star className="size-4 fill-current text-[var(--warning)]" /> : <StarOff className="size-4" />}</button>
             <a href={s.open_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-foreground"><ExternalLink className="size-4" /></a>
           </div>
         ))}
@@ -115,7 +114,7 @@ function ServiceList({ items, view, isFavorite, onToggle }: { items: any[]; view
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
       {items.map((s) => (
         <Card key={s.slug} className="p-4 elev-1 hover:elev-2 hover:border-primary/30 transition-all relative group">
-          <button onClick={() => onToggle(s.slug)} className="absolute top-2 right-2 opacity-60 group-hover:opacity-100 text-muted-foreground hover:text-foreground">
+          <button type="button" onClick={() => onToggle(s)} className="absolute top-2 right-2 opacity-60 group-hover:opacity-100 text-muted-foreground hover:text-foreground">
             {isFavorite(s.slug) ? <Star className="size-3.5 fill-current text-[var(--warning)]" /> : <StarOff className="size-3.5" />}
           </button>
           <div className="flex items-start gap-3">
@@ -132,7 +131,7 @@ function ServiceList({ items, view, isFavorite, onToggle }: { items: any[]; view
           </div>
           {s.badges.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
-              {s.badges.slice(0, 3).map((b: any) => (
+              {s.badges.slice(0, 3).map((b) => (
                 <span key={b.slug} className="rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ background: `${b.color}22`, color: b.color }}>{b.label}</span>
               ))}
             </div>

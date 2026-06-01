@@ -36,7 +36,7 @@ export function Sidebar({ collapsed, mobileOpen, onClose }: Props) {
             </div>
             {!collapsed && <span className="font-semibold tracking-tight truncate">CortexOS</span>}
           </Link>
-          <button onClick={onClose} className="md:hidden text-sidebar-foreground/60" aria-label="Close">
+          <button type="button" onClick={onClose} className="md:hidden text-sidebar-foreground/60" aria-label="Close">
             <X className="size-4" />
           </button>
         </div>
@@ -49,6 +49,7 @@ export function Sidebar({ collapsed, mobileOpen, onClose }: Props) {
               <div key={group.label}>
                 {isAdmin ? (
                   <button
+                    type="button"
                     onClick={() => setAdminOpen(!adminOpen)}
                     className={cn(
                       "w-full flex items-center justify-between px-2 mb-1 text-[10px] uppercase tracking-wider text-sidebar-foreground/50 hover:text-sidebar-foreground/80",

@@ -3,7 +3,7 @@
 import { PageHeader } from "@/components/sys-pilot/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, Play, Pause } from "lucide-react";
+import { Calendar, Clock, Play } from "lucide-react";
 
 export default function SchedulerPage() {
 	return (

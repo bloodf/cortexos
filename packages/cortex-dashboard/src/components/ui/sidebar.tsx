@@ -83,6 +83,7 @@ function SidebarProvider({
   React.useEffect(() => {
     const stored = readSidebarCookie()
     if (stored !== undefined && controlledOpen === undefined) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setInternalOpen(stored)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -242,6 +243,7 @@ function SidebarTrigger({
   const { open, setOpen } = useSidebar()
   return (
     <button
+      type="button"
       data-slot="sidebar-trigger"
       aria-label={open ? "Collapse sidebar to icon rail" : "Expand sidebar"}
       aria-expanded={open}

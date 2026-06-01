@@ -18,6 +18,7 @@ export function ServicesSidebar({ activeCategory, onCategoryChange, counts }: Se
 					<div className="space-y-1">
 						{CATEGORIES.map((cat) => (
 							<button
+								type="button"
 								key={cat}
 								onClick={() => onCategoryChange(cat)}
 								className={`relative w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all ${
@@ -49,6 +50,7 @@ export function ServicesSidebar({ activeCategory, onCategoryChange, counts }: Se
 			<div className="flex md:hidden gap-2 overflow-x-auto scrollbar-hide pb-3 -mx-1 px-1">
 				{CATEGORIES.map((cat) => (
 					<button
+						type="button"
 						key={cat}
 						onClick={() => onCategoryChange(cat)}
 						className={`relative shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${

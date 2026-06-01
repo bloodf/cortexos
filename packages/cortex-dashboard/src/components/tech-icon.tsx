@@ -132,8 +132,8 @@ export function TechIcon({ name, size = 40, className, color }: TechIconProps) {
 
 	const vendored = VENDORED_SVGS[slug];
 	if (vendored) {
-		// eslint-disable-next-line @next/next/no-img-element
 		return (
+			// eslint-disable-next-line @next/next/no-img-element
 			<img
 				src={vendored}
 				alt={slug}

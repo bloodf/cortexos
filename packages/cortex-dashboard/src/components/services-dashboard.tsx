@@ -57,6 +57,7 @@ export function ServicesDashboard({
 				<div className="flex items-center justify-between mb-4 gap-3">
 					<ServiceSearch value={search} onChange={setSearch} />
 					<button
+						type="button"
 						onClick={() => setShowAdmin(true)}
 						className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-500 light:bg-indigo-600 light:text-white light:hover:bg-indigo-500 transition-colors shrink-0 shadow-sm"
 					>

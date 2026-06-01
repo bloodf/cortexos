@@ -209,6 +209,7 @@ function ChatPanel() {
       <>
         {!open && (
           <button
+            type="button"
             onClick={() => setOpen(true)}
             aria-label="Open Cortex chat"
             className="fixed bottom-4 right-4 z-40 flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg"
@@ -244,6 +245,7 @@ function ChatPanel() {
       ) : (
         <div className="flex flex-col items-center py-3">
           <button
+            type="button"
             onClick={() => setOpen(true)}
             aria-label="Open Cortex chat"
             className="inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -354,13 +356,14 @@ function MessageRender({ message, onConfirm, onReject }: MessageRenderProps) {
 
   return (
     <div className="flex flex-col gap-1">
-      {parts.map((p, idx) => {
+      {parts.map((p, _idx) => {
         if (typeof p === "object" && p !== null) {
-          const part = p as { type?: string; text?: string }
+          const part = p as { type?: string; text?: string; toolCallId?: string }
+          const partKey = part.toolCallId ?? `${part.type}-${(part.text ?? "").slice(0,32)}`
           if (part.type === "text" && typeof part.text === "string") {
             return (
               <div
-                key={idx}
+                key={partKey}
                 data-slot="ai-message"
                 className={cn(
                   "rounded-lg px-3 py-2 text-sm",
@@ -378,7 +381,7 @@ function MessageRender({ message, onConfirm, onReject }: MessageRenderProps) {
             if (isConfirmationRequired(out)) {
               return (
                 <ConfirmationCard
-                  key={idx}
+                  key={partKey}
                   toolName={out.tool}
                   args={out.args}
                   onAccept={() =>
@@ -390,7 +393,7 @@ function MessageRender({ message, onConfirm, onReject }: MessageRenderProps) {
             }
             return (
               <ToolCard
-                key={idx}
+                key={partKey}
                 name={part.toolName ?? "tool"}
                 input={part.input}
                 output={part.output}
@@ -433,6 +436,7 @@ function ConfirmationCard({
       </pre>
       <div className="flex gap-2">
         <button
+          type="button"
           onClick={onAccept}
           aria-label="Confirm tool call"
           className="rounded bg-amber-600 px-3 py-1 text-xs font-medium text-white hover:bg-amber-700"
@@ -440,6 +444,7 @@ function ConfirmationCard({
           Confirm
         </button>
         <button
+          type="button"
           onClick={onReject}
           aria-label="Reject tool call"
           className="rounded border border-border px-3 py-1 text-xs font-medium hover:bg-muted"

@@ -120,6 +120,7 @@ function BellDropdown({ className }: { className?: string }) {
                     </p>
                   </div>
                   <button
+                    type="button"
                     onClick={() => acknowledgeAlert(alert.id)}
                     className="shrink-0 text-xs text-muted-foreground hover:text-foreground"
                     aria-label={`Dismiss ${alert.title}`}

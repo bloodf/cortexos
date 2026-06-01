@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
-import { useTranslations } from "next-intl";
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import type { ApprovalRequest } from "@/lib/types";
@@ -19,7 +19,6 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 export default function ApprovalsPage() {
-  const t = useTranslations();
   const qc = useQueryClient();
   const { user } = useAuth();
   const { data: items = [] } = useQuery({ queryKey: ["approvals"], queryFn: api.approvals });

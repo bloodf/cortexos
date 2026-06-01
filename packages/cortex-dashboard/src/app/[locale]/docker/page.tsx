@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
-import { useTranslations } from "next-intl";
+
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { bytes, relativeTime } from "@/lib/sys-pilot/format";
@@ -18,7 +18,7 @@ import type { DockerContainer, DockerImage, DockerVolume } from "@/lib/types";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-const SAMPLE_LOGS = [
+const _SAMPLE_LOGS = [
   "[2026-05-30T07:00:01Z] INFO  ollama: starting llama3.1:70b",
   "[2026-05-30T07:00:03Z] INFO  ollama: model loaded, listening on :11434",
   "[2026-05-30T07:01:12Z] INFO  ollama: inference req=q-7821 tokens=128",
@@ -29,7 +29,6 @@ const SAMPLE_LOGS = [
 ];
 
 export default function DockerPage() {
-  const t = useTranslations();
   const qc = useQueryClient();
   const { user } = useAuth();
   const { data: containers = [], isLoading: lc } = useQuery({ queryKey: ["docker", "containers"], queryFn: api.docker.containers });

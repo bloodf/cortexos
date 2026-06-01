@@ -96,15 +96,18 @@ export function DraggableLayout({ layout, onChange }: DraggableLayoutProps) {
 			</div>
 
 			<div className="space-y-6">
-				{rows.map((row, rowIndex) => (
-					<div key={rowIndex} className="relative">
+				{rows.map((row, rowIndex) => {
+					const rowKey = getRowItems(row).map((item) => typeof item === "string" ? item : item.id).join(",") || `empty-${rowIndex}`;
+					return (
+					<div key={rowKey} className="relative">
 						{editMode && <div className="mb-2 flex flex-wrap gap-2"><span className="rounded bg-indigo-500/20 px-2 py-1 text-xs text-indigo-300">Row {rowIndex + 1}</span><Button type="button" size="sm" variant="outline" disabled={rowIndex === 0} onClick={() => changeRows(moveRow(rows, rowIndex, rowIndex - 1))}>Up</Button><Button type="button" size="sm" variant="outline" disabled={rowIndex === rows.length - 1} onClick={() => changeRows(moveRow(rows, rowIndex, rowIndex + 1))}>Down</Button><Button type="button" size="sm" variant="destructive" onClick={() => changeRows(rows.filter((_, i) => i !== rowIndex))}>Remove row</Button></div>}
 						<div className="grid gap-4 md:grid-cols-[repeat(auto-fit,minmax(min(100%,280px),1fr))]">
 							{getRowItems(row).map((item, index) => <LayoutNode key={typeof item === "string" ? `${item}:${index}` : item.id} item={item} editMode={editMode} path={[index]} onRemove={(path) => removeItem(rowIndex, path)} onAddWidget={addWidgetToContainer} onAddContainer={addContainerToContainer} />)}
 						</div>
 						{editMode && <div className="mt-3 flex flex-wrap gap-2"><Button type="button" size="sm" variant="outline" onClick={() => addContainerToRow(rowIndex, "row")}><Rows3 className="mr-1 h-3 w-3" />Add row container</Button><Button type="button" size="sm" variant="outline" onClick={() => addContainerToRow(rowIndex, "column")}><Columns3 className="mr-1 h-3 w-3" />Add column container</Button><AddWidgetStrip onAdd={(widgetId) => addWidgetToRow(rowIndex, widgetId)} /></div>}
 					</div>
-				))}
+					);
+				})}
 			</div>
 			{editMode && <Button type="button" onClick={() => changeRows([...rows, rowFromItems([])])}><Plus className="mr-1 h-4 w-4" />New Row</Button>}
 		</div>

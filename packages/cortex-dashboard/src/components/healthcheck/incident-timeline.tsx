@@ -64,7 +64,7 @@ export function IncidentTimeline({
 			</CardHeader>
 			<CardContent className="space-y-3">
 				{items.map((incident, idx) => (
-					<div key={idx} className="flex items-start gap-3">
+					<div key={`${incident.changed_at}-${incident.from_status}-${incident.to_status}`} className="flex items-start gap-3">
 						<div className="flex flex-col items-center gap-1 pt-1">
 							<div
 								className={`h-2 w-2 rounded-full ${statusColor(incident.to_status)}`}

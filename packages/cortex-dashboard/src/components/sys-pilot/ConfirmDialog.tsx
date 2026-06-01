@@ -21,11 +21,11 @@ export function ConfirmDialog({ trigger, title, description, confirmLabel = "Con
   const disabled = !!requireText && text.trim() !== requireText;
   return (
     <AlertDialog open={open} onOpenChange={(o: boolean) => { setOpen(o); if (!o) setText(""); }}>
-      <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
+      <AlertDialogTrigger>{trigger}</AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
-          {description && <AlertDialogDescription asChild><div>{description}</div></AlertDialogDescription>}
+          {description && <AlertDialogDescription>{description}</AlertDialogDescription>}
         </AlertDialogHeader>
         {requireText && (
           <div className="space-y-2">

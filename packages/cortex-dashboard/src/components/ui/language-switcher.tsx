@@ -26,6 +26,7 @@ export function LanguageSwitcher() {
   return (
     <div className="relative">
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] hover:bg-white/[0.08] text-white/70 light:text-slate-700 transition-colors"
       >
@@ -43,6 +44,7 @@ export function LanguageSwitcher() {
           >
             {LOCALES.map((l) => (
               <button
+                type="button"
                 key={l.code}
                 onClick={() => switchLocale(l.code)}
                 className={`w-full text-left px-3 py-2 text-xs rounded-lg transition-colors flex items-center justify-between ${

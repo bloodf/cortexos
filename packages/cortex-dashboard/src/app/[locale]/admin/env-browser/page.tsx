@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { FileCode, Eye, EyeOff, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/sys-pilot/PageHeader";
@@ -13,6 +13,16 @@ export default function AdminEnvPage() {
   const data: { path: string; keys: string[] }[] = [];
   const [selected, setSelected] = useState(0);
   const [reveal, setReveal] = useState<Record<string, boolean>>({});
+  const mockValues = useMemo(() => {
+    const vals: Record<string, string> = {};
+    for (const f of data) {
+      for (const k of f.keys) {
+        vals[k] = `mock-${k.toLowerCase()}-value-${Array.from(k).reduce((a, c) => a + c.charCodeAt(0), 0).toString(36).slice(0, 8)}`;
+      }
+    }
+    return vals;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const file = data[selected];
 
   return (
@@ -23,6 +33,7 @@ export default function AdminEnvPage() {
           <div className="text-[10px] uppercase tracking-wide text-muted-foreground px-2 pb-2">Env files</div>
           {data.map((f, i) => (
             <button
+              type="button"
               key={f.path}
               onClick={() => setSelected(i)}
               className={`w-full text-left rounded-md px-2 py-1.5 flex items-center gap-2 text-sm transition-colors ${i === selected ? "bg-accent text-accent-foreground" : "hover:bg-muted/50"}`}
@@ -45,7 +56,7 @@ export default function AdminEnvPage() {
                   return (
                     <div key={k} className="grid grid-cols-[200px_1fr_auto] gap-2 items-center">
                       <code className="text-xs font-semibold">{k}</code>
-                      <Input value={reveal[k] ? `mock-${k.toLowerCase()}-value-${Math.random().toString(36).slice(2, 10)}` : v} readOnly className="h-8 font-mono text-xs" />
+                      <Input value={reveal[k] ? mockValues[k] : v} readOnly className="h-8 font-mono text-xs" />
                       <div className="flex gap-1">
                         <Button size="sm" variant="ghost" onClick={() => setReveal((s) => ({ ...s, [k]: !s[k] }))}>
                           {reveal[k] ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}

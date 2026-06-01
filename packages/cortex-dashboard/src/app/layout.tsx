@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { cookies } from "next/headers";
 import { getLocale, getMessages } from "next-intl/server";
 import { NextIntlClientProvider } from "next-intl";
@@ -52,21 +53,20 @@ export default async function RootLayout({
 					SSR render (or differs from the default), swap the theme-* class
 					before paint. next-themes handles the light/dark mode itself.
 				*/}
-				<script
-					dangerouslySetInnerHTML={{
-						__html: `
-							try {
-								var m = document.cookie.match(/(?:^|; )${PRESET_COOKIE}=([^;]*)/);
-								var p = m ? decodeURIComponent(m[1]) : '${DEFAULT_PRESET}';
-								var presets = ${JSON.stringify(PRESETS)};
-								if (presets.indexOf(p) === -1) p = '${DEFAULT_PRESET}';
-								var el = document.documentElement;
-								presets.forEach(function (name) { el.classList.remove('theme-' + name); });
-								el.classList.add('theme-' + p);
-							} catch (e) {}
-						`,
-					}}
-				/>
+				<Script
+					id="theme-preset-reconcile"
+					strategy="beforeInteractive"
+				>{`
+					try {
+						var m = document.cookie.match(/(?:^|; )${PRESET_COOKIE}=([^;]*)/);
+						var p = m ? decodeURIComponent(m[1]) : '${DEFAULT_PRESET}';
+						var presets = ${JSON.stringify(PRESETS)};
+						if (presets.indexOf(p) === -1) p = '${DEFAULT_PRESET}';
+						var el = document.documentElement;
+						presets.forEach(function (name) { el.classList.remove('theme-' + name); });
+						el.classList.add('theme-' + p);
+					} catch (e) {}
+				`}</Script>
 			</head>
 			<body className="min-h-full flex flex-col">
 				<NextIntlClientProvider messages={messages}>

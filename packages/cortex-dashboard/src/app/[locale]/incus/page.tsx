@@ -2,20 +2,20 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronRight, Plus, Boxes, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { ChevronRight, Plus, Boxes, Loader2, CheckCircle2 } from "lucide-react";
 import { PageHeader } from "@/components/sys-pilot/PageHeader";
 import { DataTable, type Column } from "@/components/sys-pilot/DataTable";
 import { KeyValueList } from "@/components/sys-pilot/KeyValueList";
 import { CodeBlock } from "@/components/sys-pilot/CodeBlock";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api } from "@/lib/api";
-import { useTranslations } from "next-intl";
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import type { IncusInstance } from "@/lib/types";
@@ -32,7 +32,6 @@ const statusColors: Record<IncusInstance["status"], string> = {
 };
 
 export default function IncusPage() {
-  const t = useTranslations();
   const qc = useQueryClient();
   const { user } = useAuth();
   const { data: instances = [], isLoading } = useQuery({ queryKey: ["incus"], queryFn: api.incus.instances });
@@ -86,7 +85,7 @@ export default function IncusPage() {
                 </div>
                 <div>
                   <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Devices</p>
-                  <CodeBlock language="yaml" code={Object.entries((active.devices ?? {}) as Record<string, any>).map(([k, v]) => `${k}:\n${Object.entries((v ?? {}) as Record<string, any>).map(([kk, vv]) => `  ${kk}: ${vv}`).join("\n")}`).join("\n")} />
+                  <CodeBlock language="yaml" code={Object.entries((active.devices ?? {}) as Record<string, Record<string, string>>).map(([k, v]) => `${k}:\n${Object.entries(v).map(([kk, vv]) => `  ${kk}: ${vv}`).join("\n")}`).join("\n")} />
                 </div>
               </div>
             </>
@@ -141,7 +140,7 @@ function ProvisionWizard({ open, onOpenChange, onCreated }: { open: boolean; onO
         {step === 4 && (
           <div className="space-y-2">
             <div className="rounded-md border bg-[oklch(0.14_0.01_260)] text-[oklch(0.92_0.01_260)] p-3 font-mono text-xs h-48 overflow-auto">
-              {log.map((l, i) => <div key={i} className="flex gap-2"><Loader2 className="size-3 animate-spin text-primary mt-0.5" />{l}</div>)}
+              {log.map((l, i) => <div key={`${i}-${l.slice(0,20)}`} className="flex gap-2"><Loader2 className="size-3 animate-spin text-primary mt-0.5" />{l}</div>)}
               {done && <div className="flex items-center gap-2 text-[var(--success)] mt-2"><CheckCircle2 className="size-4" /> Provisioning complete</div>}
             </div>
           </div>

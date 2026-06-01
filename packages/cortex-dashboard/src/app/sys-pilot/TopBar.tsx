@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, Check, Menu, Moon, PanelLeftClose, PanelLeftOpen, Search, Sun, Monitor, Palette, LogOut, ChevronRight, User as UserIcon } from "lucide-react";
+import { Bell, Menu, Moon, PanelLeftClose, PanelLeftOpen, Search, Sun, Monitor, LogOut, ChevronRight, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuRadioGroup, DropdownMenuRadioItem } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/hooks/useAuth";
-import { NAV_GROUPS, ALL_NAV_ITEMS } from "@/components/layout/nav-config";
-import { cn } from "@/lib/utils";
+import { ALL_NAV_ITEMS } from "@/components/layout/nav-config";
 import { useState, useEffect } from "react";
 
 interface Props { collapsed: boolean; onToggleCollapse: () => void; onOpenMobile: () => void; onOpenPalette: () => void; onOpenHelp?: () => void }
@@ -20,6 +19,7 @@ export function TopBar({ collapsed, onToggleCollapse, onOpenMobile, onOpenPalett
   const path = usePathname() ?? "/";
   const [mounted, setMounted] = useState(false);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setMounted(true), []);
 
   const crumbs = breadcrumbs(path);
@@ -33,7 +33,7 @@ export function TopBar({ collapsed, onToggleCollapse, onOpenMobile, onOpenPalett
 
       <nav className="hidden md:flex items-center text-sm text-muted-foreground min-w-0">
         {crumbs.map((c, i) => (
-          <span key={i} className="flex items-center min-w-0">
+          <span key={c.to ?? c.label} className="flex items-center min-w-0">
             {i > 0 && <ChevronRight className="size-3 mx-1 opacity-50" />}
             {c.to ? <Link href={c.to} className="hover:text-foreground truncate">{c.label}</Link> : <span className="text-foreground font-medium truncate">{c.label}</span>}
           </span>
@@ -43,6 +43,7 @@ export function TopBar({ collapsed, onToggleCollapse, onOpenMobile, onOpenPalett
       <div className="flex-1" />
 
       <button
+        type="button"
         onClick={onOpenPalette}
         className="hidden sm:flex items-center gap-2 rounded-md border bg-muted/40 px-3 h-9 text-sm text-muted-foreground hover:bg-muted/70 transition-colors min-w-[200px] lg:min-w-[280px]"
       >
@@ -94,7 +95,7 @@ export function TopBar({ collapsed, onToggleCollapse, onOpenMobile, onOpenPalett
 
       <DropdownMenu>
         <DropdownMenuTrigger>
-          <button className="flex items-center gap-2 rounded-md hover:bg-muted px-1.5 py-1 transition-colors" aria-label="Account">
+          <button type="button" className="flex items-center gap-2 rounded-md hover:bg-muted px-1.5 py-1 transition-colors" aria-label="Account">
             <div className="size-7 grid place-items-center rounded-full bg-primary text-primary-foreground text-xs font-semibold">
               {user?.username?.slice(0, 2).toUpperCase() ?? "?"}
             </div>

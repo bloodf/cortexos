@@ -49,7 +49,7 @@ const DEFAULTS: WizardDefaults = {
 export function ProvisionWizard() {
 	const router = useRouter();
 	const [step, setStep] = useState(0);
-	const [defaults, setDefaults] = useState<WizardDefaults>(DEFAULTS);
+	const [_defaults, _setDefaults] = useState<WizardDefaults>(DEFAULTS);
 
 	// form state
 	const [mode, setMode] = useState<"existing" | "new">("existing");
@@ -91,11 +91,13 @@ export function ProvisionWizard() {
 
 	// Keep gastown toggle in sync with the chosen image.
 	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect
 		setImage(gastown ? "cortexos-gastown-base/latest" : "cortexos-base/latest");
 	}, [gastown]);
 
 	// Default hermes profile to slug.
 	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect
 		if (!hermesProfile && slug) setHermesProfile(slug);
 	}, [slug, hermesProfile]);
 

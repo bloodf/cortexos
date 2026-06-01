@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/lib/api";
-import { useTranslations } from "next-intl";
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import type { SystemdUnit } from "@/lib/types";
@@ -16,7 +16,6 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 export default function SystemdPage() {
-  const t = useTranslations();
   const qc = useQueryClient();
   const { user } = useAuth();
   const { data: units = [], isLoading } = useQuery({ queryKey: ["systemd"], queryFn: api.systemd });

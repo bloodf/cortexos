@@ -110,6 +110,7 @@ export function AdminDockerPanel() {
 					) : (
 						<SimpleTable
 							columns={["Name", "Image", "State", "Ports"]}
+							rowKeys={containers.map((c) => c.ID)}
 							rows={containers.map((c) => [
 								<span key="n" className="font-mono text-xs">
 									{c.Names}
@@ -139,6 +140,7 @@ export function AdminDockerPanel() {
 					) : (
 						<SimpleTable
 							columns={["Repository", "Tag", "Size", "Created"]}
+							rowKeys={images.map((i) => i.ID)}
 							rows={images.map((i) => [
 								<span key="r" className="text-xs">
 									{i.Repository}
@@ -168,6 +170,7 @@ export function AdminDockerPanel() {
 					) : (
 						<SimpleTable
 							columns={["Name", "Driver", "Mountpoint"]}
+							rowKeys={volumes.map((v) => v.Name)}
 							rows={volumes.map((v) => [
 								<span key="n" className="font-mono text-xs">
 									{v.Name}
@@ -224,9 +227,11 @@ export function AdminDockerPanel() {
 function SimpleTable({
 	columns,
 	rows,
+	rowKeys,
 }: {
 	columns: string[];
 	rows: React.ReactNode[][];
+	rowKeys?: string[];
 }) {
 	return (
 		<div className="overflow-x-auto rounded-md border border-border">
@@ -245,9 +250,9 @@ function SimpleTable({
 				</thead>
 				<tbody>
 					{rows.map((cells, ri) => (
-						<tr key={ri} className="border-t border-border">
+						<tr key={rowKeys?.[ri] ?? ri} className="border-t border-border">
 							{cells.map((cell, ci) => (
-								<td key={ci} className="px-3 py-2">
+								<td key={columns[ci]} className="px-3 py-2">
 									{cell}
 								</td>
 							))}

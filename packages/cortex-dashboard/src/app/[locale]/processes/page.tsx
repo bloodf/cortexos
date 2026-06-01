@@ -5,12 +5,11 @@ import { PageHeader } from "@/components/sys-pilot/PageHeader";
 import { DataTable, type Column } from "@/components/sys-pilot/DataTable";
 import { Progress } from "@/components/ui/progress";
 import { api } from "@/lib/api";
-import { useTranslations } from "next-intl";
+
 import { useQuery } from "@tanstack/react-query";
 import type { ProcessInfo } from "@/lib/types";
 
 export default function ProcessesPage() {
-  const t = useTranslations();
   const { data: procs = [], isLoading } = useQuery({ queryKey: ["processes"], queryFn: api.processes, refetchInterval: 3000 });
 
   const cols: Column<ProcessInfo>[] = [

@@ -75,9 +75,9 @@ function AppGridItem({ service: s }: { service: ServiceData }) {
 						</div>
 						{s.badges && s.badges.length > 0 && (
 							<div className="mt-2 flex flex-wrap gap-1">
-								{s.badges.map((b, i) => (
+								{s.badges.map((b) => (
 									<Badge
-										key={i}
+										key={b.label}
 										variant="outline"
 										className="text-[10px] px-1.5 py-0"
 										style={b.color ? { borderColor: b.color, color: b.color } : undefined}

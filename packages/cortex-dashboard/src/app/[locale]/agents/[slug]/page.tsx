@@ -28,7 +28,7 @@ export default async function AgentDetailPage({ params }: Props) {
     notFound();
   }
 
-  const filesForClient = foundAgent.files.map((f) => ({
+  const _filesForClient = foundAgent.files.map((f) => ({
     name: f.name,
     path: f.path,
   }));

@@ -22,7 +22,7 @@ export function LayoutNode({
 		return (
 			<div className="relative min-w-0">
 				{editMode && (
-					<button onClick={onRemove} className="absolute -right-2 -top-2 z-20 rounded bg-red-500/20 p-1 text-red-400 hover:bg-red-500/30" title="Remove widget">
+					<button type="button" onClick={onRemove} className="absolute -right-2 -top-2 z-20 rounded bg-red-500/20 p-1 text-red-400 hover:bg-red-500/30" title="Remove widget">
 						<X className="h-3 w-3" />
 					</button>
 				)}
@@ -39,9 +39,9 @@ export function LayoutNode({
 			{editMode && (
 				<div className="mb-3 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-wider text-indigo-300">
 					<span>{item.direction} container</span>
-					<button onClick={() => onAddContainer(item.id, "row")} className="flex items-center gap-1 rounded bg-white/[0.04] px-2 py-1"><Rows3 className="h-3 w-3" /> row</button>
-					<button onClick={() => onAddContainer(item.id, "column")} className="flex items-center gap-1 rounded bg-white/[0.04] px-2 py-1"><Columns3 className="h-3 w-3" /> column</button>
-					<button onClick={onRemove} className="ml-auto rounded bg-red-500/20 p-1 text-red-400"><X className="h-3 w-3" /></button>
+					<button type="button" onClick={() => onAddContainer(item.id, "row")} className="flex items-center gap-1 rounded bg-white/[0.04] px-2 py-1"><Rows3 className="h-3 w-3" /> row</button>
+					<button type="button" onClick={() => onAddContainer(item.id, "column")} className="flex items-center gap-1 rounded bg-white/[0.04] px-2 py-1"><Columns3 className="h-3 w-3" /> column</button>
+					<button type="button" onClick={onRemove} className="ml-auto rounded bg-red-500/20 p-1 text-red-400"><X className="h-3 w-3" /></button>
 				</div>
 			)}
 			<div className={item.direction === "row" ? "grid gap-4 md:grid-cols-2" : "flex flex-col gap-4"}>
@@ -52,7 +52,7 @@ export function LayoutNode({
 			{editMode && (
 				<div className="mt-3 flex flex-wrap gap-2">
 					{Object.keys(WIDGET_REGISTRY).map((widgetId) => (
-						<button key={widgetId} onClick={() => onAddWidget(item.id, widgetId)} className="flex items-center gap-1 rounded bg-white/[0.03] px-2 py-1 text-xs text-white/50 hover:text-indigo-300">
+						<button type="button" key={widgetId} onClick={() => onAddWidget(item.id, widgetId)} className="flex items-center gap-1 rounded bg-white/[0.03] px-2 py-1 text-xs text-white/50 hover:text-indigo-300">
 							<Plus className="h-3 w-3" /> {WIDGET_LABELS[widgetId] ?? widgetId}
 						</button>
 					))}

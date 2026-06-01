@@ -19,25 +19,28 @@ interface Props {
 }
 
 export function AuditChainVerifyBadge({ from, to }: Props) {
-	const [state, setState] = useState<
-		{ status: "idle" } |
-		{ status: "loading" } |
-		{ status: "ok"; result: VerifyResult } |
-		{ status: "error"; message: string }
-	>({ status: "idle" });
+	type State =
+		| { status: "idle" }
+		| { status: "loading" }
+		| { status: "ok"; result: VerifyResult }
+		| { status: "error"; message: string };
+
+	const [state, setState] = useState<State>({ status: "idle" });
+
+	// Sync state to prop changes — idle when no window, loading when window present.
+	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect
+		setState(!from || !to ? { status: "idle" } : { status: "loading" });
+	}, [from, to]);
 
 	useEffect(() => {
-		if (!from || !to) {
-			// eslint-disable-next-line react-hooks/set-state-in-effect -- prop-driven reset when window collapses
-			setState({ status: "idle" });
-			return;
-		}
+		if (!from || !to) return;
+
 		const params = new URLSearchParams();
 		params.set("from", new Date(from).toISOString());
 		// Bump `to` by 1ms so the verify window is inclusive of the most
 		// recent row (verifyChain treats `toTs` as exclusive).
 		params.set("to", new Date(new Date(to).getTime() + 1).toISOString());
-		setState({ status: "loading" });
 		const ctrl = new AbortController();
 		fetch(`/api/audit/verify?${params}`, { signal: ctrl.signal })
 			.then(async (r) => {

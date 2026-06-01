@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/sys-pilot/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, type Column } from "@/components/sys-pilot/DataTable";
 import { api } from "@/lib/api";
-import { useTranslations } from "next-intl";
+
 import { useQuery } from "@tanstack/react-query";
 import { bytes } from "@/lib/sys-pilot/format";
 import { usageBg } from "@/lib/sys-pilot/status";
@@ -13,7 +13,6 @@ import type { MountInfo, DriveInfo } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export default function StoragePage() {
-  const t = useTranslations();
   const { data: sys, isLoading } = useQuery({ queryKey: ["system"], queryFn: api.system, refetchInterval: 5000 });
 
   const driveCols: Column<DriveInfo>[] = [

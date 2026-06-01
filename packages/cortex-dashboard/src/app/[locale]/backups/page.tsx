@@ -3,7 +3,7 @@
 import { PageHeader } from "@/components/sys-pilot/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Archive, RotateCcw, Clock, HardDrive } from "lucide-react";
+import { Archive, Clock, HardDrive } from "lucide-react";
 
 export default function BackupsPage() {
 	return (
