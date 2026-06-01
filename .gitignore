@@ -154,3 +154,9 @@ REVIEW.md
 
 # sandbox-runner app deps are installed fresh inside the container
 stacks/cortex-sandbox-runner/app/node_modules/
+
+# ============================================
+# Backups & Dumps
+# ============================================
+*.dump
+backups/
