@@ -169,22 +169,25 @@ backups/
 # ============================================
 # Runtime / Generated / Non-essential
 # ============================================
-logs/
-recovery/
-systemd/
-bin/
-data/
-manifests/
-media/
-messages/
-migrations/
-schemas/
-src/
-stacks/
-templates/
-scripts/
-e2e/
-public/
+# Anchored to the repo root so these only ignore the monorepo's top-level
+# runtime/generated dirs — NOT same-named source dirs inside packages/* (e.g.
+# packages/dashboard/src, messages, migrations, public, scripts, e2e).
+/logs/
+/recovery/
+/systemd/
+/bin/
+/data/
+/manifests/
+/media/
+/messages/
+/migrations/
+/schemas/
+/src/
+/stacks/
+/templates/
+/scripts/
+/e2e/
+/public/
 .omc/
 .cache/
 *.log

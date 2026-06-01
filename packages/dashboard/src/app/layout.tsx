@@ -6,6 +6,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/hooks/useAuth";
+import { QueryProvider } from "@/components/query-provider";
 import { AlertToastListener } from "@/components/notifications/alert-toast";
 import { ThemeProvider } from "@/hooks/use-theme";
 import {
@@ -70,13 +71,15 @@ export default async function RootLayout({
 			</head>
 			<body className="min-h-full flex flex-col">
 				<NextIntlClientProvider messages={messages}>
-					<ThemeProvider initialPreset={initialPreset}>
-						<AuthProvider>
-							<TooltipProvider>{children}</TooltipProvider>
-						</AuthProvider>
-						<Toaster />
-						<AlertToastListener />
-					</ThemeProvider>
+					<QueryProvider>
+						<ThemeProvider initialPreset={initialPreset}>
+							<AuthProvider>
+								<TooltipProvider>{children}</TooltipProvider>
+							</AuthProvider>
+							<Toaster />
+							<AlertToastListener />
+						</ThemeProvider>
+					</QueryProvider>
 				</NextIntlClientProvider>
 			</body>
 		</html>
