@@ -68,5 +68,9 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // Exclude Next internals and any path ending in a file extension (static
+  // assets served from public/: manifest.json, *.svg, icons/*, etc.) so the
+  // session gate doesn't redirect them to /login — a redirected manifest.json
+  // returns HTML and the browser reports "Manifest: Syntax error".
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.[^/]+$).*)"],
 };
