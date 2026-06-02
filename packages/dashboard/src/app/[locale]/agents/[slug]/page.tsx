@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { scanAgents } from "@/lib/agents/scanner";
 import { Link } from "@/i18n/routing";
 import { ArrowLeft } from "lucide-react";
-import { AgentFileViewer } from "@/components/sys-pilot/agents/agent-file-viewer";
+import { AgentFileViewer } from "./agent-file-viewer";
 import { PageHeader } from "@/components/sys-pilot/PageHeader";
 import { notFound } from "next/navigation";
 

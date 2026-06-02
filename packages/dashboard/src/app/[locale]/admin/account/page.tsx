@@ -19,6 +19,32 @@ export default function AdminAccountPage() {
   const [locale, setLocale] = useState("en");
   const [email, setEmail] = useState(`${user?.username ?? "admin"}@cortex.local`);
   const [notif, setNotif] = useState({ email: true, push: false, digest: true });
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [pwSubmitting, setPwSubmitting] = useState(false);
+
+  async function handleUpdatePassword() {
+    setPwSubmitting(true);
+    try {
+      const res = await fetch("/api/auth/password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword: currentPw, newPassword: newPw }),
+      });
+      const body = (await res.json().catch(() => ({}))) as { message?: string; error?: string };
+      if (res.ok) {
+        toast.success(body.message ?? "Password updated");
+        setCurrentPw("");
+        setNewPw("");
+      } else {
+        toast.error(body.error ?? body.message ?? "Unable to update password");
+      }
+    } catch {
+      toast.error("Network error while updating password");
+    } finally {
+      setPwSubmitting(false);
+    }
+  }
 
   const accents = ["cortex", "teal", "emerald", "amber"] as const;
   const locales = [
@@ -49,13 +75,13 @@ export default function AdminAccountPage() {
           <h2 className="font-semibold flex items-center gap-2"><Shield className="size-4" />Security</h2>
           <div className="space-y-2">
             <Label htmlFor="acc-current-pw" className="text-xs">Current password</Label>
-            <Input id="acc-current-pw" type="password" className="h-9" />
+            <Input id="acc-current-pw" type="password" className="h-9" value={currentPw} onChange={(e) => setCurrentPw(e.target.value)} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="acc-new-pw" className="text-xs">New password</Label>
-            <Input id="acc-new-pw" type="password" className="h-9" />
+            <Input id="acc-new-pw" type="password" className="h-9" value={newPw} onChange={(e) => setNewPw(e.target.value)} />
           </div>
-          <Button size="sm" onClick={() => toast.success("Password updated")}>Update password</Button>
+          <Button size="sm" onClick={handleUpdatePassword} disabled={pwSubmitting}>Update password</Button>
         </Card>
 
         <Card className="p-5 space-y-4">

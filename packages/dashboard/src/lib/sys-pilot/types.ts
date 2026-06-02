@@ -124,7 +124,7 @@ export interface AuditEntry {
 }
 
 export interface Badge { slug: string; label: string; color: string; text_color: string }
-export interface PamUser { username: string; uid: number; groups: string[]; is_admin: boolean }
+export interface PamUser { id: number; username: string; created_at: string; active_sessions: number; last_login_at: string | null }
 export interface Project { slug: string; name: string; description: string; repo_url: string; branch: string; created_at: string }
 export interface Agent { slug: string; name: string; description: string; files: { path: string; language: string; content: string }[] }
 export interface MailReview {

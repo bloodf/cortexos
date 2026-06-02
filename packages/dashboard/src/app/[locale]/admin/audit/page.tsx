@@ -6,12 +6,12 @@ import { PageHeader } from "@/components/sys-pilot/PageHeader";
 import { DataTable, type Column } from "@/components/sys-pilot/DataTable";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/api";
 import type { AuditEntry } from "@/lib/types";
 
-// TODO: rewire to real API
 export default function AdminAuditPage() {
-  const data: AuditEntry[] = [];
-  const isLoading = false;
+  const { data = [], isLoading } = useQuery({ queryKey: ["audit"], queryFn: api.audit, refetchInterval: 10000 });
 
   const columns: Column<AuditEntry>[] = [
     { key: "created_at", header: "Time", sort: (r) => r.created_at, cell: (r) => <span className="text-xs text-muted-foreground tabular-nums">{new Date(r.created_at).toLocaleString()}</span> },
@@ -30,7 +30,16 @@ export default function AdminAuditPage() {
       <PageHeader
         title="Audit Chain (Admin)"
         description={`${data.length} entries · tamper-evident`}
-        actions={<Button size="sm" variant="outline" onClick={() => toast.success("Audit log exported")}><Download className="size-4 mr-1" />Export</Button>}
+        actions={<Button size="sm" variant="outline" onClick={() => {
+          const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `audit-${new Date().toISOString().slice(0, 10)}.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+          toast.success(`Exported ${data.length} entries`);
+        }}><Download className="size-4 mr-1" />Export</Button>}
       />
       <DataTable rows={data} columns={columns} loading={isLoading} initialSort="created_at"
         filterFn={(r, q) => r.actor.toLowerCase().includes(q) || r.tool.includes(q)} />

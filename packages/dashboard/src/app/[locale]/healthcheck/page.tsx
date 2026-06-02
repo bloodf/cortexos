@@ -22,12 +22,12 @@ export default function HealthcheckPage() {
   const { data: alerts = [] } = useQuery({ queryKey: ["alerts", "history"], queryFn: api.alerts.history, refetchInterval: 3000 });
   const [period, setPeriod] = useState<"1h" | "24h" | "7d">("24h");
 
-  const recheck = (slug: string) => {
+  const recheck = async (slug: string) => {
     toast.info(`Re-checking ${slug}…`);
-    setTimeout(() => {
-      qc.setQueryData<Service[]>(["services"], (prev) => prev?.map((s) => s.slug === slug ? { ...s, responseTime: 20 + Math.random() * 60 } : s));
-      toast.success(`${slug} ok`);
-    }, 600);
+    // Re-run the real server-side health checks (api.services hits /api/services
+    // which probes each service) rather than fabricating a response time.
+    await qc.invalidateQueries({ queryKey: ["services"] });
+    toast.success(`Re-checked ${slug}`);
   };
 
   const cols: Column<Service>[] = [

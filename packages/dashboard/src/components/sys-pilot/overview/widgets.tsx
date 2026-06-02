@@ -28,10 +28,41 @@ export interface WidgetSpec {
   render: () => ReactNode;
 }
 
+// ── Rolling performance history ───────────────────────────────
+// The backend exposes only a point-in-time snapshot (/api/system); there is no
+// time-series endpoint. We accumulate REAL samples client-side into a shared
+// ring buffer so the sparklines / live chart render actual CPU & memory history.
+type HistPoint = { t: number; cpu: number; mem: number };
+const HISTORY_LIMIT = 60;
+const historyBuffer: HistPoint[] = [];
+
+function pushHistory(cpu: number, mem: number): HistPoint[] {
+  historyBuffer.push({ t: Date.now(), cpu, mem });
+  if (historyBuffer.length > HISTORY_LIMIT) historyBuffer.splice(0, historyBuffer.length - HISTORY_LIMIT);
+  return historyBuffer.slice();
+}
+
+/**
+ * Samples the real /api/system snapshot on an interval and returns the
+ * accumulated CPU/memory history. Shared across the CPU, Memory and Live
+ * performance widgets via the "history" query key.
+ */
+function useHistory() {
+  return useQuery<HistPoint[]>({
+    queryKey: ["history"],
+    queryFn: async () => {
+      const sys = await api.system();
+      return pushHistory(sys.cpu ?? 0, sys.memory?.percent ?? 0);
+    },
+    refetchInterval: 5_000,
+    refetchOnWindowFocus: true,
+  });
+}
+
 // ── Individual widget components ──────────────────────────────
 function CpuW() {
   const { data: sys } = useQuery({ queryKey: ["system"], queryFn: api.system });
-  const { data: hist = [] } = useQuery<{ t: number; cpu: number; mem: number }[]>({ queryKey: ["history"], queryFn: async () => [] });
+  const { data: hist = [] } = useHistory();
   return (
     <MetricCard label="CPU" value={percent(sys?.cpu ?? 0)} icon={<Cpu className="size-4" />}
       trend={<Sparkline data={hist.map((h) => h.cpu)} color="var(--chart-1)" />} />
@@ -39,7 +70,7 @@ function CpuW() {
 }
 function MemW() {
   const { data: sys } = useQuery({ queryKey: ["system"], queryFn: api.system });
-  const { data: hist = [] } = useQuery<{ t: number; cpu: number; mem: number }[]>({ queryKey: ["history"], queryFn: async () => [] });
+  const { data: hist = [] } = useHistory();
   return (
     <MetricCard label="Memory" value={percent(sys?.memory.percent ?? 0)}
       hint={`${bytes(sys?.memory.used ?? 0)} / ${bytes(sys?.memory.total ?? 0)}`}
@@ -77,7 +108,7 @@ function ServicesOffW() {
     icon={<AlertTriangle className="size-4 text-[var(--destructive)]" />} />;
 }
 function LiveTrendW() {
-  const { data: hist = [] } = useQuery<{ t: number; cpu: number; mem: number }[]>({ queryKey: ["history"], queryFn: async () => [] });
+  const { data: hist = [] } = useHistory();
   return (
     <Card className="elev-1 h-full flex flex-col">
       <CardHeader className="pb-2"><CardTitle className="text-sm">Live performance</CardTitle></CardHeader>

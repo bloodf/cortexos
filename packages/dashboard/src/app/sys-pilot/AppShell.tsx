@@ -7,7 +7,6 @@ import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { MobileTabBar } from "./MobileTabBar";
 import { KeyboardShortcuts } from "@/components/sys-pilot/KeyboardShortcuts";
-import { DemoTour } from "@/components/sys-pilot/DemoTour";
 import { IncidentToaster } from "@/components/sys-pilot/IncidentToaster";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 
@@ -49,7 +48,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         <MobileTabBar />
       </div>
       <KeyboardShortcuts open={helpOpen} onOpenChange={setHelpOpen} />
-      <DemoTour />
       <IncidentToaster />
     </div>
   );
