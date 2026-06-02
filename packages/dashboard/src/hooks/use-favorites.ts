@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export type FavoriteService = {
 	id: number;
@@ -37,7 +37,16 @@ function readFavorites(): FavoriteService[] {
 }
 
 export function useFavorites() {
-	const [favorites, setFavorites] = useState<FavoriteService[]>(() => readFavorites());
+	// Start empty to match the server render (localStorage is client-only); load
+	// after mount. Reading localStorage in the initializer makes the client's
+	// first render diverge from the server and triggers a hydration mismatch
+	// (React #418) for anyone who has favorited a service.
+	const [favorites, setFavorites] = useState<FavoriteService[]>([]);
+
+	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect
+		setFavorites(readFavorites());
+	}, []);
 
 	function save(next: FavoriteService[]) {
 		setFavorites(next);
