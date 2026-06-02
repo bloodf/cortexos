@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/auth";
 
-const MESSAGE = "Dashboard passwords are managed by Linux PAM. Change the system account password on the host with passwd, Cockpit, Webmin, or SSH.";
+const MESSAGE = "Dashboard passwords are managed by Linux PAM. Change the system account password on the host with passwd or SSH.";
 
 export async function GET() {
   return NextResponse.json({ message: MESSAGE });

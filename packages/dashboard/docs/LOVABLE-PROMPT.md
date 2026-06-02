@@ -187,7 +187,7 @@ MailReview { id, from, subject, snippet, risk:"low"|"medium"|"high", status:"pen
 
 SEED DATA: ~25 services across categories AI / Infrastructure / Database / Media / Monitoring:
 9Router, Ollama, Honcho, Honcho MCP, Obot, Kernel Browser, Cortex Sandbox Runner, Caddy, Tailscale,
-Cockpit, Webmin, Incus, Dockhand, Watchtower, DNSmasq, Fail2Ban, PostgreSQL, MySQL, Redis, MongoDB,
+Incus, Dockhand, Watchtower, DNSmasq, Fail2Ban, PostgreSQL, MySQL, Redis, MongoDB,
 pgAdmin, phpMyAdmin, RedisInsight, Jellyfin, Grafana, Prometheus, Loki, cAdvisor, Home Assistant.
 Most online; make 2–3 offline and 1–2 unknown for realism. Provide matching badges (AI, App, DB,
 API, System, Monitoring, Media, Infra, Network, Storage, Agent, Project).

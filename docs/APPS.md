@@ -29,8 +29,6 @@ workflow through its skill.
 | CortexOS Dashboard | `70-dashboard.md` | Native Next.js control panel for services, health, files, and admin workflows |
 | Hermes Web UI | `40-hermes.md` | Operator-facing Hermes profile UI |
 | Paperclip UI/API | `62-paperclip.md` | Work tracking and agent execution surface |
-| Cockpit | `26-cockpit.md` | Native Linux host administration over tailnet HTTPS |
-| Webmin | `26b-webmin.md` | Linux administration UI bound to loopback and exposed through Tailscale Serve |
 | Dockhand/Dockge | `27-dockhand.md` | Docker Compose stack management |
 
 ## Host And Network Foundation

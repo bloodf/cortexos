@@ -56,8 +56,9 @@ export const api = {
       (await get<{ images: { data: DockerImage[] } }>("/api/docker")).images?.data ?? [],
     volumes: async (): Promise<DockerVolume[]> =>
       (await get<{ volumes: { data: DockerVolume[] } }>("/api/docker")).volumes?.data ?? [],
-    // /api/docker does not expose a networks key — no backing data.
-    networks: async (): Promise<DockerNetwork[]> => [],
+    // /api/docker/networks -> { networks } (docker network ls)
+    networks: async (): Promise<DockerNetwork[]> =>
+      (await get<{ networks: DockerNetwork[] }>("/api/docker/networks")).networks ?? [],
   },
 
   // /api/agents -> { groups: [{ project, agents: [...] }] } — flatten to Agent[].
@@ -122,27 +123,29 @@ export const api = {
   healthcheck: async (): Promise<Service[]> =>
     (await get<{ services: Service[] }>("/api/services?healthcheck=true")).services ?? [],
 
-  // No /api/approvals route exists; /api/alerts/operational has an incompatible
-  // (severity/message) shape, not ApprovalRequest. Keep empty.
-  approvals: async (): Promise<ApprovalRequest[]> => [],
+  // /api/approvals -> { approvals } (pending_approvals table)
+  approvals: async (): Promise<ApprovalRequest[]> =>
+    (await get<{ approvals: ApprovalRequest[] }>("/api/approvals")).approvals ?? [],
 
   // /api/audit -> { rows, total, ... }
   audit: async (): Promise<AuditEntry[]> =>
     (await get<{ rows: AuditEntry[] }>("/api/audit")).rows ?? [],
 
-  // /api/mail-guardian returns aggregate stats (actions/openReviews/recentReviews),
-  // not a per-mail MailReview[] (no from/subject/snippet/body/risk). No backing data.
-  mailGuardian: async (): Promise<MailReview[]> => [],
+  // /api/mail-guardian/reviews -> { reviews } (per-message verdict/decision queue)
+  mailGuardian: async (): Promise<MailReview[]> =>
+    (await get<{ reviews: MailReview[] }>("/api/mail-guardian/reviews")).reviews ?? [],
 
   // /api/admin/users -> { users } (read-only PAM-backed list)
   users: async (): Promise<PamUser[]> =>
     (await get<{ users: PamUser[] }>("/api/admin/users")).users ?? [],
 
-  // No /api/backups route.
-  backups: async (): Promise<BackupEntry[]> => [],
-  // No /api/scheduler route.
-  scheduler: async (): Promise<ScheduledJob[]> => [],
-  // No /api/notifications route.
+  // /api/backups -> { backups } (age-encrypted tarballs from the cortex-backup timer)
+  backups: async (): Promise<BackupEntry[]> =>
+    (await get<{ backups: BackupEntry[] }>("/api/backups")).backups ?? [],
+  // /api/scheduler -> { jobs } (systemd timers)
+  scheduler: async (): Promise<ScheduledJob[]> =>
+    (await get<{ jobs: ScheduledJob[] }>("/api/scheduler")).jobs ?? [],
+  // No /api/notifications route and no consumer in the UI — left as a stub.
   notifications: async (): Promise<NotificationEntry[]> => [],
 
   // /api/badges -> { badges }

@@ -39,8 +39,6 @@ VALUES
   -- Infrastructure and administration
   ('caddy', 'Caddy', 'service', 'Infrastructure', 'tcp://127.0.0.1:80', 'tcp', '#', '/opt/cortexos/.secrets/caddy.env', 'caddy', 1),
   ('tailscale', 'Tailscale', 'process', 'Infrastructure', 'tailscaled', 'process', '#', NULL, 'server', 2),
-  ('cockpit', 'Cockpit', 'service', 'Infrastructure', 'tcp://127.0.0.1:9091', 'tcp', '#', NULL, 'server', 3), -- moved off :9090 (Prometheus owns it); cockpit.socket.d/listen.conf binds 127.0.0.1:9091
-  ('webmin', 'Webmin', 'service', 'Infrastructure', 'tcp://127.0.0.1:10000', 'tcp', '#', NULL, 'server', 4),
   ('incus', 'Incus', 'service', 'Infrastructure', 'incusd', 'process', '#', NULL, 'server', 5),
   ('cortex-dashboard', 'Cortex Dashboard', 'service', 'Infrastructure', 'http://127.0.0.1:3080/en/login', 'http', '#', '/opt/cortexos/.secrets/dashboard.env', 'server', 6),
   ('cortex-dashboard-root-helper', 'Dashboard Root Helper', 'service', 'Infrastructure', 'cortex-dashboard-root-helper.socket', 'systemd', '#', NULL, 'server', 7),
@@ -112,7 +110,7 @@ ON CONFLICT (service_id, badge_id) DO NOTHING;
 
 INSERT INTO service_badges (service_id, badge_id)
 SELECT s.id, b.id FROM services s, badges b
-WHERE s.slug IN ('caddy','tailscale','cockpit','webmin','incus','cortex-dashboard','cortex-dashboard-root-helper','dockhand','watchtower','dnsmasq','fail2ban')
+WHERE s.slug IN ('caddy','tailscale','incus','cortex-dashboard','cortex-dashboard-root-helper','dockhand','watchtower','dnsmasq','fail2ban')
   AND b.slug = 'infra'
 ON CONFLICT (service_id, badge_id) DO NOTHING;
 
@@ -150,7 +148,7 @@ ON CONFLICT (service_id, badge_id) DO NOTHING;
 
 INSERT INTO service_badges (service_id, badge_id)
 SELECT s.id, b.id FROM services s, badges b
-WHERE s.slug IN ('cockpit','webmin','tailscale','dnsmasq','fail2ban','watchtower','incus')
+WHERE s.slug IN ('tailscale','dnsmasq','fail2ban','watchtower','incus')
   AND b.slug = 'system'
 ON CONFLICT (service_id, badge_id) DO NOTHING;
 
@@ -214,8 +212,6 @@ BEGIN
   UPDATE services SET open_url = base || ':8081/'               WHERE slug = 'cadvisor';
   UPDATE services SET open_url = base || ':8096'                WHERE slug = 'jellyfin';
   UPDATE services SET open_url = base || ':8123'                WHERE slug = 'home-assistant';
-  UPDATE services SET open_url = base || ':9091/'               WHERE slug = 'cockpit';
-  UPDATE services SET open_url = base || ':10000/'              WHERE slug = 'webmin';
   UPDATE services SET open_url = base || ':5050/'               WHERE slug = 'pgadmin';
   UPDATE services SET open_url = base || ':8082/'               WHERE slug = 'phpmyadmin';
   UPDATE services SET open_url = base || ':5540/'               WHERE slug = 'redisinsight';
@@ -260,7 +256,6 @@ INSERT INTO migrations (name) VALUES
   ('021_mail_guardian_actions'),
   ('022_mail_guardian_widgets'),
   ('023_action_log_mail_guardian_target'),
-  ('024_cockpit_port_fix'),
   ('025_cadvisor_inactive'),
   ('026_agentgateway_to_obot'),
   ('027_exporter_catalog')

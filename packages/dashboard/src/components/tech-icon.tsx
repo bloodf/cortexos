@@ -12,8 +12,6 @@ export const BRAND_COLORS: Record<string, string> = {
 	dockhand: "#06b6d4",
 	"home-assistant": "#03a9f4",
 	jellyfin: "#00a4dc",
-	webmin: "#881113",
-	cockpit: "#3e4245",
 	ollama: "#1a1a1a",
 	postgresql: "#336791",
 	redis: "#dc382d",
@@ -77,8 +75,6 @@ const VENDORED_SVGS: Record<string, string> = {
 	"home-assistant": "/icons/home-assistant.svg",
 	incus: "/icons/incus.svg",
 	watchtower: "/icons/watchtower.svg",
-	cockpit: "/icons/cockpit.svg",
-	webmin: "/icons/webmin.svg",
 };
 
 export type TechIconSource = "developer-icons" | "vendored" | "monogram";

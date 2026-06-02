@@ -43,7 +43,7 @@ Confirmed host facts:
 
 ## Key Architecture Decisions
 
-- Main host stays the control/data plane: PostgreSQL, MySQL, Redis, MongoDB, Caddy, Tailscale, Cockpit, Webmin, 9Router, Ollama, Honcho, Cortex Dashboard, and monitoring.
+- Main host stays the control/data plane: PostgreSQL, MySQL, Redis, MongoDB, Caddy, Tailscale, 9Router, Ollama, Honcho, Cortex Dashboard, and monitoring.
 - Incus uses unprivileged containers by default, versioned base images, and a
   file-backed ZFS pool under `/mnt/hdd`.
 - First Incus project instances: `mementry`, `celebrar.me`, and `3guns`, each

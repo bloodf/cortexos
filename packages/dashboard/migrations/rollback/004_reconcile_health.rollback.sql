@@ -5,9 +5,6 @@ UPDATE services
    SET health_type = 'tcp', health_url = 'tcp://127.0.0.1:80', updated_at = NOW()
  WHERE slug = 'caddy';
 
-UPDATE services
-   SET health_type = 'tcp', health_url = 'tcp://127.0.0.1:10000', updated_at = NOW()
- WHERE slug = 'webmin';
 
 UPDATE services
    SET health_type = 'http', health_url = 'http://127.0.0.1:9090/-/healthy', updated_at = NOW()
@@ -17,9 +14,6 @@ UPDATE services
    SET health_type = 'http', health_url = 'http://127.0.0.1:9222/json/version', updated_at = NOW()
  WHERE slug = 'kernel-browser';
 
-UPDATE services
-   SET health_type = 'tcp', health_url = 'tcp://127.0.0.1:9091', updated_at = NOW()
- WHERE slug = 'cockpit';
 
 UPDATE services
    SET is_active = true, updated_at = NOW()

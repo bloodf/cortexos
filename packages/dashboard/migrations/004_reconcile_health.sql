@@ -23,11 +23,6 @@ UPDATE services
    SET health_type = 'systemd', health_url = 'caddy', updated_at = NOW()
  WHERE slug = 'caddy';
 
--- Webmin: binds the Tailscale interface :10000, not 127.0.0.1. Native systemd unit.
-UPDATE services
-   SET health_type = 'systemd', health_url = 'webmin', updated_at = NOW()
- WHERE slug = 'webmin';
-
 -- Prometheus: binds the Tailscale interface :9090, not 127.0.0.1. Runs as the
 -- cortex-prometheus container -> use a docker liveness check.
 UPDATE services
@@ -39,12 +34,6 @@ UPDATE services
 UPDATE services
    SET health_type = 'docker', health_url = 'cortex-kernel-browser', updated_at = NOW()
  WHERE slug = 'kernel-browser';
-
--- Cockpit: socket-activated (cockpit.socket is active) rather than a long-running
--- listener, so a TCP probe to :9091 is unreliable. Use the systemd socket unit.
-UPDATE services
-   SET health_type = 'systemd', health_url = 'cockpit.socket', updated_at = NOW()
- WHERE slug = 'cockpit';
 
 -- Hermes Dashboard: retired (nothing listening on :9119, no container). Deactivate
 -- so it is not surfaced as a hard failure; re-enable + re-point if reintroduced.

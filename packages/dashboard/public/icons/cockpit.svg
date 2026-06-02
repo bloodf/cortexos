@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Cockpit">
-  <rect width="256" height="256" rx="48" fill="#3e4245"/>
-  <g fill="none" stroke="#fff" stroke-width="14" stroke-linecap="round">
-    <circle cx="128" cy="128" r="68"/>
-    <path d="M128 60v24M128 172v24M60 128h24M172 128h24"/>
-  </g>
-  <circle cx="128" cy="128" r="18" fill="#fff"/>
-</svg>

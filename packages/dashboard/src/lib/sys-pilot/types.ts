@@ -128,6 +128,10 @@ export interface PamUser { id: number; username: string; created_at: string; act
 export interface Project { slug: string; name: string; description: string; repo_url: string; branch: string; created_at: string }
 export interface Agent { slug: string; name: string; description: string; files: { path: string; language: string; content: string }[] }
 export interface MailReview {
-  id: string; from: string; subject: string; snippet: string; body: string;
-  risk: "low" | "medium" | "high"; status: "pending" | "approved" | "flagged"; received_at: string;
+  id: string; account_slug: string; message_uid: string; message_id: string;
+  model_verdict: string; model_confidence: string;
+  owner_decision: string | null; approver: string | null;
+  requested_at: string; resolved_at: string | null;
+  processed_action: string | null;
+  queued_decision: string | null; queued_status: string | null; queued_error: string | null;
 }

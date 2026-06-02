@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const PAM_MESSAGE =
-	"User accounts are managed by Linux PAM on the host. Create or remove accounts and change passwords with passwd, Cockpit, Webmin, or SSH. The dashboard only tracks users that have logged in.";
+	"User accounts are managed by Linux PAM on the host. Create or remove accounts and change passwords with passwd or SSH. The dashboard only tracks users that have logged in.";
 
 // Read-only listing of PAM-backed users that have authenticated against the
 // dashboard. Mutation is not possible because credentials live in the host

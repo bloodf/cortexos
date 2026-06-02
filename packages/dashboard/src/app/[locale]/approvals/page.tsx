@@ -25,9 +25,26 @@ export default function ApprovalsPage() {
   const [denyFor, setDenyFor] = useState<string | null>(null);
   const [reason, setReason] = useState("");
 
-  const setStatus = (id: string, status: ApprovalRequest["status"], r?: string) => {
-    qc.setQueryData<ApprovalRequest[]>(["approvals"], (p) => p?.map((a) => a.id === id ? { ...a, status, reason: r } : a));
-    toast.success(`Request ${status}`);
+  const [deciding, setDeciding] = useState<string | null>(null);
+
+  const decide = async (id: string, decision: "approve" | "deny", r?: string) => {
+    setDeciding(id);
+    try {
+      const res = await fetch("/api/approvals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, decision, ...(r ? { reason: r } : {}) }),
+      });
+      const body = await res.json() as { error?: string };
+      if (!res.ok) {
+        toast.error(body.error ?? "Failed to update approval");
+        return;
+      }
+      await qc.invalidateQueries({ queryKey: ["approvals"] });
+      toast.success(`Request ${decision === "approve" ? "approved" : "denied"}`);
+    } finally {
+      setDeciding(null);
+    }
   };
 
   const pending = items.filter((i) => i.status === "pending");
@@ -46,8 +63,8 @@ export default function ApprovalsPage() {
       {a.reason && <p className="text-xs text-muted-foreground italic">Reason: {a.reason}</p>}
       {a.status === "pending" && user?.is_admin && (
         <div className="flex gap-2 pt-2">
-          <Button size="sm" onClick={() => setStatus(a.id, "approved")}><Check className="size-3.5 mr-1" />Approve</Button>
-          <Button size="sm" variant="outline" onClick={() => { setDenyFor(a.id); setReason(""); }}><X className="size-3.5 mr-1" />Deny</Button>
+          <Button size="sm" disabled={deciding === a.id} onClick={() => decide(a.id, "approve")}><Check className="size-3.5 mr-1" />Approve</Button>
+          <Button size="sm" variant="outline" disabled={deciding === a.id} onClick={() => { setDenyFor(a.id); setReason(""); }}><X className="size-3.5 mr-1" />Deny</Button>
         </div>
       )}
     </Card>
@@ -67,7 +84,7 @@ export default function ApprovalsPage() {
           <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (required)" />
           <DialogFooter>
             <Button variant="outline" onClick={() => setDenyFor(null)}>Cancel</Button>
-            <Button variant="destructive" disabled={!reason.trim()} onClick={() => { if (denyFor) setStatus(denyFor, "denied", reason); setDenyFor(null); }}>Deny</Button>
+            <Button variant="destructive" disabled={!reason.trim()} onClick={() => { if (denyFor) decide(denyFor, "deny", reason); setDenyFor(null); }}>Deny</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
