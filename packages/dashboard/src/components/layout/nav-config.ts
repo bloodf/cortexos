@@ -23,6 +23,7 @@ import {
 	UserCog,
 	Archive,
 	Calendar,
+	Sparkles,
 } from "lucide-react";
 
 export interface NavItem {
@@ -51,6 +52,7 @@ export const NAV_GROUPS: NavGroup[] = [
 			{ href: "/apps", label: "Apps", icon: LayoutGrid },
 			{ href: "/healthcheck", label: "Healthcheck", icon: HeartPulse },
 			{ href: "/agents", label: "Agents", icon: Bot },
+			{ href: "/hermes", label: "Hermes", icon: Sparkles },
 		],
 	},
 	{
