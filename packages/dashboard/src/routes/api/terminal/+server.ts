@@ -81,4 +81,4 @@ export const POST = defineRoute({
 
 // Exposed for tests to inject shell-metacharacter values without going
 // through the schema (which would reject unknown ops anyway).
-export { validateShellArg, hasSmugglingPattern };
+// (re-exports removed; consumers import directly from $lib/server/policy)

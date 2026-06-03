@@ -1,10 +1,10 @@
 import { fail, redirect } from '@sveltejs/kit';
-import * as v from 'valibot';
+import { z } from 'zod';
 import type { Actions, PageServerLoad } from './$types';
 
-const LoginSchema = v.object({
-	username: v.pipe(v.string(), v.minLength(1, 'Username is required.')),
-	password: v.pipe(v.string(), v.minLength(1, 'Password is required.')),
+const LoginSchema = z.object({
+	username: z.string().min(1, 'Username is required.'),
+	password: z.string().min(1, 'Password is required.'),
 });
 
 /**
@@ -30,7 +30,7 @@ export const actions: Actions = {
 			username: String(form.get('username') ?? ''),
 			password: String(form.get('password') ?? ''),
 		};
-		const parsed = v.safeParse(LoginSchema, raw);
+		const parsed = LoginSchema.safeParse(raw);
 		if (!parsed.success) {
 			return fail(400, {
 				username: raw.username,

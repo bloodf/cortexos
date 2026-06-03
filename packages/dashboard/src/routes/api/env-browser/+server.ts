@@ -33,7 +33,7 @@ const ALLOWED_PREFIXES: ReadonlyArray<string> = [
 const envFiles = new Map<string, ReadonlyArray<{ key: string; value: string; masked: string }>>();
 
 /** Test helper: register an env file. */
-export function _registerEnvFile(
+export function __registerEnvFile(
   path: string,
   entries: ReadonlyArray<{ key: string; value: string }>,
 ): void {

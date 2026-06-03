@@ -91,4 +91,4 @@ export const DELETE = defineRoute({
 });
 
 /** Exposed for tests + the M1 routes that need to compute the same hash. */
-export { actionHashFor, type RequestEvent };
+// re-exports removed; consumers import directly from $lib/server/approval
