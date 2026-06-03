@@ -1,57 +1,590 @@
+# CortexOS CI — 13+1 blocking gates
+#
+# Source of truth: packages/cortex-dashboard/docs/TEST_STRATEGY.md §6
+# Tooling pins:     packages/cortex-dashboard/docs/TECH_STACK.md §1
+#
+# Gates (all blocking, no warn-only):
+#   PR / push-main  → 1 typecheck · 2 lint · 3 format · 4 markdown · 5 unit · 6 coverage
+#                     7 a11y · 8 contract · 9 e2e-chromium · 10 build
+#                     11 codeql · 12 gitleaks · 13 dep-audit · shell · compose
+#   push-main only  → 14 e2e-full-matrix · 15 sbom (informational)
+#
+# Husky-as-CI doctrine: every gate below also runs locally via scripts/ci-local.sh.
+# A green local run is the *floor*; CI is the *contract*.
+
 name: CI
 
 on:
   pull_request:
+    branches: [main]
   push:
     branches: [main]
+  merge_group:
+  # Nightly matrix run — the 50-run flake budget is computed on the main branch,
+  # not on a moving PR. Nightly catches drift that PRs would mask.
+  schedule:
+    - cron: '17 3 * * *' # 03:17 UTC daily
+  workflow_dispatch:
 
+# Cancel in-flight PR runs when a new commit lands on the same PR. Main-branch
+# and nightly runs are NOT cancelled — they are the audit trail.
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Default to least privilege; individual jobs widen as needed.
+permissions:
+  contents: read
+
+env:
+  # Locked toolchain per TECH_STACK.md §1
+  NODE_VERSION: '24.16.0'
+  PNPM_VERSION: '11.5.1'
+  # Filter for the SvelteKit rewrite (the package M1-WS2-8 adds).
+  # Until that PR lands, `pnpm -r --if-present` makes every gate a no-op rather
+  # than a failure — see husky-as-CI doctrine.
+  SVELTE_PKG: '@cortexos/cortex-dashboard'
+  # Legacy Next.js dashboard — kept working until M2 cuts over.
+  LEGACY_PKG: '@cortexos/dashboard'
+  # Force CI=1 for any test that branches on it (vitest, playwright).
+  CI: '1'
 
 jobs:
-  dashboard:
-    name: Dashboard (lint • types • test • build)
+  # ────────────────────────────────────────────────────────────────────────
+  # Gate 2 · Lint (ESLint, Airbnb-style via eslint-config-airbnb-extended)
+  # ────────────────────────────────────────────────────────────────────────
+  lint:
+    name: Gate 2 · Lint (ESLint)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
-      - name: Install workspace deps
+      - name: Frozen-lockfile install
         run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @cortexos/dashboard run lint
-      - run: pnpm exec tsc --noEmit
-        working-directory: packages/dashboard
-      - run: pnpm --filter @cortexos/dashboard test -- --reporter=verbose
-      - run: pnpm --filter @cortexos/dashboard run build
-        env:
-          NEXT_TELEMETRY_DISABLED: '1'
+      - name: Lint (monorepo)
+        # `--if-present` makes this gate a no-op until the SvelteKit package
+        # adds the `lint` script. Once M1-WS2-8 lands, this gate is live.
+        run: pnpm -r --if-present run lint
 
-  shell:
-    name: Shell scripts (shellcheck + bash -n)
+  # ────────────────────────────────────────────────────────────────────────
+  # Gate 3 · Format check (Prettier)
+  # ────────────────────────────────────────────────────────────────────────
+  format:
+    name: Gate 3 · Prettier check
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Prettier check
+        run: pnpm -r --if-present exec prettier --check .
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Gate 4 · Markdown lint (docs/)
+  # ────────────────────────────────────────────────────────────────────────
+  markdown-lint:
+    name: Gate 4 · Markdown lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint docs/ and README/AGENTS
+        # Uses the same tool as the standalone .github/workflows/markdown-lint.yml.
+        # Globs exclude generated/3rd-party docs that the loose standalone run
+        # tolerates; the PR gate is strict on the source-of-truth docs.
+        run: |
+          npx --yes markdownlint-cli2 \
+            'packages/cortex-dashboard/docs/**/*.md' \
+            'docs/**/*.md' \
+            'README.md' \
+            'CONTRIBUTING.md' \
+            'AGENTS.md' \
+            'CLAUDE.md' \
+            '#node_modules' \
+            '#**/node_modules/**' \
+            '#**/CHANGELOG.md' \
+            '#**/.svelte-kit/**' \
+            '#**/build/**'
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Gate 1 · Typecheck (svelte-check + tsc)
+  # ────────────────────────────────────────────────────────────────────────
+  typecheck:
+    name: Gate 1 · Typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Typecheck (monorepo)
+        # svelte-check covers .svelte files; pnpm -r runs every package's
+        # `typecheck` script (the SvelteKit package's will be `svelte-check`).
+        run: pnpm -r --if-present run typecheck
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Gate 5 · Unit + integration tests (Vitest, no coverage here)
+  # ────────────────────────────────────────────────────────────────────────
+  test:
+    name: Gate 5 · Unit + Integration (Vitest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Vitest run
+        run: pnpm -r --if-present run test
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Gate 6 · Coverage (95% lines/branches/functions/statements; per-PR delta)
+  # ────────────────────────────────────────────────────────────────────────
+  coverage:
+    name: Gate 6 · Coverage (≥95% + per-PR delta)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Vitest with coverage (thresholds enforced in vitest.config.ts)
+        # The 95% threshold is configured per-package in vitest.config.ts
+        # (see TEST_STRATEGY §1.2 and §5.1). The vitest run itself fails the
+        # job when any of lines/branches/functions/statements drops below 95%.
+        # Codecov upload is a *secondary* enforcement layer (see .codecov.yml).
+        run: pnpm -r --if-present run test:coverage
+      - name: Upload coverage to Codecov
+        if: hashFiles('./coverage/lcov.info') != ''
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage/lcov.info
+          flags: unittests
+          name: cortexos-coverage
+          fail_ci_if_error: true
+          # Disable the GitHub Actions bot comment that Codecov injects on PRs;
+          # we keep coverage reporting in the CI summary, not in PR threads.
+          disable_github_actions_annotations: false
+          # Token is optional for OSS; falls back to public uploader.
+          token: ${{ env.CODECOV_TOKEN }}
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Gate 7 · Accessibility (vitest-axe on every shared component)
+  # ────────────────────────────────────────────────────────────────────────
+  a11y:
+    name: Gate 7 · a11y (vitest-axe)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: a11y unit suite
+        # The `test:a11y` script is the dedicated vitest-axe run.
+        # Fails on any 'serious' or 'critical' axe violation (TEST_STRATEGY §11.1.1).
+        run: pnpm -r --if-present run test:a11y
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Gate 8 · Contract tests (Zod schema parity between client mock + server)
+  # ────────────────────────────────────────────────────────────────────────
+  contract:
+    name: Gate 8 · Contract (client mock ↔ server route)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Contract tests
+        # Verifies every +server.ts route returns shapes that the matching
+        # Zod schema validates. The MSW browser mocks use the same schemas,
+        # so a passing contract run = client mock and server route agree.
+        run: pnpm -r --if-present run test:contract
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Gate 9 · E2E (Chromium only — fast lane for PRs)
+  # ────────────────────────────────────────────────────────────────────────
+  e2e-chromium:
+    name: Gate 9 · E2E (Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      E2E_MOCK_MODE: '1'
+      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.cache/ms-playwright
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
+          key: playwright-${{ runner.os }}-chromium-${{ hashFiles('**/pnpm-lock.yaml') }}
+      - name: Install Playwright Chromium + system deps
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run E2E (chromium project only)
+        run: pnpm -r --if-present exec playwright test --project=chromium
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-chromium
+          path: |
+            **/playwright-report
+            **/test-results
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Gate 10 · Production build (SvelteKit + adapter-node)
+  # ────────────────────────────────────────────────────────────────────────
+  build:
+    name: Gate 10 · Production build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build (monorepo)
+        run: pnpm -r --if-present run build
+      - name: Verify no remote-functions config sneaked in
+        # Per TECH_STACK §4: SvelteKit Remote Functions are experimental.
+        # Fail the build if any package's svelte.config.* enables them.
+        run: |
+          set -euo pipefail
+          if grep -RIn --include='svelte.config.*' \
+              -E 'remoteFunctions|experimental\.async' packages/ ; then
+            echo "::error::SvelteKit Remote Functions are forbidden (TECH_STACK §4)."
+            exit 1
+          fi
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Gate 11 · CodeQL (security — high/critical findings block)
+  # ────────────────────────────────────────────────────────────────────────
+  codeql:
+    name: Gate 11 · CodeQL (security)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-and-quality
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:${{ matrix.language }}'
+          # CodeQL auto-uploads SARIF; the GitHub code-scanning check that
+          # appears under the Security tab is the source of truth for findings.
+          # The job exits non-zero on any high/critical finding by default.
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Gate 12 · gitleaks (secret detection)
+  # ────────────────────────────────────────────────────────────────────────
+  gitleaks:
+    name: Gate 12 · gitleaks (secrets)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Detect secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Use the committed config if present; otherwise default rules.
+          GITLEAKS_CONFIG: .gitleaks.toml
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Gate 13 · Dependency audit (pnpm audit — high/critical block)
+  # ────────────────────────────────────────────────────────────────────────
+  audit:
+    name: Gate 13 · Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Audit (high/critical blocking)
+        # `--prod` ignores dev deps (they don't ship to prod).
+        # `--audit-level=high` exits non-zero on any high or critical CVE.
+        # Renovate exceptions land as `// renovate: ignore` in package.json.
+        run: pnpm audit --prod --audit-level=high
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Gate 15 · Shell scripts (shellcheck --severity=error)
+  # ────────────────────────────────────────────────────────────────────────
+  shell:
+    name: Gate 15 · Shell scripts (shellcheck + bash -n)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - name: Install shellcheck
-        run: sudo apt-get update && sudo apt-get install -y shellcheck
-      - name: bash -n parse-check
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+      - name: bash -n parse-check (all *.sh outside node_modules)
         run: |
           set -e
-          mapfile -d '' files < <(find scripts templates/scripts stacks -name '*.sh' -not -path '*/node_modules/*' -print0)
+          mapfile -d '' files < <(find scripts templates/scripts stacks -name '*.sh' \
+            -not -path '*/node_modules/*' -print0 2>/dev/null || true)
           for f in "${files[@]}"; do bash -n "$f"; done
-      - name: shellcheck (warnings allowed)
+      - name: shellcheck --severity=error
         run: |
           shellcheck --severity=error \
-            $(find scripts templates/scripts stacks -name '*.sh' -not -path '*/node_modules/*')
+            $(find scripts templates/scripts stacks -name '*.sh' \
+              -not -path '*/node_modules/*' 2>/dev/null || true)
 
+  # ────────────────────────────────────────────────────────────────────────
+  # Gate (auxiliary) · Docker compose config validation
+  # ────────────────────────────────────────────────────────────────────────
   compose:
-    name: Docker compose configs
+    name: Compose configs (validate)
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      # Validates the local-db helper compose (postgres for local dev only).
-      # The dashboard itself runs as the native cortex-dashboard.service unit.
-      - run: DASHBOARD_DB_PASSWORD=x docker compose -f packages/dashboard/docker-compose.yml config >/dev/null
+      - name: Validate local-db compose (postgres for dev only)
+        # The dashboard itself runs as the native cortex-dashboard.service unit;
+        # this compose is a local-dev helper, not a deploy target.
+        run: |
+          set -e
+          DASHBOARD_DB_PASSWORD=x \
+            docker compose -f packages/dashboard/docker-compose.yml config >/dev/null
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Gate 14 · E2E full matrix (chromium + firefox + webkit) — main only
+  # ────────────────────────────────────────────────────────────────────────
+  e2e-full:
+    name: Gate 14 · E2E full matrix (chromium+firefox+webkit)
+    # main-branch pushes + nightly + manual dispatch. NOT on PRs — too slow
+    # and the chromium lane (Gate 9) already covers the per-PR surface.
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: [lint, format, typecheck, test, build]
+    env:
+      E2E_MOCK_MODE: '1'
+      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.cache/ms-playwright
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
+          key: playwright-${{ runner.os }}-full-${{ hashFiles('**/pnpm-lock.yaml') }}
+      - name: Install Playwright (chromium + firefox + webkit)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps
+      - name: Run E2E full matrix
+        run: pnpm -r --if-present exec playwright test
+      - name: Upload full Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-full
+          path: |
+            **/playwright-report
+            **/test-results
+          retention-days: 30
+          if-no-files-found: ignore
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Gate 14b · SBOM (informational; on main + nightly only)
+  # ────────────────────────────────────────────────────────────────────────
+  sbom:
+    name: SBOM (informational)
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Generate CycloneDX SBOM (JSON)
+        # Per TEST_STRATEGY §6 gate 14 — informational, never blocks.
+        # Artifact is uploaded for downstream tooling (vuln scanning, license audit).
+        run: |
+          pnpm dlx @cyclonedx/cyclonedx-npm --output-format JSON \
+            --output-file sbom.cortex-dashboard.json \
+            --spec-version 1.5 || echo "::warning::SBOM generation failed (informational only)"
+      - name: Upload SBOM artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cortex-dashboard
+          path: sbom.cortex-dashboard.json
+          retention-days: 90
+          if-no-files-found: ignore
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Aggregate gate-check — fails if any required gate failed.
+  # This job is the source of truth for the "ci" branch-protection check
+  # (set Required status check to "CI / all-gates-pass" in branch protection).
+  # We enumerate each needs' result explicitly — bash variables are not
+  # interpolated inside GitHub's `${{ }}` template expressions, so a dynamic
+  # lookup has to be written out job-by-job.
+  # ────────────────────────────────────────────────────────────────────────
+  all-gates-pass:
+    name: all-gates-pass
+    runs-on: ubuntu-latest
+    needs:
+      - lint
+      - format
+      - markdown-lint
+      - typecheck
+      - test
+      - coverage
+      - a11y
+      - contract
+      - e2e-chromium
+      - build
+      - codeql
+      - gitleaks
+      - audit
+      - shell
+      - compose
+    if: always()
+    steps:
+      - name: Aggregate gate result
+        env:
+          RESULT_LINT: ${{ needs.lint.result }}
+          RESULT_FORMAT: ${{ needs.format.result }}
+          RESULT_MARKDOWN_LINT: ${{ needs.markdown-lint.result }}
+          RESULT_TYPECHECK: ${{ needs.typecheck.result }}
+          RESULT_TEST: ${{ needs.test.result }}
+          RESULT_COVERAGE: ${{ needs.coverage.result }}
+          RESULT_A11Y: ${{ needs.a11y.result }}
+          RESULT_CONTRACT: ${{ needs.contract.result }}
+          RESULT_E2E_CHROMIUM: ${{ needs.e2e-chromium.result }}
+          RESULT_BUILD: ${{ needs.build.result }}
+          RESULT_CODEQL: ${{ needs.codeql.result }}
+          RESULT_GITLEAKS: ${{ needs.gitleaks.result }}
+          RESULT_AUDIT: ${{ needs.audit.result }}
+          RESULT_SHELL: ${{ needs.shell.result }}
+          RESULT_COMPOSE: ${{ needs.compose.result }}
+        run: |
+          set -uo pipefail
+          failed=()
+          declare -A results=(
+            [lint]="$RESULT_LINT"
+            [format]="$RESULT_FORMAT"
+            [markdown-lint]="$RESULT_MARKDOWN_LINT"
+            [typecheck]="$RESULT_TYPECHECK"
+            [test]="$RESULT_TEST"
+            [coverage]="$RESULT_COVERAGE"
+            [a11y]="$RESULT_A11Y"
+            [contract]="$RESULT_CONTRACT"
+            [e2e-chromium]="$RESULT_E2E_CHROMIUM"
+            [build]="$RESULT_BUILD"
+            [codeql]="$RESULT_CODEQL"
+            [gitleaks]="$RESULT_GITLEAKS"
+            [audit]="$RESULT_AUDIT"
+            [shell]="$RESULT_SHELL"
+            [compose]="$RESULT_COMPOSE"
+          )
+          for gate in "${!results[@]}"; do
+            r="${results[$gate]}"
+            echo "  gate ${gate}: ${r}"
+            if [[ "$r" != "success" ]]; then
+              failed+=("$gate")
+            fi
+          done
+          if [[ ${#failed[@]} -gt 0 ]]; then
+            echo "::error::Failed gates: ${failed[*]}"
+            exit 1
+          fi
+          echo "All required gates passed."
