@@ -9,11 +9,13 @@
 
 import {
   asAlertId,
+  asApprovalTokenId,
   asDashboardCommandAuditId,
   asServiceId,
   type AlertEvent,
   type AlertRule,
   type DashboardCommandAudit,
+  type PendingApproval,
   type Service,
   type ServiceHealthSnapshot,
   type User,
@@ -227,6 +229,94 @@ export function advanceCommandAudit(
 }
 
 // ---------------------------------------------------------------------------
+// Pending approvals (admin review queue — THREAT_MODEL §3.5)
+// ---------------------------------------------------------------------------
+
+let approvalCounter = 0;
+const pendingApprovals: PendingApproval[] = [];
+
+export function listPendingApprovals(): PendingApproval[] {
+  // Newest first.
+  return pendingApprovals
+    .slice()
+    .sort((a, b) => (a.requestedAt > b.requestedAt ? -1 : a.requestedAt < b.requestedAt ? 1 : 0));
+}
+
+export function getPendingApproval(id: string): PendingApproval | null {
+  return pendingApprovals.find((a) => a.id === id) ?? null;
+}
+
+export interface CreatePendingApprovalInput {
+  runId: string;
+  signalName: string;
+  role?: string | null;
+  issueId?: string | null;
+  reason?: string | null;
+  /** ISO timestamp. Defaults to now(). */
+  requestedAt?: string;
+  /** ISO timestamp. Optional — if absent, the row never times out. */
+  timeoutAt?: string | null;
+}
+
+export function createPendingApproval(input: CreatePendingApprovalInput): PendingApproval {
+  const now = new Date().toISOString();
+  const requestedAt = input.requestedAt ?? now;
+  const next: PendingApproval = {
+    id: asApprovalTokenId(`appr_${++approvalCounter}_${now}`),
+    runId: input.runId,
+    signalName: input.signalName,
+    role: input.role ?? null,
+    issueId: input.issueId ?? null,
+    reason: input.reason ?? null,
+    requestedAt,
+    timeoutAt: input.timeoutAt ?? null,
+    resolvedAt: null,
+    decision: null,
+    approver: null,
+  };
+  pendingApprovals.push(next);
+  return next;
+}
+
+/**
+ * Resolve a pending approval. Returns the updated row, or `null` if no
+ * row matched. The decision must be `'approve' | 'deny' | 'timeout'`
+ * (matches the SQL CHECK constraint) and the approver must be a
+ * username string. If the row is already resolved, returns the
+ * existing row (idempotent — but the caller should treat that as an
+ * error).
+ */
+export function resolvePendingApproval(
+  id: string,
+  decision: 'approve' | 'deny' | 'timeout',
+  approver: string,
+  resolvedAt: string = new Date().toISOString(),
+): PendingApproval | null {
+  const i = pendingApprovals.findIndex((a) => a.id === id);
+  if (i < 0) return null;
+  const current = pendingApprovals[i]!;
+  if (current.decision !== null) return current;
+  const next: PendingApproval = {
+    ...current,
+    decision,
+    approver,
+    resolvedAt,
+  };
+  pendingApprovals[i] = next;
+  return next;
+}
+
+/** Invalidate (revoke) a pending approval. Same as `deny` semantically
+ *  — kept as a separate function for clarity at the call site. */
+export function revokePendingApproval(
+  id: string,
+  approver: string,
+  resolvedAt: string = new Date().toISOString(),
+): PendingApproval | null {
+  return resolvePendingApproval(id, 'deny', approver, resolvedAt);
+}
+
+// ---------------------------------------------------------------------------
 // Test/seed helpers
 // ---------------------------------------------------------------------------
 
@@ -240,4 +330,6 @@ export function _resetStubData(): void {
   alertEvents.length = 0;
   alertCounter = 0;
   commandAudits.length = 0;
+  pendingApprovals.length = 0;
+  approvalCounter = 0;
 }

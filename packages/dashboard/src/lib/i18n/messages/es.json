@@ -57,5 +57,77 @@
 	"errors": {
 		"notFound": "Página no encontrada",
 		"serverError": "Error del servidor"
+	},
+	"approvals": {
+		"title": "Aprobaciones",
+		"description": "Tokens de aprobación de comandos privilegiados pendientes.",
+		"empty": "No hay aprobaciones pendientes — cada acción solicitada ya fue gestionada.",
+		"history": {
+			"title": "Historial de aprobaciones",
+			"description": "Todas las aprobaciones, denegaciones y caducidades — las más recientes primero.",
+			"empty": "Aún no hay aprobaciones en el historial."
+		},
+		"list": {
+			"title": "Aprobaciones pendientes",
+			"description": "Acciones privilegiadas que esperan una decisión del administrador.",
+			"columns": {
+				"signal": "Señal",
+				"run": "Ejecución",
+				"role": "Rol",
+				"reason": "Motivo",
+				"requested": "Solicitada",
+				"timeout": "Caducidad",
+				"age": "Antigüedad",
+				"action": "Acción"
+			},
+			"filters": {
+				"action": "Acción",
+				"user": "Solicitada por",
+				"age": "Antigüedad",
+				"all": "Todas",
+				"lessThan1h": "Menos de 1h",
+				"lessThan24h": "Menos de 24h",
+				"olderThan24h": "Más de 24h"
+			}
+		},
+		"detail": {
+			"title": "Detalle de la aprobación",
+			"fields": {
+				"signal": "Señal",
+				"run": "ID de ejecución",
+				"role": "Rol requerido",
+				"issue": "Problema",
+				"reason": "Motivo",
+				"requestedAt": "Solicitada el",
+				"timeoutAt": "Caduca el",
+				"resolvedAt": "Resuelta el",
+				"decision": "Decisión",
+				"approver": "Aprobador"
+			},
+			"notFound": "Aprobación no encontrada"
+		},
+		"actions": {
+			"grant": "Conceder aprobación",
+			"revoke": "Revocar aprobación",
+			"granting": "Concediendo…",
+			"revoking": "Revocando…",
+			"back": "Volver a pendientes",
+			"viewHistory": "Ver historial",
+			"confirmGrant": "¿Conceder esta aprobación? El token se marcará como aprobado y el solicitante podrá continuar.",
+			"confirmRevoke": "¿Revocar esta aprobación? El token se invalidará y se denegará al solicitante.",
+			"granted": "Aprobación concedida.",
+			"revoked": "Aprobación revocada.",
+			"failed": "La acción falló",
+			"alreadyResolved": "Esta aprobación ya fue resuelta.",
+			"expired": "Esta aprobación ha caducado y ya no se puede actuar sobre ella."
+		},
+		"status": {
+			"pending": "Pendiente",
+			"approved": "Aprobada",
+			"denied": "Denegada",
+			"expired": "Caducada",
+			"timeout": "Caducada por tiempo",
+			"unknown": "Desconocida"
+		}
 	}
 }

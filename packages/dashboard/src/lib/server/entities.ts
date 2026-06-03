@@ -187,6 +187,30 @@ export interface ApprovalToken {
 }
 
 // ---------------------------------------------------------------------------
+// Pending approval row (THREAT_MODEL §3.5 + migrations/001 pending_approvals)
+// ---------------------------------------------------------------------------
+
+export type ApprovalDecision = 'approve' | 'deny' | 'timeout';
+
+export interface PendingApproval {
+  readonly id: ApprovalTokenId;
+  readonly runId: string;
+  readonly signalName: string;
+  readonly role: string | null;
+  readonly issueId: string | null;
+  readonly reason: string | null;
+  /** ISO timestamp. */
+  readonly requestedAt: string;
+  /** ISO timestamp — `null` means no timeout. */
+  readonly timeoutAt: string | null;
+  /** ISO timestamp — `null` while still pending. */
+  readonly resolvedAt: string | null;
+  readonly decision: ApprovalDecision | null;
+  /** Username of the approver (THREAT_MODEL §6 audit). */
+  readonly approver: string | null;
+}
+
+// ---------------------------------------------------------------------------
 // Page<T> — pagination shape (matches contracts/src/query.ts Page<T>)
 // ---------------------------------------------------------------------------
 
