@@ -51,7 +51,33 @@ export interface RequestEvent {
 
 /** Minimal cookie adapter — subset of SvelteKit's `Cookies` interface. */
 export interface CookiesAdapter {
-  get: (name: string, opts?: { path?: string }) => string | undefined;
+  /**
+   * Get a cookie's value. The opts are accepted as `any` to stay
+   * compatible with SvelteKit's `CookieParseOptions` shape while
+   * still satisfying the cookie helpers that pass `{ path }`. The
+   * only field we actually read is `path`; the rest is forwarded.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  get: (name: string, opts?: any) => string | undefined;
+  /**
+   * Set a cookie. The cookie helpers (`setSessionCookie`,
+   * `setCsrfCookie`) always pass the full opts object; the adapter
+   * is free to accept a partial object too (matching real SvelteKit).
+   */
+  set?: (
+    name: string,
+    value: string,
+    opts: {
+      path: string;
+      httpOnly?: boolean;
+      sameSite?: 'lax' | 'strict' | 'none';
+      secure?: boolean;
+      maxAge?: number;
+    },
+  ) => void;
+  /** Delete a cookie. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  delete?: (name: string, opts?: any) => void;
 }
 
 /** The argument passed to `error()` in SvelteKit. */
