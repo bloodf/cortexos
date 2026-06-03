@@ -218,6 +218,13 @@ export function installDefaultAllowlist(): void {
     description: 'Process list.',
   });
   addAllowlisted({
+    name: 'term.top',
+    surface: 'terminal',
+    argv: ['top', '-b', '-n', '1'],
+    requiresApproval: false,
+    description: 'Top snapshot (one batch iteration, non-interactive).',
+  });
+  addAllowlisted({
     name: 'term.df',
     surface: 'terminal',
     argv: ['df', '-h'],

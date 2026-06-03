@@ -506,6 +506,73 @@ describe('PB-2 FIX: POST /api/terminal', () => {
     );
     expect(res.status).toBe(400);
   });
+
+  // ----- M2-WS2 additions: PTY bridge integration -----
+
+  it('M2-WS2: admin POST /api/terminal with read_file + clean path returns 200 with argv', async () => {
+    const { locals } = adminLocals();
+    const res = await callHandler(
+      terminalRoute.POST,
+      makeFakeEvent({
+        method: 'POST',
+        locals,
+        body: { op: 'term.read_file', args: { path: '/var/log/caddy.log' } },
+      }),
+    );
+    expect(res.status).toBe(200);
+    const body = res.body as { argv: string[]; status: string };
+    expect(body.status).toBe('accepted');
+    expect(body.argv).toEqual(['cat', '/var/log/caddy.log']);
+  });
+
+  it('M2-WS2: bash -c with `<` redirect also rejected with 400 (T-104 smuggling)', async () => {
+    const { locals } = adminLocals();
+    const res = await callHandler(
+      terminalRoute.POST,
+      makeFakeEvent({
+        method: 'POST',
+        locals,
+        body: { op: 'term.read_file', args: { path: '/etc/passwd < /dev/null' } },
+      }),
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it('M2-WS2: read_file with missing <path> placeholder returns 400', async () => {
+    const { locals } = adminLocals();
+    const res = await callHandler(
+      terminalRoute.POST,
+      makeFakeEvent({
+        method: 'POST',
+        locals,
+        body: { op: 'term.read_file', args: {} },
+      }),
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it('M2-WS2: GET /api/terminal returns the allowlisted ops list (admin)', async () => {
+    const { locals } = adminLocals();
+    const res = await callHandler(
+      terminalRoute.GET,
+      makeFakeEvent({ method: 'GET', locals }),
+    );
+    expect(res.status).toBe(200);
+    const body = res.body as { ops: Array<{ op: string }> };
+    const names = body.ops.map((o) => o.op);
+    expect(names).toContain('term.ps');
+    expect(names).toContain('term.df');
+    expect(names).toContain('term.read_file');
+  });
+
+  it('M2-WS2: GET /api/terminal as non-admin returns 403', async () => {
+    const { locals } = nonAdminLocals();
+    const res = await callHandler(
+      terminalRoute.GET,
+      makeFakeEvent({ method: 'GET', locals }),
+    );
+    expect(res.status).toBe(403);
+  });
 });
 
 // ---------------------------------------------------------------------------
