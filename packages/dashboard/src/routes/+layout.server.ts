@@ -26,5 +26,6 @@ export const load: LayoutServerLoad = ({ cookies, request, locals }) => {
 		locale,
 		messages,
 		user: locals.user,
+		session: locals.session,
 	};
 };

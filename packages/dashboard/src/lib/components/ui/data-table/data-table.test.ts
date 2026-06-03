@@ -39,7 +39,7 @@ describe('DataTable', () => {
     await user.click(ageSortBtn);
     // After sort, the first data row should be Bob (age 25)
     const rows = container.querySelectorAll('tbody [data-slot="table-row"]');
-    expect(rows[0].textContent).toContain('Bob');
+    expect(rows[0]!.textContent).toContain('Bob');
   });
 
   it('paginates', () => {

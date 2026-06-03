@@ -67,7 +67,7 @@ describe("services repo", () => {
 		const page2 = await listServices(db, { page: 2, pageSize: 1 });
 		expect(page1.rows.length).toBe(1);
 		expect(page2.rows.length).toBe(1);
-		expect(page1.rows[0].id).not.toBe(page2.rows[0].id);
+		expect(page1.rows[0]!.id).not.toBe(page2.rows[0]!.id);
 	});
 
 	it("listServices filters by category", async () => {
@@ -89,7 +89,7 @@ describe("services repo", () => {
 
 	it("getServiceById returns the row", async () => {
 		const result = await listServices(db, { activeOnly: true, pageSize: 1 });
-		const first = result.rows[0];
+		const first = result.rows[0]!;
 		const got = await getServiceById(db, first.id);
 		expect(got?.id).toBe(first.id);
 	});

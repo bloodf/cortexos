@@ -346,8 +346,9 @@ export async function verifyAuditLogChain(
 	return {
 		valid: true,
 		count: rows.length,
-		firstId: Number(rows[0].id),
-		lastId: Number(rows[rows.length - 1].id),
+		// rows.length > 0 is guaranteed by the early return above.
+		firstId: Number(rows[0]!.id),
+		lastId: Number(rows[rows.length - 1]!.id),
 	};
 }
 

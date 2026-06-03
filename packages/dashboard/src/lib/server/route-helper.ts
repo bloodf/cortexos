@@ -11,7 +11,7 @@
  * for DRY.
  */
 
-import { z, type ZodType } from 'zod';
+import { z, type ZodType, type ZodTypeDef } from 'zod';
 import type { RequestEvent } from './types';
 import type { User } from './entities';
 import {
@@ -43,7 +43,7 @@ export interface RouteOptions<TIn, TOut> {
   /** HTTP methods this route accepts. */
   methods: ReadonlyArray<'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'>;
   /** Optional input schema. GET/DELETE typically have no body; POST/PUT/PATCH usually do. */
-  input?: ZodType<TIn>;
+  input?: ZodType<TIn, ZodTypeDef, unknown>;
   /** Required role: 'any' | 'admin' | a specific group. */
   auth: 'any' | 'admin' | GroupName;
   /** Rate-limit configuration. Defaults: unauth=none, auth=10/min, admin=30/min, unauth-strict=30/min. */

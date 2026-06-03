@@ -50,7 +50,7 @@ describe('CommandPalette', () => {
     const input = container.querySelector('input')!;
     input.focus();
     await user.keyboard('{Enter}');
-    expect(commands[0].onselect).toHaveBeenCalledTimes(1);
+    expect(commands[0]!.onselect).toHaveBeenCalledTimes(1);
     // Palette is closed by select → should be gone from DOM.
     expect(container.querySelector('[data-slot="command-palette"]')).toBeNull();
   });
@@ -62,7 +62,7 @@ describe('CommandPalette', () => {
     input.focus();
     await user.keyboard('{ArrowDown}');
     const items = container.querySelectorAll('[data-slot="command-palette-item"]');
-    expect(items[1].getAttribute('data-state')).toBe('active');
+    expect(items[1]!.getAttribute('data-state')).toBe('active');
   });
 
   it('ArrowUp wraps to the last item from the first', async () => {
@@ -72,7 +72,7 @@ describe('CommandPalette', () => {
     input.focus();
     await user.keyboard('{ArrowUp}');
     const items = container.querySelectorAll('[data-slot="command-palette-item"]');
-    expect(items[items.length - 1].getAttribute('data-state')).toBe('active');
+    expect(items[items.length - 1]!.getAttribute('data-state')).toBe('active');
   });
 
   it('Escape closes the palette', async () => {

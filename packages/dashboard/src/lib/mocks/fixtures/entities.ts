@@ -213,7 +213,7 @@ export const makeDockerContainer = (
 		{ value: 'exited' as const, weight: 2 },
 		{ value: 'restarting' as const, weight: 1 },
 	]);
-	const name = image.split('/').pop()!.split(':')[0].replace(/[^a-z0-9-]/g, '-');
+	const name = image.split('/').pop()!.split(':')[0]!.replace(/[^a-z0-9-]/g, '-');
 	return brandDockerContainer({
 		id: nextId('ctn'),
 		name: faker.helpers.arrayElement([`${name}-1`, `${name}-01`, `${name}-canary`]),
@@ -237,7 +237,7 @@ export const makeDockerImage = (overrides: Partial<DockerImage> = {}): DockerIma
 	const sha = faker.string.hexadecimal({ length: 64, casing: 'lower' }).replace(/^0x/, '');
 	return brandDockerImage({
 		id: `sha256:${sha}`,
-		repo: imageName.split(':')[0],
+		repo: imageName.split(':')[0]!,
 		tag: imageName.split(':')[1] ?? 'latest',
 		size: faker.number.int({ min: 50_000_000, max: 2_000_000_000 }),
 		created: FROZEN_NOW,

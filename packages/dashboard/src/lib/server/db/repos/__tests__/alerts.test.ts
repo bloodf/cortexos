@@ -142,7 +142,7 @@ describe("alerts repo — rule-based", () => {
 		});
 		const hist = await listAlertHistory(db, { ruleId: rule.id });
 		expect(hist.length).toBe(1);
-		expect(hist[0].message).toBe("service is down");
+		expect(hist[0]!.message).toBe("service is down");
 	});
 
 	it("deleteAlertHistoryOlderThan sweeps old rows", async () => {

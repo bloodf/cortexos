@@ -25,8 +25,9 @@
       if (e.key !== 'Tab') return;
       const items = focusables();
       if (items.length === 0) return;
-      const first = items[0];
-      const last = items[items.length - 1];
+      // items.length > 0 is guaranteed by the early return above.
+      const first = items[0]!;
+      const last = items[items.length - 1]!;
       const active = document.activeElement as HTMLElement | null;
       if (e.shiftKey && active === first) {
         e.preventDefault();

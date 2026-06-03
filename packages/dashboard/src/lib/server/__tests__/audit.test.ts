@@ -166,6 +166,6 @@ describe('payload hash stability', () => {
       payload: { c: 3, b: 2, a: 1 },
     });
     const [r1, r2] = listAudit();
-    expect(r1.payloadHash).toBe(r2.payloadHash);
+    expect(r1!.payloadHash).toBe(r2!.payloadHash);
   });
 });
