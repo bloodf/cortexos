@@ -105,5 +105,74 @@
 			"checking": "Verificando",
 			"degraded": "Degradado"
 		}
+	},
+	"systemd": {
+		"title": "systemd",
+		"description": "Monitorea cada unidad de systemd que el host conoce. Las acciones de administrador requieren aprobación.",
+		"empty": "Ninguna unidad coincide con el filtro actual. Limpia el filtro para ver todas las unidades.",
+		"filter": {
+			"label": "Filtrar unidades por estado",
+			"all": "Todas",
+			"active": "Activas",
+			"inactive": "Inactivas",
+			"failed": "Fallidas"
+		},
+		"table": {
+			"name": "Nombre",
+			"description": "Descripción",
+			"active": "Activa",
+			"sub": "Sub",
+			"enabled": "Habilitada",
+			"load": "Carga",
+			"type": "Tipo",
+			"timestamp": "Marca de tiempo",
+			"priority": "Prioridad",
+			"message": "Mensaje"
+		},
+		"detail": {
+			"actions": "Acciones",
+			"actionsDescription": "Solo administradores. Las acciones destructivas requieren un token de aprobación.",
+			"fields": {
+				"title": "Configuración",
+				"titleDescription": "Metadatos estáticos de la unidad según systemd.",
+				"name": "Unidad",
+				"description": "Descripción",
+				"load": "Carga",
+				"sub": "Sub",
+				"enabled": "Habilitada",
+				"critical": "Crítica",
+				"allowlisted": "Permitida",
+				"unitPath": "Ruta de la unidad",
+				"type": "Tipo"
+			},
+			"logs": "Líneas de registro recientes",
+			"logsDescription": "Últimas líneas reportadas por journalctl para esta unidad (datos simulados en M2).",
+			"logsEmpty": "Aún no hay líneas de registro para esta unidad."
+		},
+		"status": {
+			"label": "Estado activo",
+			"active": "Activa",
+			"inactive": "Inactiva",
+			"failed": "Fallida",
+			"activating": "Activando",
+			"deactivating": "Desactivando",
+			"reloading": "Recargando",
+			"maintenance": "Mantenimiento",
+			"unknown": "Desconocido",
+			"enabled": "Habilitada",
+			"disabled": "Deshabilitada",
+			"critical": "Crítica"
+		},
+		"actions": {
+			"label": "Acciones de la unidad",
+			"start": "Iniciar",
+			"stop": "Detener",
+			"restart": "Reiniciar",
+			"reload": "Recargar",
+			"enable": "Habilitar",
+			"disable": "Deshabilitar",
+			"adminOnly": "Rol de administrador requerido",
+			"requiresApproval": "Requiere aprobación"
+		}
 	}
 }

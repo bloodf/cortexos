@@ -105,5 +105,74 @@
 			"checking": "Checking",
 			"degraded": "Degraded"
 		}
+	},
+	"systemd": {
+		"title": "systemd",
+		"description": "Track every systemd unit the host knows about. Admin actions require approval.",
+		"empty": "No units match the current filter. Clear the filter to see all units.",
+		"filter": {
+			"label": "Filter units by state",
+			"all": "All",
+			"active": "Active",
+			"inactive": "Inactive",
+			"failed": "Failed"
+		},
+		"table": {
+			"name": "Name",
+			"description": "Description",
+			"active": "Active",
+			"sub": "Sub",
+			"enabled": "Enabled",
+			"load": "Load",
+			"type": "Type",
+			"timestamp": "Timestamp",
+			"priority": "Priority",
+			"message": "Message"
+		},
+		"detail": {
+			"actions": "Actions",
+			"actionsDescription": "Admin-only. Destructive actions require an approval token.",
+			"fields": {
+				"title": "Configuration",
+				"titleDescription": "Static unit metadata as reported by systemd.",
+				"name": "Unit",
+				"description": "Description",
+				"load": "Load",
+				"sub": "Sub",
+				"enabled": "Enabled",
+				"critical": "Critical",
+				"allowlisted": "Allowlisted",
+				"unitPath": "Unit path",
+				"type": "Type"
+			},
+			"logs": "Recent log lines",
+			"logsDescription": "Last lines reported by journalctl for this unit (mock data in M2).",
+			"logsEmpty": "No log lines recorded for this unit yet."
+		},
+		"status": {
+			"label": "Active state",
+			"active": "Active",
+			"inactive": "Inactive",
+			"failed": "Failed",
+			"activating": "Activating",
+			"deactivating": "Deactivating",
+			"reloading": "Reloading",
+			"maintenance": "Maintenance",
+			"unknown": "Unknown",
+			"enabled": "Enabled",
+			"disabled": "Disabled",
+			"critical": "Critical"
+		},
+		"actions": {
+			"label": "Unit actions",
+			"start": "Start",
+			"stop": "Stop",
+			"restart": "Restart",
+			"reload": "Reload",
+			"enable": "Enable",
+			"disable": "Disable",
+			"adminOnly": "Admin role required",
+			"requiresApproval": "Requires approval"
+		}
 	}
 }
