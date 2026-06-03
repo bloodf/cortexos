@@ -11,6 +11,7 @@ export default defineConfig({
     exclude: ['e2e/**', 'node_modules/**', '.next/**', 'playwright-report/**', 'test-results/**'],
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '$lib': path.resolve(__dirname, './src/lib'),
     },
     coverage: {
       provider: 'v8',
