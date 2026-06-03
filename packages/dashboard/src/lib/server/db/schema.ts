@@ -312,8 +312,33 @@ export const adminSessions = pgTable(
 		userId: integer("user_id")
 			.notNull()
 			.references(() => pamUsers.id, { onDelete: "cascade" }),
-		token: varchar("token", { length: 255 }).notNull().unique(),
+		// 32-byte CSPRNG, base64url. 255 was sized for a 32-byte hex; widened
+		// to text in 002_session_columns_for_auth.sql so future tokens
+		// (UUIDv7, etc.) are not artificially constrained.
+		token: text("token").notNull().unique(),
 		expiresAt: timestamp("expires_at", { withTimezone: false }).notNull(),
+		// Per-session CSRF token (THREAT_MODEL SR-004). The double-submit
+		// cookie pattern means the client also has a copy in a non-HttpOnly
+		// cookie; the server-side value is the source of truth.
+		csrfToken: text("csrf_token"),
+		// Source IP (best-effort, X-Forwarded-For aware). Nullable so the
+		// column is safe to backfill; do NOT use IP as the sole auth signal
+		// (THREAT_MODEL T-001) — it's stored for forensic reconstruction.
+		ip: text("ip"),
+		// User-Agent snapshot. Same posture as IP.
+		userAgent: text("user_agent"),
+		// Last time the role (is_admin) was re-validated against the OS
+		// group set. The SvelteKit hook re-checks when this is older than
+		// 60s (ROLE_CHECK_TTL_MS) so a demoted admin loses the role
+		// within one minute (SR-011, SR-012).
+		lastRoleCheckAt: bigint("last_role_check_at", { mode: "number" })
+			.notNull()
+			.default(0),
+		// Rolling-expiry clock. Every authenticated request extends
+		// expires_at to now + 30d, capped at created_at + 30d. Idempotent
+		// with the created_at column for legacy sessions (touched_at
+		// backfilled in 002_*.sql).
+		touchedAt: timestamp("touched_at", { withTimezone: false }),
 		isAdmin: boolean("is_admin").notNull().default(false),
 		createdAt: timestamp("created_at", { withTimezone: false }).notNull().defaultNow(),
 	},
@@ -324,6 +349,10 @@ export const adminSessions = pgTable(
 		// both do `WHERE expires_at > NOW()` (or `<=` for cleanup), which
 		// benefits from a plain index on expires_at.
 		index("idx_admin_sessions_expires_at").on(t.expiresAt),
+		// Added in 002_session_columns_for_auth.sql: rolling-expiry
+		// sweep + "my active sessions" listing.
+		index("idx_admin_sessions_touched_at").on(t.touchedAt),
+		index("idx_admin_sessions_user_touched").on(t.userId, t.touchedAt),
 	],
 );
 

@@ -19,6 +19,9 @@ import {
   registerFakeUser,
   registerFakeSession,
   clearFakeAuth,
+  getSessionStore,
+  InMemorySessionStore,
+  setSessionStore,
 } from '../auth';
 import {
   ApiErrorThrown,
@@ -52,14 +55,31 @@ describe('requireAuth', () => {
     expect(got.username).toBe('alice');
   });
 
-  it('returns user resolved from session cookie', () => {
+  it('returns user resolved from session cookie', async () => {
+    // Use the new session store API: create a real session and use
+    // its token as the cookie value. The hook populates locals
+    // from the resolved session — simulate that here so the
+    // synchronous `requireAuth` path picks it up.
     const user = makeFakeUser({ username: 'bob' });
-    const session = makeFakeSession(user);
-    registerFakeUser(user);
-    registerFakeSession(session);
-    const event = makeFakeEvent({ cookies: { cortexos_session: session.id } });
+    const store = getSessionStore() as InMemorySessionStore;
+    store.upsertUser({
+      username: user.username,
+      groupMemberships: user.groupMemberships,
+    });
+    const created = await store.createSession({
+      username: user.username,
+      csrfToken: 'csrf-test-bob',
+      ip: '127.0.0.1',
+      userAgent: 'test-ua/1.0',
+      isAdmin: user.is_admin,
+    });
+    const event = makeFakeEvent({
+      cookies: { cortexos_session: created.token },
+      locals: makeFakeLocals(created.user, created.session),
+    });
     const got = requireAuth(event);
-    expect(got.id).toBe(user.id);
+    expect(got.id).toBe(created.user.id);
+    expect(got.username).toBe(user.username);
   });
 
   it('throws 401 for an inactive user', () => {

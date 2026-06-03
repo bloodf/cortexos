@@ -8,6 +8,7 @@
 
 import type { AppLocals, RequestEvent, CookiesAdapter } from './types';
 import type { Session, User } from './entities';
+import type { CookieJar } from './auth/cookies';
 
 export interface FakeEventOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -31,9 +32,7 @@ export function makeFakeEvent(opts: FakeEventOptions = {}): RequestEvent {
   const ip = opts.ip ?? '127.0.0.1';
   const ua = opts.userAgent ?? 'test-ua/1.0';
 
-  const cookieAdapter: CookiesAdapter = {
-    get: (name: string) => cookies[name],
-  };
+  const cookieAdapter: CookiesAdapter = makeFakeCookieJar(cookies);
 
   const headers = new Headers(opts.headers ?? {});
   if (!headers.has('user-agent')) headers.set('user-agent', ua);
@@ -70,6 +69,72 @@ export function makeFakeEvent(opts: FakeEventOptions = {}): RequestEvent {
     getClientAddress: () => ip,
   };
   return event;
+}
+
+/**
+ * Build a fake cookie jar that records `set` / `delete` calls.
+ *
+ * The jar implements the `CookieJar` interface (subset of SvelteKit's
+ * `cookies`) so it can be passed to the cookie helpers in tests.
+ * `get` looks up request cookies, `set` updates the recorded
+ * response cookies, and `delete` removes them.
+ */
+export interface FakeCookieJar extends CookieJar {
+  /** All cookies set during the request (most recent last). */
+  readonly response: ReadonlyArray<{ name: string; value: string; opts: object }>;
+  /** All cookies deleted during the request. */
+  readonly deleted: ReadonlyArray<{ name: string }>;
+  /** Cookies visible to the request (input). */
+  readonly request: Record<string, string>;
+  /** Cookies sent in the response (output). */
+  readonly responseMap: Record<string, string>;
+  /** Mark a cookie as set in the response. */
+  _set(name: string, value: string, opts: object): void;
+  /** Mark a cookie as deleted in the response. */
+  _delete(name: string): void;
+}
+
+export function makeFakeCookieJar(initial: Record<string, string> = {}): FakeCookieJar {
+  const request = { ...initial };
+  const responseMap: Record<string, string> = {};
+  const response: Array<{ name: string; value: string; opts: object }> = [];
+  const deleted: Array<{ name: string }> = [];
+  const jar: FakeCookieJar = {
+    get response() {
+      return response;
+    },
+    get deleted() {
+      return deleted;
+    },
+    get request() {
+      return request;
+    },
+    get responseMap() {
+      return responseMap;
+    },
+    _set(name, value, opts) {
+      responseMap[name] = value;
+      response.push({ name, value, opts });
+    },
+    _delete(name) {
+      delete responseMap[name];
+      deleted.push({ name });
+    },
+    get(name: string) {
+      // Response cookies shadow request cookies (typical cookie-jar
+      // semantics: the latest set wins).
+      if (name in responseMap) return responseMap[name]!;
+      if (name in request) return request[name]!;
+      return undefined;
+    },
+    set(name, value, opts) {
+      this._set(name, value, opts);
+    },
+    delete(name) {
+      this._delete(name);
+    },
+  };
+  return jar;
 }
 
 /** Build a fake authenticated User for use in tests. */
