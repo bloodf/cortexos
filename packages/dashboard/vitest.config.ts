@@ -11,6 +11,9 @@ export default defineConfig({
     exclude: ['e2e/**', 'node_modules/**', '.next/**', 'playwright-report/**', 'test-results/**'],
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // SvelteKit convention: `$lib` resolves to `src/lib`. Used by the
+      // new data layer at `src/lib/server/db/`. Both aliases point at
+      // the same `src/` root.
       '$lib': path.resolve(__dirname, './src/lib'),
     },
     coverage: {
