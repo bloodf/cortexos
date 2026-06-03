@@ -1,44 +1,37 @@
+import { defineConfig, devices } from '@playwright/test';
+
 /**
- * V11 — Playwright E2E config for CortexOS dashboard.
+ * Playwright config — E2E shell test for the SvelteKit dashboard.
  *
- * Targets the local dev server on port 3080 (matches `pnpm run dev` +
- * compose). `webServer` autostarts dev mode if not already running. CI
- * usage is manual-trigger only (see .github/workflows/e2e-dashboard.yml).
+ * The web server is the SvelteKit production preview (port 3080,
+ * matching the legacy Next.js dashboard port per the audit, §6.3).
+ * CI builds first, then starts `pnpm preview` which boots
+ * `adapter-node` (or vite preview in dev mode). In local dev
+ * `pnpm dev` is enough; Playwright will reuse it via
+ * `reuseExistingServer`.
  */
-import { defineConfig, devices } from "@playwright/test";
-
-const PORT = Number(process.env.E2E_PORT ?? 3080);
-const BASE_URL = process.env.E2E_BASE_URL ?? `http://127.0.0.1:${PORT}`;
-
 export default defineConfig({
-	testDir: "./e2e",
-	timeout: 60_000,
-	expect: { timeout: 10_000 },
-	fullyParallel: false,
-	forbidOnly: !!process.env.CI,
-	retries: process.env.CI ? 1 : 0,
-	workers: 1,
-	reporter: process.env.CI ? [["github"], ["list"]] : "list",
+	testDir: './e2e',
+	timeout: 30_000,
+	expect: { timeout: 5_000 },
+	fullyParallel: true,
+	retries: process.env.CI ? 2 : 0,
+	reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
 	use: {
-		baseURL: BASE_URL,
-		trace: "retain-on-failure",
-		screenshot: "only-on-failure",
-		video: "retain-on-failure",
+		baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:3080',
+		trace: 'on-first-retry',
+		screenshot: 'only-on-failure',
 	},
 	projects: [
 		{
-			name: "chromium",
-			use: { ...devices["Desktop Chrome"] },
+			name: 'chromium',
+			use: { ...devices['Desktop Chrome'] },
 		},
 	],
-	webServer: process.env.E2E_NO_WEBSERVER
-		? undefined
-		: {
-				command: "pnpm run dev",
-				port: PORT,
-				reuseExistingServer: true,
-				timeout: 120_000,
-				stdout: "pipe",
-				stderr: "pipe",
-			},
+	webServer: {
+		command: process.env.PLAYWRIGHT_NO_WEBSERVER ? 'true' : 'pnpm run build && pnpm run preview',
+		port: 3080,
+		reuseExistingServer: !process.env.CI,
+		timeout: 120_000,
+	},
 });

@@ -1,0 +1,61 @@
+{
+	"app": {
+		"name": "CortexOS",
+		"tagline": "Self-hosted control plane",
+		"shell": {
+			"title": "CortexOS",
+			"skipToContent": "Skip to content",
+			"openMenu": "Open navigation",
+			"closeMenu": "Close navigation",
+			"search": "Search…",
+			"openCommandPalette": "Open command palette",
+			"toggleTheme": "Toggle theme",
+			"userMenu": "User menu",
+			"signIn": "Sign in",
+			"signOut": "Sign out"
+		},
+		"nav": {
+			"platform": "Platform",
+			"infrastructure": "Infrastructure",
+			"securityOps": "Security & Ops",
+			"admin": "Admin",
+			"dashboard": "Dashboard",
+			"services": "Services",
+			"apps": "Apps",
+			"healthcheck": "Healthcheck",
+			"docker": "Docker",
+			"incus": "Incus",
+			"systemd": "systemd",
+			"storage": "Storage",
+			"network": "Network",
+			"processes": "Processes",
+			"backups": "Backups",
+			"scheduler": "Scheduler",
+			"terminal": "Terminal",
+			"alerts": "Alerts",
+			"approvals": "Approvals",
+			"audit": "Audit log"
+		}
+	},
+	"login": {
+		"title": "Sign in",
+		"subtitle": "Authenticate with your host account.",
+		"username": "Username",
+		"password": "Password",
+		"submit": "Sign in",
+		"submitting": "Signing in…",
+		"error": {
+			"required": "Username and password are required.",
+			"invalid": "Invalid credentials.",
+			"server": "Sign-in is not yet wired in this build. Real PAM auth lands in M3."
+		}
+	},
+	"dashboard": {
+		"title": "Welcome to CortexOS",
+		"subtitle": "M1 foundation is online. Real widgets arrive in M2."
+	},
+	"errors": {
+		"notFound": "Page not found",
+		"serverError": "Server error"
+	}
+}
