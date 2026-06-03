@@ -59,5 +59,15 @@ CREATE INDEX IF NOT EXISTS idx_audit_log_actor
 CREATE INDEX IF NOT EXISTS idx_audit_log_source
   ON audit_log (source, occurred_at DESC);
 
-CREATE INDEX IF NOT EXISTS idx_dashboard_command_audit_session
-  ON dashboard_command_audit (dashboard_session_id, created_at DESC);
+-- The dashboard_command_audit table is created in migration 008
+-- (was 005; renumbered after 003/004/005 were lost in the M1
+-- data-schema cleanup). Wrap the index in a DO block so the
+-- migration is idempotent regardless of whether 008 has run yet.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables
+            WHERE table_schema = 'public' AND table_name = 'dashboard_command_audit') THEN
+    CREATE INDEX IF NOT EXISTS idx_dashboard_command_audit_session
+      ON dashboard_command_audit (dashboard_session_id, created_at DESC);
+  END IF;
+END $$;

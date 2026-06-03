@@ -105,5 +105,107 @@
 			"checking": "Checking",
 			"degraded": "Degraded"
 		}
+	},
+	"alerts": {
+		"title": "Alerts",
+		"description": "Rule-based and operational alerts across the host.",
+		"tabs": {
+			"rules": "Rules",
+			"operational": "Operational",
+			"history": "History"
+		},
+		"severity": {
+			"info": "Info",
+			"warning": "Warning",
+			"critical": "Critical",
+			"warn": "Warn",
+			"error": "Error"
+		},
+		"actions": {
+			"enable": "Enable",
+			"disable": "Disable",
+			"acknowledge": "Acknowledge",
+			"create": "Create rule",
+			"save": "Save",
+			"saving": "Saving…",
+			"cancel": "Cancel",
+			"back": "Back to alerts",
+			"delete": "Delete",
+			"deleting": "Deleting…"
+		},
+		"rules": {
+			"empty": "No alert rules configured. Create one to start monitoring.",
+			"new": "New rule",
+			"newDescription": "A rule fires when its condition matches a service status transition.",
+			"form": {
+				"name": "Name",
+				"namePlaceholder": "e.g. Prometheus offline",
+				"serviceId": "Service ID",
+				"serviceIdPlaceholder": "Optional — leave empty for any service",
+				"condition": "Condition",
+				"conditionOffline": "Service went offline",
+				"conditionOnline": "Service came online",
+				"conditionResponseTime": "Response time exceeded",
+				"thresholdMs": "Threshold (ms)",
+				"thresholdMsPlaceholder": "e.g. 500",
+				"severity": "Severity",
+				"enabled": "Enabled",
+				"channels": "Channels",
+				"channelUi": "In-app toast",
+				"channelEmail": "Email",
+				"channelWebhook": "Webhook",
+				"channelLog": "Log"
+			},
+			"detail": {
+				"title": "Rule detail",
+				"description": "Long-lived rule evaluated against service status transitions.",
+				"meta": "Metadata",
+				"condition": "Condition",
+				"threshold": "Threshold",
+				"severity": "Severity",
+				"enabled": "Enabled",
+				"created": "Created",
+				"updated": "Updated",
+				"history": "Recent firings",
+				"historyEmpty": "This rule has not fired yet.",
+				"disableConfirm": "Disable this rule? Future firings will be suppressed.",
+				"enableConfirm": "Enable this rule? It will start evaluating on the next transition."
+			}
+		},
+		"operational": {
+			"empty": "No operational alerts. The host is quiet.",
+			"title": "Operational alerts",
+			"description": "Live alerts raised by the host's subsystems.",
+			"unacknowledgedOnly": "Hide acknowledged",
+			"all": "All",
+			"unack": "Unacknowledged",
+			"detail": {
+				"title": "Operational alert",
+				"source": "Source",
+				"severity": "Severity",
+				"created": "Created",
+				"acknowledgedAt": "Acknowledged at",
+				"acknowledgedBy": "Acknowledged by",
+				"notAcknowledged": "Unacknowledged",
+				"acknowledgeConfirm": "Mark this alert as acknowledged?",
+				"body": "Message"
+			}
+		},
+		"history": {
+			"title": "Alert history",
+			"description": "All rule firings and resolutions, newest first.",
+			"empty": "No alert history yet.",
+			"filter": {
+				"rule": "Rule",
+				"rulePlaceholder": "Filter by rule id…",
+				"service": "Service",
+				"servicePlaceholder": "Filter by service id…"
+			},
+			"event": {
+				"fired": "Fired",
+				"resolved": "Resolved",
+				"info": "Info"
+			}
+		}
 	}
 }

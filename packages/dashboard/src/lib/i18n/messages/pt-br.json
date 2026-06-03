@@ -105,5 +105,107 @@
 			"checking": "Verificando",
 			"degraded": "Degradado"
 		}
+	},
+	"alerts": {
+		"title": "Alertas",
+		"description": "Alertas baseados em regras e operacionais no host.",
+		"tabs": {
+			"rules": "Regras",
+			"operational": "Operacional",
+			"history": "Histórico"
+		},
+		"severity": {
+			"info": "Info",
+			"warning": "Aviso",
+			"critical": "Crítico",
+			"warn": "Atenção",
+			"error": "Erro"
+		},
+		"actions": {
+			"enable": "Habilitar",
+			"disable": "Desabilitar",
+			"acknowledge": "Reconhecer",
+			"create": "Criar regra",
+			"save": "Salvar",
+			"saving": "Salvando…",
+			"cancel": "Cancelar",
+			"back": "Voltar para alertas",
+			"delete": "Excluir",
+			"deleting": "Excluindo…"
+		},
+		"rules": {
+			"empty": "Nenhuma regra de alerta configurada. Crie uma para começar a monitorar.",
+			"new": "Nova regra",
+			"newDescription": "Uma regra dispara quando sua condição é atendida por uma transição de status de serviço.",
+			"form": {
+				"name": "Nome",
+				"namePlaceholder": "ex.: Prometheus offline",
+				"serviceId": "ID do serviço",
+				"serviceIdPlaceholder": "Opcional — deixe vazio para qualquer serviço",
+				"condition": "Condição",
+				"conditionOffline": "Serviço ficou offline",
+				"conditionOnline": "Serviço voltou a ficar online",
+				"conditionResponseTime": "Tempo de resposta excedido",
+				"thresholdMs": "Limite (ms)",
+				"thresholdMsPlaceholder": "ex.: 500",
+				"severity": "Severidade",
+				"enabled": "Habilitada",
+				"channels": "Canais",
+				"channelUi": "Notificação no app",
+				"channelEmail": "E-mail",
+				"channelWebhook": "Webhook",
+				"channelLog": "Log"
+			},
+			"detail": {
+				"title": "Detalhe da regra",
+				"description": "Regra de longa duração avaliada contra transições de status de serviço.",
+				"meta": "Metadados",
+				"condition": "Condição",
+				"threshold": "Limite",
+				"severity": "Severidade",
+				"enabled": "Habilitada",
+				"created": "Criada",
+				"updated": "Atualizada",
+				"history": "Disparos recentes",
+				"historyEmpty": "Esta regra ainda não disparou.",
+				"disableConfirm": "Desabilitar esta regra? Disparos futuros serão suprimidos.",
+				"enableConfirm": "Habilitar esta regra? Ela voltará a ser avaliada na próxima transição."
+			}
+		},
+		"operational": {
+			"empty": "Nenhum alerta operacional. O host está em silêncio.",
+			"title": "Alertas operacionais",
+			"description": "Alertas ao vivo emitidos pelos subsistemas do host.",
+			"unacknowledgedOnly": "Ocultar reconhecidos",
+			"all": "Todos",
+			"unack": "Não reconhecidos",
+			"detail": {
+				"title": "Alerta operacional",
+				"source": "Origem",
+				"severity": "Severidade",
+				"created": "Criado",
+				"acknowledgedAt": "Reconhecido em",
+				"acknowledgedBy": "Reconhecido por",
+				"notAcknowledged": "Não reconhecido",
+				"acknowledgeConfirm": "Marcar este alerta como reconhecido?",
+				"body": "Mensagem"
+			}
+		},
+		"history": {
+			"title": "Histórico de alertas",
+			"description": "Todos os disparos e resoluções de regras, mais recentes primeiro.",
+			"empty": "Ainda não há histórico de alertas.",
+			"filter": {
+				"rule": "Regra",
+				"rulePlaceholder": "Filtrar por id de regra…",
+				"service": "Serviço",
+				"servicePlaceholder": "Filtrar por id de serviço…"
+			},
+			"event": {
+				"fired": "Disparado",
+				"resolved": "Resolvido",
+				"info": "Info"
+			}
+		}
 	}
 }
