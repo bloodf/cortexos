@@ -10,6 +10,16 @@
  * upstream. Until it's resolved, we mount components directly via Svelte's
  * `mount` + jsdom.
  *
+ * Why import from `svelte/internal/client`?
+ * -----------------------------------------
+ * The `svelte` package's `default` export resolves to
+ * `src/index-server.js`, which only re-exports SSR-safe helpers — `mount`
+ * is not among them. The browser entry is exposed under the `browser`
+ * condition, but vitest's resolver doesn't honour the `conditions` array
+ * the same way the dev server does, so the cleanest path is to import
+ * `mount` / `unmount` directly from the internal client entry. That's the
+ * same path the official `@sveltejs/vite-plugin-svelte` test fixture uses.
+ *
  * Usage:
  *   const { container, getByRole } = render(Button, { props: { ... } });
  *   afterEach(cleanup);
@@ -20,18 +30,18 @@ import type { Component } from 'svelte';
 import { JSDOM } from 'jsdom';
 
 export interface RenderProps {
-  [key: string]: unknown;
+	[key: string]: unknown;
 }
 
 export interface RenderResult {
-  /** The DOM node the component is mounted into. */
-  container: HTMLElement;
-  /** The body element the container is appended to (for queries). */
-  baseElement: HTMLElement;
-  /** Re-render with new props. */
-  rerender: (next: RenderProps) => void;
-  /** Unmount the component. */
-  unmount: () => void;
+	/** The DOM node the component is mounted into. */
+	container: HTMLElement;
+	/** The body element the container is appended to (for queries). */
+	baseElement: HTMLElement;
+	/** Re-render with new props. */
+	rerender: (next: RenderProps) => void;
+	/** Unmount the component. */
+	unmount: () => void;
 }
 
 /**
@@ -54,19 +64,19 @@ const _mounted = new Set<RenderResult>();
  */
 let _jsdomInstalled = false;
 function ensureJsdom(): void {
-  if (typeof globalThis.document !== 'undefined') return;
-  if (_jsdomInstalled) return;
-  const dom = new JSDOM('<!doctype html><html><body></body></html>', {
-    url: 'http://localhost/',
-  });
-  (globalThis as unknown as { document: Document }).document = dom.window.document;
-  (globalThis as unknown as { window: Window }).window = dom.window as unknown as Window;
-  (globalThis as unknown as { navigator: Navigator }).navigator = dom.window.navigator;
-  (globalThis as unknown as { HTMLElement: typeof HTMLElement }).HTMLElement =
-    dom.window.HTMLElement;
-  (globalThis as unknown as { Element: typeof Element }).Element = dom.window.Element;
-  (globalThis as unknown as { Node: typeof Node }).Node = dom.window.Node;
-  _jsdomInstalled = true;
+	if (typeof globalThis.document !== 'undefined') return;
+	if (_jsdomInstalled) return;
+	const dom = new JSDOM('<!doctype html><html><body></body></html>', {
+		url: 'http://localhost/',
+	});
+	(globalThis as unknown as { document: Document }).document = dom.window.document;
+	(globalThis as unknown as { window: Window }).window = dom.window as unknown as Window;
+	(globalThis as unknown as { navigator: Navigator }).navigator = dom.window.navigator;
+	(globalThis as unknown as { HTMLElement: typeof HTMLElement }).HTMLElement =
+		dom.window.HTMLElement;
+	(globalThis as unknown as { Element: typeof Element }).Element = dom.window.Element;
+	(globalThis as unknown as { Node: typeof Node }).Node = dom.window.Node;
+	_jsdomInstalled = true;
 }
 
 /**
@@ -76,32 +86,32 @@ function ensureJsdom(): void {
  * @param options    { props, target? }. `target` defaults to a fresh <div>.
  */
 export function render(
-  component: AnyComponent,
-  options: { props?: RenderProps; target?: HTMLElement } = {},
+	component: AnyComponent,
+	options: { props?: RenderProps; target?: HTMLElement } = {},
 ): RenderResult {
-  ensureJsdom();
-  const doc = (globalThis as unknown as { document: Document }).document;
-  const target = options.target ?? doc.body.appendChild(doc.createElement('div'));
+	ensureJsdom();
+	const doc = (globalThis as unknown as { document: Document }).document;
+	const target = options.target ?? doc.body.appendChild(doc.createElement('div'));
 
-  const componentInstance = mount(component, {
-    target,
-    props: options.props ?? {},
-  });
+	const componentInstance = mount(component, {
+		target,
+		props: options.props ?? {},
+	});
 
-  const result: RenderResult = {
-    container: target as HTMLElement,
-    baseElement: doc.body as HTMLElement,
-    rerender(next: RenderProps) {
-      unmount(componentInstance);
-      const fresh = mount(component, { target, props: next });
-      (componentInstance as unknown as { _current: unknown })._current = fresh;
-    },
-    unmount() {
-      unmount(componentInstance);
-    },
-  };
-  _mounted.add(result);
-  return result;
+	const result: RenderResult = {
+		container: target as HTMLElement,
+		baseElement: doc.body as HTMLElement,
+		rerender(next: RenderProps) {
+			unmount(componentInstance);
+			const fresh = mount(component, { target, props: next });
+			(componentInstance as unknown as { _current: unknown })._current = fresh;
+		},
+		unmount() {
+			unmount(componentInstance);
+		},
+	};
+	_mounted.add(result);
+	return result;
 }
 
 /**
@@ -109,16 +119,16 @@ export function render(
  * Also clears the document body of stray containers.
  */
 export function cleanup(): void {
-  for (const r of _mounted) {
-    try {
-      r.unmount();
-    } catch {
-      // best effort
-    }
-  }
-  _mounted.clear();
-  const doc = (globalThis as unknown as { document: Document }).document;
-  if (doc?.body) doc.body.innerHTML = '';
+	for (const r of _mounted) {
+		try {
+			r.unmount();
+		} catch {
+			// best effort
+		}
+	}
+	_mounted.clear();
+	const doc = (globalThis as unknown as { document: Document }).document;
+	if (doc?.body) doc.body.innerHTML = '';
 }
 
 /** Query helpers re-exported from @testing-library/dom for ergonomics. */

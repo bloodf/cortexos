@@ -126,6 +126,9 @@ importers:
 
   packages/dashboard:
     dependencies:
+      '@cortexos/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       '@electric-sql/pglite':
         specifier: ^0.2.0
         version: 0.2.17

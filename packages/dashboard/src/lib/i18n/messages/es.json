@@ -57,5 +57,53 @@
 	"errors": {
 		"notFound": "Página no encontrada",
 		"serverError": "Error del servidor"
+	},
+	"services": {
+		"title": "Servicios",
+		"description": "Monitorea cada unidad de systemd y contenedor de Docker que CortexOS conoce.",
+		"search": {
+			"placeholder": "Buscar por nombre, slug o descripción…",
+			"label": "Filtrar servicios",
+			"clear": "Limpiar",
+			"allCategories": "Todas las categorías"
+		},
+		"empty": "Ningún servicio coincide con el filtro actual. Limpia el filtro para ver todos los servicios.",
+		"table": {
+			"name": "Nombre",
+			"category": "Categoría",
+			"status": "Estado",
+			"response": "Respuesta",
+			"uptime": "Disponibilidad 24h"
+		},
+		"detail": {
+			"health": "Salud",
+			"healthDescription": "Último resultado del sondeo.",
+			"config": "Configuración",
+			"configDescription": "Registro del servicio.",
+			"history": "Historial de salud",
+			"historyDescription": "Último(s) {count} sondeo(s).",
+			"historyEmpty": "Aún no hay sondeos registrados.",
+			"recheck": "Volver a sondear",
+			"recheckLoading": "Sondeando…",
+			"fields": {
+				"responseTime": "Tiempo de respuesta",
+				"uptime": "Disponibilidad 24h",
+				"lastCheck": "Última verificación",
+				"probeType": "Tipo de sondeo",
+				"slug": "Slug",
+				"kind": "Tipo",
+				"healthUrl": "URL de salud",
+				"openUrl": "URL de apertura",
+				"envSource": "Origen env"
+			}
+		},
+		"status": {
+			"label": "Estado",
+			"online": "En línea",
+			"offline": "Fuera de línea",
+			"unknown": "Desconocido",
+			"checking": "Verificando",
+			"degraded": "Degradado"
+		}
 	}
 }

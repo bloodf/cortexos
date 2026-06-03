@@ -57,5 +57,53 @@
 	"errors": {
 		"notFound": "Página não encontrada",
 		"serverError": "Erro do servidor"
+	},
+	"services": {
+		"title": "Serviços",
+		"description": "Acompanhe cada unidade do systemd e contêiner do Docker que o CortexOS conhece.",
+		"search": {
+			"placeholder": "Buscar por nome, slug ou descrição…",
+			"label": "Filtrar serviços",
+			"clear": "Limpar",
+			"allCategories": "Todas as categorias"
+		},
+		"empty": "Nenhum serviço corresponde ao filtro atual. Limpe o filtro para ver todos os serviços.",
+		"table": {
+			"name": "Nome",
+			"category": "Categoria",
+			"status": "Status",
+			"response": "Resposta",
+			"uptime": "Uptime 24h"
+		},
+		"detail": {
+			"health": "Saúde",
+			"healthDescription": "Resultado mais recente do probe.",
+			"config": "Configuração",
+			"configDescription": "Registro do serviço.",
+			"history": "Histórico de saúde",
+			"historyDescription": "Último(s) {count} probe(s).",
+			"historyEmpty": "Nenhum probe registrado ainda.",
+			"recheck": "Verificar agora",
+			"recheckLoading": "Verificando…",
+			"fields": {
+				"responseTime": "Tempo de resposta",
+				"uptime": "Uptime 24h",
+				"lastCheck": "Última verificação",
+				"probeType": "Tipo de probe",
+				"slug": "Slug",
+				"kind": "Tipo",
+				"healthUrl": "URL de saúde",
+				"openUrl": "URL de abertura",
+				"envSource": "Origem env"
+			}
+		},
+		"status": {
+			"label": "Status",
+			"online": "Online",
+			"offline": "Offline",
+			"unknown": "Desconhecido",
+			"checking": "Verificando",
+			"degraded": "Degradado"
+		}
 	}
 }

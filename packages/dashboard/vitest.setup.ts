@@ -1,5 +1,20 @@
 import '@testing-library/jest-dom/vitest';
-import { vi } from 'vitest';
+// Wire up @testing-library/svelte matchers (toBeDisabled, toHaveAttribute,
+// etc.) for the vitest environment. Without this import, the 20+
+// pre-existing @testing-library/svelte-based UI tests in
+// src/lib/components/ui/ fail with "expect(...).toBeDisabled is not
+// a function" because the matcher extension never registers.
+import '@testing-library/svelte/vitest';
+import { vi, expect } from 'vitest';
+import * as matchers from '@testing-library/jest-dom/matchers';
+
+// Belt-and-suspenders: explicitly extend expect with the jest-dom
+// matchers at the top of the setup file. Some test files import
+// `@testing-library/svelte` which transitively re-evaluates
+// `@testing-library/dom`; that path re-binds `expect` from chai.
+// Re-extending at setup time guarantees the matchers are present
+// regardless of which expect was already captured.
+expect.extend(matchers);
 
 // jsdom does not implement these — stub them so the components do not crash.
 if (typeof window !== 'undefined') {
