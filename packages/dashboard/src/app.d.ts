@@ -1,6 +1,8 @@
 // See https://svelte.dev/docs/kit/types#app
 
 import type { User, Session } from '@cortexos/contracts';
+import type { Messages } from '$lib/i18n';
+import type { ThemePreset, ThemeMode } from '$lib/theme-presets';
 
 declare global {
   namespace App {
@@ -12,9 +14,9 @@ declare global {
     interface PageData {
       user: User | null;
       session: Session | null;
-      theme: 'light' | 'dark' | 'system';
+      theme: { preset: ThemePreset; mode: ThemeMode };
       locale: 'en' | 'es' | 'pt-br';
-      messages: Record<string, string>;
+      messages: Messages;
     }
   }
 }

@@ -19,7 +19,7 @@
  *   });
  */
 
-import { z, type ZodType } from 'zod';
+import { z, type ZodType, type ZodTypeDef } from 'zod';
 import type { Page, PageInput } from '../entities';
 import type { RequestEvent } from '../types';
 
@@ -47,7 +47,7 @@ export type QueryFn<T> = (input: PageInput) => Promise<{ items: T[]; total: numb
  *
  * Throws (via SvelteKit's `error()`) on bad input.
  */
-export function paginatedLoad<TSchema extends ZodType<PageInput>, TItem>(
+export function paginatedLoad<TSchema extends ZodType<PageInput, ZodTypeDef, unknown>, TItem>(
   _schema: TSchema,
   query: QueryFn<TItem>,
 ): (event: RequestEvent) => Promise<Page<TItem>> {

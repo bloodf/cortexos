@@ -533,7 +533,7 @@ describe('PB-3 FIX: GET /api/env-browser', () => {
 
   it('admin with allowlisted path returns 200 (masked)', async () => {
     const { locals } = adminLocals();
-    envBrowserRoute._registerEnvFile('/opt/cortexos/.secrets/cortexos.env', [
+    envBrowserRoute.__registerEnvFile('/opt/cortexos/.secrets/cortexos.env', [
       { key: 'CORTEX_DB_URL', value: 'postgres://u:p@h:5432/db' },
     ]);
     const res = await callHandler(
@@ -545,7 +545,7 @@ describe('PB-3 FIX: GET /api/env-browser', () => {
 
   it('admin with reveal=true returns 403 with X-Cortex-* headers (SR-071)', async () => {
     const { locals } = adminLocals();
-    envBrowserRoute._registerEnvFile('/opt/cortexos/.secrets/cortexos.env', [
+    envBrowserRoute.__registerEnvFile('/opt/cortexos/.secrets/cortexos.env', [
       { key: 'CORTEX_DB_URL', value: 'postgres://u:p@h:5432/db' },
     ]);
     const res = await callHandler(

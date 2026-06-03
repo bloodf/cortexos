@@ -66,7 +66,8 @@
           if (items.length === 0) return;
           const idx = items.findIndex((i) => i === document.activeElement);
           const next = e.key === 'ArrowDown' ? (idx + 1) % items.length : (idx - 1 + items.length) % items.length;
-          items[next].focus();
+          // items.length > 0 is guaranteed by the early return above.
+          items[next]?.focus();
         }
       }}
     >
