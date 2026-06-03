@@ -30,6 +30,7 @@
  */
 
 import type { Handle } from '@sveltejs/kit';
+import type { User as ContractUser, Session as ContractSession } from '@cortexos/contracts';
 import {
   clearSessionCookie,
   DEFAULT_SESSION_TTL_MS,
@@ -87,12 +88,16 @@ export const handle: Handle = async ({ event, resolve }) => {
     const store = getSessionStore();
     const resolved = await store.resolveByToken(token);
     if (resolved) {
-      event.locals.user = resolved.user;
-      event.locals.session = resolved.session;
+      // M3 TODO: real-type the auth module's User/Session against @cortexos/contracts.
+      // The auth module's local entities.ts mirrors the contracts shape but
+      // diverges (e.g. is_admin vs isAdmin, lastRoleCheckAt vs lastRoleCheck,
+      // missing createdAt/cookieToken). Until that plumbing lands, cast here.
+      event.locals.user = resolved.user as unknown as ContractUser;
+      event.locals.session = resolved.session as unknown as ContractSession;
 
       // 3. Re-validate role if stale (SR-011/012).
       const now = Date.now();
-      if (now - resolved.session.lastRoleCheckAt > ROLE_CHECK_TTL_MS) {
+      if (now - (resolved.session as { lastRoleCheckAt?: number }).lastRoleCheckAt! > ROLE_CHECK_TTL_MS) {
         try {
           const pam = getPamAuthenticator();
           const isAdmin = await pam.isAdmin(resolved.user.username);
