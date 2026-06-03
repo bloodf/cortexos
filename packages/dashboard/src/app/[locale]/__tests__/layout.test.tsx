@@ -20,6 +20,18 @@ vi.mock("@/components/favorites-bar", () => ({
 	FavoritesBar: () => <div data-testid="favorites-bar" />,
 }));
 
+vi.mock("@/app/sys-pilot/AppShell", () => ({
+	AppShell: ({ children }: { children: React.ReactNode }) => (
+		<div data-testid="app-shell">{children}</div>
+	),
+}));
+
+vi.mock("@/hooks/dashboard-data-context", () => ({
+	DashboardDataProvider: ({ children }: { children: React.ReactNode }) => (
+		<div data-testid="dashboard-data-provider">{children}</div>
+	),
+}));
+
 describe("LocaleLayout", () => {
 	it("renders children inside intl provider", async () => {
 		const layout = await LocaleLayout({ children: <div data-testid="child">Hello</div> });

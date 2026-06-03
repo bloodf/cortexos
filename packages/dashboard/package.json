@@ -14,6 +14,7 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:list": "playwright test --list",
+    "check": "pnpm run check:mock-leaks && pnpm run lint && pnpm exec tsc --noEmit",
     "check:mock-leaks": "bash scripts/check-mock-leaks.sh",
     "test:mocks": "vitest run src/lib/mocks/__tests__/"
   },

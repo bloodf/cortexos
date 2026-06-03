@@ -69,7 +69,6 @@ export function enforceMockMode(side: Side): void {
 		const message = `[mocks] CRITICAL: mocks cannot run in production (side=${side}). ` +
 			'This is a CI-blocking error. See packages/dashboard/src/lib/mocks/prod-leak-guard.ts.';
 		if (typeof console !== 'undefined') {
-			// eslint-disable-next-line no-console
 			console.error(message);
 		}
 		throw new Error(message);

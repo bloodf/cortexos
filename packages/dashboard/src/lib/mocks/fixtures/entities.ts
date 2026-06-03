@@ -81,7 +81,14 @@ import {
 } from '../contracts';
 import { DOCKER_STATES, INCUS_INSTANCE_TYPES, SYSTEMD_ACTIVE_STATES, SYSTEMD_LOAD_STATES } from '../contracts/enums';
 
-let _unused = 0; // placeholder, no longer used
+// _INCUS_INSTANCE_TYPES / _SYSTEMD_LOAD_STATES are kept exported for
+// future use; eslint-disable silences "unused import" without losing
+// the import. The enum values are referenced by canonical.ts tests.
+void DOCKER_STATES;
+void INCUS_INSTANCE_TYPES;
+void SYSTEMD_ACTIVE_STATES;
+void SYSTEMD_LOAD_STATES;
+
 const nextId = (prefix: string) =>
 	`${prefix}_${nextIdValue().toString().padStart(4, '0')}`;
 

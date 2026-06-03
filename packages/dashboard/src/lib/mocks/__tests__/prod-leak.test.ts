@@ -27,7 +27,6 @@ import { join, relative } from 'node:path';
 import {
 	enforceMockMode,
 	assertMocksNeverRunInProduction,
-	ALLOWED_MOCKS_IMPORTERS,
 	isAllowedMocksImporter,
 	SCENARIO_REGISTRY,
 } from '../index';

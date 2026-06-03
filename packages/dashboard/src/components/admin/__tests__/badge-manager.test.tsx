@@ -1,5 +1,6 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { renderWithSWR } from "@/test-utils";
 import { BadgeManager } from "../badge-manager";
 
 const mockFetch = vi.fn();
@@ -21,7 +22,7 @@ describe("BadgeManager", () => {
       }),
     });
 
-    render(<BadgeManager serviceId={10} />);
+    renderWithSWR(<BadgeManager serviceId={10} />);
     expect(screen.getByText("Loading badges…")).toBeInTheDocument();
 
     await waitFor(() => {
@@ -38,7 +39,7 @@ describe("BadgeManager", () => {
       json: async () => ({ badges: [] }),
     });
 
-    render(<BadgeManager serviceId={10} />);
+    renderWithSWR(<BadgeManager serviceId={10} />);
     await waitFor(() => {
       expect(screen.getByText("No badges yet.")).toBeInTheDocument();
     });
@@ -61,7 +62,7 @@ describe("BadgeManager", () => {
         }),
       });
 
-    render(<BadgeManager serviceId={10} />);
+    renderWithSWR(<BadgeManager serviceId={10} />);
     await waitFor(() => screen.getByText("No badges yet."));
 
     fireEvent.change(screen.getByPlaceholderText("Label"), {
@@ -101,7 +102,7 @@ describe("BadgeManager", () => {
         json: async () => ({ badges: [] }),
       });
 
-    render(<BadgeManager serviceId={10} />);
+    renderWithSWR(<BadgeManager serviceId={10} />);
     await waitFor(() => screen.getByText("old"));
 
     fireEvent.click(screen.getByRole("button", { name: /delete/i }));
@@ -136,7 +137,7 @@ describe("BadgeManager", () => {
         }),
       });
 
-    render(<BadgeManager serviceId={10} />);
+    renderWithSWR(<BadgeManager serviceId={10} />);
     await waitFor(() => screen.getByText("draft"));
 
     fireEvent.click(screen.getByRole("button", { name: /edit/i }));
@@ -166,7 +167,7 @@ describe("BadgeManager", () => {
       }),
     });
 
-    render(<BadgeManager serviceId={10} />);
+    renderWithSWR(<BadgeManager serviceId={10} />);
     await waitFor(() => screen.getByText("keep"));
 
     fireEvent.click(screen.getByRole("button", { name: /edit/i }));

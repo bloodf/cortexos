@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
+import { renderWithSWR } from '@/test-utils';
 import { AlertHistory } from '../alert-history';
 
 const mockHistory = [
@@ -13,7 +14,7 @@ describe('AlertHistory', () => {
   });
 
   it('renders loading skeleton initially', () => {
-    render(<AlertHistory limit={10} />);
+    renderWithSWR(<AlertHistory limit={10} />);
     expect(screen.getByText('Alert History')).toBeInTheDocument();
     expect(document.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThan(0);
   });
@@ -23,7 +24,7 @@ describe('AlertHistory', () => {
       json: async () => ({ history: mockHistory }),
     });
 
-    render(<AlertHistory limit={10} />);
+    renderWithSWR(<AlertHistory limit={10} />);
 
     await waitFor(() => {
       expect(screen.getByText('Service down')).toBeInTheDocument();
@@ -36,7 +37,7 @@ describe('AlertHistory', () => {
       json: async () => ({ history: [] }),
     });
 
-    render(<AlertHistory limit={10} />);
+    renderWithSWR(<AlertHistory limit={10} />);
 
     await waitFor(() => {
       expect(screen.getByText('No alerts yet')).toBeInTheDocument();

@@ -8,7 +8,7 @@ interface ServiceSearchProps {
 	placeholder?: string;
 }
 
-export function ServiceSearch({ value, onChange, placeholder = "Search services..." }: ServiceSearchProps) {
+export function ServiceSearch({ value, onChange, placeholder = "Search services…" }: ServiceSearchProps) {
 	return (
 		<div className="relative max-w-sm flex-1">
 			<Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-white/30 light:text-slate-700" />

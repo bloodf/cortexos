@@ -1,5 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { renderWithSWR } from "@/test-utils";
 import { DockerTable } from "../docker-table";
 
 const mockData = {
@@ -50,7 +51,7 @@ describe("DockerTable", () => {
 
   it("renders loading state with skeletons", () => {
     vi.stubGlobal("fetch", () => new Promise(() => {}));
-    render(<DockerTable />);
+    renderWithSWR(<DockerTable />);
     expect(screen.getByText("Containers")).toBeInTheDocument();
     expect(screen.getByText("Volumes")).toBeInTheDocument();
     expect(screen.getByText("Images")).toBeInTheDocument();
@@ -66,7 +67,7 @@ describe("DockerTable", () => {
         } as Response)
       )
     );
-    render(<DockerTable />);
+    renderWithSWR(<DockerTable />);
     expect(await screen.findByText("test-container")).toBeInTheDocument();
     expect(screen.getAllByText("Name").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Status").length).toBeGreaterThan(0);
