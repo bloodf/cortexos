@@ -105,5 +105,96 @@
 			"checking": "Verificando",
 			"degraded": "Degradado"
 		}
+	},
+	"audit": {
+		"title": "Registro de auditoria",
+		"description": "Registro de auditoria append-only com cadeia hash de cada ação privilegiada.",
+		"empty": "Nenhum evento de auditoria corresponde ao filtro atual.",
+		"filters": {
+			"label": "Filtrar eventos de auditoria",
+			"actor": "Autor",
+			"actorPlaceholder": "Filtrar por autor (id de usuário)",
+			"surface": "Superfície",
+			"surfaceLabel": "Superfície",
+			"allSurfaces": "Todas as superfícies",
+			"action": "Ação",
+			"actionPlaceholder": "Filtrar por ação",
+			"allActions": "Todas as ações",
+			"result": "Resultado",
+			"resultLabel": "Resultado",
+			"allResults": "Todos os resultados",
+			"since": "De",
+			"sinceLabel": "De (ISO 8601)",
+			"until": "Até",
+			"untilLabel": "Até (ISO 8601)",
+			"clear": "Limpar filtros"
+		},
+		"list": {
+			"regionLabel": "Eventos de auditoria",
+			"emptyTitle": "Sem linhas de auditoria",
+			"emptyDescription": "Execute uma ação auditada para preencher o registro.",
+			"headerWhen": "Quando",
+			"headerSurface": "Superfície / ação",
+			"headerActor": "Autor",
+			"headerTarget": "Alvo",
+			"headerResult": "Resultado",
+			"headerHash": "Hash do payload",
+			"openDetail": "Abrir detalhe do evento {id}"
+		},
+		"detail": {
+			"id": "Id do evento",
+			"createdAt": "Criado em",
+			"surface": "Superfície",
+			"action": "Ação",
+			"actorUserId": "Id do usuário autor",
+			"actorSessionId": "Id da sessão do autor",
+			"actorIp": "IP do autor",
+			"actorUserAgent": "User agent do autor",
+			"target": "Alvo",
+			"result": "Resultado",
+			"requestId": "Id da requisição",
+			"errorCode": "Código de erro",
+			"sensitiveHeading": "Campos sensíveis",
+			"showSensitive": "Mostrar",
+			"hideSensitive": "Ocultar",
+			"sensitiveHint": "Clique em Mostrar para revelar o IP e o user agent. Os dados de auditoria podem incluir payloads sensíveis (THREAT_MODEL §6).",
+			"payloadHeading": "Payload",
+			"chainHeading": "Cadeia",
+			"payloadHash": "Hash do payload (sha256)",
+			"prevHash": "Hash anterior da cadeia",
+			"chainOk": "Cadeia válida para {length} linha(s).",
+			"chainBroken": "Cadeia quebrada no índice {index}: {reason}",
+			"prev": "Anterior",
+			"next": "Próximo",
+			"backToList": "Voltar à lista",
+			"nav": "Navegação de eventos",
+			"missing": "Evento não encontrado",
+			"missingDescription": "O id do evento não está na cadeia."
+		},
+		"verify": {
+			"title": "Verificação de cadeia",
+			"description": "Executa o verificador de cadeia e reporta o resultado.",
+			"runAgain": "Executar novamente",
+			"running": "Verificando…",
+			"bannerOk": "Cadeia válida",
+			"bannerBroken": "Cadeia QUEBRADA",
+			"lengthHint": "{length} linha(s) verificada(s) de ponta a ponta.",
+			"firstFailure": "Primeira falha no índice {index}: {reason}",
+			"length": "Comprimento da cadeia",
+			"status": "Status",
+			"failureIndex": "Índice da falha",
+			"failureReason": "Motivo da falha"
+		},
+		"export": {
+			"button": "Exportar CSV",
+			"appliedFilters": "Filtros aplicados: {filters}"
+		},
+		"result": {
+			"label": "Resultado",
+			"success": "Sucesso",
+			"failure": "Falha",
+			"denied": "Negado",
+			"error": "Erro"
+		}
 	}
 }

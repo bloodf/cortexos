@@ -105,5 +105,96 @@
 			"checking": "Checking",
 			"degraded": "Degraded"
 		}
+	},
+	"audit": {
+		"title": "Audit log",
+		"description": "Append-only hash-chained audit log of every privileged action.",
+		"empty": "No audit events match the current filter.",
+		"filters": {
+			"label": "Filter audit events",
+			"actor": "Actor",
+			"actorPlaceholder": "Filter by actor (user id)",
+			"surface": "Surface",
+			"surfaceLabel": "Surface",
+			"allSurfaces": "All surfaces",
+			"action": "Action",
+			"actionPlaceholder": "Filter by action",
+			"allActions": "All actions",
+			"result": "Result",
+			"resultLabel": "Result",
+			"allResults": "All results",
+			"since": "Since",
+			"sinceLabel": "Since (ISO 8601)",
+			"until": "Until",
+			"untilLabel": "Until (ISO 8601)",
+			"clear": "Clear filters"
+		},
+		"list": {
+			"regionLabel": "Audit events",
+			"emptyTitle": "No audit rows",
+			"emptyDescription": "Run an audited helper action to populate the log.",
+			"headerWhen": "When",
+			"headerSurface": "Surface / action",
+			"headerActor": "Actor",
+			"headerTarget": "Target",
+			"headerResult": "Result",
+			"headerHash": "Payload hash",
+			"openDetail": "Open detail for event {id}"
+		},
+		"detail": {
+			"id": "Event id",
+			"createdAt": "Created at",
+			"surface": "Surface",
+			"action": "Action",
+			"actorUserId": "Actor user id",
+			"actorSessionId": "Actor session id",
+			"actorIp": "Actor IP",
+			"actorUserAgent": "Actor user agent",
+			"target": "Target",
+			"result": "Result",
+			"requestId": "Request id",
+			"errorCode": "Error code",
+			"sensitiveHeading": "Sensitive fields",
+			"showSensitive": "Show",
+			"hideSensitive": "Hide",
+			"sensitiveHint": "Click Show to reveal IP and user agent. Audit data may include sensitive payloads (THREAT_MODEL §6).",
+			"payloadHeading": "Payload",
+			"chainHeading": "Chain",
+			"payloadHash": "Payload hash (sha256)",
+			"prevHash": "Previous chain hash",
+			"chainOk": "Chain valid for {length} row(s).",
+			"chainBroken": "Chain broken at index {index}: {reason}",
+			"prev": "Previous",
+			"next": "Next",
+			"backToList": "Back to list",
+			"nav": "Event navigation",
+			"missing": "Event not found",
+			"missingDescription": "The event id is not in the chain."
+		},
+		"verify": {
+			"title": "Chain verification",
+			"description": "Run the chain verifier and report the result.",
+			"runAgain": "Run again",
+			"running": "Verifying…",
+			"bannerOk": "Chain valid",
+			"bannerBroken": "Chain BROKEN",
+			"lengthHint": "{length} row(s) verified end-to-end.",
+			"firstFailure": "First failure at index {index}: {reason}",
+			"length": "Chain length",
+			"status": "Status",
+			"failureIndex": "Failure index",
+			"failureReason": "Failure reason"
+		},
+		"export": {
+			"button": "Export CSV",
+			"appliedFilters": "Applied filters: {filters}"
+		},
+		"result": {
+			"label": "Result",
+			"success": "Success",
+			"failure": "Failure",
+			"denied": "Denied",
+			"error": "Error"
+		}
 	}
 }
