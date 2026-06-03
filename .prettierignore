@@ -1,0 +1,49 @@
+# CortexOS — Prettier ignore patterns
+# These are files Prettier should never format.
+
+# Dependencies and build outputs
+node_modules
+**/node_modules/**
+**/dist/**
+**/build/**
+**/.svelte-kit/**
+**/.next/**
+**/out/**
+**/coverage/**
+**/.turbo/**
+
+# Lockfiles
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Generated files
+**/*.min.js
+**/*.min.css
+**/*.d.ts
+**/migrations/*.sql
+**/CHANGELOG.md
+
+# Framework-specific
+**/next-env.d.ts
+packages/dashboard/.next/**
+packages/dashboard/public/**
+
+# Test snapshots and fixtures
+**/*.snap
+**/__snapshots__/**
+
+# Docs and prompts (preserve formatting)
+docs/**
+prompts/**
+templates/**
+**/*.md
+**/*.mdx
+
+# Configuration
+.eslintrc.cjs
+.eslintrc.js
+.eslintrc.json
+.eslintrc
+prettier.config.js
+prettier.config.cjs
