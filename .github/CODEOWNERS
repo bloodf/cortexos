@@ -1,0 +1,43 @@
+# CODEOWNERS — cortexos repository
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# When a file matches multiple entries in this file, the LAST matching pattern
+# takes precedence. We rely on that here: the catch-all for the final gate
+# comes FIRST, then domain rules override it for the paths they own. Within
+# the security / data overlap on `/packages/*/migrations/`, the security rule
+# for `*.sql` is placed LAST so SQL migrations route to Schneier (security)
+# while non-SQL migration helpers route to Kleppmann (data).
+#
+# ─── Squad ──────────────────────────────────────────────────────────────
+#   @bloodf/cortexos-maintainers  — Edsger (final gate, every PR)
+#   @bloodf/squad-security        — Schneier (threat model, secrets, sandbox, SQL migrations)
+#   @bloodf/squad-data            — Kleppmann (contracts, migrations, server DB)
+#   @bloodf/squad-e2e             — Margaret (mocks, e2e suites)
+#   @bloodf/squad-platform        — Hightower (Docker, compose, CI, .github)
+
+# ─── Final gate (Edsger) — catch-all, listed first so domain rules override ─
+/*                                      @bloodf/cortexos-maintainers
+
+# ─── Data (Kleppmann) ───────────────────────────────────────────────────
+/packages/contracts/                    @bloodf/squad-data
+/packages/*/migrations/                 @bloodf/squad-data
+/packages/*/src/lib/server/db/          @bloodf/squad-data
+
+# ─── E2E / Mocks (Margaret) ──────────────────────────────────────────────
+/packages/dashboard/src/lib/mocks/      @bloodf/squad-e2e
+/packages/dashboard/e2e/                @bloodf/squad-e2e
+/tests/e2e/                             @bloodf/squad-e2e
+
+# ─── Infra / CI (Hightower) ──────────────────────────────────────────────
+/Dockerfile                             @bloodf/squad-platform
+/docker-compose.yml                     @bloodf/squad-platform
+/docker-compose.*.yml                   @bloodf/squad-platform
+/.github/                               @bloodf/squad-platform
+/scripts/ci-*                           @bloodf/squad-platform
+/packages/*/Dockerfile                  @bloodf/squad-platform
+
+# ─── Security (Schneier) — placed last so *.sql wins over data's migrations/
+/packages/dashboard/docs/THREAT_MODEL.md @bloodf/squad-security
+/packages/dashboard/docs/SECRETS.md     @bloodf/squad-security
+/stacks/cortex-sandbox-runner/          @bloodf/squad-security
+/packages/*/migrations/*.sql            @bloodf/squad-security
