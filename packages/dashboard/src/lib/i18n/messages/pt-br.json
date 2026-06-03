@@ -1,0 +1,46 @@
+{
+	"app": {
+		"name": "CortexOS",
+		"tagline": "Painel de controle auto-hospedado",
+		"shell": {
+			"title": "CortexOS",
+			"skipToContent": "Pular para o conteúdo",
+			"openMenu": "Abrir navegação",
+			"closeMenu": "Fechar navegação",
+			"search": "Buscar…",
+			"openCommandPalette": "Abrir paleta de comandos",
+			"toggleTheme": "Alternar tema",
+			"userMenu": "Menu do usuário",
+			"signIn": "Entrar",
+			"signOut": "Sair"
+		},
+		"nav": {
+			"platform": "Plataforma",
+			"infrastructure": "Infraestrutura",
+			"securityOps": "Segurança e Operações",
+			"admin": "Administração",
+			"dashboard": "Painel"
+		}
+	},
+	"login": {
+		"title": "Entrar",
+		"subtitle": "Autentique-se com sua conta do host.",
+		"username": "Usuário",
+		"password": "Senha",
+		"submit": "Entrar",
+		"submitting": "Entrando…",
+		"error": {
+			"required": "Usuário e senha são obrigatórios.",
+			"invalid": "Credenciais inválidas.",
+			"server": "O login ainda não está conectado nesta compilação. A autenticação PAM real chega no M3."
+		}
+	},
+	"dashboard": {
+		"title": "Bem-vindo ao CortexOS",
+		"subtitle": "A fundação M1 está no ar. Os widgets reais chegam no M2."
+	},
+	"errors": {
+		"notFound": "Página não encontrada",
+		"serverError": "Erro do servidor"
+	}
+}
