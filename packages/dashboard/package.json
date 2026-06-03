@@ -14,59 +14,33 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
-<<<<<<< HEAD
-    "lint": "eslint ."
-=======
     "test:e2e:list": "playwright test --list",
-    "check": "pnpm run check:mock-leaks && pnpm run lint && pnpm exec tsc --noEmit",
+    "test:mocks": "vitest run src/lib/mocks/__tests__/",
     "check:mock-leaks": "bash scripts/check-mock-leaks.sh",
-    "test:mocks": "vitest run src/lib/mocks/__tests__/"
->>>>>>> origin/feature/m1-mock-api
+    "lint": "eslint ."
   },
   "dependencies": {
     "clsx": "^2.1.1",
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
-<<<<<<< HEAD
-    "@eslint/js": "^10.0.1",
+    "@faker-js/faker": "^9.9.0",
     "@sveltejs/adapter-node": "^5.2.12",
     "@sveltejs/kit": "^2.20.0",
     "@sveltejs/vite-plugin-svelte": "^5.0.3",
     "@tailwindcss/vite": "^4.0.0",
     "@testing-library/dom": "^10.4.1",
-=======
-    "@faker-js/faker": "^9.9.0",
-    "@playwright/test": "^1.60.0",
-    "@tailwindcss/postcss": "^4",
->>>>>>> origin/feature/m1-mock-api
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/svelte": "^5.2.8",
     "@testing-library/user-event": "^14.6.1",
     "@types/node": "^22",
     "@vitest/coverage-v8": "^4.1.6",
-<<<<<<< HEAD
-    "eslint": "^9.39.4",
-    "eslint-plugin-svelte": "^3.19.0",
-    "globals": "^17.6.0",
-    "jsdom": "^25.0.1",
-    "svelte": "^5.20.0",
-    "svelte-check": "^4.1.4",
-    "tailwindcss": "^4.0.0",
-    "typescript": "^5.7.2",
-    "typescript-eslint": "^8.60.1",
+    "msw": "^2.6.0",
+    "svelte": "^5.56.0",
+    "svelte-check": "^4.0.0",
+    "typescript": "^5.6.0",
     "vite": "^6.0.0",
-=======
-    "esbuild": "^0.28.0",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.6",
-    "jsdom": "^29.1.1",
-    "msw": "^2.14.6",
-    "playwright": "^1.60.0",
-    "tailwindcss": "^4",
-    "tsx": "^4.21.0",
-    "typescript": "^5",
->>>>>>> origin/feature/m1-mock-api
-    "vitest": "^4.1.6"
+    "vitest": "^4.1.6",
+    "zod": "^3.25.0"
   }
 }
