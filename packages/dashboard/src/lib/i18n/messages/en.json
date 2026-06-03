@@ -105,5 +105,84 @@
 			"checking": "Checking",
 			"degraded": "Degraded"
 		}
+	},
+	"docker": {
+		"title": "Docker",
+		"description": "Live container list, lifecycle controls, logs, and exec.",
+		"search": {
+			"placeholder": "Search by name, image, or state…",
+			"label": "Filter containers",
+			"clear": "Clear",
+			"allStates": "All states",
+			"stopped": "Stopped"
+		},
+		"empty": "No containers match the current filter. Clear the filter to see all containers.",
+		"table": {
+			"name": "Name",
+			"image": "Image",
+			"state": "State",
+			"status": "Status",
+			"ports": "Ports"
+		},
+		"status": {
+			"label": "State",
+			"running": "Running",
+			"exited": "Stopped",
+			"paused": "Paused",
+			"restarting": "Restarting",
+			"dead": "Dead",
+			"created": "Created",
+			"removing": "Removing"
+		},
+		"detail": {
+			"inspect": "Inspect",
+			"inspectDescription": "Container metadata from `docker inspect`.",
+			"privilegedTrue": "Yes (--privileged)",
+			"privilegedFalse": "No",
+			"mountsEmpty": "No volume mounts",
+			"fields": {
+				"id": "ID",
+				"image": "Image",
+				"state": "State",
+				"status": "Status",
+				"created": "Created",
+				"ports": "Ports",
+				"networks": "Networks",
+				"mounts": "Mounts",
+				"privileged": "Privileged"
+			}
+		},
+		"actions": {
+			"title": "Lifecycle",
+			"description": "Start, stop, restart, or remove. Every action requires a fresh approval token (PB-5).",
+			"regionLabel": "Container actions",
+			"start": "Start",
+			"stop": "Stop",
+			"restart": "Restart",
+			"remove": "Remove",
+			"starting": "Starting…",
+			"stopping": "Stopping…",
+			"restarting": "Restarting…",
+			"removing": "Removing…",
+			"logs": "Logs",
+			"exec": "Exec"
+		},
+		"logs": {
+			"title": "Logs",
+			"description": "Tail of the journal for {name}.",
+			"empty": "No log lines yet.",
+			"refresh": "Refresh",
+			"tail": "Tail: {n} lines",
+			"lineCount": "{n} lines"
+		},
+		"exec": {
+			"title": "Exec",
+			"description": "Run an allowlisted subcommand inside {name}.",
+			"subcommand": "Subcommand",
+			"help": "Only allowlisted subcommands are accepted (no `bash -c <userstring>`).",
+			"submit": "Execute",
+			"submitting": "Executing…",
+			"output": "Output"
+		}
 	}
 }

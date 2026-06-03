@@ -105,5 +105,84 @@
 			"checking": "Verificando",
 			"degraded": "Degradado"
 		}
+	},
+	"docker": {
+		"title": "Docker",
+		"description": "Lista de contenedores en vivo, controles de ciclo de vida, registros y exec.",
+		"search": {
+			"placeholder": "Buscar por nombre, imagen o estado…",
+			"label": "Filtrar contenedores",
+			"clear": "Limpiar",
+			"allStates": "Todos los estados",
+			"stopped": "Detenidos"
+		},
+		"empty": "Ningún contenedor coincide con el filtro actual. Limpia el filtro para ver todos los contenedores.",
+		"table": {
+			"name": "Nombre",
+			"image": "Imagen",
+			"state": "Estado",
+			"status": "Estado",
+			"ports": "Puertos"
+		},
+		"status": {
+			"label": "Estado",
+			"running": "En ejecución",
+			"exited": "Detenido",
+			"paused": "En pausa",
+			"restarting": "Reiniciando",
+			"dead": "Muerto",
+			"created": "Creado",
+			"removing": "Eliminando"
+		},
+		"detail": {
+			"inspect": "Inspeccionar",
+			"inspectDescription": "Metadatos del contenedor desde `docker inspect`.",
+			"privilegedTrue": "Sí (--privileged)",
+			"privilegedFalse": "No",
+			"mountsEmpty": "Sin montajes de volumen",
+			"fields": {
+				"id": "ID",
+				"image": "Imagen",
+				"state": "Estado",
+				"status": "Estado",
+				"created": "Creado",
+				"ports": "Puertos",
+				"networks": "Redes",
+				"mounts": "Montajes",
+				"privileged": "Privilegiado"
+			}
+		},
+		"actions": {
+			"title": "Ciclo de vida",
+			"description": "Iniciar, detener, reiniciar o eliminar. Cada acción requiere un token de aprobación nuevo (PB-5).",
+			"regionLabel": "Acciones del contenedor",
+			"start": "Iniciar",
+			"stop": "Detener",
+			"restart": "Reiniciar",
+			"remove": "Eliminar",
+			"starting": "Iniciando…",
+			"stopping": "Deteniendo…",
+			"restarting": "Reiniciando…",
+			"removing": "Eliminando…",
+			"logs": "Registros",
+			"exec": "Exec"
+		},
+		"logs": {
+			"title": "Registros",
+			"description": "Cola del registro de {name}.",
+			"empty": "Aún no hay líneas de registro.",
+			"refresh": "Actualizar",
+			"tail": "Cola: {n} líneas",
+			"lineCount": "{n} líneas"
+		},
+		"exec": {
+			"title": "Exec",
+			"description": "Ejecuta un subcomando permitido dentro de {name}.",
+			"subcommand": "Subcomando",
+			"help": "Solo se aceptan subcomandos permitidos (sin `bash -c <userstring>`).",
+			"submit": "Ejecutar",
+			"submitting": "Ejecutando…",
+			"output": "Salida"
+		}
 	}
 }
