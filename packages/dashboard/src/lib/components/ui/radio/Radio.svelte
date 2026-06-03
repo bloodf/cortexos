@@ -24,6 +24,7 @@
   }: Props = $props();
 </script>
 
+<!-- svelte-ignore a11y_role_supports_aria_props -->
 <div data-slot="radio" role="radio" aria-invalid={invalid || undefined} aria-checked={checked} class="inline-flex">
   <input
     type="radio"

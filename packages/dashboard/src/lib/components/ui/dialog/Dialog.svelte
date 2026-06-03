@@ -42,6 +42,7 @@
 </script>
 
 <script lang="ts">
+  import type { Snippet } from 'svelte';
   import { onMount, onDestroy } from 'svelte';
   import { tv } from '$lib/utils/tv';
   import { cn } from '$lib/utils/cn';

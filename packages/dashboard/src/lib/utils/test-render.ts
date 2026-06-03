@@ -16,6 +16,7 @@
  */
 import { mount, unmount } from 'svelte';
 import type { Component } from 'svelte';
+// jsdom v25 ships without bundled types. The shim lives in ./jsdom.d.ts.
 import { JSDOM } from 'jsdom';
 
 export interface RenderProps {

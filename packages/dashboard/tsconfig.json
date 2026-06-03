@@ -14,13 +14,31 @@
     "isolatedModules": true,
     "target": "ES2022",
     "module": "ES2022",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "types": ["vitest/globals", "@testing-library/jest-dom"]
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["vitest/globals", "@testing-library/jest-dom"],
+    "jsx": "preserve",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "$lib": ["./src/lib"],
+      "$lib/*": ["./src/lib/*"]
+    }
   },
   "include": [
     "src/**/*.ts",
     "src/**/*.js",
     "src/**/*.svelte",
+    "src/**/*.tsx",
+    "src/**/*.d.ts",
     "tests/**/*.ts"
+  ],
+  "exclude": [
+    "src/app/**",
+    "src/components/**",
+    "src/hooks/**",
+    "src/proxy.ts",
+    "src/lib/incus/**",
+    "src/lib/root-helper/**",
+    "src/lib/runtime/**"
   ]
 }

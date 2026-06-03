@@ -17,7 +17,7 @@ describe('DropdownMenu', () => {
   });
 
   it('closes on Escape (calls onchange / updates bindable)', () => {
-    let bindableOpen = true;
+    const bindableOpen = true;
     render(DropdownMenu, { props: { open: bindableOpen } });
     fireEvent.keyDown(document, { key: 'Escape' });
     // After Escape, the component sets open=false. We can detect this via

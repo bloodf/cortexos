@@ -67,8 +67,8 @@ export function tv<V extends VariantsSchema>(
       const value = merged[variantName];
       if (value == null) continue;
       const record = variants[variantName];
-      if (record && typeof record === 'object' && value in record) {
-        const cls = (record as Record<string, string>)[value as string];
+      if (record && typeof record === 'object' && typeof value === 'string' && value in record) {
+        const cls = (record as Record<string, string>)[value];
         if (cls) classes.push(cls);
       }
     }

@@ -2,11 +2,6 @@
   Button — the canonical action primitive.
   Ported from packages/dashboard/src/components/ui/button.tsx (Next.js shadcn).
 -->
-<script module lang="ts">
-  export type Variant = 'default' | 'outline' | 'secondary' | 'ghost' | 'destructive' | 'link';
-  export type Size = 'default' | 'sm' | 'lg' | 'icon';
-</script>
-
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import { tv } from '$lib/utils/tv';

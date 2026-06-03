@@ -6,6 +6,7 @@
 </script>
 
 <script lang="ts">
+  import type { Snippet } from 'svelte';
   import { cn } from '$lib/utils/cn';
   type Props = {
     value?: string;

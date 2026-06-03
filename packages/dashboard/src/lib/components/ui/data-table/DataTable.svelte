@@ -12,19 +12,6 @@
   State pattern follows the migration map (§3 "DataTable") — local $state in
   the component, derived view = sort + filter + paginate(data).
 -->
-<script module lang="ts" generics="T extends Record<string, unknown>">
-  export type SortDir = 'asc' | 'desc';
-  export type Column<T> = {
-    key: keyof T & string;
-    header: string;
-    sortable?: boolean;
-    /** Custom cell renderer. Receives (row, rowIndex). */
-    cell?: import('svelte').Snippet<[T, number]>;
-    /** Custom sort comparator (defaults to < / >). */
-    sortFn?: (a: T, b: T) => number;
-  };
-</script>
-
 <script lang="ts" generics="T extends Record<string, unknown>">
   import type { Snippet } from 'svelte';
   import { tv } from '$lib/utils/tv';
@@ -58,8 +45,11 @@
   }: Props = $props();
 
   // Local state — the "table-state" pattern from the migration map.
+  // svelte-ignore state_referenced_locally -- intentional: initial value only
   let filter = $state('');
+  // svelte-ignore state_referenced_locally -- intentional: initial value only
   let sortKey = $state<string | null>(initialSort?.key ?? null);
+  // svelte-ignore state_referenced_locally -- intentional: initial value only
   let sortDir = $state<SortDir>(initialSort?.dir ?? 'asc');
   let page = $state(0);
 
