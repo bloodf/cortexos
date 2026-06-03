@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { SWRConfig } from "swr";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { DockerTable } from "../docker-table";
 
@@ -43,6 +44,19 @@ const mockData = {
   },
 };
 
+// Each test gets a fresh SWR cache + `dedupingInterval: 0` so the
+// module-level SWR cache (default dedupingInterval 2000 ms) does not bleed
+// between tests. Without this the second test's first `fetch` call is
+// suppressed because SWR thinks the previous test's in-flight request is
+// still pending (the "loading state" test never resolves, so its
+// deduping timer hasn't fired when the "data loads" test starts).
+const renderIsolated = (ui: React.ReactNode) =>
+  render(
+    <SWRConfig value={{ dedupingInterval: 0, provider: () => new Map() }}>
+      {ui}
+    </SWRConfig>
+  );
+
 describe("DockerTable", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -50,7 +64,7 @@ describe("DockerTable", () => {
 
   it("renders loading state with skeletons", () => {
     vi.stubGlobal("fetch", () => new Promise(() => {}));
-    render(<DockerTable />);
+    renderIsolated(<DockerTable />);
     expect(screen.getByText("Containers")).toBeInTheDocument();
     expect(screen.getByText("Volumes")).toBeInTheDocument();
     expect(screen.getByText("Images")).toBeInTheDocument();
@@ -66,7 +80,7 @@ describe("DockerTable", () => {
         } as Response)
       )
     );
-    render(<DockerTable />);
+    renderIsolated(<DockerTable />);
     expect(await screen.findByText("test-container")).toBeInTheDocument();
     expect(screen.getAllByText("Name").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Status").length).toBeGreaterThan(0);

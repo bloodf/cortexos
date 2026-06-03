@@ -20,6 +20,25 @@ vi.mock("@/components/favorites-bar", () => ({
 	FavoritesBar: () => <div data-testid="favorites-bar" />,
 }));
 
+// AppShell pulls in `next/navigation`'s `useRouter` (via
+// useKeyboardShortcuts) which requires an app router to be mounted. The
+// layout test only cares about the intl-provider wrapper, so mock AppShell
+// to a passthrough that exposes its children.
+vi.mock("@/app/sys-pilot/AppShell", () => ({
+	AppShell: ({ children }: { children: React.ReactNode }) => (
+		<div data-testid="app-shell">{children}</div>
+	),
+}));
+
+// DashboardDataProvider may end up calling `useContext` against an
+// undefined provider in unit tests. It's not the subject of this test, so
+// stub it out.
+vi.mock("@/hooks/dashboard-data-context", () => ({
+	DashboardDataProvider: ({ children }: { children: React.ReactNode }) => (
+		<>{children}</>
+	),
+}));
+
 describe("LocaleLayout", () => {
 	it("renders children inside intl provider", async () => {
 		const layout = await LocaleLayout({ children: <div data-testid="child">Hello</div> });

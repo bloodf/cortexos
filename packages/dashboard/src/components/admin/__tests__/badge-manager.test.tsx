@@ -1,8 +1,22 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { SWRConfig } from "swr";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { BadgeManager } from "../badge-manager";
 
 const mockFetch = vi.fn();
+
+// Each test gets a fresh SWR cache and `dedupingInterval: 0` so the
+// per-test `mockResolvedValueOnce` queue is always consumed. Without this
+// the module-level SWR cache (default dedupingInterval 2000 ms) bleeds
+// between tests in this file: the second test's first `fetch` call is
+// suppressed because SWR thinks the previous test's in-flight request is
+// still pending.
+const renderIsolated = (ui: React.ReactNode) =>
+  render(
+    <SWRConfig value={{ dedupingInterval: 0, provider: () => new Map() }}>
+      {ui}
+    </SWRConfig>
+  );
 
 describe("BadgeManager", () => {
   beforeEach(() => {
@@ -21,7 +35,7 @@ describe("BadgeManager", () => {
       }),
     });
 
-    render(<BadgeManager serviceId={10} />);
+    renderIsolated(<BadgeManager serviceId={10} />);
     expect(screen.getByText("Loading badges…")).toBeInTheDocument();
 
     await waitFor(() => {
@@ -38,7 +52,7 @@ describe("BadgeManager", () => {
       json: async () => ({ badges: [] }),
     });
 
-    render(<BadgeManager serviceId={10} />);
+    renderIsolated(<BadgeManager serviceId={10} />);
     await waitFor(() => {
       expect(screen.getByText("No badges yet.")).toBeInTheDocument();
     });
@@ -61,7 +75,7 @@ describe("BadgeManager", () => {
         }),
       });
 
-    render(<BadgeManager serviceId={10} />);
+    renderIsolated(<BadgeManager serviceId={10} />);
     await waitFor(() => screen.getByText("No badges yet."));
 
     fireEvent.change(screen.getByPlaceholderText("Label"), {
@@ -101,7 +115,7 @@ describe("BadgeManager", () => {
         json: async () => ({ badges: [] }),
       });
 
-    render(<BadgeManager serviceId={10} />);
+    renderIsolated(<BadgeManager serviceId={10} />);
     await waitFor(() => screen.getByText("old"));
 
     fireEvent.click(screen.getByRole("button", { name: /delete/i }));
@@ -136,7 +150,7 @@ describe("BadgeManager", () => {
         }),
       });
 
-    render(<BadgeManager serviceId={10} />);
+    renderIsolated(<BadgeManager serviceId={10} />);
     await waitFor(() => screen.getByText("draft"));
 
     fireEvent.click(screen.getByRole("button", { name: /edit/i }));
@@ -166,7 +180,7 @@ describe("BadgeManager", () => {
       }),
     });
 
-    render(<BadgeManager serviceId={10} />);
+    renderIsolated(<BadgeManager serviceId={10} />);
     await waitFor(() => screen.getByText("keep"));
 
     fireEvent.click(screen.getByRole("button", { name: /edit/i }));
