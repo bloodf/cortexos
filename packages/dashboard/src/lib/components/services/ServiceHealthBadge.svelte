@@ -4,8 +4,11 @@
   Drives a single design contract: the same `{status}` value should
   produce the same visual treatment whether it appears in a card, a
   table row, or a detail page header. The mapping is exhaustive over
-  the ServiceStatus union from @cortexos/contracts, so adding a new
-  status forces a compile error in this file.
+  the ServiceStatus union, so adding a new status forces a compile
+  error in this file.
+
+  i18n: every visible label (the status text and the aria-label
+  prefix) routes through `t(messages, 'services.status.<name>')`.
 
   Accessibility:
     - `data-status` exposes the raw status for CSS hooks and tests.
@@ -15,6 +18,7 @@
 -->
 <script lang="ts">
 	import Badge from '$lib/components/ui/badge/Badge.svelte';
+	import { t, type Messages } from '$lib/i18n';
 
 	/**
 	 * Mirrors the `ServiceStatus` union from @cortexos/contracts.
@@ -29,7 +33,9 @@
 	type Props = {
 		/** The live service status. */
 		status: ServiceStatus;
-		/** Override the visible label (defaults to a title-cased status). */
+		/** Locale messages (from the root layout's PageData). */
+		messages: Messages;
+		/** Override the visible label (defaults to a status-keyed t() lookup). */
 		label?: string;
 		/** Badge size. Defaults to `default`. */
 		size?: 'default' | 'sm';
@@ -37,7 +43,7 @@
 		class?: string;
 	};
 
-	let { status, label, size = 'default', class: className }: Props = $props();
+	let { status, messages, label, size = 'default', class: className }: Props = $props();
 
 	/**
 	 * Map a `ServiceStatus` to a design-system `Badge` variant. The
@@ -67,15 +73,18 @@
 
 	const variant: Variant = $derived(computeVariant(status));
 
-	const displayLabel = $derived(label ?? displayLabelForStatus(status));
+	// Resolve the visible label from i18n. Falls back to a
+	// title-cased status if the lookup misses (e.g. a new status
+	// that hasn't been translated yet) — the dotted-key fallback
+	// in `t()` means a fresh status returns its own name.
+	const displayLabel = $derived(label ?? t(messages, `services.status.${status}`));
 
-	function displayLabelForStatus(s: ServiceStatus): string {
-		return s.charAt(0).toUpperCase() + s.slice(1);
-	}
+	const ariaPrefix = $derived(t(messages, 'services.status.label'));
+	const ariaLabel = $derived(`${ariaPrefix}: ${displayLabel}`);
 </script>
 
 <Badge {variant} {size} class={className}>
-	<span data-slot="service-health-badge" data-status={status} aria-label="Status: {displayLabel}">
+	<span data-slot="service-health-badge" data-status={status} aria-label={ariaLabel}>
 		{displayLabel}
 	</span>
 </Badge>

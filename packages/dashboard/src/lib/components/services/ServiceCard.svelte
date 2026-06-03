@@ -3,16 +3,20 @@
 
   Used in the Services overview (grid) and the dashboard widgets.
   The card is non-interactive on its own; navigation is provided by
-  wrapping the body in an `<a>` (the parent decides). This keeps the
-  component reusable inside non-link surfaces (e.g. embedded widgets
-  that trigger a side panel).
+  passing an `onSelect` handler. This keeps the component reusable
+  inside non-link surfaces (e.g. embedded widgets that trigger a
+  side panel).
 
   Required props are typed against @cortexos/contracts so misuse
   (e.g. passing a ServiceCheck with a missing field) is a compile
   error at the call site.
+
+  i18n: pass the locale `messages` map (from `$lib/i18n`) and every
+  visible string routes through `t(messages, 'services.*')`.
 -->
 <script lang="ts">
 	import type { Service } from '@cortexos/contracts';
+	import { t, type Messages } from '$lib/i18n';
 	import Card from '$lib/components/ui/card/Card.svelte';
 	import CardHeader from '$lib/components/ui/card/CardHeader.svelte';
 	import CardTitle from '$lib/components/ui/card/CardTitle.svelte';
@@ -26,13 +30,15 @@
 	type Props = {
 		/** The full service record. The component never mutates it. */
 		service: Service;
+		/** Locale messages (from the root layout's PageData). */
+		messages: Messages;
 		/** Optional click handler (e.g. `navigate('/services/${slug}')`). */
 		onSelect?: (service: Service) => void;
 		/** Optional className passthrough for layout grids. */
 		class?: string;
 	};
 
-	let { service, onSelect, class: className }: Props = $props();
+	let { service, messages, onSelect, class: className }: Props = $props();
 
 	/** Pre-formatted response time string, e.g. `42ms` or `—`. */
 	const responseDisplay = $derived.by(() => {
@@ -56,6 +62,12 @@
 	});
 
 	const iconColor = $derived(service.icon?.color ?? '#1f2937');
+
+	// i18n strings resolved once per render. The `messages` prop
+	// flows from the root layout, so a locale change re-renders the
+	// whole tree.
+	const ariaResponse = $derived(t(messages, 'services.detail.fields.responseTime'));
+	const ariaUptime = $derived(t(messages, 'services.detail.fields.uptime'));
 
 	function handleClick(): void {
 		if (onSelect) onSelect(service);
@@ -102,7 +114,11 @@
 						<span class="line-clamp-1">{service.category}</span>
 					</CardDescription>
 				</div>
-				<ServiceHealthBadge status={service.status as ServiceStatusLit} size="sm" />
+				<ServiceHealthBadge
+					{messages}
+					status={service.status as ServiceStatusLit}
+					size="sm"
+				/>
 			</div>
 		</CardHeader>
 		<CardBody>
@@ -112,11 +128,11 @@
 		</CardBody>
 		<CardFooter>
 			<div class="flex w-full items-center justify-between gap-2 text-xs text-muted-foreground">
-				<span data-slot="service-response" aria-label="Response time">
+				<span data-slot="service-response" aria-label={ariaResponse}>
 					{responseDisplay}
 				</span>
 				{#if uptimeDisplay != null}
-					<span data-slot="service-uptime" aria-label="24h uptime">
+					<span data-slot="service-uptime" aria-label={ariaUptime}>
 						{uptimeDisplay} 24h
 					</span>
 				{/if}

@@ -3,6 +3,14 @@
  * server `load()` and the `recheck` form action, plus the
  * `+server.ts` POST endpoint that exposes the same business logic
  * to non-browser clients.
+ *
+ * Direct invocation note: when `actions.recheck` is called
+ * directly (not through the SvelteKit form-action dispatch), the
+ * return value is the *raw* handler result — SvelteKit only wraps
+ * it in `{ type: 'success' | 'failure' | 'redirect' }` when
+ * dispatched through the form-action protocol. These tests assert
+ * the raw shape, which is the contract a sibling `+server.ts`
+ * POST endpoint would also see.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { _resetStubData, createService } from '$lib/server/stub-data';
@@ -11,7 +19,10 @@ import {
 	load as detailLoad,
 	actions,
 } from '../../../../routes/(authed)/services/[id]/+page.server';
-import { POST as healthPost } from '../../../../routes/(authed)/services/[id]/health/+server';
+import {
+	POST as healthPost,
+	GET as healthGet,
+} from '../../../../routes/(authed)/services/[id]/health/+server';
 
 beforeEach(() => {
 	_resetStubData();
@@ -87,7 +98,7 @@ describe('/services/[id] detail page — load()', () => {
 });
 
 describe('/services/[id] detail page — recheck action', () => {
-	it('returns a snapshot for an existing service', async () => {
+	it('returns the raw handler result for an existing service', async () => {
 		createService({
 			slug: 'recheck',
 			name: 'Recheck',
@@ -105,21 +116,25 @@ describe('/services/[id] detail page — recheck action', () => {
 			showInWebui: true,
 			sortOrder: 0,
 		});
-		// Invoke the action. The action returns a `FormResult`; we
-		// only care about the success shape.
-		const recheck = actions.recheck as unknown as (e: Parameters<NonNullable<typeof actions.recheck>>[0]) => Promise<unknown>;
+		// Direct invocation — the handler returns the raw object,
+		// not the SvelteKit-wrapped `{ type: 'success' }` envelope.
+		const recheck = actions.recheck as unknown as (
+			e: Parameters<NonNullable<typeof actions.recheck>>[0],
+		) => Promise<{ ok: boolean; snapshot: { status: string } }>;
 		const result = await recheck(makeActionEvent('recheck'));
-		// SvelteKit wraps the return as a `ActionSuccess` object.
-		expect(result).toMatchObject({ type: 'success' });
-		const body = (result as { data?: { ok: boolean; snapshot: { status: string } } }).data;
-		expect(body?.ok).toBe(true);
-		expect(body?.snapshot.status).toBe('checking');
+		expect(result.ok).toBe(true);
+		expect(result.snapshot.status).toBe('checking');
 	});
 
-	it('returns a 404 when the service is missing', async () => {
-		const recheck = actions.recheck as unknown as (e: Parameters<NonNullable<typeof actions.recheck>>[0]) => Promise<unknown>;
+	it('returns a fail(404) result when the service is missing', async () => {
+		// `fail(404, ...)` is a typed return, not a thrown error.
+		// The handler resolves to the ActionFailure object.
+		const recheck = actions.recheck as unknown as (
+			e: Parameters<NonNullable<typeof actions.recheck>>[0],
+		) => Promise<{ status: number; data?: { error?: string } }>;
 		const result = await recheck(makeActionEvent('does-not-exist'));
-		expect(result).toMatchObject({ status: 404 });
+		expect(result.status).toBe(404);
+		expect(result.data?.error).toMatch(/not found/i);
 	});
 });
 
@@ -167,7 +182,10 @@ describe('/services/[id]/health +server.ts', () => {
 	});
 
 	it('GET is method-not-allowed (405)', async () => {
-		const res = await (healthPost as unknown as (e: unknown) => Promise<Response>)(
+		// Invoke the dedicated GET handler — it returns 405 with
+		// `Allow: POST`. POST is rejected with 405 for the same
+		// reason, but only GET is canonical for "non-POST verbs".
+		const res = await (healthGet as unknown as (e: unknown) => Promise<Response>)(
 			makeFakeEvent({
 				method: 'GET',
 				params: { id: 'http-recheck' },

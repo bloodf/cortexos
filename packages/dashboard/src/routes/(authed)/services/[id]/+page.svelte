@@ -1,14 +1,18 @@
-/**
- * /services/[id] — single-service detail page.
- *
- * Renders the `ServiceDetail` component with the loaded data. The
- * "Recheck now" button submits the form action defined in
- * `+page.server.ts` and updates the history table with the new
- * snapshot returned by the action.
- */
+<!--
+  /services/[id] — single-service detail page.
+
+  Renders the `ServiceDetail` component with the loaded data. The
+  "Recheck now" button submits the form action defined in
+  `+page.server.ts` and updates the history table with the new
+  snapshot returned by the action.
+
+  i18n: the `data.messages` map flows from the root layout and is
+  passed straight through to ServiceDetail.
+-->
 <script lang="ts">
 	import type { PageData, ActionData } from './$types';
 	import ServiceDetail from '$lib/components/services/ServiceDetail.svelte';
+	import { t } from '$lib/i18n';
 	import type { ServiceHealthSnapshot } from '@cortexos/contracts';
 
 	interface Props {
@@ -41,10 +45,12 @@
 			rechecking = false;
 		}, 800);
 	}
+
+	const title = $derived(t(data.messages, 'app.nav.services'));
 </script>
 
 <svelte:head>
-	<title>{data.service.name} · Services · CortexOS</title>
+	<title>{data.service.name} · {title} · CortexOS</title>
 </svelte:head>
 
 <form
@@ -55,6 +61,7 @@
 	class="contents"
 >
 	<ServiceDetail
+		messages={data.messages}
 		service={data.service}
 		{history}
 		onRecheck={handleRecheck}

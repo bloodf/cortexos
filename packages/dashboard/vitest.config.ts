@@ -4,6 +4,14 @@ import path from 'path';
 
 export default defineConfig({
 	plugins: [sveltekit()],
+	// Force the `browser` export condition so `import { mount } from 'svelte'`
+	// resolves to the browser build (with mount/unmount), not the
+	// server build. The svelte package's `exports` map defaults to
+	// `index-server.js`; the test render harness needs `mount` from
+	// `index-client.js`.
+	resolve: {
+		conditions: ['browser'],
+	},
 	test: {
 		environment: 'jsdom',
 		setupFiles: ['./vitest.setup.ts'],

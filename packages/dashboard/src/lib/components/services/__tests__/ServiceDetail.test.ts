@@ -9,9 +9,7 @@ import userEvent from '@testing-library/user-event';
 import ServiceDetail from '../ServiceDetail.svelte';
 import { FROZEN_NOW } from '../../../mocks/fixtures/seed';
 import { adaptService, adaptHealthSnapshot } from '../adapter';
-
-type MockInput = Parameters<typeof adaptService>[0];
-type MockSnapInput = Parameters<typeof adaptHealthSnapshot>[0];
+import { testMessages } from './messages';
 
 const baseService = adaptService({
 	id: 'svc_detail',
@@ -37,7 +35,7 @@ const baseService = adaptService({
 	badges: [],
 	createdAt: FROZEN_NOW,
 	updatedAt: FROZEN_NOW,
-} as MockInput);
+} as Parameters<typeof adaptService>[0]);
 
 const sampleHistory = [
 	adaptHealthSnapshot({
@@ -46,14 +44,14 @@ const sampleHistory = [
 		status: 'online',
 		latencyMs: 12,
 		checkedAt: FROZEN_NOW,
-	} as MockSnapInput),
+	} as Parameters<typeof adaptHealthSnapshot>[0]),
 	adaptHealthSnapshot({
 		id: 'snap_002',
 		serviceId: 'svc_detail',
 		status: 'degraded',
 		latencyMs: 999,
 		checkedAt: FROZEN_NOW,
-	} as MockSnapInput),
+	} as Parameters<typeof adaptHealthSnapshot>[0]),
 ];
 
 describe('ServiceDetail', () => {
@@ -61,7 +59,7 @@ describe('ServiceDetail', () => {
 
 	it('renders the service name, description, and the status badge', () => {
 		const { container } = render(ServiceDetail, {
-			props: { service: baseService, history: sampleHistory },
+			props: { service: baseService, history: sampleHistory, messages: testMessages },
 		});
 		expect(container.textContent).toContain('Detail Service');
 		expect(container.textContent).toContain('A long description');
@@ -70,7 +68,7 @@ describe('ServiceDetail', () => {
 
 	it('renders the health + config + history sections', () => {
 		const { container } = render(ServiceDetail, {
-			props: { service: baseService, history: sampleHistory },
+			props: { service: baseService, history: sampleHistory, messages: testMessages },
 		});
 		expect(container.textContent).toContain('Health');
 		expect(container.textContent).toContain('Config');
@@ -79,7 +77,7 @@ describe('ServiceDetail', () => {
 
 	it('formats the response time correctly', () => {
 		const { container } = render(ServiceDetail, {
-			props: { service: baseService, history: [] },
+			props: { service: baseService, history: [], messages: testMessages },
 		});
 		const response = container.querySelector('[data-slot="service-response"]');
 		expect(response?.textContent).toContain('33ms');
@@ -87,7 +85,7 @@ describe('ServiceDetail', () => {
 
 	it('renders the history table with one row per snapshot', () => {
 		const { container } = render(ServiceDetail, {
-			props: { service: baseService, history: sampleHistory },
+			props: { service: baseService, history: sampleHistory, messages: testMessages },
 		});
 		const rows = container.querySelectorAll('[data-slot="service-history-row"]');
 		expect(rows.length).toBe(2);
@@ -95,7 +93,7 @@ describe('ServiceDetail', () => {
 
 	it('shows the empty-state copy when there is no history', () => {
 		const { container } = render(ServiceDetail, {
-			props: { service: baseService, history: [] },
+			props: { service: baseService, history: [], messages: testMessages },
 		});
 		expect(container.textContent).toContain('No probes recorded yet');
 	});
@@ -104,9 +102,9 @@ describe('ServiceDetail', () => {
 		const user = userEvent.setup();
 		const onRecheck = vi.fn();
 		const { container } = render(ServiceDetail, {
-			props: { service: baseService, history: [], onRecheck },
+			props: { service: baseService, history: [], onRecheck, messages: testMessages },
 		});
-		const btn = container.querySelector('button[aria-label="Trigger a fresh health check"]') as
+		const btn = container.querySelector('button[aria-label="Recheck now"]') as
 			| HTMLButtonElement
 			| null;
 		expect(btn).not.toBeNull();
@@ -116,10 +114,8 @@ describe('ServiceDetail', () => {
 
 	it('does not render the Recheck button when onRecheck is omitted', () => {
 		const { container } = render(ServiceDetail, {
-			props: { service: baseService, history: [] },
+			props: { service: baseService, history: [], messages: testMessages },
 		});
-		expect(
-			container.querySelector('button[aria-label="Trigger a fresh health check"]'),
-		).toBeNull();
+		expect(container.querySelector('button[aria-label="Recheck now"]')).toBeNull();
 	});
 });

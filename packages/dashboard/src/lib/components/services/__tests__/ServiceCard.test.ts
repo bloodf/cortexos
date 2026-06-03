@@ -9,6 +9,7 @@ import ServiceCard from '../ServiceCard.svelte';
 import { FROZEN_NOW } from '../../../mocks/fixtures/seed';
 import { adaptService, type AdapterInput } from '../adapter';
 import type { Service } from '@cortexos/contracts';
+import { testMessages } from './messages';
 
 const baseInput: AdapterInput = {
 	id: 'svc_0100',
@@ -47,7 +48,9 @@ describe('ServiceCard', () => {
 	afterEach(cleanup);
 
 	it('renders the service name, monogram, and slug', () => {
-		const { container } = render(ServiceCard, { props: { service: fixture } });
+		const { container } = render(ServiceCard, {
+			props: { service: fixture, messages: testMessages },
+		});
 		expect(container.textContent).toContain('Prometheus');
 		const card = container.querySelector('[data-slot="service-card"]');
 		expect(card?.getAttribute('data-service-slug')).toBe('prometheus');
@@ -56,14 +59,18 @@ describe('ServiceCard', () => {
 	});
 
 	it('formats the response time as ms', () => {
-		const { container } = render(ServiceCard, { props: { service: fixture } });
+		const { container } = render(ServiceCard, {
+			props: { service: fixture, messages: testMessages },
+		});
 		const response = container.querySelector('[data-slot="service-response"]');
 		expect(response?.textContent).toContain('87ms');
 	});
 
 	it('falls back to em-dash when responseMs is null', () => {
 		const slow = makeFixture({ responseTime: 0 });
-		const { container } = render(ServiceCard, { props: { service: slow } });
+		const { container } = render(ServiceCard, {
+			props: { service: slow, messages: testMessages },
+		});
 		const response = container.querySelector('[data-slot="service-response"]');
 		expect(response?.textContent).toContain('—');
 	});
@@ -73,6 +80,7 @@ describe('ServiceCard', () => {
 		const { container } = render(ServiceCard, {
 			props: {
 				service: fixture,
+				messages: testMessages,
 				onSelect: (s: Service) => {
 					calls.push(s);
 				},
@@ -87,7 +95,9 @@ describe('ServiceCard', () => {
 	});
 
 	it('does not render as a button when onSelect is omitted', () => {
-		const { container } = render(ServiceCard, { props: { service: fixture } });
+		const { container } = render(ServiceCard, {
+			props: { service: fixture, messages: testMessages },
+		});
 		const card = container.querySelector('[data-slot="service-card"]');
 		expect(card?.getAttribute('role')).toBeNull();
 		expect(card?.getAttribute('tabindex')).toBeNull();

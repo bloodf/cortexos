@@ -1,11 +1,15 @@
-/**
- * /services — list page.
- *
- * Renders a searchable / sortable list of services using the
- * `ServiceSearch` and `ServiceList` components. The search bar
- * pushes query/category into the URL (replaceState) so deep links
- * round-trip; the table owns sort + pagination state internally.
- */
+<!--
+  /services — list page.
+
+  Renders a searchable / sortable list of services using the
+  `ServiceSearch` and `ServiceList` components. The search bar
+  pushes query/category into the URL (replaceState) so deep links
+  round-trip; the table owns sort + pagination state internally.
+
+  i18n: every visible string (title, description, empty-state)
+  routes through `t(data.messages, 'app.nav.*' | 'services.*')`,
+  matching the M1 main pattern.
+-->
 <script lang="ts">
 	import type { PageData } from './$types';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
@@ -13,6 +17,7 @@
 	import PlugZap from '$lib/icons/PlugZap.svelte';
 	import ServiceSearch from '$lib/components/services/ServiceSearch.svelte';
 	import ServiceList from '$lib/components/services/ServiceList.svelte';
+	import { t } from '$lib/i18n';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import type { Service } from '@cortexos/contracts';
@@ -23,7 +28,10 @@
 
 	let { data }: Props = $props();
 
-	const title = 'Services';
+	// Title follows the M1 pattern: t(data.messages, 'app.nav.services').
+	const title = $derived(t(data.messages, 'app.nav.services'));
+	const description = $derived(t(data.messages, 'services.description'));
+	const emptyDescription = $derived(t(data.messages, 'services.empty'));
 
 	// Local mirror of the URL search params — these are the only
 	// inputs ServiceSearch needs. The page is the single source of
@@ -77,11 +85,12 @@
 <div class="flex flex-col gap-6">
 	<PageHeader
 		{title}
-		description="Track every systemd unit and Docker container CortexOS knows about."
+		{description}
 		icon={PlugZap}
 	/>
 
 	<ServiceSearch
+		{messages}
 		query={q}
 		category={cat}
 		categories={data.categories}
@@ -91,10 +100,10 @@
 	{#if visible.length === 0}
 		<EmptyState
 			{title}
-			description="No services match the current filter. Clear the filter to see all services."
+			description={emptyDescription}
 			icon={PlugZap}
 		/>
 	{:else}
-		<ServiceList services={visible} pageSize={25} />
+		<ServiceList {messages} services={visible} pageSize={25} />
 	{/if}
 </div>

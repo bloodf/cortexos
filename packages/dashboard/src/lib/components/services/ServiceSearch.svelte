@@ -11,11 +11,14 @@
       if the parent re-renders (no cursor jump on debounce).
     - `onChange` only fires after a short idle window (150ms), so we
       don't push every keystroke into the URL.
+
+  i18n: every visible string (placeholder, select label, clear
+  button, region aria-label) routes through t(messages, ...).
 -->
 <script lang="ts">
 	import Input from '$lib/components/ui/Input.svelte';
 	import Select from '$lib/components/ui/Select.svelte';
-	import type { Service } from '@cortexos/contracts';
+	import { t, type Messages } from '$lib/i18n';
 
 	type Props = {
 		/** Free-text query. */
@@ -26,13 +29,15 @@
 		 *  compute this list — the parent passes the union of
 		 *  categories present in the loaded data. */
 		categories: readonly string[];
+		/** Locale messages (from the root layout's PageData). */
+		messages: Messages;
 		/** Fires after the debounce window. */
 		onChange: (next: { query: string; category: string }) => void;
 		/** Optional className passthrough. */
 		class?: string;
 	};
 
-	let { query, category, categories, onChange, class: className }: Props = $props();
+	let { query, category, categories, messages, onChange, class: className }: Props = $props();
 
 	// Local buffer so typing is responsive; we don't push every
 	// keystroke through `onChange` to the URL.
@@ -52,7 +57,7 @@
 
 	/** Build the category options. Always include "All categories". */
 	const categoryOptions = $derived([
-		{ value: '', label: 'All categories' },
+		{ value: '', label: t(messages, 'services.search.allCategories') },
 		...categories.map((c) => ({ value: c, label: c })),
 	]);
 
@@ -78,27 +83,28 @@
 		onChange({ query: '', category: '' });
 	}
 
-	// Surface the service type so the import is preserved (we may
-	// want to extend the search to take the Service[] in the future).
-	type _Unused = Service;
+	const ariaLabel = $derived(t(messages, 'services.search.label'));
+	const placeholder = $derived(t(messages, 'services.search.placeholder'));
+	const clearLabel = $derived(t(messages, 'services.search.clear'));
+	const selectAriaLabel = $derived(t(messages, 'services.search.allCategories'));
 </script>
 
 <div
 	data-slot="service-search"
 	class={`flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between ${className ?? ''}`}
 	role="search"
-	aria-label="Filter services"
+	aria-label={ariaLabel}
 >
 	<div class="flex flex-1 items-center gap-2">
 		<Input
 			type="search"
-			placeholder="Search by name, slug, or description…"
+			placeholder={placeholder}
 			bind:value={buffer}
 			oninput={scheduleCommit}
 			class="max-w-md"
 		/>
 		<Select
-			ariaLabel="Filter by category"
+			ariaLabel={selectAriaLabel}
 			value={cat}
 			options={categoryOptions}
 			onchange={(e) => {
@@ -114,7 +120,7 @@
 				class="text-xs text-muted-foreground underline-offset-2 hover:underline"
 				onclick={clear}
 			>
-				Clear
+				{clearLabel}
 			</button>
 		{/if}
 	</div>

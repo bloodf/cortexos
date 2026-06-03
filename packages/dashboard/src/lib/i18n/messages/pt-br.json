@@ -98,6 +98,7 @@
 			}
 		},
 		"status": {
+			"label": "Status",
 			"online": "Online",
 			"offline": "Offline",
 			"unknown": "Desconhecido",

@@ -8,7 +8,7 @@
  *
  * Method gating: only POST. GET/DELETE/PATCH respond 405.
  */
-import { error, json } from '@sveltejs/kit';
+import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import {
 	getServiceBySlug,
@@ -30,11 +30,25 @@ function methodNotAllowed(): Response {
 	});
 }
 
+function notFoundResponse(id: string): Response {
+	return new Response(JSON.stringify({ message: `Service '${id}' not found` }), {
+		status: 404,
+		headers: { 'content-type': 'application/json' },
+	});
+}
+
+function badRequestResponse(message: string): Response {
+	return new Response(JSON.stringify({ message }), {
+		status: 400,
+		headers: { 'content-type': 'application/json' },
+	});
+}
+
 export const POST: RequestHandler = ({ params }) => {
 	const id = params.id;
-	if (!id) throw error(400, 'Missing service identifier');
+	if (!id) return badRequestResponse('Missing service identifier');
 	const svc = loadService(id);
-	if (!svc) throw error(404, `Service '${id}' not found`);
+	if (!svc) return notFoundResponse(id);
 
 	const snap = triggerRecheck(svc.id);
 	return json({ ok: true, snapshot: adaptHealthSnapshot(snap) });

@@ -1,11 +1,12 @@
 /**
- * ServiceHealthBadge.test.ts — exhaustive over the contracts
- * `ServiceStatus` union. Adding a new status breaks this file's
- * `it.each` compile (the union narrows).
+ * ServiceHealthBadge.test.ts — exhaustive over the ServiceStatus
+ * union. Adding a new status breaks this file's `it.each` compile
+ * (the union narrows).
  */
 import { describe, it, expect, afterEach } from 'vitest';
 import { render, cleanup } from '../../../utils/test-render';
 import ServiceHealthBadge from '../ServiceHealthBadge.svelte';
+import { testMessages } from './messages';
 
 describe('ServiceHealthBadge', () => {
 	afterEach(cleanup);
@@ -23,7 +24,9 @@ describe('ServiceHealthBadge', () => {
 	];
 
 	it.each(cases)('renders status=$status with the correct variant', ({ status, variantClass, label }) => {
-		const { container } = render(ServiceHealthBadge, { props: { status } });
+		const { container } = render(ServiceHealthBadge, {
+			props: { status, messages: testMessages },
+		});
 		const span = container.querySelector('[data-slot="service-health-badge"]');
 		expect(span).not.toBeNull();
 		expect(span?.getAttribute('data-status')).toBe(status);
@@ -34,7 +37,7 @@ describe('ServiceHealthBadge', () => {
 
 	it('honors a custom label override', () => {
 		const { container } = render(ServiceHealthBadge, {
-			props: { status: 'offline', label: 'Down for maintenance' },
+			props: { status: 'offline', label: 'Down for maintenance', messages: testMessages },
 		});
 		const span = container.querySelector('[data-slot="service-health-badge"]');
 		expect(span?.textContent?.trim()).toBe('Down for maintenance');
@@ -42,7 +45,7 @@ describe('ServiceHealthBadge', () => {
 
 	it('uses the requested size', () => {
 		const { container } = render(ServiceHealthBadge, {
-			props: { status: 'online', size: 'sm' },
+			props: { status: 'online', size: 'sm', messages: testMessages },
 		});
 		const badge = container.querySelector('[data-slot="badge"]');
 		expect(badge?.className).toContain('h-4');

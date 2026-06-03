@@ -8,6 +8,7 @@ import userEvent from '@testing-library/user-event';
 import { tick } from 'svelte';
 import { render, cleanup } from '../../../utils/test-render';
 import ServiceSearch from '../ServiceSearch.svelte';
+import { testMessages } from './messages';
 
 type Change = { query: string; category: string };
 type OnChange = (next: Change) => void;
@@ -18,6 +19,7 @@ function makeProps(over: { query?: string; category?: string; categories?: reado
 		query: over.query ?? '',
 		category: over.category ?? '',
 		categories: over.categories ?? (['AI', 'Database'] as const),
+		messages: testMessages,
 		onChange,
 	};
 	return props;

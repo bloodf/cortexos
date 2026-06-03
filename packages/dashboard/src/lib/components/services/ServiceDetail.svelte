@@ -12,9 +12,12 @@
   The component is presentational; data fetching lives in
   +page.server.ts. The "Recheck" button posts via the form action
   so the page refetches without a full reload.
+
+  i18n: every visible string routes through t(messages, ...).
 -->
 <script lang="ts">
 	import type { Service, ServiceHealthSnapshot } from '@cortexos/contracts';
+	import { t, type Messages } from '$lib/i18n';
 	import Card from '$lib/components/ui/card/Card.svelte';
 	import CardHeader from '$lib/components/ui/card/CardHeader.svelte';
 	import CardTitle from '$lib/components/ui/card/CardTitle.svelte';
@@ -30,6 +33,8 @@
 		service: Service;
 		/** Recent health snapshots, newest first. May be empty. */
 		history: readonly ServiceHealthSnapshot[];
+		/** Locale messages (from the root layout's PageData). */
+		messages: Messages;
 		/** Fires when the user clicks "Recheck now". */
 		onRecheck?: () => void;
 		/** Whether the recheck action is in flight. */
@@ -38,7 +43,8 @@
 		class?: string;
 	};
 
-	let { service, history, onRecheck, rechecking = false, class: className }: Props = $props();
+	let { service, history, messages, onRecheck, rechecking = false, class: className }: Props =
+		$props();
 
 	/** Pre-formatted response time, e.g. `42ms` or `—`. */
 	const responseDisplay = $derived.by(() => {
@@ -79,6 +85,40 @@
 			return iso;
 		}
 	}
+
+	// i18n strings — resolve once per render. The whole tree
+	// re-renders when the locale changes (the `messages` prop flows
+	// from the root layout).
+	const recheckLabel = $derived(t(messages, 'services.detail.recheck'));
+	const recheckAria = $derived(t(messages, 'services.detail.recheck'));
+
+	const healthTitle = $derived(t(messages, 'services.detail.health'));
+	const healthDesc = $derived(t(messages, 'services.detail.healthDescription'));
+	const configTitle = $derived(t(messages, 'services.detail.config'));
+	const configDesc = $derived(t(messages, 'services.detail.configDescription'));
+	const historyTitle = $derived(t(messages, 'services.detail.history'));
+	const historyDesc = $derived(t(messages, 'services.detail.historyDescription'));
+	const historyEmpty = $derived(t(messages, 'services.detail.historyEmpty'));
+
+	const fieldResponse = $derived(t(messages, 'services.detail.fields.responseTime'));
+	const fieldUptime = $derived(t(messages, 'services.detail.fields.uptime'));
+	const fieldLastCheck = $derived(t(messages, 'services.detail.fields.lastCheck'));
+	const fieldProbeType = $derived(t(messages, 'services.detail.fields.probeType'));
+	const fieldSlug = $derived(t(messages, 'services.detail.fields.slug'));
+	const fieldKind = $derived(t(messages, 'services.detail.fields.kind'));
+	const fieldHealthUrl = $derived(t(messages, 'services.detail.fields.healthUrl'));
+	const fieldOpenUrl = $derived(t(messages, 'services.detail.fields.openUrl'));
+	const fieldEnvSource = $derived(t(messages, 'services.detail.fields.envSource'));
+
+	// History table column headers
+	const colWhen = $derived(t(messages, 'services.status.label'));
+	const colStatus = $derived(t(messages, 'services.table.status'));
+	const colLatency = $derived(t(messages, 'services.table.response'));
+
+	// Pluralize "probe(s)" based on the snapshot count. The JSON keys
+	// are static; we concatenate a small suffix so the count is the
+	// only number that varies.
+	const historyCountDesc = $derived(historyDesc.replace('{count}', String(history.length)));
 </script>
 
 <div data-slot="service-detail" class={`flex flex-col gap-6 ${className ?? ''}`}>
@@ -97,7 +137,10 @@
 				<div class="min-w-0 flex-1">
 					<div class="flex flex-wrap items-center gap-2">
 						<h1 class="text-xl font-semibold leading-tight">{service.name}</h1>
-						<ServiceHealthBadge status={service.status as ServiceStatusLit} />
+						<ServiceHealthBadge
+							{messages}
+							status={service.status as ServiceStatusLit}
+						/>
 					</div>
 					<CardDescription>
 						<span class="text-sm">{service.category}</span>
@@ -120,9 +163,9 @@
 					size="md"
 					onclick={onRecheck}
 					loading={rechecking}
-					ariaLabel="Trigger a fresh health check"
+					ariaLabel={recheckAria}
 				>
-					Recheck now
+					{recheckLabel}
 				</Button>
 			{/if}
 		</div>
@@ -132,18 +175,18 @@
 	<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 		<Card>
 			<CardHeader>
-				<CardTitle>Health</CardTitle>
-				<CardDescription>Latest probe result.</CardDescription>
+				<CardTitle>{healthTitle}</CardTitle>
+				<CardDescription>{healthDesc}</CardDescription>
 			</CardHeader>
 			<CardBody>
 				<dl class="grid grid-cols-2 gap-y-2 text-sm">
-					<dt class="text-muted-foreground">Response time</dt>
+					<dt class="text-muted-foreground">{fieldResponse}</dt>
 					<dd data-slot="service-response">{responseDisplay}</dd>
-					<dt class="text-muted-foreground">24h uptime</dt>
+					<dt class="text-muted-foreground">{fieldUptime}</dt>
 					<dd data-slot="service-uptime">{uptimeDisplay ?? '—'}</dd>
-					<dt class="text-muted-foreground">Last check</dt>
+					<dt class="text-muted-foreground">{fieldLastCheck}</dt>
 					<dd data-slot="service-last-check">{lastCheckDisplay}</dd>
-					<dt class="text-muted-foreground">Probe type</dt>
+					<dt class="text-muted-foreground">{fieldProbeType}</dt>
 					<dd>{service.healthType}</dd>
 				</dl>
 			</CardBody>
@@ -151,19 +194,19 @@
 
 		<Card>
 			<CardHeader>
-				<CardTitle>Config</CardTitle>
-				<CardDescription>Service registration.</CardDescription>
+				<CardTitle>{configTitle}</CardTitle>
+				<CardDescription>{configDesc}</CardDescription>
 			</CardHeader>
 			<CardBody>
 				<dl class="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-2 text-sm">
-					<dt class="text-muted-foreground">Slug</dt>
+					<dt class="text-muted-foreground">{fieldSlug}</dt>
 					<dd class="font-mono text-xs">{service.slug}</dd>
-					<dt class="text-muted-foreground">Kind</dt>
+					<dt class="text-muted-foreground">{fieldKind}</dt>
 					<dd>{service.kind}</dd>
-					<dt class="text-muted-foreground">Health URL</dt>
+					<dt class="text-muted-foreground">{fieldHealthUrl}</dt>
 					<dd class="break-all font-mono text-xs">{service.healthUrl}</dd>
 					{#if service.openUrl}
-						<dt class="text-muted-foreground">Open URL</dt>
+						<dt class="text-muted-foreground">{fieldOpenUrl}</dt>
 						<dd class="break-all">
 							<a
 								href={service.openUrl}
@@ -176,7 +219,7 @@
 						</dd>
 					{/if}
 					{#if service.envSource}
-						<dt class="text-muted-foreground">Env source</dt>
+						<dt class="text-muted-foreground">{fieldEnvSource}</dt>
 						<dd class="break-all font-mono text-xs">{service.envSource}</dd>
 					{/if}
 				</dl>
@@ -187,21 +230,21 @@
 	<!-- History -->
 	<Card>
 		<CardHeader>
-			<CardTitle>Health history</CardTitle>
-			<CardDescription>Last {history.length} probe{history.length === 1 ? '' : 's'}.</CardDescription>
+			<CardTitle>{historyTitle}</CardTitle>
+			<CardDescription>{historyCountDesc}</CardDescription>
 		</CardHeader>
 		<CardBody>
 			{#if history.length === 0}
-				<p class="text-sm text-muted-foreground">No probes recorded yet.</p>
+				<p class="text-sm text-muted-foreground">{historyEmpty}</p>
 			{:else}
 				<div class="overflow-x-auto">
 					<table class="w-full text-sm">
 						<thead>
 							<tr class="border-b text-left text-xs uppercase text-muted-foreground">
-								<th class="py-2 pr-4 font-medium">When</th>
-								<th class="py-2 pr-4 font-medium">Status</th>
-								<th class="py-2 pr-4 font-medium">Latency</th>
-								<th class="py-2 font-medium">Note</th>
+								<th class="py-2 pr-4 font-medium">{colWhen}</th>
+								<th class="py-2 pr-4 font-medium">{colStatus}</th>
+								<th class="py-2 pr-4 font-medium">{colLatency}</th>
+								<th class="py-2 font-medium">&nbsp;</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -209,7 +252,11 @@
 								<tr class="border-b last:border-b-0" data-slot="service-history-row">
 									<td class="py-2 pr-4">{formatSnapshotTime(snap.checkedAt)}</td>
 									<td class="py-2 pr-4">
-										<ServiceHealthBadge status={snap.status as ServiceStatusLit} size="sm" />
+										<ServiceHealthBadge
+											{messages}
+											status={snap.status as ServiceStatusLit}
+											size="sm"
+										/>
 									</td>
 									<td class="py-2 pr-4 text-muted-foreground">
 										{snap.latencyMs == null ? '—' : `${snap.latencyMs}ms`}

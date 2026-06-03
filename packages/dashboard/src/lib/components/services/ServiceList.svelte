@@ -11,6 +11,9 @@
   click handler — this component intentionally does not own
   navigation so it can be reused inside non-link surfaces (e.g. an
   admin table that opens a side panel).
+
+  i18n: pass the locale `messages` map; column headers and the
+  region aria-label route through `t(messages, 'services.*')`.
 -->
 <script lang="ts" generics="T extends Service">
 	import type { Snippet } from 'svelte';
@@ -18,11 +21,14 @@
 	import type { Column, SortDir } from '$lib/components/ui/data-table/DataTable.types';
 	import ServiceHealthBadge from './ServiceHealthBadge.svelte';
 	import type { Service } from '@cortexos/contracts';
+	import { t, type Messages } from '$lib/i18n';
 	import type { ServiceStatusLit } from './adapter';
 
 	type Props = {
 		/** The rows to display. The component treats them as read-only. */
 		services: readonly T[];
+		/** Locale messages (from the root layout's PageData). */
+		messages: Messages;
 		/** Page size — defaults to 25. */
 		pageSize?: number;
 		/** Initial sort key/direction. */
@@ -33,30 +39,49 @@
 		class?: string;
 	};
 
-	let { services, pageSize = 25, initialSort, empty, class: className }: Props = $props();
+	let { services, messages, pageSize = 25, initialSort, empty, class: className }: Props =
+		$props();
 
-	/**
-	 * Column definition. The DataTable primitive is generic over
-	 * `T extends Record<string, unknown>`, so we cast the column
-	 * array at the edge — the cell snippets receive the full row and
-	 * do the property access there.
-	 */
-	const columns: Column<Record<string, unknown>>[] = [
-		{ key: 'name', header: 'Name', sortable: true },
-		{ key: 'category', header: 'Category', sortable: true },
-		{ key: 'status', header: 'Status', sortable: true, cell: statusCell },
-		{ key: 'responseMs', header: 'Response', sortable: true, cell: responseCell },
-		{ key: 'uptime24h', header: 'Uptime 24h', sortable: true, cell: uptimeCell },
-	];
+	// Column headers resolve through t() so they follow the active
+	// locale. The DataTable primitive sorts + paginates the data
+	// itself; we only define what's *visible* in each column.
+	const columns: Column<Record<string, unknown>>[] = $derived([
+		{ key: 'name', header: t(messages, 'services.table.name'), sortable: true },
+		{ key: 'category', header: t(messages, 'services.table.category'), sortable: true },
+		{
+			key: 'status',
+			header: t(messages, 'services.table.status'),
+			sortable: true,
+			cell: statusCell,
+		},
+		{
+			key: 'responseMs',
+			header: t(messages, 'services.table.response'),
+			sortable: true,
+			cell: responseCell,
+		},
+		{
+			key: 'uptime24h',
+			header: t(messages, 'services.table.uptime'),
+			sortable: true,
+			cell: uptimeCell,
+		},
+	]);
 
 	// Cast at the edge: every column key is a real property of T
 	// (Service) by construction, and the cell snippets handle the
 	// typed property access.
 	const rows = $derived(services as unknown as Record<string, unknown>[]);
+
+	const regionLabel = $derived(t(messages, 'app.nav.services'));
 </script>
 
 {#snippet statusCell(row: Record<string, unknown>)}
-	<ServiceHealthBadge status={row.status as ServiceStatusLit} size="sm" />
+	<ServiceHealthBadge
+		{messages}
+		status={row.status as ServiceStatusLit}
+		size="sm"
+	/>
 {/snippet}
 
 {#snippet responseCell(row: Record<string, unknown>)}
@@ -72,7 +97,7 @@
 <div
 	data-slot="service-list"
 	class={className}
-	aria-label="Services"
+	aria-label={regionLabel}
 >
 	<DataTable
 		columns={columns}
