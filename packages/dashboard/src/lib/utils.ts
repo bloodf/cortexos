@@ -1,14 +1,10 @@
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
-}
-
-export function formatBytes(bytes: number): string {
-	if (bytes === 0) return "0 B";
-	const k = 1024;
-	const sizes = ["B", "KB", "MB", "GB", "TB"];
-	const i = Math.floor(Math.log(bytes) / Math.log(k));
-	return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-}
+/**
+ * src/lib/utils.ts — backward-compatible barrel for code that imports from
+ * the legacy path (`$lib/utils`).
+ *
+ * The actual implementations live in `./utils/cn.ts` and `./utils/tv.ts`.
+ * This file re-exports them directly (not through `./utils/index.ts`) to
+ * avoid a TypeScript circular alias warning.
+ */
+export { cn, formatBytes } from './utils/cn';
+export { tv, type TvConfig, type TvReturn, type VariantsSchema, type VariantRecord } from './utils/tv';

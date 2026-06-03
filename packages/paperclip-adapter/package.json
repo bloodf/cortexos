@@ -24,6 +24,10 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "clean": "rm -rf dist",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "prepublishOnly": "pnpm run clean && pnpm run build && pnpm test",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage"

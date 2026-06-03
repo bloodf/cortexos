@@ -70,3 +70,8 @@ AGENTS.md
 /playwright-report/
 /test-results/
 /playwright/.cache/
+
+# SvelteKit
+/.svelte-kit/
+/build/
+.svelte-kit/

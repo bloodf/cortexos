@@ -1,0 +1,61 @@
+{
+	"app": {
+		"name": "CortexOS",
+		"tagline": "Plano de control autoalojado",
+		"shell": {
+			"title": "CortexOS",
+			"skipToContent": "Saltar al contenido",
+			"openMenu": "Abrir navegación",
+			"closeMenu": "Cerrar navegación",
+			"search": "Buscar…",
+			"openCommandPalette": "Abrir paleta de comandos",
+			"toggleTheme": "Cambiar tema",
+			"userMenu": "Menú de usuario",
+			"signIn": "Iniciar sesión",
+			"signOut": "Cerrar sesión"
+		},
+		"nav": {
+			"platform": "Plataforma",
+			"infrastructure": "Infraestructura",
+			"securityOps": "Seguridad y Operaciones",
+			"admin": "Administración",
+			"dashboard": "Panel",
+			"services": "Servicios",
+			"apps": "Aplicaciones",
+			"healthcheck": "Chequeo de salud",
+			"docker": "Docker",
+			"incus": "Incus",
+			"systemd": "systemd",
+			"storage": "Almacenamiento",
+			"network": "Red",
+			"processes": "Procesos",
+			"backups": "Respaldos",
+			"scheduler": "Programador",
+			"terminal": "Terminal",
+			"alerts": "Alertas",
+			"approvals": "Aprobaciones",
+			"audit": "Registro de auditoría"
+		}
+	},
+	"login": {
+		"title": "Iniciar sesión",
+		"subtitle": "Autentícate con tu cuenta del host.",
+		"username": "Usuario",
+		"password": "Contraseña",
+		"submit": "Iniciar sesión",
+		"submitting": "Iniciando sesión…",
+		"error": {
+			"required": "Usuario y contraseña son obligatorios.",
+			"invalid": "Credenciales no válidas.",
+			"server": "El inicio de sesión aún no está conectado en esta compilación. La autenticación PAM real llega en M3."
+		}
+	},
+	"dashboard": {
+		"title": "Bienvenido a CortexOS",
+		"subtitle": "La base M1 está en línea. Los widgets reales llegan en M2."
+	},
+	"errors": {
+		"notFound": "Página no encontrada",
+		"serverError": "Error del servidor"
+	}
+}
