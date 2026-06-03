@@ -1138,15 +1138,184 @@ keep it as reserved for future use, or document the planned usage in
 
 ---
 
-## 14. Completion summary
+## 14. Resolved decisions (M0 gate)
+
+The six open questions from §13 were answered by the user (via the parent
+session, 2026-06-02 22:56 UTC-3). The resolutions are recorded here for the
+M0 gate review and as the authoritative reference for downstream workstreams
+(M0-B, M0-C, M0-D, M0-E, M1). My §13 recommendations are folded in as
+defaults; user overrides are noted.
+
+| # | Question | Resolution | Audit recommendation accepted? |
+|---|----------|-----------|-------------------------------|
+| 14.1 | Deploy target (Docker Compose vs systemd) | **BOTH.** M1 architects design a single deploy contract targeting both. Pick the lower-friction primary path, build a thin shim for the other. | Override. M0 audit recommended committing to Compose only. The "both" decision pushes complexity into M1; a deploy-contract abstraction is the right way to absorb it. |
+| 14.2 | Workspace package name | **REPLACE IN PLACE** at `packages/dashboard/`. No `@cortexos/dashboard-svelte` sibling. The new SvelteKit app commits there, replacing the Next.js tree. | Override. M0 audit recommended `@cortexos/dashboard-svelte` for a migration window. User picks a single atomic PR. |
+| 14.3 | Legacy untracked `packages/cortex-dashboard/` | **KEEP and REFACTOR LATER.** Coexists with the new `packages/dashboard/`. Refactor choice (merge vs graduate) deferred past M1. | Override. M0 audit recommended deleting the untracked dir. User picks coexistence. Net effect: the new SvelteKit app lands at `packages/dashboard/`, not `packages/cortex-dashboard/`. The original M0 task brief's path is therefore moot; the new app is the sole dashboard. |
+| 14.4 | Missing `dashboard_command_audit` migration | **M0 MUST-FIX.** Author the missing SQL. | Accepted. The migration is now at `packages/dashboard/migrations/005_dashboard_command_audit.sql` and is documented in §15 below. |
+| 14.5 | Real-time (SSE vs external WS process) | **SSE.** SvelteKit-native, simpler. Drops the external Socket.IO process for the new app. The current Socket.IO + retention loop can be left in place during the migration window but the new real-time path is SSE. | Accepted. F-4 schedule-risk budget drops from "~3 person-days" to "~1 person-day" (SSE via `+server.ts` is a much thinner port than a WebSocket shim). |
+| 14.6 | `dashboard_layouts` table | **USE IT.** Drop localStorage for layouts in the new SvelteKit app. Real DB persistence. M1 implementation choice; the table is the authoritative store. | Accepted. F-1 is closed: the new app uses the table. The existing Next.js Overview page (`src/app/[locale]/overview/page.tsx:18,22-36,42`) continues to use localStorage; that's its problem. |
+
+### 14.7. Implications for the downstream tracks
+
+- **M0-B (template + mock API audit):** drop the "use sys-pilot as reference"
+  framing. The reference is `packages/dashboard/src/components/sys-pilot/**`
+  + `packages/dashboard/docs/LOVABLE-PROMPT.md` (the spec) + this audit
+  doc for the data contracts. The SvelteKit port is a translation, not a
+  re-design (see F-1/F-6, §11).
+- **M0-C (E2E coverage matrix):** real-time coverage targets SSE endpoints,
+  not Socket.IO. The Socket.IO connections on the current dashboard are
+  not the contract being ported.
+- **M0-D (tech stack):** the deploy target is "both Compose and systemd"
+  (14.1). The tech-stack doc must accommodate a single `+server.ts`
+  adapter that can be served under either. `adapter-node` covers both;
+  no extra adapter needed.
+- **M0-E (threat model):** the security review of the SvelteKit app
+  should treat the `dashboard_command_audit` table (§15) as a regular
+  two-phase audit log, not as append-only. The `agent_gateway_audit`
+  table remains the append-only one with `REVOKE UPDATE/DELETE/TRUNCATE`.
+- **M1 (build):** §15's migration is the last build-time prerequisite
+  for the new app's root-helper flow.
+
+---
+
+## 15. Missing `dashboard_command_audit` migration (M0 follow-up)
+
+The dashboard code has been running with a broken root-helper command audit
+flow on every fresh DB since the post-rebuild squash. This section
+documents the gap and provides the missing DDL.
+
+### 15.1 The gap
+
+| What | Where | Status |
+|------|-------|--------|
+| INSERT into `dashboard_command_audit` | `lib/db/dashboard-command-audit.ts:41-60` | Code present |
+| UPDATE on `dashboard_command_audit` | `lib/db/dashboard-command-audit.ts:90-103` | Code present |
+| TypeScript wrapper | `lib/db/dashboard-command-audit.ts:1-120` | Code present |
+| Caller (`executeRootCommand`) | `lib/root-helper/executor.ts:46-124` | Code present |
+| API endpoint | `api/root-helper/commands/route.ts:27-57` | Code present |
+| **DDL for the table** | **None of `migrations/001..004`** | **MISSING** |
+| Squashed-applied marker | `migrations/002_seed.sql:253` — `('018_dashboard_command_audit')` | Lies — the table isn't there |
+
+**Net effect:** a fresh DB has a row in `migrations` saying
+`018_dashboard_command_audit` was applied, but the actual table doesn't
+exist. The first call to `POST /api/root-helper/commands` fails with
+`relation "dashboard_command_audit" does not exist` at
+`lib/db/dashboard-command-audit.ts:81`.
+
+### 15.2 The fix
+
+Authored as `packages/dashboard/migrations/005_dashboard_command_audit.sql`
+in the current branch. Why filename `005_*` and not `018_*`:
+
+- The migration runner keys on **filename minus `.sql`**
+  (`scripts/migrate.js:71-91`).
+- `002_seed.sql:253` already records `018_dashboard_command_audit` in the
+  `migrations` table, so a file named `018_dashboard_command_audit.sql`
+  would be **skipped** by the runner.
+- `005_dashboard_command_audit.sql` is a different migration name and
+  will run on both fresh DBs (after 002 squashes 003..027 into the
+  `migrations` table) and existing DBs (the operator runs the new file).
+
+### 15.3 The DDL
+
+The full SQL is in `packages/dashboard/migrations/005_dashboard_command_audit.sql`
+of this branch. Highlights:
+
+- **Two-phase lifecycle**, not append-only. INSERT with `status='created'`
+  before dispatch (`lib/db/dashboard-command-audit.ts:60`); UPDATE fills
+  in completion fields after the root helper returns
+  (`lib/db/dashboard-command-audit.ts:90-103`). This is **not** the
+  append-only table — `agent_gateway_audit` is.
+- **Columns mirror the lib code exactly** (line-by-line from
+  `lib/db/dashboard-command-audit.ts:41-60,90-103`):
+  `request_id`, `requested_by`, `source_ip` (INET), `source_user_agent`,
+  `dashboard_session_id`, `command`, `argv` (JSONB), `cwd`,
+  `env_allowlist` (JSONB `{names: [...]}` shape per line 71),
+  `stdin_sha256`, `timeout_ms`, `approved_policy`, `mutation_class`,
+  `target_scope`, `dry_run`, `status`, `started_at`, `finished_at`,
+  `stdout_sha256`, `stderr_sha256`, `stdout_bytes`, `stderr_bytes`,
+  `exit_code`, `signal`, `error`, `journald_cursor`, `metadata` (JSONB).
+- **Indexes** — 4 covering the natural query patterns:
+  - UNIQUE on `request_id` (the UPDATE WHERE-key, the socket protocol
+    identifier).
+  - B-tree on `created_at DESC` (recent activity feed).
+  - B-tree on `(requested_by, created_at DESC)` (per-operator queries).
+  - B-tree on `(status, created_at DESC)` (status filter).
+  - B-tree on `(command, created_at DESC)` (per-command filter).
+- **Auto-touch `updated_at` trigger** — `BEFORE UPDATE` sets
+  `NEW.updated_at = NOW()`. Keeps the row honest without forcing every
+  caller to remember the column.
+- **Idempotent** — `CREATE TABLE IF NOT EXISTS` + `CREATE [UNIQUE] INDEX
+  IF NOT EXISTS` + `DROP TRIGGER IF EXISTS` + `CREATE OR REPLACE FUNCTION`.
+  Safe to re-apply.
+- **No self-record** — same convention as `004_reconcile_health.sql:44-47`;
+  the runner records the filename after execution.
+
+### 15.4 Verification
+
+A reviewer can verify the migration against the code by reading both
+files side-by-side:
+
+| Migration file column | Source code reference | Match? |
+|-----------------------|----------------------|--------|
+| `request_id TEXT NOT NULL` | `lib/db/dashboard-command-audit.ts:46` (`input.requestId`) | yes |
+| `source_ip INET NULL` | `lib/db/dashboard-command-audit.ts:65` (`$3::inet`) | yes |
+| `argv JSONB NOT NULL DEFAULT '[]'::jsonb` | `lib/db/dashboard-command-audit.ts:69` (`$7::jsonb`, `JSON.stringify(input.argv)`) | yes |
+| `env_allowlist JSONB NOT NULL DEFAULT '{"names": []}'::jsonb` | `lib/db/dashboard-command-audit.ts:71` (`JSON.stringify({ names: ... })`) | yes |
+| `metadata JSONB NOT NULL DEFAULT '{}'::jsonb` | `lib/db/dashboard-command-audit.ts:78, 117` (`$16::jsonb`, `metadata || $13::jsonb`) | yes |
+| `requested_by TEXT NOT NULL DEFAULT 'trusted-dashboard'` | `lib/db/dashboard-command-audit.ts:64` (`?? "trusted-dashboard"`) | yes |
+| `approved_policy TEXT NOT NULL DEFAULT 'trusted-lan-tailnet'` | `lib/db/dashboard-command-audit.ts:74` (`?? "trusted-lan-tailnet"`) | yes |
+| `mutation_class TEXT NOT NULL DEFAULT 'unknown'` | `lib/db/dashboard-command-audit.ts:75` (`?? "unknown"`) | yes |
+| `target_scope TEXT NOT NULL DEFAULT 'host'` | `lib/db/dashboard-command-audit.ts:76` (`?? "host"`) | yes |
+| `dry_run BOOLEAN NOT NULL DEFAULT FALSE` | `lib/db/dashboard-command-audit.ts:77` (`?? false`) | yes |
+| `stdout_bytes INTEGER NOT NULL DEFAULT 0` | `lib/db/dashboard-command-audit.ts:113` (`?? 0`) | yes |
+| `status TEXT NOT NULL DEFAULT 'created'` | `lib/db/dashboard-command-audit.ts:60` (`'created'`) | yes |
+| UNIQUE INDEX on `request_id` | `lib/db/dashboard-command-audit.ts:103` (`WHERE request_id = $1`) | yes |
+
+Every column and default in the migration maps to a code reference. No
+speculation; no invented fields.
+
+### 15.5 Open M1 follow-ups (not blocking M0)
+
+- **Retention policy.** The retention sweep at
+  `lib/socket-server.ts:37-44` deletes from `service_health_log` and
+  `alert_history` but NOT from `dashboard_command_audit`. The new
+  table will grow unbounded. Decide a retention window in M1 (likely
+  90 days; the operator may want longer for forensic).
+- **Role grants.** The `dashboard` role gets INSERT/SELECT on
+  `agent_gateway_audit` (REVOKE UPDATE/DELETE/TRUNCATE — see
+  `migrations/001_schema.sql:252-262`). For
+  `dashboard_command_audit`, the dashboard needs both INSERT and
+  UPDATE. Add a `GRANT` block analogous to 001:252-262 in M1.
+- **Audit verify endpoint.** Consider adding a
+  `GET /api/admin/audit/commands` admin endpoint (admin-gated) that
+  paginates `dashboard_command_audit` rows. The current
+  `api/audit/route.ts:1-84` only queries `agent_gateway_audit`.
+
+---
+
+## 16. Completion summary
 
 - Worktree: `/Users/heitor/Developer/github.com/bloodf/cortexos/.worktrees/m0-a-cortexos-audit`
 - Branch: `feature/m0-a-cortexos-audit`
-- Files written: 1 (`packages/cortex-dashboard/docs/CURRENT_ARCHITECTURE_AUDIT.md`)
+- Files written: 2
+  - `packages/cortex-dashboard/docs/CURRENT_ARCHITECTURE_AUDIT.md` (this
+    file; 16 sections, 1152 lines at v1; expanded with §14–§15 at v2).
+  - `packages/dashboard/migrations/005_dashboard_command_audit.sql`
+    (the fix for finding F-2; 130 lines; idempotent).
 - Files read: 50+ (all of `packages/dashboard/{src,scripts,migrations,docs}/` and
   root `CLAUDE.md`, `ARCHITECTURE.md`, `pnpm-workspace.yaml`, `package.json`,
   `docker-compose.yml`, `.github/workflows/ci.yml`, `renovate.json`).
 - Code modified: 0 (read-only audit per task brief).
 - Tests run: 0 (audit is read-only; tests not in scope).
+
+### 16.1 Commit history on this branch
+
+- `a017e33` — `docs(dashboard): M0-A current CortexOS architecture audit`
+  (the initial 1152-line audit, v1 of this file).
+- (v2 commit) — `docs(dashboard): fold user-resolved decisions; add
+  dashboard_command_audit migration` — adds §14 (resolved decisions),
+  §15 (missing migration writeup + SQL), renumbers §14 → §16, and
+  ships the `005_dashboard_command_audit.sql` migration.
 
 See `deliverable.md` for the engine-completion record.
