@@ -90,7 +90,7 @@
 	/>
 
 	<ServiceSearch
-		{messages}
+		messages={data.messages}
 		query={q}
 		category={cat}
 		categories={data.categories}
@@ -104,6 +104,6 @@
 			icon={PlugZap}
 		/>
 	{:else}
-		<ServiceList {messages} services={visible} pageSize={25} />
+		<ServiceList messages={data.messages} services={visible} pageSize={25} />
 	{/if}
 </div>

@@ -6,6 +6,12 @@
  *
  * These tests use the existing `makeFakeEvent` helper so they don't
  * need the SvelteKit test harness.
+ *
+ * The cast on the `load` return value is intentional: the auto-
+ * inferred PageData type unions in the layout's `user` / `session`
+ * branch cause the page data to look like `void | { services: ... }`
+ * to svelte-check. We assert against the actual page-server return
+ * shape, which is the contract we're testing.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { _resetStubData, createService } from '$lib/server/stub-data';
@@ -16,21 +22,30 @@ beforeEach(() => {
 });
 
 function makeLoadEvent(url: string, params: Record<string, string> = {}) {
-	// We only need `url` for the load function; `params` is here for
-	// symmetry with the action tests.
 	const u = new URL(url, 'http://localhost/');
 	return { url: u, params } as unknown as Parameters<typeof servicesListLoad>[0];
 }
 
+/** Shape of the page-server's return value (from +page.server.ts). */
+type ListPageData = {
+	services: Array<{ id: string; slug: string; name: string; status: string; [k: string]: unknown }>;
+	categories: string[];
+	initialQuery: string;
+	initialCategory: string;
+};
+
+async function loadList(event: ReturnType<typeof makeLoadEvent>): Promise<ListPageData> {
+	return (await servicesListLoad(event)) as unknown as ListPageData;
+}
+
 describe('/services list page — load()', () => {
 	it('returns the empty list shape when there are no services', async () => {
-		const data = await servicesListLoad(makeLoadEvent('http://localhost/services'));
+		const data = await loadList(makeLoadEvent('http://localhost/services'));
 		expect(data.services).toEqual([]);
 		expect(data.categories).toEqual([]);
 	});
 
 	it('returns adapted services and the sorted unique categories', async () => {
-		// Seed the stub store with a few services across categories.
 		createService({
 			slug: 'a',
 			name: 'A',
@@ -71,7 +86,7 @@ describe('/services list page — load()', () => {
 			description: 'third',
 			healthUrl: null,
 			healthType: 'http',
-			category: 'AI', // duplicate
+			category: 'AI',
 			openUrl: null,
 			status: 'online',
 			kind: 'service',
@@ -83,19 +98,15 @@ describe('/services list page — load()', () => {
 			sortOrder: 2,
 		});
 
-		const data = await servicesListLoad(makeLoadEvent('http://localhost/services'));
+		const data = await loadList(makeLoadEvent('http://localhost/services'));
 		expect(data.services).toHaveLength(3);
-		// Sorted unique categories: AI, Database.
 		expect(data.categories).toEqual(['AI', 'Database']);
-		// The adapted rows match the contracts shape (status is a
-		// member of the contracts union).
 		expect(data.services[0]?.status).toMatch(/^(online|offline|unknown|checking|degraded)$/);
-		// The contracts id is a UUID v4.
 		expect(data.services[0]?.id).toMatch(/^[0-9a-f-]{36}$/);
 	});
 
 	it('reads the initial query and category from the URL', async () => {
-		const data = await servicesListLoad(
+		const data = await loadList(
 			makeLoadEvent('http://localhost/services?q=graf&category=Monitoring'),
 		);
 		expect(data.initialQuery).toBe('graf');
@@ -103,7 +114,7 @@ describe('/services list page — load()', () => {
 	});
 
 	it('returns empty initial values when the URL has no params', async () => {
-		const data = await servicesListLoad(makeLoadEvent('http://localhost/services'));
+		const data = await loadList(makeLoadEvent('http://localhost/services'));
 		expect(data.initialQuery).toBe('');
 		expect(data.initialCategory).toBe('');
 	});

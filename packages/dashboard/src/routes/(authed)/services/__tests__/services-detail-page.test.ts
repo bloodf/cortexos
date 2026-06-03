@@ -35,6 +35,16 @@ function makeDetailLoadEvent(id: string) {
 	} as unknown as Parameters<typeof detailLoad>[0];
 }
 
+/** Shape of the detail page-server's return value. */
+type DetailPageData = {
+	service: { slug: string; name: string; status: string; [k: string]: unknown };
+	history: Array<{ id: string; status: string; [k: string]: unknown }>;
+};
+
+async function loadDetail(event: ReturnType<typeof makeDetailLoadEvent>): Promise<DetailPageData> {
+	return (await detailLoad(event)) as unknown as DetailPageData;
+}
+
 function makeActionEvent(id: string) {
 	return {
 		url: new URL(`http://localhost/services/${id}`),
@@ -62,14 +72,14 @@ describe('/services/[id] detail page — load()', () => {
 			showInWebui: true,
 			sortOrder: 0,
 		});
-		const data = await detailLoad(makeDetailLoadEvent('caddy'));
+		const data = await loadDetail(makeDetailLoadEvent('caddy'));
 		expect(data.service.slug).toBe('caddy');
 		expect(data.service.name).toBe('Caddy');
 		expect(data.service.status).toBe('online');
 	});
 
 	it('throws a 404 for a missing service', async () => {
-		await expect(detailLoad(makeDetailLoadEvent('nope'))).rejects.toMatchObject({
+		await expect(loadDetail(makeDetailLoadEvent('nope'))).rejects.toMatchObject({
 			status: 404,
 		});
 	});
@@ -92,7 +102,7 @@ describe('/services/[id] detail page — load()', () => {
 			showInWebui: true,
 			sortOrder: 0,
 		});
-		const data = await detailLoad(makeDetailLoadEvent(created.id));
+		const data = await loadDetail(makeDetailLoadEvent(created.id));
 		expect(data.service.slug).toBe('numeric');
 	});
 });
