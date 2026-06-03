@@ -9,6 +9,7 @@
 // per-route.
 
 import type { ThemeMode, ThemePreset } from '$lib/theme-presets';
+import type { Messages } from '$lib/i18n';
 
 declare global {
 	namespace App {
@@ -33,14 +34,18 @@ declare global {
 			requestId: string;
 		}
 
+		// Every page receives the root-layout data (theme + locale + i18n
+		// messages + the mirrored `locals.user`) merged with whatever its
+		// own +page.server.ts / +page.ts returns. SvelteKit's PageData
+		// is the union of all `+layout.ts` + `+page.ts` data shapes.
 		interface PageData {
-			/** Theme + brand resolved by the root layout. */
 			theme: {
 				mode: ThemeMode;
 				preset: ThemePreset;
 			};
-			/** Authenticated user (mirrors `event.locals.user`); `null` for anon. */
-			user: App.Locals['user'];
+			locale: string;
+			messages: Messages;
+			user: Locals['user'];
 		}
 
 		interface PageState {

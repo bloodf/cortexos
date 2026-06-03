@@ -36,9 +36,8 @@
 		}
 	});
 
-	// The user is set by the root load and mirrored on `data.user`.
-	const username = $derived(data.user?.username ?? null);
-	const isAdmin = $derived(Boolean(data.user?.isAdmin));
+	// The user is set by the root load and mirrored on `data.user`; the
+	// shell components (nav, header) read it from `data.user` directly.
 </script>
 
 <svelte:head>

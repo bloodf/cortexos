@@ -34,9 +34,9 @@
 
 'use strict';
 
-const noBashCInTemplate = require('./no-bash-c-in-template.js');
-const requireAdminOnPrivilegedRoute = require('./require-admin-on-privileged-route.js');
-const noRequireauthInAdmin = require('./no-requireauth-in-admin.js');
+const noBashCInTemplate = require('./no-bash-c-in-template.cjs');
+const requireAdminOnPrivilegedRoute = require('./require-admin-on-privileged-route.cjs');
+const noRequireauthInAdmin = require('./no-requireauth-in-admin.cjs');
 
 module.exports = {
   'no-bash-c-in-template': noBashCInTemplate,

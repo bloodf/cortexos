@@ -12,7 +12,7 @@ export const PRESETS: readonly ThemePreset[] = [
 	'cortex',
 	'teal',
 	'emerald',
-	'amber'
+	'amber',
 ] as const;
 
 export const DEFAULT_PRESET: ThemePreset = 'cortex';

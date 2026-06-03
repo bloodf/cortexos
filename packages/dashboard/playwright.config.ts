@@ -20,18 +20,18 @@ export default defineConfig({
 	use: {
 		baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:3080',
 		trace: 'on-first-retry',
-		screenshot: 'only-on-failure'
+		screenshot: 'only-on-failure',
 	},
 	projects: [
 		{
 			name: 'chromium',
-			use: { ...devices['Desktop Chrome'] }
-		}
+			use: { ...devices['Desktop Chrome'] },
+		},
 	],
 	webServer: {
 		command: process.env.PLAYWRIGHT_NO_WEBSERVER ? 'true' : 'pnpm run build && pnpm run preview',
 		port: 3080,
 		reuseExistingServer: !process.env.CI,
-		timeout: 120_000
-	}
+		timeout: 120_000,
+	},
 });

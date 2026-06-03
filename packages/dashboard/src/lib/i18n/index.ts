@@ -26,7 +26,7 @@ export const DEFAULT_LOCALE: Locale = 'en';
 export const LOCALE_LABELS: Record<Locale, string> = {
 	en: 'English',
 	es: 'Español',
-	'pt-br': 'Português (Brasil)'
+	'pt-br': 'Português (Brasil)',
 };
 
 export type Messages = typeof en;
@@ -35,7 +35,7 @@ export type MessageKey = keyof Messages;
 const MESSAGES: Record<Locale, Messages> = {
 	en,
 	es,
-	'pt-br': ptBr
+	'pt-br': ptBr,
 };
 
 function isLocale(value: string | null | undefined): value is Locale {

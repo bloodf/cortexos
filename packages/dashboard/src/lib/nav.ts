@@ -28,7 +28,6 @@ import Activity from '$lib/icons/Activity.svelte';
 import AlertTriangle from '$lib/icons/AlertTriangle.svelte';
 import ShieldCheck from '$lib/icons/ShieldCheck.svelte';
 import FolderArchive from '$lib/icons/FolderArchive.svelte';
-import Settings from '$lib/icons/Settings.svelte';
 import Users from '$lib/icons/Users.svelte';
 import KeyRound from '$lib/icons/KeyRound.svelte';
 import ScrollText from '$lib/icons/ScrollText.svelte';
@@ -80,30 +79,37 @@ export const NAV_GROUPS: readonly NavGroup[] = [
 				icon: LayoutDashboard,
 				shortcut: 'g d',
 				keywords: ['overview', 'home'],
-				workstream: null
+				workstream: null,
 			},
 			{
-				id: 'agents',
-				label: 'Agents',
-				href: null,
+				id: 'healthcheck',
+				label: 'app.nav.healthcheck',
+				href: '/healthcheck',
+				icon: Activity,
+				workstream: 'M1',
+			},
+			{
+				id: 'apps',
+				label: 'app.nav.apps',
+				href: '/apps',
 				icon: Workflow,
-				workstream: 'M2'
+				workstream: 'M1',
 			},
 			{
 				id: 'approvals',
-				label: 'Approvals',
-				href: null,
+				label: 'app.nav.approvals',
+				href: '/approvals',
 				icon: BookOpenCheck,
-				workstream: 'M2'
+				workstream: 'M1',
 			},
 			{
 				id: 'alerts',
-				label: 'Alerts',
-				href: null,
+				label: 'app.nav.alerts',
+				href: '/alerts',
 				icon: AlertTriangle,
-				workstream: 'M2'
-			}
-		]
+				workstream: 'M1',
+			},
+		],
 	},
 	{
 		id: 'infrastructure',
@@ -111,75 +117,75 @@ export const NAV_GROUPS: readonly NavGroup[] = [
 		items: [
 			{
 				id: 'services',
-				label: 'Services',
-				href: null,
+				label: 'app.nav.services',
+				href: '/services',
 				icon: PlugZap,
-				workstream: 'M2'
+				workstream: 'M1',
 			},
 			{
 				id: 'docker',
-				label: 'Docker',
-				href: null,
+				label: 'app.nav.docker',
+				href: '/docker',
 				icon: Container,
-				workstream: 'M2'
+				workstream: 'M1',
 			},
 			{
 				id: 'systemd',
-				label: 'systemd',
-				href: null,
+				label: 'app.nav.systemd',
+				href: '/systemd',
 				icon: GitBranch,
-				workstream: 'M2'
+				workstream: 'M1',
 			},
 			{
 				id: 'incus',
-				label: 'Incus',
-				href: null,
+				label: 'app.nav.incus',
+				href: '/incus',
 				icon: Server,
-				workstream: 'M2'
+				workstream: 'M1',
 			},
 			{
 				id: 'processes',
-				label: 'Processes',
-				href: null,
+				label: 'app.nav.processes',
+				href: '/processes',
 				icon: Cpu,
-				workstream: 'M2'
+				workstream: 'M1',
 			},
 			{
 				id: 'network',
-				label: 'Network',
-				href: null,
+				label: 'app.nav.network',
+				href: '/network',
 				icon: Network,
-				workstream: 'M2'
+				workstream: 'M1',
 			},
 			{
 				id: 'storage',
-				label: 'Storage',
-				href: null,
+				label: 'app.nav.storage',
+				href: '/storage',
 				icon: HardDrive,
-				workstream: 'M2'
+				workstream: 'M1',
 			},
 			{
 				id: 'scheduler',
-				label: 'Scheduler',
-				href: null,
+				label: 'app.nav.scheduler',
+				href: '/scheduler',
 				icon: Activity,
-				workstream: 'M2'
+				workstream: 'M1',
 			},
 			{
 				id: 'backups',
-				label: 'Backups',
-				href: null,
+				label: 'app.nav.backups',
+				href: '/backups',
 				icon: FolderArchive,
-				workstream: 'M2'
+				workstream: 'M1',
 			},
 			{
 				id: 'terminal',
-				label: 'Terminal',
-				href: null,
+				label: 'app.nav.terminal',
+				href: '/terminal',
 				icon: TerminalSquare,
-				workstream: 'M2'
-			}
-		]
+				workstream: 'M1',
+			},
+		],
 	},
 	{
 		id: 'security-ops',
@@ -190,36 +196,28 @@ export const NAV_GROUPS: readonly NavGroup[] = [
 				label: 'Mail Guardian',
 				href: null,
 				icon: Mail,
-				workstream: 'M2'
+				workstream: 'M2',
 			},
 			{
 				id: 'audit',
-				label: 'Audit log',
-				href: null,
+				label: 'app.nav.audit',
+				href: '/audit',
 				icon: ScrollText,
-				workstream: 'M2'
-			}
-		]
+				workstream: 'M1',
+			},
+		],
 	},
 	{
 		id: 'admin',
 		label: 'app.nav.admin',
 		items: [
 			{
-				id: 'admin-services',
-				label: 'Services (admin)',
-				href: null,
-				icon: Settings,
-				requiresAdmin: true,
-				workstream: 'M2'
-			},
-			{
 				id: 'admin-users',
 				label: 'Users',
 				href: null,
 				icon: Users,
 				requiresAdmin: true,
-				workstream: 'M2'
+				workstream: 'M2',
 			},
 			{
 				id: 'admin-env',
@@ -227,7 +225,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
 				href: null,
 				icon: KeyRound,
 				requiresAdmin: true,
-				workstream: 'M2'
+				workstream: 'M2',
 			},
 			{
 				id: 'admin-audit',
@@ -235,10 +233,10 @@ export const NAV_GROUPS: readonly NavGroup[] = [
 				href: null,
 				icon: ShieldCheck,
 				requiresAdmin: true,
-				workstream: 'M2'
-			}
-		]
-	}
+				workstream: 'M2',
+			},
+		],
+	},
 ] as const;
 
 export function flattenNav(): readonly NavItem[] {

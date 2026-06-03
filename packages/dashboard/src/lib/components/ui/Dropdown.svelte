@@ -1,12 +1,13 @@
 <script lang="ts" module>
 	import { writable, type Writable } from 'svelte/store';
+	import { SvelteMap } from 'svelte/reactivity';
 
 	type DropdownContext = {
 		open: Writable<boolean>;
 		trigger: Writable<HTMLElement | null>;
 	};
 
-	const REGISTRY = new Map<string, DropdownContext>();
+	const REGISTRY = new SvelteMap<string, DropdownContext>();
 
 	export function registerDropdown(id: string, open: Writable<boolean>): DropdownContext {
 		const ctx: DropdownContext = { open, trigger: writable(null) };
@@ -42,7 +43,7 @@
 
 	const store = writable(open);
 	const id = `dd-${Math.random().toString(36).slice(2, 9)}`;
-	const ctx = registerDropdown(id, store);
+	registerDropdown(id, store);
 	onDestroy(() => unregisterDropdown(id));
 
 	$effect(() => store.set(open));

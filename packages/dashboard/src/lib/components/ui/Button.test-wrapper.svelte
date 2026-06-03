@@ -3,11 +3,12 @@
 
 	/**
 	 * Test-only wrapper for `Button`. Accepts a plain `label` string
-	 * and renders it inside a real Svelte 5 `{#snippet children()}`.
-	 * `Button` declares `children?: Snippet` — a branded type that
-	 * cannot be constructed from a plain function in tests — so this
-	 * wrapper is the canonical way to pass snippet content from a
-	 * Vitest test.
+	 * and renders it as default slot content. The wrapper exists
+	 * because `Button` declares `children?: Snippet` — a branded type
+	 * that cannot be constructed from a plain function in tests —
+	 * so the wrapper is the canonical way to pass snippet content from
+	 * a Vitest test using Svelte 5's natural `<Component>text</Component>`
+	 * children syntax.
 	 */
 	interface Props {
 		label?: string;
@@ -18,5 +19,5 @@
 </script>
 
 <Button {...rest}>
-	{#snippet children()}{label}{/snippet}
+	{label}
 </Button>

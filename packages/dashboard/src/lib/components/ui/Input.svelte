@@ -13,6 +13,7 @@
 		readonly?: boolean;
 		/** Browser autofill hint. Mirrors HTML `autocomplete` attribute. */
 		autocomplete?: HTMLInputElement['autocomplete'];
+		/** Mount focused. Use sparingly — only one input per page. */
 		autofocus?: boolean;
 		ariaInvalid?: boolean;
 		ariaDescribedby?: string;
@@ -53,6 +54,7 @@
 	{disabled}
 	{readonly}
 	{autocomplete}
+	{autofocus}
 	minlength={minlength ?? null}
 	maxlength={maxlength ?? null}
 	aria-invalid={ariaInvalid ?? null}

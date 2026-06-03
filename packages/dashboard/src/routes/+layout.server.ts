@@ -9,14 +9,14 @@ export const load: LayoutServerLoad = ({ cookies, request, locals }) => {
 
 	const theme = {
 		preset: isPreset(presetCookie) ? presetCookie : DEFAULT_PRESET,
-		mode: isMode(modeCookie) ? modeCookie : DEFAULT_MODE
+		mode: isMode(modeCookie) ? modeCookie : DEFAULT_MODE,
 	};
 
 	const acceptLanguage = request.headers.get('accept-language');
 	const locale = resolveLocale({
 		query: null,
 		cookie: localeCookie,
-		acceptLanguage
+		acceptLanguage,
 	});
 
 	const messages = getMessages(locale);
@@ -25,6 +25,6 @@ export const load: LayoutServerLoad = ({ cookies, request, locals }) => {
 		theme,
 		locale,
 		messages,
-		user: locals.user
+		user: locals.user,
 	};
 };

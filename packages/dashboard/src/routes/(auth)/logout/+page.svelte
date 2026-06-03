@@ -6,9 +6,10 @@
 	// we still receive `data` from the root layout, but the strict
 	// type comes out as `never` because the page's own server data
 	// is `never`. We accept `unknown` here and read messages via a
-	// narrower cast at the call site.
+	// narrower cast at the call site. `$derived` keeps the cast
+	// reactive when the layout data changes.
 	let { data }: { data: unknown } = $props();
-	const messages = (data as { messages: Messages }).messages;
+	const messages = $derived((data as { messages: Messages }).messages);
 </script>
 
 <svelte:head>

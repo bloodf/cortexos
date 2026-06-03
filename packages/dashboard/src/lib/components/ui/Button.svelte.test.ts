@@ -30,15 +30,15 @@ describe('Button', () => {
 
 	it('is disabled when `disabled` is true', async () => {
 		await renderButton({ label: 'Locked', disabled: true });
-		const btn = screen.getByRole('button', { name: 'Locked' }) as HTMLButtonElement;
-		expect(btn.disabled).toBe(true);
+		const btn = screen.getByRole('button', { name: 'Locked' });
+		expect(btn).toBeDisabled();
 	});
 
 	it('is disabled and exposes aria-busy when `loading` is true', async () => {
 		await renderButton({ label: 'Sending', loading: true });
-		const btn = screen.getByRole('button', { name: 'Sending' }) as HTMLButtonElement;
-		expect(btn.disabled).toBe(true);
-		expect(btn.getAttribute('aria-busy')).toBe('true');
+		const btn = screen.getByRole('button', { name: 'Sending' });
+		expect(btn).toBeDisabled();
+		expect(btn).toHaveAttribute('aria-busy', 'true');
 	});
 
 	it('invokes `onclick` when clicked', async () => {
@@ -47,9 +47,9 @@ describe('Button', () => {
 			label: 'Click me',
 			onclick: () => {
 				clicked += 1;
-			}
+			},
 		});
-		const btn = screen.getByRole('button', { name: 'Click me' }) as HTMLButtonElement;
+		const btn = screen.getByRole('button', { name: 'Click me' });
 		btn.click();
 		expect(clicked).toBe(1);
 	});
@@ -61,9 +61,9 @@ describe('Button', () => {
 			disabled: true,
 			onclick: () => {
 				clicked += 1;
-			}
+			},
 		});
-		const btn = screen.getByRole('button', { name: 'Locked' }) as HTMLButtonElement;
+		const btn = screen.getByRole('button', { name: 'Locked' });
 		btn.click();
 		expect(clicked).toBe(0);
 	});
@@ -73,16 +73,16 @@ describe('Button', () => {
 			label: '',
 			ariaLabel: 'Open menu',
 			ariaControls: 'menu-1',
-			ariaExpanded: true
+			ariaExpanded: true,
 		});
-		const btn = screen.getByRole('button', { name: 'Open menu' }) as HTMLButtonElement;
+		const btn = screen.getByRole('button', { name: 'Open menu' });
 		expect(btn.getAttribute('aria-controls')).toBe('menu-1');
 		expect(btn.getAttribute('aria-expanded')).toBe('true');
 	});
 
 	it('renders the destructive variant with a destructive-friendly class', async () => {
 		await renderButton({ label: 'Delete', variant: 'destructive' });
-		const btn = screen.getByRole('button', { name: 'Delete' }) as HTMLButtonElement;
+		const btn = screen.getByRole('button', { name: 'Delete' });
 		expect(btn.className).toMatch(/destructive/);
 	});
 });

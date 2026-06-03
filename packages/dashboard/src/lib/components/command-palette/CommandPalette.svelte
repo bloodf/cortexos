@@ -62,7 +62,11 @@
 		const isK = e.key === 'k' || e.key === 'K';
 		if (isK && (e.metaKey || e.ctrlKey)) {
 			e.preventDefault();
-			open ? hide() : show();
+			if (open) {
+				hide();
+			} else {
+				show();
+			}
 			return;
 		}
 		if (!open) return;

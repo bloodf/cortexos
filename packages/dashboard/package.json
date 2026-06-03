@@ -26,20 +26,24 @@
     "typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json"
   },
   "dependencies": {
+    "@playwright/test": "1.60.0",
     "@sveltejs/adapter-node": "5.5.4",
     "@sveltejs/kit": "2.62.0",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/svelte": "5.3.1",
     "@xterm/addon-fit": "0.11.0",
     "@xterm/xterm": "6.0.0",
     "layerchart": "1.0.13",
+    "playwright": "1.60.0",
     "svelte": "5.56.1",
-    "valibot": "1.4.1"
+    "valibot": "1.4.1",
+    "vitest": "4.1.8"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
-    "@playwright/test": "1.60.0",
     "@sveltejs/vite-plugin-svelte": "7.1.2",
+    "@stylistic/eslint-plugin": "5.10.0",
     "@tailwindcss/vite": "4.3.0",
-    "@testing-library/svelte": "5.3.1",
     "@types/node": "24.10.0",
     "@vitest/browser": "4.1.8",
     "@vitest/coverage-v8": "4.1.8",
@@ -48,7 +52,6 @@
     "eslint-plugin-svelte": "3.19.0",
     "globals": "17.6.0",
     "jsdom": "29.1.1",
-    "playwright": "1.60.0",
     "prettier": "3.8.3",
     "prettier-plugin-svelte": "4.1.0",
     "prettier-plugin-tailwindcss": "0.8.0",
@@ -58,7 +61,6 @@
     "tsx": "4.22.4",
     "typescript": "6.0.3",
     "typescript-eslint": "8.60.1",
-    "vite": "8.0.16",
-    "vitest": "4.1.8"
+    "vite": "8.0.16"
   }
 }

@@ -19,7 +19,22 @@
 			"infrastructure": "Infraestructura",
 			"securityOps": "Seguridad y Operaciones",
 			"admin": "Administración",
-			"dashboard": "Panel"
+			"dashboard": "Panel",
+			"services": "Servicios",
+			"apps": "Aplicaciones",
+			"healthcheck": "Chequeo de salud",
+			"docker": "Docker",
+			"incus": "Incus",
+			"systemd": "systemd",
+			"storage": "Almacenamiento",
+			"network": "Red",
+			"processes": "Procesos",
+			"backups": "Respaldos",
+			"scheduler": "Programador",
+			"terminal": "Terminal",
+			"alerts": "Alertas",
+			"approvals": "Aprobaciones",
+			"audit": "Registro de auditoría"
 		}
 	},
 	"login": {

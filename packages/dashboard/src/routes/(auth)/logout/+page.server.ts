@@ -14,5 +14,5 @@ export const actions: Actions = {
 	default: async ({ cookies }) => {
 		cookies.delete('session_token', { path: '/' });
 		throw redirect(303, '/login');
-	}
+	},
 };

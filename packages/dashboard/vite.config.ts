@@ -15,13 +15,13 @@ export default defineConfig(({ mode }) => {
 
 		server: {
 			port: 5173,
-			strictPort: false
+			strictPort: false,
 		},
 
 		preview: {
 			port: 3080,
 			strictPort: false,
-			host: '0.0.0.0'
+			host: '0.0.0.0',
 		},
 
 		test: {
@@ -33,8 +33,8 @@ export default defineConfig(({ mode }) => {
 				provider: 'v8',
 				reporter: ['text', 'html', 'lcov'],
 				include: ['src/**/*.{js,ts,svelte}'],
-				exclude: ['src/**/*.{test,spec}.{js,ts,svelte}', 'src/app.d.ts', 'src/hooks.server.ts']
-			}
-		}
+				exclude: ['src/**/*.{test,spec}.{js,ts,svelte}', 'src/app.d.ts', 'src/hooks.server.ts'],
+			},
+		},
 	};
 });

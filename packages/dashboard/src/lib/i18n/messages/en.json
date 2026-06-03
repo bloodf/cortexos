@@ -19,7 +19,22 @@
 			"infrastructure": "Infrastructure",
 			"securityOps": "Security & Ops",
 			"admin": "Admin",
-			"dashboard": "Dashboard"
+			"dashboard": "Dashboard",
+			"services": "Services",
+			"apps": "Apps",
+			"healthcheck": "Healthcheck",
+			"docker": "Docker",
+			"incus": "Incus",
+			"systemd": "systemd",
+			"storage": "Storage",
+			"network": "Network",
+			"processes": "Processes",
+			"backups": "Backups",
+			"scheduler": "Scheduler",
+			"terminal": "Terminal",
+			"alerts": "Alerts",
+			"approvals": "Approvals",
+			"audit": "Audit log"
 		}
 	},
 	"login": {

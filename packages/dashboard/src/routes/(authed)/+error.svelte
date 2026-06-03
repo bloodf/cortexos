@@ -1,16 +1,23 @@
 <script lang="ts">
+	// `eslint-plugin-svelte`'s `valid-prop-names-in-kit-pages` rule
+	// whitelists `data`, `errors`, `form`, `params`, `snapshot`, and
+	// (in Svelte 5) `children` for SvelteKit page components. SvelteKit
+	// itself documents that `+error.svelte` receives `error` and
+	// `status` as built-in props — which the rule doesn't know about.
+	// Disable it for this file only.
+	/* eslint-disable svelte/valid-prop-names-in-kit-pages */
 	import type { LayoutData } from './$types';
 	import Button from '$lib/components/ui/Button.svelte';
 	import { t } from '$lib/i18n';
 
 	interface Props {
 		data: LayoutData;
-		error: Error & { status?: number };
+		error: App.Error;
+		status: number;
 	}
 
-	let { data, error }: Props = $props();
+	let { data, error, status }: Props = $props();
 
-	const status = $derived(error.status ?? 500);
 	const title = $derived(
 		status === 404 ? t(data.messages, 'errors.notFound') : t(data.messages, 'errors.serverError')
 	);

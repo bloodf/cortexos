@@ -1,12 +1,13 @@
 <script lang="ts" module>
 	import { writable, type Writable } from 'svelte/store';
+	import { SvelteMap } from 'svelte/reactivity';
 
 	type TabsContext = {
 		value: Writable<string>;
 		baseId: string;
 	};
 
-	const REGISTRY = new Map<string, TabsContext>();
+	const REGISTRY = new SvelteMap<string, TabsContext>();
 
 	export function registerTabs(id: string, value: Writable<string>): TabsContext {
 		const ctx: TabsContext = { value, baseId: id };
@@ -42,7 +43,7 @@
 
 	const store = writable(value);
 	const baseId = `tabs-${Math.random().toString(36).slice(2, 9)}`;
-	const ctx = registerTabs(baseId, store);
+	registerTabs(baseId, store);
 	onDestroy(() => unregisterTabs(baseId));
 
 	$effect(() => {
