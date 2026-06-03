@@ -57,5 +57,52 @@
 	"errors": {
 		"notFound": "Page not found",
 		"serverError": "Server error"
+	},
+	"services": {
+		"title": "Services",
+		"description": "Track every systemd unit and Docker container CortexOS knows about.",
+		"search": {
+			"placeholder": "Search by name, slug, or description…",
+			"label": "Filter services",
+			"clear": "Clear",
+			"allCategories": "All categories"
+		},
+		"empty": "No services match the current filter. Clear the filter to see all services.",
+		"table": {
+			"name": "Name",
+			"category": "Category",
+			"status": "Status",
+			"response": "Response",
+			"uptime": "Uptime 24h"
+		},
+		"detail": {
+			"health": "Health",
+			"healthDescription": "Latest probe result.",
+			"config": "Config",
+			"configDescription": "Service registration.",
+			"history": "Health history",
+			"historyDescription": "Last {count} probe(s).",
+			"historyEmpty": "No probes recorded yet.",
+			"recheck": "Recheck now",
+			"recheckLoading": "Rechecking…",
+			"fields": {
+				"responseTime": "Response time",
+				"uptime": "24h uptime",
+				"lastCheck": "Last check",
+				"probeType": "Probe type",
+				"slug": "Slug",
+				"kind": "Kind",
+				"healthUrl": "Health URL",
+				"openUrl": "Open URL",
+				"envSource": "Env source"
+			}
+		},
+		"status": {
+			"online": "Online",
+			"offline": "Offline",
+			"unknown": "Unknown",
+			"checking": "Checking",
+			"degraded": "Degraded"
+		}
 	}
 }

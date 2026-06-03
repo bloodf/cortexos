@@ -26,7 +26,8 @@
     "drizzle-kit": "^0.28.0",
     "@electric-sql/pglite": "^0.2.0",
     "pg": "^8.20.0",
-    "msw": "^2.6.0"
+    "msw": "^2.6.0",
+    "@cortexos/contracts": "workspace:*"
   },
   "devDependencies": {
     "@faker-js/faker": "^9.9.0",
