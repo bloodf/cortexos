@@ -260,6 +260,19 @@ export function installDefaultAllowlist(): void {
     requiresApproval: true,
     description: 'Run a container in privileged mode (SR-042).',
   });
+  // docker.exec — M2 (Margaret, E2E): allowlisted subcommand
+  // execution inside a running container. The `<command>` placeholder
+  // is bound to a value that was scanned by `validateShellArg` (T-104)
+  // and is in the page-level allowlist (no `bash -c <userstring>`).
+  // The bridge also re-runs the allowlist check + a literal `bash -c`
+  // argv scan (defence in depth — PB-2 / SR-019).
+  addAllowlisted({
+    name: 'docker.exec',
+    surface: 'docker',
+    argv: ['/usr/bin/docker', 'exec', '<container>', '<command>'],
+    requiresApproval: true,
+    description: 'Execute an allowlisted subcommand inside an allowlisted container (PB-2 fix).',
+  });
 
   // Incus (§4.4.4)
   for (const action of ['start', 'stop', 'restart', 'delete', 'launch', 'list']) {
