@@ -25,10 +25,12 @@
       "default": "./dist/errors.js"
     },
     "./audit": {
+      "browser": "./dist/audit.browser.js",
       "types": "./dist/audit.d.ts",
       "default": "./dist/audit.js"
     },
     "./approval": {
+      "browser": "./dist/approval.browser.js",
       "types": "./dist/approval.d.ts",
       "default": "./dist/approval.js"
     },
