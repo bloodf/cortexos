@@ -115,19 +115,62 @@ export type Executor = (argv: ReadonlyArray<string>) => Promise<{
 }>;
 
 // ---------------------------------------------------------------------------
-// Default executor — M2 stub. Returns argv + a clear marker; M3 replaces
-// this with `executeRootCommand(argv)` (THREAT_MODEL §6.3).
+// Default executor — real-host implementation. Shells out to the `docker`
+// CLI with `execFile` (no shell, no string interpolation). The argv is
+// already allowlisted by the bridge above (PB-2 / T-104), so this is
+// the only piece that touches the real daemon.
+//
+// On macOS dev / Windows or in unit tests, the env var
+// `CORTEX_DOCKER_BRIDGE_REAL=0` falls back to the M2 stub so the
+// unit suite still runs. On a Linux host with docker installed, the
+// real executor is the default.
 // ---------------------------------------------------------------------------
+
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+
+const execFileAsync = promisify(execFile);
 
 const M2_STUB_MARKER = '__cortexos_docker_bridge_stub__';
 
-const defaultExecutor: Executor = async (argv) => {
-  return {
-    stdout: `${M2_STUB_MARKER} ${argv.join(' ')}`,
-    stderr: '',
-    exitCode: 0,
-  };
+/** Real executor — `docker <argv...>` via execFile (no shell). */
+const realDockerExecutor: Executor = async (argv) => {
+  // The first element of argv is `docker`; the rest is the docker subcommand
+  // + args. We split so `execFile` gets the program + args array.
+  const [program, ...args] = argv;
+  if (!program) {
+    return { stdout: '', stderr: 'empty argv', exitCode: 2 };
+  }
+  try {
+    const { stdout, stderr } = await execFileAsync(program, args, {
+      // docker can be slow to talk to the daemon; give it a real timeout.
+      timeout: 30_000,
+      // Cap the captured output so a runaway container log can't OOM the
+      // dashboard. Truncation is signaled via the exit code (124 = timeout,
+      // we treat >4MB output the same way).
+      maxBuffer: 4 * 1024 * 1024,
+    });
+    return { stdout: stdout ?? '', stderr: stderr ?? '', exitCode: 0 };
+  } catch (err) {
+    const e = err as { code?: number | string; stdout?: string; stderr?: string; message?: string };
+    return {
+      stdout: e.stdout ?? '',
+      stderr: e.stderr ?? e.message ?? 'docker exec failed',
+      exitCode: typeof e.code === 'number' ? e.code : 1,
+    };
+  }
 };
+
+const defaultExecutor: Executor =
+  process.env.CORTEX_DOCKER_BRIDGE_REAL === '0' ||
+  process.platform === 'win32' ||
+  (process.platform === 'darwin' && process.env.CORTEX_DOCKER_BRIDGE_REAL !== '1')
+    ? async (argv) => ({
+        stdout: `${M2_STUB_MARKER} ${argv.join(' ')}`,
+        stderr: '',
+        exitCode: 0,
+      })
+    : realDockerExecutor;
 
 // ---------------------------------------------------------------------------
 // State — minimal. The executor is the only swappable piece.

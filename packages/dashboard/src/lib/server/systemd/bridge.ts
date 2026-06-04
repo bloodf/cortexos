@@ -42,6 +42,8 @@ import {
   type SystemdUnit,
   type SystemdLogLine,
   type SystemdActionKind,
+  type SystemdActiveState,
+  type SystemdLoadState,
 } from '@cortexos/contracts';
 import { audit } from '../audit';
 import { actionHashFor } from '../approval';
@@ -203,6 +205,87 @@ export function applyAction(unit: SystemdUnit, action: SystemdActionKind): Syste
 }
 
 // ---------------------------------------------------------------------------
+// Real executor (Linux only). Calls `systemctl` via execFile — no shell,
+// no string interpolation. The unit name and action are both already
+// allowlisted by the bridge before this runs (PB-2 / T-104).
+//
+// On macOS dev or in unit tests, the env var
+// `CORTEX_SYSTEMD_BRIDGE_REAL=0` falls back to the M2 mock so the
+// unit suite still runs. On a Linux host running systemd, the real
+// executor is the default.
+// ---------------------------------------------------------------------------
+
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+
+const execFileAsync = promisify(execFile);
+
+/**
+ * Map a `systemctl show` key=value block to a partial SystemdUnit.
+ * `systemctl show` emits lines like `ActiveState=active\nSubState=running`.
+ */
+function parseSystemctlShow(out: string, fallback: SystemdUnit): SystemdUnit {
+  const get = (k: string): string | undefined => {
+    const m = new RegExp(`^${k}=(.*)$`, 'm').exec(out);
+    return m?.[1];
+  };
+  const active = (get('ActiveState') as SystemdActiveState) ?? fallback.active;
+  const sub = get('SubState') ?? fallback.sub;
+  const load = (get('LoadState') as SystemdLoadState) ?? fallback.load;
+  const unitFileState = get('UnitFileState') ?? '';
+  const enabled = unitFileState === 'enabled' || unitFileState === 'enabled-runtime';
+  const type = get('Type') ?? fallback.type;
+  const unitPath = get('FragmentPath') ?? null;
+  const description = get('Description') ?? fallback.description;
+  return {
+    ...fallback,
+    description,
+    load,
+    active,
+    sub,
+    enabled,
+    type,
+    unitPath: unitPath === '' ? null : unitPath,
+  };
+}
+
+const MOCK_MARKER = '__cortexos_systemd_mock__';
+
+const realSystemdExecutor: UnitExecutor = async (ctx) => {
+  // `start`, `stop`, etc. take no extra args; `enable`/`disable` same.
+  // `reload` targets a unit; systemctl accepts `--` before the name but
+  // we don't need it for the simple `systemctl <action> <name>` form.
+  const args: string[] = [ctx.action, ctx.unit.name];
+  try {
+    const { stdout, stderr } = await execFileAsync('/usr/bin/systemctl', args, {
+      timeout: 30_000,
+      maxBuffer: 4 * 1024 * 1024,
+    });
+    // After the action, query the current state so the UI re-renders
+    // with the real post-action values.
+    const { stdout: showOut } = await execFileAsync(
+      '/usr/bin/systemctl',
+      [
+        'show',
+        ctx.unit.name,
+        '--property=ActiveState,SubState,LoadState,UnitFileState,Type,FragmentPath,Description',
+      ],
+      { timeout: 10_000, maxBuffer: 256 * 1024 },
+    );
+    const updated = parseSystemctlShow(showOut, ctx.unit);
+    return { stdout: stdout ?? '', stderr: stderr ?? '', exitCode: 0, unit: updated };
+  } catch (err) {
+    const e = err as { code?: number | string; stdout?: string; stderr?: string; message?: string };
+    return {
+      stdout: e.stdout ?? '',
+      stderr: e.stderr ?? e.message ?? 'systemctl exec failed',
+      exitCode: typeof e.code === 'number' ? e.code : 1,
+      unit: ctx.unit,
+    };
+  }
+};
+
+// ---------------------------------------------------------------------------
 // Seed units — representative set for the M2 mock. Declared above the
 // executor state so the eager-init block can reference it.
 // ---------------------------------------------------------------------------
@@ -351,6 +434,17 @@ let executor: UnitExecutor = ((p) => {
 }) as UnitExecutor;
 
 (function init() {
+  // On Linux + systemd, default to the real executor so the dashboard
+  // can actually start/stop/restart units in production. On macOS or
+  // when CORTEX_SYSTEMD_BRIDGE_REAL=0 is set, fall back to the M2 mock
+  // so dev workstations and unit tests keep working.
+  const useReal =
+    process.platform === 'linux' &&
+    process.env.CORTEX_SYSTEMD_BRIDGE_REAL !== '0';
+  if (useReal) {
+    executor = realSystemdExecutor;
+    return;
+  }
   const { mock, executor: e } = makeDefaultMock();
   currentMock = mock;
   executor = e;
@@ -392,19 +486,89 @@ export function _resetSystemdBridgeForTests(): void {
 // ---------------------------------------------------------------------------
 
 /**
- * List all units. The M2 mock returns the seeded + mutated snapshot;
- * M3 will swap to `systemctl list-units --type=service --all` and
- * adapt the output to `SystemdUnit[]`.
+ * List all units. On Linux + real mode, calls `systemctl list-units
+ * --type=service --all --no-pager` and adapts the output to
+ * `SystemdUnit[]`. Otherwise returns the M2 mock's seeded snapshot.
  */
 export async function listUnits(): Promise<SystemdUnit[]> {
-  if (currentMock) return currentMock.list();
-  return [];
+  if (!currentMock) {
+    return listUnitsFromSystemctl();
+  }
+  return currentMock.list();
 }
 
 /** Look up a unit by name. Returns null when not found. */
 export async function getUnit(name: string): Promise<SystemdUnit | null> {
-  if (currentMock) return currentMock.snapshot(name);
-  return null;
+  if (!currentMock) {
+    return getUnitFromSystemctl(name);
+  }
+  return currentMock.snapshot(name);
+}
+
+/**
+ * Real `systemctl show <name> --property=...` lookup. Returns null
+ * if the unit doesn't exist (systemctl exits non-zero).
+ */
+async function getUnitFromSystemctl(name: string): Promise<SystemdUnit | null> {
+  try {
+    const { stdout } = await execFileAsync(
+      '/usr/bin/systemctl',
+      [
+        'show',
+        name,
+        '--property=Names,Description,LoadState,ActiveState,SubState,UnitFileState,Type,FragmentPath',
+      ],
+      { timeout: 5_000, maxBuffer: 64 * 1024 },
+    );
+    const props: Record<string, string> = {};
+    for (const line of stdout.split('\n')) {
+      const m = /^(\w+)=(.*)$/.exec(line);
+      if (m) props[m[1]!] = m[2]!;
+    }
+    // If systemctl returned only the names line, the unit doesn't exist.
+    if (Object.keys(props).length <= 1) return null;
+    const unitFileState = props.UnitFileState ?? '';
+    return {
+      name,
+      description: props.Description ?? '',
+      load: (props.LoadState as SystemdLoadState) ?? 'loaded',
+      active: (props.ActiveState as SystemdActiveState) ?? 'unknown',
+      sub: props.SubState ?? '',
+      enabled: unitFileState === 'enabled' || unitFileState === 'enabled-runtime',
+      type: props.Type ?? 'service',
+      unitPath: props.FragmentPath?.trim() || null,
+      allowlisted: true,
+      critical: false,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Real `systemctl list-units` loader. Limited to a few representative
+ * units for the live-host UI; full listing would be a v0.5.0 job.
+ */
+async function listUnitsFromSystemctl(): Promise<SystemdUnit[]> {
+  try {
+    const { stdout } = await execFileAsync(
+      '/usr/bin/systemctl',
+      ['list-units', '--type=service', '--all', '--no-pager', '--no-legend', '--plain'],
+      { timeout: 5_000, maxBuffer: 256 * 1024 },
+    );
+    const out: SystemdUnit[] = [];
+    for (const line of stdout.split('\n')) {
+      const m = /^(\S+)\s+(\S+)\s+(\S+)\s+(\S+)/.exec(line.trim());
+      if (!m) continue;
+      const [, name, load, active, sub] = m;
+      if (!name || !name.endsWith('.service')) continue;
+      const unit = await getUnitFromSystemctl(name);
+      if (unit) out.push(unit);
+    }
+    return out.sort((a, b) => a.name.localeCompare(b.name));
+  } catch {
+    return [];
+  }
 }
 
 /** Return the most-recent `limit` log lines for a unit. */

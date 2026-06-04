@@ -248,7 +248,14 @@ describe('docker-bridge — PB-2 + PB-5 + swappable executor', () => {
   });
 
   it('uses the M2 stub marker by default', async () => {
-    // Don't set an executor — the default M2 stub runs.
+    // Force the M2 stub regardless of platform — on Linux the bridge's
+    // default is the real executor, but this test exercises the stub.
+    const stubExecutor: Executor = async (argv) => ({
+      stdout: `${_STUB_MARKER} ${argv.join(' ')}`,
+      stderr: '',
+      exitCode: 0,
+    });
+    setExecutorForTests(stubExecutor);
     const token = mintApproval({
       action: 'docker.start',
       payload: { op: 'docker.start', args: { container: 'foo' } },
