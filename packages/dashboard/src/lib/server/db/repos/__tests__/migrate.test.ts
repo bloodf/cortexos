@@ -86,16 +86,26 @@ afterAll(async () => {
 
 describe("migration roundtrip", () => {
 	it("applies all migrations in lexical order", async () => {
-		// Should run 001..007 in this run (no prior migrations applied).
-		expect(ran.length).toBe(7);
+		// Six files in `migrations/` after the M1.5 + M2 cleanup:
+		//   001_schema                                    — base tables (M1)
+		//   002_session_columns_for_auth                  — admin_sessions columns (M2-WS3)
+		//   003_incus_instances                           — wizard-saved instance rows (M1-WS6)
+		//   006_indexes_for_rbac_audit                    — RBAC + audit indexes (M1-WS6)
+		//   007_grants_dashboard_command_audit            — dashboard role grants (M1-WS6)
+		//   008_dashboard_command_audit                   — the table itself (M1.5 follow-up)
+		// Filenames 004 / 005 are intentionally not used in this branch —
+		// the 002_seed/003_incus/004_reconcile/005_dashboard_command_audit
+		// four-file expectation was authored against a pre-M1.5 state that
+		// has since been superseded by 002_session_columns_for_auth +
+		// 006_indexes_for_rbac_audit + 008_dashboard_command_audit.
+		expect(ran.length).toBe(6);
 		expect(ran).toEqual([
 			"001_schema",
-			"002_seed",
+			"002_session_columns_for_auth",
 			"003_incus_instances",
-			"004_reconcile_health",
-			"005_dashboard_command_audit",
 			"006_indexes_for_rbac_audit",
 			"007_grants_dashboard_command_audit",
+			"008_dashboard_command_audit",
 		]);
 	});
 
@@ -106,12 +116,11 @@ describe("migration roundtrip", () => {
 		const applied = rows.rows.map((r) => r.name);
 		for (const expected of [
 			"001_schema",
-			"002_seed",
+			"002_session_columns_for_auth",
 			"003_incus_instances",
-			"004_reconcile_health",
-			"005_dashboard_command_audit",
 			"006_indexes_for_rbac_audit",
 			"007_grants_dashboard_command_audit",
+			"008_dashboard_command_audit",
 		]) {
 			expect(applied).toContain(expected);
 		}

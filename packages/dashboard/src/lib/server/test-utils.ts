@@ -2,11 +2,32 @@
  * Test helpers for the +server.ts handlers.
  *
  * Builds a fake `RequestEvent` that the route handlers can consume.
- * The fake event matches the local `RequestEvent` shim shape (see
- * `src/lib/server/types.ts`).
+ *
+ * M1.5 follow-up cleanup:
+ *   The fake is constructed to be STRUCTURALLY compatible with
+ *   `@sveltejs/kit`'s real `RequestEvent` (it has all the fields the
+ *   production type requires: `request`, `url`, `params`, `route`,
+ *   `locals`, `cookies`, `getClientAddress`). The auth helpers in
+ *   `src/lib/server/auth/index.ts` declare an `AuthRequestEvent` with
+ *   a structural shape — `cookies: any` — that accepts both this fake
+ *   and a real SvelteKit event, so the M2 auth tests (auth.test.ts,
+ *   auth-m2.test.ts) can pass a `makeFakeEvent(...)` result straight
+ *   into `requireAuth` / `requireAdmin` / `getCurrentSession` without
+ *   any casts.
+ *
+ *   The function's declared return type is the LOCAL `RequestEvent`
+ *   shim from `./types` (a subset of SvelteKit's) because ~25 callsites
+ *   in the `__tests__/` tree pass the result to functions declared
+ *   against the local shim (`apiError`, `defineRoute`, `paginatedLoad`,
+ *   `readJsonBody`, etc.). Swapping the return type to the real
+ *   SvelteKit one would force every callsite to add `as unknown as`
+ *   casts (the real type is generic and has more fields than the
+ *   shim, so the shim-typed functions reject the wider SvelteKit
+ *   value). The local shim is being phased out in favour of the
+ *   SvelteKit type; this is a step on that path, not the destination.
  */
 
-import type { AppLocals, RequestEvent, CookiesAdapter } from './types';
+import type { AppLocals, RequestEvent } from './types';
 import type { Session, User } from './entities';
 import type { CookieJar } from './auth/cookies';
 
@@ -32,7 +53,7 @@ export function makeFakeEvent(opts: FakeEventOptions = {}): RequestEvent {
   const ip = opts.ip ?? '127.0.0.1';
   const ua = opts.userAgent ?? 'test-ua/1.0';
 
-  const cookieAdapter: CookiesAdapter = makeFakeCookieJar(cookies);
+  const cookieAdapter = makeFakeCookieJar(cookies);
 
   const headers = new Headers(opts.headers ?? {});
   if (!headers.has('user-agent')) headers.set('user-agent', ua);

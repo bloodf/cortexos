@@ -38,14 +38,14 @@
 --      Supports "show me everything from source=paperclip" style
 --      queries in the audit viewer.
 --
---   5. idx_dashboard_command_audit_session
---      On (dashboard_command_audit.dashboard_session_id, created_at DESC)
---      Supports per-session command history (e.g. "what did this
---      admin's session do?"). The 005 migration covers the per-request
---      and per-status paths but not per-session.
---
 -- Idempotency: every CREATE uses IF NOT EXISTS; safe to re-apply.
 -- No self-record: the migration runner records the filename itself.
+--
+-- Note: `idx_dashboard_command_audit_session` was originally created here
+-- in M0. The M1.5 follow-up moves the `dashboard_command_audit` table
+-- itself into migration 008; the session index now lives in 008
+-- alongside the rest of that table's indexes (the table has to exist
+-- before any index on it can be created).
 
 CREATE INDEX IF NOT EXISTS idx_admin_sessions_expires_at
   ON admin_sessions (expires_at);
@@ -58,6 +58,3 @@ CREATE INDEX IF NOT EXISTS idx_audit_log_actor
 
 CREATE INDEX IF NOT EXISTS idx_audit_log_source
   ON audit_log (source, occurred_at DESC);
-
-CREATE INDEX IF NOT EXISTS idx_dashboard_command_audit_session
-  ON dashboard_command_audit (dashboard_session_id, created_at DESC);
