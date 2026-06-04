@@ -44,6 +44,7 @@
 import { randomBytes } from 'node:crypto';
 import { and, eq, gt, sql } from 'drizzle-orm';
 import type { DbClient } from '../db/client';
+import { getDb } from '../db/client';
 import { adminSessions, pamUsers } from '../db/schema';
 import type { GroupName, Session, SessionId, User, UserId } from '../entities';
 import { asSessionId, asUserId } from '../entities';
@@ -160,11 +161,15 @@ export function resetSessionStore(): void {
 }
 
 function pickDefault(): SessionStore {
-  // In tests we install the in-memory store explicitly. The default
-  // is a Drizzle-backed store; if the DB env is not present (e.g.
-  // a build step), the next call will throw a clear error. Tests
-  // must not rely on the Drizzle path.
-  return new InMemorySessionStore();
+  // Production: Drizzle-backed store against the configured `DbClient`
+  // (real Postgres in production, PGlite in tests). The lazy DbClient
+  // throws a clear error if the DB env is not present (e.g. a build
+  // step) so the failure mode is loud, not silent.
+  //
+  // Tests that need an in-memory store should call setSessionStore
+  // explicitly in their setup; the default is intentionally
+  // Drizzle so production deployments get persistence out of the box.
+  return new DrizzleSessionStore(getDb());
 }
 
 // ---------------------------------------------------------------------------
