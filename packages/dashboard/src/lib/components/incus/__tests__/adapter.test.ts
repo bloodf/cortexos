@@ -108,7 +108,8 @@ describe('adapter — view-model helpers', () => {
   });
 
   it('isRunning + formatResources', () => {
-    const active = SEED[0]!;
+    // The seed is sorted by name; `hermes-canary` is the active one.
+    const active = SEED.find((i) => i.name === 'hermes-canary')!;
     expect(isRunning(active)).toBe(true);
     const r = formatResources(active);
     expect(r.cpu).toContain('vCPU');

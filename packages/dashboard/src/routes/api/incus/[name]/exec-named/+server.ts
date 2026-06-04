@@ -14,9 +14,13 @@
  * The route delegates the policy + arg-smuggling checks to
  * `dispatchExecNamed` in `$lib/server/incus/bridge.ts`, which is
  * the same seam the docker + terminal bridges use.
+ *
+ * Response shape: every failure path returns a `Response` directly
+ * (not a thrown `error()`) so unit tests can assert the status code
+ * without going through SvelteKit's error pipeline.
  */
 import { z } from 'zod';
-import { error, json } from '@sveltejs/kit';
+import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getCurrentSession, isAdmin } from '$lib/server/auth';
 import { dispatchExecNamed } from '$lib/server/incus/bridge';
@@ -27,25 +31,39 @@ const ExecInput = z.object({
   args: z.record(z.string(), z.unknown()).default({}),
 });
 
+function errorResponse(status: number, message: string, code: string): Response {
+  return new Response(JSON.stringify({ message, code }), {
+    status,
+    headers: { 'content-type': 'application/json; charset=utf-8' },
+  });
+}
+
+function methodNotAllowed(): Response {
+  return new Response('Method not allowed', {
+    status: 405,
+    headers: { allow: 'POST' },
+  });
+}
+
 export const POST: RequestHandler = async (event) => {
   const name = event.params.name;
-  if (!name) throw error(400, 'Missing instance name');
+  if (!name) return errorResponse(400, 'Missing instance name', 'validation');
 
   // 1. Auth (admin only).
   const resolved = await getCurrentSession(event);
-  if (!resolved) throw error(401, 'Authentication required');
-  if (!isAdmin(resolved.user)) throw error(403, 'Admin role required');
+  if (!resolved) return errorResponse(401, 'Authentication required', 'auth');
+  if (!isAdmin(resolved.user)) return errorResponse(403, 'Admin role required', 'permission');
 
   // 2. Input validation.
   let body: unknown;
   try {
     body = await event.request.json();
   } catch {
-    throw error(400, 'Invalid JSON body');
+    return errorResponse(400, 'Invalid JSON body', 'validation');
   }
   const parsed = ExecInput.safeParse(body);
   if (!parsed.success) {
-    throw error(400, 'Invalid input shape');
+    return errorResponse(400, 'Invalid input shape', 'validation');
   }
 
   // 3. Dispatch through the bridge. The bridge re-runs the
@@ -83,11 +101,7 @@ export const POST: RequestHandler = async (event) => {
   );
 };
 
-export const GET: RequestHandler = () =>
-  new Response('Method not allowed', { status: 405, headers: { allow: 'POST' } });
-export const PUT: RequestHandler = () =>
-  new Response('Method not allowed', { status: 405, headers: { allow: 'POST' } });
-export const PATCH: RequestHandler = () =>
-  new Response('Method not allowed', { status: 405, headers: { allow: 'POST' } });
-export const DELETE: RequestHandler = () =>
-  new Response('Method not allowed', { status: 405, headers: { allow: 'POST' } });
+export const GET: RequestHandler = () => methodNotAllowed();
+export const PUT: RequestHandler = () => methodNotAllowed();
+export const PATCH: RequestHandler = () => methodNotAllowed();
+export const DELETE: RequestHandler = () => methodNotAllowed();

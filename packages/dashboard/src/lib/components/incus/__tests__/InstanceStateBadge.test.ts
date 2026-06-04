@@ -20,13 +20,13 @@ describe('InstanceStateBadge', () => {
   const cases: Array<{ state: IncusStatusLit; variantClass: string; label: string }> = [
     { state: 'draft', variantClass: 'text-foreground', label: 'Draft' },
     { state: 'validated', variantClass: 'text-foreground', label: 'Validated' },
-    { state: 'provisioning', variantClass: 'text-info-foreground', label: 'Provisioning' },
-    { state: 'active', variantClass: 'text-success-foreground', label: 'Active' },
-    { state: 'failed', variantClass: 'text-destructive-foreground', label: 'Failed' },
-    { state: 'running', variantClass: 'text-success-foreground', label: 'Running' },
+    { state: 'provisioning', variantClass: 'text-info', label: 'Provisioning' },
+    { state: 'active', variantClass: 'text-success', label: 'Active' },
+    { state: 'failed', variantClass: 'text-destructive', label: 'Failed' },
+    { state: 'running', variantClass: 'text-success', label: 'Running' },
     { state: 'stopped', variantClass: 'text-secondary-foreground', label: 'Stopped' },
-    { state: 'frozen', variantClass: 'text-warning-foreground', label: 'Frozen' },
-    { state: 'error', variantClass: 'text-destructive-foreground', label: 'Error' },
+    { state: 'frozen', variantClass: 'text-warning', label: 'Frozen' },
+    { state: 'error', variantClass: 'text-destructive', label: 'Error' },
   ];
 
   it.each(cases)('renders state=$state with the correct variant', ({ state, variantClass, label }) => {

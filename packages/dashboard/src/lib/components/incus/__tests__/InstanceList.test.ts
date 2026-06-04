@@ -61,8 +61,8 @@ describe('InstanceList', () => {
     const { container } = render(InstanceList, {
       props: { instances: SEED, messages },
     });
-    // The DataTable primitive renders <tr data-slot="data-table-row">
-    const rows = container.querySelectorAll('[data-slot="data-table-row"]');
+    // The DataTable primitive renders <tr data-slot="table-row">.
+    const rows = container.querySelectorAll('tbody [data-slot="table-row"]');
     expect(rows.length).toBe(SEED.length);
   });
 
@@ -70,7 +70,7 @@ describe('InstanceList', () => {
     const { container } = render(InstanceList, {
       props: { instances: SEED, messages },
     });
-    const headers = container.querySelectorAll('[data-slot="data-table-header-cell"]');
+    const headers = container.querySelectorAll('th[data-slot="table-head"]');
     expect(headers.length).toBeGreaterThanOrEqual(5);
     const headerText = Array.from(headers).map((h) => h.textContent?.trim());
     expect(headerText).toContain('Name');
@@ -79,13 +79,11 @@ describe('InstanceList', () => {
     expect(headerText).toContain('Status');
   });
 
-  it('renders an empty state when the list is empty', () => {
+  it('renders the "No results." text when the list is empty', () => {
     const { container } = render(InstanceList, {
       props: { instances: [], messages },
     });
-    // DataTable shows an empty message slot.
-    const empty = container.querySelector('[data-slot="data-table-empty"]');
-    expect(empty).not.toBeNull();
+    expect(container.textContent).toContain('No results.');
   });
 
   it('exposes the data-slot=instance-list', () => {

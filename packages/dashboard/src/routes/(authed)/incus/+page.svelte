@@ -43,11 +43,13 @@
   const newLabel = $derived(t(data.messages, 'incus.new'));
 
   // Local mirror of the URL search params. The page is the single
-  // source of truth. svelte-ignore state_referenced_locally
-  // svelte-ignore state_referenced_locally
+  // source of truth — each $state line intentionally captures the
+  // initial value of `data` and re-syncs via the URL.
   // svelte-ignore state_referenced_locally
   let activeQuery = $state<string>(data.q);
+  // svelte-ignore state_referenced_locally
   let activeStatus = $state<StatusFilter>(data.status);
+  // svelte-ignore state_referenced_locally
   let activeType = $state<TypeFilter>(data.type);
 
   /**

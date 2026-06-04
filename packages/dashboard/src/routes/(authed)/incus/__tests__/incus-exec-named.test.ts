@@ -24,36 +24,35 @@ beforeEach(() => {
 });
 
 describe('/api/incus/[name]/exec-named (PB-4)', () => {
-  it('POST requires admin (401 without auth)', async () => {
+  it('POST requires auth (401 without session)', async () => {
     const res = await (execPost as unknown as (e: unknown) => Promise<Response>)(
       makeFakeEvent({
         method: 'POST',
         params: { name: 'hermes-canary' },
         url: 'http://localhost/api/incus/hermes-canary/exec-named',
         body: { op: 'term.ps', args: {} },
+      }),
+    );
+    // The route throws 401 (not 403) when the session is missing.
+    // The bridge-level op-rejection is covered in adapter.test.ts.
+    expect(res.status).toBe(401);
+  });
+
+  it('POST rejects an unknown op (closed allowlist)', async () => {
+    // Without a session, the auth gate runs first and returns 401.
+    // The bridge-level op-rejection is covered in adapter.test.ts.
+    const res = await (execPost as unknown as (e: unknown) => Promise<Response>)(
+      makeFakeEvent({
+        method: 'POST',
+        params: { name: 'hermes-canary' },
+        url: 'http://localhost/api/incus/hermes-canary/exec-named',
+        body: { op: 'term.bash_c' as never, args: {} },
       }),
     );
     expect(res.status).toBe(401);
   });
 
-  it('POST rejects an unknown op (closed allowlist)', async () => {
-    // We can't easily inject an admin session into the route layer
-    // (the makeFakeEvent doesn't seed a session store entry), so
-    // the conservative 401 is the expected outcome — it confirms
-    // the admin gate runs before the op check. The bridge-level
-    // op-rejection is covered in adapter.test.ts.
-    const res = await (execPost as unknown as (e: unknown) => Promise<Response>)(
-      makeFakeEvent({
-        method: 'POST',
-        params: { name: 'hermes-canary' },
-        url: 'http://localhost/api/incus/hermes-canary/exec-named',
-        body: { op: 'term.ps', args: {} },
-      }),
-    );
-    expect(res.status).toBeGreaterThanOrEqual(400);
-  });
-
-  it('POST rejects malformed JSON body (400)', async () => {
+  it('POST rejects malformed JSON body (401 before parse)', async () => {
     const res = await (execPost as unknown as (e: unknown) => Promise<Response>)(
       makeFakeEvent({
         method: 'POST',
@@ -63,8 +62,7 @@ describe('/api/incus/[name]/exec-named (PB-4)', () => {
         headers: { 'content-type': 'application/json' },
       }),
     );
-    // Auth runs before parsing; without a session, expect 401.
-    expect(res.status).toBeGreaterThanOrEqual(400);
+    expect(res.status).toBe(401);
   });
 
   it('GET is method-not-allowed (405)', async () => {
