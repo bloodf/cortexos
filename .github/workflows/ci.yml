@@ -7,7 +7,7 @@
 #   PR / push-main  → 1 typecheck · 2 lint · 3 format · 4 markdown · 5 unit · 6 coverage
 #                     7 a11y · 8 contract · 9 e2e-chromium · 10 build
 #                     11 codeql · 12 gitleaks · 13 dep-audit · shell · compose
-#   push-main only  → 14 e2e-full-matrix · 15 sbom (informational)
+#   push-main only  → 14a real-host-smoke · 14b e2e-full-matrix · 15 sbom (informational)
 #
 # Husky-as-CI doctrine: every gate below also runs locally via scripts/ci-local.sh.
 # A green local run is the *floor*; CI is the *contract*.
@@ -474,6 +474,56 @@ jobs:
             **/test-results
           retention-days: 30
           if-no-files-found: ignore
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Gate 14a · Real-host smoke test (self-hosted runner; main + nightly only)
+  #
+  # Runs scripts/smoke/real-host.sh against a live Ubuntu 24.04 host with
+  # the dashboard systemd service + Postgres 16 installed. This is the
+  # gate that catches production bugs the unit suite cannot see (the
+  # authenticate-pam ESM/callback/serviceName trio + the is_admin vs
+  # isAdmin User shape mismatch were both found this way during M0-M4).
+  #
+  # Requires a self-hosted runner with the label `cortexos-test`. Until
+  # that runner is registered, this job is `continue-on-error: true` so
+  # it does not block the gate aggregate.
+  # ────────────────────────────────────────────────────────────────────────
+  real-host-smoke:
+    name: real-host smoke (A2)
+    if: github.event_name != 'pull_request'
+    runs-on: [self-hosted, cortexos-test]
+    timeout-minutes: 15
+    continue-on-error: true
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: '5432'
+      DB_NAME: cortex_dashboard
+      DB_USER: dashboard
+      # DB_PASSWORD is set as a repo secret — do not log it.
+      SERVICE_NAME: cortex-dashboard.service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Build the dashboard (host build)
+        run: pnpm --filter ${{ env.SVELTE_PKG }} run build
+      - name: Restart cortex-dashboard.service
+        run: |
+          sudo systemctl restart "${SERVICE_NAME}"
+          sleep 3
+          sudo systemctl is-active --quiet "${SERVICE_NAME}" \
+            || (echo "::error::${SERVICE_NAME} did not come up"; exit 1)
+      - name: Run real-host smoke
+        env:
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: bash scripts/smoke/real-host.sh
 
   # ────────────────────────────────────────────────────────────────────────
   # Gate 14b · SBOM (informational; on main + nightly only)
