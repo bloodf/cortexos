@@ -43,6 +43,7 @@ const user: User = {
   id: asUserId('user_test'),
   username: 'tester',
   is_admin: true,
+  isAdmin: true,
   isActive: true,
   groupMemberships: ['cortexos-admin', 'cortexos-users'],
 };

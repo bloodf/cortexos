@@ -131,7 +131,7 @@ describe('users stub', () => {
       is_admin: false,
       isActive: true,
       groupMemberships: [],
-    });
+    } as never);
     expect(u.id).toBe('u1');
     expect(getUserById('u1')?.username).toBe('a');
     expect(getUserById('nope')).toBeNull();

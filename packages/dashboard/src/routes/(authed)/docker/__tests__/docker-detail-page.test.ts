@@ -26,6 +26,7 @@ function makeAdminUser(): User {
     id: asUserId('user_admin'),
     username: 'admin',
     is_admin: true,
+    isAdmin: true,
     isActive: true,
     groupMemberships: ['cortexos-admin', 'cortexos-users'],
   };

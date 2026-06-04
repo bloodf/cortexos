@@ -88,10 +88,13 @@ export const handle: Handle = async ({ event, resolve }) => {
     const store = getSessionStore();
     const resolved = await store.resolveByToken(token);
     if (resolved) {
-      // M3 TODO: real-type the auth module's User/Session against @cortexos/contracts.
-      // The auth module's local entities.ts mirrors the contracts shape but
-      // diverges (e.g. is_admin vs isAdmin, lastRoleCheckAt vs lastRoleCheck,
-      // missing createdAt/cookieToken). Until that plumbing lands, cast here.
+      // Bridge: resolved.user is the auth module's local User (string-typed
+      // GroupMembership, integer IDs, lastRoleCheckAt) and the App.Locals
+      // contracts User has the wire-format shape (UUID, object GroupMembership,
+      // lastRoleCheck). The runtime values are populated by toUserEntity /
+      // rowToUser / resolveByToken — see A1 fix b1e84e3 for isAdmin. A full
+      // type re-type is deferred; the bounded cast here is the only place
+      // the two shapes meet.
       event.locals.user = resolved.user as unknown as ContractUser;
       event.locals.session = resolved.session as unknown as ContractSession;
 

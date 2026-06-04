@@ -160,10 +160,12 @@ export function makeFakeCookieJar(initial: Record<string, string> = {}): FakeCoo
 
 /** Build a fake authenticated User for use in tests. */
 export function makeFakeUser(overrides: Partial<User> = {}): User {
+  const isAdmin = overrides.isAdmin ?? overrides.is_admin ?? false;
   return {
     id: ('user_' + Math.random().toString(36).slice(2, 10)) as User['id'],
     username: overrides.username ?? 'testuser',
-    is_admin: overrides.is_admin ?? false,
+    is_admin: isAdmin,
+    isAdmin,
     isActive: overrides.isActive ?? true,
     groupMemberships: overrides.groupMemberships ?? [],
   };

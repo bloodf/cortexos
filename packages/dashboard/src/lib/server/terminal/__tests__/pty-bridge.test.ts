@@ -35,6 +35,7 @@ function makeUser(overrides: Partial<User> = {}): User {
     id: asUserId('user-test'),
     username: 'tester',
     is_admin: true,
+    isAdmin: true,
     isActive: true,
     groupMemberships: ['cortexos-admin'],
     ...overrides,

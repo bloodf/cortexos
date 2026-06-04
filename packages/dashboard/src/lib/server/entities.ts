@@ -49,10 +49,8 @@ export interface User {
    *  predates the contracts shape migration. Always equal to `isAdmin`. */
   readonly is_admin: boolean;
   /** Canonical camelCase form (matches @cortexos/contracts User).
-   *  Optional in the type so legacy test fixtures don't have to set it;
-   *  the runtime always populates it via `toUserEntity`. When set, it
-   *  equals `is_admin`. */
-  readonly isAdmin?: boolean;
+   *  The runtime always populates it via `toUserEntity` / `rowToUser`. */
+  readonly isAdmin: boolean;
   readonly isActive: boolean;
   readonly groupMemberships: ReadonlyArray<GroupName>;
 }
