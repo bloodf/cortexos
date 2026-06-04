@@ -45,7 +45,14 @@ export type GroupName = 'cortexos-admin' | 'cortexos-auditor' | 'cortexos-users'
 export interface User {
   readonly id: UserId;
   readonly username: string;
+  /** Snake-case legacy alias — kept for backward-compat with code that
+   *  predates the contracts shape migration. Always equal to `isAdmin`. */
   readonly is_admin: boolean;
+  /** Canonical camelCase form (matches @cortexos/contracts User).
+   *  Optional in the type so legacy test fixtures don't have to set it;
+   *  the runtime always populates it via `toUserEntity`. When set, it
+   *  equals `is_admin`. */
+  readonly isAdmin?: boolean;
   readonly isActive: boolean;
   readonly groupMemberships: ReadonlyArray<GroupName>;
 }

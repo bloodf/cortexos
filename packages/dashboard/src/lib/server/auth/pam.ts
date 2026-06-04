@@ -145,6 +145,9 @@ export function resetPamAuthenticator(): void {
  *   - We never look at `sudo` or `wheel` (THREAT_MODEL SR-003) —
  *     `cortexos-admin` is the only admin-bearing group.
  */
+/** PAM service name — defaults to `cortexos-dashboard`, override via env. */
+const PAM_SERVICE_NAME = process.env.CORTEX_AUTH_PAM_SERVICE || 'cortexos-dashboard';
+
 export class LinuxPamAuthenticator implements PamAuthenticator {
   readonly name = 'linux-pam';
 
@@ -168,14 +171,29 @@ export class LinuxPamAuthenticator implements PamAuthenticator {
       fakeAuthRoundTrip(password);
       return { ok: false, reason: 'invalid_credentials' };
     }
-    // 2. Real PAM auth. `authenticate-pam` throws on failure.
+    // 2. Real PAM auth. The native `authenticate-pam` package is
+    //    callback-based (Node-style: (err) => void), not Promise-
+    //    based. Wrap it here.
     try {
-      await pam.authenticate(username, password);
+      await new Promise<void>((resolve, reject) => {
+        // The 4th arg is the options bag: { serviceName, remoteHost }.
+        // We pass the configured PAM service name so the deploy step
+        // can install a `/etc/pam.d/cortexos-dashboard` file with the
+        // exact auth stack we want (no `pam_env` surprises, no
+        // `pam_mail` chatter). The `remoteHost` is the client IP —
+        // PAM_RHOST helps audit logs correlate the auth attempt.
+        pam.authenticate(
+          username,
+          password,
+          (err: unknown) => (err ? reject(err) : resolve()),
+          { serviceName: PAM_SERVICE_NAME, remoteHost: 'cortex-dashboard' },
+        );
+      });
       return { ok: true, username };
     } catch (err) {
       const reason = classifyPamError(err);
       // eslint-disable-next-line no-console
-      console.warn('[cortexos/auth] pam.denied', { username, reason });
+      console.warn('[cortexos/auth] pam.denied', { username, reason, err: (err as Error).message });
       return { ok: false, reason };
     }
   }
@@ -298,8 +316,12 @@ function isDashboardGroup(g: string): g is GroupName {
  */
 let pamModule:
   | {
-      authenticate: (user: string, password: string) => Promise<void>;
-      validate: (user: string) => Promise<boolean>;
+      authenticate: (
+        user: string,
+        password: string,
+        cb: (err: unknown) => void,
+        options?: { serviceName?: string; remoteHost?: string },
+      ) => void;
     }
   | null
   | undefined; // undefined = not yet attempted; null = attempted, failed
@@ -313,15 +335,31 @@ async function loadAuthenticatePam(): Promise<typeof pamModule> {
       try {
         // The package is `optionalDependencies` (native binding; only
         // builds on Linux). On macOS / Windows the import fails —
-        // we swallow that and degrade gracefully. The `// @vite-ignore`
-        // tells Vite not to try to resolve the specifier statically.
-        const moduleName = 'authenticate-pam';
-        const mod = (await import(/* @vite-ignore */ moduleName)) as {
-          authenticate: (u: string, p: string) => Promise<void>;
-          validate: (u: string) => Promise<boolean>;
+        // we swallow that and degrade gracefully.
+        //
+        // The native binding is a `.node` addon — these are loaded by
+        // the CommonJS loader, not the ESM loader. A bare
+        // `await import('authenticate-pam')` from an ESM context
+        // produces ERR_UNKNOWN_FILE_EXTENSION (Node 20+). We use
+        // `createRequire` so the CJS loader handles the `.node`
+        // resolution. The package's own main is CJS anyway.
+        const { createRequire } = await import('node:module');
+        const requireFromHere = createRequire(import.meta.url);
+        const mod = requireFromHere('authenticate-pam') as {
+          authenticate: (
+            u: string,
+            p: string,
+            cb: (err: unknown) => void,
+            options?: { serviceName?: string; remoteHost?: string },
+          ) => void;
         };
         pamModule = mod;
-      } catch {
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error(
+          '[cortexos/auth] failed to load authenticate-pam native binding:',
+          (err as Error).message,
+        );
         pamModule = null;
       }
     })();

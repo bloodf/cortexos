@@ -549,6 +549,7 @@ function toUserEntity(row: MemUserRow, _id: number, isAdminOverride?: boolean): 
     id: asUserId(String(row.id)),
     username: row.username,
     is_admin: isAdmin,
+    isAdmin,
     isActive: row.isActive,
     groupMemberships,
   };
