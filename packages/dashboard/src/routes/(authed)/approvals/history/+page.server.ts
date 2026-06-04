@@ -35,7 +35,13 @@ function coerceAge(raw: string | null): AgeBucket {
 export const load: PageServerLoad = async (event) => {
   // Admin gate (PB-5). See the list page for the snake_case note.
   const user = event.locals.user;
-  if (!user || !(user.is_admin || user.groupMemberships?.includes('cortexos-admin'))) {
+  if (!user) {
+    throw error(401, 'Authentication required');
+  }
+  const isCortexAdmin = user.groupMemberships?.some(
+    (g) => g.name === 'cortexos-admin' && g.isAdmin,
+  );
+  if (!user.isAdmin && !isCortexAdmin) {
     throw error(403, 'Admin access required');
   }
 

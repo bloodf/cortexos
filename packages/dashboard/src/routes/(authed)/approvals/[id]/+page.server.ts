@@ -11,11 +11,16 @@ import { getPendingApproval } from '$lib/server/stub-data';
 import { adaptApproval } from '$lib/components/approvals/adapter';
 
 export const load: PageServerLoad = async (event) => {
-  // Admin gate (PB-5). The User entity uses `is_admin` (snake_case)
-  // to match the DB column; the +layout.svelte uses `isAdmin` for
-  // Svelte 5 prop naming. Check the underlying field here.
+  // Admin gate (PB-5). The contracts User shape has `isAdmin: boolean`
+  // and `groupMemberships: { name, isAdmin, description? }[]`.
   const user = event.locals.user;
-  if (!user || !(user.is_admin || user.groupMemberships?.includes('cortexos-admin'))) {
+  if (!user) {
+    throw error(401, 'Authentication required');
+  }
+  const isCortexAdmin = user.groupMemberships?.some(
+    (g) => g.name === 'cortexos-admin' && g.isAdmin,
+  );
+  if (!user.isAdmin && !isCortexAdmin) {
     throw error(403, 'Admin access required');
   }
   const id = event.params.id;

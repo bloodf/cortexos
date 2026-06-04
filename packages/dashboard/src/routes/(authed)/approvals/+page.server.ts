@@ -39,11 +39,16 @@ export const load: PageServerLoad = async (event) => {
   // Admin gate (PB-5). The parent (authed) layout already requires
   // an authenticated user; this check ensures the user is also
   // cortexos-admin. Non-admins get a 403.
-  // Note: the User entity uses `is_admin` (snake_case) to match the
-  // DB column name; the +layout.svelte file uses `isAdmin` for
-  // Svelte 5 prop naming. We check the underlying field here.
+  // Admin gate (PB-1 + PB-5). The contracts User shape has `isAdmin: boolean`
+  // and `groupMemberships: { name, isAdmin, description? }[]`.
   const user = event.locals.user;
-  if (!user || !(user.is_admin || user.groupMemberships?.includes('cortexos-admin'))) {
+  if (!user) {
+    throw error(401, 'Authentication required');
+  }
+  const isCortexAdmin = user.groupMemberships?.some(
+    (g) => g.name === 'cortexos-admin' && g.isAdmin,
+  );
+  if (!user.isAdmin && !isCortexAdmin) {
     throw error(403, 'Admin access required');
   }
 

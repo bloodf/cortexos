@@ -183,6 +183,341 @@
 			"submit": "Ejecutar",
 			"submitting": "Ejecutando…",
 			"output": "Salida"
+		},
+		"systemd": {
+			"title": "systemd",
+			"description": "Monitorea cada unidad de systemd que el host conoce. Las acciones de administrador requieren aprobación.",
+			"empty": "Ninguna unidad coincide con el filtro actual. Limpia el filtro para ver todas las unidades.",
+			"filter": {
+				"label": "Filtrar unidades por estado",
+				"all": "Todas",
+				"active": "Activas",
+				"inactive": "Inactivas",
+				"failed": "Fallidas"
+			},
+			"table": {
+				"name": "Nombre",
+				"description": "Descripción",
+				"active": "Activa",
+				"sub": "Sub",
+				"enabled": "Habilitada",
+				"load": "Carga",
+				"type": "Tipo",
+				"timestamp": "Marca de tiempo",
+				"priority": "Prioridad",
+				"message": "Mensaje"
+			},
+			"detail": {
+				"actions": "Acciones",
+				"actionsDescription": "Solo administradores. Las acciones destructivas requieren un token de aprobación.",
+				"fields": {
+					"title": "Configuración",
+					"titleDescription": "Metadatos estáticos de la unidad según systemd.",
+					"name": "Unidad",
+					"description": "Descripción",
+					"load": "Carga",
+					"sub": "Sub",
+					"enabled": "Habilitada",
+					"critical": "Crítica",
+					"allowlisted": "Permitida",
+					"unitPath": "Ruta de la unidad",
+					"type": "Tipo"
+				},
+				"logs": "Líneas de registro recientes",
+				"logsDescription": "Últimas líneas reportadas por journalctl para esta unidad (datos simulados en M2).",
+				"logsEmpty": "Aún no hay líneas de registro para esta unidad."
+			},
+			"status": {
+				"label": "Estado activo",
+				"active": "Activa",
+				"inactive": "Inactiva",
+				"failed": "Fallida",
+				"activating": "Activando",
+				"deactivating": "Desactivando",
+				"reloading": "Recargando",
+				"maintenance": "Mantenimiento",
+				"unknown": "Desconocido",
+				"enabled": "Habilitada",
+				"disabled": "Deshabilitada",
+				"critical": "Crítica"
+			},
+			"actions": {
+				"label": "Acciones de la unidad",
+				"start": "Iniciar",
+				"stop": "Detener",
+				"restart": "Reiniciar",
+				"reload": "Recargar",
+				"enable": "Habilitar",
+				"disable": "Deshabilitar",
+				"adminOnly": "Rol de administrador requerido",
+				"requiresApproval": "Requiere aprobación"
+			},
+			"alerts": {
+				"title": "Alertas",
+				"description": "Alertas basados en reglas y operativos en el host.",
+				"tabs": {
+					"rules": "Reglas",
+					"operational": "Operativos",
+					"history": "Historial"
+				},
+				"severity": {
+					"info": "Info",
+					"warning": "Advertencia",
+					"critical": "Crítico",
+					"warn": "Atención",
+					"error": "Error"
+				},
+				"actions": {
+					"enable": "Habilitar",
+					"disable": "Deshabilitar",
+					"acknowledge": "Reconocer",
+					"create": "Crear regla",
+					"save": "Guardar",
+					"saving": "Guardando…",
+					"cancel": "Cancelar",
+					"back": "Volver a alertas",
+					"delete": "Eliminar",
+					"deleting": "Eliminando…"
+				},
+				"rules": {
+					"empty": "No hay reglas de alerta configuradas. Crea una para empezar a monitorear.",
+					"new": "Nueva regla",
+					"newDescription": "Una regla se dispara cuando su condición coincide con una transición de estado de servicio.",
+					"form": {
+						"name": "Nombre",
+						"namePlaceholder": "ej.: Prometheus fuera de línea",
+						"serviceId": "ID de servicio",
+						"serviceIdPlaceholder": "Opcional — dejar vacío para cualquier servicio",
+						"condition": "Condición",
+						"conditionOffline": "El servicio quedó fuera de línea",
+						"conditionOnline": "El servicio volvió en línea",
+						"conditionResponseTime": "Tiempo de respuesta excedido",
+						"thresholdMs": "Umbral (ms)",
+						"thresholdMsPlaceholder": "ej.: 500",
+						"severity": "Severidad",
+						"enabled": "Habilitada",
+						"channels": "Canales",
+						"channelUi": "Notificación en la app",
+						"channelEmail": "Correo",
+						"channelWebhook": "Webhook",
+						"channelLog": "Log"
+					},
+					"detail": {
+						"title": "Detalle de la regla",
+						"description": "Regla de larga duración evaluada contra transiciones de estado de servicio.",
+						"meta": "Metadatos",
+						"condition": "Condición",
+						"threshold": "Umbral",
+						"severity": "Severidad",
+						"enabled": "Habilitada",
+						"created": "Creada",
+						"updated": "Actualizada",
+						"history": "Disparos recientes",
+						"historyEmpty": "Esta regla aún no se ha disparado.",
+						"disableConfirm": "¿Deshabilitar esta regla? Los disparos futuros se suprimirán.",
+						"enableConfirm": "¿Habilitar esta regla? Volverá a evaluarse en la próxima transición."
+					}
+				},
+				"operational": {
+					"empty": "No hay alertas operativas. El host está en silencio.",
+					"title": "Alertas operativas",
+					"description": "Alertas en vivo emitidas por los subsistemas del host.",
+					"unacknowledgedOnly": "Ocultar reconocidas",
+					"all": "Todas",
+					"unack": "No reconocidas",
+					"detail": {
+						"title": "Alerta operativa",
+						"source": "Origen",
+						"severity": "Severidad",
+						"created": "Creada",
+						"acknowledgedAt": "Reconocida en",
+						"acknowledgedBy": "Reconocida por",
+						"notAcknowledged": "No reconocida",
+						"acknowledgeConfirm": "¿Marcar esta alerta como reconocida?",
+						"body": "Mensaje"
+					}
+				},
+				"history": {
+					"title": "Historial de alertas",
+					"description": "Todos los disparos y resoluciones de reglas, los más recientes primero.",
+					"empty": "Aún no hay historial de alertas.",
+					"filter": {
+						"rule": "Regla",
+						"rulePlaceholder": "Filtrar por id de regla…",
+						"service": "Servicio",
+						"servicePlaceholder": "Filtrar por id de servicio…"
+					},
+					"event": {
+						"fired": "Disparado",
+						"resolved": "Resuelto",
+						"info": "Info"
+					}
+				},
+				"audit": {
+					"title": "Registro de auditoría",
+					"description": "Registro de auditoría append-only con cadena hash de cada acción privilegiada.",
+					"empty": "Ningún evento de auditoría coincide con el filtro actual.",
+					"filters": {
+						"label": "Filtrar eventos de auditoría",
+						"actor": "Actor",
+						"actorPlaceholder": "Filtrar por actor (id de usuario)",
+						"surface": "Superficie",
+						"surfaceLabel": "Superficie",
+						"allSurfaces": "Todas las superficies",
+						"action": "Acción",
+						"actionPlaceholder": "Filtrar por acción",
+						"allActions": "Todas las acciones",
+						"result": "Resultado",
+						"resultLabel": "Resultado",
+						"allResults": "Todos los resultados",
+						"since": "Desde",
+						"sinceLabel": "Desde (ISO 8601)",
+						"until": "Hasta",
+						"untilLabel": "Hasta (ISO 8601)",
+						"clear": "Limpiar filtros"
+					},
+					"list": {
+						"regionLabel": "Eventos de auditoría",
+						"emptyTitle": "Sin filas de auditoría",
+						"emptyDescription": "Ejecuta una acción auditada para llenar el registro.",
+						"headerWhen": "Cuándo",
+						"headerSurface": "Superficie / acción",
+						"headerActor": "Actor",
+						"headerTarget": "Objetivo",
+						"headerResult": "Resultado",
+						"headerHash": "Hash del payload",
+						"openDetail": "Abrir detalle del evento {id}"
+					},
+					"detail": {
+						"id": "Id del evento",
+						"createdAt": "Creado en",
+						"surface": "Superficie",
+						"action": "Acción",
+						"actorUserId": "Id de usuario actor",
+						"actorSessionId": "Id de sesión del actor",
+						"actorIp": "IP del actor",
+						"actorUserAgent": "User agent del actor",
+						"target": "Objetivo",
+						"result": "Resultado",
+						"requestId": "Id de solicitud",
+						"errorCode": "Código de error",
+						"sensitiveHeading": "Campos sensibles",
+						"showSensitive": "Mostrar",
+						"hideSensitive": "Ocultar",
+						"sensitiveHint": "Haz clic en Mostrar para revelar la IP y el user agent. Los datos de auditoría pueden incluir payloads sensibles (THREAT_MODEL §6).",
+						"payloadHeading": "Payload",
+						"chainHeading": "Cadena",
+						"payloadHash": "Hash del payload (sha256)",
+						"prevHash": "Hash anterior de la cadena",
+						"chainOk": "Cadena válida para {length} fila(s).",
+						"chainBroken": "Cadena rota en el índice {index}: {reason}",
+						"prev": "Anterior",
+						"next": "Siguiente",
+						"backToList": "Volver al listado",
+						"nav": "Navegación de eventos",
+						"missing": "Evento no encontrado",
+						"missingDescription": "El id del evento no está en la cadena."
+					},
+					"verify": {
+						"title": "Verificación de cadena",
+						"description": "Ejecuta el verificador de cadena y reporta el resultado.",
+						"runAgain": "Volver a ejecutar",
+						"running": "Verificando…",
+						"bannerOk": "Cadena válida",
+						"bannerBroken": "Cadena ROTA",
+						"lengthHint": "{length} fila(s) verificada(s) de extremo a extremo.",
+						"firstFailure": "Primer fallo en el índice {index}: {reason}",
+						"length": "Longitud de cadena",
+						"status": "Estado",
+						"failureIndex": "Índice del fallo",
+						"failureReason": "Razón del fallo"
+					},
+					"export": {
+						"button": "Exportar CSV",
+						"appliedFilters": "Filtros aplicados: {filters}"
+					},
+					"result": {
+						"label": "Resultado",
+						"success": "Éxito",
+						"failure": "Fallo",
+						"denied": "Denegado",
+						"error": "Error"
+					}
+				}
+			}
+		}
+	},
+	"approvals": {
+		"title": "Aprobaciones",
+		"description": "Tokens de aprobación de comandos privilegiados pendientes.",
+		"empty": "No hay aprobaciones pendientes — cada acción solicitada ya fue gestionada.",
+		"history": {
+			"title": "Historial de aprobaciones",
+			"description": "Todas las aprobaciones, denegaciones y caducidades — las más recientes primero.",
+			"empty": "Aún no hay aprobaciones en el historial."
+		},
+		"list": {
+			"title": "Aprobaciones pendientes",
+			"description": "Acciones privilegiadas que esperan una decisión del administrador.",
+			"columns": {
+				"signal": "Señal",
+				"run": "Ejecución",
+				"role": "Rol",
+				"reason": "Motivo",
+				"requested": "Solicitada",
+				"timeout": "Caducidad",
+				"age": "Antigüedad",
+				"action": "Acción"
+			},
+			"filters": {
+				"action": "Acción",
+				"user": "Solicitada por",
+				"age": "Antigüedad",
+				"all": "Todas",
+				"lessThan1h": "Menos de 1h",
+				"lessThan24h": "Menos de 24h",
+				"olderThan24h": "Más de 24h"
+			}
+		},
+		"detail": {
+			"title": "Detalle de la aprobación",
+			"fields": {
+				"signal": "Señal",
+				"run": "ID de ejecución",
+				"role": "Rol requerido",
+				"issue": "Problema",
+				"reason": "Motivo",
+				"requestedAt": "Solicitada el",
+				"timeoutAt": "Caduca el",
+				"resolvedAt": "Resuelta el",
+				"decision": "Decisión",
+				"approver": "Aprobador"
+			},
+			"notFound": "Aprobación no encontrada"
+		},
+		"actions": {
+			"grant": "Conceder aprobación",
+			"revoke": "Revocar aprobación",
+			"granting": "Concediendo…",
+			"revoking": "Revocando…",
+			"back": "Volver a pendientes",
+			"viewHistory": "Ver historial",
+			"confirmGrant": "¿Conceder esta aprobación? El token se marcará como aprobado y el solicitante podrá continuar.",
+			"confirmRevoke": "¿Revocar esta aprobación? El token se invalidará y se denegará al solicitante.",
+			"granted": "Aprobación concedida.",
+			"revoked": "Aprobación revocada.",
+			"failed": "La acción falló",
+			"alreadyResolved": "Esta aprobación ya fue resuelta.",
+			"expired": "Esta aprobación ha caducado y ya no se puede actuar sobre ella."
+		},
+		"status": {
+			"pending": "Pendiente",
+			"approved": "Aprobada",
+			"denied": "Denegada",
+			"expired": "Caducada",
+			"timeout": "Caducada por tiempo",
+			"unknown": "Desconocida"
+		}
 	},
 	"systemd": {
 		"title": "systemd",
@@ -251,7 +586,8 @@
 			"disable": "Deshabilitar",
 			"adminOnly": "Rol de administrador requerido",
 			"requiresApproval": "Requiere aprobación"
-},
+		}
+	},
 	"alerts": {
 		"title": "Alertas",
 		"description": "Alertas basados en reglas y operativos en el host.",
@@ -351,7 +687,9 @@
 				"fired": "Disparado",
 				"resolved": "Resuelto",
 				"info": "Info"
-			}		},
+			}
+		}
+	},
 	"audit": {
 		"title": "Registro de auditoría",
 		"description": "Registro de auditoría append-only con cadena hash de cada acción privilegiada.",
@@ -441,79 +779,6 @@
 			"failure": "Fallo",
 			"denied": "Denegado",
 			"error": "Error"
-		}	}
-}
-}
-},
-	"approvals": {
-		"title": "Aprobaciones",
-		"description": "Tokens de aprobación de comandos privilegiados pendientes.",
-		"empty": "No hay aprobaciones pendientes — cada acción solicitada ya fue gestionada.",
-		"history": {
-			"title": "Historial de aprobaciones",
-			"description": "Todas las aprobaciones, denegaciones y caducidades — las más recientes primero.",
-			"empty": "Aún no hay aprobaciones en el historial."
-		},
-		"list": {
-			"title": "Aprobaciones pendientes",
-			"description": "Acciones privilegiadas que esperan una decisión del administrador.",
-			"columns": {
-				"signal": "Señal",
-				"run": "Ejecución",
-				"role": "Rol",
-				"reason": "Motivo",
-				"requested": "Solicitada",
-				"timeout": "Caducidad",
-				"age": "Antigüedad",
-				"action": "Acción"
-			},
-			"filters": {
-				"action": "Acción",
-				"user": "Solicitada por",
-				"age": "Antigüedad",
-				"all": "Todas",
-				"lessThan1h": "Menos de 1h",
-				"lessThan24h": "Menos de 24h",
-				"olderThan24h": "Más de 24h"
-			}
-		},
-		"detail": {
-			"title": "Detalle de la aprobación",
-			"fields": {
-				"signal": "Señal",
-				"run": "ID de ejecución",
-				"role": "Rol requerido",
-				"issue": "Problema",
-				"reason": "Motivo",
-				"requestedAt": "Solicitada el",
-				"timeoutAt": "Caduca el",
-				"resolvedAt": "Resuelta el",
-				"decision": "Decisión",
-				"approver": "Aprobador"
-			},
-			"notFound": "Aprobación no encontrada"
-		},
-		"actions": {
-			"grant": "Conceder aprobación",
-			"revoke": "Revocar aprobación",
-			"granting": "Concediendo…",
-			"revoking": "Revocando…",
-			"back": "Volver a pendientes",
-			"viewHistory": "Ver historial",
-			"confirmGrant": "¿Conceder esta aprobación? El token se marcará como aprobado y el solicitante podrá continuar.",
-			"confirmRevoke": "¿Revocar esta aprobación? El token se invalidará y se denegará al solicitante.",
-			"granted": "Aprobación concedida.",
-			"revoked": "Aprobación revocada.",
-			"failed": "La acción falló",
-			"alreadyResolved": "Esta aprobación ya fue resuelta.",
-			"expired": "Esta aprobación ha caducado y ya no se puede actuar sobre ella."
-		},
-		"status": {
-			"pending": "Pendiente",
-			"approved": "Aprobada",
-			"denied": "Denegada",
-			"expired": "Caducada",
-			"timeout": "Caducada por tiempo",
-			"unknown": "Desconocida"
 		}
-	}}
+	}
+}
