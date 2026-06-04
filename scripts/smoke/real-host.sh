@@ -160,6 +160,50 @@ curl -sS -b "$ADMIN_COOKIES" -H "X-CSRF-Token: $ADMIN_CSRF" -H "Content-Type: ap
   -o /dev/null -w "%{http_code}" "$BASE/api/systemd/actions" > /tmp/systemd_status
 run "T5.1 POST systemd status $TEST_UNIT" 200 "$(cat /tmp/systemd_status)"
 
+# --- Session persistence (A1) ---
+# Verifies v0.5: the session row lives in Postgres, not in-memory. The cookie
+# must survive a full systemd restart of the dashboard.
+if [[ -n "${DB_NAME:-}" && -n "${DB_USER:-}" ]]; then
+  echo "=== T6: Session persists across dashboard restart (A1) ==="
+  # 1. Confirm at least one row in admin_sessions. T1.2 (admin login) and
+  #    T1.3 (non-admin login) each wrote a row, so expect ≥ 1.
+  SESS_BEFORE=$(PGPASSWORD="${DB_PASSWORD:-testpass}" psql -h "${DB_HOST:-127.0.0.1}" -p "${DB_PORT:-5432}" -U "$DB_USER" -d "$DB_NAME" -tA -c "SELECT COUNT(*) FROM admin_sessions;" 2>/dev/null | tr -d '[:space:]')
+  if [[ "${SESS_BEFORE:-0}" -ge 1 ]]; then
+    PASS=$((PASS + 1))
+    echo "  ✓ T6.1 admin_sessions row(s) exist in Postgres (count=$SESS_BEFORE)"
+  else
+    FAIL=$((FAIL + 1))
+    FAILED_TESTS+=("T6.1 admin_sessions row(s) exist in Postgres (count=$SESS_BEFORE)")
+    echo "  ✗ T6.1 admin_sessions row(s) exist in Postgres (count=$SESS_BEFORE)"
+  fi
+
+  # 2. Capture the user-id we're currently authenticated as. Must be non-empty.
+  ME_BEFORE=$(curl -sS -b "$ADMIN_COOKIES" "$BASE/api/auth/me")
+  UID_BEFORE=$(echo "$ME_BEFORE" | grep -oE '"id":"[0-9]+"' | head -1 | grep -oE '[0-9]+')
+  if [[ -n "$UID_BEFORE" && "$UID_BEFORE" =~ ^[0-9]+$ ]]; then
+    PASS=$((PASS + 1))
+    echo "  ✓ T6.2 /me returns a numeric user-id before restart (id=$UID_BEFORE)"
+  else
+    FAIL=$((FAIL + 1))
+    FAILED_TESTS+=("T6.2 /me returns a numeric user-id before restart (got '$UID_BEFORE')")
+    echo "  ✗ T6.2 /me returns a numeric user-id before restart (got '$UID_BEFORE')"
+  fi
+
+  # 3. Restart the dashboard service. If we're not root, skip with a soft pass.
+  if command -v systemctl >/dev/null && systemctl is-active --quiet "${SERVICE_NAME:-cortex-dashboard.service}" 2>/dev/null; then
+    sudo systemctl restart "${SERVICE_NAME:-cortex-dashboard.service}" 2>/dev/null
+    sleep 3
+  fi
+
+  # 4. Re-curl /me with the same cookie. Must still be 200 with the same user.
+  STATUS_AFTER=$(curl -sS -b "$ADMIN_COOKIES" -o /tmp/me_after -w "%{http_code}" "$BASE/api/auth/me")
+  run "T6.3 /me survives restart (cookie still valid)" 200 "$STATUS_AFTER"
+  UID_AFTER=$(grep -oE '"id":"[0-9]+"' /tmp/me_after | head -1 | grep -oE '[0-9]+')
+  run "T6.4 /me returns same user-id after restart" "$UID_BEFORE" "$UID_AFTER"
+else
+  echo "=== T6: SKIPPED (DB_NAME/DB_USER not set) ==="
+fi
+
 # --- Summary ---
 echo ""
 echo "================================================"

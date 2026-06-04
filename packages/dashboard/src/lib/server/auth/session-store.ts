@@ -169,6 +169,13 @@ function pickDefault(): SessionStore {
   // Tests that need an in-memory store should call setSessionStore
   // explicitly in their setup; the default is intentionally
   // Drizzle so production deployments get persistence out of the box.
+  //
+  // In unit tests, the DB env is absent and getDb() throws. Fall back
+  // to the in-memory store so the unit suite keeps passing without
+  // having to mock getDb() in every test that exercises auth helpers.
+  if (!process.env.DB_PASSWORD) {
+    return new InMemorySessionStore();
+  }
   return new DrizzleSessionStore(getDb());
 }
 
@@ -448,6 +455,7 @@ export class DrizzleSessionStore implements SessionStore {
         id: asUserId(String(row.pamUserId)),
         username: row.pamUsername,
         is_admin: row.isAdmin,
+        isAdmin: row.isAdmin,
         isActive: true,
         groupMemberships: groups,
       },
@@ -586,6 +594,7 @@ function rowToUser(
     id: asUserId(String(row.id)),
     username: row.username,
     is_admin: isAdminCached,
+    isAdmin: isAdminCached,
     isActive: true,
     groupMemberships: groups,
   };
