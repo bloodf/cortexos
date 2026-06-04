@@ -639,7 +639,7 @@ describe('PB-4 FIX: POST /api/incus/[name]/exec-named', () => {
       makeFakeEvent({
         method: 'POST',
         locals,
-        params: { name: 'nginx-prod' },
+        params: { name: 'hermes-canary' },
         body: { op: 'term.ps', args: {} },
       }),
     );
@@ -653,7 +653,7 @@ describe('PB-4 FIX: POST /api/incus/[name]/exec-named', () => {
       makeFakeEvent({
         method: 'POST',
         locals,
-        params: { name: 'nginx-prod' },
+        params: { name: 'hermes-canary' },
         body: { op: 'bash -c id', args: {} },
       }),
     );
@@ -667,7 +667,7 @@ describe('PB-4 FIX: POST /api/incus/[name]/exec-named', () => {
       makeFakeEvent({
         method: 'POST',
         locals,
-        params: { name: 'nginx-prod' },
+        params: { name: 'hermes-canary' },
         body: { op: 'term.ps', args: {} },
       }),
     );

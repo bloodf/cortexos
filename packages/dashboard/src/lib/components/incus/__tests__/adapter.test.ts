@@ -108,7 +108,8 @@ describe('adapter — view-model helpers', () => {
   });
 
   it('isRunning + formatResources', () => {
-    const active = SEED[0]!;
+    const active = SEED.find((i) => i.status === 'active')!;
+    expect(active).toBeDefined();
     expect(isRunning(active)).toBe(true);
     const r = formatResources(active);
     expect(r.cpu).toContain('vCPU');

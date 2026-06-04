@@ -12,7 +12,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { _resetStubData, createPendingApproval } from '$lib/server/stub-data';
-import { load } from '../../../../routes/(authed)/approvals/[id]/+page.server';
+import { load } from '../+page.server';
 
 beforeEach(() => {
   _resetStubData();
@@ -31,7 +31,7 @@ const adminUser = {
   username: 'root',
   isAdmin: true,
   isActive: true,
-  groupMemberships: [{ name: 'cortexos-admin', isAdmin: true }],
+  groupMemberships: ['cortexos-admin' as const],
 };
 
 describe('(authed)/approvals/[id] — auth + id branches', () => {
@@ -45,7 +45,7 @@ describe('(authed)/approvals/[id] — auth + id branches', () => {
       username: 'bob',
       isAdmin: false,
       isActive: true,
-      groupMemberships: [{ name: 'cortexos-users', isAdmin: false }],
+      groupMemberships: ['cortexos-users' as const],
     });
     await expect(load(event)).rejects.toMatchObject({ status: 403 });
   });

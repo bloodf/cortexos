@@ -14,7 +14,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { _resetStubData, createPendingApproval } from '$lib/server/stub-data';
-import { load } from '../../../../routes/(authed)/approvals/+page.server';
+import { load } from '../+page.server';
 
 beforeEach(() => {
   _resetStubData();

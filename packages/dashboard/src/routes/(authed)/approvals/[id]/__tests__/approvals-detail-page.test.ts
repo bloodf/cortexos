@@ -21,7 +21,7 @@ function makeLoadEvent(id: string | undefined) {
         username: 'root',
         isAdmin: true,
         isActive: true,
-        groupMemberships: [{ name: 'cortexos-admin', isAdmin: true }],
+        groupMemberships: ['cortexos-admin' as const],
       },
       session: null,
     },

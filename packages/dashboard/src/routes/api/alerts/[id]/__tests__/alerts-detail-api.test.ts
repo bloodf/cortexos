@@ -38,7 +38,7 @@ beforeEach(() => {
 function adminEvent(url: string, method: 'GET' | 'PATCH' | 'DELETE', body?: unknown) {
   const user = makeFakeUser({
     is_admin: true,
-    groupMemberships: [{ name: 'cortexos-admin', isAdmin: true }],
+    groupMemberships: ['cortexos-admin' as const],
   });
   const session = makeFakeSession(user);
   registerFakeUser(user);

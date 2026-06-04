@@ -18,15 +18,15 @@ describe('InstanceStateBadge', () => {
   afterEach(cleanup);
 
   const cases: Array<{ state: IncusStatusLit; variantClass: string; label: string }> = [
-    { state: 'draft', variantClass: 'text-foreground', label: 'Draft' },
-    { state: 'validated', variantClass: 'text-foreground', label: 'Validated' },
-    { state: 'provisioning', variantClass: 'text-info-foreground', label: 'Provisioning' },
-    { state: 'active', variantClass: 'text-success-foreground', label: 'Active' },
-    { state: 'failed', variantClass: 'text-destructive-foreground', label: 'Failed' },
-    { state: 'running', variantClass: 'text-success-foreground', label: 'Running' },
-    { state: 'stopped', variantClass: 'text-secondary-foreground', label: 'Stopped' },
-    { state: 'frozen', variantClass: 'text-warning-foreground', label: 'Frozen' },
-    { state: 'error', variantClass: 'text-destructive-foreground', label: 'Error' },
+    { state: 'draft', variantClass: 'border-border', label: 'Draft' },
+    { state: 'validated', variantClass: 'border-border', label: 'Validated' },
+    { state: 'provisioning', variantClass: 'text-info', label: 'Provisioning' },
+    { state: 'active', variantClass: 'text-success', label: 'Active' },
+    { state: 'failed', variantClass: 'bg-destructive', label: 'Failed' },
+    { state: 'running', variantClass: 'text-success', label: 'Running' },
+    { state: 'stopped', variantClass: 'bg-secondary', label: 'Stopped' },
+    { state: 'frozen', variantClass: 'text-warning', label: 'Frozen' },
+    { state: 'error', variantClass: 'bg-destructive', label: 'Error' },
   ];
 
   it.each(cases)('renders state=$state with the correct variant', ({ state, variantClass, label }) => {

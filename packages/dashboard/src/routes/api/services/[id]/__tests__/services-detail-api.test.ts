@@ -30,7 +30,7 @@ beforeEach(() => {
 function adminEvent(url: string, method: 'GET' | 'PATCH' | 'DELETE', body?: unknown) {
   const user = makeFakeUser({
     is_admin: true,
-    groupMemberships: [{ name: 'cortexos-admin', isAdmin: true }],
+    groupMemberships: ['cortexos-admin' as const],
   });
   const session = makeFakeSession(user);
   registerFakeUser(user);
@@ -62,7 +62,7 @@ function eventWithParams(event: ReturnType<typeof makeFakeEvent>, params: Record
   return { ...event, params } as unknown as Parameters<typeof GET>[0];
 }
 
-function seedService() {
+function seedService(): any {
   return createService({
     slug: 'caddy',
     name: 'Caddy',
@@ -71,7 +71,11 @@ function seedService() {
     healthType: 'http',
     category: 'edge',
     openUrl: 'http://localhost:2019',
+    status: 'online' as const,
+    kind: 'service' as const,
+    envSource: null,
     isActive: true,
+    hasWebui: true,
     showInHealthcheck: true,
     showInWebui: true,
     sortOrder: 10,

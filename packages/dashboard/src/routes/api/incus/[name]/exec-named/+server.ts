@@ -16,7 +16,7 @@
  * the same seam the docker + terminal bridges use.
  */
 import { z } from 'zod';
-import { error, json } from '@sveltejs/kit';
+import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getCurrentSession, isAdmin } from '$lib/server/auth';
 import { dispatchExecNamed } from '$lib/server/incus/bridge';
@@ -29,23 +29,27 @@ const ExecInput = z.object({
 
 export const POST: RequestHandler = async (event) => {
   const name = event.params.name;
-  if (!name) throw error(400, 'Missing instance name');
+  if (!name) return json({ message: 'Missing instance name' }, { status: 400 });
 
   // 1. Auth (admin only).
   const resolved = await getCurrentSession(event);
-  if (!resolved) throw error(401, 'Authentication required');
-  if (!isAdmin(resolved.user)) throw error(403, 'Admin role required');
+  if (!resolved) return json({ message: 'Authentication required' }, { status: 401 });
+  if (!isAdmin(resolved.user))
+    return json({ message: 'Admin role required' }, { status: 403 });
 
   // 2. Input validation.
   let body: unknown;
   try {
     body = await event.request.json();
   } catch {
-    throw error(400, 'Invalid JSON body');
+    return json({ message: 'Invalid JSON body' }, { status: 400 });
   }
   const parsed = ExecInput.safeParse(body);
   if (!parsed.success) {
-    throw error(400, 'Invalid input shape');
+    return json(
+      { message: 'Invalid input shape', issues: parsed.error.issues },
+      { status: 400 },
+    );
   }
 
   // 3. Dispatch through the bridge. The bridge re-runs the

@@ -27,7 +27,7 @@ function makeLoadEvent(url: string, params: Record<string, string> = {}) {
         username: 'root',
         isAdmin: true,
         isActive: true,
-        groupMemberships: [{ name: 'cortexos-admin', isAdmin: true }],
+        groupMemberships: ['cortexos-admin' as const],
       },
       session: null,
     },

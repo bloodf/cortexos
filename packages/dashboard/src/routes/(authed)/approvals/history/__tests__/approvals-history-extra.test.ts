@@ -18,7 +18,7 @@ import {
   resolvePendingApproval,
   revokePendingApproval,
 } from '$lib/server/stub-data';
-import { load } from '../../../../../routes/(authed)/approvals/history/+page.server';
+import { load } from '../+page.server';
 
 beforeEach(() => {
   _resetStubData();

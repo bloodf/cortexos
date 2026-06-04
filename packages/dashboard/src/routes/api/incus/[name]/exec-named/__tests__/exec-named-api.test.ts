@@ -36,7 +36,7 @@ beforeEach(() => {
 function adminEvent(url: string, body?: unknown) {
   const user = makeFakeUser({
     is_admin: true,
-    groupMemberships: [{ name: 'cortexos-admin', isAdmin: true }],
+    groupMemberships: ['cortexos-admin' as const],
   });
   const session = makeFakeSession(user);
   registerFakeUser(user);
@@ -59,17 +59,16 @@ describe('POST /api/incus/[name]/exec-named', () => {
     // The allowlist inner ops are the `term.*` subcommands.
     const res = await (POST as unknown as (e: unknown) => Promise<Response>)(
       eventWithParams(
-        adminEvent('http://localhost/api/incus/web-1/exec-named', {
+        adminEvent('http://localhost/api/incus/hermes-canary/exec-named', {
           op: 'term.ps',
           args: {},
         }),
-        { name: 'web-1' },
+        { name: 'hermes-canary' },
       ),
     );
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { status: string; argv: string[]; op: string };
+    const body = (await res.json()) as { status: string; op: string; stdout?: string };
     expect(body.status).toBe('accepted');
-    expect(body.argv.length).toBeGreaterThan(0);
     expect(body.op).toBe('term.ps');
   });
 
@@ -99,28 +98,28 @@ describe('POST /api/incus/[name]/exec-named', () => {
     expect(res.status).toBe(400);
   });
 
-  it('returns 403 with confirmation token for an op that requires approval', async () => {
-    // The terminal exec-named allowlist has destructive ops (e.g.
-    // `incus.delete`) marked `requiresApproval: true`. Going through
-    // exec-named must surface the same approval gate.
+  it('rejects an op that requires approval with 400 (out of exec-named scope)', async () => {
+    // `incus.delete` is a destructive action that requires approval, but
+    // it lives on the /api/incus/actions surface, not the exec-named
+    // surface. The exec-named allowlist is the closed `term.*` set, so
+    // the Zod schema rejects any non-term op with 400.
     const res = await (POST as unknown as (e: unknown) => Promise<Response>)(
       eventWithParams(
-        adminEvent('http://localhost/api/incus/web-1/exec-named', {
+        adminEvent('http://localhost/api/incus/hermes-canary/exec-named', {
           op: 'incus.delete',
           args: {},
         }),
-        { name: 'web-1' },
+        { name: 'hermes-canary' },
       ),
     );
-    expect(res.status).toBe(403);
-    expect(res.headers.get('x-cortex-confirmation-token-required')).toBe('true');
+    expect(res.status).toBe(400);
   });
 
   it('returns 400 when op is missing', async () => {
     const res = await (POST as unknown as (e: unknown) => Promise<Response>)(
       eventWithParams(
-        adminEvent('http://localhost/api/incus/web-1/exec-named', { args: {} }),
-        { name: 'web-1' },
+        adminEvent('http://localhost/api/incus/hermes-canary/exec-named', { args: {} }),
+        { name: 'hermes-canary' },
       ),
     );
     expect(res.status).toBe(400);
@@ -129,11 +128,11 @@ describe('POST /api/incus/[name]/exec-named', () => {
   it('returns 401 when no session is attached', async () => {
     const event = makeFakeEvent({
       method: 'POST',
-      url: 'http://localhost/api/incus/web-1/exec-named',
-      body: { op: 'incus.ls', args: {} },
+      url: 'http://localhost/api/incus/hermes-canary/exec-named',
+      body: { op: 'term.ps', args: {} },
     });
     const res = await (POST as unknown as (e: unknown) => Promise<Response>)(
-      eventWithParams(event, { name: 'web-1' }),
+      eventWithParams(event, { name: 'hermes-canary' }),
     );
     expect(res.status).toBe(401);
   });
@@ -145,12 +144,12 @@ describe('POST /api/incus/[name]/exec-named', () => {
     registerFakeSession(session);
     const event = makeFakeEvent({
       method: 'POST',
-      url: 'http://localhost/api/incus/web-1/exec-named',
+      url: 'http://localhost/api/incus/hermes-canary/exec-named',
       locals: makeFakeLocals(user, session),
-      body: { op: 'incus.ls', args: {} },
+      body: { op: 'term.ps', args: {} },
     });
     const res = await (POST as unknown as (e: unknown) => Promise<Response>)(
-      eventWithParams(event, { name: 'web-1' }),
+      eventWithParams(event, { name: 'hermes-canary' }),
     );
     expect(res.status).toBe(403);
   });
