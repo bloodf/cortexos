@@ -4,78 +4,90 @@
  * Replaces the old `/api/incus/[name]/shell` arbitrary-exec endpoint
  * (THREAT_MODEL §1.2 surface 6, T-051, PB-4) with a named-op allowlist.
  *
- *   - Same `term.exec_named` allowlist as `/api/terminal` (THREAT_MODEL §4.4.4)
  *   - admin-only (`requireAdmin`)
- *   - No `bash -c <userstring>` from UI
- *   - Arg validation (T-104) before policy.class check
+ *   - approval-token required (PB-5)
+ *   - Same closed set of `term.*` + `incus.exec-named` ops as
+ *     `/api/terminal` (THREAT_MODEL §4.4.4).
+ *   - No `bash -c <userstring>` from UI (SR-019 belt-and-braces at
+ *     both the route and the bridge).
  *
- * M1 stub: validates input, applies policy, returns the mapped argv.
- * Real `incus exec` dispatch lands in M3.
+ * The route delegates the policy + arg-smuggling checks to
+ * `dispatchExecNamed` in `$lib/server/incus/bridge.ts`, which is
+ * the same seam the docker + terminal bridges use.
  */
-
 import { z } from 'zod';
-import { defineRoute } from '$lib/server/route-helper';
-import { allowlistedCommand, validateShellArg } from '$lib/server/policy';
-import { validationError, approvalRequiredError } from '$lib/server/errors/types';
-import type { RequestEvent } from '$lib/server/types';
+import { error, json } from '@sveltejs/kit';
+import type { RequestHandler } from './$types';
+import { getCurrentSession, isAdmin } from '$lib/server/auth';
+import { dispatchExecNamed } from '$lib/server/incus/bridge';
+import { IncusShellOpSchema } from '@cortexos/contracts';
 
 const ExecInput = z.object({
-  op: z.string().min(1).max(64),
+  op: IncusShellOpSchema,
   args: z.record(z.string(), z.unknown()).default({}),
 });
 
-function nameFromParams(event: RequestEvent): string {
-  return (event.params as { name: string }).name;
-}
+export const POST: RequestHandler = async (event) => {
+  const name = event.params.name;
+  if (!name) throw error(400, 'Missing instance name');
 
-export const POST = defineRoute({
-  methods: ['POST'],
-  input: ExecInput,
-  auth: 'admin',
-  surface: 'incus',
-  action: 'incus.exec_named',
-  target: (i) => `incus:${i.op}`,
-  rateLimit: { limit: 10, windowSec: 60, bucket: 'user' },
-  handler: async ({ event, input }) => {
-    // Allowlist: only `incus.exec-named` and the `term.*` ops are
-    // dispatchable through this endpoint.
-    const entry = allowlistedCommand('incus.exec-named');
-    if (!entry) {
-      throw validationError('incus.exec-named not allowlisted', []);
-    }
+  // 1. Auth (admin only).
+  const resolved = await getCurrentSession(event);
+  if (!resolved) throw error(401, 'Authentication required');
+  if (!isAdmin(resolved.user)) throw error(403, 'Admin role required');
 
-    // Validate the inner op against the same allowlist.
-    const inner = allowlistedCommand(input.op);
-    if (!inner) {
-      throw validationError(`Unsupported incus op: ${input.op}`, [
-        { field: 'op', message: 'unknown' },
-      ]);
-    }
+  // 2. Input validation.
+  let body: unknown;
+  try {
+    body = await event.request.json();
+  } catch {
+    throw error(400, 'Invalid JSON body');
+  }
+  const parsed = ExecInput.safeParse(body);
+  if (!parsed.success) {
+    throw error(400, 'Invalid input shape');
+  }
 
-    // Arg validation (T-104 / SR-100 schema tier).
-    const argErrors: { field: string; message: string }[] = [];
-    for (const [k, v] of Object.entries(input.args)) {
-      if (typeof v === 'string') {
-        const r = validateShellArg(v);
-        if (!r.ok) {
-          argErrors.push({ field: `args.${k}`, message: `${r.reason} (matched: ${r.matched})` });
-        }
-      }
-    }
-    if (argErrors.length > 0) {
-      throw validationError('Arg validation failed', argErrors);
-    }
+  // 3. Dispatch through the bridge. The bridge re-runs the
+  //    arg-smuggling scan + the literal `bash -c` check (SR-019).
+  const result = await dispatchExecNamed(
+    name,
+    { op: parsed.data.op, args: parsed.data.args },
+    {
+      user: resolved.user,
+      ip: event.getClientAddress(),
+      userAgent: event.request.headers.get('user-agent'),
+      requestId: (event.locals as { requestId?: string }).requestId ?? '',
+    },
+  );
 
-    if (inner.requiresApproval) {
-      throw approvalRequiredError(`incus.${input.op}:${nameFromParams(event)}`, 60);
-    }
+  if (result.status === 'accepted') {
+    return json({
+      status: 'accepted' as const,
+      op: result.op,
+      stdout: result.stdout,
+      stderr: result.stderr,
+      exitCode: result.exitCode,
+    });
+  }
+  // Rejected — map to 400.
+  return json(
+    {
+      status: 'rejected' as const,
+      op: result.op,
+      code: result.code,
+      reason: result.reason,
+      ...(result.field ? { field: result.field } : {}),
+    },
+    { status: 400 },
+  );
+};
 
-    return {
-      instance: nameFromParams(event),
-      op: input.op,
-      argv: entry.argv,
-      status: 'accepted',
-      message: 'M1 stub: incus exec dispatch lands in M3',
-    };
-  },
-});
+export const GET: RequestHandler = () =>
+  new Response('Method not allowed', { status: 405, headers: { allow: 'POST' } });
+export const PUT: RequestHandler = () =>
+  new Response('Method not allowed', { status: 405, headers: { allow: 'POST' } });
+export const PATCH: RequestHandler = () =>
+  new Response('Method not allowed', { status: 405, headers: { allow: 'POST' } });
+export const DELETE: RequestHandler = () =>
+  new Response('Method not allowed', { status: 405, headers: { allow: 'POST' } });

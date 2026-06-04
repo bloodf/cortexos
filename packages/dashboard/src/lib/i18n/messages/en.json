@@ -780,5 +780,174 @@
 			"denied": "Denied",
 			"error": "Error"
 		}
+	},
+	"incus": {
+		"title": "Incus",
+		"description": "System containers and VMs managed by Incus. Every lifecycle action requires admin + approval (PB-5).",
+		"empty": "No instances match the current filter. Clear the filter to see all instances.",
+		"new": "New instance",
+		"types": {
+			"container": "Container",
+			"vm": "VM"
+		},
+		"search": {
+			"placeholder": "Search by name or image…",
+			"label": "Filter instances",
+			"allTypes": "All types"
+		},
+		"filter": {
+			"label": "Filter instances by status"
+		},
+		"table": {
+			"name": "Name",
+			"type": "Type",
+			"image": "Image",
+			"status": "Status",
+			"cpu": "CPU",
+			"memory": "Memory",
+			"timestamp": "Timestamp",
+			"priority": "Priority",
+			"message": "Message"
+		},
+		"status": {
+			"label": "Instance status",
+			"draft": "Draft",
+			"validated": "Validated",
+			"provisioning": "Provisioning",
+			"active": "Active",
+			"failed": "Failed",
+			"running": "Running",
+			"stopped": "Stopped",
+			"frozen": "Frozen",
+			"error": "Error"
+		},
+		"detail": {
+			"actions": "Actions",
+			"actionsDescription": "Admin-only. Destructive actions (stop, restart, delete) require an approval token (PB-5).",
+			"fields": {
+				"title": "Configuration",
+				"titleDescription": "Static instance metadata.",
+				"name": "Name",
+				"type": "Type",
+				"image": "Image",
+				"cpu": "CPU",
+				"memory": "Memory",
+				"created": "Created",
+				"branch": "Branch",
+				"pool": "Storage pool",
+				"bridge": "Network bridge",
+				"tailscale": "Tailscale",
+				"hermes": "Hermes"
+			},
+			"devices": "Devices",
+			"devicesEmpty": "No devices configured.",
+			"validation": "Last validation",
+			"validationEmpty": "No validation run yet."
+		},
+		"actions": {
+			"label": "Instance actions",
+			"start": "Start",
+			"stop": "Stop",
+			"restart": "Restart",
+			"delete": "Delete",
+			"adminOnly": "Admin role required",
+			"requiresApproval": "Requires approval",
+			"deleteConfirm": "Delete this instance? This cannot be undone.",
+			"deletePrompt": "Type 'delete' to confirm."
+		},
+		"logs": {
+			"title": "Logs",
+			"description": "Last lines for {name} (mock data in M2).",
+			"empty": "No log lines recorded for this instance yet."
+		},
+		"exec": {
+			"title": "Exec (allowlisted)",
+			"description": "Run an allowlisted subcommand inside {name}.",
+			"subcommand": "Subcommand",
+			"opLabel": "Op",
+			"pathLabel": "Path",
+			"nLabel": "Lines",
+			"unitLabel": "Unit",
+			"commandLabel": "Command",
+			"help": "Only allowlisted subcommands are accepted. No `bash -c <userstring>` (SR-019).",
+			"submit": "Execute",
+			"submitting": "Executing…",
+			"output": "Output",
+			"adminOnly": "Admin role required"
+		},
+		"preflight": {
+			"title": "Preflight report",
+			"description": "Deterministic checks the host runs before launching.",
+			"pass": "Pass",
+			"fail": "Fail",
+			"empty": "No checks.",
+			"ok": "All checks passed.",
+			"notOk": "One or more checks failed."
+		},
+		"wizard": {
+			"title": "New Incus instance",
+			"description": "Five steps: image, instance, network, profile, review.",
+			"steps": {
+				"image": "Image",
+				"instance": "Instance",
+				"network": "Network",
+				"profile": "Profile",
+				"review": "Review"
+			},
+			"next": "Next",
+			"back": "Back",
+			"runPreflight": "Re-run preflight",
+			"image": {
+				"title": "Image",
+				"description": "Pick a base image alias. Custom aliases must already be present on the host.",
+				"alias": "Image alias",
+				"aliasHelp": "The three bundled aliases are guaranteed to pass the preflight check.",
+				"custom": "Custom alias",
+				"customHelp": "Type the alias exactly as it appears under `incus image list`."
+			},
+			"instance": {
+				"title": "Instance",
+				"description": "Name, type, and resource limits.",
+				"name": "Name",
+				"nameHelp": "Lowercase letters, digits, and dashes. Must start with a letter.",
+				"type": "Type",
+				"pool": "Storage pool",
+				"cpu": "vCPU",
+				"memory": "Memory (MiB)"
+			},
+			"network": {
+				"title": "Network",
+				"description": "Bridge + Tailscale + public web access.",
+				"bridge": "Bridge",
+				"tailscale": "Tailscale",
+				"tailscaleHelp": "Expose the instance on the host's Tailscale network.",
+				"webAccess": "Public web access",
+				"webAccessHelp": "Open the instance's web ports to the LAN."
+			},
+			"profile": {
+				"title": "Profile",
+				"description": "Hermes agent profile (optional).",
+				"enabled": "Enable Hermes",
+				"enabledHelp": "When enabled, the Hermes agent process runs inside the instance.",
+				"profile": "Profile name",
+				"port": "API port",
+				"portHelp": "Reserved range: 18695–18749.",
+				"model": "Model"
+			},
+			"review": {
+				"title": "Review",
+				"description": "Confirm the configuration and run the preflight before launching.",
+				"summary": "Summary",
+				"preflightTitle": "Preflight",
+				"slug": "Name",
+				"image": "Image",
+				"pool": "Pool",
+				"bridge": "Bridge",
+				"branch": "Branch",
+				"hermes": "Hermes",
+				"launch": "Launch",
+				"launching": "Launching…"
+			}
+		}
 	}
 }
