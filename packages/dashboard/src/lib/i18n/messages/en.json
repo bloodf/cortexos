@@ -444,5 +444,77 @@
 		}	}
 }
 }
-}
+},
+	"approvals": {
+		"title": "Approvals",
+		"description": "Pending privileged-command approval tokens.",
+		"empty": "No pending approvals — every requested action has been handled.",
+		"history": {
+			"title": "Approval history",
+			"description": "All approvals, denials, and expirations — newest first.",
+			"empty": "No approvals in history yet."
+		},
+		"list": {
+			"title": "Pending approvals",
+			"description": "Privileged actions waiting for an admin decision.",
+			"columns": {
+				"signal": "Signal",
+				"run": "Run",
+				"role": "Role",
+				"reason": "Reason",
+				"requested": "Requested",
+				"timeout": "Timeout",
+				"age": "Age",
+				"action": "Action"
+			},
+			"filters": {
+				"action": "Action",
+				"user": "Requested by",
+				"age": "Age",
+				"all": "All",
+				"lessThan1h": "Less than 1h",
+				"lessThan24h": "Less than 24h",
+				"olderThan24h": "Older than 24h"
+			}
+		},
+		"detail": {
+			"title": "Approval detail",
+			"fields": {
+				"signal": "Signal",
+				"run": "Run ID",
+				"role": "Required role",
+				"issue": "Issue",
+				"reason": "Reason",
+				"requestedAt": "Requested at",
+				"timeoutAt": "Times out at",
+				"resolvedAt": "Resolved at",
+				"decision": "Decision",
+				"approver": "Approver"
+			},
+			"notFound": "Approval not found"
+		},
+		"actions": {
+			"grant": "Grant approval",
+			"revoke": "Revoke approval",
+			"granting": "Granting…",
+			"revoking": "Revoking…",
+			"back": "Back to pending",
+			"viewHistory": "View history",
+			"confirmGrant": "Grant this approval? The token will be marked as approved and the requester will be able to proceed.",
+			"confirmRevoke": "Revoke this approval? The token will be invalidated and the requester will be denied.",
+			"granted": "Approval granted.",
+			"revoked": "Approval revoked.",
+			"failed": "Action failed",
+			"alreadyResolved": "This approval has already been resolved.",
+			"expired": "This approval has timed out and can no longer be acted on."
+		},
+		"status": {
+			"pending": "Pending",
+			"approved": "Approved",
+			"denied": "Denied",
+			"expired": "Expired",
+			"timeout": "Timed out",
+			"unknown": "Unknown"
+		}
+	}}
 }
