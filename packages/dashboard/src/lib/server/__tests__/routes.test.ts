@@ -635,7 +635,7 @@ describe('PB-4 FIX: POST /api/incus/[name]/exec-named', () => {
   it('non-admin gets 403', async () => {
     const { locals } = nonAdminLocals();
     const res = await callHandler(
-      execNamedRoute.POST,
+      execNamedRoute.POST as unknown as (e: unknown) => Promise<Response>,
       makeFakeEvent({
         method: 'POST',
         locals,
@@ -649,7 +649,7 @@ describe('PB-4 FIX: POST /api/incus/[name]/exec-named', () => {
   it('admin with bash -c <userstring> returns 400', async () => {
     const { locals } = adminLocals();
     const res = await callHandler(
-      execNamedRoute.POST,
+      execNamedRoute.POST as unknown as (e: unknown) => Promise<Response>,
       makeFakeEvent({
         method: 'POST',
         locals,
@@ -663,7 +663,7 @@ describe('PB-4 FIX: POST /api/incus/[name]/exec-named', () => {
   it('admin with allowlisted op returns 200', async () => {
     const { locals } = adminLocals();
     const res = await callHandler(
-      execNamedRoute.POST,
+      execNamedRoute.POST as unknown as (e: unknown) => Promise<Response>,
       makeFakeEvent({
         method: 'POST',
         locals,

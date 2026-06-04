@@ -780,5 +780,174 @@
 			"denied": "Denegado",
 			"error": "Error"
 		}
+	},
+	"incus": {
+		"title": "Incus",
+		"description": "Contenedores del sistema y máquinas virtuales gestionados por Incus. Cada acción del ciclo de vida requiere administrador + aprobación (PB-5).",
+		"empty": "Ninguna instancia coincide con el filtro. Borra el filtro para ver todas las instancias.",
+		"new": "Nueva instancia",
+		"types": {
+			"container": "Contenedor",
+			"vm": "VM"
+		},
+		"search": {
+			"placeholder": "Buscar por nombre o imagen…",
+			"label": "Filtrar instancias",
+			"allTypes": "Todos los tipos"
+		},
+		"filter": {
+			"label": "Filtrar instancias por estado"
+		},
+		"table": {
+			"name": "Nombre",
+			"type": "Tipo",
+			"image": "Imagen",
+			"status": "Estado",
+			"cpu": "CPU",
+			"memory": "Memoria",
+			"timestamp": "Marca temporal",
+			"priority": "Prioridad",
+			"message": "Mensaje"
+		},
+		"status": {
+			"label": "Estado de la instancia",
+			"draft": "Borrador",
+			"validated": "Validada",
+			"provisioning": "Aprovisionando",
+			"active": "Activa",
+			"failed": "Fallida",
+			"running": "En ejecución",
+			"stopped": "Detenida",
+			"frozen": "Congelada",
+			"error": "Error"
+		},
+		"detail": {
+			"actions": "Acciones",
+			"actionsDescription": "Solo administrador. Las acciones destructivas (stop, restart, delete) requieren un token de aprobación (PB-5).",
+			"fields": {
+				"title": "Configuración",
+				"titleDescription": "Metadatos estáticos de la instancia.",
+				"name": "Nombre",
+				"type": "Tipo",
+				"image": "Imagen",
+				"cpu": "CPU",
+				"memory": "Memoria",
+				"created": "Creada",
+				"branch": "Rama",
+				"pool": "Pool de almacenamiento",
+				"bridge": "Bridge de red",
+				"tailscale": "Tailscale",
+				"hermes": "Hermes"
+			},
+			"devices": "Dispositivos",
+			"devicesEmpty": "Sin dispositivos configurados.",
+			"validation": "Última validación",
+			"validationEmpty": "Sin validación todavía."
+		},
+		"actions": {
+			"label": "Acciones de instancia",
+			"start": "Iniciar",
+			"stop": "Detener",
+			"restart": "Reiniciar",
+			"delete": "Eliminar",
+			"adminOnly": "Rol de administrador requerido",
+			"requiresApproval": "Requiere aprobación",
+			"deleteConfirm": "¿Eliminar esta instancia? Esta acción no se puede deshacer.",
+			"deletePrompt": "Escribe 'delete' para confirmar."
+		},
+		"logs": {
+			"title": "Registros",
+			"description": "Últimas líneas de {name} (datos simulados en M2).",
+			"empty": "No hay líneas de registro para esta instancia."
+		},
+		"exec": {
+			"title": "Exec (allowlist)",
+			"description": "Ejecuta un subcomando allowlisted dentro de {name}.",
+			"subcommand": "Subcomando",
+			"opLabel": "Op",
+			"pathLabel": "Ruta",
+			"nLabel": "Líneas",
+			"unitLabel": "Unidad",
+			"commandLabel": "Comando",
+			"help": "Solo se aceptan subcomandos allowlisted. No `bash -c <userstring>` (SR-019).",
+			"submit": "Ejecutar",
+			"submitting": "Ejecutando…",
+			"output": "Salida",
+			"adminOnly": "Rol de administrador requerido"
+		},
+		"preflight": {
+			"title": "Informe de preflight",
+			"description": "Comprobaciones deterministas que el host ejecuta antes del lanzamiento.",
+			"pass": "Pasa",
+			"fail": "Falla",
+			"empty": "Sin comprobaciones.",
+			"ok": "Todas las comprobaciones pasaron.",
+			"notOk": "Una o más comprobaciones fallaron."
+		},
+		"wizard": {
+			"title": "Nueva instancia Incus",
+			"description": "Cinco pasos: imagen, instancia, red, perfil, revisión.",
+			"steps": {
+				"image": "Imagen",
+				"instance": "Instancia",
+				"network": "Red",
+				"profile": "Perfil",
+				"review": "Revisión"
+			},
+			"next": "Siguiente",
+			"back": "Atrás",
+			"runPreflight": "Volver a ejecutar preflight",
+			"image": {
+				"title": "Imagen",
+				"description": "Elige un alias de imagen base.",
+				"alias": "Alias de imagen",
+				"aliasHelp": "Los tres alias incluidos pasan el preflight.",
+				"custom": "Alias personalizado",
+				"customHelp": "Escribe el alias exactamente como aparece en `incus image list`."
+			},
+			"instance": {
+				"title": "Instancia",
+				"description": "Nombre, tipo y límites de recursos.",
+				"name": "Nombre",
+				"nameHelp": "Letras minúsculas, dígitos y guiones. Debe empezar con una letra.",
+				"type": "Tipo",
+				"pool": "Pool de almacenamiento",
+				"cpu": "vCPU",
+				"memory": "Memoria (MiB)"
+			},
+			"network": {
+				"title": "Red",
+				"description": "Bridge + Tailscale + acceso web público.",
+				"bridge": "Bridge",
+				"tailscale": "Tailscale",
+				"tailscaleHelp": "Expón la instancia en la red Tailscale del host.",
+				"webAccess": "Acceso web público",
+				"webAccessHelp": "Abre los puertos web de la instancia a la LAN."
+			},
+			"profile": {
+				"title": "Perfil",
+				"description": "Perfil del agente Hermes (opcional).",
+				"enabled": "Habilitar Hermes",
+				"enabledHelp": "Cuando está habilitado, el proceso del agente Hermes se ejecuta dentro de la instancia.",
+				"profile": "Nombre del perfil",
+				"port": "Puerto API",
+				"portHelp": "Rango reservado: 18695–18749.",
+				"model": "Modelo"
+			},
+			"review": {
+				"title": "Revisión",
+				"description": "Confirma la configuración y ejecuta el preflight antes de lanzar.",
+				"summary": "Resumen",
+				"preflightTitle": "Preflight",
+				"slug": "Nombre",
+				"image": "Imagen",
+				"pool": "Pool",
+				"bridge": "Bridge",
+				"branch": "Rama",
+				"hermes": "Hermes",
+				"launch": "Lanzar",
+				"launching": "Lanzando…"
+			}
+		}
 	}
 }
