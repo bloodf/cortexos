@@ -44,7 +44,7 @@ import stylistic from '@stylistic/eslint-plugin';
 import n from 'eslint-plugin-n';
 import globals from 'globals';
 
-import customRules from './packages/dashboard/eslint-rules/index.js';
+import customRules from './packages/dashboard/eslint-rules/index.cjs';
 
 const SRC_GLOBS = ['**/*.{js,jsx,mjs,cjs,ts,tsx,svelte}'];
 
