@@ -5,9 +5,12 @@
  * reaching into individual files. This keeps the import graph
  * stable when components are split or renamed.
  *
- * The adapter is also re-exported here because route loaders
- * transform Drizzle rows into the contracts types via the adapter
- * before passing them to the components.
+ * IMPORTANT — only Svelte component default exports are re-exported
+ * here. The adapter (`./adapter`) is server-only (it imports
+ * `@cortexos/contracts` which in turn pulls `node:crypto` for
+ * chain-hash primitives that cannot be browser-bundled). The
+ * adapter is therefore imported directly by `+page.server.ts`
+ * files as `$lib/components/alerts/adapter`.
  */
 export { default as AlertSeverityBadge } from './AlertSeverityBadge.svelte';
 export { default as AlertHistoryTimeline } from './AlertHistoryTimeline.svelte';
@@ -18,23 +21,3 @@ export { default as RuleCard } from './RuleCard.svelte';
 export { default as RuleDetail } from './RuleDetail.svelte';
 export { default as RuleForm } from './RuleForm.svelte';
 export { default as RuleList } from './RuleList.svelte';
-
-export {
-	adaptAlertRule,
-	adaptAlertRuleList,
-	adaptAlertEvent,
-	adaptAlertEventList,
-	adaptOperationalAlert,
-	adaptOperationalAlertList,
-	toContractSeverity,
-	CHANNELS,
-} from './adapter';
-export type {
-	DbAlertRule,
-	DbAlertHistoryRow,
-	DbOperationalAlert,
-	AlertSeverityLit,
-	AlertConditionLit,
-	AlertChannelLit,
-	AlertEventStatusLit,
-} from './adapter';
