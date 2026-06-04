@@ -9,6 +9,11 @@
   defaults to hidden to reduce accidental disclosure in a screen-sharing
   scenario — per THREAT_MODEL §6, audit data may include sensitive payloads.
 
+  The key/value layout uses a semantic <dl>/<dt>/<dd> definition list
+  rather than <label> (these are read-only field displays, not form
+  controls — <label> requires an associated control and triggers an
+  a11y warning when used decoratively).
+
   i18n: every visible label routes through t(messages, 'audit.detail.*').
 -->
 <script lang="ts">
@@ -48,65 +53,81 @@
 </script>
 
 <div data-slot="audit-event-detail" class="flex flex-col gap-6">
-	<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-		<label class="flex flex-col gap-1 text-xs text-muted-foreground">
-			<span class="font-medium">{t(messages, 'audit.detail.id')}</span>
-			<code class="rounded border border-border bg-muted/30 px-2 py-1 font-mono text-xs break-all">
-				{event.id}
-			</code>
-		</label>
-		<label class="flex flex-col gap-1 text-xs text-muted-foreground">
-			<span class="font-medium">{t(messages, 'audit.detail.createdAt')}</span>
-			<code class="rounded border border-border bg-muted/30 px-2 py-1 font-mono text-xs break-all">
-				{event.createdAt}
-			</code>
-		</label>
-		<label class="flex flex-col gap-1 text-xs text-muted-foreground">
-			<span class="font-medium">{t(messages, 'audit.detail.surface')}</span>
-			<code class="rounded border border-border bg-muted/30 px-2 py-1 font-mono text-xs">
-				{event.surface}
-			</code>
-		</label>
-		<label class="flex flex-col gap-1 text-xs text-muted-foreground">
-			<span class="font-medium">{t(messages, 'audit.detail.action')}</span>
-			<code class="rounded border border-border bg-muted/30 px-2 py-1 font-mono text-xs">
-				{event.action}
-			</code>
-		</label>
-		<label class="flex flex-col gap-1 text-xs text-muted-foreground">
-			<span class="font-medium">{t(messages, 'audit.detail.actorUserId')}</span>
-			<code class="rounded border border-border bg-muted/30 px-2 py-1 font-mono text-xs">
-				{event.actorUserId ?? '—'}
-			</code>
-		</label>
-		<label class="flex flex-col gap-1 text-xs text-muted-foreground">
-			<span class="font-medium">{t(messages, 'audit.detail.actorSessionId')}</span>
-			<code class="rounded border border-border bg-muted/30 px-2 py-1 font-mono text-xs break-all">
-				{event.actorSessionId ?? '—'}
-			</code>
-		</label>
-		<label class="flex flex-col gap-1 text-xs text-muted-foreground">
-			<span class="font-medium">{t(messages, 'audit.detail.target')}</span>
-			<code class="rounded border border-border bg-muted/30 px-2 py-1 font-mono text-xs break-all">
-				{event.target ?? '—'}
-			</code>
-		</label>
-		<label class="flex flex-col gap-1 text-xs text-muted-foreground">
-			<span class="font-medium">{t(messages, 'audit.detail.result')}</span>
-			<div>
+	<dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+		<div class="flex flex-col gap-1 text-xs text-muted-foreground">
+			<dt class="font-medium">{t(messages, 'audit.detail.id')}</dt>
+			<dd>
+				<code class="rounded border border-border bg-muted/30 px-2 py-1 font-mono text-xs break-all">
+					{event.id}
+				</code>
+			</dd>
+		</div>
+		<div class="flex flex-col gap-1 text-xs text-muted-foreground">
+			<dt class="font-medium">{t(messages, 'audit.detail.createdAt')}</dt>
+			<dd>
+				<code class="rounded border border-border bg-muted/30 px-2 py-1 font-mono text-xs break-all">
+					{event.createdAt}
+				</code>
+			</dd>
+		</div>
+		<div class="flex flex-col gap-1 text-xs text-muted-foreground">
+			<dt class="font-medium">{t(messages, 'audit.detail.surface')}</dt>
+			<dd>
+				<code class="rounded border border-border bg-muted/30 px-2 py-1 font-mono text-xs">
+					{event.surface}
+				</code>
+			</dd>
+		</div>
+		<div class="flex flex-col gap-1 text-xs text-muted-foreground">
+			<dt class="font-medium">{t(messages, 'audit.detail.action')}</dt>
+			<dd>
+				<code class="rounded border border-border bg-muted/30 px-2 py-1 font-mono text-xs">
+					{event.action}
+				</code>
+			</dd>
+		</div>
+		<div class="flex flex-col gap-1 text-xs text-muted-foreground">
+			<dt class="font-medium">{t(messages, 'audit.detail.actorUserId')}</dt>
+			<dd>
+				<code class="rounded border border-border bg-muted/30 px-2 py-1 font-mono text-xs">
+					{event.actorUserId ?? '—'}
+				</code>
+			</dd>
+		</div>
+		<div class="flex flex-col gap-1 text-xs text-muted-foreground">
+			<dt class="font-medium">{t(messages, 'audit.detail.actorSessionId')}</dt>
+			<dd>
+				<code class="rounded border border-border bg-muted/30 px-2 py-1 font-mono text-xs break-all">
+					{event.actorSessionId ?? '—'}
+				</code>
+			</dd>
+		</div>
+		<div class="flex flex-col gap-1 text-xs text-muted-foreground">
+			<dt class="font-medium">{t(messages, 'audit.detail.target')}</dt>
+			<dd>
+				<code class="rounded border border-border bg-muted/30 px-2 py-1 font-mono text-xs break-all">
+					{event.target ?? '—'}
+				</code>
+			</dd>
+		</div>
+		<div class="flex flex-col gap-1 text-xs text-muted-foreground">
+			<dt class="font-medium">{t(messages, 'audit.detail.result')}</dt>
+			<dd>
 				<AuditResultBadge {messages} result={event.result} />
 				{#if event.errorCode}
 					<span class="ml-2 text-xs text-muted-foreground">({event.errorCode})</span>
 				{/if}
-			</div>
-		</label>
-		<label class="flex flex-col gap-1 text-xs text-muted-foreground">
-			<span class="font-medium">{t(messages, 'audit.detail.requestId')}</span>
-			<code class="rounded border border-border bg-muted/30 px-2 py-1 font-mono text-xs break-all">
-				{event.requestId}
-			</code>
-		</label>
-	</div>
+			</dd>
+		</div>
+		<div class="flex flex-col gap-1 text-xs text-muted-foreground">
+			<dt class="font-medium">{t(messages, 'audit.detail.requestId')}</dt>
+			<dd>
+				<code class="rounded border border-border bg-muted/30 px-2 py-1 font-mono text-xs break-all">
+					{event.requestId}
+				</code>
+			</dd>
+		</div>
+	</dl>
 
 	<div class="flex flex-col gap-2 rounded-md border border-border bg-muted/20 p-3">
 		<div class="flex items-center justify-between">
@@ -125,20 +146,24 @@
 			</button>
 		</div>
 		{#if showSensitive}
-			<div class="grid grid-cols-1 gap-3 sm:grid-cols-2" data-testid="sensitive-fields">
-				<label class="flex flex-col gap-1 text-xs text-muted-foreground">
-					<span class="font-medium">{t(messages, 'audit.detail.actorIp')}</span>
-					<code class="rounded border border-border bg-background px-2 py-1 font-mono text-xs break-all">
-						{event.actorIp ?? '—'}
-					</code>
-				</label>
-				<label class="flex flex-col gap-1 text-xs text-muted-foreground">
-					<span class="font-medium">{t(messages, 'audit.detail.actorUserAgent')}</span>
-					<code class="rounded border border-border bg-background px-2 py-1 font-mono text-xs break-all">
-						{event.actorUserAgent ?? '—'}
-					</code>
-				</label>
-			</div>
+			<dl class="grid grid-cols-1 gap-3 sm:grid-cols-2" data-testid="sensitive-fields">
+				<div class="flex flex-col gap-1 text-xs text-muted-foreground">
+					<dt class="font-medium">{t(messages, 'audit.detail.actorIp')}</dt>
+					<dd>
+						<code class="rounded border border-border bg-background px-2 py-1 font-mono text-xs break-all">
+							{event.actorIp ?? '—'}
+						</code>
+					</dd>
+				</div>
+				<div class="flex flex-col gap-1 text-xs text-muted-foreground">
+					<dt class="font-medium">{t(messages, 'audit.detail.actorUserAgent')}</dt>
+					<dd>
+						<code class="rounded border border-border bg-background px-2 py-1 font-mono text-xs break-all">
+							{event.actorUserAgent ?? '—'}
+						</code>
+					</dd>
+				</div>
+			</dl>
 		{:else}
 			<p class="text-xs text-muted-foreground">
 				{t(messages, 'audit.detail.sensitiveHint')}
@@ -156,33 +181,37 @@
 
 	<div class="flex flex-col gap-2 rounded-md border border-border bg-muted/20 p-3">
 		<h3 class="text-sm font-semibold">{t(messages, 'audit.detail.chainHeading')}</h3>
-		<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-			<label class="flex flex-col gap-1 text-xs text-muted-foreground">
-				<span class="font-medium">{t(messages, 'audit.detail.payloadHash')}</span>
-				<code class="rounded border border-border bg-background px-2 py-1 font-mono text-xs break-all">
-					{event.payloadHash}
-				</code>
-			</label>
-			<label class="flex flex-col gap-1 text-xs text-muted-foreground">
-				<span class="font-medium">{t(messages, 'audit.detail.prevHash')}</span>
-				<code class="rounded border border-border bg-background px-2 py-1 font-mono text-xs break-all">
-					{event.prevHash ?? 'null (genesis row)'}
-				</code>
-			</label>
-		</div>
-	{#if chainLink}
-		<div
-			data-slot="audit-chain-link"
-			class="mt-1 text-xs {chainLink.ok ? 'text-success' : 'text-destructive'}"
-			data-chain-ok={chainLink.ok}
-		>
-			{#if chainLink.ok}
-				{t(messages, 'audit.detail.chainOk')} ({chainLink.length ?? 0})
-			{:else}
-				{t(messages, 'audit.detail.chainBroken')} (idx={chainLink.index ?? 0}: {chainLink.reason ?? ''})
-			{/if}
-		</div>
-	{/if}
+		<dl class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+			<div class="flex flex-col gap-1 text-xs text-muted-foreground">
+				<dt class="font-medium">{t(messages, 'audit.detail.payloadHash')}</dt>
+				<dd>
+					<code class="rounded border border-border bg-background px-2 py-1 font-mono text-xs break-all">
+						{event.payloadHash}
+					</code>
+				</dd>
+			</div>
+			<div class="flex flex-col gap-1 text-xs text-muted-foreground">
+				<dt class="font-medium">{t(messages, 'audit.detail.prevHash')}</dt>
+				<dd>
+					<code class="rounded border border-border bg-background px-2 py-1 font-mono text-xs break-all">
+						{event.prevHash ?? 'null (genesis row)'}
+					</code>
+				</dd>
+			</div>
+		</dl>
+		{#if chainLink}
+			<div
+				data-slot="audit-chain-link"
+				class="mt-1 text-xs {chainLink.ok ? 'text-success' : 'text-destructive'}"
+				data-chain-ok={chainLink.ok}
+			>
+				{#if chainLink.ok}
+					{t(messages, 'audit.detail.chainOk')} ({chainLink.length ?? 0})
+				{:else}
+					{t(messages, 'audit.detail.chainBroken')} (idx={chainLink.index ?? 0}: {chainLink.reason ?? ''})
+				{/if}
+			</div>
+		{/if}
 	</div>
 
 	<nav class="flex items-center justify-between" aria-label={t(messages, 'audit.detail.nav')}>

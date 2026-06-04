@@ -1,7 +1,22 @@
 /**
  * /audit/[id] (detail page) — prev/next navigation + chain link.
+ *
+ * The chain link is sourced from the Drizzle `verifyAuditLogChain(db)`
+ * in src/lib/server/db/repos/audit.ts. We mock that module to return
+ * a known result so the test stays decoupled from the DB layer
+ * (the Drizzle repo has its own dedicated test suite).
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import * as auditRepo from '$lib/server/db/repos/audit';
+
+const verifyMock = vi.spyOn(auditRepo, 'verifyAuditLogChain');
+verifyMock.mockResolvedValue({
+	valid: true as const,
+	count: 3,
+	firstId: 1,
+	lastId: 3,
+});
+
 import { load as pageLoad } from '../+page.server';
 import { resetAudit, audit } from '$lib/server/audit';
 import { asUserId, asAuditEventId } from '$lib/server/entities';
@@ -59,6 +74,13 @@ function seed(): { oldest: string; middle: string; newest: string } {
 describe('audit detail page loader', () => {
 	beforeEach(() => {
 		resetAudit();
+		verifyMock.mockReset();
+		verifyMock.mockResolvedValue({
+			valid: true as const,
+			count: 3,
+			firstId: 1,
+			lastId: 3,
+		});
 	});
 
 	it('throws 404 for an unknown id', async () => {
@@ -103,15 +125,36 @@ describe('audit detail page loader', () => {
 		void oldest;
 	});
 
-	it('surfaces the chainLink from verifyAuditChain', async () => {
+	it('surfaces a valid chain link from verifyAuditLogChain (Drizzle)', async () => {
 		const { oldest } = seed();
 		const data = await load(
 			makeReq(`http://localhost/audit/${oldest}`, { id: oldest }),
 		);
-		// Untampered chain → ok.
+		// Mock returns { valid: true, count: 3, firstId: 1, lastId: 3 }.
 		expect(data.chainLink.ok).toBe(true);
 		if (data.chainLink.ok) {
 			expect(data.chainLink.length).toBe(3);
+		}
+	});
+
+	it('surfaces a broken chain link when verifyAuditLogChain reports a break', async () => {
+		verifyMock.mockResolvedValueOnce({
+			valid: false as const,
+			count: 5,
+			brokenAt: {
+				id: 2,
+				occurredAt: new Date('2026-06-03T00:00:00Z'),
+				reason: 'prev_hash_mismatch',
+			},
+		});
+		const { oldest } = seed();
+		const data = await load(
+			makeReq(`http://localhost/audit/${oldest}`, { id: oldest }),
+		);
+		expect(data.chainLink.ok).toBe(false);
+		if (!data.chainLink.ok) {
+			expect(data.chainLink.index).toBe(2);
+			expect(data.chainLink.reason).toBe('prev_hash_mismatch');
 		}
 	});
 });

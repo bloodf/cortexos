@@ -2,8 +2,10 @@
  * /audit/export — CSV export of audit events.
  *
  * Per THREAT_MODEL §6, audit data may include IPs and sensitive payloads,
- * so this endpoint is admin-gated (the parent route group's +layout.server.ts
- * already enforces `requireAdmin`).
+ * so this endpoint is admin-gated. SvelteKit 2.20 `+layout.server.ts` does
+ * NOT cover `+server.ts` endpoints in the same route group — every
+ * `+server.ts` that returns protected data must enforce its own auth gate
+ * (see api/approvals/+server.ts and api/env-browser/+server.ts).
  *
  * Query parameters match the list page:
  *   ?actor, ?surface, ?action, ?result, ?since, ?until
@@ -11,6 +13,7 @@
  * Response:
  *   200 text/csv; charset=utf-8
  *   Content-Disposition: attachment; filename="cortexos-audit-<UTC-timestamp>.csv"
+ *   401 unauthenticated, 403 authenticated but non-admin
  *
  * CSV format:
  *   - Header row first
@@ -81,7 +84,20 @@ function buildFilename(): string {
 	return `cortexos-audit-${ts}.csv`;
 }
 
-export const GET: RequestHandler = async ({ url }) => {
+export const GET: RequestHandler = async ({ url, locals }) => {
+	// CRITICAL: explicit admin gate. The (authed)/audit +layout.server.ts
+	// does NOT protect +server.ts endpoints in SvelteKit 2.20. We check
+	// `locals.user` (populated by hooks.server.ts on session resolution)
+	// and call SvelteKit's `error()` directly so the framework returns
+	// the right HTTP status.
+	const user = locals.user;
+	if (!user) {
+		throw error(401, 'Authentication required');
+	}
+	if (!user.isAdmin) {
+		throw error(403, 'Admin role required');
+	}
+
 	const actor = url.searchParams.get('actor')?.trim() ?? '';
 	const surface = url.searchParams.get('surface')?.trim() ?? '';
 	const action = url.searchParams.get('action')?.trim() ?? '';
