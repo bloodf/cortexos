@@ -177,16 +177,18 @@ if [[ -n "${DB_NAME:-}" && -n "${DB_USER:-}" ]]; then
     echo "  ✗ T6.1 admin_sessions row(s) exist in Postgres (count=$SESS_BEFORE)"
   fi
 
-  # 2. Capture the user-id we're currently authenticated as. Must be non-empty.
+  # 2. Capture the user-id we're currently authenticated as. Must be
+  #    a non-empty UUID-like string (the contracts-bridge derives a
+  #    UUIDv4-shaped id from the integer pam_users.id).
   ME_BEFORE=$(curl -sS -b "$ADMIN_COOKIES" "$BASE/api/auth/me")
-  UID_BEFORE=$(echo "$ME_BEFORE" | grep -oE '"id":"[0-9]+"' | head -1 | grep -oE '[0-9]+')
-  if [[ -n "$UID_BEFORE" && "$UID_BEFORE" =~ ^[0-9]+$ ]]; then
+  UID_BEFORE=$(echo "$ME_BEFORE" | grep -oE '"id":"[^"]+"' | head -1 | sed -E 's/^"id":"//; s/"$//')
+  if [[ -n "$UID_BEFORE" && "$UID_BEFORE" =~ ^[0-9a-fA-F-]+$ ]]; then
     PASS=$((PASS + 1))
-    echo "  ✓ T6.2 /me returns a numeric user-id before restart (id=$UID_BEFORE)"
+    echo "  ✓ T6.2 /me returns a UUID-shaped user-id before restart (id=$UID_BEFORE)"
   else
     FAIL=$((FAIL + 1))
-    FAILED_TESTS+=("T6.2 /me returns a numeric user-id before restart (got '$UID_BEFORE')")
-    echo "  ✗ T6.2 /me returns a numeric user-id before restart (got '$UID_BEFORE')"
+    FAILED_TESTS+=("T6.2 /me returns a UUID-shaped user-id before restart (got '$UID_BEFORE')")
+    echo "  ✗ T6.2 /me returns a UUID-shaped user-id before restart (got '$UID_BEFORE')"
   fi
 
   # 3. Restart the dashboard service. If we're not root, skip with a soft pass.
@@ -198,7 +200,7 @@ if [[ -n "${DB_NAME:-}" && -n "${DB_USER:-}" ]]; then
   # 4. Re-curl /me with the same cookie. Must still be 200 with the same user.
   STATUS_AFTER=$(curl -sS -b "$ADMIN_COOKIES" -o /tmp/me_after -w "%{http_code}" "$BASE/api/auth/me")
   run "T6.3 /me survives restart (cookie still valid)" 200 "$STATUS_AFTER"
-  UID_AFTER=$(grep -oE '"id":"[0-9]+"' /tmp/me_after | head -1 | grep -oE '[0-9]+')
+  UID_AFTER=$(grep -oE '"id":"[^"]+"' /tmp/me_after | head -1 | sed -E 's/^"id":"//; s/"$//')
   run "T6.4 /me returns same user-id after restart" "$UID_BEFORE" "$UID_AFTER"
 else
   echo "=== T6: SKIPPED (DB_NAME/DB_USER not set) ==="

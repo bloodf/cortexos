@@ -42,6 +42,17 @@ export const asDashboardCommandAuditId = (s: string): DashboardCommandAuditId =>
 /** Group memberships drive RBAC decisions (THREAT_MODEL §1.2 surface 2). */
 export type GroupName = 'cortexos-admin' | 'cortexos-auditor' | 'cortexos-users';
 
+/** Object form of a group membership, used by the contracts User
+ *  (and by `toContractsUser` in `contracts-bridge.ts`). The local
+ *  auth store stores the string-union form, but App.Locals exposes
+ *  the object form after the bridge — and `isAdmin` / `hasGroup`
+ *  in the auth module handle both. */
+export interface GroupMembershipEntry {
+  readonly name: GroupName;
+  readonly isAdmin: boolean;
+  readonly description?: string;
+}
+
 export interface User {
   readonly id: UserId;
   readonly username: string;
@@ -52,7 +63,12 @@ export interface User {
    *  The runtime always populates it via `toUserEntity` / `rowToUser`. */
   readonly isAdmin: boolean;
   readonly isActive: boolean;
-  readonly groupMemberships: ReadonlyArray<GroupName>;
+  /** Group memberships. May be a string union (legacy / local auth
+   *  shape, used by older test fixtures) or an array of objects
+   *  (contracts shape — the form flowing through App.Locals after
+   *  the contracts bridge). The auth module's `isAdmin` and
+   *  `hasGroup` helpers handle both. */
+  readonly groupMemberships: ReadonlyArray<GroupName | GroupMembershipEntry>;
 }
 
 export interface Session {

@@ -46,7 +46,7 @@ import { and, eq, gt, sql } from 'drizzle-orm';
 import type { DbClient } from '../db/client';
 import { getDb } from '../db/client';
 import { adminSessions, pamUsers } from '../db/schema';
-import type { GroupName, Session, SessionId, User, UserId } from '../entities';
+import type { GroupMembershipEntry, GroupName, Session, SessionId, User, UserId } from '../entities';
 import { asSessionId, asUserId } from '../entities';
 
 // ---------------------------------------------------------------------------
@@ -60,7 +60,7 @@ import { asSessionId, asUserId } from '../entities';
 export interface ResolvedSession {
   readonly session: Session;
   readonly user: User;
-  /** The dashboard-relevant groups the user is in. */
+  /** The dashboard-relevant groups the user is in (string names). */
   readonly groups: ReadonlyArray<GroupName>;
   /** Convenience: derived from `groups`. */
   readonly isAdmin: boolean;
@@ -215,7 +215,7 @@ interface MemSessionRow {
 interface MemUserRow {
   id: number;
   username: string;
-  groupMemberships: ReadonlyArray<GroupName>;
+  groupMemberships: ReadonlyArray<GroupMembershipEntry>;
   isActive: boolean;
 }
 
@@ -243,9 +243,13 @@ export class InMemorySessionStore implements SessionStore {
     groupMemberships: ReadonlyArray<GroupName>;
     isActive?: boolean;
   }): { id: number; username: string } {
+    // Accept string union and convert to the contracts object form.
+    const entries: ReadonlyArray<GroupMembershipEntry> = input.groupMemberships.map(
+      (name) => ({ name, isAdmin: name === 'cortexos-admin' }),
+    );
     for (const u of this.users.values()) {
       if (u.username === input.username) {
-        u.groupMemberships = input.groupMemberships;
+        u.groupMemberships = entries;
         u.isActive = input.isActive ?? true;
         return { id: u.id, username: u.username };
       }
@@ -253,7 +257,7 @@ export class InMemorySessionStore implements SessionStore {
     const u: MemUserRow = {
       id: this.nextUserId++,
       username: input.username,
-      groupMemberships: input.groupMemberships,
+      groupMemberships: entries,
       isActive: input.isActive ?? true,
     };
     this.users.set(u.id, u);
@@ -448,6 +452,9 @@ export class DrizzleSessionStore implements SessionStore {
     const groups: ReadonlyArray<GroupName> = row.isAdmin
       ? ['cortexos-admin', 'cortexos-users']
       : ['cortexos-users'];
+    const groupMemberships: ReadonlyArray<GroupMembershipEntry> = groups.map(
+      (name) => ({ name, isAdmin: row.isAdmin && name === 'cortexos-admin' }),
+    );
 
     return {
       session: rowToSessionFromJoin(row),
@@ -457,7 +464,7 @@ export class DrizzleSessionStore implements SessionStore {
         is_admin: row.isAdmin,
         isAdmin: row.isAdmin,
         isActive: true,
-        groupMemberships: groups,
+        groupMemberships,
       },
       groups,
       isAdmin: row.isAdmin,
@@ -554,10 +561,13 @@ function toUserEntity(row: MemUserRow, _id: number, isAdminOverride?: boolean): 
   const isAdmin =
     isAdminOverride !== undefined
       ? isAdminOverride
-      : row.groupMemberships.includes('cortexos-admin');
-  const groupMemberships: ReadonlyArray<GroupName> = isAdmin
-    ? ['cortexos-admin', 'cortexos-users']
-    : row.groupMemberships.filter((g) => g !== 'cortexos-admin');
+      : row.groupMemberships.some((g) => g.name === 'cortexos-admin');
+  const groupMemberships: ReadonlyArray<GroupMembershipEntry> = isAdmin
+    ? [
+        { name: 'cortexos-admin', isAdmin: true },
+        { name: 'cortexos-users', isAdmin: false },
+      ]
+    : row.groupMemberships.filter((g) => g.name !== 'cortexos-admin');
   return {
     id: asUserId(String(row.id)),
     username: row.username,

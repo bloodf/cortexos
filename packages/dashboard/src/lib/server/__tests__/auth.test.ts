@@ -64,7 +64,9 @@ describe('requireAuth', () => {
     const store = getSessionStore() as InMemorySessionStore;
     store.upsertUser({
       username: user.username,
-      groupMemberships: user.groupMemberships,
+      groupMemberships: user.groupMemberships.map((g) =>
+        typeof g === 'string' ? g : g.name,
+      ),
     });
     const created = await store.createSession({
       username: user.username,

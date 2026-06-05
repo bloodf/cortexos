@@ -133,12 +133,18 @@ export { requireCsrf, csrfIsSafeMethod, csrfHeadersFromRequest, LOGIN_BOOTSTRAP_
  * `sudo` and `wheel` MUST NOT grant admin (THREAT_MODEL SR-003).
  */
 export function isAdmin(user: User): boolean {
-  return user.groupMemberships.includes('cortexos-admin') || user.is_admin;
+  // The runtime User can be either shape (string union from the legacy
+  // auth store, or contracts-shape object flowing through App.Locals).
+  if (user.isAdmin === true) return true;
+  if ((user as { is_admin?: boolean }).is_admin === true) return true;
+  return user.groupMemberships.some((g) =>
+    typeof g === 'string' ? g === 'cortexos-admin' : g.name === 'cortexos-admin',
+  );
 }
 
 /** Does the user hold a given group membership? */
 export function hasGroup(user: User, group: GroupName): boolean {
-  return user.groupMemberships.includes(group);
+  return user.groupMemberships.some((g) => (typeof g === 'string' ? g === group : g.name === group));
 }
 
 // ---------------------------------------------------------------------------
@@ -159,7 +165,9 @@ export async function getCurrentSession(event: AuthRequestEvent): Promise<Resolv
     return {
       session: localSession,
       user: localUser,
-      groups: localUser.groupMemberships,
+      groups: localUser.groupMemberships.map((g) =>
+        typeof g === 'string' ? g : g.name,
+      ) as ReadonlyArray<GroupName>,
       isAdmin: isAdmin(localUser),
     };
   }
@@ -250,7 +258,9 @@ export async function requireAuthAsync(event: AuthRequestEvent): Promise<Resolve
     return {
       session: localSession,
       user: localUser,
-      groups: localUser.groupMemberships,
+      groups: localUser.groupMemberships.map((g) =>
+        typeof g === 'string' ? g : g.name,
+      ) as ReadonlyArray<GroupName>,
       isAdmin: isAdmin(localUser),
     };
   }
@@ -285,7 +295,9 @@ export function registerFakeUser(user: User): void {
   if (store instanceof InMemorySessionStore) {
     store.upsertUser({
       username: user.username,
-      groupMemberships: user.groupMemberships,
+      groupMemberships: user.groupMemberships.map((g) =>
+        typeof g === 'string' ? g : g.name,
+      ) as ReadonlyArray<GroupName>,
       isActive: user.isActive,
     });
   }

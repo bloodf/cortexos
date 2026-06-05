@@ -30,7 +30,7 @@
  */
 
 import type { Handle } from '@sveltejs/kit';
-import type { User as ContractUser, Session as ContractSession } from '@cortexos/contracts';
+import { toContractsUser, toContractsSession } from '$lib/server/contracts-bridge';
 import {
   clearSessionCookie,
   DEFAULT_SESSION_TTL_MS,
@@ -91,12 +91,10 @@ export const handle: Handle = async ({ event, resolve }) => {
       // Bridge: resolved.user is the auth module's local User (string-typed
       // GroupMembership, integer IDs, lastRoleCheckAt) and the App.Locals
       // contracts User has the wire-format shape (UUID, object GroupMembership,
-      // lastRoleCheck). The runtime values are populated by toUserEntity /
-      // rowToUser / resolveByToken — see A1 fix b1e84e3 for isAdmin. A full
-      // type re-type is deferred; the bounded cast here is the only place
-      // the two shapes meet.
-      event.locals.user = resolved.user as unknown as ContractUser;
-      event.locals.session = resolved.session as unknown as ContractSession;
+      // lastRoleCheck). Convert in place so the routes see the proper
+      // contracts shape — no `as unknown as` cast.
+      event.locals.user = toContractsUser(resolved.user);
+      event.locals.session = toContractsSession(resolved.session);
 
       // 3. Re-validate role if stale (SR-011/012).
       const now = Date.now();

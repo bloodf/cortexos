@@ -161,13 +161,19 @@ export function makeFakeCookieJar(initial: Record<string, string> = {}): FakeCoo
 /** Build a fake authenticated User for use in tests. */
 export function makeFakeUser(overrides: Partial<User> = {}): User {
   const isAdmin = overrides.isAdmin ?? overrides.is_admin ?? false;
+  // Accept string union OR object form in test fixtures; normalize to
+  // the contracts object shape.
+  const raw = overrides.groupMemberships ?? [];
+  const groupMemberships = raw.map((g) =>
+    typeof g === 'string' ? { name: g, isAdmin: isAdmin && g === 'cortexos-admin' } : g,
+  );
   return {
     id: ('user_' + Math.random().toString(36).slice(2, 10)) as User['id'],
     username: overrides.username ?? 'testuser',
     is_admin: isAdmin,
     isAdmin,
     isActive: overrides.isActive ?? true,
-    groupMemberships: overrides.groupMemberships ?? [],
+    groupMemberships,
   };
 }
 
@@ -185,6 +191,6 @@ export function makeFakeSession(user: User, overrides: Partial<Session> = {}): S
 }
 
 /** Build a `locals` object with user + session populated. */
-export function makeFakeLocals(user: User, session: Session): AppLocals {
-  return { user, session };
+export function makeFakeLocals(user: User | null, session: Session | null): AppLocals {
+  return { user: user ?? undefined, session: session ?? undefined };
 }

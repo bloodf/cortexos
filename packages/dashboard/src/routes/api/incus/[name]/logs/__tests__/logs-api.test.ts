@@ -87,12 +87,16 @@ function eventWithParams(event: ReturnType<typeof makeFakeEvent>, params: Record
 
 describe('GET /api/incus/[name]/logs', () => {
   it('returns 401 for anonymous', async () => {
-    const res = await GET(anonEvent('http://x/api/incus/foo/logs'));
+    const res = await (GET as unknown as (e: unknown) => Promise<Response>)(
+      anonEvent('http://x/api/incus/foo/logs'),
+    );
     expect(res.status).toBe(401);
   });
 
   it('returns 403 for non-admin', async () => {
-    const res = await GET(nonAdminEvent('http://x/api/incus/foo/logs'));
+    const res = await (GET as unknown as (e: unknown) => Promise<Response>)(
+      nonAdminEvent('http://x/api/incus/foo/logs'),
+    );
     expect(res.status).toBe(403);
   });
 
