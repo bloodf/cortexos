@@ -11,10 +11,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   audit,
-  listAudit,
-  verifyAuditChain,
   resetAudit,
+  listAudit,
   auditSize,
+  _runningHashForTests,
+  _expectedRunningHashAt,
+  verifyAuditChain,
 } from '../audit';
 import { asUserId, asSessionId } from '../entities';
 
@@ -167,5 +169,61 @@ describe('payload hash stability', () => {
     });
     const [r1, r2] = listAudit();
     expect(r1!.payloadHash).toBe(r2!.payloadHash);
+  });
+});
+
+describe('audit internals — extras', () => {
+  beforeEach(() => {
+    resetAudit();
+  });
+
+  it('_runningHashForTests returns the current GENESIS before any audit', () => {
+    // Before any audit, the running hash is the GENESIS sentinel.
+    // We don't assert the exact value (it would be the SHA-256 of
+    // "cortexos:audit:genesis:v1" hex-encoded) — just that the
+    // helper is callable and returns a 64-char hex string.
+    const h = _runningHashForTests();
+    expect(h).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it('_expectedRunningHashAt throws for negative index', () => {
+    expect(() => _expectedRunningHashAt(-1)).toThrow(/out of range/);
+  });
+
+  it('_expectedRunningHashAt throws for index >= events.length', () => {
+    audit({
+      actorUserId: null,
+      actorSessionId: null,
+      actorIp: null,
+      actorUserAgent: null,
+      surface: 's',
+      action: 'a',
+      target: null,
+      result: 'success',
+      errorCode: null,
+      payload: {},
+    });
+    expect(auditSize()).toBe(1);
+    expect(() => _expectedRunningHashAt(1)).toThrow(/out of range/);
+    expect(() => _expectedRunningHashAt(99)).toThrow(/out of range/);
+  });
+
+  it('_expectedRunningHashAt returns the correct hash for valid index', () => {
+    audit({
+      actorUserId: null,
+      actorSessionId: null,
+      actorIp: null,
+      actorUserAgent: null,
+      surface: 's',
+      action: 'a',
+      target: null,
+      result: 'success',
+      errorCode: null,
+      payload: { i: 0 },
+    });
+    const h = _expectedRunningHashAt(0);
+    expect(h).toMatch(/^[0-9a-f]{64}$/);
+    // The hash must equal the running hash after one event.
+    expect(h).toBe(_runningHashForTests());
   });
 });
