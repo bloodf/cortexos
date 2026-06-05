@@ -40,7 +40,7 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 - [ ] Lock SSH (`{SSH_PORT}/tcp`) to Tailscale + LAN only — no public ingress
 - [ ] Write `/etc/sysctl.d/99-cortex.conf` (full network + kernel hardening) and run `sudo sysctl --system`
 - [ ] Enable and start `auditd` + `apparmor`
-- [ ] Enable + start `fail2ban` so the sshd jail runs from spoke 10 onward (full jail map lives in the Planned `18-fail2ban.md` — see `docs/APPS.md` Planned table)
+- [ ] Enable + start `fail2ban` so the sshd jail runs from spoke 10 onward (full jail map is planned in the `18-fail2ban` row of `docs/APPS.md`)
 - [ ] Confirm `sudo sshd -t` prints `sshd config OK`
 - [ ] CHECKPOINT 2 confirmed — `sshd -t` OK, UFW active and tailnet-locked, fail2ban active, auditd running, syncookies=1
 
@@ -230,11 +230,11 @@ sudo systemctl enable --now auditd
 sudo systemctl enable --now fail2ban
 ```
 
-A full set of fail2ban jails (sshd, recidive, caddy auth) will
-land in the Planned `prompts/tools/18-fail2ban.md` (see
-`docs/APPS.md` Planned table). This spoke only guarantees the
-service is **running** from the start so the sshd jail begins
-collecting evidence the moment SSH is reachable.
+A full set of fail2ban jails (sshd, recidive, caddy auth) is
+planned in the `18-fail2ban` row of `docs/APPS.md`. This spoke
+only guarantees the service is **running** from the start so the
+sshd jail begins collecting evidence the moment SSH is
+reachable.
 
 ## Verify
 
