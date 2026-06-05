@@ -156,15 +156,21 @@ describe('systemd bridge — dispatchAction edge paths + real executor body', ()
       };
     });
 
-    // First call: the action (e.g. `start caddy.service`).
-    // Second call: the show query that follows.
-    execFileMock
-      .mockResolvedValueOnce({ stdout: '', stderr: '' })
-      .mockResolvedValueOnce({
-        stdout:
-          'ActiveState=active\nSubState=running\nLoadState=loaded\nUnitFileState=enabled\nType=simple\nFragmentPath=/etc/systemd/system/caddy.service\nDescription=Caddy',
-        stderr: '',
-      });
+    // The bridge calls execFile 3 times on Linux with the real
+    // executor: (1) getUnitFromSystemctl for the unit, (2) the action
+    // `systemctl start caddy.service`, (3) the post-action `show`.
+    // Match by argv shape.
+    execFileMock.mockImplementation((file: string, args: string[]) => {
+      if (args[0] === 'show') {
+        return Promise.resolve({
+          stdout:
+            'ActiveState=active\nSubState=running\nLoadState=loaded\nUnitFileState=enabled\nType=simple\nFragmentPath=/etc/systemd/system/caddy.service\nDescription=Caddy',
+          stderr: '',
+        });
+      }
+      // Action call (e.g. `start caddy.service`).
+      return Promise.resolve({ stdout: '', stderr: '' });
+    });
 
     const res = await bridge.dispatchAction({ action: 'start', name: 'caddy.service' }, baseCtx);
     expect(res.status).toBe('accepted');
@@ -206,8 +212,18 @@ describe('systemd bridge — dispatchAction edge paths + real executor body', ()
         };
       }
     });
-    // First call: the action throws.
-    execFileMock.mockImplementationOnce(() => {
+    // First call: getUnitFromSystemctl (the dispatch step 3 lookup).
+    // Second call: the action throws.
+    // Mock by argv: show → ok, action → throw.
+    execFileMock.mockImplementation((file: string, args: string[]) => {
+      if (args[0] === 'show') {
+        return Promise.resolve({
+          stdout:
+            'ActiveState=active\nSubState=running\nLoadState=loaded\nUnitFileState=enabled\nType=simple\nFragmentPath=/etc/systemd/system/caddy.service\nDescription=Caddy',
+          stderr: '',
+        });
+      }
+      // Action call throws.
       const e: Error & { code?: number; stdout?: string; stderr?: string } = new Error('unit not found');
       e.code = 4;
       e.stderr = 'Failed to start caddy.service: Unit not found.';
