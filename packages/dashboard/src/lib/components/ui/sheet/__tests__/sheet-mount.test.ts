@@ -1,9 +1,28 @@
 /**
  * sheet-mount.test.ts — coverage of Sheet.svelte via Svelte 5 mount.
  */
-import { describe, it, expect, afterEach, vi } from 'vitest';
+import { describe, it, expect, afterEach, vi, beforeAll } from 'vitest';
 import { render, cleanup } from '$lib/utils/test-render';
 import Sheet from '../Sheet.svelte';
+
+// Sheet.svelte uses svelte/transition fly, which calls element.animate()
+// on mount. jsdom does not implement Element.prototype.animate, so stub
+// it globally to silence the uncaught exception that would otherwise
+// pollute the test run.
+beforeAll(() => {
+  if (typeof Element !== 'undefined' && !Element.prototype.animate) {
+    Element.prototype.animate = function () {
+      return {
+        cancel: () => {},
+        finish: () => {},
+        play: () => {},
+        pause: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      } as unknown as Animation;
+    };
+  }
+});
 
 afterEach(() => cleanup());
 
