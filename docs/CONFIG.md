@@ -204,6 +204,78 @@ tmux kill-session -t main  # Kill specific session
 
 ---
 
+## CLI Tool: fzf
+
+A 3 MB Go binary that adds `Ctrl+R` history search, `Ctrl+T` file picking, and `Alt+C` directory jumping to bash and zsh. Installed by `prompts/tools/30b-fzf.md` on the host and every Incus instance.
+
+### Installation
+
+```bash
+sudo apt-get install -y fzf
+```
+
+The package ships:
+
+- `/usr/bin/fzf` — the binary
+- `/usr/share/doc/fzf/examples/key-bindings.{bash,zsh}` — `Ctrl+R` / `Ctrl+T` / `Alt+C` keybindings
+- `/usr/share/doc/fzf/examples/completion.{bash,zsh}` — `**<Tab>` file-path completion
+- `/etc/profile.d/fzf.sh` — auto-sources the bash scripts in interactive shells
+
+### Configuration
+
+**`/etc/profile.d/fzf.sh`** (host bash — already installed by the package):
+
+```bash
+# fzf shell integration — bash key-bindings + completion
+if [ -r /usr/share/doc/fzf/examples/key-bindings.bash ]; then
+  source /usr/share/doc/fzf/examples/key-bindings.bash
+fi
+if [ -r /usr/share/doc/fzf/examples/completion.bash ]; then
+  source /usr/share/doc/fzf/examples/completion.bash
+fi
+```
+
+**`~/.zshrc`** — add fzf to the oh-my-zsh plugin list (host):
+
+```zsh
+plugins=(... fzf ...)
+```
+
+**`~/.zshrc`** — manual drop-in (Incus instances, no oh-my-zsh):
+
+```zsh
+if [ -r /usr/share/doc/fzf/examples/key-bindings.zsh ]; then
+  source /usr/share/doc/fzf/examples/key-bindings.zsh
+fi
+if [ -r /usr/share/doc/fzf/examples/completion.zsh ]; then
+  source /usr/share/doc/fzf/examples/completion.zsh
+fi
+```
+
+### Key Bindings
+
+| Trigger | Action |
+|---------|--------|
+| `Ctrl+R` | Fuzzy search command history |
+| `Ctrl+T` | Fuzzy pick a file, paste its path |
+| `Alt+C`  | Fuzzy `cd` into a directory |
+| `**` + `Tab` | File-path completion (`ssh **<Tab>`) |
+
+### Useful Aliases
+
+```bash
+# fzf helpers
+alias fcd='fzf --preview "ls -la {}" | xargs -r cd'
+alias fkill='ps -ef | fzf | awk "{print \$2}" | xargs -r kill'
+alias fbr='git branch --all | fzf | xargs -r git checkout'
+```
+
+### Related
+
+The dashboard's terminal page exposes `fzf` as a "Quick command" (see `packages/dashboard/src/lib/server/terminal/pty-bridge.ts` `term.fzf` op). The Terminal page is the place to drive interactive `fzf` runs that need a proper PTY.
+
+---
+
 ## AI CLI: Claude Code
 
 ### Installation
