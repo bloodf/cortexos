@@ -210,3 +210,202 @@ describe('incus wizard validateStep action', () => {
     expect((res as { ok?: boolean }).ok).toBe(true);
   });
 });
+
+describe('incus wizard preflight action', () => {
+  function preflightForm(config: unknown) {
+    const user = makeFakeUser({ isAdmin: true, groupMemberships: ['cortexos-admin'] });
+    const session = makeFakeSession(user);
+    registerFakeUser(user);
+    registerFakeSession(session);
+    const body = new URLSearchParams();
+    body.set('config', JSON.stringify(config));
+    const base = makeFakeEvent({
+      method: 'POST',
+      url: 'http://x/incus/wizard?/preflight',
+      locals: makeFakeLocals(user, session),
+    });
+    const request = new Request(base.url.toString(), {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    });
+    return { ...base, request } as unknown as Parameters<typeof actions.preflight>[0];
+  }
+
+  it('returns the preflight report for a valid config', async () => {
+    const config = {
+      target: { mode: 'new', branch: 'main', ghOrg: 'cortexos', slug: 'preflight-test' },
+      image: { alias: 'ubuntu/24.04', gastown: false, profiles: ['default'], pool: 'default' },
+      hermes: { enabled: false, proxies: [] },
+      network: { bridge: 'incusbr0', tailscale: true, webAccess: false },
+    };
+    const res = await actions.preflight(preflightForm(config));
+    const body = res as { ok?: boolean; report?: { ok: boolean } };
+    expect(body.ok).toBe(true);
+    expect(body.report?.ok).toBe(true);
+  });
+
+  it('returns a failing report for a config with unknown image (but does not 400 — launch is the gate)', async () => {
+    const config = {
+      target: { mode: 'new', branch: 'main', ghOrg: 'cortexos', slug: 'preflight-fail' },
+      image: { alias: 'unknown/99', gastown: false, profiles: [], pool: 'default' },
+      hermes: { enabled: false, proxies: [] },
+      network: { bridge: 'incusbr0', tailscale: true, webAccess: false },
+    };
+    const res = await actions.preflight(preflightForm(config));
+    // The preflight action always returns 200 with a structured report;
+    // the launch action is the gate that actually rejects ok:false reports.
+    const body = res as { ok?: boolean; report?: { ok: boolean } };
+    expect(body.ok).toBe(true);
+    expect(body.report?.ok).toBe(false);
+  });
+
+  it('returns 400 when config is missing from formData', async () => {
+    const user = makeFakeUser({ isAdmin: true });
+    const session = makeFakeSession(user);
+    registerFakeUser(user);
+    registerFakeSession(session);
+    const base = makeFakeEvent({
+      method: 'POST',
+      url: 'http://x/incus/wizard?/preflight',
+      locals: makeFakeLocals(user, session),
+    });
+    const request = new Request(base.url.toString(), {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: '',
+    });
+    const event = { ...base, request } as unknown as Parameters<typeof actions.preflight>[0];
+    const res = await actions.preflight(event);
+    expect((res as { status?: number }).status).toBe(400);
+  });
+
+  it('returns 400 when config is invalid JSON', async () => {
+    const user = makeFakeUser({ isAdmin: true });
+    const session = makeFakeSession(user);
+    registerFakeUser(user);
+    registerFakeSession(session);
+    const body = new URLSearchParams();
+    body.set('config', 'not-json{');
+    const base = makeFakeEvent({
+      method: 'POST',
+      url: 'http://x/incus/wizard?/preflight',
+      locals: makeFakeLocals(user, session),
+    });
+    const request = new Request(base.url.toString(), {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    });
+    const event = { ...base, request } as unknown as Parameters<typeof actions.preflight>[0];
+    const res = await actions.preflight(event);
+    expect((res as { status?: number }).status).toBe(400);
+  });
+});
+
+describe('incus wizard launch action', () => {
+  function launchForm(config: unknown) {
+    const user = makeFakeUser({ isAdmin: true, groupMemberships: ['cortexos-admin'] });
+    const session = makeFakeSession(user);
+    registerFakeUser(user);
+    registerFakeSession(session);
+    const body = new URLSearchParams();
+    body.set('config', JSON.stringify(config));
+    const base = makeFakeEvent({
+      method: 'POST',
+      url: 'http://x/incus/wizard?/launch',
+      locals: makeFakeLocals(user, session),
+    });
+    const request = new Request(base.url.toString(), {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    });
+    return { ...base, request } as unknown as Parameters<typeof actions.launch>[0];
+  }
+
+  const baseConfig = {
+    target: { mode: 'new' as const, branch: 'main', ghOrg: 'cortexos', slug: 'launch-test' },
+    image: { alias: 'ubuntu/24.04', gastown: false, profiles: ['default'], pool: 'default' },
+    hermes: { enabled: false, proxies: [] },
+    network: { bridge: 'incusbr0', tailscale: true, webAccess: false },
+  };
+
+  it('returns 401 for anonymous', async () => {
+    const base = makeFakeEvent({
+      method: 'POST',
+      url: 'http://x/incus/wizard?/launch',
+      locals: makeFakeLocals(null, null),
+    });
+    const body = new URLSearchParams();
+    body.set('config', JSON.stringify(baseConfig));
+    const request = new Request(base.url.toString(), {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    });
+    const event = { ...base, request } as unknown as Parameters<typeof actions.launch>[0];
+    const res = await actions.launch(event);
+    expect((res as { status?: number }).status).toBe(401);
+  });
+
+  it('returns 403 for a non-admin caller', async () => {
+    const user = makeFakeUser({ isAdmin: false });
+    const session = makeFakeSession(user);
+    registerFakeUser(user);
+    registerFakeSession(session);
+    const event = launchForm(baseConfig);
+    // Override locals to be the non-admin.
+    (event as { locals: unknown }).locals = makeFakeLocals(user, session);
+    const res = await actions.launch(event);
+    expect((res as { status?: number }).status).toBe(403);
+  });
+
+  it('returns 409 when the instance name already exists', async () => {
+    const res = await actions.launch(launchForm({
+      ...baseConfig,
+      target: { ...baseConfig.target, slug: 'hermes-canary' },
+    }));
+    expect((res as { status?: number }).status).toBe(409);
+  });
+
+  it('seeds a new instance and returns provisioning status for a valid config', async () => {
+    const res = await actions.launch(launchForm({
+      ...baseConfig,
+      target: { ...baseConfig.target, slug: 'brand-new-instance' },
+    }));
+    const body = res as { ok?: boolean; name?: string; status?: string };
+    expect(body.ok).toBe(true);
+    expect(body.name).toBe('brand-new-instance');
+    expect(body.status).toBe('provisioning');
+  });
+
+  it('returns 400 when preflight fails (unknown image)', async () => {
+    const res = await actions.launch(launchForm({
+      ...baseConfig,
+      target: { ...baseConfig.target, slug: 'preflight-fail-launch' },
+      image: { ...baseConfig.image, alias: 'unknown/99' },
+    }));
+    expect((res as { status?: number }).status).toBe(400);
+  });
+
+  it('returns 400 when config is missing from formData', async () => {
+    const user = makeFakeUser({ isAdmin: true });
+    const session = makeFakeSession(user);
+    registerFakeUser(user);
+    registerFakeSession(session);
+    const base = makeFakeEvent({
+      method: 'POST',
+      url: 'http://x/incus/wizard?/launch',
+      locals: makeFakeLocals(user, session),
+    });
+    const request = new Request(base.url.toString(), {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: '',
+    });
+    const event = { ...base, request } as unknown as Parameters<typeof actions.launch>[0];
+    const res = await actions.launch(event);
+    expect((res as { status?: number }).status).toBe(400);
+  });
+});

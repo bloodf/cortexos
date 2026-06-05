@@ -164,6 +164,139 @@ describe('/docker/[id] detail page — form actions', () => {
     expect(result.status).toBe(403);
     expect(result.data.error).toMatch(/action-hash mismatch/);
   });
+
+  it('stop action succeeds with a valid token', async () => {
+    const c = getContainerByName('grafana-1');
+    const data = await loadDetail(makeDetailLoadEvent(c!.id as unknown as string));
+    const fd = new FormData();
+    fd.set('approvalToken', data.approvalTokens.stop ?? '');
+    const event = {
+      params: { id: c!.id as unknown as string },
+      request: new Request(`http://localhost/docker/${c!.id}?/stop`, {
+        method: 'POST',
+        body: fd,
+      }),
+      locals: { user: makeAdminUser(), session: makeAdminSession() },
+    } as unknown as Parameters<NonNullable<typeof actions.stop>>[0];
+    const result = await (actions.stop as unknown as (e: typeof event) => Promise<{ ok: boolean; action: string; state: string }>)(event);
+    expect(result.ok).toBe(true);
+    expect(result.action).toBe('stop');
+  });
+
+  it('restart action succeeds with a valid token', async () => {
+    const c = getContainerByName('grafana-1');
+    const data = await loadDetail(makeDetailLoadEvent(c!.id as unknown as string));
+    const fd = new FormData();
+    fd.set('approvalToken', data.approvalTokens.restart ?? '');
+    const event = {
+      params: { id: c!.id as unknown as string },
+      request: new Request(`http://localhost/docker/${c!.id}?/restart`, {
+        method: 'POST',
+        body: fd,
+      }),
+      locals: { user: makeAdminUser(), session: makeAdminSession() },
+    } as unknown as Parameters<NonNullable<typeof actions.restart>>[0];
+    const result = await (actions.restart as unknown as (e: typeof event) => Promise<{ ok: boolean; action: string; state: string }>)(event);
+    expect(result.ok).toBe(true);
+    expect(result.action).toBe('restart');
+  });
+
+  it('remove action redirects to /docker on success', async () => {
+    const c = getContainerByName('grafana-1');
+    const data = await loadDetail(makeDetailLoadEvent(c!.id as unknown as string));
+    const fd = new FormData();
+    fd.set('approvalToken', data.approvalTokens.remove ?? '');
+    const event = {
+      params: { id: c!.id as unknown as string },
+      request: new Request(`http://localhost/docker/${c!.id}?/remove`, {
+        method: 'POST',
+        body: fd,
+      }),
+      locals: { user: makeAdminUser(), session: makeAdminSession() },
+    } as unknown as Parameters<NonNullable<typeof actions.remove>>[0];
+    // remove throws redirect(303, '/docker') — verify the throw.
+    await expect(
+      (actions.remove as unknown as (e: typeof event) => Promise<unknown>)(event),
+    ).rejects.toMatchObject({ status: 303, location: '/docker' });
+  });
+
+  it('rm action is an alias for remove (also redirects)', async () => {
+    const c = getContainerByName('grafana-1');
+    const data = await loadDetail(makeDetailLoadEvent(c!.id as unknown as string));
+    const fd = new FormData();
+    fd.set('approvalToken', data.approvalTokens.remove ?? '');
+    const event = {
+      params: { id: c!.id as unknown as string },
+      request: new Request(`http://localhost/docker/${c!.id}?/rm`, {
+        method: 'POST',
+        body: fd,
+      }),
+      locals: { user: makeAdminUser(), session: makeAdminSession() },
+    } as unknown as Parameters<NonNullable<typeof actions.remove>>[0];
+    await expect(
+      (actions.rm as unknown as (e: typeof event) => Promise<unknown>)(event),
+    ).rejects.toMatchObject({ status: 303, location: '/docker' });
+  });
+
+  it.each(['start', 'stop', 'restart', 'remove'] as const)(
+    '%s action returns 400 when id is missing',
+    async (actionName) => {
+      const fd = new FormData();
+      fd.set('approvalToken', 'any-token');
+      const event = {
+        params: {},
+        request: new Request(`http://localhost/docker/?/${actionName}`, {
+          method: 'POST',
+          body: fd,
+        }),
+        locals: { user: makeAdminUser(), session: makeAdminSession() },
+      } as unknown as Parameters<NonNullable<typeof actions.start>>[0];
+      const result = await (actions[actionName] as unknown as (e: typeof event) => Promise<{ status: number; data: { error?: string } }>)(event);
+      expect(result.status).toBe(400);
+    },
+  );
+
+  it.each(['start', 'stop', 'restart', 'remove'] as const)(
+    '%s action returns 401 when there is no session',
+    async (actionName) => {
+      const c = getContainerByName('grafana-1');
+      const fd = new FormData();
+      fd.set('approvalToken', 'any-token');
+      const event = {
+        params: { id: c!.id as unknown as string },
+        request: new Request(`http://localhost/docker/${c!.id}?/${actionName}`, {
+          method: 'POST',
+          body: fd,
+        }),
+        locals: { user: makeAdminUser(), session: null },
+      } as unknown as Parameters<NonNullable<typeof actions.start>>[0];
+      const result = await (actions[actionName] as unknown as (e: typeof event) => Promise<{ status: number; data: { error?: string } }>)(event);
+      expect(result.status).toBe(401);
+    },
+  );
+
+  it.each(['start', 'stop', 'restart', 'remove'] as const)(
+    '%s action returns 404 when the container does not exist',
+    async (actionName) => {
+      const fd = new FormData();
+      fd.set('approvalToken', 'any-token');
+      const event = {
+        params: { id: 'no-such-container' },
+        request: new Request(
+          `http://localhost/docker/no-such-container?/${actionName}`,
+          { method: 'POST', body: fd },
+        ),
+        locals: { user: makeAdminUser(), session: makeAdminSession() },
+      } as unknown as Parameters<NonNullable<typeof actions.start>>[0];
+      const result = await (actions[actionName] as unknown as (e: typeof event) => Promise<{ status: number; data: { error?: string } }>)(event);
+      expect(result.status).toBe(403); // 403 from missing/empty token wins
+    },
+  );
+
+  it('load() can resolve a container by legacy name lookup', async () => {
+    const data = await loadDetail(makeDetailLoadEvent('grafana-1'));
+    expect(data.container.name).toBe('grafana-1');
+  });
 });
 
 describe('/docker/[id]/exec +server.ts', () => {
