@@ -62,7 +62,7 @@ const IGNORE = [
   '**/pnpm-lock.yaml',
   'packages/dashboard/.next/**',
   'packages/dashboard/next-env.d.ts',
-  'tests/eslint-rules/**', // fixtures are run via dedicated script, not in normal lint
+  'packages/dashboard/eslint-rules/fixtures/**', // run via pnpm test:lint-rules, not normal lint
 ];
 
 // Local rule plugin — `local/<rule-name>` references in rules below

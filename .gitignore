@@ -19,8 +19,6 @@ CLAUDE.md
 
 # Hermes AI Agent (private - runtime data)
 hermes/
-# BUT allow Hermes templates/config
-!templates/hermes/
 
 # Gemini / Google
 .gemini/
@@ -67,6 +65,10 @@ hermes/
 
 # OMC (Open Multi-agent Collaboration)
 .omc/
+.omx/
+
+# OpenCode
+.opencode/
 
 # Pi / Pi-Lens (TaskPlane)
 .pi/
@@ -193,3 +195,11 @@ backups/
 *.log
 *.tgz
 *.tar.gz
+tmp/
+.mavis/
+.claude/
+/tests/
+.openai/
+.gpt/
+.deepseek/
+.grok/

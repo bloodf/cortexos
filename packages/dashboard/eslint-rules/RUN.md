@@ -1,7 +1,7 @@
 # ESLint custom-rule test harness
 
-This directory holds the fixtures used to exercise the three local rules
-shipped under `packages/dashboard/eslint-rules/`.
+Fixtures and a programmatic verifier for the three local rules in this
+directory.
 
 ## How the rules are wired
 
@@ -15,10 +15,9 @@ The three custom rules are referenced in the root `eslint.config.js`:
 
 ## Running the fixtures
 
-The fixtures (`test-bash-c.svelte`, `test-priv-route.ts`) live at the
-repo root in this directory. They are NOT inside the `files` globs that
-trigger the rules — that means by default, ESLint will not even look at
-them.
+The fixtures (`fixtures/test-bash-c.svelte`, `fixtures/test-priv-route.ts`)
+live here. They are NOT inside the `files` globs that trigger the rules —
+ESLint will not look at them in place.
 
 To exercise the rules, copy the fixtures into the trigger paths and
 re-run lint:
@@ -26,12 +25,12 @@ re-run lint:
 ```bash
 # 1. Copy the bash-c fixture into the SvelteKit src tree
 mkdir -p packages/dashboard/src/lib/components/__fixtures__
-cp tests/eslint-rules/test-bash-c.svelte \
+cp packages/dashboard/eslint-rules/fixtures/test-bash-c.svelte \
    packages/dashboard/src/lib/components/__fixtures__/
 
 # 2. Copy the priv-route fixture into the admin route group
 mkdir -p packages/dashboard/src/routes/admin/__fixtures__
-cp tests/eslint-rules/test-priv-route.ts \
+cp packages/dashboard/eslint-rules/fixtures/test-priv-route.ts \
    packages/dashboard/src/routes/admin/__fixtures__/+server.ts
 
 # 3. Lint
@@ -46,46 +45,14 @@ pnpm lint
 #    requireAuth with requireAdmin) and re-run lint — should be clean.
 
 # 6. Clean up the fixture files in the SvelteKit src tree
-mavis-trash packages/dashboard/src/lib/components/__fixtures__
-mavis-trash packages/dashboard/src/routes/admin/__fixtures__
+rm -rf packages/dashboard/src/lib/components/__fixtures__
+rm -rf packages/dashboard/src/routes/admin/__fixtures__
 ```
-
-## Why this layout
-
-The fixtures are kept at the repo root so that:
-
-1. They are stable across M1-WS2 (the SvelteKit app merge) — the rules
-   survive even if `packages/dashboard/` is rebuilt.
-2. They can be linted explicitly via a dedicated script (e.g.
-   `pnpm test:lint-rules`) instead of cluttering CI output.
-3. The trigger paths they copy to are exactly the production paths the
-   rules guard in real code.
 
 ## Programmatic verification
 
-For a one-shot check that the rules register and fire, use ESLint's
-Node API:
+One-shot check that the rules register and fire:
 
-```js
-// scripts/verify-local-rules.js
-import { Linter } from 'eslint';
-import customRules from './packages/dashboard/eslint-rules/index.js';
-
-const linter = new Linter();
-
-const svelteFixture = `
-<script>const x = 'bash -c "id"';</script>
-<p>test</p>
-`;
-
-const messages = linter.verify(svelteFixture, [
-  {
-    files: ['**/*.svelte'],
-    plugins: { local: { rules: customRules } },
-    rules: { 'local/no-bash-c-in-template': 'error' },
-  },
-], { filename: 'fixture.svelte' });
-
-console.log(messages);
-// Expect: [{ ruleId: 'local/no-bash-c-in-template', severity: 2, ... }]
+```bash
+pnpm test:lint-rules
 ```

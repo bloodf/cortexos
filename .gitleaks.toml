@@ -1,0 +1,20 @@
+# CortexOS gitleaks config — Gate 12 in .github/workflows/ci.yml
+title = "cortexos gitleaks"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Known-safe paths and templates"
+paths = [
+  '''\.env\.example$''',
+  '''\.env\.template$''',
+  '''\.enc\.yaml$''',
+  '''docs/SECRETS.*\.md$''',
+  '''docs/CREDENTIALS\.md$''',
+  '''packages/.*/test/''',
+  '''packages/.*/__tests__/''',
+  '''\.github/PULL_REQUEST_TEMPLATE\.md$''',
+  '''pnpm-lock\.yaml$''',
+  '''package-lock\.json$''',
+]

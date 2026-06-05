@@ -1,16 +1,19 @@
 #!/usr/bin/env node
-// tests/eslint-rules/verify-local-rules.mjs
+// packages/dashboard/eslint-rules/verify-local-rules.mjs
 //
 // One-shot verification of the three local ESLint rules. Runs the rules
 // against fixture files and asserts each one fires as expected.
 //
-// Usage:  node tests/eslint-rules/verify-local-rules.mjs
+// Usage:  node packages/dashboard/eslint-rules/verify-local-rules.mjs
 //
 // Exit 0 = all rules fired correctly.
 // Exit 1 = something didn't match expectations.
 
+import { createRequire } from 'node:module';
 import { Linter } from 'eslint';
-import customRules from '../../packages/dashboard/eslint-rules/index.js';
+
+const require = createRequire(import.meta.url);
+const customRules = require('./index.cjs');
 
 const linter = new Linter();
 

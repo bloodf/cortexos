@@ -1,9 +1,8 @@
 // Test fixture for `local/require-admin-on-privileged-route` and
 // `local/no-requireauth-in-admin`.
 //
-// This file lives in tests/, NOT in packages/dashboard/src/routes/admin/.
-// To exercise the rules, copy it to that path before running lint —
-// see tests/eslint-rules/RUN.md for the test harness.
+// Copy into packages/dashboard/src/routes/admin/ before running lint —
+// see packages/dashboard/eslint-rules/RUN.md for the harness.
 
 import { json, error } from '@sveltejs/kit';
 import { requireAdmin, requireAuth } from '$lib/server/auth';

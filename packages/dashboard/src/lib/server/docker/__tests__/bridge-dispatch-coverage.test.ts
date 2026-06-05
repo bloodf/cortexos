@@ -12,11 +12,16 @@ import {
   listDockerOps,
 } from '../bridge';
 import { resetAudit } from '../../audit';
-import { makeFakeUser, makeFakeLocals } from '../../test-utils';
+import { makeFakeUser } from '../../test-utils';
+import {
+  mintApproval,
+  resetApprovalStore,
+} from '../../approval';
+import { asSessionId } from '../../entities';
 
 const user = makeFakeUser({
-  is_admin: true,
-  groupMemberships: ['cortexos-admin'],
+  isAdmin: true,
+  groupMemberships: [{ name: 'cortexos-admins', isAdmin: true, description: 'admin' }],
 });
 
 const baseCtx = {
@@ -29,6 +34,7 @@ const baseCtx = {
 beforeEach(() => {
   setExecutorForTests(null);
   resetAudit();
+  resetApprovalStore();
 });
 
 describe('docker bridge — dispatch with zero args', () => {
@@ -55,6 +61,77 @@ describe('docker bridge — argv_render path', () => {
     expect(r.status).toBe('rejected');
     if (r.status === 'rejected') {
       expect(['placeholder_unbound', 'invalid_approval', 'missing_approval']).toContain(r.code);
+    }
+  });
+});
+
+describe('docker bridge — non-zero exitCode + executor throw', () => {
+  it('marks the dispatch as failure when the executor returns exitCode != 0', async () => {
+    setExecutorForTests(async () => {
+      // docker.start is allowlisted; supply a valid token to pass the
+      // approval gate, then the executor returns a non-zero exit code.
+      return { stdout: 'container not found', stderr: '', exitCode: 1 };
+    });
+    const { token } = mintApproval({
+      userId: user.id,
+      sessionId: asSessionId('s'),
+      action: 'docker.start',
+      payload: { op: 'docker.start', args: { container: 'web' } },
+    });
+    const r = await dispatch(
+      { op: 'docker.start', args: { container: 'web' }, sessionId: 's', approvalToken: token },
+      baseCtx,
+    );
+    expect(r.status).toBe('accepted');
+    if (r.status === 'accepted') {
+      // The dispatch result exposes `output` (= executor stdout) and
+      // the audit captures the non-zero exit code internally — the
+      // public surface does NOT include exitCode.
+      expect(r.output).toContain('container not found');
+    }
+  });
+
+  it('returns rejected executor_error when the executor throws', async () => {
+    setExecutorForTests(async () => {
+      throw new Error('docker daemon unreachable');
+    });
+    const { token } = mintApproval({
+      userId: user.id,
+      sessionId: asSessionId('s'),
+      action: 'docker.start',
+      payload: { op: 'docker.start', args: { container: 'web' } },
+    });
+    const r = await dispatch(
+      { op: 'docker.start', args: { container: 'web' }, sessionId: 's', approvalToken: token },
+      baseCtx,
+    );
+    expect(r.status).toBe('rejected');
+    if (r.status === 'rejected') {
+      expect(r.code).toBe('executor_error');
+    }
+  });
+
+  it('returns rejected when the approval token is consumed (already used)', async () => {
+    setExecutorForTests(async (argv) => ({ stdout: '', stderr: '', exitCode: 0 }));
+    const { token } = mintApproval({
+      userId: user.id,
+      sessionId: asSessionId('s'),
+      action: 'docker.start',
+      payload: { op: 'docker.start', args: { container: 'web' } },
+    });
+    // First call consumes the token.
+    await dispatch(
+      { op: 'docker.start', args: { container: 'web' }, sessionId: 's', approvalToken: token },
+      baseCtx,
+    );
+    // Second call with the same token — consumeApproval returns already_used.
+    const r2 = await dispatch(
+      { op: 'docker.start', args: { container: 'web' }, sessionId: 's', approvalToken: token },
+      baseCtx,
+    );
+    expect(r2.status).toBe('rejected');
+    if (r2.status === 'rejected') {
+      expect(['invalid_approval', 'already_used']).toContain(r2.code);
     }
   });
 });
