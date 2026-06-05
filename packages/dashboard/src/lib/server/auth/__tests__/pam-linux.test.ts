@@ -148,9 +148,11 @@ describe('module-level singleton', () => {
     expect(a.name).toBe('fake-pam');
   });
 
-  it('non-Linux + CORTEX_AUTH_FAKE_PAM unset warns and picks fake (we override platform)', () => {
+  it('non-Linux + CORTEX_AUTH_FAKE_PAM unset warns and picks fake (darwin only)', () => {
     // We're on darwin in this test env. Without CORTEX_AUTH_FAKE_PAM,
     // pickDefault falls through to the warn + fake branch.
+    // Skip on Linux because the linux branch picks linux-pam.
+    if (process.platform === 'linux') return;
     vi.stubEnv('CORTEX_AUTH_FAKE_PAM', '');
     resetPamAuthenticator();
     const a = getPamAuthenticator();

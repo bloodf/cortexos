@@ -16,39 +16,49 @@ let execFileMock: ReturnType<typeof vi.fn>;
 // Mock child_process.execFile to capture calls and return canned output.
 vi.mock('node:child_process', async () => {
   const actual = await vi.importActual<typeof import('node:child_process')>('node:child_process');
+  const { promisify } = await import('node:util');
+  const mockExecFile = ((...args: unknown[]) => {
+    // promisify(execFile) invokes the callback-style execFile with
+    // a callback as the last argument. We need to handle both:
+    // 1. Callback style: (cmd, args, options, cb)
+    // 2. promisify adds the callback at the end.
+    const lastArg = args[args.length - 1];
+    if (typeof lastArg === 'function') {
+      const cb = lastArg as (err: Error | null, stdout: string, stderr: string) => void;
+      try {
+        const result = execFileMock(...args);
+        if (result && typeof result.then === 'function') {
+          result.then(
+            (v: { stdout: string; stderr: string }) => cb(null, v.stdout, v.stderr),
+            (e: { stdout?: string; stderr?: string; message?: string; code?: number }) => {
+              const err = new Error(e.message ?? 'exec failed') as Error & { code?: number };
+              err.code = e.code;
+              (err as unknown as { stdout?: string; stderr?: string }).stdout = e.stdout;
+              (err as unknown as { stderr?: string }).stderr = e.stderr;
+              cb(err, e.stdout ?? '', e.stderr ?? '');
+            },
+          );
+        } else {
+          cb(null, result?.stdout ?? '', result?.stderr ?? '');
+        }
+      } catch (e) {
+        cb(e as Error, '', '');
+      }
+    } else {
+      return execFileMock(...args);
+    }
+  }) as typeof actual.execFile;
+  (mockExecFile as unknown as Record<string, unknown>)[promisify.custom as unknown as string] =
+    (file: string, args: string[], options: Record<string, unknown>) =>
+      new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
+        mockExecFile(file, args, options, (err: Error | null, stdout: string, stderr: string) => {
+          if (err) return reject(err);
+          resolve({ stdout, stderr });
+        });
+      });
   return {
     ...actual,
-    execFile: (...args: unknown[]) => {
-      // promisify(execFile) invokes the callback-style execFile with
-      // a callback as the last argument. We need to handle both:
-      // 1. Callback style: (cmd, args, options, cb)
-      // 2. promisify adds the callback at the end.
-      const lastArg = args[args.length - 1];
-      if (typeof lastArg === 'function') {
-        const cb = lastArg as (err: Error | null, stdout: string, stderr: string) => void;
-        try {
-          const result = execFileMock(...args);
-          if (result && typeof result.then === 'function') {
-            result.then(
-              (v: { stdout: string; stderr: string }) => cb(null, v.stdout, v.stderr),
-              (e: { stdout?: string; stderr?: string; message?: string; code?: number }) => {
-                const err = new Error(e.message ?? 'exec failed') as Error & { code?: number };
-                err.code = e.code;
-                (err as unknown as { stdout?: string; stderr?: string }).stdout = e.stdout;
-                (err as unknown as { stderr?: string }).stderr = e.stderr;
-                cb(err, e.stdout ?? '', e.stderr ?? '');
-              },
-            );
-          } else {
-            cb(null, result?.stdout ?? '', result?.stderr ?? '');
-          }
-        } catch (e) {
-          cb(e as Error, '', '');
-        }
-      } else {
-        return execFileMock(...args);
-      }
-    },
+    execFile: mockExecFile,
   };
 });
 

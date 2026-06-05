@@ -17,30 +17,40 @@ let execFileMock: ReturnType<typeof vi.fn>;
 // Mock child_process to capture execFile calls.
 vi.mock('node:child_process', async () => {
   const actual = await vi.importActual<typeof import('node:child_process')>('node:child_process');
+  const { promisify } = await import('node:util');
+  const mockExecFile = ((...args: unknown[]) => {
+    const lastArg = args[args.length - 1];
+    if (typeof lastArg === 'function') {
+      const cb = lastArg as (err: Error | null, stdout: string, stderr: string) => void;
+      try {
+        const result = execFileMock(...args);
+        if (result && typeof (result as Promise<unknown>).then === 'function') {
+          (result as Promise<{ stdout: string; stderr: string }>).then(
+            (v) => cb(null, v.stdout, v.stderr),
+            (e) => cb(e as Error, '', ''),
+          );
+        } else {
+          const r = result as { stdout?: string; stderr?: string } | undefined;
+          cb(null, r?.stdout ?? '', r?.stderr ?? '');
+        }
+      } catch (e) {
+        cb(e as Error, '', '');
+      }
+    } else {
+      return execFileMock(...args);
+    }
+  }) as typeof actual.execFile;
+  (mockExecFile as unknown as Record<string, unknown>)[promisify.custom as unknown as string] =
+    (file: string, args: string[], options: Record<string, unknown>) =>
+      new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
+        mockExecFile(file, args, options, (err: Error | null, stdout: string, stderr: string) => {
+          if (err) return reject(err);
+          resolve({ stdout, stderr });
+        });
+      });
   return {
     ...actual,
-    execFile: (...args: unknown[]) => {
-      const lastArg = args[args.length - 1];
-      if (typeof lastArg === 'function') {
-        const cb = lastArg as (err: Error | null, stdout: string, stderr: string) => void;
-        try {
-          const result = execFileMock(...args);
-          if (result && typeof (result as Promise<unknown>).then === 'function') {
-            (result as Promise<{ stdout: string; stderr: string }>).then(
-              (v) => cb(null, v.stdout, v.stderr),
-              (e) => cb(e as Error, '', ''),
-            );
-          } else {
-            const r = result as { stdout?: string; stderr?: string } | undefined;
-            cb(null, r?.stdout ?? '', r?.stderr ?? '');
-          }
-        } catch (e) {
-          cb(e as Error, '', '');
-        }
-      } else {
-        return execFileMock(...args);
-      }
-    },
+    execFile: mockExecFile,
   };
 });
 
