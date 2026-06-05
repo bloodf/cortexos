@@ -130,12 +130,18 @@ export interface SessionStore {
    */
   sweepExpired(): Promise<number>;
 
-  /**
-   * Update the cached `is_admin` for a session, recording the time
-   * of the re-validation. Called by the SvelteKit hook when the
-   * cached role is older than ROLE_CHECK_TTL_MS.
-   */
+/**
+ * Update the cached `is_admin` for a session, recording the time
+ * the re-validation was performed (per SR-011/012, see THREAT_MODEL
+ * §1.4). The TTL is enforced by the hook in `hooks.server.ts`.
+ */
   revalidateRole(token: string, isAdmin: boolean): Promise<void>;
+  /**
+   * Garbage-collect expired sessions. Returns the number of rows
+   * deleted. Safe to call concurrently (per-row atomic DELETE).
+   * See `lib/server/db/session-gc.ts` for the implementation.
+   */
+  gcExpired(): Promise<{ deleted: number; ranAt: number }>;
 }
 
 // ---------------------------------------------------------------------------
@@ -362,6 +368,19 @@ export class InMemorySessionStore implements SessionStore {
     row.isAdmin = isAdmin;
     row.lastRoleCheckAt = Date.now();
   }
+
+  async gcExpired(): Promise<{ deleted: number; ranAt: number }> {
+    const ranAt = Date.now();
+    const now = ranAt;
+    let deleted = 0;
+    for (const [token, row] of this.sessions.entries()) {
+      if (row.expiresAt <= now) {
+        this.sessions.delete(token);
+        deleted++;
+      }
+    }
+    return { deleted, ranAt };
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -534,6 +553,11 @@ export class DrizzleSessionStore implements SessionStore {
       .update(adminSessions)
       .set({ isAdmin, lastRoleCheckAt: Date.now() })
       .where(eq(adminSessions.token, token));
+  }
+
+  async gcExpired(): Promise<{ deleted: number; ranAt: number }> {
+    const { gcExpiredSessions } = await import('../db/session-gc');
+    return gcExpiredSessions(this.db);
   }
 }
 

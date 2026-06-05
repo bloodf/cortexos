@@ -90,6 +90,7 @@ describe("migration roundtrip", () => {
 		//   001_schema                                    — base tables (M1)
 		//   002_session_columns_for_auth                  — admin_sessions columns (M2-WS3)
 		//   003_incus_instances                           — wizard-saved instance rows (M1-WS6)
+		//   003_session_indexes                           — session GC + role-check indexes (G9)
 		//   006_indexes_for_rbac_audit                    — RBAC + audit indexes (M1-WS6)
 		//   007_grants_dashboard_command_audit            — dashboard role grants (M1-WS6)
 		//   008_dashboard_command_audit                   — the table itself (M1.5 follow-up)
@@ -98,11 +99,12 @@ describe("migration roundtrip", () => {
 		// four-file expectation was authored against a pre-M1.5 state that
 		// has since been superseded by 002_session_columns_for_auth +
 		// 006_indexes_for_rbac_audit + 008_dashboard_command_audit.
-		expect(ran.length).toBe(6);
+		expect(ran.length).toBe(7);
 		expect(ran).toEqual([
 			"001_schema",
 			"002_session_columns_for_auth",
 			"003_incus_instances",
+			"003_session_indexes",
 			"006_indexes_for_rbac_audit",
 			"007_grants_dashboard_command_audit",
 			"008_dashboard_command_audit",

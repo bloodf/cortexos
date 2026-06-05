@@ -8,6 +8,12 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { actions } from '../+page.server';
+
+// The SvelteKit `Actions` type declares each action as possibly
+// undefined; the test always calls validateStep which is guaranteed
+// to exist. Pull it out once so the test bodies don't have to do
+// `actions.validateStep!` at every call site.
+const validateStep = actions.validateStep!;
 import { _resetAllBuckets } from '$lib/server/rate-limit';
 import {
   makeFakeEvent,
@@ -48,7 +54,7 @@ function buildFormEvent(step: string, values: unknown, user: ReturnType<typeof m
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: body.toString(),
   });
-  return { ...base, request } as unknown as Parameters<typeof actions.validateStep>[0];
+  return { ...base, request } as unknown as Parameters<typeof validateStep>[0];
 }
 
 function adminForm(step: string, values: unknown) {
@@ -62,7 +68,7 @@ function anonForm(step: string, values: unknown) {
 
 describe('incus wizard validateStep action', () => {
   it('returns 401 when unauthenticated', async () => {
-    const res = await actions.validateStep(anonForm('target', { mode: 'new' }));
+    const res = await validateStep(anonForm('target', { mode: 'new' }));
     // fail() returns { status, data } for errors.
     expect((res as { status?: number }).status).toBe(401);
   });
@@ -84,13 +90,13 @@ describe('incus wizard validateStep action', () => {
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
       body: body.toString(),
     });
-    const event = { ...base, request } as unknown as Parameters<typeof actions.validateStep>[0];
-    const res = await actions.validateStep(event);
+    const event = { ...base, request } as unknown as Parameters<typeof validateStep>[0];
+    const res = await validateStep(event);
     expect((res as { status?: number }).status).toBe(400);
   });
 
   it('returns 400 when step is not a known value', async () => {
-    const res = await actions.validateStep(adminForm('garbage', {}));
+    const res = await validateStep(adminForm('garbage', {}));
     expect((res as { status?: number }).status).toBe(400);
   });
 
@@ -112,13 +118,13 @@ describe('incus wizard validateStep action', () => {
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
       body: body.toString(),
     });
-    const event = { ...base, request } as unknown as Parameters<typeof actions.validateStep>[0];
-    const res = await actions.validateStep(event);
+    const event = { ...base, request } as unknown as Parameters<typeof validateStep>[0];
+    const res = await validateStep(event);
     expect((res as { status?: number }).status).toBe(400);
   });
 
   it('accepts a valid target step', async () => {
-    const res = await actions.validateStep(
+    const res = await validateStep(
       adminForm('target', {
         mode: 'new',
         branch: 'main',
@@ -132,7 +138,7 @@ describe('incus wizard validateStep action', () => {
   });
 
   it('rejects an invalid target step (missing slug)', async () => {
-    const res = await actions.validateStep(
+    const res = await validateStep(
       adminForm('target', {
         mode: 'new',
         branch: 'main',
@@ -145,7 +151,7 @@ describe('incus wizard validateStep action', () => {
   });
 
   it('accepts a valid image step', async () => {
-    const res = await actions.validateStep(
+    const res = await validateStep(
       adminForm('image', {
         alias: 'ubuntu/24.04',
         gastown: false,
@@ -157,7 +163,7 @@ describe('incus wizard validateStep action', () => {
   });
 
   it('rejects an image step with an out-of-range cpu', async () => {
-    const res = await actions.validateStep(
+    const res = await validateStep(
       adminForm('image', {
         alias: 'ubuntu/24.04',
         gastown: false,
@@ -170,21 +176,21 @@ describe('incus wizard validateStep action', () => {
   });
 
   it('accepts a valid hermes step', async () => {
-    const res = await actions.validateStep(
+    const res = await validateStep(
       adminForm('hermes', { enabled: false, proxies: [] }),
     );
     expect((res as { ok?: boolean }).ok).toBe(true);
   });
 
   it('accepts a valid network step', async () => {
-    const res = await actions.validateStep(
+    const res = await validateStep(
       adminForm('network', { bridge: 'incusbr0', tailscale: true, webAccess: false }),
     );
     expect((res as { ok?: boolean }).ok).toBe(true);
   });
 
   it('rejects a network step with an empty bridge', async () => {
-    const res = await actions.validateStep(
+    const res = await validateStep(
       adminForm('network', { bridge: '', tailscale: false, webAccess: false }),
     );
     const body = (res as { data?: { ok?: boolean } }).data;
@@ -192,7 +198,7 @@ describe('incus wizard validateStep action', () => {
   });
 
   it('returns ok:true for review step (no validation, handled by launch)', async () => {
-    const res = await actions.validateStep(adminForm('review', null));
+    const res = await validateStep(adminForm('review', null));
     const body = res as { ok?: boolean; step?: string; data?: unknown };
     expect(body.ok).toBe(true);
     expect(body.step).toBe('review');
@@ -200,7 +206,7 @@ describe('incus wizard validateStep action', () => {
   });
 
   it('returns ok:true for profile step (UI-only summary today)', async () => {
-    const res = await actions.validateStep(adminForm('profile', null));
+    const res = await validateStep(adminForm('profile', null));
     expect((res as { ok?: boolean }).ok).toBe(true);
   });
 });

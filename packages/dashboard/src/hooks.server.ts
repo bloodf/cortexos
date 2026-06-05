@@ -137,5 +137,19 @@ export const handle: Handle = async ({ event, resolve }) => {
     if (!response.headers.has(name)) response.headers.set(name, value);
   }
 
+  // 7. Probabilistic session-table GC (G8). Run ~once per 1000
+  //    requests in production. The DrizzleSessionStore.gcExpired()
+  //    is a no-op for the in-memory store in tests, so this is
+  //    safe to call unconditionally. Errors are swallowed — a GC
+  //    failure must not break the request.
+  if (Math.random() < 1 / 1000) {
+    try {
+      const store = getSessionStore();
+      await store.gcExpired();
+    } catch {
+      // best-effort
+    }
+  }
+
   return response;
 };
