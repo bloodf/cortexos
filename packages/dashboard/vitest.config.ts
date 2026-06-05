@@ -17,6 +17,10 @@ export default defineConfig({
 		setupFiles: ['./vitest.setup.ts'],
 		globals: true,
 		exclude: ['e2e/**', 'node_modules/**', '.svelte-kit/**', 'playwright-report/**', 'test-results/**'],
+		// PGlite (used by session-store-drizzle + db/repos tests) is
+		// ~3-5x slower under coverage instrumentation. Bump the global
+		// test timeout to 30s so these don't flake on the Linux CI VM.
+		testTimeout: 30_000,
 		alias: {
 			'@': path.resolve(__dirname, './src'),
 			$lib: path.resolve(__dirname, './src/lib')
