@@ -65,4 +65,4 @@ docker compose rm -f node-exporter
 
 ## Next
 
-→ `prompts/tools/26a-otel-collector.md`
+→ `prompts/tools/28-db-exporters.md` (last Observability step)

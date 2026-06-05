@@ -96,4 +96,4 @@ docker compose down -v
 
 ## Next
 
-→ `prompts/tools/17-dnsmasq.md`
+→ `prompts/tools/20-prometheus.md` (Observability phase)

@@ -229,4 +229,8 @@ sudo systemctl daemon-reload
 
 ## Next
 
-→ `prompts/tools/42-hermes-honcho.md`
+Per `prompts/tools/_order.md` — after Honcho, run
+`prompts/tools/47a-cortex-sandbox.md` (AI gateway) and
+`prompts/tools/50-obot.md` (MCP gateway platform). The per-
+profile `hermes-honcho` wiring prompt is in the Planned table
+of `docs/APPS.md` and is not yet shipped.

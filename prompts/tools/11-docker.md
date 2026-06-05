@@ -115,4 +115,4 @@ Type `confirmed` to proceed.
 
 ## Next
 
-→ `prompts/tools/12-tailscale.md`
+→ `prompts/tools/13-caddy.md`

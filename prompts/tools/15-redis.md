@@ -98,4 +98,4 @@ Type `confirmed` to proceed.
 
 ## Next
 
-→ `prompts/tools/16-mongodb.md` (if MongoDB enabled) OR `prompts/tools/17-dnsmasq.md`
+→ `prompts/tools/16-mongodb.md` (if MongoDB enabled) OR `prompts/tools/16a-mysql.md` (if MySQL enabled)
