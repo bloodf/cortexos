@@ -6,53 +6,31 @@ the one-time setup.
 
 ## One-time: register the runner
 
-The runner registration needs a fresh registration token from the
-GitHub repo settings UI. The token is shown once and expires in 1
-hour, so it cannot be committed to the repo.
-
-### Step 1 — Mint a registration token
-
-Open the repo on GitHub:
-
-  Settings → Actions → Runners → **New self-hosted runner** →
-  Operating system: **Linux**, Architecture: **ARM64**
-
-GitHub shows a `Registration token` field with a copy button. Copy
-it (it will look like `ABCD1234EFGH5678IJKL`). Paste it into a
-local file on your machine (NOT the repo) — for example
-`~/actions-runner.token`.
-
-### Step 2 — Install the runner on the VM
-
-SSH into `cortexos-test` and run:
+On the VM (currently `cortexos-test`, OrbStack Ubuntu 24.04 arm64):
 
 ```bash
-# Download + extract the runner
+# 1. Download + extract the runner
 mkdir -p ~/actions-runner && cd ~/actions-runner
 curl -o actions-runner-linux-arm64-2.319.1.tar.gz -L \
   https://github.com/actions/runner/releases/download/v2.319.1/actions-runner-linux-arm64-2.319.1.tar.gz
 tar xzf ./actions-runner-linux-arm64-2.319.1.tar.gz
 
-# Read the token (scp'd over or pasted)
-TOKEN=$(cat ~/actions-runner.token)
-
-# Configure + install as a systemd service
+# 2. Get a registration token from the repo settings:
+#    Settings → Actions → Runners → New self-hosted runner → Linux ARM64
+#    (do NOT commit the token)
 ./config.sh --url https://github.com/bloodf/cortexos \
-            --token "$TOKEN" \
+            --token <REGISTRATION_TOKEN> \
             --labels cortexos-test \
             --name cortexos-test-$(hostname) \
-            --unattended \
-            --replace
+            --unattended
+
+# 3. Install + start as a systemd service
 sudo ./svc.sh install
 sudo ./svc.sh start
-
-# Wipe the token file (it's a one-shot secret)
-rm -f ~/actions-runner.token
 ```
 
 The runner labels **must** include `cortexos-test` — that label is what
-the `runs-on: [self-hosted, cortexos-test]` line in
-`.github/workflows/ci.yml` matches.
+the `runs-on:` line matches.
 
 ## Required runtime on the host
 
@@ -66,23 +44,6 @@ the `runs-on: [self-hosted, cortexos-test]` line in
   all installed in the real-host validation phase. See
   `packages/dashboard/docs/RELEASE_NOTES.md` v0.4.0 + the A1 release
   notes for the install order.
-
-## Smoke-test the runner end-to-end
-
-After the runner is up, the cleanest way to verify it picks up jobs
-is to push a commit to `main` and watch the workflow run:
-
-1. `gh run watch --exit-status --job real-host-smoke` from the repo
-2. Confirm the job log shows the runner picking up the
-   `real-host-smoke` job, running `pnpm install`, restarting
-   `cortex-dashboard.service`, and calling `scripts/smoke/real-host.sh`.
-3. The smoke script should report `24 passed, 0 failed` (assuming
-   the DB env vars are configured on the host).
-
-If the job never gets picked up, check the GitHub UI
-Settings → Actions → Runners for the runner's status:
-green "Idle" / "Active" indicator = OK; red "Offline" = the systemd
-service died.
 
 ## Required repo secret
 
