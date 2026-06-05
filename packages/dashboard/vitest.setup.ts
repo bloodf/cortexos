@@ -39,6 +39,47 @@ if (typeof window !== 'undefined') {
   }
   (window as unknown as { ResizeObserver: unknown }).ResizeObserver = ResizeObserverMock;
 
+  // wterm (@wterm/dom) — requestAnimationFrame is its render scheduler.
+  // jsdom does not implement rAF. Modeled on wterm's own
+  // packages/@wterm/dom/src/__tests__/setup.ts: route through setTimeout.
+  if (typeof (globalThis as { requestAnimationFrame?: unknown }).requestAnimationFrame === 'undefined') {
+    (globalThis as unknown as { requestAnimationFrame: (cb: FrameRequestCallback) => number })
+      .requestAnimationFrame = (cb: FrameRequestCallback) =>
+        setTimeout(() => cb(performance.now()), 0) as unknown as number;
+    (globalThis as unknown as { cancelAnimationFrame: (id: number) => void })
+      .cancelAnimationFrame = (id: number) => clearTimeout(id);
+  }
+
+  // wterm reads --term-row-height / paddingTop / paddingBottom via
+  // getComputedStyle on the host element. jsdom returns "" for CSS
+  // custom properties; wterm's _lockHeight branch would NaN-out and
+  // throw. Stub the values it reads.
+  const _origGetComputedStyle = window.getComputedStyle.bind(window);
+  window.getComputedStyle = ((el: Element, pseudo?: string | null) => {
+    const cs = _origGetComputedStyle(el, pseudo);
+    const _get = (prop: string): string => {
+      try { return (cs as unknown as { getPropertyValue: (p: string) => string }).getPropertyValue(prop); }
+      catch { return ''; }
+    };
+    return new Proxy(cs, {
+      get(target, prop) {
+        if (prop === 'getPropertyValue') {
+          return (p: string) => {
+            const v = _get(p);
+            if (v) return v;
+            // Defaults wterm's _lockHeight branch expects to read.
+            if (p === '--term-row-height') return '17';
+            if (p === 'paddingTop') return '0';
+            if (p === 'paddingBottom') return '0';
+            if (p === 'fontSize') return '13';
+            return '';
+          };
+        }
+        return Reflect.get(target, prop);
+      },
+    });
+  }) as typeof window.getComputedStyle;
+
   window.scrollTo = vi.fn();
   if (!Element.prototype.scrollIntoView) {
     Element.prototype.scrollIntoView = vi.fn();
