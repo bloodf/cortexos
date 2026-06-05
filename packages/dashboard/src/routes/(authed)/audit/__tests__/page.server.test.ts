@@ -43,7 +43,7 @@ type ListPageData = {
 
 // The page load is tightly typed to a specific route; cast at the test
 // boundary so the fake event can drive it.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 async function load(event: any): Promise<ListPageData> {
 	return (await pageLoad(event)) as unknown as ListPageData;
 }

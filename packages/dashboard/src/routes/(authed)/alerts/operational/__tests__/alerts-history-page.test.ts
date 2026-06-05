@@ -31,7 +31,7 @@ function makeLoadEvent(url: string): Parameters<typeof historyLoad>[0] {
 		url: new URL(url, 'http://localhost/'),
 		params: {},
 		locals: { user: fakeUser, session: null },
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 	} as any;
 }
 

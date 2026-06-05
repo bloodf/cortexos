@@ -12,7 +12,9 @@
 
 	interface Props {
 		data: LayoutData;
-		error: App.Error;
+		// SvelteKit injects `error` and `status` on +error.svelte. The
+		// shape mirrors App.Error from src/app.d.ts.
+		error: { message: string; code?: string };
 		status: number;
 	}
 

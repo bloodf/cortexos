@@ -3,6 +3,7 @@
   Filterable by severity and acknowledged state.
 -->
 <script lang="ts">
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import type { PageData } from './$types';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -21,7 +22,7 @@
 	const description = $derived(t(data.messages, 'alerts.operational.description'));
 
 	function navigate(next: { severity?: string | null; status?: string | null }) {
-		const params = new URLSearchParams(page.url.searchParams);
+		const params = new SvelteURLSearchParams(page.url.searchParams);
 		if (next.severity !== undefined) {
 			if (next.severity) params.set('severity', next.severity);
 			else params.delete('severity');

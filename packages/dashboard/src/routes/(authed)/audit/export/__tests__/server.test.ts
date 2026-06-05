@@ -75,7 +75,7 @@ const standardUser = {
 
 // The export handler is tightly typed to a specific route. Cast at the
 // test boundary so the fake event can drive it.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 async function GET(event: any): Promise<Response> {
 	return (await exportGet(event)) as Response;
 }

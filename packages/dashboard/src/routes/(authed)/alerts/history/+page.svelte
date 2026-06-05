@@ -2,6 +2,7 @@
   /alerts/history — alert event history with filters.
 -->
 <script lang="ts">
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import type { PageData } from './$types';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -21,7 +22,7 @@
 	const description = $derived(t(data.messages, 'alerts.history.description'));
 
 	function navigate(next: { ruleId?: string; serviceId?: string }) {
-		const params = new URLSearchParams(page.url.searchParams);
+		const params = new SvelteURLSearchParams(page.url.searchParams);
 		if (next.ruleId !== undefined) {
 			if (next.ruleId) params.set('ruleId', next.ruleId);
 			else params.delete('ruleId');

@@ -43,7 +43,7 @@ type VerifyPageData = {
 	ranAt: string;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 async function load(event: any): Promise<VerifyPageData> {
 	return (await pageLoad(event)) as unknown as VerifyPageData;
 }

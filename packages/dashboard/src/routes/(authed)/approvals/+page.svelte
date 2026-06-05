@@ -10,6 +10,7 @@
   pattern.
 -->
 <script lang="ts">
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import type { PageData } from './$types';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
@@ -50,7 +51,7 @@
 		actionQ = next.action;
 		userQ = next.user;
 		ageQ = next.age;
-		const params = new URLSearchParams(page.url.searchParams);
+		const params = new SvelteURLSearchParams(page.url.searchParams);
 		if (next.action) params.set('action', next.action);
 		else params.delete('action');
 		if (next.user) params.set('user', next.user);

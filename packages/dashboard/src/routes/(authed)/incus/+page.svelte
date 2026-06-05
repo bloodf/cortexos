@@ -11,6 +11,7 @@
   filter labels) routes through `t(data.messages, 'incus.*')`.
 -->
 <script lang="ts">
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
   import type { PageData } from './$types';
   import PageHeader from '$lib/components/ui/PageHeader.svelte';
   import EmptyState from '$lib/components/ui/EmptyState.svelte';
@@ -54,7 +55,7 @@
    * Push the filter state to the URL. Debounced for the query input.
    */
   function pushFilters(): void {
-    const params = new URLSearchParams(page.url.searchParams);
+    const params = new SvelteURLSearchParams(page.url.searchParams);
     if (activeQuery) params.set('q', activeQuery);
     else params.delete('q');
     if (activeStatus && activeStatus !== 'all') params.set('status', activeStatus);

@@ -128,7 +128,6 @@ describe('Terminal.svelte — placeholder for mount-based tests', () => {
   // Run a no-op render() to make sure the test path is reachable once
   // the svelte/vite-plugin-svelte `mount()` bug is fixed upstream.
   it.skip('mount renders host with role=application and aria-label=Terminal', () => {
-    // eslint-disable-next-line vitest/no-standalone-expect
     expect(() => render(Terminal)).not.toThrow();
   });
 });

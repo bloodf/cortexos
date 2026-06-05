@@ -46,7 +46,7 @@ function makeLoadEvent(id: string, user = fakeAdmin): Parameters<typeof ruleDeta
 		url: new URL(`http://localhost/alerts/rules/${id}`),
 		params: { id },
 		locals: { user, session: null },
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 	} as any;
 }
 
@@ -109,7 +109,7 @@ describe('/alerts/rules/[id] page — load()', () => {
 			url: new URL(`http://localhost/alerts/rules/${createdRuleId}`),
 			params: { id: String(createdRuleId) },
 			locals: { user: null, session: null },
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			 
 		} as any;
 		await expect(loadDetail(event)).rejects.toMatchObject({
 			status: 303,
@@ -129,14 +129,14 @@ describe('/alerts/rules/[id] page — actions.enable / actions.disable', () => {
 			params: { id },
 			request: new Request(`http://localhost/alerts/rules/${id}`, { method: 'POST' }),
 			locals: { user, session: null },
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			 
 		} as any;
 	}
 
 	it('disable flips enabled=false (admin only)', async () => {
 		const res = await ruleDetailActions.disable!(makeActionEvent('disable'));
 		// SvelteKit form actions return ActionResult. We only assert the rule state.
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		expect((res as any)?.rule?.enabled).toBe(false);
 		const after = await alertsRepo.getAlertRuleById(pgdb, createdRuleId);
 		expect(after?.enabled).toBe(false);
@@ -145,7 +145,7 @@ describe('/alerts/rules/[id] page — actions.enable / actions.disable', () => {
 	it('enable flips enabled=true (admin only)', async () => {
 		await alertsRepo.updateAlertRule(pgdb, createdRuleId, { enabled: false });
 		const res = await ruleDetailActions.enable!(makeActionEvent('enable'));
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		expect((res as any)?.rule?.enabled).toBe(true);
 		const after = await alertsRepo.getAlertRuleById(pgdb, createdRuleId);
 		expect(after?.enabled).toBe(true);
@@ -153,7 +153,7 @@ describe('/alerts/rules/[id] page — actions.enable / actions.disable', () => {
 
 	it('returns 400 for an invalid id', async () => {
 		const res = await ruleDetailActions.disable!(makeActionEvent('disable', fakeAdmin, 'abc'));
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		expect((res as any)?.status).toBe(400);
 	});
 });

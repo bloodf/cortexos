@@ -12,6 +12,7 @@
   i18n: every visible string routes through `t(data.messages, 'alerts.*')`.
 -->
 <script lang="ts">
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import type { PageData } from './$types';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -45,7 +46,7 @@
 	let activeTab = $state<Tab>('rules');
 
 	function navigateToFilter(next: { tab?: Tab; severity?: AlertSeverity | null; status?: string | null }) {
-		const params = new URLSearchParams(page.url.searchParams);
+		const params = new SvelteURLSearchParams(page.url.searchParams);
 		if (next.tab) {
 			// tab is implicit in the path / the URL; we don't push it
 			// as a query param to keep the URL clean.

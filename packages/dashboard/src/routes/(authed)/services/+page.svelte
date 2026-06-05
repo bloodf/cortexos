@@ -11,6 +11,7 @@
   matching the M1 main pattern.
 -->
 <script lang="ts">
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import type { PageData } from './$types';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
@@ -46,7 +47,7 @@
 	function applyFilter(next: { query: string; category: string }): void {
 		q = next.query;
 		cat = next.category;
-		const params = new URLSearchParams(page.url.searchParams);
+		const params = new SvelteURLSearchParams(page.url.searchParams);
 		if (next.query) params.set('q', next.query);
 		else params.delete('q');
 		if (next.category) params.set('category', next.category);

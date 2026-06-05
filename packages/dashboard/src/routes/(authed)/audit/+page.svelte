@@ -11,6 +11,7 @@
   the export matches the filtered view.
 -->
 <script lang="ts">
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import type { PageData } from './$types';
@@ -47,7 +48,7 @@
 	 * searchParams. Empty values are dropped so the URL stays clean.
 	 */
 	function applyFilters(next: AuditFiltersValue): void {
-		const params = new URLSearchParams();
+		const params = new SvelteURLSearchParams();
 		if (next.actor) params.set('actor', next.actor);
 		if (next.surface) params.set('surface', next.surface);
 		if (next.action) params.set('action', next.action);

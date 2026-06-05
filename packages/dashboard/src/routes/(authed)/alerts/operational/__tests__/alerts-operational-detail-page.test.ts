@@ -34,7 +34,7 @@ function makeLoadEvent(id: string): Parameters<typeof opDetailLoad>[0] {
 		url: new URL(`http://localhost/alerts/operational/${id}`),
 		params: { id },
 		locals: { user: fakeUser, session: null },
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 	} as any;
 }
 
@@ -87,14 +87,14 @@ describe('/alerts/operational/[id] page — actions.acknowledge', () => {
 				method: 'POST',
 			}),
 			locals: { user: fakeUser, session: null },
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			 
 		} as any;
 	}
 
 	it('acknowledge sets acknowledgedAt on the row (non-admin user)', async () => {
 		expect(fakeUser.isAdmin).toBe(false);
 		const res = await opDetailActions.acknowledge!(makeActionEvent());
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		const row = (res as any)?.alert ?? (res as any)?.data?.alert;
 		expect(row?.acknowledged).toBe(true);
 		expect(row?.acknowledgedAt).toBeTruthy();
@@ -105,20 +105,20 @@ describe('/alerts/operational/[id] page — actions.acknowledge', () => {
 	it('re-acknowledge returns the current (already-acked) row without error', async () => {
 		await alertsRepo.acknowledgeOperationalAlert(pgdb, createdAlertId);
 		const res = await opDetailActions.acknowledge!(makeActionEvent());
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		const row = (res as any)?.alert ?? (res as any)?.data?.alert;
 		expect(row?.acknowledged).toBe(true);
 	});
 
 	it('returns 400 for an invalid id', async () => {
 		const res = await opDetailActions.acknowledge!(makeActionEvent('abc'));
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		expect((res as any)?.status).toBe(400);
 	});
 
 	it('returns 404 for a missing id', async () => {
 		const res = await opDetailActions.acknowledge!(makeActionEvent('999999'));
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		expect((res as any)?.status).toBe(404);
 	});
 });

@@ -48,7 +48,7 @@ function makeLoadEvent(url: string): Parameters<typeof alertsListLoad>[0] {
 			user: fakeAdmin,
 			session: null,
 		},
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 	} as any;
 }
 
@@ -115,7 +115,7 @@ describe('/alerts list page — load()', () => {
 			url: new URL('http://localhost/alerts'),
 			params: {},
 			locals: { user: nonAdmin, session: null },
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			 
 		} as any;
 		const data = await loadList(event);
 		expect(data.canManageRules).toBe(false);
@@ -126,7 +126,7 @@ describe('/alerts list page — load()', () => {
 			url: new URL('http://localhost/alerts'),
 			params: {},
 			locals: { user: null, session: null },
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			 
 		} as any;
 		await expect(loadList(event)).rejects.toMatchObject({
 			status: 303,
