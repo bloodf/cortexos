@@ -447,7 +447,7 @@ describe('CSRF guard', () => {
       expect.fail('expected throw');
     } catch (e) {
       const err = e as Error & { status?: number; body?: { code?: string } };
-      // eslint-disable-next-line no-console
+       
       console.log('DEBUG caught err', { name: err.name, status: err.status, body: err.body, message: err.message, isError: e instanceof Error });
       expect(err.status).toBe(403);
       expect(err.body?.code).toBe('permission');

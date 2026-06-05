@@ -100,7 +100,7 @@ function pickDefault(): PamAuthenticator {
   // and treats every user as admin — this is acceptable for local
   // dev / CI but MUST never run in production (a Linux host will
   // never hit this branch).
-  // eslint-disable-next-line no-console
+   
   console.warn(
     '[cortexos/auth] authenticate-pam is Linux-only; using FakePamAuthenticator. ' +
       'Set CORTEX_AUTH_FAKE_PAM=1 to silence this warning, or deploy on Linux.',
@@ -157,7 +157,7 @@ export class LinuxPamAuthenticator implements PamAuthenticator {
     }
     const pam = await loadAuthenticatePam();
     if (!pam) {
-      // eslint-disable-next-line no-console
+       
       console.error('[cortexos/auth] authenticate-pam module unavailable; cannot auth');
       return { ok: false, reason: 'system_error' };
     }
@@ -192,7 +192,7 @@ export class LinuxPamAuthenticator implements PamAuthenticator {
       return { ok: true, username };
     } catch (err) {
       const reason = classifyPamError(err);
-      // eslint-disable-next-line no-console
+       
       console.warn('[cortexos/auth] pam.denied', { username, reason, err: (err as Error).message });
       return { ok: false, reason };
     }
@@ -355,7 +355,7 @@ async function loadAuthenticatePam(): Promise<typeof pamModule> {
         };
         pamModule = mod;
       } catch (err) {
-        // eslint-disable-next-line no-console
+         
         console.error(
           '[cortexos/auth] failed to load authenticate-pam native binding:',
           (err as Error).message,

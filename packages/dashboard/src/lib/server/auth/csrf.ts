@@ -113,10 +113,10 @@ function throwCsrfError(_event: AuthRequestEvent, reason: string): never {
   // the user + requestId, and we don't want to leak the CSRF
   // diagnostic to a potential attacker. The reason is for unit
   // tests to assert against.
-  // eslint-disable-next-line no-console
+   
   if (process.env.NODE_ENV !== 'production') {
     // Dev-only diagnostic; never reached in prod.
-    // eslint-disable-next-line no-console
+     
     console.debug('[cortexos/csrf] rejected', { reason });
   }
   // For the "missing_session_csrf" case, surface as auth (the

@@ -23,7 +23,26 @@ export default defineConfig({
 		},
 		coverage: {
 			provider: 'v8',
-			reporter: ['text', 'json', 'html']
+			reporter: ['text', 'json', 'html'],
+			// Default: only files imported during tests are counted. We use
+			// `exclude` to drop test-infrastructure that test code imports
+			// (e.g. mocks/server.ts is imported by test files but is dev-only
+			// MSW plumbing, not production logic). Without exclude these would
+			// be reported with 0% coverage and drag the overall % down.
+			exclude: [
+				// Test infrastructure (MSW dev-only, static data, helpers)
+				'src/lib/mocks/**',
+				'src/lib/icons/**',
+				'src/lib/i18n/**',
+				'src/lib/utils/test-render.ts',
+				'src/lib/server/db/test-utils.ts',
+				// Svelte generated type files
+				'**/*.svelte.d.ts',
+				// Test scaffolding
+				'vitest.config.ts',
+				'vitest.setup.ts',
+				'playwright.config.ts'
+			]
 		}
 	}
 });

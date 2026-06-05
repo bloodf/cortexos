@@ -174,4 +174,45 @@ describe('systemd bridge — dispatchAction rejection paths', () => {
       expect(res.exitCode).toBe(0);
     }
   });
+
+  it('rejected on actionHash mismatch (token bound to a different action)', async () => {
+    // Mint a valid token for a DIFFERENT (action, name) pair. The
+    // bridge must reject the request because the token's actionHash
+    // does not match the (systemd.restart, caddy.service) hash.
+    const { mintApproval } = await import('../../approval');
+    const wrongToken = mintApproval({
+      username: user.username,
+      sessionId: 'sess-test',
+      actionHash: actionHashFor('systemd.start', { name: 'caddy.service' }),
+    });
+    const res = await dispatchAction(
+      { action: 'restart', name: 'caddy.service' },
+      { ...baseCtx, approvalToken: wrongToken.token },
+    );
+    expect(res.status).toBe('rejected');
+    if (res.status === 'rejected') {
+      expect(res.code).toBe('approval_invalid');
+    }
+  });
+
+  it('falls back to "rejected" with reason when the executor throws', async () => {
+    // Swap in an executor that always throws.
+    const { setExecutorForTests } = await import('../bridge');
+    setExecutorForTests(async () => {
+      throw new Error('boom');
+    });
+    try {
+      const res = await dispatchAction(
+        { action: 'start', name: 'caddy.service' },
+        baseCtx,
+      );
+      expect(res.status).toBe('rejected');
+      if (res.status === 'rejected') {
+        expect(res.code).toBe('executor_error');
+        expect((res as { reason?: string }).reason).toContain('boom');
+      }
+    } finally {
+      setExecutorForTests(null);
+    }
+  });
 });
