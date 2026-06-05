@@ -1,7 +1,7 @@
 /**
  * sheet-mount.test.ts — coverage of Sheet.svelte via Svelte 5 mount.
  */
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render, cleanup } from '$lib/utils/test-render';
 import Sheet from '../Sheet.svelte';
 
@@ -34,5 +34,59 @@ describe('Sheet.svelte — mount', () => {
   it('respects side=bottom', () => {
     const { container } = render(Sheet, { props: { open: true, side: 'bottom' } });
     expect(container.querySelector('[data-slot="sheet"]')?.getAttribute('data-side')).toBe('bottom');
+  });
+
+  it('respects side=top', () => {
+    const { container } = render(Sheet, { props: { open: true, side: 'top' } });
+    expect(container.querySelector('[data-slot="sheet"]')?.getAttribute('data-side')).toBe('top');
+  });
+
+  it('applies the className prop on the content panel', () => {
+    const { container } = render(Sheet, { props: { open: true, class: 'custom-panel' } });
+    const content = container.querySelector('[data-slot="sheet-content"]');
+    expect(content?.className).toContain('custom-panel');
+  });
+
+  it('renders the overlay panel', () => {
+    const { container } = render(Sheet, { props: { open: true } });
+    expect(container.querySelector('[data-slot="sheet-overlay"]')).not.toBeNull();
+  });
+
+  it('clicking the overlay closes the sheet (calls onclose)', async () => {
+    const onclose = vi.fn();
+    const { container } = render(Sheet, { props: { open: true, onclose } });
+    const overlay = container.querySelector('[data-slot="sheet-overlay"]') as HTMLElement;
+    overlay.click();
+    // flush microtasks for the $effect cleanup to fire
+    await Promise.resolve();
+    expect(onclose).toHaveBeenCalled();
+  });
+
+  it('Escape key closes the sheet (calls onclose)', async () => {
+    const onclose = vi.fn();
+    render(Sheet, { props: { open: true, onclose } });
+    // Wait for $effect to register the global keydown listener.
+    await new Promise((r) => setTimeout(r, 0));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await Promise.resolve();
+    expect(onclose).toHaveBeenCalled();
+  });
+
+  it('non-Escape key does not close the sheet', async () => {
+    const onclose = vi.fn();
+    render(Sheet, { props: { open: true, onclose } });
+    await new Promise((r) => setTimeout(r, 0));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }));
+    await Promise.resolve();
+    expect(onclose).not.toHaveBeenCalled();
+  });
+
+  it('Escape on a closed sheet is a no-op', async () => {
+    const onclose = vi.fn();
+    render(Sheet, { props: { open: false, onclose } });
+    await new Promise((r) => setTimeout(r, 0));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await Promise.resolve();
+    expect(onclose).not.toHaveBeenCalled();
   });
 });
