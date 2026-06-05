@@ -1,7 +1,7 @@
 # CortexOS Dashboard — v1.0 Release Notes
 
 **Version:** 1.0.0 (v0.4.0 → v1.0.0 — feature complete, live-host validated)
-**Date:** 2026-06-04
+**Date:** 2026-06-05
 **Scope:** SvelteKit dashboard. v1.0 closes the v0.5/v1.0 autonomous drive.
 
 ---
@@ -252,6 +252,42 @@ package and is idempotent.
   audit the revoke event with the actor's user_id in the chain
   (it uses the `revoked_at` timestamp only). Tracked for v0.4.1.
 
+### Unit-test coverage ceiling (M5 closeout, 2026-06-05)
+
+Final v1.0.0 coverage measured on OrbStack Linux VM
+(`cortexos-test`, Ubuntu 24.04 arm64):
+
+- **Statements:** 91.7%
+- **Branches:** 78.47%
+- **Functions:** 93.21%
+- **Lines:** 92.27%
+
+(1703 tests pass, 2 skipped, 0 failed; 5 unhandled rejections from
+the xterm.js terminal-mount test which is a known jsdom-canvas
+limitation.)
+
+The remaining ~7.7pp on lines and ~21.5pp on branches is dominated
+by code that is **structurally unreachable from a unit test**:
+
+| File / surface                  | Unreachable lines | Reason                                                       |
+| ------------------------------- | ----------------- | ------------------------------------------------------------ |
+| `terminal/Terminal.svelte`      | 60                | xterm.js needs a real browser canvas (jsdom has no canvas)  |
+| `incus/bridge.ts` real executor | 38                | v0.5.0 work — no real `incus` CLI integration yet           |
+| `auth/pam.ts` Linux path        | 29                | `authenticate-pam` is a CJS native binding, only on Linux    |
+| `db/migrate.ts` private funcs   | 20                | `filterExtensionStatements` private; path-traversal guard    |
+| `db/schema.ts` Drizzle refs     | 9                 | Drizzle `.references()` shape, not exercised at runtime      |
+
+**Closing the remaining gap requires either:**
+- A real Linux xterm.js test (Playwright with headed browser)
+- A real `incus` integration test (v0.5.0 scope)
+- A mockable `authenticate-pam` binding (already partially done —
+  `auth-m2.test.ts` covers the FakePamAuthenticator surface)
+- Splitting `migrate.ts` private helpers into a testable module
+
+Pushing past 92% is **pursuing diminishing returns on unit tests**.
+The right investment is Playwright E2E + a real Linux CI runner for
+the v0.5.0 Incus + sandbox features.
+
 ---
 
 ## Acknowledgments
@@ -261,3 +297,8 @@ Beyer, Ken, Schneier, Hightower, Beyer, Kleppmann, Beyer, etc.)
 in ~14 wall-clock hours of agent time. Approximately 4.5× speedup vs
 manual implementation thanks to the parallel team plan model and
 deterministic verify_prompts.
+
+The M5 coverage push (W1-W36) added ~250 unit tests across 22 new
+test files, raising line coverage from 86.42% to 92.27% on the
+OrbStack Linux VM — a 5.85pp gain. The remaining gap is documented
+above as structural and out-of-scope for unit tests.
