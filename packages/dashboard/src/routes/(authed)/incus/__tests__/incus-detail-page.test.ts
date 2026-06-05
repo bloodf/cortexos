@@ -9,7 +9,11 @@ import {
   _resetIncusBridgeForTests,
   _getMockExecutorForTests,
 } from '$lib/server/incus/bridge';
-import { makeFakeEvent } from '$lib/server/test-utils';
+import { makeFakeEvent, makeFakeUser, makeFakeSession, makeFakeLocals } from '$lib/server/test-utils';
+import { registerFakeUser, registerFakeSession, clearFakeAuth } from '$lib/server/auth';
+import { asUserId, asSessionId, type User } from '$lib/server/entities';
+import { mintApproval } from '$lib/server/approval';
+import { setServerHmacKeyFromString } from '$lib/server/config';
 import {
   load as detailLoad,
   actions,
@@ -18,6 +22,8 @@ import { GET as logsGet, POST as logsPost } from '../../../../routes/api/incus/[
 
 beforeEach(() => {
   _resetIncusBridgeForTests();
+  clearFakeAuth();
+  setServerHmacKeyFromString('test-key-1234567890');
 });
 
 function makeDetailLoadEvent(name: string) {
@@ -108,6 +114,82 @@ describe('/incus/[name] detail page — default action', () => {
       event,
     );
     expect(result.status).toBeGreaterThanOrEqual(400);
+  });
+
+  it('accepts a non-destructive start action for a known instance', async () => {
+    const user = makeFakeUser({ isAdmin: true, groupMemberships: ['cortexos-admin'] });
+    const session = makeFakeSession(user);
+    registerFakeUser(user);
+    registerFakeSession(session);
+    const event = makeActionEvent('hermes-canary', 'start');
+    (event as { locals: unknown }).locals = makeFakeLocals(user, session);
+    const result = await (actions.default as unknown as (e: unknown) => Promise<{ ok?: boolean; action?: string }>)(
+      event,
+    );
+    expect(result.ok).toBe(true);
+    expect(result.action).toBe('start');
+  });
+
+  it('returns 400 when name is missing from both formData and params', async () => {
+    const user = makeFakeUser({ isAdmin: true, groupMemberships: ['cortexos-admin'] });
+    const session = makeFakeSession(user);
+    registerFakeUser(user);
+    registerFakeSession(session);
+    const params = new URLSearchParams({ action: 'start' });
+    const request = new Request('http://localhost/incus/?/default', {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+    });
+    const event = {
+      url: new URL('http://localhost/incus/?/default'),
+      params: {},
+      request,
+      locals: makeFakeLocals(user, session),
+      cookies: { get: () => undefined, set: () => undefined, delete: () => undefined },
+      getClientAddress: () => '127.0.0.1',
+    } as unknown as Parameters<NonNullable<typeof actions.default>>[0];
+    const result = await (actions.default as unknown as (e: unknown) => Promise<{ status: number }>)(event);
+    expect(result.status).toBe(400);
+  });
+
+  it('returns 403 for a non-admin caller', async () => {
+    const user = makeFakeUser({ isAdmin: false, groupMemberships: ['cortexos-users'] });
+    const session = makeFakeSession(user);
+    registerFakeUser(user);
+    registerFakeSession(session);
+    const event = makeActionEvent('hermes-canary', 'start');
+    (event as { locals: unknown }).locals = makeFakeLocals(user, session);
+    const result = await (actions.default as unknown as (e: unknown) => Promise<{ status: number }>)(event);
+    expect(result.status).toBe(403);
+  });
+
+  it('returns 401 when the session has no id (corrupt session)', async () => {
+    const user = makeFakeUser({ isAdmin: true, groupMemberships: ['cortexos-admin'] });
+    const sessionNoId: { id?: string; userId: ReturnType<typeof asUserId> } = {
+      userId: asUserId('user_admin'),
+    };
+    registerFakeUser(user);
+    registerFakeSession(sessionNoId as never);
+    const event = makeActionEvent('hermes-canary', 'start');
+    (event as { locals: unknown }).locals = {
+      user,
+      session: sessionNoId,
+    };
+    const result = await (actions.default as unknown as (e: unknown) => Promise<{ status: number }>)(event);
+    expect(result.status).toBe(401);
+  });
+
+  it('returns 400 on a rejected dispatch (e.g. unknown name)', async () => {
+    const user = makeFakeUser({ isAdmin: true, groupMemberships: ['cortexos-admin'] });
+    const session = makeFakeSession(user);
+    registerFakeUser(user);
+    registerFakeSession(session);
+    const event = makeActionEvent('no-such-instance', 'start');
+    (event as { locals: unknown }).locals = makeFakeLocals(user, session);
+    const result = await (actions.default as unknown as (e: unknown) => Promise<{ status: number; data?: { code?: string } }>)(event);
+    expect(result.status).toBe(400);
+    expect(result.data?.code).toBe('unknown_instance');
   });
 });
 
