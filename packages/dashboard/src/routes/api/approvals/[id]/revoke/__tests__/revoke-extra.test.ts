@@ -116,4 +116,68 @@ describe('POST /api/approvals/[id]/revoke — extra branches', () => {
     );
     expect(res.status).toBe(401);
   });
+
+  it('records an audit event with actorUserId, actorSessionId, and surface=approvals (G6)', async () => {
+    const { listAudit } = await import('$lib/server/audit');
+    const row = createPendingApproval({ runId: 'audit-r', signalName: 'service.restart' });
+    const user = makeFakeUser({
+      is_admin: true,
+      groupMemberships: ['cortexos-admin' as const],
+    });
+    const session = makeFakeSession(user);
+    registerFakeUser(user);
+    registerFakeSession(session);
+    const event = makeFakeEvent({
+      method: 'POST',
+      url: 'http://localhost/api/approvals/x/revoke',
+      locals: makeFakeLocals(user, session),
+    });
+    const res = await (revokePost as unknown as (e: unknown) => Promise<Response>)(
+      eventWithParams(event, { id: row.id }),
+    );
+    expect(res.status).toBe(200);
+    const events = listAudit();
+    const revokeEvent = events.find((e) => e.action === 'approvals.revoke');
+    expect(revokeEvent).toBeDefined();
+    expect(revokeEvent?.surface).toBe('approvals');
+    expect(revokeEvent?.result).toBe('success');
+    // G6 closure: the actor's user_id and session_id are recorded
+    // (the v0.4.0 known limit said the revoke event only had the
+    // revoked_at timestamp; the route-helper's audit() now records
+    // both ids on success).
+    expect(revokeEvent?.actorUserId).toBe(user.id);
+    expect(revokeEvent?.actorSessionId).toBe(session.id);
+    // The action target is the approval id (PB-1 + SR-020).
+    expect(revokeEvent?.target).toBe(row.id);
+  });
+
+  it('records a failure audit event with actorUserId when revoke 404s (G6)', async () => {
+    const { listAudit } = await import('$lib/server/audit');
+    const user = makeFakeUser({
+      is_admin: true,
+      groupMemberships: ['cortexos-admin' as const],
+    });
+    const session = makeFakeSession(user);
+    registerFakeUser(user);
+    registerFakeSession(session);
+    const event = makeFakeEvent({
+      method: 'POST',
+      url: 'http://localhost/api/approvals/missing-id/revoke',
+      locals: makeFakeLocals(user, session),
+    });
+    const res = await (revokePost as unknown as (e: unknown) => Promise<Response>)(
+      eventWithParams(event, { id: 'missing-id' }),
+    );
+    expect(res.status).toBe(404);
+    const events = listAudit();
+    // not_found errors audit as result='failure' (route-helper maps
+    // auth/permission to 'denied', everything else to 'failure').
+    const failEvent = events.find(
+      (e) => e.action === 'approvals.revoke' && e.result === 'failure',
+    );
+    expect(failEvent).toBeDefined();
+    expect(failEvent?.actorUserId).toBe(user.id);
+    expect(failEvent?.actorSessionId).toBe(session.id);
+    expect(failEvent?.target).toBe('missing-id');
+  });
 });

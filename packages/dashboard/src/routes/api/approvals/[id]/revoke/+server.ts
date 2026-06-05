@@ -53,11 +53,15 @@ export const POST = defineRoute({
   auth: 'admin',
   surface: 'approvals',
   action: 'approvals.revoke',
-  target: (i) => {
+  target: (i, event) => {
+    // Prefer the token from the body when present (PB-1 + SR-020 binding
+    // surface); fall back to the URL's approval id so the audit log
+    // always has a stable target string.
     if (i && typeof i === 'object' && 'token' in i && typeof i.token === 'string') {
       return i.token;
     }
-    return null;
+    const urlId = (event as unknown as { params: Record<string, string> }).params?.id;
+    return urlId ?? null;
   },
   rateLimit: { limit: 30, windowSec: 60, bucket: 'user' },
   handler: async ({ user, input, event }) => {
