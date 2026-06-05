@@ -1,11 +1,14 @@
 /**
  * terminal-mount.test.ts — coverage of Terminal.svelte via Svelte 5 mount.
  *
- * xterm.js cannot mount in jsdom (no canvas font metrics), so this
- * test only exercises the Svelte 5 mount path: the data-slot root,
- * the onMount guard, and the safeWrite() error path. The actual
- * xterm.js initialisation is exercised by Playwright E2E in
- * `e2e/terminal.spec.ts`.
+ * wterm (@wterm/dom) renders to the DOM (no canvas) and ships its own
+ * jsdom test suite, so the Svelte 5 mount path runs end-to-end in
+ * vitest+jsdom. These tests assert the host element contract, the
+ * data-mounted flag, and prop acceptance. The full wterm lifecycle
+ * (mount → write → onData → resize → focus → destroy) is exercised in
+ * `wterm-terminal-mount.test.ts`. The Chromium-based E2E in
+ * `e2e/terminal.spec.ts` covers what jsdom cannot (real font metrics,
+ * real keyboard events).
  */
 import { describe, it, expect, afterEach } from 'vitest';
 import { render, cleanup } from '$lib/utils/test-render';
@@ -32,7 +35,7 @@ describe('Terminal.svelte — mount', () => {
     const { container } = render(Terminal, {
       props: { banner: 'my banner' },
     });
-    // The banner prop is consumed by xterm.js onMount, not rendered
+    // The banner prop is consumed by wterm onMount, not rendered
     // in the DOM. We just check the prop is accepted.
     const root = container.querySelector('[data-slot="terminal"]');
     expect(root).not.toBeNull();

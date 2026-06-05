@@ -13,7 +13,7 @@
  *   1. Test the props/contract surface (defaults, types, role/aria).
  *   2. Test the pure logic — the api handle is a plain object so we
  *      can mutate and inspect it without going through `mount()`.
- *   3. End-to-end coverage of xterm.js itself is via the Playwright
+ *   3. End-to-end coverage of wterm itself is via the Playwright
  *      E2E suite under `e2e/terminal.spec.ts` (M3) which runs in
  *      Chromium, not jsdom.
  */
@@ -104,7 +104,7 @@ describe('Terminal.svelte — Svelte source contract', () => {
     expect(src).toContain('handleLine(inputBuffer)');
   });
 
-  it('the Terminal.svelte module dynamic-imports xterm.js inside onMount', async () => {
+  it('the Terminal.svelte module dynamic-imports @wterm/dom inside onMount', async () => {
     // vitest transforms .svelte to JS, so we look for the package
     // names anywhere in the compiled output (which keeps the dynamic
     // import strings).
@@ -114,15 +114,14 @@ describe('Terminal.svelte — Svelte source contract', () => {
       path.resolve(__dirname, './Terminal.svelte'),
       'utf8',
     );
-    // xterm is lazy-loaded — this is the jsdom-safe contract.
-    expect(src).toContain('@xterm/xterm');
-    expect(src).toContain('@xterm/addon-fit');
+    // wterm is lazy-loaded — this is the jsdom-safe contract.
+    expect(src).toContain('@wterm/dom');
   });
 });
 
 // Mount-based tests are gated on the `mount()` infrastructure being
 // fixed. Until then, the source-contract tests above give us coverage.
-// The Playwright E2E suite covers the actual xterm.js rendering.
+// The Playwright E2E suite covers the actual wterm rendering.
 
 describe('Terminal.svelte — placeholder for mount-based tests', () => {
   // Run a no-op render() to make sure the test path is reachable once
