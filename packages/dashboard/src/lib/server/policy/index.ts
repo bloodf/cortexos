@@ -231,6 +231,18 @@ export function installDefaultAllowlist(): void {
     requiresApproval: false,
     description: 'Disk usage.',
   });
+  // fzf — fuzzy-finder (junegunn/fzf). Optional initial <query> is a
+  // placeholder that the bridge renders; an empty string is valid (it
+  // boots fzf with no initial query). The argv-bash-c guard does not
+  // apply — fzf does not spawn a sub-shell. See pty-bridge.test.ts
+  // "term.fzf" cases for the smuggling-args edge cases.
+  addAllowlisted({
+    name: 'term.fzf',
+    surface: 'terminal',
+    argv: ['fzf', '<query>'],
+    requiresApproval: false,
+    description: 'Fuzzy-finder (junegunn/fzf) — optional initial <query>.',
+  });
 
   // systemd (§4.4.2)
   for (const action of ['start', 'stop', 'restart', 'reload', 'status', 'enable', 'disable', 'list-units']) {

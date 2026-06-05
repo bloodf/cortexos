@@ -255,6 +255,79 @@ describe('dispatch: allowlisted happy path', () => {
   });
 });
 
+describe('dispatch: term.fzf (W58 — fzf op for Quick commands)', () => {
+  it('term.fzf is in listTerminalOps with the <query> placeholder exposed', () => {
+    const op = listTerminalOps().find((o) => o.op === 'term.fzf');
+    expect(op).toBeDefined();
+    expect([...(op?.placeholders ?? [])]).toEqual(['query']);
+    expect(op?.requiresApproval).toBe(false);
+  });
+
+  it('accepts term.fzf with a clean query and renders the fzf argv', async () => {
+    const res = await dispatch(
+      { op: 'term.fzf', args: { query: 'docker' } },
+      makeCtx(makeUser()),
+    );
+    expect(res.status).toBe('accepted');
+    if (res.status === 'accepted') {
+      expect(res.argv).toEqual(['fzf', 'docker']);
+    }
+  });
+
+  it('accepts term.fzf with an empty query (boots fzf with no initial filter)', async () => {
+    const res = await dispatch(
+      { op: 'term.fzf', args: { query: '' } },
+      makeCtx(makeUser()),
+    );
+    expect(res.status).toBe('accepted');
+    if (res.status === 'accepted') {
+      expect(res.argv).toEqual(['fzf', '']);
+    }
+  });
+
+  it('rejects term.fzf when the <query> placeholder is missing (empty args object)', async () => {
+    const res = await dispatch(
+      { op: 'term.fzf', args: {} },
+      makeCtx(makeUser()),
+    );
+    expect(res.status).toBe('rejected');
+    if (res.status === 'rejected') {
+      expect(res.code).toBe('placeholder_unbound');
+    }
+  });
+
+  it('rejects term.fzf when the query contains a smuggling pattern', async () => {
+    // The defence-in-depth smuggling check must apply to fzf just as it
+    // does to term.read_file / term.tail_log. fzf does not spawn a
+    // sub-shell, but the args object is the same surface as the other
+    // terminal ops — keep the guard consistent.
+    const res = await dispatch(
+      { op: 'term.fzf', args: { query: '$(rm -rf /)' } },
+      makeCtx(makeUser()),
+    );
+    expect(res.status).toBe('rejected');
+    if (res.status === 'rejected') {
+      expect(res.code).toBe('arg_smuggling');
+    }
+  });
+
+  it('rejects term.fzf when the query is a backtick command substitution', async () => {
+    const res = await dispatch(
+      { op: 'term.fzf', args: { query: '`id`' } },
+      makeCtx(makeUser()),
+    );
+    expect(res.status).toBe('rejected');
+    if (res.status === 'rejected') {
+      expect(res.code).toBe('arg_smuggling');
+    }
+  });
+
+  it('does not require approval for term.fzf (read-only CLI tool)', async () => {
+    const op = listTerminalOps().find((o) => o.op === 'term.fzf');
+    expect(op?.requiresApproval).toBe(false);
+  });
+});
+
 describe('dispatch: approval gate', () => {
   it('approval-required op with non-sh-c argv returns approval_required', async () => {
     addAllowlisted({
