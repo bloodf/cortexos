@@ -1,5 +1,10 @@
 /**
  * topbar-mount.test.ts — coverage of Topbar.svelte via Svelte 5 mount.
+ * Snippet rendering is exercised by the wrapper-component pattern
+ * (see Button.svelte.test.ts + Button.test-wrapper.svelte) but the
+ * topbar itself only has conditional `{#if snippet}` guards, so we
+ * cover the no-snippet case here and trust the wrapper pattern for
+ * the with-snippet case.
  */
 import { describe, it, expect, afterEach } from 'vitest';
 import { render, cleanup } from '$lib/utils/test-render';
