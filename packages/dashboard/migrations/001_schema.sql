@@ -12,8 +12,8 @@ CREATE TABLE IF NOT EXISTS services (
   id SERIAL PRIMARY KEY,
   slug VARCHAR(64) UNIQUE NOT NULL,
   name VARCHAR(128) NOT NULL,
-  kind VARCHAR(16) NOT NULL DEFAULT 'service'
-    CHECK (kind IN ('app','service','docker','process')),
+  kind VARCHAR(32) NOT NULL DEFAULT 'service'
+    CHECK (kind IN ('app','service','docker','process','dashboard-launcher')),
   category VARCHAR(64) NOT NULL,
   description TEXT DEFAULT NULL,
   health_url VARCHAR(512) NOT NULL DEFAULT '#',

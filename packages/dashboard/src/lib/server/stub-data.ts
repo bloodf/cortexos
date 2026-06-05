@@ -51,6 +51,24 @@ export function listServices(): Service[] {
   return services.slice();
 }
 
+/**
+ * List only the entries with `kind === 'dashboard-launcher'`. These are
+ * link-out surfaces (Hermes Web UI, BoxBox, ...) rendered by the
+ * `/apps` page. The /services page filters them out via the inverse.
+ *
+ * Stable sort by `sortOrder` then `name` — matches the /services page
+ * ordering for visual consistency between the two surfaces.
+ */
+export function listDashboardLaunchers(): Service[] {
+  return services
+    .filter((s) => s.kind === 'dashboard-launcher' && s.isActive)
+    .slice()
+    .sort((a, b) => {
+      if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
+      return a.name.localeCompare(b.name);
+    });
+}
+
 export function getServiceById(id: string): Service | null {
   return services.find((s) => s.id === id) ?? null;
 }
@@ -320,6 +338,67 @@ export function revokePendingApproval(
 // Test/seed helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Seed the two dashboard-launcher rows that mirror
+ * `packages/dashboard/migrations/009_hermes_webui_boxbox_seed.sql`.
+ * Idempotent — re-runs are a no-op if both slugs are already present.
+ *
+ * The dev / `npm run dev` flow uses `listDashboardLaunchers()` against
+ * this in-memory store, not the Drizzle repo. Without these seeds the
+ * `/apps` page would render an empty state in dev even though the
+ * production DB has the rows.
+ */
+export function _seedDashboardLaunchers(): void {
+  if (services.some((s) => s.slug === 'hermes-webui-host')) return;
+  createService({
+    slug: 'hermes-webui-host',
+    name: 'Hermes Web UI',
+    kind: 'dashboard-launcher',
+    category: 'Operator Interfaces',
+    description:
+      'Operator-facing UI for the Hermes agent runtime (nesquena/hermes-webui). ' +
+      'Reverse-proxied at /hermes/ via Caddy. Per-profile install is in ' +
+      'prompts/tools/60-incus-project.md step 6.5.',
+    healthUrl: 'http://127.0.0.1:18787/health',
+    healthType: 'http',
+    openUrl: '/hermes/',
+    envSource: null,
+    status: 'unknown',
+    isActive: true,
+    hasWebui: false,
+    showInHealthcheck: true,
+    showInWebui: true,
+    sortOrder: 20,
+    iconType: 'auto',
+    iconColor: null,
+    iconImage: null,
+  });
+  if (services.some((s) => s.slug === 'boxbox-host')) return;
+  createService({
+    slug: 'boxbox-host',
+    name: 'BoxBox',
+    kind: 'dashboard-launcher',
+    category: 'Operator Interfaces',
+    description:
+      'Host-only file manager (jR4dh3y/BoxBox). Reverse-proxied at /files/ via ' +
+      'Caddy with HTTP Basic auth (BoxBox has no native auth). Install per ' +
+      'prompts/tools/30c-boxbox.md.',
+    healthUrl: 'http://127.0.0.1:8200/health',
+    healthType: 'http',
+    openUrl: '/files/',
+    envSource: null,
+    status: 'unknown',
+    isActive: true,
+    hasWebui: false,
+    showInHealthcheck: true,
+    showInWebui: true,
+    sortOrder: 21,
+    iconType: 'auto',
+    iconColor: null,
+    iconImage: null,
+  });
+}
+
 /** Reset the entire stub data store. For tests. */
 export function _resetStubData(): void {
   users.length = 0;
@@ -333,3 +412,8 @@ export function _resetStubData(): void {
   pendingApprovals.length = 0;
   approvalCounter = 0;
 }
+
+// Seed the dashboard launchers once on first import. Tests that need a
+// clean slate call `_resetStubData()` and then `_seedDashboardLaunchers()`
+// again (or skip the seed entirely).
+_seedDashboardLaunchers();

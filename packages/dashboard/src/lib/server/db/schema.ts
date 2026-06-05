@@ -88,7 +88,7 @@ export const services = pgTable(
 		id: serial("id").primaryKey(),
 		slug: varchar("slug", { length: 64 }).notNull().unique(),
 		name: varchar("name", { length: 128 }).notNull(),
-		kind: varchar("kind", { length: 16 }).notNull().default("service"),
+		kind: varchar("kind", { length: 32 }).notNull().default("service"),
 		category: varchar("category", { length: 64 }).notNull(),
 		description: text("description"),
 		healthUrl: varchar("health_url", { length: 512 }).notNull().default("#"),
@@ -114,7 +114,7 @@ export const services = pgTable(
 		index("idx_services_kind_status").on(t.kind, t.status),
 		index("idx_services_category").on(t.category),
 		index("idx_services_active").on(t.isActive),
-		check("services_kind_check", sql`${t.kind} IN ('app','service','docker','process')`),
+		check("services_kind_check", sql`${t.kind} IN ('app','service','docker','process','dashboard-launcher')`),
 	],
 );
 

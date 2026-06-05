@@ -89,7 +89,7 @@ export interface Session {
 // ---------------------------------------------------------------------------
 
 export type ServiceStatus = 'online' | 'offline' | 'unknown' | 'checking';
-export type ServiceKind = 'app' | 'service' | 'docker' | 'process';
+export type ServiceKind = 'app' | 'service' | 'docker' | 'process' | 'dashboard-launcher';
 export type HealthType = 'http' | 'tcp' | 'docker' | 'systemd' | 'process';
 
 export interface Service {

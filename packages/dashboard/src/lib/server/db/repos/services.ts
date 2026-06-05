@@ -16,7 +16,7 @@ import type { DbClient } from "../client";
 import { services } from "../schema";
 import type { NewService, Service } from "../schema";
 
-export type ServiceKind = "app" | "service" | "docker" | "process";
+export type ServiceKind = "app" | "service" | "docker" | "process" | "dashboard-launcher";
 export type HealthType = "http" | "tcp" | "docker" | "process" | "systemd";
 
 /**

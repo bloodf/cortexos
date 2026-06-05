@@ -58,6 +58,16 @@
 		"notFound": "Página não encontrada",
 		"serverError": "Erro do servidor"
 	},
+	"apps": {
+		"title": "Apps",
+		"description": "Link-out launchers for the operator's day-to-day tools. Each card opens the upstream surface in a new tab — Caddy reverse-proxies the URL on the tailnet.",
+		"openInNewTab": "Open in new tab",
+		"noDescription": "No description.",
+		"empty": {
+			"title": "No apps installed yet",
+			"description": "Run prompts/tools/30-hermes-webui.md and prompts/tools/30c-boxbox.md to install the launcher surfaces; the dashboard's Service catalog seeds them on first boot."
+		}
+	},
 	"services": {
 		"title": "Serviços",
 		"description": "Acompanhe cada unidade do systemd e contêiner do Docker que o CortexOS conhece.",
