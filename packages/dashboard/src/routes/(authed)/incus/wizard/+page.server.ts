@@ -22,6 +22,11 @@ import { getCurrentSession, isAdmin } from '$lib/server/auth';
 import { getMessages } from '$lib/i18n';
 import {
   IncusInstanceConfigSchema,
+  IncusWizardStepSchema,
+  IncusWizardStepTargetSchema,
+  IncusWizardStepImageSchema,
+  IncusWizardStepHermesSchema,
+  IncusWizardStepNetworkSchema,
   type IncusInstanceConfig,
   type IncusImage,
 } from '@cortexos/contracts';
@@ -29,6 +34,17 @@ import {
 const DEFAULT_POOLS = ['default', 'nvme', 'hdd'] as const;
 const DEFAULT_BRIDGES = ['incusbr0'] as const;
 const DEFAULT_ALIASES = ['ubuntu/24.04', 'debian/12', 'alpine/3.20'] as const;
+
+/** Map of wizard step → per-step Zod schema. Used by the
+ *  `validateStep` action to give per-step feedback before the
+ *  user reaches the review step. The `review` and `profile`
+ *  steps are not validated here (see the action). */
+const WIZARD_STEP_SCHEMAS = {
+  target: IncusWizardStepTargetSchema,
+  image: IncusWizardStepImageSchema,
+  hermes: IncusWizardStepHermesSchema,
+  network: IncusWizardStepNetworkSchema,
+} as const;
 
 export const load: PageServerLoad = async ({ cookies, request, url, locals }) => {
   const localeCookie = cookies.get('cortex-locale');
@@ -77,6 +93,61 @@ export const load: PageServerLoad = async ({ cookies, request, url, locals }) =>
 };
 
 export const actions: Actions = {
+  /**
+   * `validateStep` — per-step server-side validation. The wizard
+   * posts `{ step, values }` where `step` is one of the 5 known
+   * wizard steps and `values` is the partial config for that step.
+   * Returns `{ ok: true, step, data }` on success or
+   * `{ ok: false, step, issues }` on validation failure.
+   *
+   * This closes the v0.4.0 known limitation where per-step
+   * validation was client-side only; the server now mirrors it
+   * step-for-step. The final `launch` action still runs the full
+   * IncusInstanceConfigSchema, so a malicious client cannot bypass
+   * the per-step checks.
+   */
+  validateStep: async (event) => {
+    const resolved = await getCurrentSession(event);
+    if (!resolved) return fail(401, { error: 'Authentication required' });
+
+    const fd = await event.request.formData();
+    const stepRaw = fd.get('step');
+    const valuesRaw = fd.get('values');
+    if (typeof stepRaw !== 'string') {
+      return fail(400, { error: 'Missing step' });
+    }
+    const stepResult = IncusWizardStepSchema.safeParse(stepRaw);
+    if (!stepResult.success) {
+      return fail(400, { error: 'Invalid step', allowed: IncusWizardStepSchema.options });
+    }
+    const step = stepResult.data;
+    if (step === 'review' || step === 'profile') {
+      // review is the full-schema gate (handled by `preflight` / `launch`).
+      // profile is a UI-only summary today; no validation needed yet.
+      return { ok: true, step, data: null };
+    }
+    if (typeof valuesRaw !== 'string') {
+      return fail(400, { error: 'Missing values' });
+    }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(valuesRaw);
+    } catch {
+      return fail(400, { error: 'Invalid values JSON' });
+    }
+    const schema = WIZARD_STEP_SCHEMAS[step];
+    const validated = schema.safeParse(parsed);
+    if (!validated.success) {
+      return fail(400, {
+        ok: false,
+        step,
+        error: 'Step validation failed',
+        issues: validated.error.issues,
+      });
+    }
+    return { ok: true, step, data: validated.data };
+  },
+
   /**
    * `preflight` — run a deterministic preflight on the posted
    * `IncusInstanceConfig`. Returns the report. The page renders
