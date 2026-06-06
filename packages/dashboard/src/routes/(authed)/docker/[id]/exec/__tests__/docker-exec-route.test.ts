@@ -30,7 +30,7 @@ const adminUser = makeFakeUser({
 const session = { id: 'sess-exec-1' } as never;
 
 function postEvent(body: Record<string, unknown>, opts: { id?: string | null } = {}) {
-  const id = opts.id === null ? undefined : (opts.id ?? 'caddy-1');
+  const id = opts.id === null ? '' : (opts.id ?? 'caddy-1');
   return makeFakeEvent({
     method: 'POST',
     params: { id },

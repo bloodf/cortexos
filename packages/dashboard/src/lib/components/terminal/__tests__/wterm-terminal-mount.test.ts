@@ -67,7 +67,7 @@ describe('Terminal.svelte — wterm mount lifecycle', () => {
       props: {
         banner: '',
         prompt: '> ',
-        onCommand: (cmd) => {
+        onCommand: (cmd: string) => {
           captured = cmd;
         },
       },
@@ -94,7 +94,7 @@ describe('Terminal.svelte — wterm mount lifecycle', () => {
       props: {
         banner: '',
         prompt: '> ',
-        onCommand: (cmd) => {
+        onCommand: (cmd: string) => {
           captured = cmd;
         },
       },
@@ -125,7 +125,7 @@ describe('Terminal.svelte — wterm mount lifecycle', () => {
       props: {
         banner: '',
         prompt: '> ',
-        onCommand: (cmd) => {
+        onCommand: (cmd: string) => {
           captured = cmd;
         },
       },
@@ -201,7 +201,7 @@ describe('Terminal.svelte — wterm mount lifecycle', () => {
       props: {
         banner: '',
         prompt: '> ',
-        onCommand: (cmd) => {
+        onCommand: (cmd: string) => {
           captured = cmd;
         },
       },

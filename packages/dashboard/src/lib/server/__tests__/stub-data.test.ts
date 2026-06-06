@@ -49,6 +49,9 @@ describe('services stub', () => {
       showInHealthcheck: true,
       showInWebui: true,
       sortOrder: 0,
+      iconType: 'auto',
+      iconColor: null,
+      iconImage: null,
     });
     expect(getServiceById(s.id)?.slug).toBe('x');
     expect(listServices().length).toBe(1);
@@ -83,6 +86,9 @@ describe('health snapshots', () => {
       showInHealthcheck: true,
       showInWebui: true,
       sortOrder: 0,
+      iconType: 'auto',
+      iconColor: null,
+      iconImage: null,
     });
     triggerRecheck(s.id);
     triggerRecheck(s.id);

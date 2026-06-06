@@ -1,6 +1,6 @@
 # Codecov configuration — CortexOS monorepo
 #
-# Source of truth: packages/cortex-dashboard/docs/TEST_STRATEGY.md §5
+# Source of truth: packages/dashboard/docs/TEST_STRATEGY.md §5
 # Threshold: 95% on lines / branches / functions / statements.
 # Per-PR delta: must not decrease by more than 1% (any metric).
 #
@@ -32,7 +32,7 @@ coverage:
         if_ci_failed: error
         only_pulls: false
         paths:
-          - "packages/cortex-dashboard/src/**"
+          - "packages/dashboard/src/**"
         # Informational only — do not fail the build on these:
         informational: false
         # Carry forward — base comparison is main, not a single prior commit
@@ -65,7 +65,7 @@ flag_management:
   individual_flags:
     - name: unittests
       paths:
-        - packages/cortex-dashboard/src/
+        - packages/dashboard/src/
 
 # Component-level grouping for the Codecov dashboard.
 # Each `component` is a subgraph of the overall project; status checks
@@ -84,15 +84,15 @@ component_management:
     - component_id: dashboard_lib
       name: Dashboard lib (components, stores, hooks)
       paths:
-        - packages/cortex-dashboard/src/lib/**
+        - packages/dashboard/src/lib/**
     - component_id: dashboard_routes
       name: Dashboard routes (pages, loaders, form actions, +server.ts)
       paths:
-        - packages/cortex-dashboard/src/routes/**
+        - packages/dashboard/src/routes/**
     - component_id: dashboard_server
       name: Dashboard server (adapters, policy, audit, auth)
       paths:
-        - packages/cortex-dashboard/src/lib/server/**
+        - packages/dashboard/src/lib/server/**
 
 # Comments on PRs — keep the signal-to-noise high.
 comment:
@@ -118,10 +118,10 @@ ignore:
   - "**/*.spec.ts"
   - "**/*.svelte.test.ts"
   # Mock layer — tested by E2E, not by unit tests (TEST_STRATEGY §4.4)
-  - "packages/cortex-dashboard/src/lib/mocks/**"
-  - "packages/cortex-dashboard/src/lib/server/mocks/**"
+  - "packages/dashboard/src/lib/mocks/**"
+  - "packages/dashboard/src/lib/server/mocks/**"
   # Server-only native module glue (PAM binding) — requires a real host
-  - "packages/cortex-dashboard/src/lib/server/native/**"
+  - "packages/dashboard/src/lib/server/native/**"
   # Configuration — exercised by the gate scripts themselves
   - "**/*.config.ts"
   - "**/*.config.js"

@@ -13,7 +13,9 @@ Run cAdvisor as a Docker container to expose per-container CPU, memory, and I/O 
 ```bash
 source scripts/pkg.sh
 echo "OS family: $(pkg_family) $(pkg_version)"
-: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+if [ "$(pkg_family)" = "unknown" ]; then
+    echo "WARNING: OS family not detected. Run prompts/os/00-os-selection.md first."
+fi
 ```
 
 ## Todo

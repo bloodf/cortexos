@@ -9,9 +9,9 @@
  * and `process.env.CORTEX_SYSTEMD_BRIDGE_REAL !== '0'` so the
  * defaultExecutor resolves to realSystemdExecutor.
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi, type MockedFunction } from 'vitest';
 
-let execFileMock: ReturnType<typeof vi.fn>;
+let execFileMock: MockedFunction<(...args: unknown[]) => unknown>;
 
 // Mock child_process BEFORE importing the bridge.
 vi.mock('node:child_process', async () => {

@@ -61,12 +61,15 @@ function eventWithParams(
   params: Record<string, string>,
   body?: unknown,
 ): RequestEvent {
+  const headers = new Headers({ 'content-type': 'application/json' });
+  const csrf = event.request.headers.get('x-csrf-token');
+  if (csrf) headers.set('x-csrf-token', csrf);
   return {
     ...event,
     params,
     request: new Request('http://localhost/api/approvals/x/grant', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers,
       body: body !== undefined ? JSON.stringify(body) : '{}',
     }),
   } as unknown as RequestEvent;

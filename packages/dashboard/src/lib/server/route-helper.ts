@@ -27,6 +27,7 @@ import { jsonError, ApiErrorThrown } from './errors';
 import { audit, type AuditInput } from './audit';
 import { checkRateLimit, type RateLimitResult } from './rate-limit';
 import { requireAuth, requireAdmin, clientIp, userAgent, isAdmin as isAdminUser } from './auth';
+import { requireCsrf } from './auth/csrf';
 import type { GroupName } from './entities';
 
 // ---------------------------------------------------------------------------
@@ -129,7 +130,21 @@ export function defineRoute<TIn, TOut>(
       throw e;
     }
 
-    // --- 3. Rate limit ---
+    // --- 3. CSRF check (state-changing methods only) ---
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+      try {
+        requireCsrf(event, event.locals.session?.csrfToken ?? null);
+      } catch (e) {
+        const apiErr = extractApiError(e);
+        if (apiErr) {
+          await safeAudit(event, opts, user, apiErr, input);
+          return jsonError(apiErr);
+        }
+        throw e;
+      }
+    }
+
+    // --- 4. Rate limit ---
     if (opts.rateLimit) {
       const ip = clientIp(event);
       const route = event.url.pathname;
@@ -151,7 +166,7 @@ export function defineRoute<TIn, TOut>(
       }
     }
 
-    // --- 4. Handler ---
+    // --- 5. Handler ---
     try {
       const data = await opts.handler({ user, input, event });
       await safeAudit(event, opts, user, null, input, data);

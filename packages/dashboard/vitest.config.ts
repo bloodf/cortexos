@@ -46,7 +46,13 @@ export default defineConfig({
 				'vitest.config.ts',
 				'vitest.setup.ts',
 				'playwright.config.ts'
-			]
+			],
+			thresholds: {
+				lines: 95,
+				functions: 95,
+				branches: 95,
+				statements: 95
+			}
 		}
 	}
 });

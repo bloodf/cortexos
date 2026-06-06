@@ -88,6 +88,7 @@
 			onToggleSidebar={() => (collapsed = !collapsed)}
 			onOpenMobileNav={() => (mobileOpen = true)}
 		/>
+		<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 		<main
 			id="main-content"
 			tabindex={-1}

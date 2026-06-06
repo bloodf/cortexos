@@ -16,6 +16,9 @@
 24-cadvisor · container metrics
 25-node-exporter · host metrics
 28-db-exporters · postgres/redis/mongo/mysql metrics
+30-hermes-webui · agent operator UI
+30b-fzf · fuzzy finder
+30c-boxbox · file manager
 31-9router · OpenAI-compatible model router                 # AI gateway
 32-honcho · memory + knowledge backend
 33-hermes-memory-os · long-term memory (Qdrant + ARQ worker)

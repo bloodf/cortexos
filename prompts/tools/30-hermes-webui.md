@@ -11,8 +11,7 @@ Background and feasibility evidence: `docs/research/hermes-webui-feasibility.md`
 - `10-os-hardening.md` completed.
 - `11-docker.md` completed (Docker is the recommended install path — see "Install surface" below).
 - `13-caddy.md` completed (Caddy reverse-proxy will route `/hermes/*` to the upstream).
-- `12-tailscale-serve.md` completed if you plan to expose the UI to the tailnet.
-- The Hermes agent runtime (`prompts/tools/40-hermes.md`) installed and reachable on `http://127.0.0.1:8932` per profile — Hermes Web UI is the operator surface on top of the agent runtime, not a replacement for it.
+- The Hermes agent runtime installed and reachable on `http://127.0.0.1:8932` per profile — Hermes Web UI is the operator surface on top of the agent runtime, not a replacement for it.
 
 ## Install surface
 
@@ -25,7 +24,9 @@ This prompt covers the **Docker path**. If you need bare-metal for a one-off rea
 ```bash
 source scripts/pkg.sh
 echo "OS family: $(pkg_family) $(pkg_version)"
-: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+if [ "$(pkg_family)" = "unknown" ]; then
+    echo "WARNING: OS family not detected. Run prompts/os/00-os-selection.md first."
+fi
 ```
 
 ## Sudo gate
@@ -101,6 +102,14 @@ docker pull ghcr.io/nesquena/hermes-webui:v0.51.280
 ```
 
 Pin to a release tag — the upstream release cadence is 5+ releases per day on `master`. The `:vX.Y.Z` pin matches the upstream's Dockerfile `ARG HERMES_VERSION` default.
+
+> **Tag fragility note:** High-churn tags may be garbage-collected upstream. For production stability, consider pinning to a digest after the first successful pull:
+> ```bash
+> docker pull ghcr.io/nesquena/hermes-webui:v0.51.280
+> DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' ghcr.io/nesquena/hermes-webui:v0.51.280)
+> echo "Pinned digest: $DIGEST"
+> # Update docker-compose.yml to use the digest instead of the tag
+> ```
 
 ### 2. Write the secrets file
 

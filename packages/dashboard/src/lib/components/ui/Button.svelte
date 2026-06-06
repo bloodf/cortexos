@@ -50,6 +50,7 @@
 		ariaControls?: string;
 		ariaExpanded?: boolean;
 		ariaPressed?: boolean;
+		href?: string;
 		onclick?: (e: MouseEvent) => void;
 		children?: Snippet;
 	}
@@ -65,6 +66,7 @@
 		ariaControls,
 		ariaExpanded,
 		ariaPressed,
+		href,
 		onclick,
 		children
 	}: Props = $props();

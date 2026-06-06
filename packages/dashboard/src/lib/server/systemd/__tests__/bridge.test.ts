@@ -21,6 +21,7 @@ import {
   makeFakeUser,
 } from '../../test-utils';
 import { actionHashFor } from '../../approval';
+import { asSessionId } from '../../entities';
 
 beforeEach(() => {
   _resetSystemdBridgeForTests();
@@ -84,9 +85,9 @@ describe('systemd bridge — listUnits / getUnit / listLogs', () => {
     const mock = _getMockExecutorForTests();
     // Snapshot before so we can compute the delta our 3 appends add.
     const before = (await listLogs('caddy.service', 100)).length;
-    mock.pushLog('caddy.service', { ts: '2024-01-01T00:00:00Z', priority: 'info', message: 'a' });
-    mock.pushLog('caddy.service', { ts: '2024-01-01T00:00:01Z', priority: 'info', message: 'b' });
-    mock.pushLog('caddy.service', { ts: '2024-01-01T00:00:02Z', priority: 'info', message: 'c' });
+    mock.pushLog('caddy.service', { ts: '2024-01-01T00:00:00Z', priority: 'info', message: 'a', unit: 'caddy.service' });
+    mock.pushLog('caddy.service', { ts: '2024-01-01T00:00:01Z', priority: 'info', message: 'b', unit: 'caddy.service' });
+    mock.pushLog('caddy.service', { ts: '2024-01-01T00:00:02Z', priority: 'info', message: 'c', unit: 'caddy.service' });
     const all = await listLogs('caddy.service', 100);
     expect(all.length).toBe(before + 3);
     expect(all.slice(-3).map((l) => l.message)).toEqual(['a', 'b', 'c']);
@@ -181,9 +182,10 @@ describe('systemd bridge — dispatchAction rejection paths', () => {
     // does not match the (systemd.restart, caddy.service) hash.
     const { mintApproval } = await import('../../approval');
     const wrongToken = mintApproval({
-      username: user.username,
-      sessionId: 'sess-test',
-      actionHash: actionHashFor('systemd.start', { name: 'caddy.service' }),
+      userId: user.username,
+      sessionId: asSessionId('sess-test'),
+      action: 'systemd.start',
+      payload: { name: 'caddy.service' },
     });
     const res = await dispatchAction(
       { action: 'restart', name: 'caddy.service' },

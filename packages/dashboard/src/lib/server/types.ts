@@ -24,7 +24,7 @@
 import type { User, Session } from './entities';
 
 /** What we store on `event.locals` after a request has been authenticated. */
-export interface AppLocals {
+export interface AppLocals extends Record<string, unknown> {
   /** Present only if a valid session was found. */
   user?: User;
   /** Present only if a valid session was found. */

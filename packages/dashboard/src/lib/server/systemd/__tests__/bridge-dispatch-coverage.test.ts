@@ -14,10 +14,10 @@
  *   - getUnitFromSystemctl returns null when only Names= is present
  *     (line 529 — the "unit doesn't exist" early-return).
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi, type MockedFunction } from 'vitest';
 import type { User } from '../../entities';
 
-let execFileMock: ReturnType<typeof vi.fn>;
+let execFileMock: MockedFunction<(...args: unknown[]) => unknown>;
 
 vi.mock('node:child_process', async () => {
   const actual = await vi.importActual<typeof import('node:child_process')>('node:child_process');
@@ -65,8 +65,9 @@ const baseUser: User = {
   id: 1 as never,
   username: 'testadmin',
   isAdmin: true,
-  groupMemberships: [{ name: 'cortexos-admins', isAdmin: true, description: 'admin' }],
-  ipAllow: null,
+  is_admin: true,
+  isActive: true,
+  groupMemberships: [{ name: 'cortexos-admin', isAdmin: true, description: 'admin' }],
 };
 
 const baseCtx = {
@@ -127,8 +128,8 @@ describe('systemd bridge — dispatchAction edge paths + real executor body', ()
         ctx.unit.name,
         '--property=ActiveState,SubState,LoadState,UnitFileState,Type,FragmentPath,Description',
       ];
-      const actionResult = await execFileMock('/usr/bin/systemctl', actionArgs, {});
-      const showResult = await execFileMock('/usr/bin/systemctl', showArgs, {});
+      const actionResult = await execFileMock('/usr/bin/systemctl', actionArgs, {}) as { stdout: string; stderr: string };
+      const showResult = await execFileMock('/usr/bin/systemctl', showArgs, {}) as { stdout: string; stderr: string };
       // Use the bridge's parseSystemctlShow indirectly by reading
       // showResult.stdout; we re-implement the parse here so the
       // coverage tracks the executor's contract.
@@ -160,8 +161,9 @@ describe('systemd bridge — dispatchAction edge paths + real executor body', ()
     // executor: (1) getUnitFromSystemctl for the unit, (2) the action
     // `systemctl start caddy.service`, (3) the post-action `show`.
     // Match by argv shape.
-    execFileMock.mockImplementation((file: string, args: string[]) => {
-      if (args[0] === 'show') {
+    execFileMock.mockImplementation((...args: unknown[]) => {
+      const a = args[1] as string[];
+      if (a[0] === 'show') {
         return Promise.resolve({
           stdout:
             'ActiveState=active\nSubState=running\nLoadState=loaded\nUnitFileState=enabled\nType=simple\nFragmentPath=/etc/systemd/system/caddy.service\nDescription=Caddy',
@@ -191,8 +193,8 @@ describe('systemd bridge — dispatchAction edge paths + real executor body', ()
     bridge.setExecutorForTests(async (ctx) => {
       const actionArgs = [ctx.action, ctx.unit.name];
       try {
-        const r = await execFileMock('/usr/bin/systemctl', actionArgs, {});
-        const showResult = await execFileMock('/usr/bin/systemctl', ['show', ctx.unit.name, '--property=ActiveState,SubState,LoadState,UnitFileState,Type,FragmentPath,Description'], {});
+        const r = await execFileMock('/usr/bin/systemctl', actionArgs, {}) as { stdout: string; stderr: string };
+        const showResult = await execFileMock('/usr/bin/systemctl', ['show', ctx.unit.name, '--property=ActiveState,SubState,LoadState,UnitFileState,Type,FragmentPath,Description'], {}) as { stdout: string; stderr: string };
         return {
           stdout: r.stdout ?? '',
           stderr: r.stderr ?? '',
@@ -215,8 +217,9 @@ describe('systemd bridge — dispatchAction edge paths + real executor body', ()
     // First call: getUnitFromSystemctl (the dispatch step 3 lookup).
     // Second call: the action throws.
     // Mock by argv: show → ok, action → throw.
-    execFileMock.mockImplementation((file: string, args: string[]) => {
-      if (args[0] === 'show') {
+    execFileMock.mockImplementation((...args: unknown[]) => {
+      const a = args[1] as string[];
+      if (a[0] === 'show') {
         return Promise.resolve({
           stdout:
             'ActiveState=active\nSubState=running\nLoadState=loaded\nUnitFileState=enabled\nType=simple\nFragmentPath=/etc/systemd/system/caddy.service\nDescription=Caddy',

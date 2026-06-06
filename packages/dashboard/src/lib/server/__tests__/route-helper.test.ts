@@ -216,7 +216,7 @@ describe('defineRoute', () => {
       surface: 'x',
       action: 'x',
       handler: async () => {
-        throw rateLimitError('slow down', 60);
+        throw rateLimitError(60);
       },
     });
     const { locals } = adminLocals();
@@ -233,7 +233,7 @@ describe('defineRoute', () => {
     const { apiError } = await import('../errors');
     const { authError } = await import('../errors/types');
     const handler = defineRoute({
-      methods: 'GET',
+      methods: ['GET'] as const,
       auth: 'any',
       surface: 'x',
       action: 'x',
@@ -249,7 +249,7 @@ describe('defineRoute', () => {
 
   it('reads JSON body when content-type is application/json', async () => {
     const handler = defineRoute({
-      methods: 'POST',
+      methods: ['POST'] as const,
       input: z.object({ name: z.string() }),
       auth: 'any',
       surface: 'x',
@@ -268,7 +268,7 @@ describe('defineRoute', () => {
 
   it('returns 400 for non-JSON / non-form POST without body parser match', async () => {
     const handler = defineRoute({
-      methods: 'POST',
+      methods: ['POST'] as const,
       input: z.object({ name: z.string() }),
       auth: 'any',
       surface: 'x',
@@ -291,7 +291,7 @@ describe('defineRoute', () => {
 
   it('input validation failure returns 400 with details', async () => {
     const handler = defineRoute({
-      methods: 'POST',
+      methods: ['POST'] as const,
       input: z.object({ name: z.string() }),
       auth: 'any',
       surface: 'x',

@@ -1,7 +1,7 @@
 # @cortexos/dashboard
 
-> SvelteKit 2 + Svelte 5 (runes) dashboard for CortexOS. M1 foundation.
-> Replaces the legacy Next.js 16 dashboard at `packages/dashboard/`.
+> SvelteKit 2 + Svelte 5 (runes) dashboard for CortexOS.
+> The canonical web interface for managing CortexOS services, databases, and AI infrastructure.
 
 ---
 
@@ -31,7 +31,7 @@ pnpm --filter @cortexos/dashboard test:e2e
 ```
 
 > **Port 3080** is the audit-locked production port (see
-> `packages/cortex-dashboard/docs/CURRENT_ARCHITECTURE_AUDIT.md` §6.3).
+> `packages/dashboard/docs/CURRENT_ARCHITECTURE_AUDIT.md` §6.3).
 > The dev server runs on 5173 by convention.
 
 ---
@@ -192,23 +192,23 @@ Anonymous users get a 303 to `/login?next=...`.
 
 ## Environment variables
 
-The SvelteKit dev server and adapter-node both read env at runtime
-(do not commit a `.env`). The legacy dashboard exposed
-`PORT=3080`, `HOSTNAME=0.0.0.0`, `NODE_ENV=production`,
-`DASHBOARD_ORIGIN`, `DB_*`, `CORTEX_MASTER_KEY`,
-`CORTEX_CONFIRMATION_HMAC_SECRET`, `NINEROUTER_*` — all of these
-will be re-introduced as M1-WS4-backend-skeleton + M1-WS5-mock-api
-land.
+The SvelteKit dev server and adapter-node both read env at runtime.
+Copy `.env.example` to `.env` and fill in values for local development.
 
-For M1, no env is required to run `pnpm dev` / `pnpm build` /
-`pnpm preview`.
+Required for production:
+- `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
+
+Optional:
+- `CORTEX_AUTH_PAM_SERVICE` — PAM service name (default: `cortexos-dashboard`)
+- `CORTEX_AUTH_FAKE_PAM` — set to `1` to bypass PAM (dev only, never in production)
+- `CORTEX_DOCKER_BRIDGE_REAL` / `CORTEX_SYSTEMD_BRIDGE_REAL` — bridge mode toggles
 
 ---
 
 ## Pointers to upstream docs
 
-- Architecture audit: `packages/cortex-dashboard/docs/CURRENT_ARCHITECTURE_AUDIT.md`
-- Tech stack (locked): `packages/cortex-dashboard/docs/TECH_STACK.md`
+- Architecture audit: `packages/dashboard/docs/CURRENT_ARCHITECTURE_AUDIT.md`
+- Tech stack (locked): `packages/dashboard/docs/TECH_STACK.md`
 - React→Svelte migration map: `packages/dashboard/docs/REACT_TO_SVELTE_MIGRATION_MAP.md`
 
 ---

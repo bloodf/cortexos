@@ -74,6 +74,9 @@ hermes/
 .pi/
 .pi-lens/
 
+# Agentic
+.agentic/
+
 # Augment
 .augment/
 
@@ -190,7 +193,6 @@ backups/
 /scripts/
 /e2e/
 /public/
-.omc/
 .cache/
 *.log
 *.tgz
@@ -203,8 +205,3 @@ tmp/
 .gpt/
 .deepseek/
 .grok/
-.agentic/*
-!.agentic/config.json
-!.agentic/findings.md
-!.agentic/session-log/
-!.agentic/session-log/**

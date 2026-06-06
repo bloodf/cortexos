@@ -1,11 +1,15 @@
 # CortexOS Rebuild Plan V2
 
+> **Historical record.** This document records a completed host rebuild from
+> 2026-05-28. The current install flow is the chat-driven prompts under
+> `prompts/tools/` — start with `00-preflight.md` and follow `_order.md`.
+
 Status: phase 9 final validation complete — rebuild done (phases 0–9 all validated live)
 Last updated: 2026-05-28
 
 ## Operating Rule
 
-This file is the canonical rebuild plan for CortexOS. Every execution phase must
+This file is the historical rebuild plan for CortexOS. Every execution phase must
 update this file with current decisions, status, validation evidence, risks, and
 next actions before moving to the next phase.
 

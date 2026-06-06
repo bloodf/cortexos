@@ -1,4 +1,4 @@
--- Migration 003: session GC index + pam_users username index.
+-- Migration 004: session GC index + pam_users username index.
 --
 -- A1 (persistent sessions, commit a22302c) made the DrizzleSessionStore
 -- the default in production. The session store reads by `token` (already

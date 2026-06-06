@@ -16,7 +16,7 @@
  * auth-m2.test.ts. The macOS-only behavior of the binding is not
  * reproducible in a unit test.
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi, type MockedFunction } from 'vitest';
 import {
   LinuxPamAuthenticator,
   getPamAuthenticator,
@@ -25,7 +25,7 @@ import {
   type GroupName,
 } from '../pam';
 
-let idMock: ReturnType<typeof vi.fn>;
+let idMock: MockedFunction<(...args: unknown[]) => unknown>;
 
 vi.mock('node:child_process', async () => {
   const actual = await vi.importActual<typeof import('node:child_process')>('node:child_process');

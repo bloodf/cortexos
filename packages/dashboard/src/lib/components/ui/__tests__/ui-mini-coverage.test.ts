@@ -193,7 +193,7 @@ describe('AccordionTrigger', () => {
           _open = v;
         },
         onopen,
-        children: () => null,
+        children: (() => null) as unknown as import('svelte').Snippet,
       },
     });
     const btn = target.querySelector('button')! as HTMLButtonElement;
@@ -233,7 +233,7 @@ describe('Collapsible', () => {
     const target = document.body.appendChild(document.createElement('div'));
     const instance = mount(Collapsible, {
       target,
-      props: { open: false, onopenChange, children: () => null },
+      props: { open: false, onopenChange, children: (() => null) as unknown as import('svelte').Snippet },
     });
     const state = (
       instance as unknown as {

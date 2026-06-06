@@ -16,7 +16,9 @@ Source distro dispatcher and confirm OS family was selected in `prompts/os/00-os
 ```bash
 source scripts/pkg.sh
 echo "OS family: $(pkg_family) $(pkg_version)"
-: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+if [ "$(pkg_family)" = "unknown" ]; then
+    echo "WARNING: OS family not detected. Run prompts/os/00-os-selection.md first."
+fi
 ```
 
 ## Sudo gate

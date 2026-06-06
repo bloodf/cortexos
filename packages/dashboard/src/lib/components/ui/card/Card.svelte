@@ -11,16 +11,16 @@
 
 <script lang="ts">
   import type { Snippet } from 'svelte';
+  import type { HTMLAttributes } from 'svelte/elements';
   import { tv } from '$lib/utils/tv';
   import { cn } from '$lib/utils/cn';
 
   type CardSize = 'default' | 'sm';
-  type CardProps = {
+  type CardProps = HTMLAttributes<HTMLDivElement> & {
     size?: CardSize;
-    class?: string;
     children?: Snippet;
   };
-  let { size = 'default', class: className, children }: CardProps = $props();
+  let { size = 'default', class: className, children, ...rest }: CardProps = $props();
 
   const card = tv({
     base: 'group/card flex flex-col gap-4 overflow-hidden rounded-xl bg-card text-sm text-card-foreground ring-1 ring-foreground/10 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl',
@@ -35,6 +35,6 @@
   const classes = $derived(card({ size, class: className as string | undefined }));
 </script>
 
-<div data-slot="card" data-size={size} class={cn(classes)}>
+<div data-slot="card" data-size={size} class={cn(classes)} {...rest}>
   {#if children}{@render children()}{/if}
 </div>

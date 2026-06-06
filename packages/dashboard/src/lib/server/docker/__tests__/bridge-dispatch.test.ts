@@ -78,8 +78,8 @@ describe('docker bridge — dispatch rejection paths', () => {
 
   it('destructive op (docker.stop) with bogus token returns a rejection', async () => {
     const res = await dispatch(
-      { op: 'docker.stop', args: { container: 'test-nginx' } },
-      { ...baseCtx, approvalToken: 'not-a-real-token' },
+      { op: 'docker.stop', args: { container: 'test-nginx' }, approvalToken: 'not-a-real-token' },
+      baseCtx,
     );
     expect(res.status).toBe('rejected');
   });

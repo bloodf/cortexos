@@ -42,7 +42,7 @@ describe('/systemd/[name] — load', () => {
     try {
       await load({
         params: {},
-        locals: makeFakeLocals(adminUser),
+        locals: makeFakeLocals(adminUser, null),
       } as never);
       expect.fail('expected throw');
     } catch (e) {
@@ -54,7 +54,7 @@ describe('/systemd/[name] — load', () => {
     try {
       await load({
         params: { name: 'does-not-exist.service' },
-        locals: makeFakeLocals(adminUser),
+        locals: makeFakeLocals(adminUser, null),
       } as never);
       expect.fail('expected throw');
     } catch (e) {
@@ -65,7 +65,7 @@ describe('/systemd/[name] — load', () => {
   it('returns unit + logs for a real unit', async () => {
     const out = (await load({
       params: { name: 'caddy.service' },
-      locals: makeFakeLocals(adminUser),
+      locals: makeFakeLocals(adminUser, null),
     } as never)) as { unit: { name: string }; logs: unknown[]; isAdmin: boolean };
     expect(out.unit.name).toBe('caddy.service');
     expect(Array.isArray(out.logs)).toBe(true);
@@ -75,7 +75,7 @@ describe('/systemd/[name] — load', () => {
   it('returns isAdmin=false for a non-admin user', async () => {
     const out = (await load({
       params: { name: 'caddy.service' },
-      locals: makeFakeLocals(nonAdminUser),
+      locals: makeFakeLocals(nonAdminUser, null),
     } as never)) as { isAdmin: boolean };
     expect(out.isAdmin).toBe(false);
   });
@@ -117,9 +117,9 @@ describe('/systemd/[name] — actions.default', () => {
     const event = postEventWithForm(
       { action: 'reboot', name: 'caddy.service' },
       { name: 'caddy.service' },
-      makeFakeLocals(adminUser),
+      makeFakeLocals(adminUser, null),
     );
-    const out = (await actions.default(event as never)) as { status?: number; data?: { error: string } };
+    const out = (await actions.default!(event as never)) as { status?: number; data?: { error: string } };
     expect(out.status).toBe(400);
     expect(out.data?.error).toMatch(/Unknown action/);
   });
@@ -128,9 +128,9 @@ describe('/systemd/[name] — actions.default', () => {
     const event = postEventWithForm(
       { action: 'start' },
       {},
-      makeFakeLocals(adminUser),
+      makeFakeLocals(adminUser, null),
     );
-    const out = (await actions.default(event as never)) as { status?: number; data?: { error: string } };
+    const out = (await actions.default!(event as never)) as { status?: number; data?: { error: string } };
     expect(out.status).toBe(400);
     expect(out.data?.error).toMatch(/Missing unit name/);
   });
@@ -141,7 +141,7 @@ describe('/systemd/[name] — actions.default', () => {
       { name: 'caddy.service' },
       {},
     );
-    const out = (await actions.default(event as never)) as { status?: number; data?: { error: string } };
+    const out = (await actions.default!(event as never)) as { status?: number; data?: { error: string } };
     expect(out.status).toBe(401);
   });
 
@@ -154,18 +154,18 @@ describe('/systemd/[name] — actions.default', () => {
       { name: 'caddy.service' },
       makeFakeLocals(nonAdminUser, session),
     );
-    const out = (await actions.default(event as never)) as { status?: number; data?: { error: string } };
+    const out = (await actions.default!(event as never)) as { status?: number; data?: { error: string } };
     expect(out.status).toBe(403);
   });
 
   it('returns fail(401) when session has no id', async () => {
-    const brokenSession = { ...makeFakeSession(adminUser), id: undefined as unknown as string };
+    const brokenSession = { ...makeFakeSession(adminUser), id: undefined as unknown as string } as Parameters<typeof makeFakeLocals>[1];
     const event = postEventWithForm(
       { action: 'start', name: 'caddy.service' },
       { name: 'caddy.service' },
       makeFakeLocals(adminUser, brokenSession),
     );
-    const out = (await actions.default(event as never)) as { status?: number; data?: { error: string } };
+    const out = (await actions.default!(event as never)) as { status?: number; data?: { error: string } };
     expect(out.status).toBe(401);
   });
 
@@ -175,7 +175,7 @@ describe('/systemd/[name] — actions.default', () => {
       { name: 'caddy.service' },
       makeFakeLocals(adminUser, makeFakeSession(adminUser)),
     );
-    const out = (await actions.default(event as never)) as { ok?: boolean; action?: string };
+    const out = (await actions.default!(event as never)) as { ok?: boolean; action?: string };
     expect(out.ok).toBe(true);
     expect(out.action).toBe('start');
   });
@@ -186,7 +186,7 @@ describe('/systemd/[name] — actions.default', () => {
       { name: 'caddy.service' },
       makeFakeLocals(adminUser, makeFakeSession(adminUser)),
     );
-    const out = (await actions.default(event as never)) as { status?: number; data?: { approvalRequired?: boolean; actionHash?: string; ttlSec?: number; action?: string } };
+    const out = (await actions.default!(event as never)) as { status?: number; data?: { approvalRequired?: boolean; actionHash?: string; ttlSec?: number; action?: string } };
     expect(out.status).toBe(403);
     expect(out.data?.approvalRequired).toBe(true);
     expect(out.data?.actionHash).toBeTruthy();
@@ -200,7 +200,7 @@ describe('/systemd/[name] — actions.default', () => {
       { name: '../etc/passwd' },
       makeFakeLocals(adminUser, makeFakeSession(adminUser)),
     );
-    const out = (await actions.default(event as never)) as { status?: number; data?: { code?: string; action?: string } };
+    const out = (await actions.default!(event as never)) as { status?: number; data?: { code?: string; action?: string } };
     expect(out.status).toBe(400);
     expect(out.data?.code).toBeTruthy();
   });

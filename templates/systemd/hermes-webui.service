@@ -22,11 +22,13 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 RemainAfterExit=yes
+User=hermes-webui
+Group=hermes-webui
 WorkingDirectory={CORTEX_ROOT}/hermes-webui
 EnvironmentFile={CORTEX_SECRETS_DIR}/hermes-webui.env
 ExecStart=/usr/bin/docker compose up -d --remove-orphans --wait
 ExecStop=/usr/bin/docker compose down
-ExecReload=/usr/bin/docker compose pull && /usr/bin/docker compose up -d --remove-orphans
+ExecReload=/bin/sh -c '/usr/bin/docker compose pull && /usr/bin/docker compose up -d --remove-orphans'
 TimeoutStartSec=120
 
 [Install]

@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "TypeScript adapter library for integrating CortexOS agents with Paperclip's HTTP webhook and external-adapter contracts.",
   "license": "MIT",
+  "private": true,
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",

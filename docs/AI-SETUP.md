@@ -1,6 +1,18 @@
 # AI Setup Guide
 
 > **Configure AI models and tools on CortexOS.**
+>
+> After installing CortexOS, follow this guide to connect your AI providers.
+
+---
+
+## Quick Links
+
+- **Tool catalog:** [`TOOLS.md`](TOOLS.md) — see all AI tools included
+- **How the installer works:** [`ARCHITECT.md`](ARCHITECT.md)
+- **Managing API keys securely:** [`SECRETS.md`](SECRETS.md)
+
+---
 
 ---
 

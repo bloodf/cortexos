@@ -41,8 +41,9 @@ RAW_LEAKS=$(
     -e "$LEAK_REGEX" "$SRC_DIR" 2>/dev/null || true
 )
 
-# Filter out allowlist paths.
-FILTERED=$(printf '%s\n' "$RAW_LEAKS" | grep -vE "$ALLOWLIST_REGEX" || true)
+# Filter out allowlist paths. Grep emits absolute paths, so strip the src
+# prefix before matching the allowlist.
+FILTERED=$(printf '%s\n' "$RAW_LEAKS" | sed "s|^$SRC_DIR/||" | grep -vE "$ALLOWLIST_REGEX" || true)
 
 if [ -z "$FILTERED" ]; then
   echo "check-mock-leaks: OK (no leaks)"

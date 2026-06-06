@@ -9,7 +9,7 @@
 
 ## 0. Scope & Goals
 
-This document is the **implementable** test strategy for the SvelteKit + TypeScript rewrite of `packages/cortex-dashboard/`. The reference template (`sys-pilot`, vendored at `packages/dashboard/src/{app,components,lib}/sys-pilot/`) is a hint, not gospel — we **port what's good, replace what isn't**.
+This document is the **implementable** test strategy for the SvelteKit + TypeScript dashboard at `packages/dashboard/`. The reference template (`sys-pilot`, vendored at `packages/dashboard/src/{app,components,lib}/sys-pilot/`) is a hint, not gospel — we **port what's good, replace what isn't**.
 
 **Non-negotiable goals (the M2 acceptance contract):**
 
@@ -407,17 +407,17 @@ These are the **actual** gates, in order, with the command and the blocking cond
 
 | # | Gate | Command | Blocking condition |
 |---|---|---|---|
-| 1 | **Typecheck** | `pnpm exec tsc --noEmit -p packages/cortex-dashboard` | Any TS error. Zero `// @ts-expect-error` outside `__tests__/`. |
-| 2 | **Lint (ESLint, Airbnb config)** | `pnpm --filter @cortexos/cortex-dashboard run lint` | Any error. Warnings allowed but reported in the PR. |
-| 3 | **Prettier check** | `pnpm exec prettier --check 'packages/cortex-dashboard/src/**/*.{ts,svelte,css,md,json}'` | Any file differs from `prettier --write` output. |
-| 4 | **Markdown lint** | `pnpm exec markdownlint-cli2 'packages/cortex-dashboard/**/*.md'` | Any error. |
-| 5 | **Unit + integration tests** | `pnpm --filter @cortexos/cortex-dashboard run test` | Any failed test. |
-| 6 | **Coverage gate** | `pnpm --filter @cortexos/cortex-dashboard run test:coverage` | Any of lines/branches/functions/statements < 95% OR coverage decreased vs. `main`. |
-| 7 | **A11y smoke** | `pnpm --filter @cortexos/cortex-dashboard run test:a11y` | Any `serious` or `critical` axe violation on any page. |
-| 8 | **E2E (Chromium)** | `pnpm --filter @cortexos/cortex-dashboard run test:e2e --project=chromium` | Any failed test. The full matrix (chromium+firefox+webkit) runs in the `e2e-full` job. |
-| 9 | **E2E full matrix** (nightly + on `main` push) | `pnpm --filter @cortexos/cortex-dashboard run test:e2e` | Any failed test across all 3 projects. |
-| 10 | **Contract tests** | `pnpm --filter @cortexos/cortex-dashboard run test:contract` | Any contract schema mismatch between client mock and server route. |
-| 11 | **Build (production)** | `pnpm --filter @cortexos/cortex-dashboard run build` | Build fails OR Vite emits a chunk > 250 KB gzipped without a justification comment in `vite.config.ts`. |
+| 1 | **Typecheck** | `pnpm exec tsc --noEmit -p packages/dashboard` | Any TS error. Zero `// @ts-expect-error` outside `__tests__/`. |
+| 2 | **Lint (ESLint, Airbnb config)** | `pnpm --filter @cortexos/dashboard run lint` | Any error. Warnings allowed but reported in the PR. |
+| 3 | **Prettier check** | `pnpm exec prettier --check 'packages/dashboard/src/**/*.{ts,svelte,css,md,json}'` | Any file differs from `prettier --write` output. |
+| 4 | **Markdown lint** | `pnpm exec markdownlint-cli2 'packages/dashboard/**/*.md'` | Any error. |
+| 5 | **Unit + integration tests** | `pnpm --filter @cortexos/dashboard run test` | Any failed test. |
+| 6 | **Coverage gate** | `pnpm --filter @cortexos/dashboard run test:coverage` | Any of lines/branches/functions/statements < 95% OR coverage decreased vs. `main`. |
+| 7 | **A11y smoke** | `pnpm --filter @cortexos/dashboard run test:a11y` | Any `serious` or `critical` axe violation on any page. |
+| 8 | **E2E (Chromium)** | `pnpm --filter @cortexos/dashboard run test:e2e --project=chromium` | Any failed test. The full matrix (chromium+firefox+webkit) runs in the `e2e-full` job. |
+| 9 | **E2E full matrix** (nightly + on `main` push) | `pnpm --filter @cortexos/dashboard run test:e2e` | Any failed test across all 3 projects. |
+| 10 | **Contract tests** | `pnpm --filter @cortexos/dashboard run test:contract` | Any contract schema mismatch between client mock and server route. |
+| 11 | **Build (production)** | `pnpm --filter @cortexos/dashboard run build` | Build fails OR Vite emits a chunk > 250 KB gzipped without a justification comment in `vite.config.ts`. |
 | 12 | **Security scan (CodeQL + gitleaks)** | `pnpm exec codeql database analyze` (GH Action) and `gitleaks detect --no-git` | Any `high` or `critical` finding. |
 | 13 | **Dependency audit** | `pnpm audit --prod --audit-level=high` | Any `high` or `critical` CVE without a `// renovate: ignore` reason. |
 | 14 | **SBOM generation** | `pnpm exec @cyclonedx/cyclonedx-npm --output-format JSON` (informational; not blocking) | — |
@@ -533,7 +533,7 @@ Tests (`*.test.ts`) may use these directly — the rule is scoped to `src/**` (n
 
 ### 8.1 What the contract is
 
-A **contract** is the wire shape between a client call and a server response. It's expressed as a Zod schema in `packages/cortex-dashboard/src/lib/contracts/schemas.ts` and shared between:
+A **contract** is the wire shape between a client call and a server response. It's expressed as a Zod schema in `packages/contracts/src/schemas/index.ts` and shared between:
 
 1. The MSW browser mock handlers (they construct valid responses from the schema)
 2. The SvelteKit `+server.ts` routes (they return `Response` whose body passes the schema)
@@ -634,7 +634,7 @@ This is enforced three ways:
    # pseudocode — runs in the "lint" job
    new_pages=$(git diff --name-only origin/main -- 'src/routes/**/+page.svelte')
    for page in $new_pages; do
-     grep -q "$(basename $(dirname $page))" packages/cortex-dashboard/docs/E2E_COVERAGE_MATRIX.md \
+     grep -q "$(basename $(dirname $page))" packages/dashboard/docs/E2E_COVERAGE_MATRIX.md \
        || { echo "Missing E2E row for $page"; exit 1; }
    done
    ```

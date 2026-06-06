@@ -119,8 +119,9 @@ the parallel team plan model and deterministic verify_prompts.
 
 The dashboard is a **complete rewrite** of the v0.2-era Next.js
 implementation onto SvelteKit 2.62 + Svelte 5 + TypeScript + Tailwind 4
-+ Vitest + Playwright. The legacy implementation is preserved at
-`packages/cortex-dashboard/` (untracked) for reference.
++ Vitest + Playwright. The legacy `packages/cortex-dashboard/` directory
+has been removed; the SvelteKit implementation is the canonical dashboard
+at `packages/dashboard/`.
 
 ### Features shipped
 
@@ -216,9 +217,8 @@ implementation onto SvelteKit 2.62 + Svelte 5 + TypeScript + Tailwind 4
 
 ## Migration notes (for operators upgrading from 0.2.x)
 
-The 0.2-era Next.js dashboard is at `packages/cortex-dashboard/`
-(untracked, not deployed). Operators upgrading from a 0.2 install
-should:
+The 0.2-era Next.js dashboard was previously at `packages/cortex-dashboard/`
+(removed). Operators upgrading from a 0.2 install should:
 
 1. Pull main.
 2. `cd packages/dashboard && pnpm install --no-frozen-lockfile`.

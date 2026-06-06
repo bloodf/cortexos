@@ -2,7 +2,7 @@
 //
 // Boring tech, one source of truth, no snowflakes.
 //
-// Stack (locked in `packages/cortex-dashboard/docs/TECH_STACK.md` §1):
+// Stack (locked in `packages/dashboard/docs/TECH_STACK.md` §1):
 //   - ESLint 9.39.4
 //   - eslint-config-airbnb-extended 3.1.0  (NOT the stale canonical airbnb)
 //   - typescript-eslint 8.60.1

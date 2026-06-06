@@ -29,6 +29,7 @@
 
 import type { AppLocals, RequestEvent } from './types';
 import type { Session, User } from './entities';
+import { asSessionId } from './entities';
 import type { CookieJar } from './auth/cookies';
 
 export interface FakeEventOptions {
@@ -43,6 +44,8 @@ export interface FakeEventOptions {
   ip?: string;
   userAgent?: string;
   headers?: Record<string, string>;
+  /** Override the generated Request (rarely needed). */
+  request?: Request;
 }
 
 export function makeFakeEvent(opts: FakeEventOptions = {}): RequestEvent {
@@ -53,8 +56,6 @@ export function makeFakeEvent(opts: FakeEventOptions = {}): RequestEvent {
   const ip = opts.ip ?? '127.0.0.1';
   const ua = opts.userAgent ?? 'test-ua/1.0';
 
-  const cookieAdapter = makeFakeCookieJar(cookies);
-
   const headers = new Headers(opts.headers ?? {});
   if (!headers.has('user-agent')) headers.set('user-agent', ua);
   if (method !== 'GET' && method !== 'DELETE' && opts.body !== undefined) {
@@ -64,6 +65,17 @@ export function makeFakeEvent(opts: FakeEventOptions = {}): RequestEvent {
       headers.set('content-type', 'application/json');
     }
   }
+
+  // Auto-wire CSRF double-submit for tests that provide a session.
+  // This keeps business-logic tests passing without every test needing
+  // to manually set the header + cookie.
+  const sessionCsrf = (opts.locals as { session?: { csrfToken?: string } } | undefined)?.session?.csrfToken;
+  if (sessionCsrf && !headers.has('x-csrf-token')) {
+    headers.set('x-csrf-token', sessionCsrf);
+    cookies['cortexos_csrf'] = sessionCsrf;
+  }
+
+  const cookieAdapter = makeFakeCookieJar(cookies);
 
   const requestBody =
     method === 'GET' || method === 'DELETE'
@@ -180,7 +192,7 @@ export function makeFakeUser(overrides: Partial<User> = {}): User {
 export function makeFakeSession(user: User, overrides: Partial<Session> = {}): Session {
   const now = Date.now();
   return {
-    id: ('sess_' + Math.random().toString(36).slice(2, 10)) as Session['id'],
+    id: asSessionId('sess_' + Math.random().toString(36).slice(2, 10)),
     userId: user.id,
     csrfToken: 'csrf-' + Math.random().toString(36).slice(2, 10),
     expiresAt: overrides.expiresAt ?? now + 24 * 60 * 60 * 1000,

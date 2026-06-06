@@ -109,6 +109,9 @@ export interface Service {
   showInHealthcheck: boolean;
   showInWebui: boolean;
   sortOrder: number;
+  iconType?: 'auto' | 'lucide' | 'image' | 'mono' | string;
+  iconColor?: string | null;
+  iconImage?: string | null;
   createdAt: string;
   updatedAt: string;
 }

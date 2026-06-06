@@ -4,9 +4,9 @@
  * bridge. Targets the pure helpers + dispatch rejection paths
  * that the existing bridge-dispatch.test.ts does not exercise.
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi, type MockedFunction } from 'vitest';
 
-let execFileMock: ReturnType<typeof vi.fn>;
+let execFileMock: MockedFunction<(...args: unknown[]) => unknown>;
 
 vi.mock('node:child_process', async () => {
   const actual = await vi.importActual<typeof import('node:child_process')>('node:child_process');

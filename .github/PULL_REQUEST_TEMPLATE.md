@@ -55,7 +55,7 @@ merge.
 ## E2E coverage
 
 > **The PR rule (TEST_STRATEGY §10.2):** A PR that adds a page or an action
-> MUST add a row to `packages/cortex-dashboard/docs/E2E_COVERAGE_MATRIX.md`
+> MUST add a row to `packages/dashboard/docs/E2E_COVERAGE_MATRIX.md`
 > and the corresponding Playwright spec before it can merge.
 
 - [ ] No new pages / actions — N/A

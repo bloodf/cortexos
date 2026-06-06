@@ -79,18 +79,19 @@ export function requireCsrf(
   jar?: CookieJar,
 ): void {
   if (csrfIsSafeMethod(event.request.method)) return;
+
+  const headerToken = csrfHeadersFromRequest(event.request);
+  const cookieValue = (jar ? getCsrfCookie(jar) : getCsrfCookie(event.cookies as CookieJar)) ?? '';
+
   if (!expected) {
     // No session-bound CSRF token — either unauthenticated or the
     // session is missing the field. Treat as 403; the route's own
     // auth gate will produce the 401.
     throwCsrfError(event, 'missing_session_csrf');
   }
-  const headerToken = csrfHeadersFromRequest(event.request);
   if (!headerToken) {
     throwCsrfError(event, 'missing_header');
   }
-  // Use the supplied jar, fall back to the event's cookies.
-  const cookieValue = (jar ? getCsrfCookie(jar) : getCsrfCookie(event.cookies as CookieJar)) ?? '';
   if (!cookieValue) {
     throwCsrfError(event, 'missing_cookie');
   }

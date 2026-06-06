@@ -2,7 +2,7 @@
 # CortexOS Incus Project Creator
 # Creates a new Incus instance with full AI agent setup
 
-set -e
+set -euo pipefail
 
 # Colors
 RED='\033[0;31m'
@@ -57,7 +57,8 @@ BASE_IMAGE="${BASE_IMAGE:-cortexos-base:latest}"
 # GitHub setup
 read -p "GitHub repo (owner/repo, leave empty to skip): " GITHUB_REPO
 if [ -n "$GITHUB_REPO" ]; then
-    read -p "GitHub token (for private repos): " GITHUB_TOKEN
+    read -rsp "GitHub token (for private repos): " GITHUB_TOKEN
+    echo
 fi
 
 # Hermes setup
@@ -123,7 +124,11 @@ sudo incus exec "$PROJECT_NAME" -- chmod 600 /home/cortexos/.ssh/* 2>/dev/null |
 
 # Step 3: Install Tailscale
 log "[3/8] Installing Tailscale..."
-sudo incus exec "$PROJECT_NAME" -- curl -fsSL https://tailscale.com/install.sh | sh
+# Download Tailscale installer to a temp file, then run it (don't pipe curl to sh)
+TMP_INSTALLER="$(mktemp)"
+curl -fsSL https://tailscale.com/install.sh -o "$TMP_INSTALLER"
+sh "$TMP_INSTALLER"
+rm -f "$TMP_INSTALLER"
 sudo incus exec "$PROJECT_NAME" -- systemctl enable --now tailscaled
 sleep 2
 sudo incus exec "$PROJECT_NAME" -- tailscale up --accept-routes --hostname="$PROJECT_NAME"
@@ -157,12 +162,14 @@ if [ "$SETUP_HERMES" = "yes" ]; then
     log "[5/8] Setting up Hermes AI agent..."
     
     # Create Hermes profile directory
-    sudo incus exec "$PROJECT_NAME" -- mkdir -p "/opt/cortexos/hermes/profiles/$PROJECT_NAME"
+    sudo incus exec "$PROJECT_NAME" -- mkdir -p ""/opt/cortexos/hermes/profiles/$PROJECT_NAME""
     
-    # Create Hermes config
-    cat > /tmp/hermes-config.yaml <<EOF
+    # Create Hermes config in a private temp file
+    HERMES_TMP="$(mktemp)"
+    chmod 600 "$HERMES_TMP"
+    cat > "$HERMES_TMP" <<EOF
 profile: $PROJECT_NAME
-home: /opt/cortexos/hermes/profiles/$PROJECT_NAME
+home: "/opt/cortexos/hermes/profiles/$PROJECT_NAME"
 api:
   host: 127.0.0.1
   port: 8932
@@ -176,13 +183,13 @@ memory:
   provider: honcho
   baseUrl: http://127.0.0.1:18690
   workspace: $PROJECT_NAME
-  aiPeer: hermes-$PROJECT_NAME
+  aiPeer: "hermes-$PROJECT_NAME"
 EOF
 
     # Add Telegram config if enabled
     if [ "$SETUP_TELEGRAM" = "yes" ] && [ -n "$TELEGRAM_BOT_TOKEN" ]; then
         log "[6/8] Setting up Telegram bot..."
-        cat >> /tmp/hermes-config.yaml <<EOF
+        cat >> "$HERMES_TMP" <<EOF
 telegram:
   token: "$TELEGRAM_BOT_TOKEN"
   allow_from:
@@ -193,11 +200,14 @@ EOF
     fi
 
     # Push config to instance
-    sudo incus file push /tmp/hermes-config.yaml "$PROJECT_NAME"/opt/cortexos/hermes/profiles/$PROJECT_NAME/config.yaml
+    sudo incus file push "$HERMES_TMP" "$PROJECT_NAME"/opt/cortexos/hermes/profiles/"$PROJECT_NAME"/config.yaml
+    rm -f "$HERMES_TMP"
     sudo incus exec "$PROJECT_NAME" -- chown -R cortexos:cortexos /opt/cortexos/hermes
     
     # Create systemd service
-    cat > /tmp/hermes-service.service <<EOF
+    SERVICE_TMP=$(mktemp)
+    chmod 600 "$SERVICE_TMP"
+    cat > "$SERVICE_TMP" <<EOF
 [Unit]
 Description=Hermes Gateway - $PROJECT_NAME
 After=network.target
@@ -205,7 +215,7 @@ After=network.target
 [Service]
 Type=simple
 User=cortexos
-WorkingDirectory=/opt/cortexos/hermes/profiles/$PROJECT_NAME
+WorkingDirectory="/opt/cortexos/hermes/profiles/$PROJECT_NAME"
 ExecStart=/usr/local/bin/hermes --profile $PROJECT_NAME
 Restart=always
 RestartSec=5
@@ -214,10 +224,10 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-    sudo incus file push /tmp/hermes-service.service "$PROJECT_NAME"/etc/systemd/system/hermes-gateway-$PROJECT_NAME.service
+    sudo incus file push "$SERVICE_TMP" "$PROJECT_NAME"/etc/systemd/system/""hermes-gateway-$PROJECT_NAME".service"
     sudo incus exec "$PROJECT_NAME" -- systemctl daemon-reload
-    sudo incus exec "$PROJECT_NAME" -- systemctl enable hermes-gateway-$PROJECT_NAME
-    sudo incus exec "$PROJECT_NAME" -- systemctl start hermes-gateway-$PROJECT_NAME
+    sudo incus exec "$PROJECT_NAME" -- systemctl enable "hermes-gateway-$PROJECT_NAME"
+    sudo incus exec "$PROJECT_NAME" -- systemctl start "hermes-gateway-$PROJECT_NAME"
  else
     log "[5/8] Skipping Hermes setup"
 fi
@@ -227,22 +237,26 @@ if [ "$SETUP_HERMES_WEBUI" = "yes" ]; then
     log "[7/8] Setting up Hermes Web UI per-profile..."
 
     # Per-profile state dir
-    sudo incus exec "$PROJECT_NAME" -- install -d -m 0755 -o 1000 -g 1000 "/var/lib/hermes-webui-$PROJECT_NAME"
+    sudo incus exec "$PROJECT_NAME" -- install -d -m 0755 -o 1000 -g 1000 "/var/lib/"hermes-webui-$PROJECT_NAME""
 
     # Per-profile env file
-    cat > /tmp/hermes-webui-env-$PROJECT_NAME <<EOF
-HERMES_WEBUI_STATE_DIR=/var/lib/hermes-webui-$PROJECT_NAME
+    WEBUI_ENV_TMP=$(mktemp)
+    chmod 600 "$WEBUI_ENV_TMP"
+    cat > "$WEBUI_ENV_TMP" <<EOF
+HERMES_WEBUI_STATE_DIR=/var/lib/"hermes-webui-$PROJECT_NAME"
 HERMES_WEBUI_HOST=127.0.0.1
 HERMES_WEBUI_PORT=8933
 HERMES_WEBUI_NO_BROWSER=1
-HERMES_WEBUI_AGENT_DIR=/opt/cortexos/hermes/profiles/$PROJECT_NAME
+HERMES_WEBUI_AGENT_DIR="/opt/cortexos/hermes/profiles/$PROJECT_NAME"
 EOF
-    sudo incus file push /tmp/hermes-webui-env-$PROJECT_NAME "$PROJECT_NAME"/opt/cortexos/hermes-webui-$PROJECT_NAME.env
-    sudo incus exec "$PROJECT_NAME" -- chown cortexos:cortexos /opt/cortexos/hermes-webui-$PROJECT_NAME.env
-    rm -f /tmp/hermes-webui-env-$PROJECT_NAME
+    sudo incus file push "$WEBUI_ENV_TMP" "$PROJECT_NAME"""/opt/cortexos/"hermes-webui-$PROJECT_NAME"".env"
+    sudo incus exec "$PROJECT_NAME" -- chown cortexos:cortexos ""/opt/cortexos/"hermes-webui-$PROJECT_NAME"".env"
+    rm -f "$WEBUI_ENV_TMP"
 
     # docker-compose wrapper
-    cat > /tmp/hermes-webui-compose-$PROJECT_NAME.yml <<'YAML'
+    COMPOSE_TMP=$(mktemp)
+    chmod 600 "$COMPOSE_TMP"
+    cat > "$COMPOSE_TMP" <<'YAML'
 services:
   hermes-webui:
     image: ghcr.io/nesquena/hermes-webui:v0.51.280
@@ -260,13 +274,15 @@ services:
       timeout: 3s
       retries: 3
 YAML
-    sed -i "s/PROJECT_NAME/$PROJECT_NAME/g" /tmp/hermes-webui-compose-$PROJECT_NAME.yml
-    sudo incus exec "$PROJECT_NAME" -- install -d /opt/cortexos/hermes-webui-$PROJECT_NAME
-    sudo incus file push /tmp/hermes-webui-compose-$PROJECT_NAME.yml "$PROJECT_NAME"/opt/cortexos/hermes-webui-$PROJECT_NAME/docker-compose.yml
-    rm -f /tmp/hermes-webui-compose-$PROJECT_NAME.yml
+    sed -i "s/PROJECT_NAME/$PROJECT_NAME/g" "$COMPOSE_TMP"
+    sudo incus exec "$PROJECT_NAME" -- install -d "/opt/cortexos/"hermes-webui-$PROJECT_NAME""
+    sudo incus file push "$COMPOSE_TMP" "$PROJECT_NAME""/opt/cortexos/"hermes-webui-$PROJECT_NAME""/docker-compose.yml
+    rm -f "$COMPOSE_TMP"
 
     # systemd unit
-    cat > /tmp/hermes-webui-service-$PROJECT_NAME.service <<EOF
+    WEBUI_SVC_TMP=$(mktemp)
+    chmod 600 "$WEBUI_SVC_TMP"
+    cat > "$WEBUI_SVC_TMP" <<EOF
 [Unit]
 Description=Hermes Web UI - $PROJECT_NAME
 After=docker.service network-online.target
@@ -276,7 +292,7 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-WorkingDirectory=/opt/cortexos/hermes-webui-$PROJECT_NAME
+WorkingDirectory="/opt/cortexos/"hermes-webui-$PROJECT_NAME""
 ExecStart=/usr/bin/docker compose up -d --remove-orphans --wait
 ExecStop=/usr/bin/docker compose down
 ExecReload=/usr/bin/docker compose pull && /usr/bin/docker compose up -d --remove-orphans
@@ -285,13 +301,13 @@ TimeoutStartSec=120
 [Install]
 WantedBy=multi-user.target
 EOF
-    sudo incus file push /tmp/hermes-webui-service-$PROJECT_NAME.service "$PROJECT_NAME"/etc/systemd/system/hermes-webui-$PROJECT_NAME.service
-    rm -f /tmp/hermes-webui-service-$PROJECT_NAME.service
+    sudo incus file push "$WEBUI_SVC_TMP" "$PROJECT_NAME"/etc/systemd/system/""hermes-webui-$PROJECT_NAME".service"
+    rm -f "$WEBUI_SVC_TMP"
 
     # Enable + start
     sudo incus exec "$PROJECT_NAME" -- systemctl daemon-reload
-    sudo incus exec "$PROJECT_NAME" -- systemctl enable hermes-webui-$PROJECT_NAME
-    sudo incus exec "$PROJECT_NAME" -- systemctl start hermes-webui-$PROJECT_NAME
+    sudo incus exec "$PROJECT_NAME" -- systemctl enable "hermes-webui-$PROJECT_NAME"
+    sudo incus exec "$PROJECT_NAME" -- systemctl start "hermes-webui-$PROJECT_NAME"
 else
     log "[7/8] Skipping Hermes Web UI per-profile setup"
 fi
@@ -309,8 +325,8 @@ if [ "$SETUP_MEMORY_OS" = "yes" ]; then
 
     # Idempotency: re-running with `yes` already set is a no-op
     # once the per-profile systemd unit is in place.
-    if sudo incus exec "$PROJECT_NAME" -- systemctl cat "cortex-memory-os-$PROJECT_NAME.service" >/dev/null 2>&1; then
-        log "    (cortex-memory-os-$PROJECT_NAME.service already present — skipping step 7.5)"
+    if sudo incus exec "$PROJECT_NAME" -- systemctl cat ""cortex-memory-os-$PROJECT_NAME".service" >/dev/null 2>&1; then
+        log "    ("cortex-memory-os-$PROJECT_NAME".service already present — skipping step 7.5)"
     else
         # 0. Source the host's Tailscale IP. The canonical location
         #    is /opt/cortexos/host-tailscale-ip.env (created by
@@ -348,10 +364,10 @@ if [ "$SETUP_MEMORY_OS" = "yes" ]; then
 
         # 1. Per-profile Memory OS data dir (writable by the Hermes agent user)
         sudo incus exec "$PROJECT_NAME" -- mkdir -p \
-            "/opt/cortexos/hermes/profiles/$PROJECT_NAME/memory-os/fabric" \
-            "/opt/cortexos/hermes/profiles/$PROJECT_NAME/memory-os/wiki"
+            ""/opt/cortexos/hermes/profiles/$PROJECT_NAME"/memory-os/fabric" \
+            ""/opt/cortexos/hermes/profiles/$PROJECT_NAME"/memory-os/wiki"
         sudo incus exec "$PROJECT_NAME" -- chown -R cortexos:cortexos \
-            "/opt/cortexos/hermes/profiles/$PROJECT_NAME/memory-os"
+            ""/opt/cortexos/hermes/profiles/$PROJECT_NAME"/memory-os"
 
         # 2. Bind-mount the host's Icarus plugin into the per-profile
         #    plugin dir. Use `add` only if the device is missing (a
@@ -360,7 +376,7 @@ if [ "$SETUP_MEMORY_OS" = "yes" ]; then
             | grep -q '^memory-os-icarus:'; then
             sudo incus config device add "$PROJECT_NAME" memory-os-icarus \
                 disk source=/opt/cortexos/memory-os/.hermes/plugins/icarus \
-                path="/opt/cortexos/hermes/profiles/$PROJECT_NAME/plugins/icarus" \
+                path=""/opt/cortexos/hermes/profiles/$PROJECT_NAME"/plugins/icarus" \
                 readonly=true
         fi
 
@@ -385,11 +401,11 @@ REDIS_URL=redis://${CORTEX_HOST_TAILSCALE_IP}:6379
 REDIS_PASSWORD=${REDIS_PASSWORD_VAL}
 
 # Per-profile paths (unique to this profile)
-HERMES_HOME=/opt/cortexos/hermes/profiles/$PROJECT_NAME
-FABRIC_DIR=/opt/cortexos/hermes/profiles/$PROJECT_NAME/memory-os/fabric
-STATE_DB_PATH=/opt/cortexos/hermes/profiles/$PROJECT_NAME/memory-os/state.db
-WIKI_ROOT=/opt/cortexos/hermes/profiles/$PROJECT_NAME/memory-os/wiki
-VAULT_PATH=/opt/cortexos/hermes/profiles/$PROJECT_NAME/memory-os/wiki
+HERMES_HOME="/opt/cortexos/hermes/profiles/$PROJECT_NAME"
+FABRIC_DIR="/opt/cortexos/hermes/profiles/$PROJECT_NAME"/memory-os/fabric
+STATE_DB_PATH="/opt/cortexos/hermes/profiles/$PROJECT_NAME"/memory-os/state.db
+WIKI_ROOT="/opt/cortexos/hermes/profiles/$PROJECT_NAME"/memory-os/wiki
+VAULT_PATH="/opt/cortexos/hermes/profiles/$PROJECT_NAME"/memory-os/wiki
 EOF
         sudo incus file push "/tmp/memory-os-$PROJECT_NAME.env" \
             "$PROJECT_NAME/opt/cortexos/memory-os-$PROJECT_NAME.env"
@@ -406,7 +422,7 @@ EOF
         #    `EnvironmentFile` propagates the vars to anything else
         #    started by the same unit (e.g. a future wiki-curator
         #    timer).
-        cat > "/tmp/cortex-memory-os-$PROJECT_NAME.service" <<EOF
+        cat > "/tmp/"cortex-memory-os-$PROJECT_NAME".service" <<EOF
 [Unit]
 Description=Memory OS per-profile ($PROJECT_NAME) — Icarus plugin env shim
 After=network-online.target
@@ -423,34 +439,34 @@ ExecStop=/bin/true
 [Install]
 WantedBy=multi-user.target
 EOF
-        sudo incus file push "/tmp/cortex-memory-os-$PROJECT_NAME.service" \
-            "$PROJECT_NAME/etc/systemd/system/cortex-memory-os-$PROJECT_NAME.service"
-        rm -f "/tmp/cortex-memory-os-$PROJECT_NAME.service"
+        sudo incus file push "/tmp/"cortex-memory-os-$PROJECT_NAME".service" \
+            "$PROJECT_NAME/etc/systemd/system/"cortex-memory-os-$PROJECT_NAME".service"
+        rm -f "/tmp/"cortex-memory-os-$PROJECT_NAME".service"
 
         sudo incus exec "$PROJECT_NAME" -- systemctl daemon-reload
-        sudo incus exec "$PROJECT_NAME" -- systemctl enable --now "cortex-memory-os-$PROJECT_NAME"
+        sudo incus exec "$PROJECT_NAME" -- systemctl enable --now ""cortex-memory-os-$PROJECT_NAME""
 
         # 5. Append the `memory-os:` block to the per-profile
         #    config.yaml. Guard against double-append on a
         #    partially-failed prior run.
         if ! sudo incus exec "$PROJECT_NAME" -- grep -q '^memory-os:' \
-            "/opt/cortexos/hermes/profiles/$PROJECT_NAME/config.yaml"; then
+            ""/opt/cortexos/hermes/profiles/$PROJECT_NAME"/config.yaml"; then
             cat > "/tmp/memory-os-config-$PROJECT_NAME.yaml" <<EOF
 
 memory-os:
   enabled: true
   envFile: /opt/cortexos/memory-os-$PROJECT_NAME.env
-  pluginPath: /opt/cortexos/hermes/profiles/$PROJECT_NAME/plugins/icarus
-  fabricDir: /opt/cortexos/hermes/profiles/$PROJECT_NAME/memory-os/fabric
-  stateDbPath: /opt/cortexos/hermes/profiles/$PROJECT_NAME/memory-os/state.db
-  wikiRoot: /opt/cortexos/hermes/profiles/$PROJECT_NAME/memory-os/wiki
+  pluginPath: "/opt/cortexos/hermes/profiles/$PROJECT_NAME"/plugins/icarus
+  fabricDir: "/opt/cortexos/hermes/profiles/$PROJECT_NAME"/memory-os/fabric
+  stateDbPath: "/opt/cortexos/hermes/profiles/$PROJECT_NAME"/memory-os/state.db
+  wikiRoot: "/opt/cortexos/hermes/profiles/$PROJECT_NAME"/memory-os/wiki
   qdrantUrl: http://${CORTEX_HOST_TAILSCALE_IP}:6333
   redisUrl: redis://${CORTEX_HOST_TAILSCALE_IP}:6379
 EOF
             sudo incus file push "/tmp/memory-os-config-$PROJECT_NAME.yaml" \
                 "$PROJECT_NAME/tmp/memory-os-config-$PROJECT_NAME.yaml"
             sudo incus exec "$PROJECT_NAME" -- bash -c \
-                "cat /tmp/memory-os-config-$PROJECT_NAME.yaml >> /opt/cortexos/hermes/profiles/$PROJECT_NAME/config.yaml"
+                "cat /tmp/memory-os-config-$PROJECT_NAME.yaml >> "/opt/cortexos/hermes/profiles/$PROJECT_NAME"/config.yaml"
             sudo incus exec "$PROJECT_NAME" -- rm -f "/tmp/memory-os-config-$PROJECT_NAME.yaml"
             rm -f "/tmp/memory-os-config-$PROJECT_NAME.yaml"
         fi
@@ -458,7 +474,7 @@ EOF
         # 6. Restart Hermes so the Icarus plugin gets
         #    re-discovered on the next profile reload. Hermes reads
         #    plugins/ at startup.
-        sudo incus exec "$PROJECT_NAME" -- systemctl restart "hermes-gateway-$PROJECT_NAME"
+        sudo incus exec "$PROJECT_NAME" -- systemctl restart ""hermes-gateway-$PROJECT_NAME""
 
         log "    Memory OS per-profile configured (Qdrant + Redis + Icarus via tailnet)"
     fi
@@ -485,21 +501,21 @@ sudo incus exec "$PROJECT_NAME" -- fzf --version 2>/dev/null || warn "fzf not in
 echo ""
 echo "=== Hermes Status ==="
 if [ "$SETUP_HERMES" = "yes" ]; then
-    sudo incus exec "$PROJECT_NAME" -- systemctl status hermes-gateway-$PROJECT_NAME --no-pager 2>/dev/null || warn "Hermes still starting..."
+    sudo incus exec "$PROJECT_NAME" -- systemctl status "hermes-gateway-$PROJECT_NAME" --no-pager 2>/dev/null || warn "Hermes still starting..."
 fi
 
 echo ""
 echo "=== Hermes Web UI Status ==="
 if [ "$SETUP_HERMES_WEBUI" = "yes" ]; then
-    sudo incus exec "$PROJECT_NAME" -- systemctl status hermes-webui-$PROJECT_NAME --no-pager 2>/dev/null || warn "Hermes Web UI still starting..."
+    sudo incus exec "$PROJECT_NAME" -- systemctl status "hermes-webui-$PROJECT_NAME" --no-pager 2>/dev/null || warn "Hermes Web UI still starting..."
 fi
 
 echo ""
 echo "=== Memory OS per-profile Status ==="
 if [ "$SETUP_MEMORY_OS" = "yes" ]; then
-    sudo incus exec "$PROJECT_NAME" -- systemctl status cortex-memory-os-$PROJECT_NAME --no-pager 2>/dev/null || warn "Memory OS per-profile still starting..."
+    sudo incus exec "$PROJECT_NAME" -- systemctl status "cortex-memory-os-$PROJECT_NAME" --no-pager 2>/dev/null || warn "Memory OS per-profile still starting..."
     # Confirm the Icarus plugin is visible inside the instance via the bind mount
-    sudo incus exec "$PROJECT_NAME" -- ls -la "/opt/cortexos/hermes/profiles/$PROJECT_NAME/plugins/icarus" 2>/dev/null | head -3 \
+    sudo incus exec "$PROJECT_NAME" -- ls -la ""/opt/cortexos/hermes/profiles/$PROJECT_NAME"/plugins/icarus" 2>/dev/null | head -3 \
       || warn "Icarus plugin bind mount not visible — check `incus config device show $PROJECT_NAME`"
 fi
 
@@ -513,14 +529,14 @@ info "View logs:           sudo incus exec $PROJECT_NAME -- journalctl -f"
 info "Tailscale status:    sudo incus exec $PROJECT_NAME -- tailscale status"
 info "fzf version:         sudo incus exec $PROJECT_NAME -- fzf --version"
 if [ "$SETUP_HERMES" = "yes" ]; then
-    info "Hermes status:       sudo incus exec $PROJECT_NAME -- systemctl status hermes-gateway-$PROJECT_NAME"
+    info "Hermes status:       sudo incus exec $PROJECT_NAME -- systemctl status "hermes-gateway-$PROJECT_NAME""
 fi
 if [ "$SETUP_HERMES_WEBUI" = "yes" ]; then
-    info "Hermes Web UI:       sudo incus exec $PROJECT_NAME -- systemctl status hermes-webui-$PROJECT_NAME"
+    info "Hermes Web UI:       sudo incus exec $PROJECT_NAME -- systemctl status "hermes-webui-$PROJECT_NAME""
 fi
 if [ "$SETUP_MEMORY_OS" = "yes" ]; then
-    info "Memory OS profile:   sudo incus exec $PROJECT_NAME -- systemctl status cortex-memory-os-$PROJECT_NAME"
-    info "Icarus plugin:       sudo incus exec $PROJECT_NAME -- ls /opt/cortexos/hermes/profiles/$PROJECT_NAME/plugins/icarus"
+    info "Memory OS profile:   sudo incus exec $PROJECT_NAME -- systemctl status "cortex-memory-os-$PROJECT_NAME""
+    info "Icarus plugin:       sudo incus exec $PROJECT_NAME -- ls "/opt/cortexos/hermes/profiles/$PROJECT_NAME"/plugins/icarus"
 fi
 if [ -n "$GITHUB_REPO" ]; then
     info "Project directory:   ~/projects/$PROJECT_NAME"

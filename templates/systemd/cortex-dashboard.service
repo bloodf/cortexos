@@ -1,6 +1,9 @@
-# CortexOS dashboard — SvelteKit SvelteKit prod unit.
+# CortexOS dashboard — SvelteKit prod unit.
 # Runs as root because the dashboard is the host control plane
 # (per THREAT_MODEL §0.5: dashboard must own Docker/Incus/systemd/terminal/env-browser).
+#
+# Security: credentials live in EnvironmentFile (SOPS-decrypted), not inline.
+# Bind is loopback because Caddy reverse-proxies TLS from Tailscale.
 
 [Unit]
 Description=CortexOS Dashboard (SvelteKit)
@@ -11,15 +14,31 @@ Wants=network-online.target
 Type=simple
 User=root
 WorkingDirectory={CORTEX_ROOT}/packages/dashboard
-Environment=HOST=0.0.0.0
+Environment=HOST=127.0.0.1
 Environment=PORT=3080
-Environment=DB_PASSWORD=testpass
 Environment=NODE_ENV=production
+EnvironmentFile={CORTEX_SECRETS_DIR}/dashboard.env
 ExecStart=/usr/bin/node build/index.js
 Restart=on-failure
 RestartSec=5
 StandardOutput=journal
 StandardError=journal
+
+# systemd hardening — tightened to the minimum the control plane needs.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE CAP_DAC_READ_SEARCH CAP_KILL
+ReadWritePaths={CORTEX_ROOT}/packages/dashboard {CORTEX_ROOT}/logs /run/cortexos
 
 [Install]
 WantedBy=multi-user.target

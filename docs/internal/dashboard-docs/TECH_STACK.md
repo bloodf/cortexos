@@ -243,7 +243,7 @@ The `eslint-config-airbnb-typescript` README literally says:
 ### Final ESLint stack
 
 ```jsonc
-// packages/cortex-dashboard/eslint.config.js (flat config)
+// packages/dashboard/eslint.config.js (flat config)
 import js from '@eslint/js';
 import svelte from 'eslint-plugin-svelte';
 import svelteParser from 'svelte-eslint-parser';
@@ -412,7 +412,7 @@ What changes, what stays when we move from the sys-pilot React/TanStack template
 }
 ```
 
-### Workspace `package.json` (packages/cortex-dashboard/package.json) — version policy
+### Workspace `package.json` (packages/dashboard/package.json) — version policy
 
 ```json
 {

@@ -174,7 +174,7 @@ describe('DrizzleSessionStore.resolveByToken', () => {
     expect(r!.groups).not.toContain('cortexos-admin');
     expect(r!.groups).toContain('cortexos-users');
     // groupMemberships should mirror groups.
-    const names = r!.user.groupMemberships.map((g) => g.name);
+    const names = r!.user.groupMemberships.map((g) => (typeof g === 'string' ? g : g.name));
     expect(names).toContain('cortexos-users');
     expect(names).not.toContain('cortexos-admin');
   });

@@ -15,6 +15,7 @@ import {
   listDockerOps,
 } from '../bridge';
 import { resetAudit } from '../../audit';
+import type { AllowlistEntry } from '../../policy';
 
 const {
   collectArgSmugglingHits,
@@ -99,7 +100,7 @@ describe('docker bridge — argvContainsBashDashC', () => {
 describe('docker bridge — renderArgv (placeholder binding)', () => {
   it('renders a string placeholder', () => {
     const r = renderArgv(
-      { argv: ['docker', 'start', '<name>'] },
+      { argv: ['docker', 'start', '<name>'] } as unknown as AllowlistEntry,
       { name: 'caddy' },
     );
     expect('argv' in r).toBe(true);
@@ -110,7 +111,7 @@ describe('docker bridge — renderArgv (placeholder binding)', () => {
 
   it('renders a number placeholder (coerced to string)', () => {
     const r = renderArgv(
-      { argv: ['docker', 'kill', '<id>'] },
+      { argv: ['docker', 'kill', '<id>'] } as unknown as AllowlistEntry,
       { id: 42 },
     );
     expect('argv' in r).toBe(true);
@@ -121,7 +122,7 @@ describe('docker bridge — renderArgv (placeholder binding)', () => {
 
   it('rejects a non-finite number placeholder (arg_type)', () => {
     const r = renderArgv(
-      { argv: ['docker', 'kill', '<id>'] },
+      { argv: ['docker', 'kill', '<id>'] } as unknown as AllowlistEntry,
       { id: Number.NaN },
     );
     expect('code' in r).toBe(true);
@@ -132,7 +133,7 @@ describe('docker bridge — renderArgv (placeholder binding)', () => {
 
   it('rejects a boolean placeholder (arg_type)', () => {
     const r = renderArgv(
-      { argv: ['docker', 'kill', '<id>'] },
+      { argv: ['docker', 'kill', '<id>'] } as unknown as AllowlistEntry,
       { id: true as never },
     );
     expect('code' in r).toBe(true);
@@ -143,7 +144,7 @@ describe('docker bridge — renderArgv (placeholder binding)', () => {
 
   it('returns placeholder_unbound when arg is missing', () => {
     const r = renderArgv(
-      { argv: ['docker', 'start', '<name>'] },
+      { argv: ['docker', 'start', '<name>'] } as unknown as AllowlistEntry,
       {},
     );
     expect('code' in r).toBe(true);
@@ -155,7 +156,7 @@ describe('docker bridge — renderArgv (placeholder binding)', () => {
 
   it('returns placeholder_unbound when arg is null', () => {
     const r = renderArgv(
-      { argv: ['docker', 'start', '<name>'] },
+      { argv: ['docker', 'start', '<name>'] } as unknown as AllowlistEntry,
       { name: null as never },
     );
     expect('code' in r).toBe(true);
@@ -163,7 +164,7 @@ describe('docker bridge — renderArgv (placeholder binding)', () => {
 
   it('passes through literal tokens unchanged', () => {
     const r = renderArgv(
-      { argv: ['docker', 'ps', '-a', '--no-trunc'] },
+      { argv: ['docker', 'ps', '-a', '--no-trunc'] } as unknown as AllowlistEntry,
       {},
     );
     expect('argv' in r).toBe(true);

@@ -2,8 +2,8 @@
  * Programmatic SQL migration runner for the CortexOS dashboard.
  *
  * Reads `migrations/*.sql` in lexical order, applies any that are not
- * already recorded in the `migrations` table. Preserves the existing
- * runner convention (`scripts/migrate.js`, `lib/db/migrate.ts`):
+ * already recorded in the `migrations` table. This is the sole live runner
+ * (`src/lib/server/db/migrate.ts`); the legacy `scripts/migrate.js` is retired.
  *   - File name must match `^[a-zA-Z0-9_-]+\.sql$`
  *   - `<VPS_LAN_IP>` placeholder is replaced with the host's first
  *     non-internal IPv4 address (sorted: eth/en > wlan/wlp > tailscale)

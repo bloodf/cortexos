@@ -1,8 +1,11 @@
-# CortexOS
+# CortexOS — Agent Instructions
+
+> **🤖 This file is for AI agents (Claude, Kimi, Gemini, etc.) working on CortexOS.**
+> Human contributors should start with [`README.md`](../README.md) or [`docs/GETTING-STARTED.md`](docs/GETTING-STARTED.md).
 
 agentic-engineering: opt-in
 
-Self-hosted AI infrastructure system: deployment docs and installer prompts, Docker Compose stacks for databases/monitoring, a Next.js dashboard for server control, the 9Router AI gateway configuration, and agent orchestration templates. Target host runs Ubuntu 24.04+ (Debian 13 supported) at `/opt/cortexos`.
+Self-hosted AI infrastructure system: deployment docs and installer prompts, Docker Compose stacks for databases/monitoring, a SvelteKit 5 dashboard for server control, the 9Router AI gateway configuration, and agent orchestration templates. Target host runs Ubuntu 24.04+ (Debian 13 supported) at `/opt/cortexos`.
 
 ## Decisions
 
@@ -24,7 +27,7 @@ Self-hosted AI infrastructure system: deployment docs and installer prompts, Doc
 - `prompts/` - installer and tool prompts executed step-by-step on hosts
 - `templates/` - systemd units and config templates copied to servers
 - `stacks/` - Docker Compose service stacks
-- `packages/dashboard/` - Next.js control dashboard (3 locales: en, es, pt-br)
+- `packages/dashboard/` - SvelteKit 5 control dashboard (3 locales: en, es, pt-br)
 - `packages/cortex-telemetry/` - OpenLLMetry instrumentation for Langfuse
 - `scripts/` - host ops scripts (`pkg.sh`, smoke tests, backups)
 - `docs/` - deployment, secrets, and architecture docs

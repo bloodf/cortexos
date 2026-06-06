@@ -21,7 +21,7 @@ import { asSessionId } from '../../entities';
 
 const user = makeFakeUser({
   isAdmin: true,
-  groupMemberships: [{ name: 'cortexos-admins', isAdmin: true, description: 'admin' }],
+  groupMemberships: [{ name: 'cortexos-admin', isAdmin: true, description: 'admin' }],
 });
 
 const baseCtx = {

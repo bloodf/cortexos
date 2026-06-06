@@ -1,165 +1,120 @@
 # CortexOS
 
-> **Self-hosted AI Infrastructure** - Run your own AI agents, databases, and services on a single Ubuntu server.
+> **Your own AI infrastructure, on your own server.**
+
+CortexOS is a complete, self-hosted platform that gives you AI models, databases, monitoring, and a web dashboard — all running on a single Ubuntu server you control.
 
 ---
 
-## 🎯 What is CortexOS?
+## 🎯 What You Get
 
-CortexOS is a **complete AI-ready server platform** that lets you:
-
-| Feature | What it means |
-|---------|---------------|
-| 🤖 **AI Agents** | Run Hermes - your own AI coding assistant |
-| 🧠 **AI Models** | Access Claude, GPT, Gemini via 9Router gateway |
-| 💾 **Databases** | PostgreSQL, MySQL, MongoDB, Redis |
-| 📊 **Monitoring** | Prometheus, Grafana, Loki |
-| 🌐 **Web Dashboard** | Control everything from a browser |
-| 🔒 **Secure** | Tailscale VPN, SOPS encryption |
+| Feature | What It Means For You |
+|---------|----------------------|
+| 🤖 **AI Gateway** | Access Claude, GPT, Gemini, and local models through one simple API |
+| 🧠 **AI Memory** | Your AI remembers conversations and builds knowledge over time |
+| 💾 **Databases** | PostgreSQL, Redis, MongoDB, MySQL — ready to use |
+| 📊 **Monitoring** | See CPU, memory, disk, and logs in beautiful dashboards |
+| 🌐 **Web Dashboard** | Control everything from your browser |
+| 🔒 **Secure VPN** | Access your server safely from anywhere |
+| 🏗️ **Developer Tools** | Code sandbox, file manager, terminal — all built in |
 
 ---
 
 ## 🚀 Quick Start
 
-### 1. Connect to Your Server
+### The Easy Way (Recommended)
 
-```bash
-ssh cortexos@your-server.com
-```
+1. **Rent a server** — Ubuntu 24.04, 4GB RAM, 50GB disk (from Hetzner, DigitalOcean, etc.)
+2. **Connect via SSH** — `ssh root@your-server-ip`
+3. **Clone this repo**:
+   ```bash
+   cd /opt && git clone https://github.com/bloodf/cortexos.git && cd cortexos
+   ```
+4. **Follow the AI installer** — copy prompts from `prompts/tools/_order.md` into Claude, ChatGPT, or any AI assistant
 
-### 2. Check Status
+📖 [**Beginner's Install Guide →**](docs/INSTALL-WITH-AI.md)
 
-```bash
-docker ps                              # See running services
-systemctl status caddy tailscaled      # Check system services
-curl -s http://localhost:11434/v1/models | jq '.data | length'  # Check AI models
-```
+### The Manual Way
 
-### 3. Access Services
+Already comfortable with Linux? See the operator install guide:
 
-| Service | URL |
-|---------|-----|
-| Dashboard | https://your-domain.com |
-| Grafana | https://your-domain.com:3001 |
-| PHPMyAdmin | https://your-domain.com:8082 |
+📖 [**Manual Install Guide →**](docs/INSTALL.md)
 
 ---
 
 ## 📚 Documentation
 
-### For Everyone
-| Guide | Description |
-|-------|-------------|
-| [GUIDE.md](docs/GUIDE.md) | Complete overview of CortexOS |
-| [GETTING-STARTED.md](docs/GETTING-STARTED.md) | First steps for new users |
-| [GLOSSARY.md](docs/GLOSSARY.md) | Technical terms explained |
-
-### For Operators
-| Guide | Description |
-|-------|-------------|
-| [INSTALL.md](docs/INSTALL.md) | Set up a new server |
-| [CONFIG.md](docs/CONFIG.md) | Configure your tools |
-| [SERVICES.md](docs/SERVICES.md) | All services explained |
-
-### For Developers
-| Guide | Description |
-|-------|-------------|
-| [AI-SETUP.md](docs/AI-SETUP.md) | Configure AI models |
-| [CLI-TOOLS.md](docs/CLI-TOOLS.md) | Claude Code, Qwen Code |
-
-### Quick References
-| Guide | Description |
-|-------|-------------|
-| [TMUX-GUIDE.md](docs/TMUX-GUIDE.md) | Terminal sessions |
-| [DOCKER-GUIDE.md](docs/DOCKER-GUIDE.md) | Docker basics |
-| [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Fix problems |
+| I want to... | Go here |
+|-------------|---------|
+| **Understand what CortexOS is** | [`docs/GUIDE.md`](docs/GUIDE.md) |
+| **Install for the first time** | [`docs/INSTALL-WITH-AI.md`](docs/INSTALL-WITH-AI.md) |
+| **See all tools included** | [`docs/TOOLS.md`](docs/TOOLS.md) |
+| **Learn how the AI installer works** | [`docs/ARCHITECT.md`](docs/ARCHITECT.md) |
+| **Set up AI models** | [`docs/AI-SETUP.md`](docs/AI-SETUP.md) |
+| **Configure secrets** | [`docs/SECRETS.md`](docs/SECRETS.md) |
+| **Fix a problem** | [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) |
+| **Browse all docs** | [`docs/README.md`](docs/README.md) |
 
 ---
 
 ## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        YOU                                    │
-│                   (Browser / Terminal)                         │
-└────────────────────────────┬────────────────────────────────┘
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────────┐
-│                      CADDY                                    │
-│              (Reverse Proxy + TLS)                            │
-└────────────────────────────┬────────────────────────────────┘
-                             │
-        ┌────────────────────┼────────────────────┐
-        │                    │                    │
-        ▼                    ▼                    ▼
-┌───────────────┐    ┌──────────────┐    ┌───────────────┐
-│  Dashboard   │    │  Databases   │    │  AI Stack     │
-│  (Next.js)   │    │              │    │              │
-└───────────────┘    └──────────────┘    └───────┬───────┘
-                                                │
-                                                ▼
-                                        ┌──────────────┐
-                                        │   9Router    │
-                                        │  (AI Gateway)│
-                                        └──────┬───────┘
-                                               │
-              ┌───────────────┬─────────────────┼─────────────────┐
-              │               │                 │                 │
-              ▼               ▼                 ▼                 ▼
-        ┌────────┐     ┌────────┐         ┌────────┐       ┌────────┐
-        │Claude  │     │  GPT   │         │Gemini  │       │  Ollama│
-        │(Remote)│     │(Remote)│         │(Remote)│       │(Local) │
-        └────────┘     └────────┘         └────────┘       └────────┘
+┌─────────────────────────────────────────┐
+│           YOUR SERVER                    │
+│                                          │
+│  ┌──────────────┐  ┌──────────────┐    │
+│  │   Caddy      │  │  Dashboard   │    │
+│  │  (Web Proxy) │  │  (Control)   │    │
+│  └──────┬───────┘  └──────────────┘    │
+│         │                                │
+│  ┌──────┴───────────────────────┐       │
+│  │      Docker Services         │       │
+│  │  ┌─────┐ ┌─────┐ ┌─────┐   │       │
+│  │  │ Postgres │ Redis │ Mongo │   │       │
+│  │  └─────┘ └─────┘ └─────┘   │       │
+│  │  ┌─────┐ ┌─────┐ ┌─────┐   │       │
+│  │  │Prometheus│ Grafana │ Loki │   │       │
+│  │  └─────┘ └─────┘ └─────┘   │       │
+│  └──────────────────────────────┘       │
+│                                          │
+│  ┌──────────────────────────────┐       │
+│  │      AI Stack                │       │
+│  │  9Router → Models → Memory   │       │
+│  └──────────────────────────────┘       │
+└─────────────────────────────────────────┘
 ```
 
 ---
 
-## 🔧 Tech Stack
+## 🛠️ For Developers
 
-| Category | Technology |
-|----------|------------|
-| OS | Ubuntu 24.04 LTS |
-| Container | Docker |
-| Databases | PostgreSQL, MySQL, MongoDB, Redis |
-| AI Gateway | 9Router |
-| AI Models | Claude, GPT, Gemini, Ollama |
-| AI Agent | Hermes |
-| Monitoring | Prometheus, Grafana, Loki |
-| Web | Next.js |
-| Proxy | Caddy |
-| VPN | Tailscale |
-| Terminal | tmux + zsh |
+- **Contributing:** See [`CONTRIBUTING.md`](CONTRIBUTING.md)
+- **Agent Instructions:** See [`AGENTS.md`](AGENTS.md) (for AI agents working on this repo)
+- **Local Development:** `pnpm install && pnpm dev` in `packages/dashboard/`
 
 ---
 
-## 📁 Project Structure
+## 🔐 Security
 
-```
-cortexos/
-├── docs/              # All documentation
-├── prompts/          # Setup prompts for AI agents
-├── packages/         # NPM packages
-│   └── cortex-dashboard/  # Web dashboard
-├── stacks/           # Docker Compose stacks
-│   ├── cortex-incus/      # Incus container setup
-│   └── honcho/           # Memory backend
-├── templates/       # Config templates
-│   └── hermes/      # Hermes agent templates
-└── scripts/         # Automation scripts
-```
+- Secrets are encrypted with [SOPS](https://github.com/getsops/sops) + age — never commit plaintext
+- All web traffic goes through [Tailscale](https://tailscale.com) VPN
+- Untrusted code runs in a [gVisor](https://gvisor.dev) sandbox
+- See [`docs/SECRETS.md`](docs/SECRETS.md) and [`SECURITY.md`](SECURITY.md)
 
 ---
 
-## 🤝 Contributing
+## 📝 License
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
+See [`LICENSE`](LICENSE)
 
 ---
 
-## 📄 License
+## 💬 Community
 
-MIT
+- **Issues:** [GitHub Issues](https://github.com/bloodf/cortexos/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/bloodf/cortexos/discussions)
+
+---
+
+> **Ready to build your own AI infrastructure?** Start with the [beginner's install guide](docs/INSTALL-WITH-AI.md).

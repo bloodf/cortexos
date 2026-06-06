@@ -1,13 +1,24 @@
 # SOPS config for CortexOS encrypted secrets.
 #
-# Replace placeholder age recipients with real public keys BEFORE encrypting.
-# Generate a recipient with `age-keygen -o /path/to/key.txt` and copy the
-# `public key:` line below. Keep private keys OFF-HOST (offline custodian).
+# BEFORE encrypting secrets:
+#   1. Generate an age key pair: age-keygen -o ~/.config/sops/age/keys.txt
+#   2. Copy the PUBLIC key (the line starting with "public key:") below.
+#   3. Replace the placeholders. Keep private keys OFF-HOST (offline custodian).
 #
 # Multi-recipient: each listed recipient can decrypt. Always keep at least
 # one recovery custodian recipient who is NOT the production host.
+#
+# To encrypt a file:
+#   sops -e --config .sops.yaml secrets.env > secrets.env.enc.yaml
+#
+# To decrypt:
+#   sops -d --config .sops.yaml secrets.env.enc.yaml
+#
+# See docs/SECRETS.md for full documentation.
+
 creation_rules:
-  - path_regex: templates/\.secrets/.*\.enc\.yaml$
+  - path_regex: (templates/)?\.secrets/.*\.enc\.yaml$
     age:
+      # Replace these placeholders with real age public keys before use.
       - age1placeholder0000000000000000000000000000000000000000000000  # ops lead (rotate quarterly)
       - age1placeholder1111111111111111111111111111111111111111111111  # recovery custodian (offline)

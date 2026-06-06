@@ -85,15 +85,17 @@ Re-create the agentgateway allowlist as MCP servers in Obot:
 
 Use Obot's web UI or API to register MCP servers and configure tool visibility.
 
-### 8. Remove Old AgentGateway
+### 8. Remove Old AgentGateway (if present)
 
-After Obot is verified:
+After Obot is verified, remove the legacy agentgateway only if it exists:
 
 ```bash
-systemctl stop cortex-agentgateway
-systemctl disable cortex-agentgateway
-rm /etc/systemd/system/cortex-agentgateway.service
-systemctl daemon-reload
+if systemctl list-unit-files | grep -q cortex-agentgateway; then
+    systemctl stop cortex-agentgateway
+    systemctl disable cortex-agentgateway
+    rm -f /etc/systemd/system/cortex-agentgateway.service
+    systemctl daemon-reload
+fi
 ```
 
 Remove any legacy agentgateway systemd unit or Caddy routes if still present.

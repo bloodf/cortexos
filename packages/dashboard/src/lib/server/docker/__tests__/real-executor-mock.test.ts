@@ -9,9 +9,9 @@
  * call the bridge's public API (which routes to the real executor
  * when the env is set).
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi, type MockedFunction } from 'vitest';
 
-let execFileMock: ReturnType<typeof vi.fn>;
+let execFileMock: MockedFunction<(...args: unknown[]) => unknown>;
 
 // Mock child_process.execFile to capture calls and return canned output.
 vi.mock('node:child_process', async () => {
@@ -27,8 +27,8 @@ vi.mock('node:child_process', async () => {
       const cb = lastArg as (err: Error | null, stdout: string, stderr: string) => void;
       try {
         const result = execFileMock(...args);
-        if (result && typeof result.then === 'function') {
-          result.then(
+        if (result && typeof (result as Promise<unknown>).then === 'function') {
+          (result as Promise<{ stdout: string; stderr: string }>).then(
             (v: { stdout: string; stderr: string }) => cb(null, v.stdout, v.stderr),
             (e: { stdout?: string; stderr?: string; message?: string; code?: number }) => {
               const err = new Error(e.message ?? 'exec failed') as Error & { code?: number };
@@ -39,7 +39,8 @@ vi.mock('node:child_process', async () => {
             },
           );
         } else {
-          cb(null, result?.stdout ?? '', result?.stderr ?? '');
+          const r = result as { stdout?: string; stderr?: string } | undefined;
+          cb(null, r?.stdout ?? '', r?.stderr ?? '');
         }
       } catch (e) {
         cb(e as Error, '', '');

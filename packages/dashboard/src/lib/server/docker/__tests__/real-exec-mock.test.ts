@@ -10,9 +10,9 @@
  * `setExecutorForTests` with a stand-in that mimics the real
  * executor's execFile shape.
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi, type MockedFunction } from 'vitest';
 
-let execFileMock: ReturnType<typeof vi.fn>;
+let execFileMock: MockedFunction<(...args: unknown[]) => unknown>;
 
 // Mock child_process to capture execFile calls.
 vi.mock('node:child_process', async () => {

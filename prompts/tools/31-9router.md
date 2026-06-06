@@ -39,8 +39,8 @@ fallback_providers:
 Hermes tries the fallback chain on rate-limit / 5xx / connection errors.
 Verify with `hermes --profile <p> fallback list`.
 
-**Inside Incus project instances** there is no local ollama: the
-`project-instances` phase of `scripts/rebuild/apply.sh` adds a `proxy-ollama`
-device (instance loopback `:11435` → host ollama) alongside `proxy-9router`,
-so the same `127.0.0.1:11435` fallback URL works unchanged. The instance
-`config.yaml` is copied from the host profile, so the fallback propagates.
+**Inside Incus project instances** there is no local ollama: add a
+`proxy-ollama` device (instance loopback `:11435` → host ollama) alongside
+`proxy-9router`, so the same `127.0.0.1:11435` fallback URL works unchanged.
+The instance `config.yaml` is copied from the host profile, so the fallback
+propagates.

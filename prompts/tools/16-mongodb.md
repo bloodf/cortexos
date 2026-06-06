@@ -14,7 +14,9 @@ Run MongoDB as a Docker container for workloads that require document storage. *
 ```bash
 source scripts/pkg.sh
 echo "OS family: $(pkg_family) $(pkg_version)"
-: "${CORTEX_OS_FAMILY:?run prompts/os/00-os-selection.md first}"
+if [ "$(pkg_family)" = "unknown" ]; then
+    echo "WARNING: OS family not detected. Run prompts/os/00-os-selection.md first."
+fi
 ```
 
 > **Ubuntu/Debian note.** MongoDB is installed via the Docker-Compose stack below. If you need the `mongosh` CLI on the host, install via the official MongoDB apt repo or use `docker run --rm -it mongo:7 mongosh ...`.

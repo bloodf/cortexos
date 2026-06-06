@@ -1,6 +1,28 @@
-# Installing CortexOS - Complete Guide
+# Installing CortexOS - Operator Guide
 
-> **This guide walks you through setting up CortexOS from scratch on a new Ubuntu server.**
+> **Manual installation for experienced Linux users.**
+>
+> 🆕 **First time installing?** The [beginner guide](INSTALL-WITH-AI.md) is easier — it uses an AI assistant to walk you through every step.
+
+---
+
+## Prerequisites
+
+### What You Need
+
+| Item | Requirement |
+|------|------------|
+| Server | Ubuntu 24.04 LTS (or newer) |
+| Resources | 4GB RAM, 50GB disk |
+| Access | SSH with sudo privileges |
+| Domain | (Optional) Domain name for HTTPS |
+
+### Before You Start
+
+1. ✅ SSH key copied to server
+2. ✅ Domain pointing to server IP (if using HTTPS)
+3. ✅ 30-60 minutes of time
+4. ✅ Read [`ARCHITECT.md`](ARCHITECT.md) to understand the install system
 
 ---
 

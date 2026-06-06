@@ -47,7 +47,7 @@ export interface AdapterInput {
 	slug: string;
 	name: string;
 	description: string | null;
-	kind: 'app' | 'service' | 'docker' | 'process' | 'systemd' | 'incus';
+	kind: 'app' | 'service' | 'docker' | 'process' | 'systemd' | 'incus' | 'dashboard-launcher';
 	category: string;
 	healthUrl: string | null;
 	healthType: 'http' | 'tcp' | 'docker' | 'systemd' | 'process' | 'incus' | 'none';

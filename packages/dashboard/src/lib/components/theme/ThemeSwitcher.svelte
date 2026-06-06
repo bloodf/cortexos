@@ -24,7 +24,9 @@
 
 	let { initialMode, initialPreset, class: className = '' }: Props = $props();
 
+	// svelte-ignore state_referenced_locally
 	let mode = $state<ThemeMode>(initialMode);
+	// svelte-ignore state_referenced_locally
 	let preset = $state<ThemePreset>(initialPreset);
 	let resolvedDark = $state(false);
 

@@ -11,7 +11,7 @@ satisfy is here; the *how* is split into UI and CLI paths.
 
 ## 1. Why these rules
 
-CortexOS doctrine (per `packages/cortex-dashboard/docs/TEST_STRATEGY.md` §6.2
+CortexOS doctrine (per `packages/dashboard/docs/TEST_STRATEGY.md` §6.2
 and `CLAUDE.md`): **husky-as-CI**. Every gate below also runs locally via
 `scripts/ci-local.sh`; the CI is the contract, not the fence. Branch
 protection enforces the *minimum bar* — what the local gate already does, CI
@@ -76,17 +76,17 @@ once CODEOWNERS is in place:
 
 | Path | Owner | Why |
 |---|---|---|
-| `packages/cortex-dashboard/src/lib/server/policy/**` | Schneier | Command policy + RBAC predicates. |
-| `packages/cortex-dashboard/src/lib/server/audit/**` | Schneier | Hash-chained audit log. |
-| `packages/cortex-dashboard/src/lib/server/auth/**` | Schneier | PAM, sessions, CSRF. |
-| `packages/cortex-dashboard/src/lib/server/db/**` | Kleppmann | Schema, migrations, queries. |
-| `packages/cortex-dashboard/src/lib/contracts/**` | Margaret | Zod schemas shared client + server. |
-| `packages/cortex-dashboard/src/lib/mocks/**` | Margaret | E2E mock layer (security-sensitive). |
-| `packages/cortex-dashboard/docs/TEST_STRATEGY.md` | Margaret | Test strategy is her domain. |
-| `packages/cortex-dashboard/docs/THREAT_MODEL.md` | Schneier | Threat model. |
+| `packages/dashboard/src/lib/server/policy/**` | Schneier | Command policy + RBAC predicates. |
+| `packages/dashboard/src/lib/server/audit/**` | Schneier | Hash-chained audit log. |
+| `packages/dashboard/src/lib/server/auth/**` | Schneier | PAM, sessions, CSRF. |
+| `packages/dashboard/src/lib/server/db/**` | Kleppmann | Schema, migrations, queries. |
+| `packages/dashboard/src/lib/contracts/**` | Margaret | Zod schemas shared client + server. |
+| `packages/dashboard/src/lib/mocks/**` | Margaret | E2E mock layer (security-sensitive). |
+| `packages/dashboard/docs/TEST_STRATEGY.md` | Margaret | Test strategy is her domain. |
+| `packages/dashboard/docs/THREAT_MODEL.md` | Schneier | Threat model. |
 | `.github/workflows/**` | Hightower | CI is the platform. |
 | `scripts/ops/**`, `templates/systemd/**` | Hightower | Deploy scripts. |
-| `packages/cortex-dashboard/svelte.config.*` | Hightower | SvelteKit config (Remote Functions risk). |
+| `packages/dashboard/svelte.config.*` | Hightower | SvelteKit config (Remote Functions risk). |
 | `**/package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml` | Hightower | Dependency surface. |
 
 ---

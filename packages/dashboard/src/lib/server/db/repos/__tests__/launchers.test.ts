@@ -383,11 +383,14 @@ describe("listDashboardLaunchers (stub-data)", () => {
 		stubCreateService({
 			slug: "regular-service",
 			name: "Regular",
+			description: null,
 			kind: "service",
 			category: "Test",
 			healthUrl: "#",
 			healthType: "http",
 			openUrl: "#",
+			envSource: null,
+			status: "unknown",
 			iconType: "auto",
 			iconColor: null,
 			iconImage: null,
@@ -447,10 +450,10 @@ describe("/apps +page.server.ts loader", () => {
 		// The load function returns a plain object; call it with a
 		// minimal event-shaped arg.
 		const fakeEvent = { url: new URL("http://localhost/apps") } as never;
-		const res = await mod.load(fakeEvent);
+		const res = await mod.load(fakeEvent) as { launchers: { slug: string }[] };
 		expect(res).toHaveProperty("launchers");
 		expect(Array.isArray(res.launchers)).toBe(true);
-		const slugs = (res.launchers as { slug: string }[]).map((r) => r.slug).sort();
+		const slugs = res.launchers.map((r) => r.slug).sort();
 		expect(slugs).toEqual(["boxbox-host", "hermes-webui-host", "memory-os-host"]);
 	});
 
@@ -458,7 +461,7 @@ describe("/apps +page.server.ts loader", () => {
 		_resetStubData();
 		const mod = await import("../../../../../routes/(authed)/apps/+page.server");
 		const fakeEvent = { url: new URL("http://localhost/apps") } as never;
-		const res = await mod.load(fakeEvent);
+		const res = await mod.load(fakeEvent) as { launchers: unknown[] };
 		expect(res.launchers).toEqual([]);
 	});
 });

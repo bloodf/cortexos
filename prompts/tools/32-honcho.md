@@ -88,7 +88,7 @@ DREAM_INDUCTION_MODEL_CONFIG__OVERRIDES__BASE_URL=http://172.17.0.1:11434/v1
 EMBED_MESSAGES=true
 EMBEDDING_MODEL_CONFIG__TRANSPORT=openai
 EMBEDDING_MODEL_CONFIG__MODEL=nomic-embed-text:latest
-EMBEDDING_MODEL_CONFIG__OVERRIDES__BASE_URL=http://172.30.0.1:11435/v1
+EMBEDDING_MODEL_CONFIG__OVERRIDES__BASE_URL=http://127.0.0.1:11435/v1
 EMBEDDING_VECTOR_DIMENSIONS=768
 DERIVER_ENABLED=true
 DERIVER_WORKERS=3
@@ -180,7 +180,7 @@ curl -fsS http://127.0.0.1:11435/v1/embeddings \
 docker exec -i honcho-api /app/.venv/bin/python - <<'PY'
 import json, urllib.request
 req = urllib.request.Request(
-  "http://172.30.0.1:11435/v1/embeddings",
+  "http://127.0.0.1:11435/v1/embeddings",
   data=json.dumps({"model":"nomic-embed-text:latest","input":"honcho docker smoke"}).encode(),
   headers={"content-type":"application/json"},
 )

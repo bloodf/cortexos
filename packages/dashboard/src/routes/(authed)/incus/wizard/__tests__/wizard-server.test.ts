@@ -10,10 +10,12 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { actions } from '../+page.server';
 
 // The SvelteKit `Actions` type declares each action as possibly
-// undefined; the test always calls validateStep which is guaranteed
-// to exist. Pull it out once so the test bodies don't have to do
-// `actions.validateStep!` at every call site.
+// undefined; the test always calls these actions which are guaranteed
+// to exist. Pull them out once so the test bodies don't have to do
+// `actions.xxx!` at every call site.
 const validateStep = actions.validateStep!;
+const preflight = actions.preflight!;
+const launch = actions.launch!;
 import { _resetAllBuckets } from '$lib/server/rate-limit';
 import {
   makeFakeEvent,
@@ -229,7 +231,7 @@ describe('incus wizard preflight action', () => {
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
       body: body.toString(),
     });
-    return { ...base, request } as unknown as Parameters<typeof actions.preflight>[0];
+    return { ...base, request } as unknown as Parameters<typeof preflight>[0];
   }
 
   it('returns the preflight report for a valid config', async () => {
@@ -239,7 +241,7 @@ describe('incus wizard preflight action', () => {
       hermes: { enabled: false, proxies: [] },
       network: { bridge: 'incusbr0', tailscale: true, webAccess: false },
     };
-    const res = await actions.preflight(preflightForm(config));
+    const res = await preflight(preflightForm(config));
     const body = res as { ok?: boolean; report?: { ok: boolean } };
     expect(body.ok).toBe(true);
     expect(body.report?.ok).toBe(true);
@@ -252,7 +254,7 @@ describe('incus wizard preflight action', () => {
       hermes: { enabled: false, proxies: [] },
       network: { bridge: 'incusbr0', tailscale: true, webAccess: false },
     };
-    const res = await actions.preflight(preflightForm(config));
+    const res = await preflight(preflightForm(config));
     // The preflight action always returns 200 with a structured report;
     // the launch action is the gate that actually rejects ok:false reports.
     const body = res as { ok?: boolean; report?: { ok: boolean } };
@@ -275,8 +277,8 @@ describe('incus wizard preflight action', () => {
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
       body: '',
     });
-    const event = { ...base, request } as unknown as Parameters<typeof actions.preflight>[0];
-    const res = await actions.preflight(event);
+    const event = { ...base, request } as unknown as Parameters<typeof preflight>[0];
+    const res = await preflight(event);
     expect((res as { status?: number }).status).toBe(400);
   });
 
@@ -297,8 +299,8 @@ describe('incus wizard preflight action', () => {
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
       body: body.toString(),
     });
-    const event = { ...base, request } as unknown as Parameters<typeof actions.preflight>[0];
-    const res = await actions.preflight(event);
+    const event = { ...base, request } as unknown as Parameters<typeof preflight>[0];
+    const res = await preflight(event);
     expect((res as { status?: number }).status).toBe(400);
   });
 });
@@ -321,7 +323,7 @@ describe('incus wizard launch action', () => {
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
       body: body.toString(),
     });
-    return { ...base, request } as unknown as Parameters<typeof actions.launch>[0];
+    return { ...base, request } as unknown as Parameters<typeof launch>[0];
   }
 
   const baseConfig = {
@@ -344,8 +346,8 @@ describe('incus wizard launch action', () => {
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
       body: body.toString(),
     });
-    const event = { ...base, request } as unknown as Parameters<typeof actions.launch>[0];
-    const res = await actions.launch(event);
+    const event = { ...base, request } as unknown as Parameters<typeof launch>[0];
+    const res = await launch(event);
     expect((res as { status?: number }).status).toBe(401);
   });
 
@@ -357,12 +359,12 @@ describe('incus wizard launch action', () => {
     const event = launchForm(baseConfig);
     // Override locals to be the non-admin.
     (event as { locals: unknown }).locals = makeFakeLocals(user, session);
-    const res = await actions.launch(event);
+    const res = await launch(event);
     expect((res as { status?: number }).status).toBe(403);
   });
 
   it('returns 409 when the instance name already exists', async () => {
-    const res = await actions.launch(launchForm({
+    const res = await launch(launchForm({
       ...baseConfig,
       target: { ...baseConfig.target, slug: 'hermes-canary' },
     }));
@@ -370,7 +372,7 @@ describe('incus wizard launch action', () => {
   });
 
   it('seeds a new instance and returns provisioning status for a valid config', async () => {
-    const res = await actions.launch(launchForm({
+    const res = await launch(launchForm({
       ...baseConfig,
       target: { ...baseConfig.target, slug: 'brand-new-instance' },
     }));
@@ -381,7 +383,7 @@ describe('incus wizard launch action', () => {
   });
 
   it('returns 400 when preflight fails (unknown image)', async () => {
-    const res = await actions.launch(launchForm({
+    const res = await launch(launchForm({
       ...baseConfig,
       target: { ...baseConfig.target, slug: 'preflight-fail-launch' },
       image: { ...baseConfig.image, alias: 'unknown/99' },
@@ -404,8 +406,8 @@ describe('incus wizard launch action', () => {
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
       body: '',
     });
-    const event = { ...base, request } as unknown as Parameters<typeof actions.launch>[0];
-    const res = await actions.launch(event);
+    const event = { ...base, request } as unknown as Parameters<typeof launch>[0];
+    const res = await launch(event);
     expect((res as { status?: number }).status).toBe(400);
   });
 });

@@ -167,7 +167,7 @@ if [[ -n "${DB_NAME:-}" && -n "${DB_USER:-}" ]]; then
   echo "=== T6: Session persists across dashboard restart (A1) ==="
   # 1. Confirm at least one row in admin_sessions. T1.2 (admin login) and
   #    T1.3 (non-admin login) each wrote a row, so expect ≥ 1.
-  SESS_BEFORE=$(PGPASSWORD="${DB_PASSWORD:-testpass}" psql -h "${DB_HOST:-127.0.0.1}" -p "${DB_PORT:-5432}" -U "$DB_USER" -d "$DB_NAME" -tA -c "SELECT COUNT(*) FROM admin_sessions;" 2>/dev/null | tr -d '[:space:]')
+  SESS_BEFORE=$(PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD is required for session persistence test}" psql -h "${DB_HOST:-127.0.0.1}" -p "${DB_PORT:-5432}" -U "$DB_USER" -d "$DB_NAME" -tA -c "SELECT COUNT(*) FROM admin_sessions;" 2>/dev/null | tr -d '[:space:]')
   if [[ "${SESS_BEFORE:-0}" -ge 1 ]]; then
     PASS=$((PASS + 1))
     echo "  ✓ T6.1 admin_sessions row(s) exist in Postgres (count=$SESS_BEFORE)"
