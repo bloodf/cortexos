@@ -339,9 +339,10 @@ export function revokePendingApproval(
 // ---------------------------------------------------------------------------
 
 /**
- * Seed the two dashboard-launcher rows that mirror
- * `packages/dashboard/migrations/009_hermes_webui_boxbox_seed.sql`.
- * Idempotent — re-runs are a no-op if both slugs are already present.
+ * Seed the three dashboard-launcher rows that mirror
+ * `packages/dashboard/migrations/009_hermes_webui_boxbox_seed.sql` +
+ * `010_memory_os_seed.sql`. Idempotent — re-runs are a no-op if all
+ * slugs are already present.
  *
  * The dev / `npm run dev` flow uses `listDashboardLaunchers()` against
  * this in-memory store, not the Drizzle repo. Without these seeds the
@@ -349,54 +350,81 @@ export function revokePendingApproval(
  * production DB has the rows.
  */
 export function _seedDashboardLaunchers(): void {
-  if (services.some((s) => s.slug === 'hermes-webui-host')) return;
-  createService({
-    slug: 'hermes-webui-host',
-    name: 'Hermes Web UI',
-    kind: 'dashboard-launcher',
-    category: 'Operator Interfaces',
-    description:
-      'Operator-facing UI for the Hermes agent runtime (nesquena/hermes-webui). ' +
-      'Reverse-proxied at /hermes/ via Caddy. Per-profile install is in ' +
-      'prompts/tools/60-incus-project.md step 6.5.',
-    healthUrl: 'http://127.0.0.1:18787/health',
-    healthType: 'http',
-    openUrl: '/hermes/',
-    envSource: null,
-    status: 'unknown',
-    isActive: true,
-    hasWebui: false,
-    showInHealthcheck: true,
-    showInWebui: true,
-    sortOrder: 20,
-    iconType: 'auto',
-    iconColor: null,
-    iconImage: null,
-  });
-  if (services.some((s) => s.slug === 'boxbox-host')) return;
-  createService({
-    slug: 'boxbox-host',
-    name: 'BoxBox',
-    kind: 'dashboard-launcher',
-    category: 'Operator Interfaces',
-    description:
-      'Host-only file manager (jR4dh3y/BoxBox). Reverse-proxied at /files/ via ' +
-      'Caddy with HTTP Basic auth (BoxBox has no native auth). Install per ' +
-      'prompts/tools/30c-boxbox.md.',
-    healthUrl: 'http://127.0.0.1:8200/health',
-    healthType: 'http',
-    openUrl: '/files/',
-    envSource: null,
-    status: 'unknown',
-    isActive: true,
-    hasWebui: false,
-    showInHealthcheck: true,
-    showInWebui: true,
-    sortOrder: 21,
-    iconType: 'auto',
-    iconColor: null,
-    iconImage: null,
-  });
+  if (!services.some((s) => s.slug === 'hermes-webui-host')) {
+    createService({
+      slug: 'hermes-webui-host',
+      name: 'Hermes Web UI',
+      kind: 'dashboard-launcher',
+      category: 'Operator Interfaces',
+      description:
+        'Operator-facing UI for the Hermes agent runtime (nesquena/hermes-webui). ' +
+        'Reverse-proxied at /hermes/ via Caddy. Per-profile install is in ' +
+        'prompts/tools/60-incus-project.md step 6.5.',
+      healthUrl: 'http://127.0.0.1:18787/health',
+      healthType: 'http',
+      openUrl: '/hermes/',
+      envSource: null,
+      status: 'unknown',
+      isActive: true,
+      hasWebui: false,
+      showInHealthcheck: true,
+      showInWebui: true,
+      sortOrder: 20,
+      iconType: 'auto',
+      iconColor: null,
+      iconImage: null,
+    });
+  }
+  if (!services.some((s) => s.slug === 'boxbox-host')) {
+    createService({
+      slug: 'boxbox-host',
+      name: 'BoxBox',
+      kind: 'dashboard-launcher',
+      category: 'Operator Interfaces',
+      description:
+        'Host-only file manager (jR4dh3y/BoxBox). Reverse-proxied at /files/ via ' +
+        'Caddy with HTTP Basic auth (BoxBox has no native auth). Install per ' +
+        'prompts/tools/30c-boxbox.md.',
+      healthUrl: 'http://127.0.0.1:8200/health',
+      healthType: 'http',
+      openUrl: '/files/',
+      envSource: null,
+      status: 'unknown',
+      isActive: true,
+      hasWebui: false,
+      showInHealthcheck: true,
+      showInWebui: true,
+      sortOrder: 21,
+      iconType: 'auto',
+      iconColor: null,
+      iconImage: null,
+    });
+  }
+  if (!services.some((s) => s.slug === 'memory-os-host')) {
+    createService({
+      slug: 'memory-os-host',
+      name: 'Memory OS',
+      kind: 'dashboard-launcher',
+      category: 'Operator Interfaces',
+      description:
+        '7-layer memory operating system for Hermes Agent (Qdrant + Redis + ' +
+        'ARQ + Icarus plugin). See prompts/tools/33-hermes-memory-os.md. ' +
+        'Layered on top of Honcho.',
+      healthUrl: 'http://127.0.0.1:6333/healthz',
+      healthType: 'http',
+      openUrl: '/memory/',
+      envSource: null,
+      status: 'unknown',
+      isActive: true,
+      hasWebui: false,
+      showInHealthcheck: true,
+      showInWebui: true,
+      sortOrder: 22,
+      iconType: 'auto',
+      iconColor: null,
+      iconImage: null,
+    });
+  }
 }
 
 /** Reset the entire stub data store. For tests. */
