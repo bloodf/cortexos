@@ -1,0 +1,49 @@
+# Memory OS — ClaudioDrews/memory-os systemd unit.
+#
+# Rendered by scripts/ops/cortex-render-units.sh which substitutes
+# {CORTEX_ROOT} and {CORTEX_SECRETS_DIR} at deploy time. After rendering,
+# reload systemd:
+#
+#   sudo bash scripts/ops/cortex-render-units.sh cortex-memory-os.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now cortex-memory-os.service
+#
+# Runs `docker compose up -d` from {CORTEX_ROOT}/memory-os/docker (the
+# install dir written by prompts/tools/33-hermes-memory-os.md). The
+# compose file starts 3 services: Qdrant (vector DB, port 6333),
+# Redis (memory-arq queue, port 6379), and the ARQ worker (Python
+# 3.12, custom build). The docker/.env file (written by the upstream
+# setup.sh + overlaid by the install prompt) holds REDIS_PASSWORD,
+# OPENROUTER_API_KEY, and the 9router overrides; the systemd
+# EnvironmentFile mirrors the host-side secrets so 9router reachability
+# can be verified from the host shell.
+#
+# Runs as root because the worker needs to bind 127.0.0.1:6379 and
+# 127.0.0.1:6333 directly on the host loopback, and Docker bind-mounts
+# the host paths. Tighten the User directive to a dedicated
+# unprivileged user in a follow-up if the upstream ever supports a
+# non-root compose profile. The unit is one-shot + RemainAfterExit
+# because the actual work is `docker compose up -d --wait`, not a
+# long-running child process the kernel needs to track (mirrors
+# hermes-webui.service and boxbox.service).
+
+[Unit]
+Description=Memory OS (ClaudioDrews/memory-os) — Qdrant + Redis + ARQ worker
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=root
+Group=root
+WorkingDirectory={CORTEX_ROOT}/memory-os/docker
+EnvironmentFile={CORTEX_SECRETS_DIR}/memory-os.env
+ExecStart=/usr/bin/docker compose --env-file {CORTEX_SECRETS_DIR}/memory-os.env up -d --remove-orphans --wait
+ExecStop=/usr/bin/docker compose --env-file {CORTEX_SECRETS_DIR}/memory-os.env down
+ExecReload=/usr/bin/docker compose --env-file {CORTEX_SECRETS_DIR}/memory-os.env pull && /usr/bin/docker compose --env-file {CORTEX_SECRETS_DIR}/memory-os.env up -d --remove-orphans
+TimeoutStartSec=600
+
+[Install]
+WantedBy=multi-user.target
