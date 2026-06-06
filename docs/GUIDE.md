@@ -26,21 +26,21 @@ Your server is the main computer running everything. It's always on and connecte
 
 ```
 ┌─────────────────────────────────────┐
-│           YOUR SERVER                │
+│           YOUR SERVER               │
 │                                     │
-│  ┌─────────┐  ┌─────────┐         │
-│  │ Docker  │  │ System  │         │
-│  │ Services │  │ Services│         │
-│  └─────────┘  └─────────┘         │
+│  ┌──────────┐  ┌──────────┐        │
+│  │  Docker  │  │  System  │        │
+│  │ Services │  │ Services │        │
+│  └──────────┘  └──────────┘        │
 │                                     │
 │  ┌─────────────────────────────┐   │
-│  │      AI Services             │   │
-│  │   (9Router, Ollama)        │   │
+│  │      AI Services            │   │
+│  │   (9Router, Ollama)         │   │
 │  └─────────────────────────────┘   │
 │                                     │
 │  ┌─────────────────────────────┐   │
-│  │      Databases               │   │
-│  │  (Postgres, MySQL, etc)    │   │
+│  │      Databases              │   │
+│  │  (Postgres, MySQL, etc)     │   │
 │  └─────────────────────────────┘   │
 └─────────────────────────────────────┘
 ```
@@ -72,16 +72,16 @@ Instead of paying per API call, you run AI models locally or through smart routi
 
 ```
 ┌─────────────────────────────────────┐
-│            9Router                    │
-│     (Smart AI Traffic Director)      │
+│            9Router                  │
+│     (Smart AI Traffic Director)     │
 └──────────────┬──────────────────────┘
                │
     ┌──────────┼──────────┐
     │          │          │
     ▼          ▼          ▼
 ┌────────┐ ┌────────┐ ┌────────┐
-│ Claude │ │  GPT   │ │ Gemini  │
-│ (OpenAI)│ │(OpenAI)│ │(Google)│
+│ Claude │ │  GPT   │ │ Gemini │
+│(OpenAI)│ │(OpenAI)│ │(Google)│
 └────────┘ └────────┘ └────────┘
 ```
 
@@ -242,11 +242,11 @@ Tailscale creates a **secure tunnel** between your devices so you can access you
                          INTERNET
                              │
                              ▼
-┌───────────────────────────────────────────────────────────────┐
-│                         CADDY                                  │
-│                    (Reverse Proxy)                              │
-│         Routes traffic, handles HTTPS, security                 │
-└──────────────────────────┬────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                         CADDY                                │
+│                    (Reverse Proxy)                           │
+│         Routes traffic, handles HTTPS, security              │
+└──────────────────────────┬──────────────────────────────────┘
                            │
          ┌─────────────────┼─────────────────┐
          │                 │                 │
@@ -257,21 +257,21 @@ Tailscale creates a **secure tunnel** between your devices so you can access you
 │                 │ │   TOOLS      │ │                 │
 │                 │ │              │ │                 │
 │                 │ │  PHPMyAdmin  │ │                 │
-│                 │ │  MongoExpress │ │                 │
+│                 │ │ MongoExpress │ │                 │
 └─────────────────┘ └──────────────┘ └────────┬──────────┘
-                                            │
-                                            ▼
-                                  ┌──────────────────┐
-                                  │    9ROUTER       │
-                                  │   (AI Gateway)   │
-                                  └────────┬─────────┘
-                                           │
+                                              │
+                                              ▼
+                                    ┌──────────────────┐
+                                    │    9ROUTER       │
+                                    │   (AI Gateway)   │
+                                    └────────┬─────────┘
+                                             │
               ┌──────────────────────────────┼──────────────────────────────┐
               │                              │                              │
               ▼                              ▼                              ▼
       ┌──────────────┐              ┌──────────────┐              ┌──────────────┐
       │   CLAUDE     │              │     GPT      │              │   GEMINI     │
-      │  (Remote)    │              │   (Remote)    │              │  (Remote)    │
+      │  (Remote)    │              │  (Remote)    │              │  (Remote)    │
       └──────────────┘              └──────────────┘              └──────────────┘
               │                              │                              │
               └──────────────────────────────┼──────────────────────────────┘
@@ -283,7 +283,7 @@ Tailscale creates a **secure tunnel** between your devices so you can access you
                                       └──────────────┘
 
                          ┌─────────────────────────────────────┐
-                         │          DATABASES                   │
+                         │          DATABASES                  │
                          │                                     │
                          │  ┌──────────┐  ┌──────────┐        │
                          │  │PostgreSQL│  │  MySQL   │        │
@@ -294,7 +294,7 @@ Tailscale creates a **secure tunnel** between your devices so you can access you
                          └─────────────────────────────────────┘
 
                          ┌─────────────────────────────────────┐
-                         │         MONITORING                   │
+                         │         MONITORING                  │
                          │                                     │
                          │  ┌──────────┐  ┌──────────┐        │
                          │  │Prometheus│  │ Grafana  │        │
