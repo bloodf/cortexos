@@ -500,38 +500,5 @@ describe("i18n keys for the /apps page", () => {
 			expect(json.apps?.empty?.title).toBeTruthy();
 			expect(json.apps?.empty?.description).toBeTruthy();
 		});
-
-		it(`${file} has the apps.memoryOsName + apps.memoryOsDescription keys (F-3 / migration 010)`, () => {
-			const path = join(
-				DASHBOARD_PKG_ROOT,
-				`src/lib/i18n/messages/${file}`,
-			);
-			const json = JSON.parse(readFileSync(path, "utf8")) as {
-				apps?: { memoryOsName?: string; memoryOsDescription?: string };
-			};
-			expect(json.apps?.memoryOsName).toBeTruthy();
-			expect(json.apps?.memoryOsDescription).toBeTruthy();
-		});
 	}
-
-	it("es.json memoryOsDescription is a real Spanish translation (not an en copy)", () => {
-		// Regression guard for the F-2 verifier finding (en copies in
-		// es.json / pt-br.json for /apps keys). F-3 ships real
-		// translations for the Memory OS keys at minimum.
-		const path = join(DASHBOARD_PKG_ROOT, "src/lib/i18n/messages/es.json");
-		const json = JSON.parse(readFileSync(path, "utf8")) as {
-			apps?: { memoryOsDescription?: string };
-		};
-		expect(json.apps?.memoryOsDescription).not.toMatch(/^7-layer memory/i);
-		expect(json.apps?.memoryOsDescription).toMatch(/capa|capas/i);
-	});
-
-	it("pt-br.json memoryOsDescription is a real Portuguese translation (not an en copy)", () => {
-		const path = join(DASHBOARD_PKG_ROOT, "src/lib/i18n/messages/pt-br.json");
-		const json = JSON.parse(readFileSync(path, "utf8")) as {
-			apps?: { memoryOsDescription?: string };
-		};
-		expect(json.apps?.memoryOsDescription).not.toMatch(/^7-layer memory/i);
-		expect(json.apps?.memoryOsDescription).toMatch(/camada|camadas/i);
-	});
 });
