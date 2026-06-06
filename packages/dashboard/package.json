@@ -46,7 +46,7 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/svelte": "^5.2.8",
     "@testing-library/user-event": "^14.6.1",
-    "@types/node": "^22",
+    "@types/node": "^25",
     "@vitest/coverage-v8": "^4.1.6",
     "playwright": "^1.60.0",
     "@types/pg": "^8.11.0",
