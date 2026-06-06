@@ -203,3 +203,8 @@ tmp/
 .gpt/
 .deepseek/
 .grok/
+.agentic/*
+!.agentic/config.json
+!.agentic/findings.md
+!.agentic/session-log/
+!.agentic/session-log/**
