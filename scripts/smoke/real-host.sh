@@ -280,6 +280,31 @@ else
   echo "  ✗ T7.4 /api/terminal ops list contains term.fzf"
 fi
 
+# T7.5 — /api/services lists memory-os-host (F-3, migration 010). The
+# Memory OS launcher is the third dashboard-launcher seed row; the
+# host /memory/ path is Caddy-reverse-proxied to the upstream wiki
+# service (per prompts/tools/33-hermes-memory-os.md).
+if grep -q '"slug":"memory-os-host"' /tmp/services_json; then
+  PASS=$((PASS + 1))
+  echo "  ✓ T7.5 /api/services lists memory-os-host"
+else
+  FAIL=$((FAIL + 1))
+  FAILED_TESTS+=("T7.5 /api/services lists memory-os-host (slug missing from JSON)")
+  echo "  ✗ T7.5 /api/services lists memory-os-host"
+fi
+
+# T7.6 — /apps hydration payload contains memory-os-host. Reuses the
+# /tmp/apps_admin_html fetched for T7.1 (admin GET /apps). The data is
+# embedded as JS object literals (slug:"foo"), not JSON.
+if grep -q 'slug:"memory-os-host"' /tmp/apps_admin_html; then
+  PASS=$((PASS + 1))
+  echo "  ✓ T7.6 /apps hydration payload contains memory-os-host"
+else
+  FAIL=$((FAIL + 1))
+  FAILED_TESTS+=("T7.6 /apps hydration payload contains memory-os-host (slug missing from __sveltekit data blob)")
+  echo "  ✗ T7.6 /apps hydration payload contains memory-os-host"
+fi
+
 # Re-print summary after T7 additions
 echo ""
 echo "================================================"
