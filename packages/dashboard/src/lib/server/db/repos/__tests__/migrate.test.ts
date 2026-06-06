@@ -95,12 +95,13 @@ describe("migration roundtrip", () => {
 		//   007_grants_dashboard_command_audit            — dashboard role grants (M1-WS6)
 		//   008_dashboard_command_audit                   — the table itself (M1.5 follow-up)
 		//   009_hermes_webui_boxbox_seed                  — dashboard-launcher kind + seed (W59)
+		//   010_memory_os_seed                            — Memory OS launcher seed (F-3)
 		// Filenames 004 / 005 are intentionally not used in this branch —
 		// the 002_seed/003_incus/004_reconcile/005_dashboard_command_audit
 		// four-file expectation was authored against a pre-M1.5 state that
 		// has since been superseded by 002_session_columns_for_auth +
 		// 006_indexes_for_rbac_audit + 008_dashboard_command_audit.
-		expect(ran.length).toBe(8);
+		expect(ran.length).toBe(9);
 		expect(ran).toEqual([
 			"001_schema",
 			"002_session_columns_for_auth",
@@ -110,6 +111,7 @@ describe("migration roundtrip", () => {
 			"007_grants_dashboard_command_audit",
 			"008_dashboard_command_audit",
 			"009_hermes_webui_boxbox_seed",
+			"010_memory_os_seed",
 		]);
 	});
 
@@ -126,6 +128,7 @@ describe("migration roundtrip", () => {
 			"007_grants_dashboard_command_audit",
 			"008_dashboard_command_audit",
 			"009_hermes_webui_boxbox_seed",
+			"010_memory_os_seed",
 		]) {
 			expect(applied).toContain(expected);
 		}

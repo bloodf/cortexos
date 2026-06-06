@@ -235,15 +235,77 @@ describe("seeded dashboard-launcher rows", () => {
 });
 
 // ---------------------------------------------------------------------------
+// 2b. Memory OS host (migration 010) — shape tests, mirrors the 009 block
+// ---------------------------------------------------------------------------
+
+describe("seeded Memory OS host row (migration 010)", () => {
+	it("010_memory_os_seed.sql exists in the migrations directory", () => {
+		const path = join(
+			DASHBOARD_PKG_ROOT,
+			"migrations/010_memory_os_seed.sql",
+		);
+		const content = readFileSync(path, "utf8");
+		expect(content).toContain("memory-os-host");
+		expect(content).toContain("dashboard-launcher");
+	});
+
+	it("Memory OS host row is present with kind=dashboard-launcher", async () => {
+		const row = await getServiceBySlug(db, "memory-os-host");
+		expect(row).toBeDefined();
+		expect(row?.kind).toBe("dashboard-launcher");
+	});
+
+	it("Memory OS host openUrl is /memory/ (Caddy reverse-proxy path)", async () => {
+		const row = await getServiceBySlug(db, "memory-os-host");
+		expect(row?.openUrl).toBe("/memory/");
+	});
+
+	it("Memory OS host has has_webui=false (link-out, not in-dashboard)", async () => {
+		const row = await getServiceBySlug(db, "memory-os-host");
+		expect(row?.hasWebui).toBe(false);
+	});
+
+	it("Memory OS host health_url is the Qdrant /healthz endpoint", async () => {
+		const row = await getServiceBySlug(db, "memory-os-host");
+		expect(row?.healthUrl).toBe("http://127.0.0.1:6333/healthz");
+		expect(row?.healthType).toBe("http");
+	});
+
+	it("Memory OS host is active + show_in_healthcheck + show_in_webui", async () => {
+		const row = await getServiceBySlug(db, "memory-os-host");
+		expect(row?.isActive).toBe(true);
+		expect(row?.showInHealthcheck).toBe(true);
+		expect(row?.showInWebui).toBe(true);
+	});
+
+	it("Memory OS host category is 'Operator Interfaces'", async () => {
+		const row = await getServiceBySlug(db, "memory-os-host");
+		expect(row?.category).toBe("Operator Interfaces");
+	});
+
+	it("Memory OS host sort_order is boxbox.sortOrder + 1 (sort tie-breaker)", async () => {
+		const boxbox = await getServiceBySlug(db, "boxbox-host");
+		const memoryOs = await getServiceBySlug(db, "memory-os-host");
+		expect(memoryOs?.sortOrder).toBe((boxbox?.sortOrder ?? 0) + 1);
+	});
+
+	it("seed row description references the install prompt 33-hermes-memory-os.md", async () => {
+		const row = await getServiceBySlug(db, "memory-os-host");
+		expect(row?.description).toMatch(/33-hermes-memory-os\.md/);
+		expect(row?.description).toMatch(/Honcho/);
+	});
+});
+
+// ---------------------------------------------------------------------------
 // 3. listServices kind filter
 // ---------------------------------------------------------------------------
 
 describe("listServices({ kind: 'dashboard-launcher' })", () => {
-	it("returns the two seeded rows and no others", async () => {
+	it("returns the three seeded rows and no others", async () => {
 		const res = await listServices(db, { kind: "dashboard-launcher" });
-		expect(res.total).toBe(2);
+		expect(res.total).toBe(3);
 		const slugs = res.rows.map((r) => r.slug).sort();
-		expect(slugs).toEqual(["boxbox-host", "hermes-webui-host"]);
+		expect(slugs).toEqual(["boxbox-host", "hermes-webui-host", "memory-os-host"]);
 	});
 
 	it("excludes the original seed (postgresql, caddy, grafana) when kind-filtered", async () => {
@@ -259,6 +321,7 @@ describe("listServices({ kind: 'dashboard-launcher' })", () => {
 		const slugs = res.rows.map((r) => r.slug);
 		expect(slugs).toContain("hermes-webui-host");
 		expect(slugs).toContain("boxbox-host");
+		expect(slugs).toContain("memory-os-host");
 		expect(slugs).toContain("postgresql");
 	});
 
@@ -289,7 +352,7 @@ describe("listServices({ kind: 'dashboard-launcher' })", () => {
 			pageSize: 1,
 		});
 		expect(res.rows.length).toBe(1);
-		expect(res.total).toBe(2);
+		expect(res.total).toBe(3);
 		// Compute hasMore inline (the repo's PaginatedServices does not
 		// expose hasMore — see db/repos/services.ts:58-63).
 		const hasMore = res.page * res.pageSize < res.total;
@@ -309,10 +372,10 @@ describe("listDashboardLaunchers (stub-data)", () => {
 		_seedDashboardLaunchers();
 	});
 
-	it("returns the two seeded dev launchers", () => {
+	it("returns the three seeded dev launchers", () => {
 		const rows = listDashboardLaunchers();
 		const slugs = rows.map((r) => r.slug).sort();
-		expect(slugs).toEqual(["boxbox-host", "hermes-webui-host"]);
+		expect(slugs).toEqual(["boxbox-host", "hermes-webui-host", "memory-os-host"]);
 	});
 
 	it("returns only rows with kind === 'dashboard-launcher'", () => {
@@ -345,23 +408,24 @@ describe("listDashboardLaunchers (stub-data)", () => {
 		expect(listDashboardLaunchers().find((r) => r.slug === "hermes-webui-host")).toBeUndefined();
 	});
 
-	it("sorts by sortOrder ascending (Hermes Web UI host comes before BoxBox host)", () => {
+	it("sorts by sortOrder ascending (Hermes Web UI < BoxBox < Memory OS)", () => {
 		const rows = listDashboardLaunchers();
 		expect(rows[0]?.slug).toBe("hermes-webui-host");
 		expect(rows[1]?.slug).toBe("boxbox-host");
+		expect(rows[2]?.slug).toBe("memory-os-host");
 	});
 
 	it("is idempotent — calling _seedDashboardLaunchers twice does not duplicate rows", () => {
 		_seedDashboardLaunchers();
 		_seedDashboardLaunchers();
-		expect(listDashboardLaunchers().length).toBe(2);
+		expect(listDashboardLaunchers().length).toBe(3);
 	});
 
-	it("is idempotent after _resetStubData — re-seeding restores the canonical two rows", () => {
+	it("is idempotent after _resetStubData — re-seeding restores the canonical three rows", () => {
 		_resetStubData();
 		expect(listDashboardLaunchers().length).toBe(0);
 		_seedDashboardLaunchers();
-		expect(listDashboardLaunchers().length).toBe(2);
+		expect(listDashboardLaunchers().length).toBe(3);
 	});
 });
 
@@ -387,7 +451,7 @@ describe("/apps +page.server.ts loader", () => {
 		expect(res).toHaveProperty("launchers");
 		expect(Array.isArray(res.launchers)).toBe(true);
 		const slugs = (res.launchers as { slug: string }[]).map((r) => r.slug).sort();
-		expect(slugs).toEqual(["boxbox-host", "hermes-webui-host"]);
+		expect(slugs).toEqual(["boxbox-host", "hermes-webui-host", "memory-os-host"]);
 	});
 
 	it("returns an empty list when no launchers are seeded (e.g. _resetStubData was called)", async () => {
@@ -436,5 +500,38 @@ describe("i18n keys for the /apps page", () => {
 			expect(json.apps?.empty?.title).toBeTruthy();
 			expect(json.apps?.empty?.description).toBeTruthy();
 		});
+
+		it(`${file} has the apps.memoryOsName + apps.memoryOsDescription keys (F-3 / migration 010)`, () => {
+			const path = join(
+				DASHBOARD_PKG_ROOT,
+				`src/lib/i18n/messages/${file}`,
+			);
+			const json = JSON.parse(readFileSync(path, "utf8")) as {
+				apps?: { memoryOsName?: string; memoryOsDescription?: string };
+			};
+			expect(json.apps?.memoryOsName).toBeTruthy();
+			expect(json.apps?.memoryOsDescription).toBeTruthy();
+		});
 	}
+
+	it("es.json memoryOsDescription is a real Spanish translation (not an en copy)", () => {
+		// Regression guard for the F-2 verifier finding (en copies in
+		// es.json / pt-br.json for /apps keys). F-3 ships real
+		// translations for the Memory OS keys at minimum.
+		const path = join(DASHBOARD_PKG_ROOT, "src/lib/i18n/messages/es.json");
+		const json = JSON.parse(readFileSync(path, "utf8")) as {
+			apps?: { memoryOsDescription?: string };
+		};
+		expect(json.apps?.memoryOsDescription).not.toMatch(/^7-layer memory/i);
+		expect(json.apps?.memoryOsDescription).toMatch(/capa|capas/i);
+	});
+
+	it("pt-br.json memoryOsDescription is a real Portuguese translation (not an en copy)", () => {
+		const path = join(DASHBOARD_PKG_ROOT, "src/lib/i18n/messages/pt-br.json");
+		const json = JSON.parse(readFileSync(path, "utf8")) as {
+			apps?: { memoryOsDescription?: string };
+		};
+		expect(json.apps?.memoryOsDescription).not.toMatch(/^7-layer memory/i);
+		expect(json.apps?.memoryOsDescription).toMatch(/camada|camadas/i);
+	});
 });
