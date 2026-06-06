@@ -22,6 +22,30 @@
  *      and to be the place where audit, approval, and rate-limit live for
  *      the terminal surface.
  *
+ * Terminal ops surfaced by this module (via `listTerminalOps()` →
+ * `listAllowlistedBySurface('terminal')` → the policy's
+ * `installDefaultAllowlist()`):
+ *
+ *   - `term.ps`           — `ps auxf`
+ *   - `term.top`          — `top -b -n 1`
+ *   - `term.df`           — `df -h`
+ *   - `term.read_file`    — `cat <path>`
+ *   - `term.tail_log`     — `journalctl -u <unit> -n <N> --no-pager`
+ *   - `term.exec_named`   — `/bin/sh -c <allowlisted-subcommand>`
+ *   - `term.fzf`          — `fzf <query>`  (W58 — fuzzy-finder CLI)
+ *
+ * The last entry, `term.fzf`, is the operator-facing launcher for the
+ * `junegunn/fzf` binary installed by `prompts/tools/30b-fzf.md`. The
+ * `args.query` placeholder is the optional initial filter; the same
+ * arg-smuggling defence-in-depth check that gates `term.read_file` /
+ * `term.tail_log` / `term.exec_named` also applies to `term.fzf` (see
+ * `__tests__/pty-bridge.test.ts` "term.fzf" cases). The wiring is
+ * indirect: the entry lives in `policy/index.ts` (the canonical
+ * allowlist), the surface projection happens via
+ * `listAllowlistedBySurface('terminal')`, and the Quick-commands
+ * palette in `CommandPalette.svelte:45-46` is `ops.map(...)`-driven
+ * so the op appears without a component change.
+ *
  * PB-2: the rejection of `bash -c <userstring>` is enforced twice.
  *   - At the route level: `allowlistedCommand('bash -c id')` → undefined →
  *     400 (`validationError`).

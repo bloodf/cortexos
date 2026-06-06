@@ -206,39 +206,44 @@ YAML
 
 The host's `${BOXBOX_ROOT}` is bind-mounted to the same path inside the container — BoxBox reads the path verbatim from the JWT + mount config, so the path must be identical on both sides.
 
-### 7. systemd unit (rendered from template)
+### 7. systemd unit (rendered from committed template)
+
+The unit template is committed at `templates/systemd/boxbox.service`
+(per the W61 convention — matching `cortex-dashboard.service` which
+is also committed under `templates/systemd/`). Use the existing
+render flow to substitute `{CORTEX_ROOT}` and `{CORTEX_SECRETS_DIR}`
+from the template into the live `/etc/systemd/system/` tree:
 
 ```bash
-mkdir -p templates/systemd
-cat > templates/systemd/boxbox.service <<'UNIT'
-[Unit]
-Description=BoxBox file manager (jR4dh3y/BoxBox)
-After=docker.service network-online.target
-Requires=docker.service
-Wants=network-online.target
+# 1. Render the template (substitutes the placeholders)
+sudo bash scripts/ops/cortex-render-units.sh boxbox.service
 
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-WorkingDirectory={CORTEX_ROOT}/boxbox
-EnvironmentFile=/opt/cortexos/.secrets/boxbox.env
-ExecStart=/usr/bin/docker compose up -d --remove-orphans --wait
-ExecStop=/usr/bin/docker compose down
-ExecReload=/usr/bin/docker compose pull && /usr/bin/docker compose up -d --remove-orphans
-TimeoutStartSec=120
-
-[Install]
-WantedBy=multi-user.target
-UNIT
-```
-
-Render + enable + start:
-
-```bash
-bash scripts/ops/cortex-render-units.sh boxbox.service
+# 2. Reload systemd, enable + start
 sudo systemctl daemon-reload
-sudo systemctl enable --now boxbox
+sudo systemctl enable --now boxbox.service
+
+# 3. Verify the rendered unit (User + WorkingDirectory must be correct)
+sudo systemctl show boxbox.service -p User -p WorkingDirectory -p EnvironmentFile
+# Expected:
+#   User=cortexos-files
+#   WorkingDirectory=/opt/cortexos/boxbox
+#   EnvironmentFile=/opt/cortexos/.secrets/boxbox.env
 ```
+
+The render script defaults `CORTEX_ROOT` to the repo root it discovers
+from its own path — pass `CORTEX_ROOT=/opt/cortexos` explicitly if
+the repo lives there (the production layout, per the audit-fixes W52
+follow-up). Do NOT hand-edit the rendered unit at
+`/etc/systemd/system/boxbox.service` — re-run the render script on
+any change.
+
+The template body (the canonical source) is at
+`templates/systemd/boxbox.service` in this repo. It runs the docker
+compose wrapper as `User=cortexos-files Group=cortexos-files` so
+even a container escape lands in a process that cannot read
+`/etc/shadow` or other system files. Read the template before
+modifying; the `User`/`Group` directives are load-bearing for the
+least-privilege posture.
 
 ### 8. Caddy reverse-proxy snippet (with basicauth)
 

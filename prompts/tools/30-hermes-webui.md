@@ -151,43 +151,39 @@ YAML
 
 The `127.0.0.1:18787:8787` bind ensures the upstream's Docker-default `0.0.0.0:8787` is overridden to loopback. Adjust `${HERMES_WEBUI_BIND_PORT}` if you changed it.
 
-### 4. systemd unit (rendered from template)
+### 4. systemd unit (rendered from committed template)
 
-The unit is a thin wrapper around `docker compose up` from the install dir. Use the existing render flow:
-
-```bash
-mkdir -p templates/systemd
-cat > templates/systemd/hermes-webui.service <<'UNIT'
-[Unit]
-Description=Hermes Web UI (nesquena/hermes-webui)
-After=docker.service network-online.target
-Requires=docker.service
-Wants=network-online.target
-
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-WorkingDirectory={CORTEX_ROOT}/hermes-webui
-EnvironmentFile=/opt/cortexos/.secrets/hermes-webui.env
-ExecStart=/usr/bin/docker compose up -d --remove-orphans --wait
-ExecStop=/usr/bin/docker compose down
-ExecReload=/usr/bin/docker compose pull && /usr/bin/docker compose up -d --remove-orphans
-TimeoutStartSec=120
-
-[Install]
-WantedBy=multi-user.target
-UNIT
-```
-
-Render + enable + start:
+The unit template is committed at `templates/systemd/hermes-webui.service`
+(per the W61 convention — matching `cortex-dashboard.service` which
+is also committed under `templates/systemd/`). Use the existing render
+flow to substitute `{CORTEX_ROOT}` and `{CORTEX_SECRETS_DIR}` from the
+template into the live `/etc/systemd/system/` tree:
 
 ```bash
-bash scripts/ops/cortex-render-units.sh hermes-webui.service
+# 1. Render the template (substitutes the placeholders)
+sudo bash scripts/ops/cortex-render-units.sh hermes-webui.service
+
+# 2. Reload systemd, enable + start
 sudo systemctl daemon-reload
-sudo systemctl enable --now hermes-webui
+sudo systemctl enable --now hermes-webui.service
+
+# 3. Verify the rendered WorkingDirectory points to the right install dir
+sudo systemctl show hermes-webui.service -p WorkingDirectory
+# Expected: WorkingDirectory=/opt/cortexos/hermes-webui
 ```
 
-The render script substitutes `{CORTEX_ROOT}` from `scripts/ops/cortex-render-units.sh` — confirm the `WorkingDirectory=` line resolves to `/opt/cortexos/hermes-webui` after render (do not hand-edit the rendered unit).
+The render script discovers the repo root from its own path and defaults
+`CORTEX_ROOT` to that — pass `CORTEX_ROOT=/opt/cortexos` explicitly if
+the repo lives there (the production layout, per the audit-fixes W52
+follow-up). Do NOT hand-edit the rendered unit at
+`/etc/systemd/system/hermes-webui.service` — re-run the render script
+on any change.
+
+The template body (the canonical source) is at
+`templates/systemd/hermes-webui.service` in this repo. Read it before
+modifying; the unit is one-shot + RemainAfterExit because the actual
+work is `docker compose up -d --wait`, not a long-running child
+process the kernel needs to track.
 
 ### 5. Caddy reverse-proxy snippet
 
