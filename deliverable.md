@@ -287,6 +287,62 @@ a9e278f  v1.0.0 W57: scripts/incus-create-project.sh — fzf + per-profile Herme
 9cf7b52  v1.0.0 W53: prompts/tools/30-hermes-webui.md — install upstream UI on host + per-profile
 ```
 
+## Track C — Memory OS install prompt (F-1 + F-2 from feasibility)
+
+After the W65 final-report commit and the `research: memory-os
+feasibility` follow-up at `a556f90`, three operational commits
+landed the F-1 + F-2 follow-up items from the feasibility study:
+
+**W66 — `prompts/tools/33-hermes-memory-os.md`** (new, 445 lines):
+the host install prompt for `ClaudioDrews/memory-os` v0.2.0. Pins
+the upstream to commit SHA `4b386e374d84fcfeb635f66fea9d4dcea7c6fd4a`
+(no release tag in GitHub Releases — C-1). The upstream `setup.sh`
+is **NOT** flag-driven (no `--llm-provider` or `--llm-base-url`);
+the prompt documents the `HOME` override pattern so the upstream's
+hardcoded `${HOME}/memory-os`, `${HOME}/.hermes`, and `${HOME}/vault`
+paths land inside the CortexOS tree. Wires 9router via the
+upstream's documented `ICARUS_ENDPOINT` + `ICARUS_API_KEY_ENV`
+provider-agnostic override (`.env.example:72`) — 9router is
+OpenAI-compatible but not OpenRouter, so the default
+`OPENROUTER_API_KEY` flow would route to the wrong host. Uses the
+existing `nomic-embed-text` model on the Vulkan Ollama instance
+(32-honcho.md line 13) for embeddings — no new model, no new key,
+no new cost. Honors C-1 (SHA pin), C-3 (verify section has all 5
+gates), C-4 (layer 7 customization block + per-profile copy),
+C-5 (PB-5 approvals gate already in place from M2 wave 2),
+C-6 (per-profile opt-in default `no`). C-2 (verify Hermes Agent
+plugin discovery from `${HERMES_HOME}/plugins/icarus`) is left
+as a follow-up to the per-profile wiring task (F-3, currently
+Planned in `60-incus-project.md` step 6.7).
+
+**W67 — `templates/systemd/cortex-memory-os.service`** (new, 49
+lines, force-tracked past `.gitignore` per the W52 + W61 + W65
+convention). `Type=oneshot RemainAfterExit=yes` because the actual
+work is `docker compose up -d --wait` (mirrors `hermes-webui.service`
+and `boxbox.service`). Passes `{CORTEX_SECRETS_DIR}/memory-os.env`
+as both `EnvironmentFile` and `--env-file` flag so the 9router
+overrides reach the worker container. `User=root Group=root` for
+now because the worker needs to bind `127.0.0.1:6379` and
+`127.0.0.1:6333` directly on the host loopback; tighten to a
+dedicated unprivileged user in a follow-up if the upstream ever
+supports a non-root compose profile.
+
+**W68 — `prompts/tools/_order.md`** (1 line addition): adds
+`33-hermes-memory-os` between `32-honcho` and `47a-cortex-sandbox`
+in the install order. Memory OS layers on top of Honcho (so
+`after 32`), and the Cortex sandbox is the trust boundary for any
+wiki write-back per C-5 (so `before 47a`). Bumps the file from 30
+to 31 lines; the 30-line cap is descriptive of the prior
+hierarchy, not a hard cap.
+
+```
+c35f4a3  v1.0.0 W68: prompts/tools/_order.md — add 33-hermes-memory-os between 32-honcho and 47a-cortex-sandbox
+f176489  v1.0.0 W67: templates/systemd/cortex-memory-os.service — committed as real file
+816243c  v1.0.0 W66: prompts/tools/33-hermes-memory-os.md — install ClaudioDrews/memory-os on host
+a556f90  research: memory-os feasibility for CortexOS integration
+f3cc55e  v1.0.0 W65: deliverable.md — final report
+```
+
 ## Notes
 
 ### Branch state
