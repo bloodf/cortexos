@@ -18,6 +18,7 @@
 28-db-exporters · postgres/redis/mongo/mysql metrics
 31-9router · OpenAI-compatible model router                 # AI gateway
 32-honcho · memory + knowledge backend
+33-hermes-memory-os · long-term memory (Qdrant + ARQ worker)
 47a-cortex-sandbox · trusted local tool sandbox
 50-obot · MCP gateway platform
 60-incus-project · per-project Incus + Hermes agent        # Per-project
