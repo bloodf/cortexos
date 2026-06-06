@@ -1,0 +1,37 @@
+# BoxBox — jR4dh3y/BoxBox systemd unit.
+#
+# Rendered by scripts/ops/cortex-render-units.sh which substitutes
+# {CORTEX_ROOT} and {CORTEX_SECRETS_DIR} at deploy time. After rendering,
+# reload systemd:
+#
+#   sudo bash scripts/ops/cortex-render-units.sh boxbox.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now boxbox.service
+#
+# Runs as the unprivileged `cortexos-files` OS user (created by
+# prompts/tools/30c-boxbox.md) so even a container escape lands in a
+# process that cannot read /etc/shadow or other system files. The
+# /opt/cortexos-data/files-workspace dir is chown'd to cortexos-files
+# so BoxBox can read+write it. Caddy (configured separately) fronts
+# the /files/* path with HTTP Basic auth — BoxBox has no native auth.
+
+[Unit]
+Description=BoxBox file manager (jR4dh3y/BoxBox)
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=cortexos-files
+Group=cortexos-files
+WorkingDirectory={CORTEX_ROOT}/boxbox
+EnvironmentFile={CORTEX_SECRETS_DIR}/boxbox.env
+ExecStart=/usr/bin/docker compose up -d --remove-orphans --wait
+ExecStop=/usr/bin/docker compose down
+ExecReload=/usr/bin/docker compose pull && /usr/bin/docker compose up -d --remove-orphans
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target
