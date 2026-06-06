@@ -4,7 +4,7 @@
 
 Install the upstream [ClaudioDrews/memory-os](https://github.com/ClaudioDrews/memory-os) stack on the **host** as a long-term memory layer on top of Honcho. The 7-layer architecture — workspace files, sessions, structured facts, Icarus fabric, Qdrant vector db, LLM wiki, ground-truth hierarchy — is wired to the existing 9router (port 11434) + Honcho (port 18690) stack. The Hermes Agent binary at `/usr/local/bin/hermes` (per `60-incus-project.md:132`) loads the Icarus plugin from `${HERMES_HOME}/plugins/icarus` after install.
 
-Background and feasibility evidence: `docs/research/memory-os-feasibility.md` (commit `a556f90`, branch `research/memory-os` — RECOMMENDATION: SWAP IN, layer on top of Honcho, MIT, 881 stars, v0.2.0, 5-day-old repo). The three non-negotiable security conditions from the feasibility study: **pin to commit SHA not `main` (C-1)**, **wire 9router via `ICARUS_ENDPOINT` + `ICARUS_API_KEY_ENV` (the upstream's documented provider-agnostic override, .env.example:72)**, and **wrap any wiki write-back in the existing PB-5 approvals gate (C-5)**.
+Background and feasibility evidence: `docs/research/memory-os-feasibility.md` (commit `a556f90`, branch `research/memory-os` — RECOMMENDATION: SWAP IN, layer on top of Honcho, MIT, 881 stars, v0.2.0, ~5-day-old repo at feasibility-study time). The three non-negotiable security conditions from the feasibility study: **pin to the `v0.2.0` git tag (C-1)**, **wire 9router via `ICARUS_ENDPOINT` + `ICARUS_API_KEY_ENV` (the upstream's documented provider-agnostic override, .env.example:72)**, and **wrap any wiki write-back in the existing PB-5 approvals gate (C-5)**.
 
 > **Important upstream behavior.** `ClaudioDrews/memory-os/setup.sh` is **NOT** flag-driven — there is no `--llm-provider` or `--llm-base-url` flag. The script is opinionated: it clones to `${HOME}/memory-os`, installs the Icarus plugin to `${HOME}/.hermes/plugins/icarus`, and writes a Docker stack to `${HOME}/memory-os/docker/`. It knows about `OPENROUTER_API_KEY` and `OPENROUTER_DS_API_KEY` only — OpenRouter, not 9router. We override `${HOME}` for the duration of the install so the upstream's hardcoded paths land inside the CortexOS tree, then layer the 9router-specific env vars on top after the script finishes.
 
@@ -23,7 +23,7 @@ Background and feasibility evidence: `docs/research/memory-os-feasibility.md` (c
 | --- | --- |
 | Qdrant (vector DB) | `127.0.0.1:6333` |
 | Redis (memory-arq) | `127.0.0.1:6379` |
-| ARQ worker (health) | `127.0.0.1:8080` (per upstream Dockerfile `EXPOSE 8000`; we map to `8080` host-side — see §4) |
+| ARQ worker | (no host-side port; the worker is a pure ARQ worker with `EXPOSE 8000` in the Dockerfile but no `ports:` mapping in the compose file — see §5 step 4) |
 | Stack (cloned repo) | `/opt/cortexos/memory-os` |
 | Icarus plugin | `/opt/cortexos/memory-os/.hermes/plugins/icarus` (per `${HOME}` override) |
 | Memory stack (wiki + fabric) | `/opt/cortexos/memory-os/wiki` |
@@ -32,7 +32,7 @@ Background and feasibility evidence: `docs/research/memory-os-feasibility.md` (c
 
 > **Port conflict (read first).** The upstream `docker-compose.yml` binds `127.0.0.1:6379:6379` and `127.0.0.1:6333:6333`. If the host already has a system Redis on `6379` (15-redis.md), the upstream container's `127.0.0.1:6379` host bind will fail with "port already in use" and the unit will not start. Two resolutions:
 > 1. **Preferred (per feasibility §4):** stop the system Redis, let the upstream's `redis:7-alpine` container own `6379` for the memory-arq workload, and continue. Memory-arq is a private queue (not shared with the dashboard's session-store Redis on a different DB index anyway).
-> 2. **If the system Redis must stay:** edit the upstream `docker-compose.yml` to remap the redis port to e.g. `127.0.0.1:6390:6379` and update `ARQ_REDIS_URL=redis://127.0.0.1:6390/0` in the secrets file. Document the change in the post-install note.
+> 2. **If the system Redis must stay:** edit the upstream `docker-compose.yml` to remap the redis port to e.g. `127.0.0.1:6390:6379` (the upstream's worker reads `REDIS_HOST`/`REDIS_PORT` from the `worker.environment` block in the compose file, so the only change needed is the host port mapping on the redis service). Document the change in the post-install note.
 
 ## Sudo gate
 
@@ -118,14 +118,22 @@ OLLAMA_EMBEDDING_MODEL=nomic-embed-text:latest
 
 # Qdrant + Redis + Worker — consumed by the upstream docker-compose.yml
 # (which expects these keys verbatim per docker/.env)
-QDRANT_URL=http://127.0.0.1:6333
 QDRANT_API_KEY=
-REDIS_URL=redis://:${REDIS_PASSWORD}@127.0.0.1:6379/0
-ARQ_REDIS_URL=redis://:${REDIS_PASSWORD}@127.0.0.1:6379/0
 REDIS_PASSWORD=${REDIS_PASSWORD}
 EMBEDDING_DIMS=4096
 COLLECTION_NAME=knowledge_base
 LOG_LEVEL=INFO
+
+# Host-side Icarus env (documentation; not consumed by the worker or by
+# the Icarus plugin directly). The upstream Icarus plugin reads
+# ICARUS_ENDPOINT / ICARUS_API_KEY_ENV / ICARUS_EXTRACTION_MODEL (set
+# above) and FABRIC_DIR / HERMES_HOME / HERMES_AGENT_NAME (set below).
+# The worker reads QDRANT_HOST / QDRANT_PORT / QDRANT_API_KEY and
+# REDIS_HOST / REDIS_PORT / REDIS_PASSWORD via docker-compose's
+# worker.environment block, not via the Icarus plugin. QDRANT_URL is
+# kept here for operator visibility (curl /health, /collections) and
+# for the host-side smoke test in §5 below.
+QDRANT_URL=http://127.0.0.1:6333
 
 # Memory stack paths (CortexOS layer — overlay on the upstream's ${HOME} defaults)
 VAULT_PATH=/opt/cortexos/memory-os/wiki
@@ -150,34 +158,40 @@ The `ICARUS_ENDPOINT` + `ICARUS_API_KEY_ENV` mechanism is the upstream's documen
 - [ ] Secrets file written to `/opt/cortexos/.secrets/memory-os.env` (mode 0600) with `REDIS_PASSWORD`, `NINEROUTER_API_KEY`, `ICARUS_ENDPOINT`, `ICARUS_API_KEY_ENV`, `ICARUS_EXTRACTION_MODEL`
 - [ ] `${MEMORY_OS_INSTALL_PATH}` does not exist or is empty
 - [ ] `/opt/cortexos/data/memory-os` does not exist or is empty
-- [ ] Cloned the upstream `ClaudioDrews/memory-os` repo at the pinned commit SHA `4b386e374d84fcfeb635f66fea9d4dcea7c6fd4a` (NOT `main` — C-1 from the feasibility study)
+- [ ] Cloned the upstream `ClaudioDrews/memory-os` repo at the pinned tag `v0.2.0` (resolves to commit SHA `4b386e374d84fcfeb635f66fea9d4dcea7c6fd4a`; NOT `main` — C-1 from the feasibility study)
 - [ ] Ran `setup.sh` with `HOME=${MEMORY_OS_INSTALL_PATH}` so upstream's hardcoded `${HOME}` paths land inside the CortexOS tree
 - [ ] Overlaid the 9router-specific env vars on `docker/.env` (so the worker's `OPENROUTER_API_KEY` slot gets the `NINEROUTER_API_KEY` value, and the worker reads `ICARUS_ENDPOINT` from the env it inherits from the systemd EnvironmentFile)
 - [ ] `templates/systemd/cortex-memory-os.service` committed (force-tracked past `.gitignore` per the W52 + W61 + W65 convention) and rendered via `scripts/ops/cortex-render-units.sh cortex-memory-os.service`
 - [ ] `systemctl enable --now cortex-memory-os.service` — Qdrant + Redis + worker containers up
-- [ ] CHECKPOINT 2 — Qdrant /health, Redis PING, ARQ worker `/health` all 200
+- [ ] CHECKPOINT 2 — Qdrant `/health` 200, Redis PING, ARQ worker container shows `health=healthy` in `docker ps`
 - [ ] Drop a test fact via the memory-os CLI and confirm Qdrant returns it via vector search
 - [ ] If `MEMORY_OS_PER_PROFILE=yes`, run the per-profile block in `prompts/tools/60-incus-project.md` step 6.7 (per F-3 from the feasibility study; that step is currently Planned, not shipped)
 
 ## Install (host)
 
-### 1. Clone the upstream at a pinned commit (C-1)
+### 1. Clone the upstream at a pinned tag (C-1)
 
 ```bash
 sudo install -d -m 0755 -o root -g root "${MEMORY_OS_INSTALL_PATH}"
 sudo chown -R "$USER":"$USER" "${MEMORY_OS_INSTALL_PATH}"
 
+# Clone + check out the v0.2.0 tag (resolves to commit SHA 4b386e37).
+# Per the feasibility study's C-1 condition: "pin to tag `v0.2.0` (not
+# `main`)". The upstream has git tags (v0.1.0, v0.2.0) but no GitHub
+# Release notes — the two are independent: a git tag is a ref pointer,
+# a GitHub Release is a packaged tarball + notes. We pin the git tag
+# because the install needs the source tree, not a tarball.
 git clone https://github.com/ClaudioDrews/memory-os "${MEMORY_OS_INSTALL_PATH}"
-(cd "${MEMORY_OS_INSTALL_PATH}" && git checkout 4b386e374d84fcfeb635f66fea9d4dcea7c6fd4a)
+(cd "${MEMORY_OS_INSTALL_PATH}" && git checkout v0.2.0)
 ```
 
-The SHA pins the install to the v0.2.0 release the feasibility study was written against. C-1 from the feasibility: "pin to tag `v0.2.0` + commit SHA (not `main`)". The upstream has no release tag in GitHub Releases — `main` is the only available ref, hence the SHA pin.
-
-Verify the checkout is the expected commit:
+Verify the checkout is the expected commit (the `v0.2.0` tag is an annotated tag that resolves to commit `4b386e37`):
 
 ```bash
 (cd "${MEMORY_OS_INSTALL_PATH}" && git rev-parse HEAD)
 # Expected: 4b386e374d84fcfeb635f66fea9d4dcea7c6fd4a
+(cd "${MEMORY_OS_INSTALL_PATH}" && git describe --tags --exact-match HEAD)
+# Expected: v0.2.0
 ```
 
 ### 2. Run the upstream `setup.sh` with `HOME` override
@@ -321,10 +335,20 @@ docker exec -i $(docker ps --filter label=com.docker.compose.project=memory-os \
   redis-cli -a "$(grep ^REDIS_PASSWORD= /opt/cortexos/.secrets/memory-os.env | cut -d= -f2-)" ping
 # Expected: PONG
 
-# 4. ARQ worker is running and accepted its startup check
-docker logs --tail 50 $(docker ps --filter label=com.docker.compose.project=memory-os \
+# 4. ARQ worker container health — the worker is a pure ARQ worker
+# (no HTTP server, EXPOSE 8000 is documentation only and not mapped to
+# host), so the verify is the container-level HEALTHCHECK
+# (docker/worker/Dockerfile): `redis.ping()` against the in-network
+# redis. The compose sets `healthcheck:` on Qdrant + Redis but NOT on
+# the worker, so the worker relies on `depends_on: { qdrant: service_healthy,
+# redis: service_healthy }` to start after Qdrant + Redis are healthy.
+docker ps --filter label=com.docker.compose.project=memory-os \
   --filter label=com.docker.compose.service=worker \
-  --format '{{.Names}}' | head -1) | grep -E 'Worker starting|collection|Connected to'
+  --format '{{.Names}}\t{{.Status}}'
+# Expected: <worker-name>   Up X minutes (healthy)
+# (If the worker doesn't have a container-level HEALTHCHECK, the Status
+# column reads "Up" without "(healthy)"; in that case the next test
+# (worker can reach Qdrant) is the real liveness gate.)
 
 # 5. Drop a test fact via the memory-os CLI and confirm Qdrant returns it
 # (the upstream ships a setup_db.py for state.db; the fabric-write path is
@@ -421,10 +445,12 @@ Other open upstream concerns tracked in the feasibility study:
    `https://api.github.com/repos/ClaudioDrews/memory-os` for the
    `pushed_at` field — if it goes >30 days, escalate per the
    MONITOR triggers in the feasibility doc.
-2. **No release tag pinning.** The pinned commit SHA
-   `4b386e374d84fcfeb635f66fea9d4dcea7c6fd4a` corresponds to v0.2.0
-   in the README. When the upstream tags a release, migrate the
-   pin from SHA to tag.
+2. **No GitHub Release notes.** The upstream has git tags (`v0.1.0`,
+   `v0.2.0`) but no GitHub Release notes (the `/releases` API returns
+   404). The tags are sufficient for the install pin, but the
+   `CHANGELOG.md` is a separate file inside the repo. Worth a
+   separate upstream issue requesting GitHub Release notes per tag
+   so downstream consumers can read release notes without cloning.
 3. **`setup.sh` shell hardcodes `${HOME}`.** Forces the `HOME`
    override pattern in §2. Worth an upstream issue requesting
    either a `--prefix` flag or env-var-driven path overrides.
