@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Route @pm token to PM labels
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             // Token -> label spec. Each entry matches an `@<role>` mention in
