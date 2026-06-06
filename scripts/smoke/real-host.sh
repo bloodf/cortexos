@@ -221,24 +221,29 @@ echo "================================================"
 # W59 changes) deployed; against an older build they will fail.
 echo "=== T7: /apps launcher + term.fzf (W59/W58) ==="
 
-# T7.1 — admin GET /apps renders the launcher cards (200 + per-card data-testid)
+# T7.1 — admin GET /apps returns the launcher data in the SvelteKit
+# hydration payload (the cards are rendered client-side; curl doesn't
+# execute JS, so the data-testid strings won't appear in the SSR'd
+# HTML body — but the launchers are in the __sveltekit data blob).
+# Note: the data is embedded as JS object literals (slug:"foo"),
+# not JSON — the grep is unquoted on the value side.
 curl -sS -b "$ADMIN_COOKIES" -o /tmp/apps_admin_html -w "%{http_code}" "$BASE/apps" > /tmp/apps_admin
 run "T7.1 GET /apps admin" 200 "$(cat /tmp/apps_admin)"
-if grep -q 'apps-launcher-card-hermes-webui-host' /tmp/apps_admin_html; then
+if grep -q 'slug:"hermes-webui-host"' /tmp/apps_admin_html; then
   PASS=$((PASS + 1))
-  echo "  ✓ T7.1a /apps renders the hermes-webui-host card"
+  echo "  ✓ T7.1a /apps hydration payload contains hermes-webui-host"
 else
   FAIL=$((FAIL + 1))
-  FAILED_TESTS+=("T7.1a /apps renders the hermes-webui-host card (card data-testid not in HTML)")
-  echo "  ✗ T7.1a /apps renders the hermes-webui-host card"
+  FAILED_TESTS+=("T7.1a /apps hydration payload contains hermes-webui-host (slug missing from __sveltekit data blob)")
+  echo "  ✗ T7.1a /apps hydration payload contains hermes-webui-host"
 fi
-if grep -q 'apps-launcher-card-boxbox-host' /tmp/apps_admin_html; then
+if grep -q 'slug:"boxbox-host"' /tmp/apps_admin_html; then
   PASS=$((PASS + 1))
-  echo "  ✓ T7.1b /apps renders the boxbox-host card"
+  echo "  ✓ T7.1b /apps hydration payload contains boxbox-host"
 else
   FAIL=$((FAIL + 1))
-  FAILED_TESTS+=("T7.1b /apps renders the boxbox-host card (card data-testid not in HTML)")
-  echo "  ✗ T7.1b /apps renders the boxbox-host card"
+  FAILED_TESTS+=("T7.1b /apps hydration payload contains boxbox-host (slug missing from __sveltekit data blob)")
+  echo "  ✗ T7.1b /apps hydration payload contains boxbox-host"
 fi
 
 # T7.2 — anon GET /apps is redirected to /login (303 from the (authed) layout)
