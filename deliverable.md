@@ -296,18 +296,18 @@ landed the F-1 + F-2 follow-up items from the feasibility study:
 **W66 — `prompts/tools/33-hermes-memory-os.md`** (new, 445 lines):
 the host install prompt for `ClaudioDrews/memory-os` v0.2.0. Pins
 the upstream to commit SHA `4b386e374d84fcfeb635f66fea9d4dcea7c6fd4a`
-(no release tag in GitHub Releases — C-1). The upstream `setup.sh`
-is **NOT** flag-driven (no `--llm-provider` or `--llm-base-url`);
-the prompt documents the `HOME` override pattern so the upstream's
-hardcoded `${HOME}/memory-os`, `${HOME}/.hermes`, and `${HOME}/vault`
-paths land inside the CortexOS tree. Wires 9router via the
-upstream's documented `ICARUS_ENDPOINT` + `ICARUS_API_KEY_ENV`
-provider-agnostic override (`.env.example:72`) — 9router is
-OpenAI-compatible but not OpenRouter, so the default
+(C-1, see W70 below for the corrected tag-vs-SHA wording). The
+upstream `setup.sh` is **NOT** flag-driven (no `--llm-provider` or
+`--llm-base-url`); the prompt documents the `HOME` override pattern
+so the upstream's hardcoded `${HOME}/memory-os`, `${HOME}/.hermes`,
+and `${HOME}/vault` paths land inside the CortexOS tree. Wires
+9router via the upstream's documented `ICARUS_ENDPOINT` +
+`ICARUS_API_KEY_ENV` provider-agnostic override (`.env.example:72`)
+— 9router is OpenAI-compatible but not OpenRouter, so the default
 `OPENROUTER_API_KEY` flow would route to the wrong host. Uses the
 existing `nomic-embed-text` model on the Vulkan Ollama instance
 (32-honcho.md line 13) for embeddings — no new model, no new key,
-no new cost. Honors C-1 (SHA pin), C-3 (verify section has all 5
+no new cost. Honors C-1 (tag pin), C-3 (verify section has all 5
 gates), C-4 (layer 7 customization block + per-profile copy),
 C-5 (PB-5 approvals gate already in place from M2 wave 2),
 C-6 (per-profile opt-in default `no`). C-2 (verify Hermes Agent
@@ -339,6 +339,79 @@ hierarchy, not a hard cap.
 c35f4a3  v1.0.0 W68: prompts/tools/_order.md — add 33-hermes-memory-os between 32-honcho and 47a-cortex-sandbox
 f176489  v1.0.0 W67: templates/systemd/cortex-memory-os.service — committed as real file
 816243c  v1.0.0 W66: prompts/tools/33-hermes-memory-os.md — install ClaudioDrews/memory-os on host
+a556f90  research: memory-os feasibility for CortexOS integration
+f3cc55e  v1.0.0 W65: deliverable.md — final report
+```
+
+### Track C.1 — Verifier fixes (4 items, post-W65)
+
+The W66–W68 work was auto-rejected with 4 concrete fix items.
+Each is addressed in W70 with the upstream evidence that drove
+the correction. The template (W67), order file (W68), and W66's
+ICARUS_ENDPOINT provider-override decision were all accepted by
+the verifier — the fixes touch W66's prompt only.
+
+**W70 — `prompts/tools/33-hermes-memory-os.md`** (revised, 471
+lines, +26 vs W66): four verifier fix items addressed, plus four
+collateral cleanups surfaced during the re-verify.
+
+1. **Removed `REDIS_URL` + `ARQ_REDIS_URL` from the secrets block.**
+   The upstream's `docker-compose.yml` `worker.environment` reads
+   `REDIS_HOST` + `REDIS_PORT` + `REDIS_PASSWORD` verbatim — neither
+   `REDIS_URL` nor `ARQ_REDIS_URL` is consumed. Verified by reading
+   `docker/worker/main.py` + `docker/docker-compose.yml` at v0.2.0.
+
+2. **Moved `QDRANT_URL` to a separate "host-side Icarus env"
+   block with a corrected comment.** The Icarus plugin
+   (`icarus/hooks.py` + `icarus/state.py` at v0.2.0) reads
+   `ICARUS_ENDPOINT` / `ICARUS_API_KEY_ENV` / `ICARUS_EXTRACTION_MODEL`
+   / `FABRIC_DIR` / `HERMES_HOME` / `HERMES_AGENT_NAME` — it does
+   NOT read `QDRANT_HOST` / `QDRANT_URL` / `REDIS_HOST` / `REDIS_URL`.
+   The worker reads `QDRANT_HOST` / `QDRANT_PORT` / `QDRANT_API_KEY`
+   via the docker-compose `worker.environment` block. `QDRANT_URL`
+   stays in the secrets file for operator visibility (curl
+   /health, /collections) and the host-side smoke test in §5.
+
+3. **Replaced the ARQ worker `/health` step with `docker ps
+   --filter health=healthy`.** The ARQ worker is a pure ARQ worker
+   — the Dockerfile `EXPOSE 8000` is documentation only, with no
+   `ports:` mapping in the compose file. The Dockerfile HEALTHCHECK
+   is an internal `redis.ping()` on the in-network redis (not an
+   HTTP endpoint). The Qdrant + Redis containers have HTTP
+   healthchecks on :6333 and :6379 respectively; the worker relies
+   on `depends_on: service_healthy` to start after them, so
+   `docker ps` is the correct verify surface.
+
+4. **Pinned to the `v0.2.0` git tag (not the W66 "no release tag"
+   wording, which was wrong).** The upstream has git tags `v0.1.0`
+   + `v0.2.0` (verified via `/tags` API on 2026-06-05); `v0.2.0`
+   resolves to commit SHA `4b386e37` — the same SHA W66 was
+   pinning. Git tags and GitHub Releases are independent: a tag
+   is a ref pointer, a Release is a packaged tarball + notes. The
+   install needs the source tree, not a tarball, so the tag pin
+   is correct.
+
+**Collateral cleanups (also in W70):**
+
+- Removed the bogus "ARQ worker (health) | `127.0.0.1:8080`" row
+  from the Ports and paths table (same evidence as fix #3).
+- Removed the `ARQ_REDIS_URL=redis://127.0.0.1:6390/0` line from
+  the Port conflict note (same evidence as fix #1).
+- Updated the preamble "pin to commit SHA not `main`" to "pin to
+  the `v0.2.0` git tag" (fix #4).
+- Added a `git describe --tags --exact-match HEAD` verify step to
+  the clone block (catches the case where a future upstream
+  force-moves the tag and the SHA pin is no longer the tag tip).
+- Replaced the follow-up-issues #2 "no release tag" claim with
+  the more accurate "no GitHub Release notes" (the upstream has
+  tags but no Release notes — two different things).
+
+```
+bc83069  v1.0.0 W70: prompts/tools/33-hermes-memory-os.md — verifier fixes (4 items)
+1d14561  v1.0.0 W69: deliverable.md — Track C report
+c35f4a3  v1.0.0 W68: prompts/tools/_order.md — add 33-hermes-memory-os
+f176489  v1.0.0 W67: templates/systemd/cortex-memory-os.service — committed as real file
+816243c  v1.0.0 W66: prompts/tools/33-hermes-memory-os.md — install ClaudioDrews/memory-os
 a556f90  research: memory-os feasibility for CortexOS integration
 f3cc55e  v1.0.0 W65: deliverable.md — final report
 ```
