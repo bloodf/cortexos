@@ -327,7 +327,7 @@ The research flagged three BoxBox issues to track:
 
 ## Next
 
-→ `prompts/tools/30c-boxbox.md` is the last of the three new install prompts.
+→ `prompts/tools/30d-herdr.md` (agent terminal workspace manager) is next in the developer-experience chain.
 
 → Update `docs/APPS.md` Shipped section to list `BoxBox` and `Hermes Web UI` as new entries. The current `docs/APPS.md` (post-audit-fixes W56) has a Shipped/Planned split — the new tools belong in Shipped once this prompt is in the install order.
 

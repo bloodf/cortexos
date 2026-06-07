@@ -32,6 +32,7 @@ Run these in order. Each prompt file contains step-by-step instructions you copy
 | 30 | [Hermes WebUI](../prompts/tools/30-hermes-webui.md) | Agent operator interface |
 | 30b | [fzf](../prompts/tools/30b-fzf.md) | Fuzzy file/command finder |
 | 30c | [BoxBox](../prompts/tools/30c-boxbox.md) | Web file manager |
+| 30d | [herdr](../prompts/tools/30d-herdr.md) | Agent terminal workspace manager |
 | 31 | [9Router](../prompts/tools/31-9router.md) | AI model gateway |
 | 32 | [Honcho](../prompts/tools/32-honcho.md) | AI memory backend |
 | 33 | [Memory OS](../prompts/tools/33-hermes-memory-os.md) | Long-term AI memory |

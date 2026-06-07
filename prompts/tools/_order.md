@@ -19,6 +19,7 @@
 30-hermes-webui · agent operator UI
 30b-fzf · fuzzy finder
 30c-boxbox · file manager
+30d-herdr · terminal workspace manager for AI coding agents
 31-9router · OpenAI-compatible model router                 # AI gateway
 32-honcho · memory + knowledge backend
 33-hermes-memory-os · long-term memory (Qdrant + ARQ worker)

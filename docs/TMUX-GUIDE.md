@@ -61,12 +61,25 @@ tmux attach -t mysession
 
 ### Copy & Paste
 
+**With the mouse (easiest):**
+
+| Gesture | Action |
+|---------|--------|
+| Drag | Select; on release the text is copied and stays highlighted |
+| Double-click | Select + copy word |
+| Triple-click | Select + copy line |
+| Single click | Clear selection |
+
+The copy lands in the tmux buffer **and** your local clipboard via OSC52 — paste locally with `Cmd+V` / `Ctrl+Shift+V`, or inside tmux with `Ctrl+a ]`.
+
+**With the keyboard:**
+
 ```
-Ctrl+a [                    # Enter copy mode
-Space                      # Start selecting
-Arrow keys               # Move selection
-Enter                    # Copy
-Ctrl+a ]                  # Paste
+Ctrl+a [                   # Enter copy mode
+v                          # Start selecting (vi keys)
+Arrow keys / hjkl          # Move selection
+y or Enter                 # Copy and exit copy mode
+Ctrl+a ]                   # Paste
 ```
 
 ### Scrolling

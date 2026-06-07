@@ -110,6 +110,7 @@ CortexOS installs **25+ tools** across your server. Here's what's included:
 |------|-------------|-------|
 | **fzf** | Fuzzy finder for files and commands | [GitHub](https://github.com/junegunn/fzf) |
 | **BoxBox** | Web-based file manager | [GitHub](https://github.com/jR4dh3y/BoxBox) |
+| **herdr** | Terminal workspace manager for AI coding agents | [Website](https://herdr.dev) |
 
 ### Admin UIs
 | Tool | Description | Links |

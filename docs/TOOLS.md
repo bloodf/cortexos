@@ -33,6 +33,7 @@ Think of this as the app store for your server. Each tool is installed by runnin
 | **Obot** | AI & Agents | MCP (Model Context Protocol) gateway platform | [`prompts/tools/50-obot.md`](../prompts/tools/50-obot.md) | *Internal CortexOS component* |
 | **fzf** | Developer Experience | Fuzzy finder — find files, commands, and history with fuzzy typing | [`prompts/tools/30b-fzf.md`](../prompts/tools/30b-fzf.md) | [GitHub](https://github.com/junegunn/fzf) |
 | **BoxBox** | Developer Experience | Terminal-based file manager | [`prompts/tools/30c-boxbox.md`](../prompts/tools/30c-boxbox.md) | [GitHub](https://github.com/jR4dh3y/BoxBox) |
+| **herdr** | Developer Experience | Terminal workspace manager for AI coding agents | [`prompts/tools/30d-herdr.md`](../prompts/tools/30d-herdr.md) | [Website](https://herdr.dev) |
 | **pgAdmin** | Admin UIs | Web-based PostgreSQL administration panel | [`prompts/tools/56-pgadmin.md`](../prompts/tools/56-pgadmin.md) | [Website](https://pgadmin.org), [GitHub](https://github.com/postgres/pgadmin4) |
 | **RedisInsight** | Admin UIs | Web-based Redis browser and admin tool | [`prompts/tools/57-redisinsight.md`](../prompts/tools/57-redisinsight.md) | [Website](https://redis.io/insight), [GitHub](https://github.com/RedisInsight/RedisInsight) |
 | **Mongo Express** | Admin UIs | Web-based MongoDB admin interface | [`prompts/tools/58-mongo-express.md`](../prompts/tools/58-mongo-express.md) | [GitHub](https://github.com/mongo-express/mongo-express) |
@@ -305,6 +306,17 @@ Observability = "can you see what's happening inside your system?" These tools a
 
 - **Install prompt:** [`prompts/tools/30c-boxbox.md`](../prompts/tools/30c-boxbox.md)
 - **Links:** [GitHub](https://github.com/jR4dh3y/BoxBox)
+
+---
+
+### herdr — Agent Workspace Manager
+
+**What it is:** A terminal workspace manager built for AI coding agents — persistent sessions, workspaces, tabs, panes, git-worktree management, and an agent supervisor in one static binary.
+
+**What it does for you:** Run and supervise multiple coding agents in organized workspaces that survive SSH disconnects. Complements tmux (the operator session layer) with agent-aware workspace tooling, including `herdr worktree` for parallel git worktrees and `herdr agent` for agent lifecycle control.
+
+- **Install prompt:** [`prompts/tools/30d-herdr.md`](../prompts/tools/30d-herdr.md)
+- **Links:** [Website](https://herdr.dev)
 
 ---
 

@@ -36,7 +36,7 @@ RestrictSUIDSGID=yes
 RestrictRealtime=yes
 RestrictNamespaces=yes
 LockPersonality=yes
-MemoryDenyWriteExecute=yes
+# MemoryDenyWriteExecute removed — Node.js/V8 requires executable pages for JIT.
 CapabilityBoundingSet=CAP_NET_BIND_SERVICE CAP_DAC_READ_SEARCH CAP_KILL
 ReadWritePaths={CORTEX_ROOT}/packages/dashboard {CORTEX_ROOT}/logs /run/cortexos
 

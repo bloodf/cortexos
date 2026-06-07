@@ -93,89 +93,31 @@ git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
 
 ### Configuration
 
-**`~/.tmux.conf`**:
+**`~/.tmux.conf`** — the canonical config lives in [`prompts/tools/09-tmux.md`](../prompts/tools/09-tmux.md) (single source of truth; the block there is byte-identical to the deployed `~/.tmux.conf`). Highlights:
+
 ```bash
-# Terminal
+# Terminal capability — true color + extended keys over SSH
 set -g default-terminal "tmux-256color"
-set -ag terminal-overrides ",xterm-256color:RGB"
+set -ga terminal-overrides ",xterm-256color:RGB"
+set -ga terminal-features    ",xterm-256color:extkeys"
+set -g extended-keys on
 
-# Basics
-set -g history-limit 50000
-set -g escape-time 10
-set -g focus-events on
-set -g set-clipboard on
-set -g base-index 1
-setw -g pane-base-index 1
-
-# Mouse mode: click windows, select panes, scroll
+# Mouse: drag copies on release and KEEPS the highlight,
+# double-click = word, triple-click = line, click = clear.
 set -g mouse on
+bind -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-selection-no-clear
+bind -T copy-mode-vi MouseDown1Pane send-keys -X cancel
 
-# VI keys for copy mode
-setw -g mode-keys vi
-bind -T copy-mode-vi v send -X begin-selection
-bind -T copy-mode-vi y send -X copy-selection-and-cancel
+# Clipboard over plain SSH (OSC52, no xclip/X11)
+set -g set-clipboard on
+set -g allow-passthrough on
+set -as terminal-features ',*:clipboard'
 
-# Prefix (Ctrl-a instead of Ctrl-b)
-unbind C-b
-set -g prefix C-a
-bind C-a send-prefix
-
-# Reload config
-bind r source-file ~/.tmux.conf \; display-message "Config reloaded!"
-
-# Split panes (keep current directory)
-bind | split-window -h -c "#{pane_current_path}"
-bind - split-window -v -c "#{pane_current_path}"
-bind c new-window -c "#{pane_current_path}"
-
-# Kill pane/session
-bind x kill-pane
-bind X kill-session
-
-# Session management
-bind N new-session
-bind '$' command-prompt -p "Rename session: " "rename-session '%%'"
-
-# Status bar
-set -g status-position bottom
-set -g status-interval 5
-set -g status-style bg=colour235,fg=white
-set -g status-left "#[bg=colour39,bold] #S #[bg=colour235] "
-set -g status-right "#[fg=colour250] %H:%M | %d %b "
-setw -g window-status-current-format "#[bg=colour39,bold] #I:#W "
-setw -g window-status-format "#[fg=colour241] #I:#W "
-
-# Plugins
-set -g @plugin "tmux-plugins/tpm"
-set -g @plugin "tmux-plugins/tmux-sensible"
-set -g @plugin "tmux-plugins/tmux-resurrect"
-set -g @plugin "tmux-plugins/tmux-continuum"
-set -g @plugin "tmux-plugins/tmux-prefix-highlight"
-set -g @plugin "b0o/tmux-autoreload"
-set -g @plugin "erikw/tmux-powerline"
-set -g @plugin "leohenon/tmux-tab"
-
-# Plugin options
-set -g @continuum-restore "on"
-set -g @continuum-save-interval "15"
-set -g @resurrect-capture-pane-contents "on"
-set -g @resurrect-dir "~/.tmux/resurrect"
-set -g @prefix_highlight_show_copy_mode "on"
-
-# Session save/restore
-set -g @resurrect-save 'S'
-set -g @resurrect-restore 'R'
-
-# tmux-powerline (status bar with segments)
-set -g @tmux-powerline-theme "powerline.default"
-
-# tmux-tab (tab list)
-set -g @tmux_tab_left_separator " "
-set -g @tmux_tab_right_separator " "
-
-# TPM (must be last)
-run "~/.tmux/plugins/tpm/tpm"
+# Prefix Ctrl-a, vi copy mode, | / - splits keeping cwd,
+# resurrect (S/R) + continuum autosave every 15 min, powerline status.
 ```
+
+See the full config in `prompts/tools/09-tmux.md` § "Create tmux configuration".
 
 ### tmux Key Bindings
 
