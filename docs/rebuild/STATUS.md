@@ -14,8 +14,50 @@
 | WP-00 | node-server preset + runtime boot | — | done | claude | (pending) |
 | WP-02 | DB port | — | done | claude | (this commit) |
 | WP-03 | security cores (portable) | WP-02 | done | claude | (this commit) |
-| WP-01 | request core (defineApiRoute, auth/session/csrf/rbac) | WP-02, WP-03 | todo | | |
-| WP-04 | frontend api-client + adapters | — (contract) | todo | | |
+| WP-01 | request core → defineServerFn middleware (see ADR-001) | WP-02, WP-03 | wip | claude | logic ported; transport rework |
+| WP-04 | frontend client → RPC facades (see ADR-001) | — (contract) | wip | claude | scaffolding done; RPC rework |
+
+> **TRANSPORT CORRECTION — read `ADR-001-server-transport.md`.** The framework
+> (`@tanstack/react-start@1.168`) has NO REST/HTTP server routes — only `createServerFn` RPC.
+> WP-01 (defineApiRoute/`/api/*`) and WP-04 (fetch client) are reworked onto server fns; the
+> `01`/`02` REST framing and all Wave-1/2 specs are amended to RPC. **Fan-out of Waves 1 & 2
+> is PAUSED until WP-01/WP-04 are re-proven on the corrected transport.** WP-00/02/03 stand.
+
+### TanStack `/api` route convention (Wave 0 — follow this in Wave 1)
+This installed version (`@tanstack/react-start` ^1.167, `@tanstack/react-router` ^1.170,
+`start-client-core` 1.170, `router-core` 1.171) has **no** `createServerFileRoute` /
+`ServerRoute` export. Server (HTTP) routes are declared on a normal **file route** via the
+`server.handlers` option that `@tanstack/start-client-core/serverRoute` augments onto
+`FilebaseRouteOptionsInterface`:
+
+```ts
+// src/routes/api/<domain>/<name>.ts
+import { createFileRoute } from '@tanstack/react-router';
+import { defineApiRoute } from '@/server/define-api-route';
+
+const core = defineApiRoute({ methods: ['GET','POST'], auth: 'admin', /* ... */ handler });
+
+export const Route = createFileRoute('/api/<domain>/<name>')({
+  server: {
+    handlers: {
+      GET:  ({ request }: { request: Request }) => core(request),
+      POST: ({ request }: { request: Request }) => core(request),
+    },
+  },
+});
+```
+
+- Each method handler receives `{ request: Request, params, pathname, context, next }` and
+  returns `Response | Promise<Response>`. `defineApiRoute` IS the framework-agnostic core
+  (`(request: Request) => Promise<Response>`); the route file just wires it into
+  `server.handlers` per HTTP method.
+- The TanStack Router generator scans `src/routes/api/**` and registers paths in
+  `routeTree.gen.ts` on the next dev/build pass. For a brand-new route file whose path is not
+  yet in the generated registry, call `createFileRoute()` **path-less** (the generator
+  rewrites it to `createFileRoute('/api/...')`) so `tsc` stays green until generation runs —
+  see `src/routes/api/_ping.ts` for the reference.
+- Reference implementation + full pipeline docs: top of
+  `src/server/define-api-route.ts`. Demo route: `src/routes/api/_ping.ts`.
 
 ## Wave 1 — backend domains (PARALLEL; need WP-01+WP-02)
 | WP | Title | Extra deps | Status | Owner | Commit |

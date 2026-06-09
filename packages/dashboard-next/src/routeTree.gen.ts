@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiPingRouteImport } from './routes/api/_ping'
 import { Route as AuthenticatedTerminalRouteImport } from './routes/_authenticated.terminal'
 import { Route as AuthenticatedSystemdRouteImport } from './routes/_authenticated.systemd'
 import { Route as AuthenticatedStorageRouteImport } from './routes/_authenticated.storage'
@@ -57,6 +58,11 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPingRoute = ApiPingRouteImport.update({
+  id: '/api/_ping',
+  path: '/api',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedTerminalRoute = AuthenticatedTerminalRouteImport.update({
@@ -252,6 +258,7 @@ export interface FileRoutesByFullPath {
   '/storage': typeof AuthenticatedStorageRoute
   '/systemd': typeof AuthenticatedSystemdRouteWithChildren
   '/terminal': typeof AuthenticatedTerminalRoute
+  '/api': typeof ApiPingRoute
   '/admin/account': typeof AuthenticatedAdminAccountRoute
   '/admin/alerts': typeof AuthenticatedAdminAlertsRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
@@ -288,6 +295,7 @@ export interface FileRoutesByTo {
   '/storage': typeof AuthenticatedStorageRoute
   '/systemd': typeof AuthenticatedSystemdRouteWithChildren
   '/terminal': typeof AuthenticatedTerminalRoute
+  '/api': typeof ApiPingRoute
   '/admin/account': typeof AuthenticatedAdminAccountRoute
   '/admin/alerts': typeof AuthenticatedAdminAlertsRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
@@ -326,6 +334,7 @@ export interface FileRoutesById {
   '/_authenticated/storage': typeof AuthenticatedStorageRoute
   '/_authenticated/systemd': typeof AuthenticatedSystemdRouteWithChildren
   '/_authenticated/terminal': typeof AuthenticatedTerminalRoute
+  '/api/_ping': typeof ApiPingRoute
   '/_authenticated/admin/account': typeof AuthenticatedAdminAccountRoute
   '/_authenticated/admin/alerts': typeof AuthenticatedAdminAlertsRoute
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
@@ -364,6 +373,7 @@ export interface FileRouteTypes {
     | '/storage'
     | '/systemd'
     | '/terminal'
+    | '/api'
     | '/admin/account'
     | '/admin/alerts'
     | '/admin/audit'
@@ -400,6 +410,7 @@ export interface FileRouteTypes {
     | '/storage'
     | '/systemd'
     | '/terminal'
+    | '/api'
     | '/admin/account'
     | '/admin/alerts'
     | '/admin/audit'
@@ -437,6 +448,7 @@ export interface FileRouteTypes {
     | '/_authenticated/storage'
     | '/_authenticated/systemd'
     | '/_authenticated/terminal'
+    | '/api/_ping'
     | '/_authenticated/admin/account'
     | '/_authenticated/admin/alerts'
     | '/_authenticated/admin/audit'
@@ -457,6 +469,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LoginRoute: typeof LoginRoute
+  ApiPingRoute: typeof ApiPingRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -480,6 +493,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/_ping': {
+      id: '/api/_ping'
+      path: '/api'
+      fullPath: '/api'
+      preLoaderRoute: typeof ApiPingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/terminal': {
@@ -823,6 +843,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
+  ApiPingRoute: ApiPingRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
