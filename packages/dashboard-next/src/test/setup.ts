@@ -4,8 +4,10 @@ import { cleanup } from "@testing-library/react";
 
 afterEach(() => {
   cleanup();
-  localStorage.clear();
-  sessionStorage.clear();
+  // Guard for node-environment tests (server/db specs use
+  // `// @vitest-environment node`, where these globals are undefined).
+  if (typeof localStorage !== "undefined") localStorage.clear();
+  if (typeof sessionStorage !== "undefined") sessionStorage.clear();
 });
 
 // jsdom shims

@@ -230,6 +230,9 @@ importers:
 
   packages/dashboard-next:
     dependencies:
+      '@cortexos/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.4.0(react-hook-form@7.78.0(react@19.2.7))
@@ -347,6 +350,9 @@ importers:
       date-fns:
         specifier: ^4.1.0
         version: 4.4.0
+      drizzle-orm:
+        specifier: ^0.36.0
+        version: 0.36.4(@electric-sql/pglite@0.2.17)(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(@types/react@19.2.14)(pg@8.21.0)(react@19.2.7)
       embla-carousel-react:
         specifier: ^8.6.0
         version: 8.6.0(react@19.2.7)
@@ -356,6 +362,9 @@ importers:
       lucide-react:
         specifier: ^0.575.0
         version: 0.575.0(react@19.2.7)
+      pg:
+        specifier: ^8.20.0
+        version: 8.21.0
       react:
         specifier: 19.2.7
         version: 19.2.7
@@ -402,6 +411,9 @@ importers:
         specifier: ^3.24.2
         version: 3.25.76
     devDependencies:
+      '@electric-sql/pglite':
+        specifier: ^0.2.0
+        version: 0.2.17
       '@eslint/js':
         specifier: ^9.32.0
         version: 9.39.4
@@ -420,6 +432,9 @@ importers:
       '@types/node':
         specifier: ^22.16.5
         version: 22.19.19
+      '@types/pg':
+        specifier: ^8.11.0
+        version: 8.20.0
       '@types/react':
         specifier: ^19.2.0
         version: 19.2.14
