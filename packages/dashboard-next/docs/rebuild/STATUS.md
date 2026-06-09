@@ -20,3 +20,94 @@
 | WP-39 | Alerts UI — wire real data | **done** | /alerts wired to listAlerts + alertHistory via api.alerts.{rules,history,rulesList,historyList}; admin/alerts wired to createAlert/patchAlert/deleteAlert with session-bound CSRF; inline DB-row→mock-shape mappers (toAlertRuleRow/toAlertHistoryRow) in client.ts; skeleton/empty/error states on all three tabs (timeline, history, rules); no mock data fabricated |
 | WP-38 | Approvals + Audit UI — wire real data | **done** | /approvals wired to listApprovals (all statuses); grant → callGrantApproval RPC; revoke → callRevokeApproval RPC; session-bound CSRF via gate middleware; skeleton/loading/error states; /audit wired to listAudit (server-paginated via DataTable server prop); chain verify → callVerifyAudit (runs on mount, refreshes every 5 min); chain badge shows valid/broken/loading; inline mappers toPendingApprovalRow + toAuditEntryRow in client.ts; no mock data fabricated |
 | WP-37 | Mail Guardian UI — wire real data | **done** | reviews two-pane → listReviews RPC (api.mail/mailList); flag/approve → callFlagReview/callApproveReview with session-bound CSRF; batch → callBatchDecision with CSRF; accounts tab → callListMailAccounts/callCreateMailAccount/callUpdateMailAccount/callDeleteMailAccount with CSRF; skeleton/empty/error states; optimistic updates with cache invalidation; adapter maps DB hashes → display shape (summary→subject/body, modelVerdict+confidence→risk, ownerDecision+resolvedAt→status); no mock data fabricated |
+| WP-19 | Interactive terminal PTY (live shell) | **blocked (documented-wip)** | Named-op exec path is **done + real** (`src/lib/api/terminal.functions.ts` + `src/server/terminal/pty-bridge.ts` `dispatch`, admin-gated, allowlisted, fixed argv, no shell injection). The **live interactive shell stays mocked** in `src/features/Terminal.tsx`. Blocked on transport: this exact stack (TanStack Start `@tanstack/react-start@1.168`, Nitro `node-server` `3.0.260429-beta`) exposes **no registrable WS/SSE route** for an xterm bridge, and a real TTY needs the **native `node-pty`** addon which is not in the dependency set (needs the build allowlist + maintainer action). Detailed investigation below. |
+
+---
+
+## WP-19 — Interactive PTY transport investigation (2026-06)
+
+**Goal:** wire a real allowlisted interactive PTY that the xterm UI
+(`src/features/Terminal.tsx`) connects to over a streaming transport.
+
+**Outcome: still blocked.** No supported streaming transport exists in this
+exact build. The named-op POST path is real and shipping; the interactive shell
+remains a frontend mock. The production build stays GREEN and `.output/server/index.mjs`
+still boots — all probe changes were reverted (no diff left in the repo).
+
+### Streaming-option research (in priority order)
+
+**1. Nitro WebSocket — present in the runtime, but NOT registrable here.**
+Nitro 3 supports WebSockets via `crossws` + `defineWebSocketHandler` in
+file-based `routes/*.ts`, enabled by `features: { websocket: true }`
+(`node_modules/nitro/dist/docs/0.docs/14.websocket.md`). Empirically verified
+against this build:
+
+  - Setting `nitro: { preset: "node-server", features: { websocket: true } }` in
+    `vite.config.ts` (the lovable wrapper forwards the `nitro` object straight to
+    `nitro/vite`, confirmed in `@lovable.dev/vite-tanstack-config/dist/index.cjs`)
+    **builds GREEN** and bundles `crossws` + a `handleUpgrade` listener into
+    `.output/server/index.mjs`. A raw WS upgrade to any path returns **HTTP 101**.
+  - BUT the upgrade resolves hooks via `resolveWebsocketHooks(req)` →
+    `serverFetch(req).crossws` (see the node-server preset runtime). That request
+    is dispatched through **TanStack Start's** SSR handler (`src/server.ts` is the
+    Nitro `server.entry`), which never sets `response.crossws`. So the 101 is
+    accepted with **empty hooks** — no `open`/`message`/`close`, no PTY bridge.
+  - **Nitro's own file-based scanning is inactive in this TanStack build.** Probe
+    files `routes/_ws.ts`, `api/_probe.ts`, and `plugins/_probe.ts` at the project
+    root were **none of them bundled** (verified by grepping `.output` for unique
+    markers — zero hits). TanStack Start owns the single server entry; Nitro only
+    bundles that entry and does not run `scanHandlers`/`scanPlugins`.
+  - **TanStack Start `@1.168` has no WS/server-route/SSE API.** `start-server-core@1.169`
+    exports no `ServerRoute` / `createServerFileRoute` / `createEventStream` /
+    `eventStream`, and contains zero `crossws`/`websocket`/`upgrade` references in
+    its compiled handler. There is no supported seam to attach `.crossws` hooks or
+    to register a streaming route without forking TanStack's request handler or
+    hooking the Nitro boot via undocumented globals (`globalThis.__nitro__`) from
+    inside `src/server.ts` — both rejected as too risky for a live prod service.
+
+  Conclusion: a Nitro WS endpoint is **not reachable** in this stack today. It
+  would become viable if (a) TanStack Start adds server-route / WS support, or
+  (b) the build moves to a plain Nitro app (without TanStack owning the entry) so
+  Nitro's `routes/` scanning + `features.websocket` take effect.
+
+**2. `node-pty` (real TTY) — native addon, NOT added.** A full TTY (resize,
+job control, color, line editing) needs `node-pty`. Per instructions it was NOT
+added to `package.json`. `spawnPty()` in `pty-bridge.ts` is already written
+(allowlisted shells `/bin/bash|/bin/sh|/usr/bin/bash|/usr/bin/zsh`, fixed empty
+argv, lazy dynamic `import("node-pty")`) and throws `pty_unavailable` until the
+dep + a transport land.
+
+  - **Dependency needed (maintainer action):** add `node-pty` to
+    `packages/dashboard-next/package.json` dependencies, version **`node-pty@^1.0.0`**
+    (latest stable; prebuilt N-API binaries for Node 22). It is a **native addon**
+    (`.node`), so it also needs the pnpm build allowlist:
+    `pnpm.onlyBuiltDependencies` must include `node-pty` (configure at the
+    **workspace root** `package.json`, not the package — pnpm warns the
+    package-level field is ignored).
+  - **A `child_process` pipe fallback (no TTY) is NOT wirable today** either —
+    not because of the dep, but because of option 1: there is no streaming
+    transport to carry the pipe's stdout/stdin to the browser. Even the
+    no-TTY fallback is gated on a WS/SSE route this stack cannot expose.
+
+**3. Security model (already enforced, ready for the PTY when transport lands).**
+The interactive path reuses the same controls as the named-op path and the
+legacy model (`packages/dashboard/src/routes/api/terminal`,
+`docker/[id]/exec`): admin-only gate, allowlisted fixed shells, fixed argv (no
+`spawn(userInput)`, no `bash -c <userstring>`), per-arg shell-metachar scan via
+`src/server/policy`, and audit on every action. The WS `upgrade` hook would
+gate on the `cortexos_session` cookie via
+`getSessionStore().resolveByToken()` → admin check before any shell spawn.
+
+### What to do next (unblocking, maintainer)
+
+1. Add `node-pty@^1.0.0` to `packages/dashboard-next` deps **and** to the
+   workspace-root `pnpm.onlyBuiltDependencies` allowlist; `pnpm install`.
+2. Provide a streaming transport. Options, cheapest first:
+   - Wait for / pull in a TanStack Start version that supports server routes or
+     WebSocket handlers, then register a `defineWebSocketHandler` route.
+   - OR stand up a tiny sidecar WS server (separate port, Caddy-proxied under a
+     path) that imports `spawnPty` from `pty-bridge.ts` and reuses the same
+     session-cookie + policy gate. This avoids touching the TanStack/Nitro entry.
+3. Point the xterm UI (`src/features/Terminal.tsx`) at the WS endpoint and remove
+   the local `run()` mock (replace the `BANNER`/`HELP`/`run` block + `onKey`
+   echo loop with `ws.send`/`term.onData` wiring and a `FitAddon`→resize message).
