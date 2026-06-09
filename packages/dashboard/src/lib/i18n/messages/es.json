@@ -34,7 +34,9 @@
 			"terminal": "Terminal",
 			"alerts": "Alertas",
 			"approvals": "Aprobaciones",
-			"audit": "Registro de auditoría"
+			"audit": "Registro de auditoría",
+			"mailGuardian": "Mail Guardian",
+			"settings": "Settings"
 		}
 	},
 	"login": {
@@ -51,21 +53,49 @@
 		}
 	},
 	"dashboard": {
-		"title": "Bienvenido a CortexOS",
-		"subtitle": "La base M1 está en línea. Los widgets reales llegan en M2."
+		"title": "Resumen",
+		"subtitle": "Estado en vivo del host CortexOS.",
+		"widgets": {
+			"cpu": "CPU",
+			"memory": "Memoria",
+			"storage": "Almacenamiento",
+			"cpuTemp": "Temp CPU",
+			"services": "Servicios",
+			"uptime": "Tiempo activo",
+			"docker": "Docker",
+			"incus": "Incus",
+			"live": "Rendimiento en vivo",
+			"sensors": "Sensores",
+			"processes": "Procesos principales",
+			"network": "Red",
+			"alerts": "Alertas recientes",
+			"drives": "Unidades",
+			"db": "Bases de datos",
+			"mon": "Monitoreo"
+		}
 	},
 	"errors": {
 		"notFound": "Página no encontrada",
 		"serverError": "Error del servidor"
 	},
 	"apps": {
-		"title": "Apps",
-		"description": "Link-out launchers for the operator's day-to-day tools. Each card opens the upstream surface in a new tab — Caddy reverse-proxies the URL on the tailnet.",
-		"openInNewTab": "Open in new tab",
-		"noDescription": "No description.",
+		"title": "Aplicaciones",
+		"description": "Lanzadores de aplicaciones.",
+		"searchPlaceholder": "Buscar apps…",
+		"open": "Abrir",
+		"openInNewTab": "Abrir en nueva pestaña",
+		"noDescription": "Sin descripción.",
+		"favorites": "Favoritas",
+		"allApps": "Todas las apps",
+		"filter": {
+			"all": "Todas",
+			"online": "En línea",
+			"offline": "Fuera de línea",
+			"unknown": "Desconocido"
+		},
 		"empty": {
-			"title": "No apps installed yet",
-			"description": "Run prompts/tools/30-hermes-webui.md and prompts/tools/30c-boxbox.md to install the launcher surfaces; the dashboard's Service catalog seeds them on first boot."
+			"title": "Ninguna app coincide",
+			"description": "Prueba a quitar los filtros."
 		}
 	},
 	"services": {
@@ -119,6 +149,17 @@
 	"docker": {
 		"title": "Docker",
 		"description": "Lista de contenedores en vivo, controles de ciclo de vida, registros y exec.",
+		"tabs": {
+			"containers": "Contenedores",
+			"images": "Imágenes",
+			"volumes": "Volúmenes"
+		},
+		"summary": {
+			"total": "Total",
+			"running": "En ejecución",
+			"paused": "En pausa",
+			"stopped": "Detenidos"
+		},
 		"search": {
 			"placeholder": "Buscar por nombre, imagen o estado…",
 			"label": "Filtrar contenedores",
@@ -133,6 +174,24 @@
 			"state": "Estado",
 			"status": "Estado",
 			"ports": "Puertos"
+		},
+		"images": {
+			"empty": "Ninguna imagen coincide con el filtro actual. Limpia el filtro para ver todas las imágenes.",
+			"table": {
+				"repository": "Repositorio",
+				"tag": "Etiqueta",
+				"size": "Tamaño",
+				"created": "Creada"
+			}
+		},
+		"volumes": {
+			"empty": "Ningún volumen coincide con el filtro actual. Limpia el filtro para ver todos los volúmenes.",
+			"table": {
+				"name": "Nombre",
+				"driver": "Controlador",
+				"mountpoint": "Punto de montaje",
+				"size": "Tamaño"
+			}
 		},
 		"status": {
 			"label": "Estado",
@@ -700,6 +759,46 @@
 			}
 		}
 	},
+	"agents": {
+		"title": "Agentes",
+		"description": "Flota de agentes Hermes.",
+		"search": {
+			"placeholder": "Buscar agentes…",
+			"label": "Filtrar agentes"
+		},
+		"empty": {
+			"title": "No se encontraron agentes",
+			"descriptionNoProfiles": "No se encontraron perfiles de agente.",
+			"descriptionNoMatch": "Ningún agente coincide con el filtro."
+		},
+		"state": {
+			"all": "Todos",
+			"running": "En ejecución",
+			"idle": "Inactivo",
+			"stopped": "Detenido",
+			"error": "Error"
+		},
+		"health": {
+			"healthy": "Saludable",
+			"degraded": "Degradado",
+			"down": "Caído"
+		},
+		"actions": {
+			"start": "Iniciar",
+			"stop": "Detener",
+			"restart": "Reiniciar",
+			"pause": "Pausar",
+			"inspect": "Inspeccionar",
+			"hermesUi": "Hermes UI",
+			"adminOnly": "Requiere rol de administrador"
+		},
+		"inspect": {
+			"title": "Inspeccionar agente",
+			"files": "Archivos"
+		},
+		"errorBanner": "El agente falló — consulta el registro de auditoría.",
+		"auditLink": "registro de auditoría"
+	},
 	"audit": {
 		"title": "Registro de auditoría",
 		"description": "Registro de auditoría append-only con cadena hash de cada acción privilegiada.",
@@ -894,6 +993,12 @@
 			"ok": "Todas las comprobaciones pasaron.",
 			"notOk": "Una o más comprobaciones fallaron."
 		},
+		"sheet": {
+			"overview": "Resumen",
+			"config": "Configuración",
+			"devices": "Dispositivos",
+			"logs": "Registros"
+		},
 		"wizard": {
 			"title": "Nueva instancia Incus",
 			"description": "Cinco pasos: imagen, instancia, red, perfil, revisión.",
@@ -959,5 +1064,82 @@
 				"launching": "Lanzando…"
 			}
 		}
+	},
+	"healthcheck": {
+		"title": "Chequeo de salud",
+		"description": "Sondeos periódicos en todos los servicios registrados.",
+		"period": {
+			"1h": "1h",
+			"24h": "24h",
+			"7d": "7d"
+		},
+		"table": {
+			"service": "Servicio",
+			"category": "Categoría",
+			"status": "Estado",
+			"latency": "Latencia",
+			"type": "Tipo"
+		},
+		"incidentTimeline": "Línea de incidentes",
+		"liveLogStream": "Registro en vivo",
+		"recheckAria": "Volver a comprobar",
+		"empty": "Sin resultados."
+	},
+	"mailGuardian": {
+		"title": "Mail Guardian",
+		"description": "{pending} pendientes · {highRisk} de alto riesgo",
+		"searchPlaceholder": "Buscar cuenta o asunto…",
+		"selectAll": "Seleccionar todo",
+		"selectedCount": "{count} seleccionados",
+		"selectHint": "Selecciona para procesar en lote",
+		"approveSelected": "Aprobar {count}",
+		"flagSelected": "Marcar {count}",
+		"clearSelection": "Borrar selección",
+		"statusAll": "Todos los estados",
+		"statusPending": "Pendientes",
+		"statusResolved": "Resueltos",
+		"riskAll": "Todos los riesgos",
+		"riskLow": "Bajo",
+		"riskMedium": "Medio",
+		"riskHigh": "Alto",
+		"empty": "Ninguna revisión coincide con el filtro actual.",
+		"accountsTitle": "Cuentas monitoreadas",
+		"accountsDescription": "Buzones IMAP que el guardián revisa. Las cuentas de BD tienen prioridad sobre las del entorno por slug.",
+		"accountsEmpty": "No hay cuentas configuradas. Agrega una para empezar a monitorear.",
+		"accountAdd": "Agregar cuenta",
+		"accountEdit": "Editar",
+		"accountDelete": "Eliminar",
+		"accountEnable": "Habilitar",
+		"accountDisable": "Deshabilitar",
+		"accountEnabled": "Habilitada",
+		"accountDisabled": "Deshabilitada",
+		"accountSave": "Guardar",
+		"accountCancel": "Cancelar",
+		"accountSlug": "Slug",
+		"accountAddress": "Dirección",
+		"accountHost": "Servidor",
+		"accountPort": "Puerto",
+		"accountSecure": "TLS",
+		"accountUsername": "Usuario",
+		"accountPassword": "Contraseña",
+		"accountPasswordKeep": "Deja en blanco para conservar la contraseña actual",
+		"accountInbox": "Bandeja de entrada",
+		"accountTrashMailbox": "Buzón de papelera",
+		"accountReviewMailbox": "Buzón de revisión",
+		"accountDeleteConfirm": "¿Eliminar la cuenta \"{slug}\"? Esta acción no se puede deshacer."
+	},
+	"envBrowser": {
+		"title": "Explorador de env",
+		"description": "Explora archivos de entorno permitidos. Los valores están enmascarados por defecto.",
+		"emptyTitle": "No se encontraron archivos env",
+		"emptyDescription": "No se encontraron archivos de entorno en los directorios permitidos.",
+		"filesHeading": "Archivos env",
+		"loading": "Cargando…",
+		"keyCount": "{count} claves",
+		"noEntries": "Sin entradas.",
+		"selectHint": "Selecciona un archivo para ver su contenido.",
+		"reveal": "Revelar valor",
+		"hide": "Ocultar valor",
+		"copy": "Copiar valor"
 	}
 }

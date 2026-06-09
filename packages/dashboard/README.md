@@ -17,7 +17,7 @@ pnpm --filter @cortexos/dashboard dev
 # production build (adapter-node, output ./build)
 pnpm --filter @cortexos/dashboard build
 
-# production preview (port 3080, matches legacy Next.js dashboard)
+# production preview (port 3080, production port)
 pnpm --filter @cortexos/dashboard preview
 
 # type-check
@@ -44,7 +44,7 @@ pnpm --filter @cortexos/dashboard test:e2e
 - **Tailwind 4** with CSS-first config in `src/app.css`; the
   full shadcn token bridge (oklch, sidebar-*, chart-*, success,
   warning) and four brand presets (cortex, teal, emerald, amber)
-  are preserved verbatim from the Next.js globals.
+  are preserved verbatim from the v0.2-era Next.js globals.
 - **Design system** in `src/lib/components/ui/` —
   Button, Card, Input, Label, Select, Tabs, Dialog, Dropdown,
   Table, Toast, Skeleton, EmptyState, StatCard, PageHeader.

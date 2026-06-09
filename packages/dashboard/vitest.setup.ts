@@ -16,6 +16,12 @@ import * as matchers from '@testing-library/jest-dom/matchers';
 // regardless of which expect was already captured.
 expect.extend(matchers);
 
+// Force M2 stub mode for infrastructure bridges in tests (Linux host would
+// otherwise default to real CLI executors and break deterministic tests).
+process.env.CORTEX_INCUS_BRIDGE_REAL = '0';
+process.env.CORTEX_DOCKER_REAL = '0';
+
+
 // jsdom does not implement these — stub them so the components do not crash.
 if (typeof window !== 'undefined') {
   Object.defineProperty(window, 'matchMedia', {

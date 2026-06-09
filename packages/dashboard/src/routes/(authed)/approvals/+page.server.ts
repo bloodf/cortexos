@@ -1,22 +1,14 @@
 /**
  * /approvals — pending approvals list page server load.
  *
- * Returns the pending approvals queue. The page also accepts URL
- * filters: `?action=...`, `?user=...`, `?age=lt1h|lt24h|gt24h|all`
- * so the list is shareable.
- *
- * Admin gate is enforced inline in `load()` — non-admins get a
- * 403. We don't use a per-route layout because the
- * `(authed)/+layout.server.ts` parent already requires an
- * authenticated user; the extra admin check is local to this
- * subtree.
- *
- * Data source: in-memory `stub-data` for M2. M3 will swap to the
- * Drizzle repo (`repos/pending_approvals.ts`) and to `locals.db`.
+ * Returns the pending approvals queue from the DB.
  */
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { listPendingApprovals } from '$lib/server/stub-data';
+import { getDb } from '$lib/server/db/client';
+import { listPendingApprovals } from '$lib/server/db/repos/pending_approvals';
+import type { PendingApproval as DbPendingApproval } from '$lib/server/db/schema';
+import type { PendingApproval } from '$lib/server/entities';
 import {
   adaptApprovalList,
   filterByAgeBucket,
@@ -27,7 +19,6 @@ import {
 
 const VALID_AGE: ReadonlyArray<AgeBucket> = ['all', 'lt1h', 'lt24h', 'gt24h'];
 
-/** Coerce a URL param to one of the valid `AgeBucket` values. */
 function coerceAge(raw: string | null): AgeBucket {
   if (raw && (VALID_AGE as readonly string[]).includes(raw)) {
     return raw as AgeBucket;
@@ -35,12 +26,24 @@ function coerceAge(raw: string | null): AgeBucket {
   return 'all';
 }
 
+/** Bridge DB row (number id, Date timestamps) to entity shape (string id, ISO strings). */
+function toEntity(row: DbPendingApproval): PendingApproval {
+  return {
+    id: String(row.id) as PendingApproval['id'],
+    runId: row.runId,
+    signalName: row.signalName,
+    role: row.role,
+    issueId: row.issueId,
+    reason: row.reason,
+    requestedAt: row.requestedAt instanceof Date ? row.requestedAt.toISOString() : row.requestedAt,
+    timeoutAt: row.timeoutAt instanceof Date ? row.timeoutAt.toISOString() : row.timeoutAt,
+    resolvedAt: row.resolvedAt instanceof Date ? row.resolvedAt.toISOString() : row.resolvedAt,
+    decision: row.decision as PendingApproval['decision'],
+    approver: row.approver,
+  };
+}
+
 export const load: PageServerLoad = async (event) => {
-  // Admin gate (PB-5). The parent (authed) layout already requires
-  // an authenticated user; this check ensures the user is also
-  // cortexos-admin. Non-admins get a 403.
-  // Admin gate (PB-1 + PB-5). The contracts User shape has `isAdmin: boolean`
-  // and `groupMemberships: { name, isAdmin, description? }[]`.
   const user = event.locals.user;
   if (!user) {
     throw error(401, 'Authentication required');
@@ -52,23 +55,18 @@ export const load: PageServerLoad = async (event) => {
     throw error(403, 'Admin access required');
   }
 
-  // URL-driven bootstrap. The list page is the single source of
-  // truth; the components just receive the filter values as props.
   const actionQ = event.url.searchParams.get('action') ?? '';
   const userQ = event.url.searchParams.get('user') ?? '';
   const ageQ = coerceAge(event.url.searchParams.get('age'));
 
-  const all = adaptApprovalList(listPendingApprovals());
+  const db = getDb();
+  const { rows } = await listPendingApprovals(db, { openOnly: false, pageSize: 500 });
+  const all = adaptApprovalList(rows.map(toEntity));
 
-  // The list view shows PENDING + EXPIRED-but-not-resolved rows.
-  // Resolved rows go to /approvals/history.
   const pending = filterByStatus(all, 'pending').concat(
     filterByStatus(all, 'expired'),
   );
 
-  // Apply the free-text filter against the `action` and `user`
-  // query params (the UI exposes them as separate inputs, but the
-  // adapter's combined query covers both).
   const needle = `${actionQ} ${userQ}`.trim();
   const visible = filterByQuery(pending, needle);
   const filtered = filterByAgeBucket(visible, ageQ);
@@ -79,10 +77,6 @@ export const load: PageServerLoad = async (event) => {
     initialAction: actionQ,
     initialUser: userQ,
     initialAge: ageQ,
-    // Cast: the App.PageData declares `session` as required, but
-    // the auth gate ensures `event.locals.session` is non-null on
-    // authed routes — we forward the same value here so the
-    // PageServerLoad satisfies the auto-generated OutputDataShape.
     session: event.locals.session,
   };
 };

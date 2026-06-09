@@ -22,12 +22,12 @@ import {
   _STUB_MARKER,
 } from '$lib/server/docker/bridge';
 import { actionHashFor } from '$lib/server/approval';
-import { getContainerById, getContainerByName } from '$lib/server/docker/stub-data';
+import { getContainerById, getContainerByName } from '$lib/server/docker/real-data';
 import { requireAdmin } from '$lib/server/auth';
 
-function loadContainer(id: string) {
+async function loadContainer(id: string) {
   if (!id) return null;
-  return getContainerById(id) ?? getContainerByName(id);
+  return (await getContainerById(id)) ?? (await getContainerByName(id));
 }
 
 const ALLOWED_SUBCOMMANDS: ReadonlyArray<{ value: string; label: string }> = [
@@ -68,7 +68,7 @@ export const POST: RequestHandler = async ({ params, request, locals, getClientA
       headers: { 'content-type': 'application/json' },
     });
   }
-  const c = loadContainer(id);
+  const c = await loadContainer(id);
   if (!c) {
     return new Response(JSON.stringify({ message: `Container '${id}' not found` }), {
       status: 404,

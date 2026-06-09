@@ -34,6 +34,7 @@
     try {
       const res = await fetch('/api/terminal', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ op: op.op, args }),
       });

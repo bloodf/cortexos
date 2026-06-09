@@ -18,7 +18,9 @@
 	import DataTable from '$lib/components/ui/data-table/DataTable.svelte';
 	import type { Column, SortDir } from '$lib/components/ui/data-table/DataTable.types';
 	import UnitStateBadge from './UnitStateBadge.svelte';
+	import Button from '$lib/components/ui/button/Button.svelte';
 	import { t, type Messages } from '$lib/i18n';
+	import type { UnitActionKind } from '$lib/components/systemd/adapter';
 
 	type Props = {
 		/** The rows to display. The component treats them as read-only. */
@@ -31,6 +33,12 @@
 		initialSort?: { key: string; dir: SortDir };
 		/** Optional className passthrough. */
 		class?: string;
+		/** Whether the current user is an admin (gates action buttons). */
+		isAdmin?: boolean;
+		/** Called when an admin action is triggered for a unit. */
+		onAction?: (action: UnitActionKind, unit: string) => void;
+		/** Disables all action buttons while an action is in flight. */
+		acting?: boolean;
 	};
 
 	let {
@@ -39,6 +47,9 @@
 		pageSize = 25,
 		initialSort,
 		class: className,
+		isAdmin,
+		onAction,
+		acting,
 	}: Props = $props();
 
 	// Column headers resolve through t() so they follow the active
@@ -64,6 +75,16 @@
 			sortable: true,
 			cell: enabledCell,
 		},
+		...(isAdmin
+			? [
+					{
+						key: 'actions',
+						header: t(messages, 'systemd.actions.label'),
+						sortable: false,
+						cell: actionsCell,
+					} as Column<Record<string, unknown>>,
+				]
+			: []),
 	]);
 
 	// Cast at the edge: every column key is a real property of T
@@ -88,6 +109,54 @@
 			? t(messages, 'systemd.status.enabled')
 			: t(messages, 'systemd.status.disabled')}
 	</span>
+{/snippet}
+
+{#snippet actionsCell(row: Record<string, unknown>)}
+	<div class="flex items-center gap-1">
+		<Button
+			size="sm"
+			variant="outline"
+			onclick={() => onAction?.('enable', row.name as string)}
+			disabled={acting || (row.enabled as boolean)}
+		>
+			{t(messages, 'systemd.actions.enable')}
+		</Button>
+		<Button
+			size="sm"
+			variant="outline"
+			onclick={() => onAction?.('disable', row.name as string)}
+			disabled={acting || !(row.enabled as boolean)}
+		>
+			{t(messages, 'systemd.actions.disable')}
+		</Button>
+		{#if row.active === 'active'}
+			<Button
+				size="sm"
+				variant="outline"
+				onclick={() => onAction?.('stop', row.name as string)}
+				disabled={acting}
+			>
+				{t(messages, 'systemd.actions.stop')}
+			</Button>
+		{:else}
+			<Button
+				size="sm"
+				variant="outline"
+				onclick={() => onAction?.('start', row.name as string)}
+				disabled={acting}
+			>
+				{t(messages, 'systemd.actions.start')}
+			</Button>
+		{/if}
+		<Button
+			size="sm"
+			variant="outline"
+			onclick={() => onAction?.('restart', row.name as string)}
+			disabled={acting}
+		>
+			{t(messages, 'systemd.actions.restart')}
+		</Button>
+	</div>
 {/snippet}
 
 <div

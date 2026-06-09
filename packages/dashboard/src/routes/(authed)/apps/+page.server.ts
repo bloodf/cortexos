@@ -1,28 +1,30 @@
 /**
  * /apps — launcher surface server load.
  *
- * Lists every Service catalog entry with `kind = 'dashboard-launcher'`.
- * These are link-out surfaces (Hermes Web UI, BoxBox, ...) that the
- * dashboard surfaces as openable tiles; the click target is the
- * `openUrl` field (a path that Caddy reverse-proxies to the upstream
- * — see `prompts/tools/30-hermes-webui.md` and `30c-boxbox.md`).
+ * Lists the curated apps the operator installed via the CortexOS
+ * prompts that have a user-facing surface — NOT raw host services.
+ * An entry appears when:
+ *   show_in_webui = true   (web-accessible app: grafana, 9router, …)
+ *   OR kind = 'app'        (first-class app entries: nexusgate, …)
+ *   OR kind = 'dashboard-launcher'  (link-out tiles: Hermes WebUI, BoxBox)
  *
- * Data source:
- *   - M2/dev: in-memory `stub-data.listDashboardLaunchers()`.
- *   - M3/prod: Drizzle repo `repos/services.ts listServices({ kind: 'dashboard-launcher' })`
- *     against `locals.db`. Wired the same way `services/+page.server.ts`
- *     is wired — both pages read from the same catalog, just with a
- *     different filter. The migration `009_hermes_webui_boxbox_seed.sql`
- *     seeds the rows on the prod path.
- *
- * RBAC: any authenticated user can list launchers — the entries are
- * public to the same audience as the /services page.
+ * Headless infrastructure (kind = 'service' | 'docker' | 'process'
+ * with show_in_webui = false) belongs on /services, not here.
  */
 import type { PageServerLoad } from './$types';
-import { listDashboardLaunchers } from '$lib/server/stub-data';
+import { getDb } from '$lib/server/db/client';
+import { listServices } from '$lib/server/db/repos/services';
+import { adaptServiceList } from '$lib/components/services/adapter';
+import type { AdapterInput } from '$lib/components/services/adapter';
 
 export const load: PageServerLoad = async () => {
-  return {
-    launchers: listDashboardLaunchers(),
-  };
+	const db = getDb();
+	const { rows } = await listServices(db, { activeOnly: true, pageSize: 500 });
+	const filtered = rows.filter(
+		(r) => r.showInWebui === true || r.kind === 'app' || r.kind === 'dashboard-launcher',
+	);
+
+	return {
+		services: adaptServiceList(filtered as AdapterInput[]),
+	};
 };

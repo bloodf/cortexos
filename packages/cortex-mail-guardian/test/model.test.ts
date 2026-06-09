@@ -1,5 +1,23 @@
-import { describe, expect, it } from "vitest";
-import { shouldAutoTrash, validateClassification } from "../src/model.js";
+import { describe, expect, it, vi } from "vitest";
+
+const generateObjectMock = vi.fn();
+const createOpenAIMock = vi.fn(() => (model: string) => ({ modelId: model }));
+
+vi.mock("ai", () => ({
+	generateObject: (...args: unknown[]) => generateObjectMock(...args),
+}));
+vi.mock("@ai-sdk/openai", () => ({
+	createOpenAI: (...args: unknown[]) => createOpenAIMock(...args),
+}));
+
+const { classifyEmail, shouldAutoTrash, validateClassification } = await import("../src/model.js");
+
+const modelConfig = {
+	baseUrl: "http://localhost:11434/v1",
+	apiKey: "test-key",
+	model: "minimax/MiniMax-M2.7-highspeed",
+	timeoutMs: 5_000,
+};
 
 describe("model decisions", () => {
 	it("auto-trashes only when classifier and verifier meet threshold", () => {
@@ -22,5 +40,51 @@ describe("model decisions", () => {
 
 	it("rejects malformed classifier output", () => {
 		expect(() => validateClassification({ verdict: "maybe", confidence: 1.1 })).toThrow();
+	});
+
+	it("normalizes the model 'ham' verdict to not_spam", () => {
+		expect(validateClassification({ verdict: "ham", confidence: 0.9 }).verdict).toBe("not_spam");
+	});
+});
+
+describe("classifyEmail (Vercel AI SDK wiring)", () => {
+	it("configures the OpenAI-compatible client and returns normalized output", async () => {
+		generateObjectMock.mockReset();
+		createOpenAIMock.mockClear();
+		generateObjectMock.mockResolvedValue({
+			object: { verdict: "ham", confidence: 0.88, reasons: ["expected"], riskSignals: [] },
+		});
+
+		const result = await classifyEmail(modelConfig, {
+			from: "friend@example.com",
+			subject: "lunch",
+			text: "see you at noon",
+		});
+
+		expect(createOpenAIMock).toHaveBeenCalledWith({
+			baseURL: "http://localhost:11434/v1",
+			apiKey: "test-key",
+		});
+		const call = generateObjectMock.mock.calls[0][0] as { model: unknown; schema: unknown; abortSignal: unknown };
+		expect(call.model).toEqual({ modelId: "minimax/MiniMax-M2.7-highspeed" });
+		expect(call.abortSignal).toBeInstanceOf(AbortSignal);
+		expect(result.verdict).toBe("not_spam");
+		expect(result.confidence).toBe(0.88);
+	});
+
+	it("passes a spam verdict straight through", async () => {
+		generateObjectMock.mockReset();
+		generateObjectMock.mockResolvedValue({
+			object: { verdict: "spam", confidence: 0.99, reasons: ["phishing"], riskSignals: ["credential request"] },
+		});
+
+		const result = await classifyEmail(modelConfig, {
+			from: "noreply@scam.test",
+			subject: "verify your account",
+			text: "click here",
+		});
+
+		expect(result.verdict).toBe("spam");
+		expect(result.riskSignals).toEqual(["credential request"]);
 	});
 });

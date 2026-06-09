@@ -43,7 +43,7 @@ import { serviceId, healthSnapshotId, badgeSlug } from '@cortexos/contracts';
  * contracts shape is always complete.
  */
 export interface AdapterInput {
-	id: string;
+	id: string | number;
 	slug: string;
 	name: string;
 	description: string | null;
@@ -54,8 +54,8 @@ export interface AdapterInput {
 	openUrl: string | null;
 	envSource: string | null;
 	status: 'online' | 'offline' | 'unknown' | 'checking' | 'degraded' | string;
-	createdAt: string;
-	updatedAt: string;
+	createdAt: string | Date;
+	updatedAt: string | Date;
 	/** mock-only: probe response time in ms. */
 	responseTime?: number;
 	/** mock-only: icon tint. */
@@ -107,7 +107,8 @@ function toHealthType(t: string): HealthType {
  *  only consistent. */
 const NAMESPACE = '6b1a9c4e-7d2f-4a4b-8c1d-1d4f5a6b7c8d';
 
-function rawIdToUuid(raw: string): ServiceId {
+function rawIdToUuid(raw: string | number): ServiceId {
+	raw = String(raw);
 	// Deterministic 32-hex-character string derived from the id.
 	let h = 0xdeadbeef;
 	for (let i = 0; i < NAMESPACE.length; i++) {
@@ -170,6 +171,8 @@ function toBadgeRef(b: NonNullable<AdapterInput['badges']>[number]): BadgeRef {
  * the downstream type system can rely on the contracts shape.
  */
 export function adaptService(s: AdapterInput): Service {
+	const createdAt = s.createdAt instanceof Date ? s.createdAt.toISOString() : s.createdAt;
+	const updatedAt = s.updatedAt instanceof Date ? s.updatedAt.toISOString() : s.updatedAt;
 	return {
 		id: rawIdToUuid(s.id),
 		slug: s.slug,
@@ -182,7 +185,7 @@ export function adaptService(s: AdapterInput): Service {
 		openUrl: s.openUrl ?? null,
 		envSource: s.envSource ?? null,
 		status: toStatus(s.status),
-		lastCheckAt: s.updatedAt,
+		lastCheckAt: updatedAt,
 		responseMs: s.responseTime && s.responseTime > 0 ? s.responseTime : null,
 		uptime24h: null, // Not exposed by the mock/stub; reserved for M3.
 		icon: toIcon(s),
@@ -192,8 +195,8 @@ export function adaptService(s: AdapterInput): Service {
 		showInHealthcheck: s.showInHealthcheck ?? true,
 		showInWebui: s.showInWebui ?? true,
 		badges: (s.badges ?? []).map(toBadgeRef),
-		createdAt: s.createdAt,
-		updatedAt: s.updatedAt,
+		createdAt,
+		updatedAt,
 	};
 }
 

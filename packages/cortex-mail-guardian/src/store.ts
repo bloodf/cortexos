@@ -1,5 +1,6 @@
 import pg from "pg";
 import type { GuardianConfig } from "./config.js";
+import type { RuleMatch } from "./rules.js";
 
 export interface PendingReviewInput {
 	accountSlug: string;
@@ -28,6 +29,20 @@ export interface QueuedReviewDecision {
 	review_id: number;
 	decision: "spam" | "keep" | "block_sender" | "allow_sender";
 	approver: string;
+}
+
+export interface AccountRow {
+	slug: string;
+	address: string;
+	host: string;
+	port: number;
+	secure: boolean;
+	username: string;
+	password_b64: string;
+	inbox: string;
+	trash_mailbox: string | null;
+	review_mailbox: string;
+	enabled: boolean;
 }
 
 export class GuardianStore {
@@ -67,6 +82,35 @@ export class GuardianStore {
 			  ON mail_guardian_actions (requested_at, id)
 			  WHERE status = 'pending'
 		`);
+		await this.pool.query(`
+			CREATE TABLE IF NOT EXISTS mail_guardian_accounts (
+			  id BIGSERIAL PRIMARY KEY,
+			  slug TEXT NOT NULL UNIQUE,
+			  address TEXT NOT NULL,
+			  host TEXT NOT NULL,
+			  port INTEGER NOT NULL DEFAULT 993,
+			  secure BOOLEAN NOT NULL DEFAULT true,
+			  username TEXT NOT NULL,
+			  password_b64 TEXT NOT NULL,
+			  inbox TEXT NOT NULL DEFAULT 'INBOX',
+			  trash_mailbox TEXT,
+			  review_mailbox TEXT NOT NULL DEFAULT 'INBOX.Cortex Mail Guardian Review',
+			  enabled BOOLEAN NOT NULL DEFAULT true,
+			  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+			  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+			)
+		`);
+	}
+
+	async listAccounts(): Promise<AccountRow[]> {
+		const result = await this.pool.query<AccountRow>(
+			`SELECT slug, address, host, port, secure, username, password_b64,
+			        inbox, trash_mailbox, review_mailbox, enabled
+			 FROM mail_guardian_accounts
+			 WHERE enabled = true
+			 ORDER BY slug`,
+		);
+		return result.rows;
 	}
 
 	async hasProcessed(accountSlug: string, uid: number): Promise<boolean> {
@@ -94,6 +138,20 @@ export class GuardianStore {
 			[[fromHash, domainHash]],
 		);
 		return (result.rowCount ?? 0) > 0;
+	}
+
+	async findRules(fromHash: string, domainHash: string): Promise<RuleMatch[]> {
+		const result = await this.pool.query<{ rule_type: "allow" | "block"; scope: "sender" | "domain" }>(
+			`SELECT rule_type, scope FROM mail_guardian_rules
+			 WHERE (scope = 'sender' AND value_hash = $1)
+			    OR (scope = 'domain' AND value_hash = $2)`,
+			[fromHash, domainHash],
+		);
+		return result.rows.map((row) => ({
+			verdict: row.rule_type === "block" ? "spam" : "ham",
+			scope: row.scope,
+			ruleType: row.rule_type,
+		}));
 	}
 
 	async addRule(ruleType: "allow" | "block", scope: "sender" | "domain", valueHash: string): Promise<void> {

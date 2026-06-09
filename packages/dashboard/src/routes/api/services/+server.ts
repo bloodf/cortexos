@@ -8,10 +8,12 @@
 import { z } from 'zod';
 import { defineRoute } from '$lib/server/route-helper';
 import {
-  createService,
-  listServices,
+  createService as stubCreateService,
+  listServices as stubListServices,
 } from '$lib/server/stub-data';
 import { approvalRequiredError } from '$lib/server/errors/types';
+import { getDb } from '$lib/server/db/client';
+import { listServices as dbListServices } from '$lib/server/db/repos/services';
 
 const ServiceCreateInput = z.object({
   slug: z.string().min(1).max(64).regex(/^[a-z0-9-]+$/, 'slug must be lowercase letters, numbers, and hyphens'),
@@ -31,7 +33,12 @@ export const GET = defineRoute({
   action: 'services.list',
   rateLimit: { limit: 60, windowSec: 60, bucket: 'user' },
   handler: async () => {
-    return { services: listServices() };
+    try {
+      const { rows } = await dbListServices(getDb(), { pageSize: 1000 });
+      return { services: rows };
+    } catch {
+      return { services: stubListServices() };
+    }
   },
 });
 
@@ -54,7 +61,7 @@ export const POST = defineRoute({
       throw approvalRequiredError('services.create.docker', 60);
     }
     void token;
-    const svc = createService({
+    const svc = stubCreateService({
       slug: input.slug,
       name: input.name,
       description: input.description ?? null,

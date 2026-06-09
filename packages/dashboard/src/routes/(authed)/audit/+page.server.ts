@@ -2,19 +2,17 @@
  * /audit — list of audit events, with URL-driven filters.
  *
  * Filter URL parameters (all optional):
- *   ?actor=alice   — substring match on actorUserId
- *   ?surface=auth  — exact match on surface
- *   ?action=auth.login — exact match on action
+ *   ?actor=alice   — substring match on actor
+ *   ?surface=auth  — exact match on source
+ *   ?action=auth.login — exact match on event_type
  *   ?result=success — one of success|failure|denied|error
- *   ?since=ISO8601 — createdAt >= since
- *   ?until=ISO8601 — createdAt <= until
- *
- * The page is admin-gated by the route group's +layout.server.ts.
- * Per THREAT_MODEL §6, audit data may include IPs and sensitive payloads.
+ *   ?since=ISO8601 — occurred_at >= since
+ *   ?until=ISO8601 — occurred_at <= until
  */
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { listAudit } from '$lib/server/audit';
+import { getDb } from '$lib/server/db/client';
+import { listAuditEvents } from '$lib/server/db/repos/audit_events';
 import type { AuditEvent } from '$lib/server/entities';
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d{1,6})?)?(Z|[+-]\d{2}:?\d{2})?)?$/;
@@ -42,35 +40,31 @@ function parseFilters(url: URL) {
 		throw error(400, 'Invalid `until` — expected ISO 8601');
 	}
 
-	const since = sinceParam ? new Date(sinceParam).toISOString() : null;
-	const until = untilParam ? new Date(untilParam).toISOString() : null;
-
-	return { actor, surface, action, result, since, until };
+	return { actor, surface, action, result, since: sinceParam, until: untilParam };
 }
 
-function applyFilters(
-	all: ReadonlyArray<AuditEvent>,
-	f: ReturnType<typeof parseFilters>,
-): AuditEvent[] {
-	let out: AuditEvent[] = all.slice().reverse(); // most recent first
-	if (f.actor) out = out.filter((e) => (e.actorUserId ?? '').includes(f.actor));
-	if (f.surface) out = out.filter((e) => e.surface === f.surface);
-	if (f.action) out = out.filter((e) => e.action === f.action);
-	if (f.result) out = out.filter((e) => e.result === f.result);
-	if (f.since) out = out.filter((e) => e.createdAt >= f.since!);
-	if (f.until) out = out.filter((e) => e.createdAt <= f.until!);
-	return out;
+/** Client-side result filter (audit_log table does not store result). */
+function applyResultFilter(rows: AuditEvent[], result: string | null): AuditEvent[] {
+	if (!result) return rows;
+	return rows.filter((e) => e.result === result);
 }
 
 export const load: PageServerLoad = async ({ url }) => {
 	const filters = parseFilters(url);
-	const all = listAudit();
-	const filtered = applyFilters(all, filters);
+	const db = getDb();
+	const { rows } = await listAuditEvents(db, {
+		actor: filters.actor || undefined,
+		surface: filters.surface || undefined,
+		action: filters.action || undefined,
+		since: filters.since || undefined,
+		until: filters.until || undefined,
+		pageSize: 500,
+	});
+	const filtered = applyResultFilter(rows, filters.result);
 
-	// Distinct values for the filter dropdowns.
 	const surfaceSet = new Set<string>();
 	const actionSet = new Set<string>();
-	for (const e of all) {
+	for (const e of filtered) {
 		surfaceSet.add(e.surface);
 		actionSet.add(e.action);
 	}

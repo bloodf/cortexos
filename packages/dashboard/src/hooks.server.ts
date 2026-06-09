@@ -31,6 +31,7 @@
 
 import type { Handle } from '@sveltejs/kit';
 import { toContractsUser, toContractsSession } from '$lib/server/contracts-bridge';
+import type { ServerInit } from '@sveltejs/kit';
 import {
   clearSessionCookie,
   DEFAULT_SESSION_TTL_MS,
@@ -39,6 +40,16 @@ import {
   getSessionStore,
   setSessionCookie,
 } from '$lib/server/auth';
+import { startHealthScheduler } from '$lib/server/health/scheduler';
+
+/**
+ * Server init — runs once when the Node server boots (NOT during build).
+ * Starts the periodic service-health sweep so the catalog reflects live
+ * status instead of sitting at 'unknown'.
+ */
+export const init: ServerInit = () => {
+  startHealthScheduler();
+};
 
 // ---------------------------------------------------------------------------
 // Security headers — applied to every response (M1-WS2 baseline).

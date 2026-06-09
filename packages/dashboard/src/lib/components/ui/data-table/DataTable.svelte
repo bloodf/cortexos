@@ -33,6 +33,8 @@
     initialSort?: { key: keyof T & string; dir: SortDir };
     /** Custom empty-state snippet. */
     empty?: Snippet;
+    /** Called when a row is clicked. */
+    onRowClick?: (row: T) => void;
     class?: string;
   };
   let {
@@ -41,6 +43,7 @@
     pageSize = 25,
     initialSort,
     empty,
+    onRowClick,
     class: className,
   }: Props = $props();
 
@@ -135,7 +138,10 @@
         </TableRow>
       {:else}
         {#each view as row, i (i)}
-          <TableRow>
+          <TableRow
+            class={onRowClick ? 'cursor-pointer' : undefined}
+            onclick={onRowClick ? () => onRowClick(row as T) : undefined}
+          >
             {#each columns as col (col.key)}
               <TableCell>
                 {#if col.cell}{@render col.cell(row, i)}{:else}{String(row[col.key] ?? '')}{/if}

@@ -123,7 +123,7 @@
       case 0:
         return config.image.alias.length > 0;
       case 1:
-        return /^[a-z][a-z0-9-]{0,62}[a-z0-9]$/.test(config.target.slug);
+        return /^[a-z0-9][a-z0-9-]{0,62}[a-z0-9]$/.test(config.target.slug);
       case 2:
         return config.network.bridge.length > 0;
       case 3:

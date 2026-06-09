@@ -34,7 +34,9 @@
 			"terminal": "Terminal",
 			"alerts": "Alerts",
 			"approvals": "Approvals",
-			"audit": "Audit log"
+			"audit": "Audit log",
+			"mailGuardian": "Mail Guardian",
+			"settings": "Settings"
 		}
 	},
 	"login": {
@@ -51,8 +53,26 @@
 		}
 	},
 	"dashboard": {
-		"title": "Welcome to CortexOS",
-		"subtitle": "M1 foundation is online. Real widgets arrive in M2."
+		"title": "Overview",
+		"subtitle": "Live status of CortexOS host.",
+		"widgets": {
+			"cpu": "CPU",
+			"memory": "Memory",
+			"storage": "Storage",
+			"cpuTemp": "CPU Temp",
+			"services": "Services",
+			"uptime": "Uptime",
+			"docker": "Docker",
+			"incus": "Incus",
+			"live": "Live performance",
+			"sensors": "Sensors",
+			"processes": "Top processes",
+			"network": "Network",
+			"alerts": "Recent alerts",
+			"drives": "Drives",
+			"db": "Databases",
+			"mon": "Monitoring"
+		}
 	},
 	"errors": {
 		"notFound": "Page not found",
@@ -60,12 +80,22 @@
 	},
 	"apps": {
 		"title": "Apps",
-		"description": "Link-out launchers for the operator's day-to-day tools. Each card opens the upstream surface in a new tab — Caddy reverse-proxies the URL on the tailnet.",
+		"description": "App launcher surface.",
+		"searchPlaceholder": "Search apps…",
+		"open": "Open",
 		"openInNewTab": "Open in new tab",
 		"noDescription": "No description.",
+		"favorites": "Favorites",
+		"allApps": "All apps",
+		"filter": {
+			"all": "All",
+			"online": "Online",
+			"offline": "Offline",
+			"unknown": "Unknown"
+		},
 		"empty": {
-			"title": "No apps installed yet",
-			"description": "Run prompts/tools/30-hermes-webui.md and prompts/tools/30c-boxbox.md to install the launcher surfaces; the dashboard's Service catalog seeds them on first boot."
+			"title": "No apps match",
+			"description": "Try clearing filters."
 		}
 	},
 	"services": {
@@ -119,6 +149,17 @@
 	"docker": {
 		"title": "Docker",
 		"description": "Live container list, lifecycle controls, logs, and exec.",
+		"tabs": {
+			"containers": "Containers",
+			"images": "Images",
+			"volumes": "Volumes"
+		},
+		"summary": {
+			"total": "Total",
+			"running": "Running",
+			"paused": "Paused",
+			"stopped": "Stopped"
+		},
 		"search": {
 			"placeholder": "Search by name, image, or state…",
 			"label": "Filter containers",
@@ -133,6 +174,24 @@
 			"state": "State",
 			"status": "Status",
 			"ports": "Ports"
+		},
+		"images": {
+			"empty": "No images match the current filter. Clear the filter to see all images.",
+			"table": {
+				"repository": "Repository",
+				"tag": "Tag",
+				"size": "Size",
+				"created": "Created"
+			}
+		},
+		"volumes": {
+			"empty": "No volumes match the current filter. Clear the filter to see all volumes.",
+			"table": {
+				"name": "Name",
+				"driver": "Driver",
+				"mountpoint": "Mountpoint",
+				"size": "Size"
+			}
 		},
 		"status": {
 			"label": "State",
@@ -700,6 +759,46 @@
 			}
 		}
 	},
+	"agents": {
+		"title": "Agents",
+		"description": "Hermes agent fleet — live status, model, health and direct links to each agent's Hermes UI.",
+		"search": {
+			"placeholder": "Search by name, model or slug…",
+			"label": "Filter agents"
+		},
+		"empty": {
+			"title": "No agents found",
+			"descriptionNoProfiles": "No Hermes agent profiles were found in the scan paths.",
+			"descriptionNoMatch": "No agents match the current filter. Clear the filter to see all agents."
+		},
+		"state": {
+			"all": "All",
+			"running": "Running",
+			"idle": "Idle",
+			"stopped": "Stopped",
+			"error": "Error"
+		},
+		"health": {
+			"healthy": "Healthy",
+			"degraded": "Degraded",
+			"down": "Down"
+		},
+		"actions": {
+			"start": "Start",
+			"stop": "Stop",
+			"restart": "Restart",
+			"pause": "Pause",
+			"inspect": "Inspect",
+			"hermesUi": "Hermes UI",
+			"adminOnly": "Admin role required"
+		},
+		"inspect": {
+			"title": "Inspect agent",
+			"files": "Files"
+		},
+		"errorBanner": "Agent crashed — check the audit log for details.",
+		"auditLink": "audit log"
+	},
 	"audit": {
 		"title": "Audit log",
 		"description": "Append-only hash-chained audit log of every privileged action.",
@@ -894,6 +993,12 @@
 			"ok": "All checks passed.",
 			"notOk": "One or more checks failed."
 		},
+		"sheet": {
+			"overview": "Overview",
+			"config": "Config",
+			"devices": "Devices",
+			"logs": "Logs"
+		},
 		"wizard": {
 			"title": "New Incus instance",
 			"description": "Five steps: image, instance, network, profile, review.",
@@ -959,5 +1064,82 @@
 				"launching": "Launching…"
 			}
 		}
+	},
+	"healthcheck": {
+		"title": "Healthcheck",
+		"description": "Periodic probes across all registered services.",
+		"period": {
+			"1h": "1h",
+			"24h": "24h",
+			"7d": "7d"
+		},
+		"table": {
+			"service": "Service",
+			"category": "Category",
+			"status": "Status",
+			"latency": "Latency",
+			"type": "Type"
+		},
+		"incidentTimeline": "Incident timeline",
+		"liveLogStream": "Live log stream",
+		"recheckAria": "Recheck now",
+		"empty": "No results."
+	},
+	"mailGuardian": {
+		"title": "Mail Guardian",
+		"description": "{pending} pending review · {highRisk} high-risk",
+		"searchPlaceholder": "Search account or subject…",
+		"selectAll": "Select all",
+		"selectedCount": "{count} selected",
+		"selectHint": "Select to batch-process",
+		"approveSelected": "Approve {count}",
+		"flagSelected": "Flag {count}",
+		"clearSelection": "Clear selection",
+		"statusAll": "All statuses",
+		"statusPending": "Pending",
+		"statusResolved": "Resolved",
+		"riskAll": "All risks",
+		"riskLow": "Low",
+		"riskMedium": "Medium",
+		"riskHigh": "High",
+		"empty": "No reviews match the current filter.",
+		"accountsTitle": "Monitored accounts",
+		"accountsDescription": "IMAP mailboxes the guardian sweeps. DB accounts override env-configured ones by slug.",
+		"accountsEmpty": "No accounts configured. Add one to start monitoring.",
+		"accountAdd": "Add account",
+		"accountEdit": "Edit",
+		"accountDelete": "Delete",
+		"accountEnable": "Enable",
+		"accountDisable": "Disable",
+		"accountEnabled": "Enabled",
+		"accountDisabled": "Disabled",
+		"accountSave": "Save",
+		"accountCancel": "Cancel",
+		"accountSlug": "Slug",
+		"accountAddress": "Address",
+		"accountHost": "Host",
+		"accountPort": "Port",
+		"accountSecure": "TLS",
+		"accountUsername": "Username",
+		"accountPassword": "Password",
+		"accountPasswordKeep": "Leave blank to keep current password",
+		"accountInbox": "Inbox",
+		"accountTrashMailbox": "Trash mailbox",
+		"accountReviewMailbox": "Review mailbox",
+		"accountDeleteConfirm": "Delete account \"{slug}\"? This cannot be undone."
+	},
+	"envBrowser": {
+		"title": "Env Browser",
+		"description": "Browse allowlisted environment files. Values are masked by default.",
+		"emptyTitle": "No env files found",
+		"emptyDescription": "No environment files were found in the allowlisted directories.",
+		"filesHeading": "Env files",
+		"loading": "Loading…",
+		"keyCount": "{count} keys",
+		"noEntries": "No entries found.",
+		"selectHint": "Select a file to view its contents.",
+		"reveal": "Reveal value",
+		"hide": "Hide value",
+		"copy": "Copy value"
 	}
 }

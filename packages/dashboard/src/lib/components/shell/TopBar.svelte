@@ -5,6 +5,7 @@
 	import CommandPalette from '$lib/components/command-palette/CommandPalette.svelte';
 	import LocaleSwitcher from '$lib/components/i18n/LocaleSwitcher.svelte';
 	import Menu from '$lib/icons/Menu.svelte';
+	import Tooltip from '$lib/components/ui/tooltip/Tooltip.svelte';
 	import type { ThemeMode, ThemePreset } from '$lib/theme-presets';
 	import type { Locale } from '$lib/i18n';
 
@@ -46,22 +47,30 @@
 		className
 	)}
 >
-	<button
-		type="button"
-		aria-label={t(messages, 'app.shell.openMenu')}
-		class="inline-flex h-9 w-9 items-center justify-center rounded-md text-foreground hover:bg-accent sm:hidden"
-		onclick={() => onOpenMobileNav?.()}
-	>
-		<Menu class="h-5 w-5" />
-	</button>
-	<button
-		type="button"
-		aria-label="Toggle sidebar"
-		class="hidden h-9 w-9 items-center justify-center rounded-md text-foreground hover:bg-accent sm:inline-flex"
-		onclick={() => onToggleSidebar?.()}
-	>
-		<Menu class="h-5 w-5" />
-	</button>
+	<Tooltip text={t(messages, 'app.shell.openMenu')}>
+		{#snippet trigger()}
+			<button
+				type="button"
+				aria-label={t(messages, 'app.shell.openMenu')}
+				class="inline-flex h-9 w-9 items-center justify-center rounded-md text-foreground hover:bg-accent sm:hidden"
+				onclick={() => onOpenMobileNav?.()}
+			>
+				<Menu class="h-5 w-5" />
+			</button>
+		{/snippet}
+	</Tooltip>
+	<Tooltip text="Toggle sidebar">
+		{#snippet trigger()}
+			<button
+				type="button"
+				aria-label="Toggle sidebar"
+				class="hidden h-9 w-9 items-center justify-center rounded-md text-foreground hover:bg-accent sm:inline-flex"
+				onclick={() => onToggleSidebar?.()}
+			>
+				<Menu class="h-5 w-5" />
+			</button>
+		{/snippet}
+	</Tooltip>
 
 	<div class="flex-1">
 		<div

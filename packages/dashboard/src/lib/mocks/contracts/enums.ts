@@ -34,6 +34,10 @@ export const INCUS_INSTANCE_STATUSES = [
 	'provisioning',
 	'active',
 	'failed',
+	'running',
+	'stopped',
+	'frozen',
+	'error',
 ] as const;
 export type IncusInstanceStatus = (typeof INCUS_INSTANCE_STATUSES)[number];
 

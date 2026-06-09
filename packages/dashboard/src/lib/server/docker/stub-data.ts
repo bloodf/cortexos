@@ -298,6 +298,159 @@ export function removeContainer(id: string): boolean {
 }
 
 // ---------------------------------------------------------------------------
+// Images
+// ---------------------------------------------------------------------------
+
+export interface DockerImage {
+  readonly id: string;
+  readonly repo: string;
+  readonly tag: string;
+  readonly size: number;
+  readonly created: string;
+}
+
+const IMAGE_SEED: ReadonlyArray<DockerImage> = [
+  {
+    id: 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1',
+    repo: 'grafana/grafana',
+    tag: '11.2.0',
+    size: 385_000_000,
+    created: frozenMinusMinutes(10_080),
+  },
+  {
+    id: 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2',
+    repo: 'prom/prometheus',
+    tag: 'v2.55.0',
+    size: 280_000_000,
+    created: frozenMinusMinutes(10_080),
+  },
+  {
+    id: 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa3',
+    repo: 'prom/alertmanager',
+    tag: 'v0.27.0',
+    size: 65_000_000,
+    created: frozenMinusMinutes(10_080),
+  },
+  {
+    id: 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa4',
+    repo: 'caddy',
+    tag: '2.8-alpine',
+    size: 45_000_000,
+    created: frozenMinusMinutes(20_160),
+  },
+  {
+    id: 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa5',
+    repo: 'postgres',
+    tag: '16-alpine',
+    size: 250_000_000,
+    created: frozenMinusMinutes(20_160),
+  },
+  {
+    id: 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa6',
+    repo: 'ollama/ollama',
+    tag: '0.5.7',
+    size: 1_200_000_000,
+    created: frozenMinusMinutes(10_080),
+  },
+  {
+    id: 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa7',
+    repo: 'ghcr.io/cortexos/9router',
+    tag: '0.4.2',
+    size: 120_000_000,
+    created: frozenMinusMinutes(10_080),
+  },
+  {
+    id: 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa8',
+    repo: 'ghcr.io/cortexos/mail-guardian',
+    tag: '0.2.1',
+    size: 180_000_000,
+    created: frozenMinusMinutes(10_080),
+  },
+];
+
+let images: DockerImage[] = IMAGE_SEED.slice();
+
+/** List images, optionally filtered by free-text query. */
+export function listImages(opts: { query?: string } = {}): DockerImage[] {
+  let rows = images.slice();
+  const needle = (opts.query ?? '').trim().toLowerCase();
+  if (needle) {
+    rows = rows.filter(
+      (i) =>
+        i.repo.toLowerCase().includes(needle) ||
+        i.tag.toLowerCase().includes(needle) ||
+        i.id.toLowerCase().includes(needle),
+    );
+  }
+  return rows;
+}
+
+// ---------------------------------------------------------------------------
+// Volumes
+// ---------------------------------------------------------------------------
+
+export interface DockerVolume {
+  readonly name: string;
+  readonly driver: string;
+  readonly mountpoint: string;
+  readonly size: number | null;
+  readonly createdAt: string | null;
+  readonly labels: Readonly<Record<string, string>>;
+}
+
+const VOLUME_SEED: ReadonlyArray<DockerVolume> = [
+  {
+    name: 'grafana-data',
+    driver: 'local',
+    mountpoint: '/var/lib/docker/volumes/grafana-data/_data',
+    size: 45_000_000,
+    createdAt: frozenMinusMinutes(10_080),
+    labels: {},
+  },
+  {
+    name: 'prometheus-data',
+    driver: 'local',
+    mountpoint: '/var/lib/docker/volumes/prometheus-data/_data',
+    size: 120_000_000,
+    createdAt: frozenMinusMinutes(10_080),
+    labels: {},
+  },
+  {
+    name: 'postgres-data',
+    driver: 'local',
+    mountpoint: '/var/lib/docker/volumes/postgres-data/_data',
+    size: 85_000_000,
+    createdAt: frozenMinusMinutes(20_160),
+    labels: {},
+  },
+  {
+    name: 'ollama-models',
+    driver: 'local',
+    mountpoint: '/var/lib/docker/volumes/ollama-models/_data',
+    size: 4_500_000_000,
+    createdAt: frozenMinusMinutes(10_080),
+    labels: {},
+  },
+];
+
+let volumes: DockerVolume[] = VOLUME_SEED.slice();
+
+/** List volumes, optionally filtered by free-text query. */
+export function listVolumes(opts: { query?: string } = {}): DockerVolume[] {
+  let rows = volumes.slice();
+  const needle = (opts.query ?? '').trim().toLowerCase();
+  if (needle) {
+    rows = rows.filter(
+      (v) =>
+        v.name.toLowerCase().includes(needle) ||
+        v.driver.toLowerCase().includes(needle) ||
+        v.mountpoint.toLowerCase().includes(needle),
+    );
+  }
+  return rows;
+}
+
+// ---------------------------------------------------------------------------
 // Test helper
 // ---------------------------------------------------------------------------
 
@@ -307,4 +460,6 @@ export function _resetDockerStub(): void {
     ...c,
     logs: SYNTHETIC_LOGS[c.name] ?? [],
   }));
+  images = IMAGE_SEED.slice();
+  volumes = VOLUME_SEED.slice();
 }

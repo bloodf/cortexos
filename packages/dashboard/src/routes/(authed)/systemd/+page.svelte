@@ -18,9 +18,9 @@
 	import Server from '$lib/icons/Server.svelte';
 	import UnitList from '$lib/components/systemd/UnitList.svelte';
 	import { t } from '$lib/i18n';
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
-	import { filterByState, type StateFilter } from '$lib/components/systemd/adapter';
+	import { filterByState, type StateFilter, type UnitActionKind } from '$lib/components/systemd/adapter';
 	import type { SystemdUnit } from '@cortexos/contracts';
 
 	interface Props {
@@ -67,6 +67,28 @@
 		return activeState === state
 			? 'inline-flex h-7 items-center rounded-md border border-border bg-primary px-3 text-xs font-medium text-primary-foreground'
 			: 'inline-flex h-7 items-center rounded-md border border-border bg-background px-3 text-xs font-medium hover:bg-accent';
+	}
+
+	let acting = $state(false);
+
+	async function handleAction(action: UnitActionKind, unit: string): Promise<void> {
+		if (acting) return;
+		acting = true;
+		try {
+			const res = await fetch('/api/systemd/actions', {
+				method: 'POST',
+				credentials: 'include',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ action, unit }),
+			});
+			if (!res.ok) {
+				console.error('Action failed', await res.text());
+				return;
+			}
+			await invalidateAll();
+		} finally {
+			acting = false;
+		}
 	}
 </script>
 
@@ -136,6 +158,6 @@
 			icon={Server}
 		/>
 	{:else}
-		<UnitList messages={data.messages} units={visible} pageSize={25} />
+		<UnitList messages={data.messages} units={visible} pageSize={25} isAdmin={data.isAdmin} onAction={handleAction} acting={acting} />
 	{/if}
 </div>

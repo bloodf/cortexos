@@ -11,7 +11,7 @@
  */
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { getContainerById, getContainerByName } from '$lib/server/docker/stub-data';
+import { getContainerById, getContainerByName } from '$lib/server/docker/real-data';
 import { adaptContainer } from '$lib/components/docker/adapter';
 import { actionHashFor, mintApproval } from '$lib/server/approval';
 
@@ -28,15 +28,15 @@ const ALLOWED_SUBCOMMANDS: ReadonlyArray<{ value: string; label: string }> = [
   { value: 'hostname', label: 'hostname' },
 ];
 
-function loadContainer(id: string) {
+async function loadContainer(id: string) {
   if (!id) return null;
-  return getContainerById(id) ?? getContainerByName(id);
+  return (await getContainerById(id)) ?? (await getContainerByName(id));
 }
 
 export const load: PageServerLoad = async ({ params, locals, url }) => {
   const id = params.id;
   if (!id) throw error(400, 'Missing container identifier');
-  const c = loadContainer(id);
+  const c = await loadContainer(id);
   if (!c) throw error(404, `Container '${id}' not found`);
 
   // PB-5: only admins get the exec page. Non-admins are redirected

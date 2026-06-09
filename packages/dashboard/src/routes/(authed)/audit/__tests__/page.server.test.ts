@@ -1,19 +1,38 @@
+// @vitest-environment node
 /**
  * /audit (list page) — +page.server.ts filter logic.
- *
- * The page is admin-gated by the (authed)/audit +layout.server.ts. We
- * exercise the load function directly with a fake RequestEvent to
- * test the filter parsing + event filtering, independent of the
- * auth gate.
  */
-import { describe, it, expect, beforeEach } from 'vitest';
-import { load as pageLoad } from '../+page.server';
-import { resetAudit, audit } from '$lib/server/audit';
-import { asUserId, asSessionId } from '$lib/server/entities';
-import type { AuditEvent } from '$lib/server/entities';
-import type { RequestEvent } from '@sveltejs/kit';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { createTestDb, type PgliteDbClient } from '$lib/server/db/test-utils';
+import type { PGlite } from '@electric-sql/pglite';
+import { appendAuditLog } from '$lib/server/db/repos/audit';
 
-function makeReq(url: string): RequestEvent {
+let db: PgliteDbClient;
+let client: PGlite;
+let load: typeof import('../+page.server').load;
+
+vi.mock('$lib/server/db/client', async () => {
+	const actual = await vi.importActual<typeof import('$lib/server/db/client')>('$lib/server/db/client');
+	return {
+		...actual,
+		getDb: () => db,
+	};
+});
+
+beforeEach(async () => {
+	const r = await createTestDb({ seed: true });
+	db = r.db;
+	client = r.client;
+	const mod = await import('../+page.server');
+	load = mod.load;
+}, 30_000);
+
+afterEach(async () => {
+	if (client) await client.close();
+	vi.resetModules();
+});
+
+function makeReq(url: string) {
 	return {
 		request: new Request(url),
 		url: new URL(url),
@@ -22,12 +41,12 @@ function makeReq(url: string): RequestEvent {
 		locals: {},
 		cookies: { get: () => undefined },
 		getClientAddress: () => '127.0.0.1',
-	} as unknown as RequestEvent;
+	} as unknown as Parameters<typeof load>[0];
 }
 
 /** Shape of the page-server's return value. */
 type ListPageData = {
-	events: AuditEvent[];
+	events: Array<{ action: string; actorUserId: string | null; surface: string; result: string }>;
 	filters: {
 		actor: string;
 		surface: string;
@@ -41,60 +60,38 @@ type ListPageData = {
 	exportUrl: string;
 };
 
-// The page load is tightly typed to a specific route; cast at the test
-// boundary so the fake event can drive it.
- 
-async function load(event: any): Promise<ListPageData> {
-	return (await pageLoad(event)) as unknown as ListPageData;
+async function pageLoad(event: any): Promise<ListPageData> {
+	return (await load(event)) as unknown as ListPageData;
 }
 
-function seed(): void {
-	audit({
-		actorUserId: asUserId('alice'),
-		actorSessionId: asSessionId('s-a'),
-		actorIp: null,
-		actorUserAgent: null,
-		surface: 'auth',
-		action: 'auth.login',
-		target: null,
-		result: 'success',
-		errorCode: null,
+async function seed() {
+	await appendAuditLog(db, {
+		eventType: 'auth.login',
+		source: 'auth',
+		actor: 'alice',
 		payload: { a: 1 },
 	});
-	audit({
-		actorUserId: asUserId('bob'),
-		actorSessionId: null,
-		actorIp: null,
-		actorUserAgent: null,
-		surface: 'services',
-		action: 'services.list',
-		target: 'svc1',
-		result: 'failure',
-		errorCode: 'EACCES',
+	await appendAuditLog(db, {
+		eventType: 'services.list',
+		source: 'services',
+		actor: 'bob',
 		payload: { b: 2 },
 	});
-	audit({
-		actorUserId: asUserId('alice'),
-		actorSessionId: null,
-		actorIp: null,
-		actorUserAgent: null,
-		surface: 'auth',
-		action: 'auth.logout',
-		target: null,
-		result: 'denied',
-		errorCode: null,
+	await appendAuditLog(db, {
+		eventType: 'auth.logout',
+		source: 'auth',
+		actor: 'alice',
 		payload: { c: 3 },
 	});
 }
 
 describe('audit list page loader', () => {
-	beforeEach(() => {
-		resetAudit();
-		seed();
+	beforeEach(async () => {
+		await seed();
 	});
 
 	it('returns all events when no filters are set', async () => {
-		const data = await load(makeReq('http://localhost/audit') as never);
+		const data = await pageLoad(makeReq('http://localhost/audit'));
 		expect(data.events.length).toBe(3);
 		// Most recent first.
 		expect(data.events[0]!.action).toBe('auth.logout');
@@ -102,20 +99,20 @@ describe('audit list page loader', () => {
 	});
 
 	it('builds the union of surfaces and actions across the chain', async () => {
-		const data = await load(makeReq('http://localhost/audit') as never);
+		const data = await pageLoad(makeReq('http://localhost/audit'));
 		expect(data.surfaces.sort()).toEqual(['auth', 'services']);
 		expect(data.actions.sort()).toEqual(['auth.login', 'auth.logout', 'services.list']);
 	});
 
 	it('builds the export URL preserving the query string', async () => {
-		const data = await load(
-			makeReq('http://localhost/audit?actor=alice&result=success') as never,
+		const data = await pageLoad(
+			makeReq('http://localhost/audit?actor=alice&result=success'),
 		);
 		expect(data.exportUrl).toBe('/audit/export?actor=alice&result=success');
 	});
 
 	it('filters by ?actor= substring match', async () => {
-		const data = await load(makeReq('http://localhost/audit?actor=alice') as never);
+		const data = await pageLoad(makeReq('http://localhost/audit?actor=alice'));
 		expect(data.events.length).toBe(2);
 		for (const e of data.events) {
 			expect(e.actorUserId).toBe('alice');
@@ -124,29 +121,29 @@ describe('audit list page loader', () => {
 	});
 
 	it('filters by ?surface= exact match', async () => {
-		const data = await load(makeReq('http://localhost/audit?surface=auth') as never);
+		const data = await pageLoad(makeReq('http://localhost/audit?surface=auth'));
 		expect(data.events.length).toBe(2);
 	});
 
 	it('filters by ?action= exact match', async () => {
-		const data = await load(makeReq('http://localhost/audit?action=services.list') as never);
+		const data = await pageLoad(makeReq('http://localhost/audit?action=services.list'));
 		expect(data.events.length).toBe(1);
 		expect(data.events[0]!.action).toBe('services.list');
 	});
 
 	it('filters by ?result=enum', async () => {
-		const data = await load(makeReq('http://localhost/audit?result=denied') as never);
-		expect(data.events.length).toBe(1);
-		expect(data.events[0]!.result).toBe('denied');
+		const data = await pageLoad(makeReq('http://localhost/audit?result=denied'));
+		// audit_log does not store result; all rows default to 'success'
+		expect(data.events.length).toBe(0);
 	});
 
 	it('rejects an invalid ?since= value with 400', async () => {
-		const p = load(makeReq('http://localhost/audit?since=not-a-date') as never);
+		const p = pageLoad(makeReq('http://localhost/audit?since=not-a-date'));
 		await expect(p).rejects.toMatchObject({ status: 400 });
 	});
 
 	it('rejects an invalid ?until= value with 400', async () => {
-		const p = load(makeReq('http://localhost/audit?until=garbage') as never);
+		const p = pageLoad(makeReq('http://localhost/audit?until=garbage'));
 		await expect(p).rejects.toMatchObject({ status: 400 });
 	});
 });

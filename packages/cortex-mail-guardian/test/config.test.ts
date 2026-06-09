@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decodeBase64Secret, loadConfig } from "../src/config.js";
+import { accountFromRow, decodeBase64Secret, loadConfig, mergeAccounts } from "../src/config.js";
 
 function baseEnv(): NodeJS.ProcessEnv {
 	const password = Buffer.from("dummy#password;with.symbols", "utf8").toString("base64");
@@ -36,16 +36,58 @@ describe("config", () => {
 		expect(config.accounts[2].host).toBe("mail.heitorramon.com");
 		expect(config.accounts[2].reviewMailbox).toBe("INBOX.Cortex Mail Guardian Review");
 		expect(config.model).toBe("minimax/MiniMax-M2.7-highspeed");
-		expect(config.confidenceThreshold).toBe(0.82);
+		expect(config.confidenceThreshold).toBe(0.95);
 	});
 
 	it("rejects invalid base64", () => {
 		expect(() => decodeBase64Secret("SECRET", "not-base64")).toThrow(/base64/);
 	});
 
-	it("requires at least one account", () => {
+	it("rejects a zero account count", () => {
 		const input = baseEnv();
 		input.MAIL_GUARDIAN_ACCOUNT_COUNT = "0";
 		expect(() => loadConfig(input)).toThrow(/positive integer/);
+	});
+
+	it("loads with no env accounts when the count is absent (DB-only mode)", () => {
+		const config = loadConfig({ NINEROUTER_API_KEY: "key" });
+		expect(config.accounts).toHaveLength(0);
+	});
+});
+
+describe("DB-backed accounts", () => {
+	const row = {
+		slug: "db-inbox",
+		address: "db@example.com",
+		host: "mail.example.com",
+		port: 993,
+		secure: true,
+		username: "db@example.com",
+		password_b64: Buffer.from("db-secret", "utf8").toString("base64"),
+		inbox: "INBOX",
+		trash_mailbox: null,
+		review_mailbox: "INBOX.Cortex Mail Guardian Review",
+	};
+
+	it("maps a DB row to a runtime account and decodes the password", () => {
+		const account = accountFromRow(row);
+		expect(account.slug).toBe("db-inbox");
+		expect(account.password).toBe("db-secret");
+		expect(account.trashMailbox).toBeUndefined();
+	});
+
+	it("lets DB accounts override env accounts by slug", () => {
+		const envAccount = accountFromRow({ ...row, slug: "shared", host: "env-host" });
+		const dbAccount = accountFromRow({ ...row, slug: "shared", host: "db-host" });
+		const merged = mergeAccounts([envAccount], [dbAccount]);
+		expect(merged).toHaveLength(1);
+		expect(merged[0].host).toBe("db-host");
+	});
+
+	it("keeps env accounts not present in the DB", () => {
+		const envOnly = accountFromRow({ ...row, slug: "env-only" });
+		const dbOnly = accountFromRow({ ...row, slug: "db-only" });
+		const merged = mergeAccounts([envOnly], [dbOnly]);
+		expect(merged.map((a) => a.slug).sort()).toEqual(["db-only", "env-only"]);
 	});
 });

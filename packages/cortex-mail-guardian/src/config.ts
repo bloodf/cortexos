@@ -94,12 +94,15 @@ function loadAccount(index: number, source: NodeJS.ProcessEnv): MailAccountConfi
 }
 
 export function loadConfig(source: NodeJS.ProcessEnv = process.env): GuardianConfig {
-	const accountCount = parseIntEnv("MAIL_GUARDIAN_ACCOUNT_COUNT", source);
-	if (accountCount < 1) throw new Error("MAIL_GUARDIAN_ACCOUNT_COUNT must be at least 1");
+	// Accounts can come from env (MAIL_GUARDIAN_ACCOUNT_N_*) and/or the
+	// mail_guardian_accounts DB table (merged later in buildDeps). When the
+	// count is absent or 0 we treat env accounts as empty and rely on the DB.
+	const rawCount = env("MAIL_GUARDIAN_ACCOUNT_COUNT", source);
+	const accountCount = rawCount ? parseIntEnv("MAIL_GUARDIAN_ACCOUNT_COUNT", source) : 0;
 	const accounts = Array.from({ length: accountCount }, (_, idx) => loadAccount(idx + 1, source));
 	const slugs = new Set(accounts.map((account) => account.slug));
 	if (slugs.size !== accounts.length) throw new Error("mail account slugs must be unique");
-	const confidenceThreshold = Number(env("MAIL_GUARDIAN_CONFIDENCE_THRESHOLD", source) ?? "0.82");
+	const confidenceThreshold = Number(env("MAIL_GUARDIAN_CONFIDENCE_THRESHOLD", source) ?? "0.95");
 	if (!Number.isFinite(confidenceThreshold) || confidenceThreshold < 0 || confidenceThreshold > 1) {
 		throw new Error("MAIL_GUARDIAN_CONFIDENCE_THRESHOLD must be between 0 and 1");
 	}
@@ -132,4 +135,46 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): GuardianCon
 function normalizeOpenAiBaseUrl(value: string): string {
 	const trimmed = value.replace(/\/+$/, "");
 	return trimmed.endsWith("/v1") ? trimmed : `${trimmed}/v1`;
+}
+
+/** Shape of a DB-backed account row (subset used to build MailAccountConfig). */
+export interface AccountRowInput {
+	slug: string;
+	address: string;
+	host: string;
+	port: number;
+	secure: boolean;
+	username: string;
+	password_b64: string;
+	inbox: string;
+	trash_mailbox: string | null;
+	review_mailbox: string;
+}
+
+/** Map a DB account row to the runtime MailAccountConfig, decoding the password. */
+export function accountFromRow(row: AccountRowInput): MailAccountConfig {
+	return {
+		slug: row.slug,
+		address: row.address,
+		host: row.host,
+		port: row.port,
+		secure: row.secure,
+		username: row.username,
+		password: decodeBase64Secret(`account ${row.slug} password_b64`, row.password_b64),
+		inbox: row.inbox || "INBOX",
+		reviewMailbox: row.review_mailbox || "INBOX.Cortex Mail Guardian Review",
+		trashMailbox: row.trash_mailbox ?? undefined,
+	};
+}
+
+/**
+ * Merge DB-backed accounts with env-configured accounts. DB rows take
+ * precedence by slug; env accounts not present in the DB are preserved
+ * (backward compatibility with MAIL_GUARDIAN_ACCOUNT_N_* config).
+ */
+export function mergeAccounts(envAccounts: MailAccountConfig[], dbAccounts: MailAccountConfig[]): MailAccountConfig[] {
+	const bySlug = new Map<string, MailAccountConfig>();
+	for (const account of envAccounts) bySlug.set(account.slug, account);
+	for (const account of dbAccounts) bySlug.set(account.slug, account);
+	return [...bySlug.values()];
 }

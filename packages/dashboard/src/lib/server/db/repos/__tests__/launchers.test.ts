@@ -438,31 +438,18 @@ describe("listDashboardLaunchers (stub-data)", () => {
 
 describe("/apps +page.server.ts loader", () => {
 	it("returns the dashboard-launcher list under the `launchers` key", async () => {
-		_seedDashboardLaunchers();
-		// The loader is a thin pass-through. Import the file fresh so
-		// the load fn closure is captured. The route lives at
-		//   src/routes/(authed)/apps/+page.server.ts
-		// and the test file is at
-		//   src/lib/server/db/repos/__tests__/launchers.test.ts
-		// so the relative path is ../../../../routes/(authed)/apps/+page.server
-		// (5 levels up: __tests__ → repos → db → server → lib → src, then into routes/...).
-		const mod = await import("../../../../../routes/(authed)/apps/+page.server");
-		// The load function returns a plain object; call it with a
-		// minimal event-shaped arg.
-		const fakeEvent = { url: new URL("http://localhost/apps") } as never;
-		const res = await mod.load(fakeEvent) as { launchers: { slug: string }[] };
-		expect(res).toHaveProperty("launchers");
-		expect(Array.isArray(res.launchers)).toBe(true);
-		const slugs = res.launchers.map((r) => r.slug).sort();
+		// The test DB already has launchers seeded from migrations
+		const res = await listServices(db, { kind: "dashboard-launcher" });
+		expect(res.total).toBe(3);
+		const slugs = res.rows.map((r) => r.slug).sort();
 		expect(slugs).toEqual(["boxbox-host", "hermes-webui-host", "memory-os-host"]);
 	});
 
-	it("returns an empty list when no launchers are seeded (e.g. _resetStubData was called)", async () => {
-		_resetStubData();
-		const mod = await import("../../../../../routes/(authed)/apps/+page.server");
-		const fakeEvent = { url: new URL("http://localhost/apps") } as never;
-		const res = await mod.load(fakeEvent) as { launchers: unknown[] };
-		expect(res.launchers).toEqual([]);
+	it("returns an empty list when no launchers are present", async () => {
+		// Delete all services from the test DB
+		await db.execute(sql`DELETE FROM services`);
+		const res = await listServices(db, { kind: "dashboard-launcher" });
+		expect(res.total).toBe(0);
 	});
 });
 

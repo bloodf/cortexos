@@ -61,6 +61,10 @@ import { audit } from '../audit';
 import { actionHashFor } from '../approval';
 import { allowlistedCommand, type AllowlistEntry } from '../policy';
 import type { User } from '../entities';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+
+const execFileAsync = promisify(execFile);
 
 // ---------------------------------------------------------------------------
 // Executor interface — the seam between M2 (mock) and M3 (incus CLI).
@@ -226,21 +230,7 @@ export class MockIncusExecutor {
 
   /** Project the mock record into the contracts shape the UI sees. */
   private toContractsInstance(rec: MockInstanceRecord): IncusInstance {
-    return {
-      name: rec.name,
-      slug: rec.slug,
-      status: rec.status,
-      type: rec.type,
-      image: rec.image,
-      cpu: rec.cpu ?? null,
-      memory: rec.memory ?? null,
-      config: rec.config,
-      devices: rec.devices,
-      lastValidation: rec.lastValidation ?? null,
-      createdBy: rec.createdBy,
-      createdAt: rec.createdAt,
-      updatedAt: rec.updatedAt,
-    };
+    return projectMockRecord(rec);
   }
 }
 
@@ -265,6 +255,366 @@ export function applyAction(rec: MockInstanceRecord, action: IncusActionKind): M
     case 'list':
     case 'exec-named':
       return { ...rec };
+  }
+}
+
+/** Project a MockInstanceRecord into the contracts IncusInstance shape. */
+function projectMockRecord(rec: MockInstanceRecord): IncusInstance {
+  return {
+    name: rec.name,
+    slug: rec.slug,
+    status: rec.status,
+    type: rec.type,
+    image: rec.image,
+    cpu: rec.cpu ?? null,
+    memory: rec.memory ?? null,
+    config: rec.config,
+    devices: rec.devices,
+    lastValidation: rec.lastValidation ?? null,
+    createdBy: rec.createdBy,
+    createdAt: rec.createdAt,
+    updatedAt: rec.updatedAt,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Real executor (Linux only). Calls `incus` via execFile — no shell,
+// no string interpolation. The instance name is already validated by
+// the bridge before this runs.
+// ---------------------------------------------------------------------------
+
+const realIncusExecutor: IncusExecutor = async (ctx) => {
+  const args: Record<IncusActionKind, string[]> = {
+    start: ['start', ctx.instance.name],
+    stop: ['stop', ctx.instance.name],
+    restart: ['restart', ctx.instance.name],
+    delete: ['delete', ctx.instance.name, '--force'],
+    launch: ['launch', ctx.instance.image, ctx.instance.name],
+    list: ['list', ctx.instance.name, '--format', 'json'],
+    'exec-named': ['list', ctx.instance.name, '--format', 'json'],
+  };
+
+  try {
+    const { stdout, stderr } = await execFileAsync('incus', args[ctx.action], {
+      timeout: 60_000,
+      maxBuffer: 4 * 1024 * 1024,
+    });
+    const updated = await getMockRecord(ctx.instance.name);
+    return {
+      stdout: stdout ?? '',
+      stderr: stderr ?? '',
+      exitCode: 0,
+      instance: updated ? projectMockRecord(updated) : ctx.instance,
+    };
+  } catch (err) {
+    const e = err as { code?: number | string; stdout?: string; stderr?: string; message?: string };
+    return {
+      stdout: e.stdout ?? '',
+      stderr: e.stderr ?? e.message ?? 'incus exec failed',
+      exitCode: typeof e.code === 'number' ? e.code : 1,
+      instance: ctx.instance,
+    };
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Real data mapping helpers.
+// ---------------------------------------------------------------------------
+
+/** Parse an Incus memory limit string into MiB. */
+function parseMemoryLimit(value: string | undefined): number | null {
+  if (!value) return null;
+  const cleaned = value.trim().toLowerCase();
+  const m = /^(\d+(?:\.\d+)?)\s*(b|kb|mb|mib|gb|gib|tb|tib)?$/.exec(cleaned);
+  if (!m) return null;
+  const num = parseFloat(m[1]!);
+  const unit = m[2] ?? 'b';
+  switch (unit) {
+    case 'b':
+      return Math.round(num / (1024 * 1024));
+    case 'kb':
+      return Math.round(num / 1024);
+    case 'mb':
+    case 'mib':
+      return Math.round(num);
+    case 'gb':
+    case 'gib':
+      return Math.round(num * 1024);
+    case 'tb':
+    case 'tib':
+      return Math.round(num * 1024 * 1024);
+    default:
+      return Math.round(num);
+  }
+}
+
+/** Parse an Incus CPU limit into an integer. */
+function parseCpuLimit(value: string | undefined): number | null {
+  if (!value) return null;
+  const m = /^(\d+)$/.exec(value.trim());
+  return m ? parseInt(m[1]!, 10) : null;
+}
+
+/** Map an Incus status string to the contracts IncusInstanceStatus. */
+function mapIncusStatus(status: string): IncusInstanceStatus {
+  const s = status.toLowerCase();
+  switch (s) {
+    case 'running':
+      return 'running';
+    case 'stopped':
+      return 'stopped';
+    case 'frozen':
+      return 'frozen';
+    case 'error':
+      return 'error';
+    case 'starting':
+      return 'provisioning';
+    case 'stopping':
+      return 'active';
+    default:
+      return 'active';
+  }
+}
+
+/** Map an Incus type string to the contracts IncusInstanceType. */
+function mapIncusType(type: string): IncusInstance['type'] {
+  if (type === 'virtual-machine') return 'vm';
+  return 'container';
+}
+
+/** Map an Incus image type string to the contracts image type. */
+function mapIncusImageType(type: string): IncusImage['type'] {
+  if (type === 'virtual-machine') return 'virtual-machine';
+  if (type === 'container') return 'container';
+  return 'unknown';
+}
+
+/** Extract bridge from expanded devices. */
+function extractBridge(devices: Record<string, unknown>): string {
+  for (const [, dev] of Object.entries(devices)) {
+    if (
+      dev &&
+      typeof dev === 'object' &&
+      (dev as Record<string, unknown>).type === 'nic'
+    ) {
+      const network = (dev as Record<string, unknown>).network;
+      if (typeof network === 'string') return network;
+      const parent = (dev as Record<string, unknown>).parent;
+      if (typeof parent === 'string') return parent;
+    }
+  }
+  return 'incusbr0';
+}
+
+/** Extract pool from expanded devices. */
+function extractPool(devices: Record<string, unknown>): string {
+  for (const [, dev] of Object.entries(devices)) {
+    if (
+      dev &&
+      typeof dev === 'object' &&
+      (dev as Record<string, unknown>).type === 'disk' &&
+      (dev as Record<string, unknown>).path === '/'
+    ) {
+      const pool = (dev as Record<string, unknown>).pool;
+      if (typeof pool === 'string') return pool;
+    }
+  }
+  return 'default';
+}
+
+/** Map a single Incus list JSON entry to MockInstanceRecord. */
+function mapIncusJsonToMockRecord(item: Record<string, unknown>): MockInstanceRecord {
+  const config = (item.config as Record<string, string>) ?? {};
+  const imageName =
+    config['image.name'] ||
+    config['image.description'] ||
+    config['image.os'] ||
+    'unknown';
+  const type = mapIncusType(String(item.type ?? 'container'));
+  const status = mapIncusStatus(String(item.status ?? 'Stopped'));
+  const devices =
+    (item.expanded_devices as Record<string, unknown>) ??
+    (item.devices as Record<string, unknown>) ??
+    {};
+  const bridge = extractBridge(devices);
+  const pool = extractPool(devices);
+  const profiles = Array.isArray(item.profiles) ? (item.profiles as string[]) : [];
+
+  const state = (item?.state as Record<string, unknown>) ?? {};
+  const networks: NonNullable<MockInstanceRecord['live']>['state']['networks'] = {};
+  const netState = state.network as Record<string, unknown> | undefined;
+  if (netState && typeof netState === 'object') {
+    for (const [ifName, ifData] of Object.entries(netState)) {
+      if (!ifData || typeof ifData !== 'object') continue;
+      const iface = ifData as Record<string, unknown>;
+      const addrs: Array<{
+        family: 'inet' | 'inet6';
+        address: string;
+        scope?: 'global' | 'link' | 'local';
+      }> = [];
+      const addrList = Array.isArray(iface.addresses) ? iface.addresses : [];
+      for (const a of addrList) {
+        if (!a || typeof a !== 'object') continue;
+        const addr = a as Record<string, unknown>;
+        const family = String(addr.family ?? '');
+        const address = String(addr.address ?? '');
+        if (!address) continue;
+        if (family === 'inet' || family === 'inet6') {
+          addrs.push({
+            family,
+            address,
+            scope: String(addr.scope ?? 'global') as 'global' | 'link' | 'local',
+          });
+        }
+      }
+      networks[ifName] = {
+        addresses: addrs,
+        state: typeof iface.state === 'string' ? iface.state : undefined,
+        type: typeof iface.type === 'string' ? iface.type : undefined,
+      };
+    }
+  }
+
+  return {
+    name: String(item.name ?? ''),
+    slug: String(item.name ?? ''),
+    status,
+    type,
+    image: imageName,
+    cpu: parseCpuLimit(config['limits.cpu']),
+    memory: parseMemoryLimit(config['limits.memory']),
+    config: {
+      target: {
+        mode: 'new',
+        ghOrg: 'cortexos',
+        slug: String(item.name ?? ''),
+        branch: 'main',
+      },
+      image: {
+        alias: imageName,
+        gastown: false,
+        profiles,
+        pool,
+      },
+      hermes: {
+        enabled: false,
+        proxies: [],
+      },
+      network: {
+        bridge,
+        tailscale: false,
+        webAccess: false,
+      },
+    },
+    devices,
+    lastValidation: null,
+    createdBy: '00000000-0000-4000-8000-000000000000' as IncusInstance['createdBy'],
+    createdAt: String(item.created_at ?? new Date().toISOString()),
+    updatedAt: String(item.last_used_at ?? item.created_at ?? new Date().toISOString()),
+    allowlisted: true,
+    live: {
+      status: String(item.status ?? 'Stopped').toUpperCase(),
+      statusCode: status,
+      architecture: String(item.architecture ?? 'x86_64'),
+      state: {
+        networks,
+        pid: typeof state.pid === 'number' ? state.pid : 0,
+      },
+      profiles,
+      snapshots: [],
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Real data loaders — called when currentMock is null (Linux production).
+// ---------------------------------------------------------------------------
+
+/** List instances from the real incus CLI. */
+async function listInstancesFromIncus(): Promise<IncusInstance[]> {
+  try {
+    const { stdout } = await execFileAsync('incus', ['list', '--format', 'json'], {
+      timeout: 15_000,
+      maxBuffer: 8 * 1024 * 1024,
+    });
+    const parsed = JSON.parse(stdout) as unknown[];
+    const records = parsed
+      .filter((i): i is Record<string, unknown> => typeof i === 'object' && i !== null)
+      .map(mapIncusJsonToMockRecord);
+    return records.map((rec) => projectMockRecord(rec)).sort((a, b) => a.name.localeCompare(b.name));
+  } catch {
+    return [];
+  }
+}
+
+/** Look up a single instance from the real incus CLI. */
+async function getInstanceFromIncus(name: string): Promise<IncusInstance | null> {
+  try {
+    const { stdout } = await execFileAsync('incus', ['list', name, '--format', 'json'], {
+      timeout: 10_000,
+      maxBuffer: 2 * 1024 * 1024,
+    });
+    const parsed = JSON.parse(stdout) as unknown[];
+    const item = parsed.find(
+      (i): i is Record<string, unknown> =>
+        typeof i === 'object' && i !== null && String((i as Record<string, unknown>).name) === name,
+    );
+    if (!item) return null;
+    return projectMockRecord(mapIncusJsonToMockRecord(item));
+  } catch {
+    return null;
+  }
+}
+
+/** Look up a single instance as MockInstanceRecord (for dispatch). */
+async function getMockRecordFromIncus(name: string): Promise<MockInstanceRecord | null> {
+  try {
+    const { stdout } = await execFileAsync('incus', ['list', name, '--format', 'json'], {
+      timeout: 10_000,
+      maxBuffer: 2 * 1024 * 1024,
+    });
+    const parsed = JSON.parse(stdout) as unknown[];
+    const item = parsed.find(
+      (i): i is Record<string, unknown> =>
+        typeof i === 'object' && i !== null && String((i as Record<string, unknown>).name) === name,
+    );
+    if (!item) return null;
+    return mapIncusJsonToMockRecord(item);
+  } catch {
+    return null;
+  }
+}
+
+/** List images from the real incus CLI. */
+async function listImagesFromIncus(): Promise<IncusImage[]> {
+  try {
+    const { stdout } = await execFileAsync('incus', ['image', 'list', '--format', 'json'], {
+      timeout: 15_000,
+      maxBuffer: 4 * 1024 * 1024,
+    });
+    const parsed = JSON.parse(stdout) as unknown[];
+    return parsed
+      .filter((i): i is Record<string, unknown> => typeof i === 'object' && i !== null)
+      .map((item): IncusImage => {
+        const aliases = Array.isArray(item.aliases)
+          ? (item.aliases as Array<Record<string, unknown>>)
+              .map((a) => String(a.name ?? ''))
+              .filter((n) => n.length > 0)
+          : [];
+        const props = (item.properties as Record<string, string>) ?? {};
+        return {
+          fingerprint: String(item.fingerprint ?? ''),
+          architecture: String(item.architecture ?? ''),
+          type: mapIncusImageType(String(item.type ?? 'unknown')),
+          size: typeof item.size === 'number' ? item.size : 0,
+          uploadedAt: String(item.uploaded_at ?? item.created_at ?? new Date().toISOString()),
+          aliases,
+          description: props.description ?? null,
+        };
+      })
+      .sort((a, b) => a.fingerprint.localeCompare(b.fingerprint));
+  } catch {
+    return [];
   }
 }
 
@@ -469,6 +819,12 @@ let executor: IncusExecutor = ((p) => {
 }) as IncusExecutor;
 
 (function init() {
+  const useReal =
+    process.platform === 'linux' && process.env.CORTEX_INCUS_BRIDGE_REAL !== '0';
+  if (useReal) {
+    executor = realIncusExecutor;
+    return;
+  }
   const { mock, executor: e } = makeDefaultMock();
   currentMock = mock;
   executor = e;
@@ -509,7 +865,7 @@ export function _resetIncusBridgeForTests(): void {
 /** List all instances. M2: seeded + mutated snapshot. */
 export async function listInstances(): Promise<IncusInstance[]> {
   if (currentMock) return currentMock.list();
-  return [];
+  return listInstancesFromIncus();
 }
 
 /** Look up an instance by name. Returns null when not found. */
@@ -517,30 +873,15 @@ export async function getInstance(name: string): Promise<IncusInstance | null> {
   if (currentMock) {
     const rec = currentMock.snapshot(name);
     if (!rec) return null;
-    // Project to contracts shape (omit the `allowlisted` and `live` fields).
-    return {
-      name: rec.name,
-      slug: rec.slug,
-      status: rec.status,
-      type: rec.type,
-      image: rec.image,
-      cpu: rec.cpu ?? null,
-      memory: rec.memory ?? null,
-      config: rec.config,
-      devices: rec.devices,
-      lastValidation: rec.lastValidation ?? null,
-      createdBy: rec.createdBy,
-      createdAt: rec.createdAt,
-      updatedAt: rec.updatedAt,
-    };
+    return projectMockRecord(rec);
   }
-  return null;
+  return getInstanceFromIncus(name);
 }
 
 /** Return the mock record (with allowlisted + live) for use by the bridge. */
 export async function getMockRecord(name: string): Promise<MockInstanceRecord | null> {
   if (currentMock) return currentMock.snapshot(name);
-  return null;
+  return getMockRecordFromIncus(name);
 }
 
 /** Return the most-recent `limit` log lines for an instance, newest first. */
@@ -567,35 +908,38 @@ export async function listInstanceLogs(
  * representative images; M3 swaps to `incus image list --format json`.
  */
 export async function listImages(): Promise<IncusImage[]> {
-  return [
-    {
-      fingerprint: 'aabbccddeeff00112233445566778899aabbccdd',
-      architecture: 'x86_64',
-      type: 'container',
-      size: 512_000_000,
-      uploadedAt: '2026-04-01T00:00:00.000Z',
-      aliases: ['ubuntu/24.04', 'ubuntu-lts'],
-      description: 'Ubuntu 24.04 LTS noble',
-    },
-    {
-      fingerprint: '00112233445566778899aabbccddeeff00112233',
-      architecture: 'x86_64',
-      type: 'virtual-machine',
-      size: 2_000_000_000,
-      uploadedAt: '2026-03-15T00:00:00.000Z',
-      aliases: ['debian/12', 'debian-bookworm'],
-      description: 'Debian 12 bookworm',
-    },
-    {
-      fingerprint: 'fedcba9876543210fedcba9876543210fedcba98',
-      architecture: 'x86_64',
-      type: 'container',
-      size: 24_000_000,
-      uploadedAt: '2026-02-10T00:00:00.000Z',
-      aliases: ['alpine/3.20'],
-      description: 'Alpine 3.20',
-    },
-  ];
+  if (currentMock) {
+    return [
+      {
+        fingerprint: 'aabbccddeeff00112233445566778899aabbccdd',
+        architecture: 'x86_64',
+        type: 'container',
+        size: 512_000_000,
+        uploadedAt: '2026-04-01T00:00:00.000Z',
+        aliases: ['ubuntu/24.04', 'ubuntu-lts'],
+        description: 'Ubuntu 24.04 LTS noble',
+      },
+      {
+        fingerprint: '00112233445566778899aabbccddeeff00112233',
+        architecture: 'x86_64',
+        type: 'virtual-machine',
+        size: 2_000_000_000,
+        uploadedAt: '2026-03-15T00:00:00.000Z',
+        aliases: ['debian/12', 'debian-bookworm'],
+        description: 'Debian 12 bookworm',
+      },
+      {
+        fingerprint: 'fedcba9876543210fedcba9876543210fedcba98',
+        architecture: 'x86_64',
+        type: 'container',
+        size: 24_000_000,
+        uploadedAt: '2026-02-10T00:00:00.000Z',
+        aliases: ['alpine/3.20'],
+        description: 'Alpine 3.20',
+      },
+    ];
+  }
+  return listImagesFromIncus();
 }
 
 // ---------------------------------------------------------------------------
@@ -623,7 +967,8 @@ export async function runPreflightReport(
   const name = config.target.slug;
 
   // 1. Name availability.
-  const knownNames = new Set(SEED_INSTANCES.map((i) => i.name));
+  const existingInstances = currentMock ? SEED_INSTANCES : await listInstances();
+  const knownNames = new Set(existingInstances.map((i) => i.name));
   checks.push({
     id: 'name',
     label: 'Instance name available',
@@ -632,7 +977,10 @@ export async function runPreflightReport(
   });
 
   // 2. Image.
-  const knownAliases = new Set(['ubuntu/24.04', 'debian/12', 'alpine/3.20']);
+  const existingImages = currentMock ? [] : await listImages();
+  const knownAliases = currentMock
+    ? new Set(['ubuntu/24.04', 'debian/12', 'alpine/3.20'])
+    : new Set(existingImages.flatMap((i) => i.aliases));
   checks.push({
     id: 'image',
     label: 'Base image present',
@@ -779,7 +1127,7 @@ const DESTRUCTIVE_ACTIONS: ReadonlySet<IncusActionKind> = new Set<IncusActionKin
 ]);
 
 /** Strict regex for incus instance names. Mirrors the policy module. */
-const INSTANCE_NAME_RE = /^[a-z][a-z0-9-]{0,62}[a-z0-9]$/;
+const INSTANCE_NAME_RE = /^[a-z0-9][a-z0-9-]{0,62}[a-z0-9]$/;
 
 /** TTL for a destructive-action approval token. */
 const APPROVAL_TTL_SEC = 60;

@@ -38,6 +38,7 @@ import {
 	jsonb,
 	uniqueIndex,
 	index,
+	unique,
 	primaryKey,
 	check,
 	customType,
@@ -593,16 +594,28 @@ export type NewAuditLogEntry = typeof auditLog.$inferInsert;
 // Pending approvals queue
 // =====================================================================
 
-export const pendingApprovals = pgTable("pending_approvals", {
-	id: bigserial("id", { mode: "number" }).primaryKey(),
-	runId: text("run_id").notNull(),
-	signalName: text("signal_name").notNull(),
-	// The remaining columns are the bare minimum we know from the
-	// 001_schema.sql migration (which was truncated in the audit). The
-	// migration is the source of truth; the repo is responsible for any
-	// additional fields via raw SQL or Drizzle inserts.
-	createdAt: timestamp("created_at", { withTimezone: false }).notNull().defaultNow(),
-});
+export const pendingApprovals = pgTable(
+	"pending_approvals",
+	{
+		id: bigserial("id", { mode: "number" }).primaryKey(),
+		runId: text("run_id").notNull(),
+		signalName: text("signal_name").notNull(),
+		role: text("role"),
+		issueId: text("issue_id"),
+		reason: text("reason"),
+		requestedAt: timestamp("requested_at", { withTimezone: true }).notNull().defaultNow(),
+		timeoutAt: timestamp("timeout_at", { withTimezone: true }),
+		resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+		decision: text("decision"),
+		approver: text("approver"),
+	},
+	(t) => [
+		index("idx_pending_approvals_open").on(t.requestedAt.desc()).where(sql`${t.resolvedAt} IS NULL`),
+		index("idx_pending_approvals_run_id").on(t.runId),
+		unique("pending_approvals_unique_run_signal").on(t.runId, t.signalName),
+		check("pending_approvals_decision_chk", sql`${t.decision} IS NULL OR ${t.decision} IN ('approve', 'deny', 'timeout')`),
+	],
+);
 
 export type PendingApproval = typeof pendingApprovals.$inferSelect;
 export type NewPendingApproval = typeof pendingApprovals.$inferInsert;
@@ -675,6 +688,106 @@ export type NewDashboardCommandAudit = typeof dashboardCommandAudit.$inferInsert
 // Schema export — useful for tools that want to introspect every table
 // =====================================================================
 
+
+// =====================================================================
+// Mail Guardian (managed by packages/cortex-mail-guardian)
+// =====================================================================
+
+export const mailGuardianReviews = pgTable(
+	"mail_guardian_reviews",
+	{
+		id: bigserial("id", { mode: "number" }).primaryKey(),
+		accountSlug: text("account_slug").notNull(),
+		messageUid: bigint("message_uid", { mode: "number" }).notNull(),
+		messageId: text("message_id"),
+		fromHash: text("from_hash").notNull(),
+		domainHash: text("domain_hash").notNull(),
+		subjectHash: text("subject_hash").notNull(),
+		bodyHash: text("body_hash").notNull(),
+		summary: text("summary").notNull().default(""),
+		modelVerdict: text("model_verdict").notNull(),
+		modelConfidence: numeric("model_confidence", { precision: 5, scale: 4 }).notNull(),
+		ownerDecision: text("owner_decision"),
+		approver: text("approver"),
+		requestedAt: timestamp("requested_at", { withTimezone: true }).notNull().defaultNow(),
+		resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+	},
+	(t) => [
+		unique("mail_guardian_reviews_account_uid").on(t.accountSlug, t.messageUid),
+	],
+);
+
+export const mailGuardianActions = pgTable(
+	"mail_guardian_actions",
+	{
+		id: bigserial("id", { mode: "number" }).primaryKey(),
+		reviewId: bigint("review_id", { mode: "number" }).notNull(),
+		decision: text("decision").notNull(),
+		approver: text("approver").notNull().default("dashboard"),
+		status: text("status").notNull().default("pending"),
+		requestedAt: timestamp("requested_at", { withTimezone: true }).notNull().defaultNow(),
+		processedAt: timestamp("processed_at", { withTimezone: true }),
+		error: text("error"),
+	},
+	(t) => [
+		index('idx_mail_guardian_actions_pending').on(t.requestedAt, t.id).where(sql`${t.status} = 'pending'`),
+	],
+);
+
+export const mailGuardianProcessed = pgTable(
+	"mail_guardian_processed",
+	{
+		id: bigserial("id", { mode: "number" }).primaryKey(),
+		accountSlug: text("account_slug").notNull(),
+		messageUid: bigint("message_uid", { mode: "number" }).notNull(),
+		messageId: text("message_id"),
+		action: text("action").notNull(),
+		processedAt: timestamp("processed_at", { withTimezone: true }).notNull().defaultNow(),
+	},
+	(t) => [
+		unique("mail_guardian_processed_account_uid").on(t.accountSlug, t.messageUid),
+		index("idx_mail_guardian_processed_account").on(t.accountSlug, t.processedAt),
+	],
+);
+
+export const mailGuardianRules = pgTable(
+	"mail_guardian_rules",
+	{
+		id: bigserial("id", { mode: "number" }).primaryKey(),
+		ruleType: text("rule_type").notNull(),
+		scope: text("scope").notNull(),
+		valueHash: text("value_hash").notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+	},
+	(t) => [
+		unique("mail_guardian_rules_type_scope_value").on(t.ruleType, t.scope, t.valueHash),
+	],
+);
+
+export const mailGuardianAccounts = pgTable("mail_guardian_accounts", {
+	id: bigserial("id", { mode: "number" }).primaryKey(),
+	slug: text("slug").notNull().unique(),
+	address: text("address").notNull(),
+	host: text("host").notNull(),
+	port: integer("port").notNull().default(993),
+	secure: boolean("secure").notNull().default(true),
+	username: text("username").notNull(),
+	passwordB64: text("password_b64").notNull(),
+	inbox: text("inbox").notNull().default("INBOX"),
+	trashMailbox: text("trash_mailbox"),
+	reviewMailbox: text("review_mailbox").notNull().default("INBOX.Cortex Mail Guardian Review"),
+	enabled: boolean("enabled").notNull().default(true),
+	createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+	updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type MailGuardianReview = typeof mailGuardianReviews.$inferSelect;
+export type MailGuardianAction = typeof mailGuardianActions.$inferSelect;
+export type MailGuardianProcessed = typeof mailGuardianProcessed.$inferSelect;
+export type MailGuardianRule = typeof mailGuardianRules.$inferSelect;
+export type MailGuardianAccount = typeof mailGuardianAccounts.$inferSelect;
+export type NewMailGuardianAccount = typeof mailGuardianAccounts.$inferInsert;
+
 export const schema = {
 	migrations: migrationsTable,
 	services,
@@ -697,4 +810,9 @@ export const schema = {
 	auditLog,
 	pendingApprovals,
 	dashboardCommandAudit,
+	mailGuardianReviews,
+	mailGuardianActions,
+	mailGuardianProcessed,
+	mailGuardianRules,
+	mailGuardianAccounts,
 };

@@ -99,12 +99,12 @@ export const IncusWizardStepValidationInputSchema = z.object({
 export type IncusWizardStepValidationInput = z.infer<typeof IncusWizardStepValidationInputSchema>;
 
 export const IncusInstanceSchema = z.object({
-  name: z.string().min(1).max(64).regex(/^[a-z][a-z0-9-]{0,62}[a-z0-9]$/),
+  name: z.string().min(1).max(64).regex(/^[a-z0-9][a-z0-9-]{0,62}[a-z0-9]$/),
   slug: z
     .string()
     .min(1)
     .max(64)
-    .regex(/^[a-z][a-z0-9-]{0,62}[a-z0-9]$/),
+    .regex(/^[a-z0-9][a-z0-9-]{0,62}[a-z0-9]$/),
   status: IncusInstanceStatusSchema,
   type: IncusInstanceTypeSchema,
   image: z.string().min(1).max(256),

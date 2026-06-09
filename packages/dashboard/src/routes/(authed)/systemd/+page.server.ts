@@ -14,19 +14,22 @@
 import type { PageServerLoad } from './$types';
 import { listUnits } from '$lib/server/systemd/bridge';
 import { countByState, type StateFilter } from '$lib/components/systemd/adapter';
+import { isAdmin } from '$lib/server/auth';
 
 function parseStateFilter(input: string | null): StateFilter {
   if (input === 'active' || input === 'inactive' || input === 'failed') return input;
   return 'all';
 }
 
-export const load: PageServerLoad = async ({ url }) => {
+export const load: PageServerLoad = async ({ url, locals }) => {
   const state = parseStateFilter(url.searchParams.get('state'));
   const units = await listUnits();
   const counts = countByState(units);
+  const user = (locals as unknown as { user?: { groupMemberships?: string[]; isAdmin?: boolean; is_admin?: boolean } } | undefined)?.user ?? null;
   return {
     units,
     state,
     counts,
+    isAdmin: user ? isAdmin(user as never) : false,
   };
 };

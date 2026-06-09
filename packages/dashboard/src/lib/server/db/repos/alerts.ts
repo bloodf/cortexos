@@ -18,7 +18,7 @@
 
 import { and, desc, eq, isNull, sql, type SQL } from "drizzle-orm";
 import type { DbClient } from "../client";
-import { alertHistory, alertRules, alerts } from "../schema";
+import { alertHistory, alertRules, alerts, services } from "../schema";
 import type {
 	Alert,
 	AlertHistoryRow,
@@ -153,6 +153,44 @@ export async function insertAlertHistory(
 	return row;
 }
 
+
+export interface AlertHistoryItem {
+	id: number;
+	ruleName: string;
+	serviceName: string;
+	status: string;
+	message: string;
+	timestamp: string;
+}
+
+export interface ListAlertHistoryWithNamesOptions {
+	limit?: number;
+}
+
+export async function listAlertHistoryWithNames(
+	db: DbClient,
+	opts: ListAlertHistoryWithNamesOptions = {},
+): Promise<AlertHistoryItem[]> {
+	const limit = Math.max(1, Math.min(opts.limit ?? 50, 500));
+	const rows = await db
+		.select({
+			id: alertHistory.id,
+			ruleName: alertRules.name,
+			serviceName: services.name,
+			status: alertHistory.status,
+			message: alertHistory.message,
+			timestamp: alertHistory.createdAt,
+		})
+		.from(alertHistory)
+		.innerJoin(alertRules, eq(alertHistory.ruleId, alertRules.id))
+		.innerJoin(services, eq(alertHistory.serviceId, services.id))
+		.orderBy(desc(alertHistory.createdAt))
+		.limit(limit);
+	return rows.map((r) => ({
+		...r,
+		timestamp: r.timestamp instanceof Date ? r.timestamp.toISOString() : String(r.timestamp),
+	}));
+}
 export async function deleteAlertHistoryOlderThan(
 	db: DbClient,
 	cutoff: Date,

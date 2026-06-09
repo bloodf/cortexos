@@ -52,8 +52,9 @@
     open?: boolean;
     onclose?: () => void;
     children?: Snippet;
+    class?: string;
   };
-  let { open = $bindable(false), onclose, children }: DialogProps = $props();
+  let { open = $bindable(false), onclose, children, class: className }: DialogProps = $props();
 
   let contentEl: HTMLDivElement | undefined = $state();
   let releaseTrap: (() => void) | undefined;
@@ -114,7 +115,7 @@
       onclick={onOverlayClick}
       role="presentation"
     ></div>
-    <div bind:this={contentEl} data-slot="dialog-content" class={cn(dialogContent())}>
+    <div bind:this={contentEl} data-slot="dialog-content" class={cn(dialogContent(), className)}>
       {#if children}{@render children()}{/if}
     </div>
   </div>

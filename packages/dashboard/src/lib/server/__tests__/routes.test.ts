@@ -610,20 +610,32 @@ describe('PB-3 FIX: GET /api/env-browser', () => {
     expect(res.status).toBe(200);
   });
 
-  it('admin with reveal=true returns 403 with X-Cortex-* headers (SR-071)', async () => {
+  it('without a reveal grant, values are masked — never cleartext (SR-071)', async () => {
+    // The reveal contract changed: cleartext is no longer gated by a
+    // `?reveal=true` query + confirmation-token header. It now requires a
+    // PAM-verified, session-bound reveal grant (POST /api/env-browser/unlock).
+    // A plain admin GET (no grant) must return 200 with masked values and
+    // MUST NOT leak the raw secret.
     const { locals } = adminLocals();
     envBrowserRoute.__registerEnvFile('/opt/cortexos/.secrets/cortexos.env', [
-      { key: 'CORTEX_DB_URL', value: 'postgres://u:p@h:5432/db' },
+      { key: 'CORTEX_DB_PASSWORD', value: 'supersecret123' },
     ]);
     const res = await callHandler(
       envBrowserRoute.GET,
       makeFakeEvent({
         locals,
-        url: 'http://localhost/api/env-browser?path=/opt/cortexos/.secrets/cortexos.env&reveal=true',
+        url: 'http://localhost/api/env-browser?path=/opt/cortexos/.secrets/cortexos.env',
       }),
     );
-    expect(res.status).toBe(403);
-    expect(res.headers.get('x-cortex-confirmation-token-required')).toBe('true');
+    expect(res.status).toBe(200);
+    const body = res.body as {
+      revealed: boolean;
+      entries: Array<{ key: string; value: string; masked: string }>;
+    };
+    expect(body.revealed).toBe(false);
+    // Secret-keyed value is masked; the cleartext must be absent without a grant.
+    expect(body.entries[0]!.value).toBe(body.entries[0]!.masked);
+    expect(body.entries[0]!.value).not.toContain('supersecret');
   });
 });
 

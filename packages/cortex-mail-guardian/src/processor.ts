@@ -4,6 +4,7 @@ import type { GuardianStore } from "./store.js";
 import type { TelegramClient, TelegramUpdate } from "./telegram.js";
 import { classifyEmail, heuristicSpamScore, shouldAutoQuarantine, shouldKeepInInbox } from "./model.js";
 import { redactEmail } from "./redact.js";
+import { evaluateRules } from "./rules.js";
 
 export interface ProcessDeps {
 	config: GuardianConfig;
@@ -36,9 +37,28 @@ export function buildReviewMessage(input: {
 	].join("\n");
 }
 
-export async function processMessage(deps: ProcessDeps, account: MailAccountConfig, message: MailMessage): Promise<"review" | "kept" | "skipped"> {
+export async function processMessage(deps: ProcessDeps, account: MailAccountConfig, message: MailMessage): Promise<"review" | "kept" | "skipped" | "trashed"> {
 	if (await deps.store.hasProcessed(account.slug, message.uid)) return "skipped";
 	const redacted = redactEmail({ from: message.from, subject: message.subject, text: message.text });
+
+	// Deterministic rule pre-filter — runs BEFORE any AI/model call.
+	// A deny (block) rule short-circuits to spam (trash); an allow rule to ham (keep).
+	const ruleMatch = await evaluateRules(deps.store, redacted);
+	if (ruleMatch) {
+		if (ruleMatch.verdict === "spam") {
+			if (!deps.config.dryRun) {
+				await deps.mail.moveToTrash(account, message.uid, {
+					sourceMailbox: account.inbox,
+					messageId: message.messageId,
+				});
+			}
+			await deps.store.markProcessed(account.slug, message.uid, deps.config.dryRun ? "would_trash" : "trashed", message.messageId);
+			return "trashed";
+		}
+		await deps.store.markProcessed(account.slug, message.uid, "kept", message.messageId);
+		return "kept";
+	}
+
 	const hasAllowRule = await deps.store.hasAllowRule(redacted.fromHash, redacted.domainHash);
 	const heuristicScore = heuristicSpamScore(message);
 	const modelConfig = {
@@ -141,7 +161,7 @@ export async function sweep(deps: ProcessDeps): Promise<{ processed: number; tra
 		}
 		for (const message of messages) {
 			if (accountProcessed >= deps.config.maxMessagesPerSweep) break;
-			let action: "review" | "kept" | "skipped";
+			let action: "review" | "kept" | "skipped" | "trashed";
 			try {
 				action = await processMessage(deps, account, message);
 			} catch (error) {
@@ -157,6 +177,7 @@ export async function sweep(deps: ProcessDeps): Promise<{ processed: number; tra
 			accountProcessed += 1;
 			if (action === "review") review += 1;
 			else if (action === "kept") kept += 1;
+			else if (action === "trashed") trashed += 1;
 		}
 	}
 	return { processed, trashed, review, kept, skipped, failed, actions };

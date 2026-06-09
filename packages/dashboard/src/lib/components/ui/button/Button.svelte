@@ -13,6 +13,9 @@
     size?: Size;
     type?: 'button' | 'submit' | 'reset';
     href?: string;
+    target?: string;
+    rel?: string;
+    title?: string;
     disabled?: boolean;
     loading?: boolean;
     name?: string;
@@ -33,6 +36,9 @@
     size = 'default',
     type = 'button',
     href,
+    target,
+    rel,
+    title,
     disabled = false,
     loading = false,
     name,
@@ -75,6 +81,9 @@
 {#if href && !isDisabled}
   <a
     {href}
+    {target}
+    {rel}
+    {title}
     data-slot="button"
     class={cn(classes)}
     role="button"
@@ -93,6 +102,7 @@
     {value}
     {form}
     {id}
+    {title}
     data-slot="button"
     class={cn(classes)}
     disabled={isDisabled}

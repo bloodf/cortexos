@@ -1,0 +1,33 @@
+<script lang="ts">
+	interface Props {
+		class?: string;
+		size?: number;
+	}
+	let { class: className = 'h-5 w-5', size }: Props = $props();
+</script>
+
+<svg
+	xmlns="http://www.w3.org/2000/svg"
+	viewBox="0 0 24 24"
+	width={size ?? 24}
+	height={size ?? 24}
+	fill="none"
+	stroke="currentColor"
+	stroke-width="1.75"
+	stroke-linecap="round"
+	stroke-linejoin="round"
+	aria-hidden="true"
+	class={className}
+>
+	<path d="M12 12v-2" />
+	<path d="M12 18v-2" />
+	<path d="M16 12v-2" />
+	<path d="M16 18v-2" />
+	<path d="M2 11h1.5" />
+	<path d="M20 18v-2" />
+	<path d="M20.5 11H22" />
+	<path d="M4 18v-2" />
+	<path d="M8 12v-2" />
+	<path d="M8 18v-2" />
+	<rect x="2" y="6" width="20" height="10" rx="2" />
+</svg>

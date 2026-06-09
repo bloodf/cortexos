@@ -1,3 +1,7 @@
+import { createOpenAI } from "@ai-sdk/openai";
+import { generateObject } from "ai";
+import { z } from "zod";
+
 export type SpamVerdict = "spam" | "not_spam" | "uncertain";
 
 export interface ClassificationResult {
@@ -14,32 +18,55 @@ export interface ModelClientConfig {
 	timeoutMs?: number;
 }
 
-function parseJsonObject(text: string): unknown {
-	const trimmed = text.trim();
-	try {
-		return JSON.parse(trimmed);
-	} catch {
-		const match = trimmed.match(/\{[\s\S]*\}/);
-		if (!match) throw new Error("model response did not contain JSON");
-		return JSON.parse(match[0]);
-	}
+/**
+ * Structured-output schema sent to the model. We accept `ham` (the natural
+ * label) and normalize it to the internal `not_spam` verdict so the rest of
+ * the pipeline (processor.ts, decision helpers) keeps a single vocabulary.
+ */
+export const classificationSchema = z.object({
+	verdict: z.enum(["spam", "ham", "uncertain"]),
+	confidence: z.number().min(0).max(1),
+	reasons: z.array(z.string()).default([]),
+	riskSignals: z.array(z.string()).default([]),
+});
+
+export type RawClassification = z.infer<typeof classificationSchema>;
+
+function normalizeVerdict(verdict: RawClassification["verdict"]): SpamVerdict {
+	return verdict === "ham" ? "not_spam" : verdict;
 }
 
 export function validateClassification(value: unknown): ClassificationResult {
-	const input = value as Partial<ClassificationResult> | null;
+	const input = value as { verdict?: string; confidence?: unknown; reasons?: unknown; riskSignals?: unknown } | null;
 	if (!input || typeof input !== "object") throw new Error("classification must be an object");
-	if (input.verdict !== "spam" && input.verdict !== "not_spam" && input.verdict !== "uncertain") {
+	const verdict: string | undefined = input.verdict === "ham" ? "not_spam" : input.verdict;
+	if (verdict !== "spam" && verdict !== "not_spam" && verdict !== "uncertain") {
 		throw new Error("classification verdict is invalid");
 	}
 	if (typeof input.confidence !== "number" || input.confidence < 0 || input.confidence > 1) {
 		throw new Error("classification confidence must be between 0 and 1");
 	}
 	return {
-		verdict: input.verdict,
+		verdict,
 		confidence: input.confidence,
 		reasons: Array.isArray(input.reasons) ? input.reasons.map(String).slice(0, 6) : [],
 		riskSignals: Array.isArray(input.riskSignals) ? input.riskSignals.map(String).slice(0, 6) : [],
 	};
+}
+
+function buildPrompt(input: { from: string; subject: string; text: string; feedbackSummary?: string }): string {
+	return [
+		"Classify this email for a personal spam guardian that quarantines suspicious mail before owner review.",
+		"verdict must be spam, ham, or uncertain. confidence is 0..1. Be strict: only emit a confidence above 0.95 when the evidence is overwhelming.",
+		"Use spam for unsolicited marketing, scams, phishing, suspicious attachments, fake invoices, credential requests, investment pitches, and mass outreach.",
+		"Use ham only when the message is clearly personal, expected, transactional, or account-related.",
+		"Use uncertain for borderline cases that should leave the Inbox for owner review.",
+		"reasons: short justifications. riskSignals: concrete red flags you observed.",
+		input.feedbackSummary ? `Prior owner feedback summary:\n${input.feedbackSummary}` : "",
+		`From: ${input.from}`,
+		`Subject: ${input.subject}`,
+		`Body:\n${input.text.slice(0, 60000)}`,
+	].filter(Boolean).join("\n\n");
 }
 
 export async function classifyEmail(config: ModelClientConfig, input: {
@@ -48,57 +75,25 @@ export async function classifyEmail(config: ModelClientConfig, input: {
 	text: string;
 	feedbackSummary?: string;
 }): Promise<ClassificationResult> {
-	const prompt = [
-		"Classify this email for a personal spam guardian that quarantines suspicious mail before owner review.",
-		"Return only JSON with keys: verdict, confidence, reasons, riskSignals.",
-		"verdict must be spam, not_spam, or uncertain. confidence is 0..1.",
-		"Use spam for unsolicited marketing, scams, phishing, suspicious attachments, fake invoices, credential requests, investment pitches, and mass outreach.",
-		"Use not_spam only when the message is clearly personal, expected, transactional, or account-related.",
-		"Use uncertain for borderline cases that should leave the Inbox for owner review.",
-		input.feedbackSummary ? `Prior owner feedback summary:\n${input.feedbackSummary}` : "",
-		`From: ${input.from}`,
-		`Subject: ${input.subject}`,
-		`Body:\n${input.text.slice(0, 60000)}`,
-	].filter(Boolean).join("\n\n");
-	const res = await fetch(`${config.baseUrl.replace(/\/+$/, "")}/chat/completions`, {
-		method: "POST",
-		signal: AbortSignal.timeout(config.timeoutMs ?? 30_000),
-		headers: {
-			authorization: `Bearer ${config.apiKey}`,
-			"content-type": "application/json",
-		},
-		body: JSON.stringify({
-			model: config.model,
-			messages: [
-				{ role: "system", content: "You are a fast email spam classifier. Be aggressive about quarantining unsolicited or risky mail, but keep clearly legitimate mail." },
-				{ role: "user", content: prompt },
-			],
-			temperature: 0,
-		}),
+	const openai = createOpenAI({
+		baseURL: config.baseUrl.replace(/\/+$/, ""),
+		apiKey: config.apiKey,
 	});
-	if (!res.ok) throw new Error(`9Router classification failed: ${res.status}`);
-	const body = parseChatCompletionBody(await res.text());
-	const content = body.choices?.[0]?.message?.content;
-	if (!content) throw new Error("9Router classification returned no content");
-	return validateClassification(parseJsonObject(content));
-}
-
-function parseChatCompletionBody(raw: string): { choices?: Array<{ message?: { content?: string } }> } {
-	const trimmed = raw.trim();
-	if (trimmed.startsWith("data:")) {
-		const lines = trimmed
-			.split(/\r?\n/)
-			.map((line) => line.trim())
-			.filter((line) => line.startsWith("data:"))
-			.map((line) => line.slice(5).trim())
-			.filter((line) => line && line !== "[DONE]");
-		const merged = lines.map((line) => JSON.parse(line) as { choices?: Array<{ delta?: { content?: string }, message?: { content?: string } }> });
-		const content = merged
-			.map((chunk) => chunk.choices?.[0]?.delta?.content ?? chunk.choices?.[0]?.message?.content ?? "")
-			.join("");
-		return { choices: [{ message: { content } }] };
-	}
-	return JSON.parse(trimmed) as { choices?: Array<{ message?: { content?: string } }> };
+	const { object } = await generateObject({
+		model: openai(config.model),
+		schema: classificationSchema,
+		system:
+			"You are a fast, strict email spam classifier. Be aggressive about quarantining unsolicited or risky mail, but keep clearly legitimate mail. Reserve high confidence (>0.95) for unambiguous cases.",
+		prompt: buildPrompt(input),
+		temperature: 0,
+		abortSignal: AbortSignal.timeout(config.timeoutMs ?? 30_000),
+	});
+	return {
+		verdict: normalizeVerdict(object.verdict),
+		confidence: object.confidence,
+		reasons: object.reasons.map(String).slice(0, 6),
+		riskSignals: object.riskSignals.map(String).slice(0, 6),
+	};
 }
 
 export function heuristicSpamScore(input: { from: string; subject: string; text: string }): number {

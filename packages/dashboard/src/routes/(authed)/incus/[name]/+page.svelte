@@ -54,6 +54,7 @@
   async function mintApprovalToken(action: IncusActionKind, name: string): Promise<string> {
     const res = await fetch('/api/approvals', {
       method: 'POST',
+      credentials: 'include',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         action: `incus.${action}`,

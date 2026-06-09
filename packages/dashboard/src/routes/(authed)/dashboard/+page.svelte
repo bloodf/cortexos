@@ -1,58 +1,214 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import Card from '$lib/components/ui/Card.svelte';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
-	import StatCard from '$lib/components/ui/StatCard.svelte';
-	import { t } from '$lib/i18n';
+	import StatusHero from '$lib/components/status-hero/StatusHero.svelte';
 	import Activity from '$lib/icons/Activity.svelte';
-	import Server from '$lib/icons/Server.svelte';
-	import AlertTriangle from '$lib/icons/AlertTriangle.svelte';
+	import { t } from '$lib/i18n';
+	import type { Messages } from '$lib/i18n';
+	import type {
+		SystemData,
+		ProcessInfo,
+		NetworkData,
+		DockerContainer,
+		IncusInstance,
+		AlertHistory,
+	} from '$lib/types/dashboard';
+	import CpuWidget from '$lib/components/dashboard/CpuWidget.svelte';
+	import MemoryWidget from '$lib/components/dashboard/MemoryWidget.svelte';
+	import StorageWidget from '$lib/components/dashboard/StorageWidget.svelte';
+	import CpuTempWidget from '$lib/components/dashboard/CpuTempWidget.svelte';
+	import ServicesWidget from '$lib/components/dashboard/ServicesWidget.svelte';
+	import UptimeWidget from '$lib/components/dashboard/UptimeWidget.svelte';
+	import DockerWidget from '$lib/components/dashboard/DockerWidget.svelte';
+	import IncusWidget from '$lib/components/dashboard/IncusWidget.svelte';
+	import LiveTrendWidget from '$lib/components/dashboard/LiveTrendWidget.svelte';
+	import SensorsWidget from '$lib/components/dashboard/SensorsWidget.svelte';
+	import ProcessesWidget from '$lib/components/dashboard/ProcessesWidget.svelte';
+	import NetworkWidget from '$lib/components/dashboard/NetworkWidget.svelte';
+	import AlertsWidget from '$lib/components/dashboard/AlertsWidget.svelte';
+	import DrivesWidget from '$lib/components/dashboard/DrivesWidget.svelte';
+	import DatabasesWidget from '$lib/components/dashboard/DatabasesWidget.svelte';
+	import MonitoringWidget from '$lib/components/dashboard/MonitoringWidget.svelte';
 
 	interface Props {
 		data: PageData;
 	}
 
 	let { data }: Props = $props();
+	const messages = $derived(data.messages);
+
+	let system = $state<SystemData | null>(null);
+	let processes = $state<ProcessInfo[]>([]);
+	let network = $state<NetworkData | null>(null);
+	let services = $state<any[]>([]);
+	let alerts = $state<AlertHistory[]>([]);
+	let dockerContainers = $state<DockerContainer[]>([]);
+	let incusInstances = $state<IncusInstance[]>([]);
+
+	const HISTORY_SIZE = 40;
+	let cpuHistory = $state<number[]>([]);
+	let memHistory = $state<number[]>([]);
+	let rxHistory = $state<number[]>([]);
+	let txHistory = $state<number[]>([]);
+
+	function pushValue(arr: number[], val: number) {
+		const next = [...arr, val];
+		if (next.length > HISTORY_SIZE) next.shift();
+		return next;
+	}
+
+	function updateHistories(sys: SystemData | null, net: NetworkData | null) {
+		if (sys) {
+			cpuHistory = pushValue(cpuHistory, sys.cpu);
+			memHistory = pushValue(memHistory, sys.memory.percent);
+		}
+		if (net) {
+			const rx = net.interfaces.reduce((a, i) => a + i.rxKbps, 0);
+			const tx = net.interfaces.reduce((a, i) => a + i.txKbps, 0);
+			rxHistory = pushValue(rxHistory, rx);
+			txHistory = pushValue(txHistory, tx);
+		}
+	}
+
+	let lastUpdated = $state<Date | null>(null);
+	let pollError = $state<string | null>(null);
+	let isPolling = $state(true);
+
+	async function fetchJson<T>(url: string): Promise<T> {
+		const r = await fetch(url, { credentials: 'include' });
+		if (!r.ok) {
+			const body = await r.text().catch(() => '');
+			throw new Error(`${r.status} ${r.statusText}${body ? ': ' + body.slice(0, 200) : ''}`);
+		}
+		return (await r.json()) as T;
+	}
+
+	async function tick() {
+		if (!isPolling) return;
+		try {
+			const [sys, procsRes, net, svcRes, alRes, dockRes, incRes] = await Promise.all([
+				fetchJson<SystemData>('/api/system'),
+				fetchJson<{ processes: ProcessInfo[] }>('/api/processes'),
+				fetchJson<NetworkData>('/api/network'),
+				fetchJson<{ services: any[] }>('/api/services'),
+				fetchJson<{ alerts: AlertHistory[] }>('/api/alerts/history'),
+				fetchJson<{ containers: DockerContainer[] }>('/api/docker/containers'),
+				fetchJson<{ instances: IncusInstance[] }>('/api/incus/instances'),
+			]);
+			if (sys) system = sys;
+			if (procsRes) processes = procsRes.processes ?? [];
+			if (net) network = net;
+			if (svcRes) services = svcRes.services ?? [];
+			if (alRes) alerts = alRes.alerts ?? [];
+			if (dockRes) dockerContainers = dockRes.containers ?? [];
+			if (incRes) incusInstances = incRes.instances ?? [];
+			updateHistories(sys ?? null, net ?? null);
+			lastUpdated = new Date();
+			pollError = null;
+		} catch (e) {
+			const msg = e instanceof Error ? e.message : String(e);
+			pollError = msg;
+			// eslint-disable-next-line no-console
+			console.error('[dashboard poll]', msg);
+		}
+	}
+
+	$effect(() => {
+		void tick();
+		const id = setInterval(() => void tick(), 3000);
+		return () => clearInterval(id);
+	});
 </script>
 
 <svelte:head>
-	<title>{t(data.messages, 'dashboard.title')} · CortexOS</title>
+	<title>{t(messages, 'dashboard.title')} · CortexOS</title>
 </svelte:head>
 
-<div class="flex flex-col gap-6" data-testid="dashboard-welcome">
+<div class="flex flex-col gap-5" data-testid="dashboard-welcome">
 	<PageHeader
-		title={t(data.messages, 'dashboard.title')}
-		description={t(data.messages, 'dashboard.subtitle')}
+		title={t(messages, 'dashboard.title')}
+		description={t(messages, 'dashboard.subtitle')}
 		icon={Activity}
 	/>
 
-	<section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="M1 placeholder metrics">
-		<StatCard label="M1 status" value="Online" hint="build ready" trend="up" icon={Activity} />
-		<StatCard
-			label="Services tracked"
-			value="—"
-			hint="wired in M2"
-			icon={Server}
-		/>
-		<StatCard label="Active alerts" value="0" hint="alert engine lands in M2" icon={AlertTriangle} />
+	<div class="flex items-center gap-3 text-xs">
+		{#if pollError}
+			<span class="inline-flex items-center gap-1.5 text-red-500">
+				<span class="relative flex h-2 w-2">
+					<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+					<span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+				</span>
+				Polling error: {pollError}
+			</span>
+		{:else if lastUpdated}
+			<span class="inline-flex items-center gap-1.5 text-emerald-500">
+				<span class="relative flex h-2 w-2">
+					<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+					<span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+				</span>
+				Live — updated {lastUpdated.toLocaleTimeString()}
+			</span>
+		{:else}
+			<span class="inline-flex items-center gap-1.5 text-muted-foreground">
+				<span class="h-2 w-2 rounded-full bg-muted-foreground animate-pulse"></span>
+				Loading…
+			</span>
+		{/if}
+	</div>
+
+	<StatusHero {services} {system} />
+
+	<section
+		class="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-3 auto-rows-[3.5rem]"
+		aria-label="Dashboard widgets"
+	>
+		<div class="col-span-4 sm:col-span-4 lg:col-span-4 row-span-2 min-h-0">
+			<CpuWidget {system} history={cpuHistory} {messages} />
+		</div>
+		<div class="col-span-4 sm:col-span-4 lg:col-span-4 row-span-2 min-h-0">
+			<MemoryWidget {system} history={memHistory} {messages} />
+		</div>
+		<div class="col-span-2 sm:col-span-2 lg:col-span-2 row-span-2 min-h-0">
+			<StorageWidget {system} {messages} />
+		</div>
+		<div class="col-span-2 sm:col-span-2 lg:col-span-2 row-span-2 min-h-0">
+			<CpuTempWidget {system} {messages} />
+		</div>
+		<div class="col-span-2 sm:col-span-2 lg:col-span-2 row-span-2 min-h-0">
+			<UptimeWidget {system} {messages} />
+		</div>
+		<div class="col-span-2 sm:col-span-2 lg:col-span-2 row-span-2 min-h-0">
+			<DockerWidget containers={dockerContainers} {messages} />
+		</div>
+		<div class="col-span-2 sm:col-span-2 lg:col-span-2 row-span-2 min-h-0">
+			<IncusWidget instances={incusInstances} {messages} />
+		</div>
+		<div class="col-span-2 sm:col-span-2 lg:col-span-2 row-span-2 min-h-0">
+			<ServicesWidget {services} {messages} />
+		</div>
+		<div class="col-span-4 sm:col-span-6 lg:col-span-4 row-span-2 min-h-0">
+			<SensorsWidget {system} {messages} />
+		</div>
+		<div class="col-span-4 sm:col-span-6 lg:col-span-8 row-span-5 min-h-0">
+			<LiveTrendWidget cpuHistory={cpuHistory} memHistory={memHistory} {messages} />
+		</div>
+		<div class="col-span-4 sm:col-span-6 lg:col-span-4 row-span-4 min-h-0">
+			<AlertsWidget alerts={alerts} {messages} />
+		</div>
+		<div class="col-span-4 sm:col-span-6 lg:col-span-4 row-span-4 min-h-0">
+			<DatabasesWidget {services} {messages} />
+		</div>
+		<div class="col-span-4 sm:col-span-6 lg:col-span-4 row-span-4 min-h-0">
+			<MonitoringWidget {services} {messages} />
+		</div>
+		<div class="col-span-4 sm:col-span-6 lg:col-span-8 row-span-5 min-h-0">
+			<NetworkWidget {network} rxHistory={rxHistory} txHistory={txHistory} {messages} />
+		</div>
+		<div class="col-span-4 sm:col-span-6 lg:col-span-8 row-span-5 min-h-0">
+			<ProcessesWidget {processes} {messages} />
+		</div>
+		<div class="col-span-4 sm:col-span-6 lg:col-span-4 row-span-5 min-h-0">
+			<DrivesWidget {system} {messages} />
+		</div>
 	</section>
-
-	<Card>
-		{#snippet header()}
-			<h2 class="text-base font-semibold leading-none tracking-tight">What is in this build?</h2>
-			<p class="text-sm text-muted-foreground">
-				M1 is the SvelteKit foundation. Real widgets, polling, and admin tooling land in
-				M2.
-			</p>
-		{/snippet}
-
-		<ul class="ml-5 list-disc space-y-1 text-sm text-card-foreground">
-			<li>Design system primitives in <code class="rounded bg-muted px-1.5 py-0.5 text-xs">src/lib/components/ui/</code></li>
-			<li>App shell with sidebar, topbar, mobile drawer, skip-to-content link</li>
-			<li>Command palette (<kbd class="rounded border border-border bg-muted px-1 py-0.5 text-[10px]">⌘K</kbd> / <kbd class="rounded border border-border bg-muted px-1 py-0.5 text-[10px]">Ctrl+K</kbd>)</li>
-			<li>Light / dark mode and four brand presets (cortex, teal, emerald, amber)</li>
-			<li>i18n scaffold with <code class="rounded bg-muted px-1.5 py-0.5 text-xs">en</code>, <code class="rounded bg-muted px-1.5 py-0.5 text-xs">es</code>, <code class="rounded bg-muted px-1.5 py-0.5 text-xs">pt-br</code></li>
-			<li>Stub <code class="rounded bg-muted px-1.5 py-0.5 text-xs">/login</code> form (real PAM in M3)</li>
-		</ul>
-	</Card>
 </div>

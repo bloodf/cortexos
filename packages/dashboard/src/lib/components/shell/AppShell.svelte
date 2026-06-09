@@ -10,6 +10,7 @@
 	import Sidebar from './Sidebar.svelte';
 	import TopBar from './TopBar.svelte';
 	import X from '$lib/icons/X.svelte';
+	import Toaster from '$lib/components/ui/toast/Toaster.svelte';
 
 	interface Props {
 		messages: Messages;
@@ -100,3 +101,5 @@
 		</main>
 	</div>
 </div>
+
+<Toaster />
