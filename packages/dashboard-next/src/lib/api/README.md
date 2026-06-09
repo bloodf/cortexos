@@ -25,6 +25,7 @@ src/lib/api/
   define-server-fn.ts     defineServerFn() — security-gate middleware factory (WP-01)
   server-fn-runner.server.ts  server-only bridge to defineApiRoute pipeline
   services.functions.ts   WP-10 — services + health server fns (WIRED)
+  alerts.functions.ts     WP-17 — alert rules + history server fns (WIRED)
   README.md               This file
 
 src/lib/adapters/
@@ -55,7 +56,7 @@ src/lib/adapters/
 | `docker.*` | TODO | WP-11 |
 | `incus()` / `incusList(p)` | TODO | WP-12 |
 | `systemd()` / `systemdList(p)` | **WIRED** | WP-13 |
-| `alerts.*` | TODO | WP-17 |
+| `alerts.*` | **WIRED** | WP-17 |
 | `approvals()` | TODO | WP-16 |
 | `audit()` / `auditList(p)` | TODO | WP-16 |
 | `agents()` | TODO | WP-21 |

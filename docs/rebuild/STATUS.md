@@ -114,13 +114,13 @@ built-server probe above, and the unit test covers the pipeline directly.
 | WP-12 | api incus | — | done | claude | |
 | WP-13 | api systemd | — | todo | | |
 | WP-14 | api system/net/proc/storage | — | done | claude | |
-| WP-15 | api mail-guardian | — | todo | | |
-| WP-16 | api approvals + audit | WP-03 | todo | | |
+| WP-15 | api mail-guardian | — | done | claude | |
+| WP-16 | api approvals + audit | WP-03 (no new pkg deps) | done | claude | |
 | WP-17 | api alerts | — | todo | | |
-| WP-18 | api env-browser | WP-03 | todo | | |
-| WP-19 | api terminal (WS PTY) | — | todo | | |
+| WP-18 | api env-browser | WP-03 | done | claude | |
+| WP-19 | api terminal (WS PTY) | — | wip | claude | named-op path DONE; live PTY transport-blocked (see WP-19 note) |
 | WP-20 | api auth | WP-03 | done | claude | (pending) |
-| WP-21 | api agents | — | todo | | |
+| WP-21 | api agents | — | done | claude | |
 
 ### WP-10 — services + health (done; REFERENCE Wave-1 backend, createServerFn-RPC per ADR-001)
 Implemented as typed `createServerFn` RPC, NOT REST (the WP file's `/api/*` route design was
@@ -147,6 +147,35 @@ scheduler compile into `.output/server/_ssr/index.mjs` (proves the createServerF
 import-protection: zero `@/server` leak into `.output/public`). `tsc --noEmit` = 0 errors.
 `vitest run src/server src/lib/api` = 208 passed (20 files), includes the 5 new WP-10 gate tests.
 No dependency changes; no edits outside WP-10's reused surface (db/auth/errors untouched).
+
+### WP-15 — api mail-guardian (done; createServerFn-RPC per ADR-001)
+Implemented as typed `createServerFn` RPC, NOT REST (the WP file's `/api/*` route design was
+superseded by ADR-001). Reuses the WP-02 repo at `src/server/db/repos/mail_guardian.ts` via
+dynamic `await import()` inside each handler. Files created:
+- `src/lib/api/mail-guardian.functions.ts` — 7 server fns, each a top-level
+  `createServerFn(...).middleware([gate]).handler(serverFnNoop)` literal with `gate =
+  defineServerFn({...})` and all `@/server/**` logic via dynamic `await import()`:
+  - `listAccounts` (GET admin) → `{ accounts: MailGuardianAccountSafe[] }` (no `passwordB64`)
+  - `createAccount` (POST admin, rate-limit 30/min/user) → `{ account }`, 409-style via
+    `validationError` if slug already exists; password stored as base64 by repo
+  - `updateAccount` (POST admin, rate-limit 30/min/user) → `{ account }` | 404
+  - `deleteAccount` (POST admin, rate-limit 30/min/user) → `{ ok: true, slug }` | 404
+  - `listReviews` (GET any) → `{ reviews, total, page, pageSize }`, filters: `accountSlug`,
+    `pendingOnly`, `page`, `pageSize`
+  - `flagReview` (POST admin, rate-limit 60/min/user) → `{ id, ownerDecision:'spam', resolvedAt,
+    approver }` | 404; inserts `mail_guardian_actions` row (`decision:'spam'`, `status:'pending'`)
+  - `approveReview` (POST admin, rate-limit 60/min/user) → `{ id, ownerDecision:'keep', ... }`
+    | 404; inserts `mail_guardian_actions` row (`decision:'keep'`, `status:'pending'`)
+  - `batch` (POST admin, rate-limit 30/min/user) → `{ updated, action }`; maps
+    `action:'approve'→'keep'`, `action:'flag'→'spam'`; issues one UPDATE + one action insert per id
+    (verbatim port of the legacy loop — no `inArray` refactor per WP-15 notes)
+- `src/lib/api/__tests__/mail-guardian.functions.test.ts` — 22 gate tests covering all 7 gates:
+  auth:admin 200/401/403, CSRF stolen/missing/valid 403/201, auth:any 200/401, input validation
+  400, plus node-env gate block asserting `DB_PASSWORD` unset does not affect pipeline security.
+
+Evidence: `vitest run src/lib/api/__tests__/mail-guardian.functions.test.ts` = 22 passed (1 file).
+No dependency changes; no edits outside the two new files; `src/server/db/repos/mail_guardian.ts`
+(WP-02) reused read-only via dynamic import.
 
 ### WP-20 — api auth (done; createServerFn-RPC per ADR-001; SECURITY-SENSITIVE)
 Login / logout / me ported as typed `createServerFn` RPC (the WP file's `/api/auth/*`
@@ -207,6 +236,96 @@ Evidence: `vitest run src/server/incus src/lib/api/incus.functions.ts` = 34 pass
 `vitest run src/server src/lib/api` = 308 passed (25 files); 1 pre-existing timeout in
 `client-pglite-extra.test.ts` (WP-02 flaky test, unrelated to WP-12).
 Missing deps (noted, not added): none — `@cortexos/contracts` already in workspace.
+
+### WP-18 — api env-browser (done; createServerFn-RPC per ADR-001; SECURITY-SENSITIVE secret reveal)
+Masked-by-default env reader + PAM step-up unlock ported as typed `createServerFn` RPC (the WP
+file's `/api/env-browser/*` route design was superseded by ADR-001). De-slop fix preserved
+(masked by default; PAM unlock → 10-min reveal grant). Files:
+- `src/lib/api/env-browser.functions.ts` — 2 server fns, each a top-level
+  `createServerFn(...).middleware([gate]).handler(serverFnNoop)` literal; gate options exported
+  (`readEnvGateOptions` / `unlockGateOptions`) as the single source of truth so the node-env test
+  drives the REAL handlers through `defineApiRoute`. All `@/server/**` (pam / env-reveal / errors)
+  + `node:fs/promises` imported dynamically inside handlers.
+  - `readEnv` (GET, auth `admin`, rate-limit 30/60s/user): allowlist (`/opt/cortexos/.secrets/`,
+    `/opt/cortexos/stacks/`) via `fs.realpath` (resolved path is authoritative — symlink/`..`
+    escape rejected even when the literal request string starts with an allowed prefix; the legacy
+    literal-prefix fallback that let `…/stacks/../../etc/passwd` through is fixed). Returns
+    `{path, revealed, revealExpiresAt, entries:[{key,value,masked}]}`; `value` is the masked string
+    unless the calling session holds a LIVE reveal grant (`hasRevealGrant`) — no cleartext leaves the
+    server without a grant. `SECRET_KEY_RE` + `maskValue` ported verbatim from the legacy handler.
+  - `unlock` (POST, auth `admin`, rate-limit 5/60s/user): re-verifies the CURRENT operator's PAM
+    password (`getPamAuthenticator().authenticate(user.username, input.password)`), on success
+    `grantReveal(sessionId)` → 10-min window; returns `{ok, expiresAt, ttlSec}`. Coarse `authError`
+    on PAM failure (no user-enumeration); password NEVER logged / echoed / placed in the audit target
+    (`target: () => null`); PAM error detail never surfaced. Reuses `src/server/env-reveal` (WP-03)
+    unchanged.
+- `src/lib/api/__tests__/env-browser.functions.test.ts` — node-env tests (10): masked-by-default
+  (no grant → secret `value === masked`, full serialized response asserted to contain NO cleartext),
+  unlock with valid PAM pw → grant within 10 min → same-session read returns cleartext, no
+  cross-session leak (session A unlocks, session B stays masked), allowlist 403 (`/etc/passwd`),
+  realpath-traversal 403 (`…/stacks/../../etc/passwd`), 401/403 auth gates, rate-limit (6th unlock → 429).
+
+Evidence: `vitest run src/lib/api/__tests__/env-browser.functions.test.ts` = 10 passed.
+`vitest run src/server src/lib/api` = 397 passed; the handful of failures vary per run and are
+pre-existing pglite/migrate timeouts under parallel load (e.g. `migrate-filter.test.ts`,
+`client-pglite-extra.test.ts`) — each passes in isolation, none touch env-browser.
+`pnpm --filter @cortexos/dashboard-next typecheck` = 0 errors. No dependency changes; reused
+`src/server/{env-reveal,auth/pam,errors}` only (no edits to db/approval/audit/config internals).
+
+### WP-19 — api terminal (WIP; named-op path DONE, live PTY transport-BLOCKED)
+The WP-19 spec assumed an h3/Vinxi `upgradeWebSocket` route for the interactive PTY. That
+assumption is invalid in this framework — **ADR-001 already proved there are NO HTTP/WS
+routes**, only `createServerFn` RPC. The one-shot allowlisted named-op surface is fully ported
+and real; the live interactive shell is blocked on transport + a native dep and stays mocked in
+the frontend (sys-pilot `src/features/Terminal.tsx`) until both land. Files created:
+- `src/server/terminal/pty-bridge.ts` — named-op dispatcher ported from legacy
+  `pty-bridge.ts`, **stub executor removed** (no `M2_PTY_STUB`/marker). `dispatch(input, ctx)`:
+  allowlist (terminal surface only) → recursive arg-smuggling scan (`validateShellArg` per
+  string arg) → `<placeholder>` argv render from the policy entry → PB-2 belt-and-braces reject
+  of any rendered `<shell> -c` pair → **real `execFile`** (fixed argv, no shell, 30s timeout,
+  4MiB maxBuffer). Linux uses the real `execFile` executor; macOS/CI/tests use a deterministic
+  mock (same node-env seam as the systemd/incus bridges; `CORTEX_TERMINAL_BRIDGE_REAL=0` forces
+  mock). Exports `dispatch`, `listTerminalOps`, `validateAllArgs`, `spawnPty`,
+  `setExecutorForTests`. Audits every reject + dispatch (success AND non-zero exit).
+- `src/lib/api/terminal.functions.ts` — 2 server fns (createServerFn RPC, all `@/server` via
+  dynamic import): `listTerminalOps` (GET admin, rate-limit 30/min/user) and
+  `dispatchTerminalOp` (POST admin, rate-limit 10/min/user). Unknown/non-allowlisted op
+  (incl. any `bash -c`) → 403; shell metacharacter in an arg → 400; non-zero exit is NOT an
+  HTTP error (returned as `{stdout,stderr,exitCode}` for the client to render).
+- `src/server/terminal/__tests__/pty-bridge.test.ts` (15) + `src/lib/api/__tests__/terminal.functions.test.ts` (9).
+
+**Transport mechanism this framework supports (researched):** the only server primitive is
+`createServerFn` RPC over a single `fetch(Request)→Response` h3 entry (`src/server.ts` →
+`@tanstack/react-start/server-entry`). Findings:
+- **WebSocket: NOT achievable.** `crossws@0.4.6` + `h3@2.0.1-rc` ARE present (transitive deps of
+  TanStack Start), and h3 v2 can do WS via `defineWebSocketHandler` + the `crossws/server` plugin
+  — BUT that plugin must be registered in the Nitro/`serve()` bootstrap, which the
+  `node-server` preset (via `@lovable.dev/vite-tanstack-config`) owns; we have no route/plugin
+  injection point, and ADR-001 proved file-routes 404. So no WS upgrade is reachable from app code.
+- **SSE / streaming: partially available but does not fit the gate.** TanStack's server-fn
+  handler (`start-server-core/server-functions-handler.js`) supports raw `ReadableStream`
+  multiplexing over RPC (`createRawStreamRPCPlugin`/`createMultiplexedStream`) and passes a
+  raw `Response` through verbatim (`X_TSS_RAW_RESPONSE`). However our security gate
+  (`defineServerFn`) returns the handler's **data** via `next({ result })`, not a raw streaming
+  `Response`, and a single RPC call has no input back-channel — so a live, bidirectional,
+  resizable PTY stream does not fit the gated server-fn model cleanly. Output-only streaming of
+  a one-shot command COULD be added later behind a raw-Response gate variant, but interactive
+  shell I/O still needs WS.
+
+**BLOCKER + dep flag for the orchestrator:** the interactive PTY needs (a) a streaming/WS
+transport this framework does not expose to app code, and (b) the native addon **`node-pty`**
+(legacy pinned `node-pty@^1.0.0` in `packages/dashboard/package.json`). `node-pty` builds a
+native `.node` file (node-gyp/python) → it needs the monorepo **build allowlist**
+(`pnpm.onlyBuiltDependencies`). **NOT added to package.json by this WP** — flagged here for the
+orchestrator. `spawnPty()` is implemented (shell allowlist `/bin/bash`,`/bin/sh`,`/usr/bin/bash`,
+`/usr/bin/zsh`; default `/bin/bash`; `CORTEX_TERMINAL_SHELL` override still allowlist-checked;
+fixed empty argv; lazy computed-specifier `node-pty` import) but throws `pty_unavailable` until
+both land. WP-36 (frontend) should keep the mock terminal and wire the named-op palette to
+`dispatchTerminalOp`/`listTerminalOps`.
+
+Evidence: `vitest run src/server src/lib/api` = 408 passed (33 files; +24 new WP-19 tests).
+`tsc --noEmit` = 0 errors. `grep -r 'M2_PTY_STUB\|M2_STUB_MARKER' src/server/terminal/` = CLEAN.
+No dependency changes; no edits outside WP-19's OWNS + the new `src/lib/api/terminal.functions.ts`.
 
 ## Wave 2 — frontend route-groups (PARALLEL; need WP-04)
 | WP | Title | Pairs with | Status | Owner | Commit |
