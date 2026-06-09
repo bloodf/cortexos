@@ -109,7 +109,7 @@ built-server probe above, and the unit test covers the pipeline directly.
 ## Wave 1 — backend domains (PARALLEL; need WP-01+WP-02)
 | WP | Title | Extra deps | Status | Owner | Commit |
 |----|-------|-----------|--------|-------|--------|
-| WP-10 | api services + health | — | todo | | |
+| WP-10 | api services + health | — | done | | |
 | WP-11 | api docker | — | todo | | |
 | WP-12 | api incus | — | todo | | |
 | WP-13 | api systemd | — | todo | | |
@@ -121,6 +121,32 @@ built-server probe above, and the unit test covers the pipeline directly.
 | WP-19 | api terminal (WS PTY) | — | todo | | |
 | WP-20 | api auth | WP-03 | todo | | |
 | WP-21 | api agents | — | todo | | |
+
+### WP-10 — services + health (done; REFERENCE Wave-1 backend, createServerFn-RPC per ADR-001)
+Implemented as typed `createServerFn` RPC, NOT REST (the WP file's `/api/*` route design was
+superseded by ADR-001). Files created:
+- `src/lib/api/services.functions.ts` — 7 server fns, each a top-level
+  `createServerFn(...).middleware([gate]).handler(serverFnNoop)` literal with `gate =
+  defineServerFn({...})` and all `@/server/**` logic via dynamic `await import()` inside the
+  handler: `listServices` (GET any), `getService` (GET any, 404), `createService` (POST admin),
+  `patchService` (POST admin, 404), `deleteService` (POST admin, 404), `listServiceHealth`
+  (GET any), `recheckServiceHealth` (POST admin, rate-limit 10/min/user).
+- `src/server/health/scheduler.ts` — ported verbatim from legacy
+  `packages/dashboard/src/lib/server/health/scheduler.ts` (SvelteKit `$lib` aliases → relative
+  `../db/*`). `startHealthScheduler()` idempotent singleton, immediate sweep + 60s `setInterval`
+  with `timer.unref()`, `sweepOnce()` (`activeOnly:true, pageSize:500`), and `probe()` exported
+  for reuse by the manual recheck. http/tcp/systemd/docker/process probes via `execFile`.
+- `src/server/health/index.ts` — barrel re-exporting `startHealthScheduler`, `sweepOnce`, `probe`.
+- `src/server/runtime.ts` — `bootRuntime()` now calls `startHealthScheduler()` (the WP-00 hook;
+  `src/server.ts` already calls `bootRuntime()` once at boot).
+- `src/lib/api/__tests__/services.functions.test.ts` — node-env gate tests (auth:any 200/401,
+  admin 403/CSRF-stolen 403/valid-CSRF 201) for the services.list + services.create gates.
+
+Evidence: `pnpm --filter @cortexos/dashboard-next build` GREEN — the services server fns +
+scheduler compile into `.output/server/_ssr/index.mjs` (proves the createServerFn pattern +
+import-protection: zero `@/server` leak into `.output/public`). `tsc --noEmit` = 0 errors.
+`vitest run src/server src/lib/api` = 208 passed (20 files), includes the 5 new WP-10 gate tests.
+No dependency changes; no edits outside WP-10's reused surface (db/auth/errors untouched).
 
 ## Wave 2 — frontend route-groups (PARALLEL; need WP-04)
 | WP | Title | Pairs with | Status | Owner | Commit |

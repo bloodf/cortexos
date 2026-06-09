@@ -6,12 +6,10 @@
  * server init). Idempotent via the `booted` guard so it is safe even if called
  * more than once.
  *
- * Extension point (WP-10): start the periodic health scheduler here, e.g.
- *   import { startHealthScheduler } from "./health/scheduler";
- *   startHealthScheduler();
- * Do not add that import until WP-10 lands `src/server/health/scheduler.ts`,
- * so this WP's build stays green.
+ * WP-10 wires the periodic health scheduler here.
  */
+
+import { startHealthScheduler } from "./health/scheduler";
 
 let booted = false;
 
@@ -19,5 +17,8 @@ let booted = false;
 export function bootRuntime(): void {
   if (booted) return;
   booted = true;
-  // WP-10 wires startHealthScheduler() here.
+  // Sweep active services every 60s (immediate first sweep on boot). The
+  // scheduler is itself an idempotent singleton; the `booted` guard is the
+  // outer safety net.
+  startHealthScheduler();
 }
