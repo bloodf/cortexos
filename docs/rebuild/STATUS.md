@@ -354,4 +354,4 @@ No dependency changes; no edits outside WP-19's OWNS + the new `src/lib/api/term
 | WP | Title | Depends-on | Status | Owner | Commit |
 |----|-------|-----------|--------|-------|--------|
 | WP-53 | i18n es/pt-br | WP-52 | done | claude | 103 keys/locale; es.ts + ptBR.ts satisfy Dict; tsc 0 errors |
-| WP-54 | legacy removal + docs | WP-52 | todo | | |
+| WP-54 | legacy removal + docs | WP-52 | wip | claude | DOCS done (CLAUDE.md+AGENTS.md created in dashboard-next, 70-dashboard.md + root AGENTS.md updated); legacy removal (phases 2-3: rm packages/dashboard + stacks/cortex-dashboard) still pending user confirmation |

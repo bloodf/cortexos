@@ -1,10 +1,12 @@
 # 70 - Dashboard
 
-The dashboard is the LAN/tailnet control console for the rebuilt host. It runs
+The dashboard is the LAN/tailnet control console for the CortexOS host. It runs
 as a **native systemd service** (`cortex-dashboard.service`) built on the host —
 there is no container, no Docker Compose, no image. Authentication is **Linux
 PAM**: operators log in with an OS account, and admin rights derive from OS
 group membership (`cortexos-admin`).
+
+Package: `@cortexos/dashboard-next` at `packages/dashboard-next/`.
 
 Required surfaces:
 
@@ -14,17 +16,24 @@ Required surfaces:
 - Root-helper command execution with audit metadata.
 - Monitoring and backup evidence.
 
+## Stack
+
+- **Framework:** TanStack Start (`@tanstack/react-start`) + TanStack Router (file-based)
+- **UI:** React 19 + shadcn/ui + Tailwind v4 + Recharts + xterm.js
+- **Data fetching:** TanStack Query
+- **Build:** Vite 7 + Nitro `node-server` preset
+- **Transport:** `createServerFn` RPC — **no REST `/api/*` routes** (see ADR-001)
+
 ## Runtime model
 
 - Unit: `cortex-dashboard.service` (template `templates/systemd/cortex-dashboard.service`,
   rendered by `scripts/ops/cortex-render-units.sh`).
-- Runs as `root`, `WorkingDirectory=/opt/cortexos/packages/dashboard`.
+- Runs as `root`, `WorkingDirectory=/opt/cortexos/packages/dashboard-next`.
 - `EnvironmentFile=/opt/cortexos/.secrets/dashboard.env` (mode `0600`)
   provides `DB_PASSWORD`, optional `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`,
-  `CORTEX_AUTH_PAM_SERVICE` (default `cortexos-dashboard`).
-- `ExecStart=/usr/bin/node build/index.js`, `HOST=0.0.0.0`, `PORT=3080`.
-- Built artifacts the unit runs: `build/index.js` (SvelteKit adapter-node),
-  `node_modules/`, and the shared `packages/contracts/dist/` types.
+  `CORTEX_AUTH_PAM_SERVICE` (default `cortexos-dashboard`), `CORTEX_MASTER_KEY`.
+- `ExecStart=/usr/bin/node .output/server/index.mjs`, `HOST=127.0.0.1`, `PORT=3080`.
+- Built artifact the unit runs: `.output/server/index.mjs` (Nitro node-server output).
 
 ## Prerequisites
 
@@ -35,12 +44,6 @@ The host must have (installed via `scripts/pkg.sh`, never raw `apt-get`):
 - `build-essential` — toolchain for the native modules (`node-gyp`).
 - `libpam0g-dev` — PAM headers required to build `authenticate-pam`.
 
-> STOP — checkpoint. Confirm `node --version` reports v24+, that
-> `build-essential` and `libpam0g-dev` are installed, and that the operator has
-> pushed the repo to `/opt/cortexos` (via the laptop bootstrap
-> `git archive | ssh tar -x`). Do not proceed until the source tree exists at
-> `/opt/cortexos/packages/dashboard`.
-
 ## Build
 
 Build natively on the host:
@@ -48,10 +51,8 @@ Build natively on the host:
 ```bash
 cd /opt/cortexos
 pnpm install --frozen-lockfile
-cd packages/contracts
-pnpm run build
-cd ../dashboard
-pnpm run build
+pnpm --filter @cortexos/contracts build
+pnpm --filter @cortexos/dashboard-next build
 ```
 
 The build steps:
@@ -59,22 +60,39 @@ The build steps:
 1. `pnpm install --frozen-lockfile` at the workspace root (resolves the
    `@cortexos/contracts` workspace dep + the `authenticate-pam` native
    binding on Linux arm64/amd64).
-2. `pnpm run build` in `packages/contracts` emits the typed contract
+2. `pnpm --filter @cortexos/contracts build` emits the typed contract
    artifacts (Zod schemas → JSON-Schema, `.d.ts` re-exports).
-3. `pnpm run build` in `packages/dashboard` runs Vite + SvelteKit's
-   `adapter-node`, producing `build/index.js`, `build/client/`,
-   `build/server/`, and the `.svelte-kit/output/` cache.
+3. `pnpm --filter @cortexos/dashboard-next build` runs Vite + Nitro's
+   `node-server` preset, producing `.output/server/index.mjs` and
+   `.output/public/`.
 
-Output: `packages/dashboard/build/`, `packages/contracts/dist/`,
+Output: `packages/dashboard-next/.output/`, `packages/contracts/dist/`,
 `node_modules/`.
+
+## Transport: createServerFn RPC
+
+All backend communication uses typed `createServerFn` RPC. There are **no**
+`/api/*` HTTP routes — `@tanstack/react-start@1.168` has no REST file-route
+mechanism; only `createServerFn` works at runtime.
+
+- **Server functions** live in `src/lib/api/<domain>.functions.ts`.
+  Each is a top-level `createServerFn(...).middleware([gate]).handler(serverFnNoop)`
+  literal gated by `defineServerFn` (`src/lib/api/define-server-fn.ts`).
+- **Server-only logic** stays in `src/server/**` and is imported **dynamically
+  inside** each handler (`await import('@/server/...')`). Never static-import
+  `src/server/**` at the top of a `*.functions.ts` file.
+- **Frontend calls** server fns directly (typed): `await listServices({ data: { q } })`
+  from loaders/components — no `fetch('/api/...')`.
+
+Security gate pipeline per request:
+`resolveContext` → method → input (400) → auth/RBAC (401/403) →
+CSRF on mutations (double-submit + session-bound; 403/401) → rate-limit (429) →
+approval (412) → handler → audit → typed success/error envelope.
 
 ## Set up PAM + RBAC groups
 
-The dashboard authenticates against the OS account database via PAM. Create
-the service file and the dashboard RBAC groups:
-
 ```bash
-# PAM service — include the standard auth stack, no pam_mail/pam_env noise.
+# PAM service — include the standard auth stack.
 sudo tee /etc/pam.d/cortex-dashboard >/dev/null <<'EOF'
 # PAM configuration for cortex-dashboard
 auth       include      common-auth
@@ -135,18 +153,58 @@ PAM login check — log in through the UI with an **OS account** that belongs to
 `cortexos-admin`; that session must show admin surfaces. A non-admin OS account
 must authenticate but see no admin actions.
 
-> STOP — checkpoint. The login page must return `200`, the unit must be
-> `active (running)`, the `authenticate_pam.node` native binding must have
-> built successfully (look for it under
-> `node_modules/.pnpm/authenticate-pam@*/node_modules/authenticate-pam/build/Release/`),
-> and at least one admin PAM login must succeed before this step is
-> considered complete.
+## Redeploy after a code change
+
+```bash
+cd /opt/cortexos
+pnpm --filter @cortexos/dashboard-next build
+sudo systemctl restart cortex-dashboard.service
+curl -fsS -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3080/login  # 200
+```
+
+## Rollback to legacy SvelteKit
+
+If dashboard-next needs to be reverted to the legacy SvelteKit build:
+
+```bash
+sudo cp /etc/systemd/system/cortex-dashboard.service.legacy-svelte.bak \
+        /etc/systemd/system/cortex-dashboard.service
+sudo systemctl daemon-reload
+sudo systemctl restart cortex-dashboard.service
+# Legacy app runs from packages/dashboard/build/index.js
+```
 
 ## Validation (local / CI)
 
 ```bash
-pnpm --dir packages/contracts run build
-pnpm --dir packages/dashboard run check
-pnpm --dir packages/dashboard test
-pnpm --dir packages/dashboard run build
+pnpm --filter @cortexos/contracts build
+pnpm --filter @cortexos/dashboard-next typecheck
+pnpm --filter @cortexos/dashboard-next test
+pnpm --filter @cortexos/dashboard-next build
 ```
+
+## Admin lifecycle
+
+Authentication is delegated entirely to Linux PAM — there are no DB-stored
+passwords and no seeded admin account.
+
+- The `pam_users` table (created by `migrations/001_schema.sql`) records each
+  host system account that has successfully logged in. Admin status is determined
+  per-login from host group membership (`cortexos-admin`) and stored on
+  the session row (`admin_sessions.is_admin`).
+- **First admin:** the first Linux user to log in via the `/login` form whose
+  host account belongs to `cortexos-admin` gets admin access automatically.
+  No seed SQL, no bootstrap endpoint, no default password to rotate.
+- **Lost access:** re-add the Linux user to `cortexos-admin` on the VPS host,
+  then log in normally through the dashboard.
+- Rotate `CORTEX_MASTER_KEY`: edit `/opt/cortexos/.secrets/dashboard.env`,
+  then `sudo systemctl restart cortex-dashboard.service`.
+
+## Rules
+
+- Never commit credentials or `.env` files.
+- Binds loopback `127.0.0.1:3080`; Caddy reverse-proxies TLS.
+- Admin access: add OS user to `cortexos-admin` group; log in normally.
+- Rotate `CORTEX_MASTER_KEY`: edit `.secrets/dashboard.env` → `systemctl restart`.
+- No container, no Docker Compose, no image.
+- Source tree: `packages/dashboard-next/` (unit `WorkingDirectory`).
