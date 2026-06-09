@@ -6,19 +6,19 @@
 # Bind is loopback because Caddy reverse-proxies TLS from Tailscale.
 
 [Unit]
-Description=CortexOS Dashboard (SvelteKit)
+Description=CortexOS Dashboard (TanStack/React)
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
 User=root
-WorkingDirectory={CORTEX_ROOT}/packages/dashboard
+WorkingDirectory={CORTEX_ROOT}/packages/dashboard-next
 Environment=HOST=127.0.0.1
 Environment=PORT=3080
 Environment=NODE_ENV=production
 EnvironmentFile={CORTEX_SECRETS_DIR}/dashboard.env
-ExecStart=/usr/bin/node build/index.js
+ExecStart=/usr/bin/node .output/server/index.mjs
 Restart=on-failure
 RestartSec=5
 StandardOutput=journal

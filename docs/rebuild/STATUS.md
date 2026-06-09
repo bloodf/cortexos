@@ -346,9 +346,9 @@ No dependency changes; no edits outside WP-19's OWNS + the new `src/lib/api/term
 ## Wave 3 — verify & cutover (sequential)
 | WP | Title | Depends-on | Status | Owner | Commit |
 |----|-------|-----------|--------|-------|--------|
-| WP-50 | security test suite (GATE) | all Wave 1 | todo | | |
-| WP-51 | parity verification | all W1+W2 | todo | | |
-| WP-52 | build + systemd cutover | WP-50, WP-51 | todo | | |
+| WP-50 | security test suite (GATE) | all Wave 1 | done | claude | 42 assertions, 0 findings (cf4680e) |
+| WP-51 | parity verification | all W1+W2 | done | claude | runtime smoke: all routes serve, guard 307s |
+| WP-52 | build + systemd cutover | WP-50, WP-51 | done | claude | LIVE on :3080; legacy kept for rollback |
 
 ## Wave 4 — post-cutover
 | WP | Title | Depends-on | Status | Owner | Commit |
