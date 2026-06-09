@@ -7,6 +7,11 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
+  // Force a Node server build (Nitro node-server preset). Without an explicit
+  // `nitro` option the lovable wrapper skips Nitro entirely outside a sandbox,
+  // and nitro@3.0.260429-beta predates defaultPreset auto-detect — so the preset
+  // MUST be set explicitly. Emits .output/server/index.mjs (run with `node`).
+  nitro: { preset: "node-server" },
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this

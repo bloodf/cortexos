@@ -2,6 +2,13 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { bootRuntime } from "./server/runtime";
+
+// Run-once server boot side effects. server.ts is the server-only entry, so it
+// may import server-only modules (start.ts cannot — it is client-reachable and
+// blocked by import-protection). Module top-level runs once at server boot.
+// WP-10 wires the health scheduler into bootRuntime().
+bootRuntime();
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;

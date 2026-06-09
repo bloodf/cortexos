@@ -11,7 +11,7 @@
 ## Wave 0 — foundation (sequential)
 | WP | Title | Depends-on | Status | Owner | Commit |
 |----|-------|-----------|--------|-------|--------|
-| WP-00 | node-server preset + runtime boot | — | todo | | |
+| WP-00 | node-server preset + runtime boot | — | done | claude | (pending) |
 | WP-02 | DB port | — | todo | | |
 | WP-03 | security cores (portable) | WP-02 | todo | | |
 | WP-01 | request core (defineApiRoute, auth/session/csrf/rbac) | WP-02, WP-03 | todo | | |
