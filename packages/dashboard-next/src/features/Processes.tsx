@@ -9,10 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/EmptyState";
 import { TableSkeleton } from "@/components/skeletons";
-import { api } from "@/mocks/api";
+import { api } from "@/lib/api/client";
 import { useT } from "@/hooks/useT";
 import { cn } from "@/lib/utils";
-import type { ProcessInfo } from "@/mocks/types";
+import type { ProcessInfo } from "@/lib/api/client";
 
 type View = "list" | "tree";
 

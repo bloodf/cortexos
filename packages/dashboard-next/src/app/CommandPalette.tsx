@@ -63,7 +63,7 @@ export function CommandPalette({ open, onOpenChange, onOpenHelp }: Props) {
     { id: "act-prune-docker", label: "Docker prune (dry-run)", icon: Lock, admin: true, run: () => toast.info("Dry-run: would reclaim 4.2 GB") },
     { id: "act-new-incus", label: "New Incus instance", icon: Lock, admin: true, run: () => runNav("/incus") },
     { id: "act-mark-read", label: "Mark all notifications read", icon: Lock, run: () => toast.success("Notifications cleared") },
-    { id: "act-logout", label: "Sign out", icon: LogOut, run: () => { logout(); window.location.href = "/login"; } },
+    { id: "act-logout", label: "Sign out", icon: LogOut, run: () => { void logout().finally(() => { window.location.href = "/login"; }); } },
   ];
 
   return (

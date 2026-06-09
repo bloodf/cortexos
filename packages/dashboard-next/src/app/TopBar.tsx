@@ -9,7 +9,6 @@ import { useT } from "@/hooks/useT";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/mocks/api";
 import { NAV } from "./NavConfig";
-import { SimulateMenu } from "./SimulateMenu";
 import { LOCALES, LOCALE_LABEL, type Locale } from "@/i18n";
 import { relativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -60,8 +59,6 @@ export function TopBar({ collapsed, onToggleCollapse, onOpenMobile, onOpenPalett
           <kbd className="text-[11px] font-mono">?</kbd>
         </Button>
       )}
-
-      {user?.is_admin && <SimulateMenu />}
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -138,7 +135,7 @@ export function TopBar({ collapsed, onToggleCollapse, onOpenMobile, onOpenPalett
             <UserIcon className="size-4" />
             <div>
               <p className="text-sm font-medium">{user?.username}</p>
-              <p className="text-xs font-normal text-muted-foreground">Administrator</p>
+              <p className="text-xs font-normal text-muted-foreground">{user?.is_admin ? "Administrator" : "User"}</p>
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
@@ -150,7 +147,7 @@ export function TopBar({ collapsed, onToggleCollapse, onOpenMobile, onOpenPalett
             </DropdownMenuItem>
           ))}
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => { logout(); window.location.href = "/login"; }} className="gap-2 text-destructive focus:text-destructive">
+          <DropdownMenuItem onClick={() => { void logout().finally(() => { window.location.href = "/login"; }); }} className="gap-2 text-destructive focus:text-destructive">
             <LogOut className="size-3.5" />{t.auth.logout}
           </DropdownMenuItem>
         </DropdownMenuContent>

@@ -3,11 +3,11 @@ import { HardDrive } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, type Column } from "@/components/DataTable";
-import { api } from "@/mocks/api";
+import { api } from "@/lib/api/client";
 import { useT } from "@/hooks/useT";
 import { bytes } from "@/lib/format";
 import { usageBg } from "@/lib/status";
-import type { MountInfo, DriveInfo } from "@/mocks/types";
+import type { MountInfo, DriveInfo } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
 
 export function StoragePage() {

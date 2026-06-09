@@ -13,7 +13,7 @@ export type NavKey =
 
 export interface NavItem { to: string; key: NavKey; icon: LucideIcon }
 export type GroupId = "platform" | "infra" | "secOps" | "admin";
-export interface NavGroup { id: GroupId; items: NavItem[] }
+export interface NavGroup { id: GroupId; items: NavItem[]; adminOnly?: boolean }
 
 export const PINNED: NavItem = { to: "/overview", key: "overview", icon: Activity };
 
@@ -40,7 +40,7 @@ export const NAV: NavGroup[] = [
     { to: "/approvals", key: "approvals", icon: CheckCircle2 },
     { to: "/audit", key: "audit", icon: ScrollText },
   ]},
-  { id: "admin", items: [
+  { id: "admin", adminOnly: true, items: [
     { to: "/admin/services", key: "services", icon: Settings2 },
     { to: "/admin/badges", key: "badges", icon: BadgeCheck },
     { to: "/admin/env-browser", key: "env", icon: FileKey },

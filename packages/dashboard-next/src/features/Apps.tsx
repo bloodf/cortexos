@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { api } from "@/mocks/api";
+import { api } from "@/lib/api/client";
 import { useT } from "@/hooks/useT";
 import { useFavorites } from "@/hooks/useFavorites";
 import { cn } from "@/lib/utils";

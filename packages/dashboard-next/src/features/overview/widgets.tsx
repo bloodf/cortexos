@@ -12,7 +12,7 @@ import { WidgetShell } from "@/components/WidgetShell";
 import { GaugeRadial } from "@/components/GaugeRadial";
 import { Sparkline } from "@/components/Sparkline";
 import { AreaTrend } from "@/components/AreaTrend";
-import { api } from "@/mocks/api";
+import { api } from "@/lib/api/client";
 import { bytes, kbps, duration, percent, relativeTime } from "@/lib/format";
 import { tempColor, usageBg } from "@/lib/status";
 import { cn } from "@/lib/utils";

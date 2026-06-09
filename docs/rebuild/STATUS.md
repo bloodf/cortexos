@@ -330,7 +330,7 @@ No dependency changes; no edits outside WP-19's OWNS + the new `src/lib/api/term
 ## Wave 2 — frontend route-groups (PARALLEL; need WP-04)
 | WP | Title | Pairs with | Status | Owner | Commit |
 |----|-------|-----------|--------|-------|--------|
-| WP-30 | shell/nav/auth/login | WP-20 | todo | | |
+| WP-30 | shell/nav/auth/login | WP-20 | done | claude | shell wired to real PAM auth via createServerFn RPC; localStorage guard replaced with `me`-based `_authenticated` beforeLoad; admin nav gated on real groups; SimulateMenu removed |
 | WP-31 | overview | WP-10,14 | todo | | |
 | WP-32 | apps + healthcheck | WP-10 | todo | | |
 | WP-33 | docker | WP-11 | todo | | |
@@ -340,7 +340,7 @@ No dependency changes; no edits outside WP-19's OWNS + the new `src/lib/api/term
 | WP-37 | mail-guardian | WP-15 | todo | | |
 | WP-38 | approvals + audit | WP-16 | todo | | |
 | WP-39 | alerts | WP-17 | todo | | |
-| WP-40 | admin | WP-10,18 | todo | | |
+| WP-40 | admin | WP-10,18 | done | claude | services CRUD + env-browser PAM-unlock reveal + account/me + real empty-states wired |
 | WP-41 | agents | WP-21 | todo | | |
 
 ## Wave 3 — verify & cutover (sequential)

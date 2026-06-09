@@ -26,8 +26,8 @@ function LoginPage() {
   const { locale, setLocale } = useUI();
   const router = useRouter();
   const search = useSearch({ from: "/login" });
-  const [u, setU] = useState("admin");
-  const [p, setP] = useState("admin");
+  const [u, setU] = useState("");
+  const [p, setP] = useState("");
   const [show, setShow] = useState(false);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -83,9 +83,6 @@ function LoginPage() {
             </div>
             {err && <p className="text-sm text-destructive">{err}</p>}
             <Button type="submit" className="w-full" disabled={busy}>{busy ? "…" : t.auth.signIn}</Button>
-            <p className="text-xs text-muted-foreground text-center">
-              Try <span className="font-mono">admin</span> for admin role, anything else for standard.
-            </p>
           </form>
         </div>
         <footer className="flex items-center justify-between border-t px-6 py-3 text-xs text-muted-foreground">

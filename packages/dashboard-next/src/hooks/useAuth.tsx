@@ -1,50 +1,92 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import type { User as ContractUser } from "@cortexos/contracts/entities";
+import { login as loginFn, logout as logoutFn, me as meFn } from "@/lib/api/auth.functions";
 
 export interface AuthUser { username: string; is_admin: boolean }
+
 interface AuthCtx {
   user: AuthUser | null;
+  /** True until the initial `me()` session probe resolves. */
+  loading: boolean;
   login: (u: string, p: string) => Promise<void>;
-  logout: () => void;
-  /** @deprecated kept for backwards-compat; the app only has admin role. */
+  logout: () => Promise<void>;
+  /** @deprecated kept for backwards-compat; role now comes from real PAM groups. */
   switchUser: (admin: boolean) => void;
 }
 
 const Ctx = createContext<AuthCtx | null>(null);
-const KEY = "cortex.auth";
+
+/** Request header the server double-submits the CSRF cookie against. */
+const CSRF_HEADER = "x-csrf-token";
+
+/** Read the JS-readable CSRF cookie so mutations can echo it (double-submit). */
+function readCsrfCookie(): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(/(?:^|;\s*)cortexos_csrf=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+/** Map a contract User → the shell's AuthUser shape. */
+function toAuthUser(u: ContractUser): AuthUser {
+  return { username: u.username, is_admin: u.isAdmin };
+}
+
+// The gate-middleware pattern (defineServerFn + serverFnNoop) makes TypeScript
+// infer the server-fn return as `undefined`; the real payload is carried by the
+// gate at runtime. Recover the typed call shapes at this single boundary.
+type LoginResult = { user: ContractUser | null; session: unknown };
+type MeResult = { user: ContractUser | null; session: unknown };
+const callLogin = loginFn as unknown as (opts: { data: { username: string; password: string } }) => Promise<LoginResult>;
+const callLogout = logoutFn as unknown as (opts: { headers?: Record<string, string> }) => Promise<{ ok: true }>;
+const callMe = meFn as unknown as (opts?: { data?: Record<string, never> }) => Promise<MeResult>;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
+  // Hydrate from the live session on mount (handles reload without re-login).
   useEffect(() => {
-    try {
-      const raw = typeof window !== "undefined" ? localStorage.getItem(KEY) : null;
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        // Single-role app: force admin always.
-        setUser({ username: parsed.username ?? "admin", is_admin: true });
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await callMe({ data: {} });
+        if (!cancelled) setUser(res.user ? toAuthUser(res.user) : null);
+      } catch {
+        if (!cancelled) setUser(null);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch { /* noop */ }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
-  const persist = (u: AuthUser | null) => {
-    setUser(u);
+  const login = useCallback(async (username: string, password: string) => {
+    // login is auth:'public' — the server skips CSRF (pre-session) and sets the
+    // session + CSRF cookies on success. Cookie is authoritative; mirror the
+    // returned user into React state for the shell.
+    const res = await callLogin({ data: { username, password } });
+    setUser(res.user ? toAuthUser(res.user) : null);
+  }, []);
+
+  const logout = useCallback(async () => {
+    // logout is auth:'any' — a mutation; echo the session-bound CSRF cookie in
+    // the x-csrf-token header (double-submit). Idempotent; clear state regardless.
+    const csrf = readCsrfCookie();
     try {
-      if (u) localStorage.setItem(KEY, JSON.stringify(u));
-      else localStorage.removeItem(KEY);
-    } catch { /* noop */ }
-  };
+      await callLogout(csrf ? { headers: { [CSRF_HEADER]: csrf } } : {});
+    } catch {
+      /* clear local state even if the network call fails */
+    }
+    setUser(null);
+  }, []);
 
-  const login = async (username: string, password: string) => {
-    await new Promise((r) => setTimeout(r, 400));
-    if (!username || !password) throw new Error("Invalid credentials");
-    // Onsite operator dashboard — only admin role exists.
-    persist({ username, is_admin: true });
-  };
+  const switchUser = useCallback((_admin: boolean) => { /* no-op: role comes from PAM groups */ }, []);
 
-  const logout = () => persist(null);
-  const switchUser = (_admin: boolean) => { /* no-op: single admin role */ };
-
-  return <Ctx.Provider value={{ user, login, logout, switchUser }}>{children}</Ctx.Provider>;
+  return (
+    <Ctx.Provider value={{ user, loading, login, logout, switchUser }}>
+      {children}
+    </Ctx.Provider>
+  );
 }
 
 export function useAuth() {

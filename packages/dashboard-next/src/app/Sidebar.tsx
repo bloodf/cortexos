@@ -54,6 +54,9 @@ export function Sidebar({ collapsed, mobileOpen, onClose }: Props) {
 
   const toggle = (id: string) => setOpenGroups((p) => ({ ...p, [id]: !p[id] }));
 
+  // Admin-only groups are hidden for non-admin users (role from real PAM groups).
+  const visibleNav = NAV.filter((g) => !g.adminOnly || user?.is_admin);
+
   const groupTitle: Record<GroupId, string> = {
     platform: t.nav.platform,
     infra: t.nav.infra,
@@ -99,7 +102,7 @@ export function Sidebar({ collapsed, mobileOpen, onClose }: Props) {
               />
             </ul>
 
-            {NAV.map((group) => {
+            {visibleNav.map((group) => {
               const Icon = GROUP_ICONS[group.id];
               const isOpen = openGroups[group.id] ?? true;
               const hasActive = group.items.some((it) => path.startsWith(it.to));
@@ -175,7 +178,7 @@ export function Sidebar({ collapsed, mobileOpen, onClose }: Props) {
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-medium truncate">{user.username}</p>
-                <p className="text-[10px] text-sidebar-foreground/60">Admin</p>
+                <p className="text-[10px] text-sidebar-foreground/60">{user.is_admin ? "Admin" : "User"}</p>
               </div>
             </div>
           )}

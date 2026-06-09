@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { MetricCard } from "@/components/MetricCard";
 import { NetworkTopology } from "@/components/NetworkTopology";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { api } from "@/mocks/api";
+import { api } from "@/lib/api/client";
 import { useT } from "@/hooks/useT";
 import { bytes, kbps } from "@/lib/format";
 

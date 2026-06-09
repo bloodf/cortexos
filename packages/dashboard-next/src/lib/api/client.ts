@@ -14,11 +14,12 @@
  *
  * Wired domains (Wave-1 server fns exist):
  *   services  — WP-10 (listServices, getService, listServiceHealth)
+ *   system    — WP-14 (getSystem, getNetwork, getProcesses, getStorage)
+ *   docker    — WP-11 (listContainers, listImages, listVolumes, dockerAction)
  *
  * TODO domains (server fns not yet implemented — throws "not yet wired"):
- *   system, processes, network, docker, incus, systemd, alerts,
- *   approvals, audit, users, projects, agents, mail, notifications,
- *   envFiles, badges, backups, scheduler, drives
+ *   incus, systemd, alerts, approvals, audit, agents, mail, notifications,
+ *   envFiles, backups, scheduler
  *
  * See docs/rebuild/ADR-001-server-transport.md for the RPC transport decision.
  * See src/lib/api/README.md for the full swap guide.
@@ -76,6 +77,7 @@ import type {
   BackupSnapshot,
   SchedulerJob,
   DriveInfo,
+  MountInfo,
 } from "@/mocks/types";
 
 // Re-export these so Wave-2 consumers that used to `import type { X }
@@ -101,6 +103,7 @@ export type {
   BackupSnapshot,
   SchedulerJob,
   DriveInfo,
+  MountInfo,
 };
 
 // ---------------------------------------------------------------------------
@@ -140,6 +143,79 @@ export const listServiceHealth = _listServiceHealth;
 export type { HealthSnapshotRow };
 
 // ---------------------------------------------------------------------------
+// Wired server-function imports (WP-14 — system / network / processes / storage)
+// ---------------------------------------------------------------------------
+import {
+  getSystem as _getSystem,
+  getNetwork as _getNetwork,
+  getProcesses as _getProcesses,
+  getStorage as _getStorage,
+} from "./system.functions";
+
+// WP-14 gate-middleware boundary casts — same pattern as services above.
+type GetSystemOutput = SystemData;
+type GetNetworkOutput = NetworkData;
+type GetProcessesOutput = { processes: ProcessInfo[] };
+type GetStorageOutput = { disks: DriveInfo[]; mounts: MountInfo[] };
+
+const getSystemFn = _getSystem as unknown as (opts: { data: Record<string, never> }) => Promise<GetSystemOutput>;
+const getNetworkFn = _getNetwork as unknown as (opts: { data: Record<string, never> }) => Promise<GetNetworkOutput>;
+const getProcessesFn = _getProcesses as unknown as (opts: { data: Record<string, never> }) => Promise<GetProcessesOutput>;
+const getStorageFn = _getStorage as unknown as (opts: { data: Record<string, never> }) => Promise<GetStorageOutput>;
+
+// ---------------------------------------------------------------------------
+// Wired server-function imports (WP-11 — docker domain)
+// ---------------------------------------------------------------------------
+import {
+  listContainers as _listContainers,
+  listImages as _listImages,
+  listVolumes as _listVolumes,
+  dockerAction as _dockerAction,
+} from "./docker.functions";
+import { mintApproval as _mintApproval } from "./approvals.functions";
+
+// WP-11 gate-middleware boundary casts — same pattern as other domains.
+type ListContainersOutput = { items: import("@/server/docker/stub-data").Container[] };
+type ListImagesOutput = { items: import("@/server/docker/stub-data").DockerImage[] };
+type ListVolumesOutput = { items: import("@/server/docker/stub-data").DockerVolume[] };
+type DockerActionInputType = { op: string; args: Record<string, unknown>; approvalToken?: string };
+type DockerActionOutput = { result: { op: string; argv: readonly string[]; output: string; durationMs: number } };
+type MintApprovalInputType = { action: string; payload: Record<string, unknown>; ttlSec?: number };
+type MintApprovalOutput = { token: string; expiresAt: number; issuedAt: number; actionHash: string; ttlSec: number };
+
+const listContainersFn = _listContainers as unknown as (opts: { data: { filter?: string; query?: string } }) => Promise<ListContainersOutput>;
+const listImagesFn = _listImages as unknown as (opts: { data: { query?: string } }) => Promise<ListImagesOutput>;
+const listVolumesFn = _listVolumes as unknown as (opts: { data: { query?: string } }) => Promise<ListVolumesOutput>;
+
+/** Call dockerAction RPC directly — requires a pre-minted approval token. */
+export const callDockerAction = _dockerAction as unknown as (opts: { data: DockerActionInputType }) => Promise<DockerActionOutput>;
+/** Call mintApproval RPC directly — admin only; mints a single-use approval token. */
+export const callMintApproval = _mintApproval as unknown as (opts: { data: MintApprovalInputType }) => Promise<MintApprovalOutput>;
+
+/** Map a server Container to the mock DockerContainer shape. */
+function toDockerContainer(c: import("@/server/docker/stub-data").Container): DockerContainer {
+  return {
+    id: c.id,
+    name: c.name,
+    image: c.image,
+    status: c.status,
+    state: c.state as DockerContainer["state"],
+    ports: Array.isArray(c.ports) ? c.ports.join(", ") : String(c.ports),
+    created: c.created,
+  };
+}
+
+/** Map a server DockerImage to the mock DockerImage shape. */
+function toDockerImage(i: import("@/server/docker/stub-data").DockerImage): DockerImage {
+  return { id: i.id, repo: i.repo, tag: i.tag, size: i.size, created: i.created };
+}
+
+/** Map a server DockerVolume to the mock DockerVolume shape. */
+function toDockerVolume(v: import("@/server/docker/stub-data").DockerVolume): DockerVolume {
+  return { name: v.name, driver: v.driver, mountpoint: v.mountpoint, size: v.size ?? 0 };
+}
+
+// ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
 
@@ -171,25 +247,27 @@ function clientSideList<T>(rows: T[], p: ListParams = {}): ListResult<T> {
 // ---------------------------------------------------------------------------
 
 export const api = {
-  // ── System / host metrics ──────────────────────────────────────────────
+  // ── System / host metrics (WIRED — WP-14) ─────────────────────────────
   /**
-   * TODO WP-14: system server fn not yet implemented.
-   * @see docs/rebuild/STATUS.md WP-14
+   * Returns live host metrics: CPU %, memory, drives, mounts, load, uptime, sensors.
+   * Calls getSystem RPC → server/system/readers.collectSystem().
    */
   system: (): Promise<SystemData> =>
-    Promise.reject(notYetWired("system")),
+    getSystemFn({ data: {} }),
 
   /**
-   * TODO WP-14: processes server fn not yet implemented.
+   * Returns top processes sorted by CPU.
+   * Calls getProcesses RPC → server/system/processes.readProcesses().
    */
   processes: (): Promise<ProcessInfo[]> =>
-    Promise.reject(notYetWired("processes")),
+    getProcessesFn({ data: {} }).then((r) => r.processes),
 
   /**
-   * TODO WP-14: network server fn not yet implemented.
+   * Returns physical network interface stats (rx/tx kbps + totals).
+   * Calls getNetwork RPC → server/system/network.getNetworkData().
    */
   network: (): Promise<NetworkData> =>
-    Promise.reject(notYetWired("network")),
+    getNetworkFn({ data: {} }),
 
   // ── Services (WIRED — WP-10) ───────────────────────────────────────────
   /**
@@ -262,23 +340,36 @@ export const api = {
     };
   },
 
-  // ── Docker ────────────────────────────────────────────────────────────
+  // ── Docker (WIRED — WP-11) ───────────────────────────────────────────
   /**
-   * TODO WP-11: docker server fns not yet implemented.
+   * Returns all containers mapped to the mock DockerContainer shape.
+   * Calls listContainers RPC → server/docker/real-data.listContainers().
    */
   docker: {
-    containers: (): Promise<DockerContainer[]> =>
-      Promise.reject(notYetWired("docker.containers")),
-    images: (): Promise<DockerImage[]> =>
-      Promise.reject(notYetWired("docker.images")),
-    volumes: (): Promise<DockerVolume[]> =>
-      Promise.reject(notYetWired("docker.volumes")),
-    containersList: (_p?: ListParams): Promise<ListResult<DockerContainer>> =>
-      Promise.reject(notYetWired("docker.containersList")),
-    imagesList: (_p?: ListParams): Promise<ListResult<DockerImage>> =>
-      Promise.reject(notYetWired("docker.imagesList")),
-    volumesList: (_p?: ListParams): Promise<ListResult<DockerVolume>> =>
-      Promise.reject(notYetWired("docker.volumesList")),
+    containers: async (): Promise<DockerContainer[]> => {
+      const { items } = await listContainersFn({ data: {} });
+      return items.map(toDockerContainer);
+    },
+    images: async (): Promise<DockerImage[]> => {
+      const { items } = await listImagesFn({ data: {} });
+      return items.map(toDockerImage);
+    },
+    volumes: async (): Promise<DockerVolume[]> => {
+      const { items } = await listVolumesFn({ data: {} });
+      return items.map(toDockerVolume);
+    },
+    containersList: async (p?: ListParams): Promise<ListResult<DockerContainer>> => {
+      const { items } = await listContainersFn({ data: { query: p?.q } });
+      return clientSideList(items.map(toDockerContainer), p);
+    },
+    imagesList: async (p?: ListParams): Promise<ListResult<DockerImage>> => {
+      const { items } = await listImagesFn({ data: { query: p?.q } });
+      return clientSideList(items.map(toDockerImage), p);
+    },
+    volumesList: async (p?: ListParams): Promise<ListResult<DockerVolume>> => {
+      const { items } = await listVolumesFn({ data: { query: p?.q } });
+      return clientSideList(items.map(toDockerVolume), p);
+    },
   },
 
   // ── Incus ──────────────────────────────────────────────────────────────
@@ -408,13 +499,21 @@ export const api = {
   schedulerList: (p?: ListParams): Promise<ListResult<SchedulerJob>> =>
     Promise.resolve(emptyList<SchedulerJob>(p)),
 
-  // ── Drives (from system payload) ───────────────────────────────────────
+  // ── Drives (from storage server fn — WIRED WP-14) ─────────────────────
   /**
-   * TODO WP-14: drives/storage server fn not yet implemented.
+   * Returns physical disks + mount info, client-side paginated.
+   * Calls getStorage RPC → server/system/readers.getDrives() + getMounts().
    */
-  drivesList: (_p?: ListParams): Promise<ListResult<DriveInfo>> =>
-    Promise.reject(notYetWired("drivesList")),
+  drivesList: async (p?: ListParams): Promise<ListResult<DriveInfo>> => {
+    const { disks } = await getStorageFn({ data: {} });
+    return clientSideList<DriveInfo>(disks, p);
+  },
 } as const;
 
 // listServices, listServiceHealth, and HealthSnapshotRow are already exported
 // above via `export const` / `export type` declarations.
+
+// ---------------------------------------------------------------------------
+// Wired server-function re-exports (WP-19 — terminal named ops)
+// ---------------------------------------------------------------------------
+export { listTerminalOps, dispatchTerminalOp } from "./terminal.functions";
