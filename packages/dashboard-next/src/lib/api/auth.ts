@@ -1,11 +1,18 @@
 /**
- * Auth API client functions.
+ * Auth API client functions — RPC facade (WP-04, reworked per ADR-001).
  *
- * These map to the /api/auth/* endpoints from 01-API-CONTRACT.md §Auth.
- * `me()` is the demo call for the WP-04 acceptance gate and the
- * Wave-2 `_authenticated` guard (WP-30).
+ * Transport = typed `createServerFn` RPC, NOT fetch("/api/auth/...").
+ *
+ * WP-20 (api auth) is not yet implemented. These stubs match the call shapes
+ * Wave-2 expects so `import { auth } from "@/lib/api/client"` compiles and
+ * Wave-2 WPs can be scaffolded. Each will throw "not yet wired" at runtime
+ * until WP-20 provides the server functions.
+ *
+ * When WP-20 lands:
+ *   1. Add `import { loginFn, logoutFn, meFn } from "./auth.functions"` here.
+ *   2. Replace each stub body with the corresponding server fn call.
+ *   3. Remove this TODO block.
  */
-import { request } from "./http";
 import type { User, Session } from "@cortexos/contracts/entities";
 
 export interface AuthMeResult {
@@ -23,30 +30,41 @@ export interface LoginResult {
   session: Session;
 }
 
+// ---------------------------------------------------------------------------
+// Internal helper
+// ---------------------------------------------------------------------------
+
+function notYetWired(fn: string): never {
+  throw new Error(
+    `[WP-04 TODO] auth.${fn} — server function not yet wired (WP-20 pending)`,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Auth facade — TODO WP-20
+// ---------------------------------------------------------------------------
+
 /**
- * POST /api/auth/login
- * Public endpoint — no auth required. Sets `cortexos_session` +
- * `cortexos_csrf` cookies on success. The body is sent as JSON;
- * CSRF is not required on login (first request bootstraps the cookie).
+ * Login with username + password.
+ * TODO WP-20: replace with `loginFn({ data: input })` call.
  */
-export async function login(input: LoginInput): Promise<LoginResult> {
-  return request<LoginResult>("POST", "/api/auth/login", { body: input });
+export async function login(_input: LoginInput): Promise<LoginResult> {
+  return notYetWired("login");
 }
 
 /**
- * POST /api/auth/logout
- * Clears the session cookie. Requires a valid session.
+ * Logout the current session.
+ * TODO WP-20: replace with `logoutFn({ data: {} })` call.
  */
 export async function logout(): Promise<{ ok: true }> {
-  return request<{ ok: true }>("POST", "/api/auth/logout");
+  return notYetWired("logout");
 }
 
 /**
- * GET /api/auth/me
- * Returns the current user + session. Throws ApiClientError(code="auth",
- * status=401) when not authenticated. This is the demo acceptance-gate call
- * for WP-04 and the Wave-2 authenticated guard.
+ * GET current user + session.
+ * Throws a "not yet wired" error until WP-20 provides the server function.
+ * TODO WP-20: replace with `meFn({ data: {} })` call.
  */
 export async function me(): Promise<AuthMeResult> {
-  return request<AuthMeResult>("GET", "/api/auth/me");
+  return notYetWired("me");
 }

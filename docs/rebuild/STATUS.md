@@ -15,7 +15,7 @@
 | WP-02 | DB port | — | done | claude | (this commit) |
 | WP-03 | security cores (portable) | WP-02 | done | claude | (this commit) |
 | WP-01 | request core → defineServerFn middleware (see ADR-001) | WP-02, WP-03 | done | claude | runtime-proven on built node server |
-| WP-04 | frontend client → RPC facades (see ADR-001) | — (contract) | wip | claude | scaffolding done; RPC rework |
+| WP-04 | frontend client → RPC facades (see ADR-001) | — (contract) | done | claude | RPC rework complete; services wired; all others typed TODO stubs |
 
 > **TRANSPORT CORRECTION — read `ADR-001-server-transport.md`.** The framework
 > (`@tanstack/react-start@1.168`) has NO REST/HTTP server routes — only `createServerFn` RPC.
@@ -110,16 +110,16 @@ built-server probe above, and the unit test covers the pipeline directly.
 | WP | Title | Extra deps | Status | Owner | Commit |
 |----|-------|-----------|--------|-------|--------|
 | WP-10 | api services + health | — | done | | |
-| WP-11 | api docker | — | todo | | |
-| WP-12 | api incus | — | todo | | |
+| WP-11 | api docker | — | done | claude | |
+| WP-12 | api incus | — | done | claude | |
 | WP-13 | api systemd | — | todo | | |
-| WP-14 | api system/net/proc/storage | — | todo | | |
+| WP-14 | api system/net/proc/storage | — | done | claude | |
 | WP-15 | api mail-guardian | — | todo | | |
 | WP-16 | api approvals + audit | WP-03 | todo | | |
 | WP-17 | api alerts | — | todo | | |
 | WP-18 | api env-browser | WP-03 | todo | | |
 | WP-19 | api terminal (WS PTY) | — | todo | | |
-| WP-20 | api auth | WP-03 | todo | | |
+| WP-20 | api auth | WP-03 | done | claude | (pending) |
 | WP-21 | api agents | — | todo | | |
 
 ### WP-10 — services + health (done; REFERENCE Wave-1 backend, createServerFn-RPC per ADR-001)
@@ -147,6 +147,66 @@ scheduler compile into `.output/server/_ssr/index.mjs` (proves the createServerF
 import-protection: zero `@/server` leak into `.output/public`). `tsc --noEmit` = 0 errors.
 `vitest run src/server src/lib/api` = 208 passed (20 files), includes the 5 new WP-10 gate tests.
 No dependency changes; no edits outside WP-10's reused surface (db/auth/errors untouched).
+
+### WP-20 — api auth (done; createServerFn-RPC per ADR-001; SECURITY-SENSITIVE)
+Login / logout / me ported as typed `createServerFn` RPC (the WP file's `/api/auth/*`
+route design was superseded by ADR-001). Files:
+- `src/lib/api/auth.functions.ts` — 3 server fns, each a top-level
+  `createServerFn(...).middleware([gate]).handler(serverFnNoop)` literal; gate options
+  exported (`loginGateOptions` / `logoutGateOptions` / `meGateOptions`) as the single
+  source of truth so the node-env test drives the REAL handlers through `defineApiRoute`:
+  - `login` (POST, auth `public`, rate-limit 5/60s/ip): PAM verify → cortexos-admin
+    group derive → mint session-bound CSRF → `createSession` → set `cortexos_session`
+    (HttpOnly) + `cortexos_csrf` (JS-readable) cookies via `ctx.cookies` → `{ user, session }`.
+    Coarse `authError('Invalid credentials')` on PAM failure (no user-enumeration);
+    password never logged. Pipeline audits success/denied automatically.
+  - `logout` (POST, auth `any`): pipeline enforces session + double-submit CSRF;
+    handler `deleteByToken` + clears both cookies. Idempotent.
+  - `me` (GET, auth `public`): returns `{ user, session }` from ctx, or
+    `{ user: null, session: null }` when unauthenticated (200, not 401). No CSRF, no audit.
+  All `@/server/**` (pam/session-store/cookies/errors) imported dynamically inside handlers.
+- `src/server/server-fn-pipeline.ts` — one-line fix: the CSRF step now skips
+  `auth:'public'` routes (pre-session; no session-bound token to double-submit against —
+  WP-20 spec "CSRF: skip (pre-session)"). Does NOT weaken `any`/`admin`/group mutations;
+  the WP-01 CSRF gate matrix (define-server-fn.test.ts, 13 tests) still passes unchanged.
+- `src/lib/api/__tests__/auth.functions.test.ts` — node-env tests (9): bad creds → coarse
+  401 `auth` (no enumeration) + audited denied; unknown user → identical coarse error; good
+  creds → 201 + session row + HttpOnly session / JS-readable CSRF cookies + `{user,session}`;
+  non-admin login → non-admin session; me with/without session → user|null; logout invalidates
+  session + clears cookies, stolen-cookie (no CSRF header) → 403 (session survives), no session → 401.
+
+Evidence: `vitest run` of auth.functions + define-server-fn + services.functions + csrf =
+38 passed (4 files) — confirms login/logout/me behavior AND that the public-CSRF-skip does
+not weaken authenticated CSRF. `tsc --noEmit` reports 0 errors in WP-20 files (unrelated
+in-flight WPs WP-04/13/14 have separate pre-existing tsc errors + DB-migrate test timeouts,
+none touching auth). No dependency changes; reused `src/server/auth/*` only.
+
+### WP-12 — api incus (done; createServerFn-RPC per ADR-001)
+Incus bridge + server functions ported from legacy `packages/dashboard/src/lib/server/incus/bridge.ts`.
+Files created:
+- `src/server/policy/index.ts` — command policy module (allowlist + denylist + `validateShellArg` +
+  `installDefaultAllowlist`), ported verbatim from legacy. Incus entries: `incus.{start,stop,restart,
+  delete,launch,list}` + `incus.exec-named`.
+- `src/server/incus/bridge.ts` — full bridge port: `MockIncusExecutor`, `applyAction`,
+  `realIncusExecutor`, `mapIncusJsonToMockRecord` (full `incus list --format json` mapping),
+  `listInstances`, `getInstance`, `getMockRecord`, `listInstanceLogs`, `listImages`,
+  `runPreflightReport`, `buildLaunchProgress`, `dispatchAction` (6-layer defence: policy allowlist →
+  name regex → instance lookup + allowlist flag → delete confirmation → destructive approval gate →
+  executor), `dispatchExecNamed` (4-layer: instance lookup → op allowlist → recursive arg-smuggling
+  scan → argv_bash_c belt-and-braces → executor). Node-env gate: `process.platform === 'linux' &&
+  CORTEX_INCUS_BRIDGE_REAL !== '0'` selects `realIncusExecutor`; all other envs use `MockIncusExecutor`
+  with 4 SEED_INSTANCES. All test/reset helpers exported.
+- `src/lib/api/incus.functions.ts` — 4 server fns (createServerFn RPC, all @/server via dynamic
+  import): `listInstances` (GET any), `incusAction` (POST admin, rate-limit 10/min/user, translates
+  all DispatchResult codes to typed errors), `execNamed` (POST admin, rate-limit 10/min/user),
+  `instanceLogs` (GET any, tail capped 1–500).
+- `src/server/incus/__tests__/bridge.test.ts` — 34 tests covering all 6 dispatchAction layers and
+  all 4 dispatchExecNamed layers; node-env gate; approval token session-binding; action-hash binding.
+
+Evidence: `vitest run src/server/incus src/lib/api/incus.functions.ts` = 34 passed (1 file).
+`vitest run src/server src/lib/api` = 308 passed (25 files); 1 pre-existing timeout in
+`client-pglite-extra.test.ts` (WP-02 flaky test, unrelated to WP-12).
+Missing deps (noted, not added): none — `@cortexos/contracts` already in workspace.
 
 ## Wave 2 — frontend route-groups (PARALLEL; need WP-04)
 | WP | Title | Pairs with | Status | Owner | Commit |

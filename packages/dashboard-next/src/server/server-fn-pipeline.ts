@@ -205,7 +205,12 @@ export function defineApiRoute<TIn, TOut>(opts: RouteOptions<TIn, TOut>): ApiRou
     }
 
     // --- 3. CSRF on non-GET (double-submit + session-bound) ---
-    if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+    // Public routes are pre-session (e.g. login): there is no session-bound
+    // CSRF token to double-submit against, so the check is skipped for them
+    // (WP-20: login is `auth:'public'`, CSRF skipped pre-session). This does
+    // NOT weaken `any`/`admin`/group routes — every authenticated mutation
+    // still enforces the full double-submit + session-bound CSRF below.
+    if (opts.auth !== 'public' && !['GET', 'HEAD', 'OPTIONS'].includes(method)) {
       try {
         requireCsrf(request, ctx.session?.csrfToken ?? null, ctx.cookies);
       } catch (e) {

@@ -1,8 +1,17 @@
 # Frontend API Client (`src/lib/api/`)
 
-This directory contains the typed `fetch` + TanStack Query client that replaces
-the mock seam at `src/mocks/api.ts`. Wave-2 route WPs switch their data source
-by changing **one import line** per feature — no call-site changes required.
+Transport = **typed `createServerFn` RPC** (ADR-001). There are NO `/api/*` fetch calls.
+Each `api` member calls a server function directly; TanStack handles the client↔server bridge.
+
+Wave-2 route WPs switch their data source by changing **one import line** per feature:
+
+```ts
+// Current (mock):
+import { api } from "@/mocks/api";
+
+// Wave-2 replacement (one-line change, identical call shapes):
+import { api } from "@/lib/api/client";
+```
 
 ---
 
@@ -10,10 +19,13 @@ by changing **one import line** per feature — no call-site changes required.
 
 ```
 src/lib/api/
-  http.ts       Typed fetch core: CSRF injection, error-envelope parsing, ApiClientError
-  auth.ts       login / logout / me  (GET /api/auth/me — the demo acceptance call)
-  client.ts     `api` object — same shape as mocks/api.ts; every member is a real fetch
-  README.md     This file
+  client.ts               `api` object — same shape as mocks/api.ts; calls server fns (RPC)
+  auth.ts                 login / logout / me  (TODO WP-20 stubs)
+  http.ts                 ApiClientError / ApiErrorCode / ApiErrorEnvelope types (no fetch)
+  define-server-fn.ts     defineServerFn() — security-gate middleware factory (WP-01)
+  server-fn-runner.server.ts  server-only bridge to defineApiRoute pipeline
+  services.functions.ts   WP-10 — services + health server fns (WIRED)
+  README.md               This file
 
 src/lib/adapters/
   services.ts   ContractService      → MockService / MockServiceCheck
@@ -28,166 +40,119 @@ src/lib/adapters/
 
 ---
 
-## The seam swap mechanism
+## Wired vs TODO surface
 
-Every sys-pilot feature file that fetches data does so via the `api` object:
+| `api` member | Status | Wave-1 WP |
+|---|---|---|
+| `services()` | **WIRED** | WP-10 |
+| `servicesList(p)` | **WIRED** | WP-10 |
+| `healthcheckList(p)` | **WIRED** | WP-10 |
+| `history()` | returns `[]` (no server-side all-services history) | WP-10 |
+| `system()` | TODO — throws "not yet wired" | WP-14 |
+| `processes()` | TODO | WP-14 |
+| `network()` | TODO | WP-14 |
+| `drivesList(p)` | TODO | WP-14 |
+| `docker.*` | TODO | WP-11 |
+| `incus()` / `incusList(p)` | TODO | WP-12 |
+| `systemd()` / `systemdList(p)` | **WIRED** | WP-13 |
+| `alerts.*` | TODO | WP-17 |
+| `approvals()` | TODO | WP-16 |
+| `audit()` / `auditList(p)` | TODO | WP-16 |
+| `agents()` | TODO | WP-21 |
+| `mail()` / `mailList(p)` | TODO | WP-15 |
+| `envFiles()` | TODO | WP-18 |
+| `users()` / `usersList(p)` | EMPTY — no contract scope yet | — |
+| `projects()` / `projectsList(p)` | EMPTY — no contract scope yet | — |
+| `notifications()` | EMPTY — reserved, no server fn yet | — |
+| `badges()` / `badgesList(p)` | EMPTY — embedded in Service entities | — |
+| `backups()` / `backupsList(p)` | EMPTY — no contract scope yet | — |
+| `scheduler()` / `schedulerList(p)` | EMPTY — no contract scope yet | — |
 
-```ts
-// Current (mock) import:
-import { api } from "@/mocks/api";
-
-// Wave-2 replacement (one line change per feature):
-import { api } from "@/lib/api/client";
-```
-
-The `api` object in `client.ts` exposes **every member** from `mocks/api.ts`
-with identical call signatures — `async () => T[]` for simple fetches and
-`(p?: ListParams) => Promise<ListResult<T>>` for paginated tables. React Query
-cache keys (`["services"]`, `["approvals"]`, etc.) are unchanged because they
-live in the feature component, not the client.
-
-**Do NOT modify `src/mocks/api.ts`** — Wave-2 WPs redirect consumers one route
-at a time and the mock stays intact as a fallback during the transition.
+**WIRED** = calls real server function, maps through adapter.  
+**TODO** = throws `[WP-04 TODO] ... not yet wired` at runtime; Wave-1 WP must implement.  
+**EMPTY** = returns `[]` / `{rows:[],total:0,...}`; no server fn planned for this wave.
 
 ---
 
-## CSRF handling
+## How wired domains work (services example)
 
-The `cortexos_csrf` cookie is **intentionally not HttpOnly** (double-submit
-pattern, WP-01/cookies.ts). `http.ts` reads it from `document.cookie` and
-injects it as the `x-csrf-token` header on every non-GET request automatically.
-Feature code never needs to handle CSRF manually.
+```ts
+// client.ts internally does:
+import { listServices as _listServices } from "./services.functions";
+import { toServiceRow } from "@/lib/adapters/services";
+
+// api.services() →
+const { rows } = await listServicesFn({ data: { activeOnly: true, pageSize: 500 } });
+return rows.map(toServiceRow);
+```
+
+The `toServiceRow` adapter maps `@cortexos/contracts` entity shapes to the sys-pilot
+mock prop shapes defined in `src/mocks/types.ts`. Components see no difference.
+
+---
+
+## Wiring a new domain (Wave-1 WP authors)
+
+When a Wave-1 WP lands its `<domain>.functions.ts`, update `client.ts`:
+
+1. Import the server fn: `import { listFoo as _listFoo } from "./foo.functions"`.
+2. Add a typed cast wrapper (the gate-middleware pattern means TypeScript can't pierce
+   the middleware boundary — cast `as unknown as (opts: {...}) => Promise<{...}>`).
+3. Replace the `notYetWired("foo")` stub with the real call + adapter mapping.
+4. Remove the `TODO WP-XX` comment from the `api` member.
+
+---
+
+## Direct server fn access for Wave-2
+
+For operations beyond the flat `api` surface (create, patch, delete, per-service health):
+
+```ts
+import { listServices, listServiceHealth } from "@/lib/api/client";
+
+// In a loader/mutation:
+const health = await listServiceHealth({ data: { id: serviceId, limit: 50 } });
+```
+
+These are the raw server fns re-exported directly; call them typed from loaders/components.
 
 ---
 
 ## Error handling
 
-All non-2xx responses are thrown as `ApiClientError`:
+The gate pipeline throws typed error envelopes. Catch `ApiClientError` for typed access:
 
 ```ts
 import { ApiClientError } from "@/lib/api/http";
 
 try {
-  const data = await api.services();
+  await api.services();
 } catch (err) {
   if (err instanceof ApiClientError) {
     switch (err.code) {
-      case "auth":          // 401 — redirect to login
-      case "permission":    // 403 — show "access denied"
-      case "approval_required":  // 412 — open approvals flow; use err.action / err.ttlSec
-      case "rate_limit":    // 429 — err.retryAfter seconds
-      case "validation":    // 400 — err.details has field-level messages
-      case "not_found":     // 404
-      case "system":        // 500
+      case "auth":               // 401 — redirect to login
+      case "permission":         // 403 — access denied
+      case "approval_required":  // 412 — err.action / err.ttlSec
+      case "rate_limit":         // 429 — err.retryAfter seconds
+      case "validation":         // 400 — err.details has field messages
+      case "not_found":          // 404
+      case "system":             // 500
     }
   }
 }
 ```
 
-TanStack Query surfaces these errors in the standard `error` field:
-
-```ts
-const { data, error } = useQuery({
-  queryKey: ["services"],
-  queryFn: api.services,
-  refetchInterval: 3000,
-});
-if (error instanceof ApiClientError && error.code === "auth") {
-  // redirect to login
-}
-```
-
 ---
 
-## Auth client (`auth.ts`)
+## Auth client (`auth.ts`) — TODO WP-20
 
 ```ts
 import { auth } from "@/lib/api/client";
 
-// Demo acceptance gate (WP-04) — verify this compiles and returns {user,session}:
-const session = await auth.me();   // GET /api/auth/me
-
-// Wave-2 login page (WP-30):
-await auth.login({ username, password });  // POST /api/auth/login
-await auth.logout();                        // POST /api/auth/logout
+// All three throw "not yet wired" until WP-20 provides auth.functions.ts:
+await auth.me();
+await auth.login({ username, password });
+await auth.logout();
 ```
 
-`auth.me()` returns `{user: User, session: Session}` from `@cortexos/contracts`
-types and throws `ApiClientError(code="auth", status=401)` when not logged in.
-
----
-
-## Adapters (`src/lib/adapters/`)
-
-Adapters map `@cortexos/contracts` entity shapes to the sys-pilot component prop
-shapes defined in `src/mocks/types.ts`. Use them whenever the real API response
-shape differs from what the component expects:
-
-```ts
-import { toServiceRow } from "@/lib/adapters";
-import type { Service as ContractService } from "@cortexos/contracts/entities";
-
-// In a Wave-2 route component:
-const rows = (await api.services()).map(toServiceRow);
-```
-
-Adapters are pure functions — no API calls, no side-effects.
-
----
-
-## Endpoints that return real empty results (no backend yet)
-
-These functions return `[]` / `{rows:[],total:0,...}` until a Wave-1 backend
-domain implements them. Wave-2 components should render the existing empty-state
-UI — **never fabricate data**.
-
-| `api` member | Reason |
-|---|---|
-| `users()` / `usersList()` | No `/api/users` in contract (admin page scope TBD) |
-| `projects()` / `projectsList()` | No `/api/projects` in contract |
-| `notifications()` | Reserved in contract; no route yet |
-| `badges()` / `badgesList()` | Badges are embedded in Service entities; no standalone endpoint |
-| `backups()` / `backupsList()` | No `/api/backups` in contract |
-| `scheduler()` / `schedulerList()` | No `/api/scheduler` in contract |
-
----
-
-## Function-by-function mapping
-
-| `api` member | HTTP | Path | Contract output | Notes |
-|---|---|---|---|---|
-| `system()` | GET | `/api/system` | `SystemData` | direct |
-| `processes()` | GET | `/api/processes` | `{processes:[]}` | unwraps `.processes` |
-| `network()` | GET | `/api/network` | `NetworkData` | direct |
-| `services()` | GET | `/api/services` | `{rows,total}` | unwraps `.rows` |
-| `servicesList(p)` | GET | `/api/services` | `{rows,total,...}` | paginated |
-| `history()` | GET | `/api/services/health-history` | `{snapshots:[]}` | unwraps `.snapshots` |
-| `healthcheckList(p)` | GET | `/api/services` | paginated | `activeOnly=true` |
-| `docker.containers()` | GET | `/api/docker/containers` | `{items:[]}` | unwraps |
-| `docker.images()` | GET | `/api/docker/images` | `{items:[]}` | unwraps |
-| `docker.volumes()` | GET | `/api/docker/volumes` | `{items:[]}` | unwraps |
-| `docker.containersList(p)` | GET | `/api/docker/containers` | client-side list | |
-| `docker.imagesList(p)` | GET | `/api/docker/images` | client-side list | |
-| `docker.volumesList(p)` | GET | `/api/docker/volumes` | client-side list | |
-| `incus()` | GET | `/api/incus/instances` | `{items:[]}` | unwraps |
-| `incusList(p)` | GET | `/api/incus/instances` | client-side list | |
-| `systemd()` | GET | `/api/systemd/units` | `{items:[]}` | unwraps |
-| `systemdList(p)` | GET | `/api/systemd/units` | client-side list | |
-| `alerts.rules()` | GET | `/api/alerts` | `{alerts:[]}` | unwraps |
-| `alerts.history()` | GET | `/api/alerts/history` | `{history:[]}` | unwraps |
-| `alerts.rulesList(p)` | GET | `/api/alerts` | client-side list | |
-| `alerts.historyList(p)` | GET | `/api/alerts/history` | client-side list | |
-| `approvals()` | GET | `/api/approvals` | `{pending:[]}` | unwraps |
-| `audit()` | GET | `/api/audit` | `{events:[]}` | unwraps |
-| `auditList(p)` | GET | `/api/audit` | server/client-side list | |
-| `agents()` | GET | `/api/agents` | `{agents:[]}` | unwraps |
-| `mail()` | GET | `/api/mail-guardian/reviews` | `{reviews:[]}` | unwraps |
-| `mailList(p)` | GET | `/api/mail-guardian/reviews` | server/client-side list | |
-| `envFiles()` | GET | `/api/env-browser` | `{entries:[]}` | unwraps; admin-only |
-| `drivesList(p)` | GET | `/api/storage` | `{disks:[]}` | client-side list |
-| `users()` / `usersList(p)` | — | — | empty | EMPTY-UNTIL-BACKEND |
-| `projects()` / `projectsList(p)` | — | — | empty | EMPTY-UNTIL-BACKEND |
-| `notifications()` | — | — | empty | EMPTY-UNTIL-BACKEND |
-| `badges()` / `badgesList(p)` | — | — | empty | EMPTY-UNTIL-BACKEND |
-| `backups()` / `backupsList(p)` | — | — | empty | EMPTY-UNTIL-BACKEND |
-| `scheduler()` / `schedulerList(p)` | — | — | empty | EMPTY-UNTIL-BACKEND |
+When WP-20 lands: import the server fns into `auth.ts` and replace the stubs.
