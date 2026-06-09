@@ -13,7 +13,7 @@
 |----|-------|-----------|--------|-------|--------|
 | WP-00 | node-server preset + runtime boot | — | done | claude | (pending) |
 | WP-02 | DB port | — | done | claude | (this commit) |
-| WP-03 | security cores (portable) | WP-02 | todo | | |
+| WP-03 | security cores (portable) | WP-02 | done | claude | (this commit) |
 | WP-01 | request core (defineApiRoute, auth/session/csrf/rbac) | WP-02, WP-03 | todo | | |
 | WP-04 | frontend api-client + adapters | — (contract) | todo | | |
 
