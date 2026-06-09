@@ -1,8 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useMemo, useRef, useState } from "react";
 import {
-  Activity, AlertTriangle, Bot, Cpu, ExternalLink, FileText, FolderTree,
-  Pause, PlayCircle, Power, RotateCw, Search,
+  Activity, AlertTriangle, Bot, ExternalLink, FileText, FolderTree,
+  Pause, PlayCircle, Power, RotateCw, Search, Upload,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { PageHeader } from "@/components/PageHeader";
@@ -14,7 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { CardSkeleton } from "@/components/skeletons";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { api } from "@/mocks/api";
+import { api, uploadAgentFile } from "@/lib/api/client";
+import type { HermesProfile } from "@/lib/api/client";
 import { useT } from "@/hooks/useT";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -53,7 +54,11 @@ function formatUptime(sec: number) {
 export function AgentsPage() {
   const t = useT();
   const { user } = useAuth();
-  const { data: agents = [], isLoading } = useQuery({ queryKey: ["agents"], queryFn: api.agents });
+  const {
+    data: agents = [],
+    isLoading,
+    isError,
+  } = useQuery({ queryKey: ["agents"], queryFn: api.agents });
   const [q, setQ] = useState("");
   const [stateFilter, setStateFilter] = useState<"all" | AgentRunState>("all");
   const [inspect, setInspect] = useState<Agent | null>(null);
@@ -121,6 +126,14 @@ export function AgentsPage() {
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => <CardSkeleton key={i} lines={4} />)}
         </div>
+      ) : isError ? (
+        <Card className="elev-1">
+          <EmptyState
+            icon={<AlertTriangle className="size-8 text-[var(--destructive)]" />}
+            title="Failed to load agents"
+            description="Could not read the Hermes profiles registry. Check that the registry file exists and is readable."
+          />
+        </Card>
       ) : filtered.length === 0 ? (
         <Card className="elev-1">
           <EmptyState
@@ -236,7 +249,7 @@ export function AgentsPage() {
             </DialogTitle>
           </DialogHeader>
           {inspect && (
-            <InspectorBody agent={inspect} />
+            <InspectorBody agent={inspect} isAdmin={!!user?.is_admin} />
           )}
         </DialogContent>
       </Dialog>
@@ -253,32 +266,129 @@ function Cell({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-function InspectorBody({ agent }: { agent: Agent }) {
-  const [activeFile, setActiveFile] = useState(agent.files[0]?.path);
-  const file = agent.files.find((f) => f.path === activeFile) ?? agent.files[0];
+// ---------------------------------------------------------------------------
+// Inspect dialog — renders real HermesProfile config + file upload for admins
+// ---------------------------------------------------------------------------
+
+/** Profile fields rendered as YAML-like config block in the dialog. */
+function profileYaml(agent: Agent): string {
+  const lines: string[] = [
+    `profile: ${agent.slug}`,
+    `model: ${agent.model}`,
+    `provider: ${agent.modelProvider}`,
+    `hermes_url: ${agent.hermesUrl}`,
+    `version: ${agent.version}`,
+    `state: ${agent.state}`,
+    `health: ${agent.health}`,
+  ];
+  if (agent.description && !agent.description.startsWith("Hermes profile:")) {
+    lines.push(`description: "${agent.description}"`);
+  }
+  return lines.join("\n");
+}
+
+function InspectorBody({ agent, isAdmin }: { agent: Agent; isAdmin: boolean }) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [activeFile, setActiveFile] = useState<string>("profile");
+
+  // Files list — agent.files from registry (may be empty); always include the profile config tab.
+  const hasDiskFiles = agent.files.length > 0;
+  const activeContent =
+    activeFile === "profile"
+      ? profileYaml(agent)
+      : (agent.files.find((f) => f.path === activeFile)?.content ?? "");
+  const activeLanguage =
+    activeFile === "profile"
+      ? "yaml"
+      : (agent.files.find((f) => f.path === activeFile)?.language ?? "text");
+
+  const uploadMutation = useMutation({
+    mutationFn: async ({ filename, content }: { filename: string; content: string }) => {
+      return uploadAgentFile({ data: { slug: agent.slug, filename, content } });
+    },
+    onSuccess: (_, vars) => {
+      toast.success("File uploaded", { description: `${vars.filename} written to ${agent.slug} profile directory.` });
+    },
+    onError: (err) => {
+      toast.error("Upload failed", { description: err instanceof Error ? err.message : "Unknown error" });
+    },
+  });
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const content = ev.target?.result;
+      if (typeof content !== "string") return;
+      uploadMutation.mutate({ filename: file.name, content });
+    };
+    reader.readAsText(file);
+    // Reset input so the same file can be re-uploaded if needed
+    e.target.value = "";
+  }
+
   return (
     <div className="grid gap-3 md:grid-cols-[200px_1fr]">
       <div className="space-y-1">
-        {agent.files.map((f) => (
+        {/* Always show the profile config tab */}
+        <button
+          onClick={() => setActiveFile("profile")}
+          className={cn(
+            "w-full text-left rounded px-2 py-1.5 text-xs flex items-center gap-2 hover:bg-muted/50 font-mono",
+            activeFile === "profile" && "bg-accent text-accent-foreground",
+          )}
+        >
+          <FileText className="size-3 text-muted-foreground" />
+          <span className="truncate">profile.yaml</span>
+        </button>
+
+        {/* Disk files from the profile home directory (if any) */}
+        {hasDiskFiles && agent.files.map((f) => (
           <button
             key={f.path}
             onClick={() => setActiveFile(f.path)}
             className={cn(
               "w-full text-left rounded px-2 py-1.5 text-xs flex items-center gap-2 hover:bg-muted/50 font-mono",
-              file?.path === f.path && "bg-accent text-accent-foreground",
+              activeFile === f.path && "bg-accent text-accent-foreground",
             )}
           >
             <FileText className="size-3 text-muted-foreground" />
             <span className="truncate">{f.path}</span>
           </button>
         ))}
+
         <div className="pt-3 mt-3 border-t space-y-1.5 text-xs">
           <Badge variant="secondary" className="font-mono">{agent.model}</Badge>
-          <p className="text-muted-foreground text-[11px]">v{agent.version} · queue {agent.queueDepth}</p>
+          <p className="text-muted-foreground text-[11px]">v{agent.version} · {agent.slug}</p>
         </div>
+
+        {/* File upload — admin only, scoped to this profile's home directory */}
+        {isAdmin && (
+          <div className="pt-2 mt-2 border-t">
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              onChange={handleFileChange}
+              aria-label="Upload file to agent profile directory"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full h-7 text-xs"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadMutation.isPending}
+            >
+              <Upload className="size-3 mr-1.5" />
+              {uploadMutation.isPending ? "Uploading…" : "Upload file"}
+            </Button>
+          </div>
+        )}
       </div>
+
       <div className="min-w-0">
-        {file && <CodeBlock language={file.language} code={file.content} className="h-[420px] overflow-auto" />}
+        <CodeBlock language={activeLanguage} code={activeContent} className="h-[420px] overflow-auto" />
       </div>
     </div>
   );

@@ -1,20 +1,44 @@
 import { createFileRoute, Link, useParams, notFound } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Play, RotateCw, Square, Boxes } from "lucide-react";
+import { ArrowLeft, Play, RotateCw, Square, Trash2, Boxes, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CodeBlock } from "@/components/CodeBlock";
 import { KeyValueList } from "@/components/KeyValueList";
-import { LogStream } from "@/components/LogStream";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { DetailSkeleton } from "@/components/skeletons";
+import { EmptyState } from "@/components/EmptyState";
 import { TimeRangeAreaTrend } from "@/components/TimeRangeAreaTrend";
 import { DiffViewer } from "@/components/DiffViewer";
-import { api } from "@/mocks/api";
+import { api, callIncusAction, callMintApproval, callInstanceLogs } from "@/lib/api/client";
 import { useAuth } from "@/hooks/useAuth";
 import { bytes, relativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useState } from "react";
+
+// ---------------------------------------------------------------------------
+// Approval-gated incus action helper (mirrors dispatchDockerAction)
+// ---------------------------------------------------------------------------
+
+async function dispatchIncusAction(
+  action: "start" | "stop" | "restart" | "delete",
+  name: string,
+  confirmation?: string,
+): Promise<void> {
+  const mint = await callMintApproval({
+    data: { action: `incus.${action}`, payload: { action, name } },
+  });
+  await callIncusAction({
+    data: { action, name, confirmation, approvalToken: mint.token },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Route
+// ---------------------------------------------------------------------------
 
 export const Route = createFileRoute("/_authenticated/incus/$name")({
   loader: async ({ params }) => {
@@ -23,52 +47,255 @@ export const Route = createFileRoute("/_authenticated/incus/$name")({
     if (!found) throw notFound();
     return { instance: found };
   },
+  errorComponent: ({ error, reset }) => (
+    <div className="p-6 space-y-4">
+      <PageHeader title="Instance error" description={error?.message ?? "Failed to load"} />
+      <Button onClick={reset}>Retry</Button>
+    </div>
+  ),
   notFoundComponent: () => {
     const { name } = useParams({ from: "/_authenticated/incus/$name" });
     return (
       <div className="p-6">
-        <PageHeader title="Instance not found" description={`No Incus instance matched "${name}".`} />
-        <Button asChild variant="outline"><Link to="/incus"><ArrowLeft className="size-4 mr-1" />Back to Incus</Link></Button>
+        <PageHeader
+          title="Instance not found"
+          description={`No Incus instance matched "${name}".`}
+        />
+        <Button asChild variant="outline">
+          <Link to="/incus">
+            <ArrowLeft className="size-4 mr-1" />
+            Back to Incus
+          </Link>
+        </Button>
       </div>
     );
   },
   component: IncusDetail,
 });
 
+const statusColors: Record<string, string> = {
+  active: "border-[var(--success)] text-[var(--success)]",
+  running: "border-[var(--success)] text-[var(--success)]",
+  provisioning: "border-[var(--warning)] text-[var(--warning)]",
+  validated: "border-primary text-primary",
+  draft: "border-muted-foreground text-muted-foreground",
+  stopped: "border-muted-foreground text-muted-foreground",
+  frozen: "border-muted-foreground text-muted-foreground",
+  failed: "border-[var(--destructive)] text-[var(--destructive)]",
+  error: "border-[var(--destructive)] text-[var(--destructive)]",
+};
+
 function IncusDetail() {
   const { name } = useParams({ from: "/_authenticated/incus/$name" });
   const qc = useQueryClient();
   const { user } = useAuth();
-  const { data: instances = [] } = useQuery({ queryKey: ["incus"], queryFn: api.incus });
-  const { data: history = [] } = useQuery({ queryKey: ["history"], queryFn: api.history });
-  const inst = instances.find((i) => i.name === name || i.slug === name);
-  if (!inst) return null;
-  const isAdmin = !!user?.is_admin;
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
 
-  const setStatus = (status: typeof inst.status) => {
-    qc.setQueryData<typeof instances>(["incus"], (p) => p?.map((x) => x.name === inst.name ? { ...x, status } : x));
-    toast.success(`${inst.name} marked ${status}`);
+  const {
+    data: instances = [],
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["incus"],
+    queryFn: api.incus,
+    refetchInterval: 15_000,
+  });
+
+  const { data: logsData } = useQuery({
+    queryKey: ["incus", "logs", name],
+    queryFn: () => callInstanceLogs({ data: { name, tail: 100 } }),
+    refetchInterval: 10_000,
+  });
+
+  const inst = instances.find((i) => i.name === name || i.slug === name);
+  const isAdmin = !!user?.is_admin;
+  const acting = pendingAction !== null;
+
+  const invalidate = () => void qc.invalidateQueries({ queryKey: ["incus"] });
+
+  const handleStart = async () => {
+    if (!inst) return;
+    setPendingAction("start");
+    try {
+      await dispatchIncusAction("start", inst.name);
+      toast.success(`Started ${inst.name}`);
+      await invalidate();
+    } catch {
+      toast.error(`Failed to start ${inst.name}`);
+    } finally {
+      setPendingAction(null);
+    }
   };
 
-  const beforeCfg = Object.entries(inst.config).map(([k, v]) => `${k}: ${v}`).join("\n");
-  const afterCfg = beforeCfg.replace(/limits\.cpu: \d+/, `limits.cpu: ${inst.cpu + 1}`) + "\nsecurity.nesting: true";
+  const handleStop = async () => {
+    if (!inst) return;
+    setPendingAction("stop");
+    try {
+      await dispatchIncusAction("stop", inst.name);
+      toast.success(`Stopped ${inst.name}`);
+      await invalidate();
+    } catch {
+      toast.error(`Failed to stop ${inst.name}`);
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  const handleRestart = async () => {
+    if (!inst) return;
+    setPendingAction("restart");
+    try {
+      await dispatchIncusAction("restart", inst.name);
+      toast.success(`Restarted ${inst.name}`);
+      await invalidate();
+    } catch {
+      toast.error(`Failed to restart ${inst.name}`);
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!inst) return;
+    setPendingAction("delete");
+    try {
+      await dispatchIncusAction("delete", inst.name, "delete");
+      toast.success(`Deleted ${inst.name}`);
+      void qc.invalidateQueries({ queryKey: ["incus"] });
+    } catch {
+      toast.error(`Failed to delete ${inst.name}`);
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-5">
+        <Button asChild variant="ghost" size="sm" className="-ml-2">
+          <Link to="/incus">
+            <ArrowLeft className="size-3.5 mr-1" />
+            Incus
+          </Link>
+        </Button>
+        <DetailSkeleton />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="space-y-4 p-6">
+        <EmptyState
+          title="Failed to load instance"
+          description="Could not reach the Incus bridge."
+          action={
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => qc.invalidateQueries({ queryKey: ["incus"] })}
+            >
+              Retry
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
+
+  if (!inst) return null;
+
+  const isRunning = (inst.status as string) === "active" || (inst.status as string) === "running";
+
+  const devicesCfg = Object.entries(inst.devices)
+    .map(
+      ([k, v]) =>
+        `${k}:\n${Object.entries(v)
+          .map(([kk, vv]) => `  ${kk}: ${vv}`)
+          .join("\n")}`,
+    )
+    .join("\n");
+
+  const beforeCfg = devicesCfg || "# no device config";
+  const afterCfg =
+    beforeCfg
+      .replace(/limits\.cpu: \d+/, `limits.cpu: ${inst.cpu + 1}`)
+      .trim() + "\nsecurity.nesting: true";
+
+  const logLines = logsData?.lines ?? [];
 
   return (
     <div className="space-y-5">
-      <Button asChild variant="ghost" size="sm" className="-ml-2"><Link to="/incus"><ArrowLeft className="size-3.5 mr-1" />Incus</Link></Button>
+      <Button asChild variant="ghost" size="sm" className="-ml-2">
+        <Link to="/incus">
+          <ArrowLeft className="size-3.5 mr-1" />
+          Incus
+        </Link>
+      </Button>
+
       <PageHeader
         icon={<Boxes className="size-5" />}
         title={inst.name}
         description={`${inst.type} · ${inst.image}`}
         actions={
           <div className="flex gap-2">
-            <Badge variant="outline" className={cn(
-              inst.status === "active" && "border-[var(--success)] text-[var(--success)]",
-              inst.status === "failed" && "border-destructive text-destructive",
-            )}>{inst.status}</Badge>
-            {isAdmin && inst.status !== "active" && <Button size="sm" variant="success" onClick={() => setStatus("active")}><Play className="size-3.5 mr-1" />Start</Button>}
-            {isAdmin && inst.status === "active" && <Button size="sm" variant="destructive" onClick={() => setStatus("draft")}><Square className="size-3.5 mr-1" />Stop</Button>}
-            {isAdmin && <Button size="sm" variant="warning" onClick={() => { setStatus("provisioning"); setTimeout(() => setStatus("active"), 600); }}><RotateCw className="size-3.5 mr-1" />Restart</Button>}
+            <Badge
+              variant="outline"
+              className={cn(statusColors[inst.status] ?? "")}
+            >
+              {inst.status}
+            </Badge>
+            {isAdmin && !isRunning && (
+              <Button size="sm" variant="outline" disabled={acting} onClick={handleStart}>
+                {pendingAction === "start" ? (
+                  <Loader2 className="size-3.5 mr-1 animate-spin" />
+                ) : (
+                  <Play className="size-3.5 mr-1" />
+                )}
+                Start
+              </Button>
+            )}
+            {isAdmin && isRunning && (
+              <Button size="sm" variant="outline" disabled={acting} onClick={handleStop}>
+                {pendingAction === "stop" ? (
+                  <Loader2 className="size-3.5 mr-1 animate-spin" />
+                ) : (
+                  <Square className="size-3.5 mr-1" />
+                )}
+                Stop
+              </Button>
+            )}
+            {isAdmin && (
+              <Button size="sm" variant="outline" disabled={acting} onClick={handleRestart}>
+                {pendingAction === "restart" ? (
+                  <Loader2 className="size-3.5 mr-1 animate-spin" />
+                ) : (
+                  <RotateCw className="size-3.5 mr-1" />
+                )}
+                Restart
+              </Button>
+            )}
+            {isAdmin && (
+              <ConfirmDialog
+                trigger={
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={acting}
+                    className="text-destructive hover:text-destructive border-destructive/40"
+                  >
+                    <Trash2 className="size-3.5 mr-1" />
+                    Delete
+                  </Button>
+                }
+                title={`Delete instance ${inst.name}?`}
+                description="This will permanently delete the instance. This cannot be undone."
+                destructive
+                requireText={inst.name}
+                confirmLabel="Delete"
+                onConfirm={handleDelete}
+              />
+            )}
           </div>
         }
       />
@@ -81,21 +308,33 @@ function IncusDetail() {
           <TabsTrigger value="config">Config</TabsTrigger>
           <TabsTrigger value="diff">Pending changes</TabsTrigger>
         </TabsList>
+
         <TabsContent value="overview" className="pt-4">
-          <KeyValueList items={[
-            { key: "Type", value: inst.type },
-            { key: "Image", value: inst.image },
-            { key: "CPU", value: inst.cpu },
-            { key: "Memory", value: bytes(inst.memory * 1024 * 1024) },
-            { key: "Created", value: relativeTime(inst.created_at) },
-            { key: "Validation", value: inst.last_validation?.notes ?? "—" },
-          ]} />
+          <KeyValueList
+            items={[
+              { key: "Type", value: inst.type },
+              { key: "Image", value: inst.image },
+              { key: "CPU", value: inst.cpu },
+              { key: "Memory", value: bytes(inst.memory * 1024 * 1024) },
+              { key: "Created", value: relativeTime(inst.created_at) },
+              {
+                key: "Validation",
+                value: inst.last_validation?.notes ?? "—",
+              },
+              { key: "Repo", value: inst.project.repo_url || "—" },
+              {
+                key: "Branch",
+                value: <code className="text-xs">{inst.project.branch}</code>,
+              },
+            ]}
+          />
         </TabsContent>
+
         <TabsContent value="metrics" className="pt-4">
           <div className="rounded-lg border bg-card p-4">
             <div className="text-xs text-muted-foreground mb-1">CPU & Memory</div>
             <TimeRangeAreaTrend
-              data={history as { t: number; cpu: number; mem: number }[]}
+              data={[]}
               series={[
                 { key: "cpu", color: "var(--primary)", name: "CPU %" },
                 { key: "mem", color: "var(--chart-2)", name: "Mem %" },
@@ -103,10 +342,39 @@ function IncusDetail() {
             />
           </div>
         </TabsContent>
-        <TabsContent value="logs" className="pt-4"><LogStream /></TabsContent>
+
+        <TabsContent value="logs" className="pt-4">
+          {logLines.length === 0 ? (
+            <EmptyState title="No logs" description="No log lines found for this instance." />
+          ) : (
+            <div className="rounded-md border bg-[oklch(0.14_0.01_260)] text-[oklch(0.92_0.01_260)] p-3 font-mono text-xs max-h-96 overflow-auto space-y-0.5">
+              {logLines.map((line, i) => (
+                <div key={i} className="flex gap-2">
+                  <span
+                    className={cn(
+                      "shrink-0 w-12 text-right",
+                      line.priority === "error" && "text-[var(--destructive)]",
+                      line.priority === "warn" && "text-[var(--warning)]",
+                      line.priority === "debug" && "text-muted-foreground",
+                      (line.priority === "info") && "text-[var(--success)]",
+                    )}
+                  >
+                    {line.priority}
+                  </span>
+                  <span className="text-muted-foreground shrink-0">
+                    {new Date(line.ts).toLocaleTimeString()}
+                  </span>
+                  <span>{line.message}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
         <TabsContent value="config" className="pt-4">
           <CodeBlock language="yaml" code={beforeCfg} />
         </TabsContent>
+
         <TabsContent value="diff" className="pt-4">
           <DiffViewer before={beforeCfg} after={afterCfg} />
         </TabsContent>
