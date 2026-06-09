@@ -68,3 +68,70 @@ Transport = **typed `createServerFn` RPC**, not REST. Concretely:
 - Loses raw `curl`-ability of `/api/*` (verification shifts to runtime/integration tests +
   driving the UI). The security gate (WP-50) tests the `defineServerFn` middleware directly.
 - Fan-out of Waves 1 & 2 is **paused** until WP-01/WP-04 are reworked onto this and re-proven.
+
+## `defineServerFn` usage (Wave-1: copy this) — WP-01 DONE, runtime-proven
+
+`defineServerFn` is in `src/lib/api/define-server-fn.ts`. It returns a TanStack **function
+middleware** (the security gate); the server fn literal is written at module top level. This
+exact shape is forced by the framework and is **proven on the built node server** (10/10 gates:
+authed→200, unauth→401, non-admin→403, admin→200, bad-input→400, CSRF missing/stolen/mismatched
+→403, valid session-bound CSRF→201, no-session mutation→401).
+
+```ts
+// src/lib/api/<domain>.functions.ts  (client-importable; NEVER static-import src/server here)
+import { createServerFn } from '@tanstack/react-start';
+import { defineServerFn, serverFnNoop } from '@/lib/api/define-server-fn';
+import { z } from 'zod';
+
+const listGate = defineServerFn({
+  method: 'GET',                      // 'GET' read · 'POST' mutation (CSRF-enforced)
+  auth: 'any',                        // 'public' | 'any' | 'admin' | GroupName
+  input: z.object({ q: z.string().optional() }),
+  surface: 'services',
+  action: 'services.list',
+  handler: async ({ input, user, ctx }) => {
+    const { listServices } = await import('@/server/services/repo');  // DYNAMIC import
+    return listServices(input.q);
+  },
+});
+export const listServices = createServerFn({ method: 'GET' })
+  .middleware([listGate])
+  .handler(serverFnNoop);
+
+// destructive op: require a single-use approval token + admin
+const deleteGate = defineServerFn({
+  method: 'POST',
+  auth: 'admin',
+  approval: true,
+  input: z.object({ id: z.string() }),
+  surface: 'services',
+  action: 'services.delete',
+  target: (input) => input.id,        // audit target (never a secret)
+  handler: async ({ input }) => {
+    const { deleteService } = await import('@/server/services/repo');
+    return deleteService(input.id);
+  },
+});
+export const deleteService = createServerFn({ method: 'POST' })
+  .middleware([deleteGate])
+  .handler(serverFnNoop);
+```
+
+Hard rules (do NOT deviate — each was empirically required):
+1. `defineServerFn(opts)` returns a middleware; the `createServerFn(...).middleware([gate])
+   .handler(serverFnNoop)` literal MUST be at module top level (the compiler errors with
+   "createServerFn must be assigned to a variable!" otherwise, and a factory-returned handler
+   leaks `src/server` into the client bundle → import-protection denial).
+2. Import server-only modules **dynamically inside the handler** (`await import('@/server/...')`).
+   Never static-import `src/server/**` (or `@tanstack/react-start/server`) at the top of a
+   client-reachable `*.functions.ts` file.
+3. The handler runs inside the extracted gate, so its dynamic server imports are server-only.
+   The top-level `.handler(serverFnNoop)` is a passthrough; the gate sets the result.
+4. Frontend calls it typed: `await listServices({ data: { q } })` from loaders/components —
+   no `fetch`. Mutations must send the session-bound CSRF (cookie + `x-csrf-token` header).
+5. Throw typed `ApiError`s from `@/server/errors` inside the handler; the pipeline maps them
+   to the contract envelope + HTTP status. Audit runs on success AND failure automatically.
+
+Pipeline order (gate → `server-fn-runner.server.ts` → `server-fn-pipeline.ts` `defineApiRoute`):
+resolveContext → method → input(400) → auth/RBAC(401/403) → CSRF on mutations(403/401) →
+rate-limit(429) → approval(412) → handler → audit → success/typed-error envelope.

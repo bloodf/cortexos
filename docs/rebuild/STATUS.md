@@ -14,7 +14,7 @@
 | WP-00 | node-server preset + runtime boot | — | done | claude | (pending) |
 | WP-02 | DB port | — | done | claude | (this commit) |
 | WP-03 | security cores (portable) | WP-02 | done | claude | (this commit) |
-| WP-01 | request core → defineServerFn middleware (see ADR-001) | WP-02, WP-03 | wip | claude | logic ported; transport rework |
+| WP-01 | request core → defineServerFn middleware (see ADR-001) | WP-02, WP-03 | done | claude | runtime-proven on built node server |
 | WP-04 | frontend client → RPC facades (see ADR-001) | — (contract) | wip | claude | scaffolding done; RPC rework |
 
 > **TRANSPORT CORRECTION — read `ADR-001-server-transport.md`.** The framework
@@ -23,41 +23,88 @@
 > `01`/`02` REST framing and all Wave-1/2 specs are amended to RPC. **Fan-out of Waves 1 & 2
 > is PAUSED until WP-01/WP-04 are re-proven on the corrected transport.** WP-00/02/03 stand.
 
-### TanStack `/api` route convention (Wave 0 — follow this in Wave 1)
-This installed version (`@tanstack/react-start` ^1.167, `@tanstack/react-router` ^1.170,
-`start-client-core` 1.170, `router-core` 1.171) has **no** `createServerFileRoute` /
-`ServerRoute` export. Server (HTTP) routes are declared on a normal **file route** via the
-`server.handlers` option that `@tanstack/start-client-core/serverRoute` augments onto
-`FilebaseRouteOptionsInterface`:
+### Server-function convention (Wave 0 — follow this in Wave 1; see ADR-001)
+Transport is `createServerFn` **RPC**, not REST. There are NO `/api/*` route files. Each
+backend endpoint is a server function in `src/lib/api/<domain>.functions.ts`, gated by
+`defineServerFn` (`src/lib/api/define-server-fn.ts`) and written at module top level:
 
 ```ts
-// src/routes/api/<domain>/<name>.ts
-import { createFileRoute } from '@tanstack/react-router';
-import { defineApiRoute } from '@/server/define-api-route';
+// src/lib/api/services.functions.ts
+import { createServerFn } from '@tanstack/react-start';
+import { defineServerFn, serverFnNoop } from '@/lib/api/define-server-fn';
+import { z } from 'zod';
 
-const core = defineApiRoute({ methods: ['GET','POST'], auth: 'admin', /* ... */ handler });
-
-export const Route = createFileRoute('/api/<domain>/<name>')({
-  server: {
-    handlers: {
-      GET:  ({ request }: { request: Request }) => core(request),
-      POST: ({ request }: { request: Request }) => core(request),
-    },
+const gate = defineServerFn({
+  method: 'GET',                 // 'GET' read · 'POST' mutation
+  auth: 'any',                   // 'public' | 'any' | 'admin' | GroupName
+  input: z.object({ q: z.string().optional() }),   // optional; 400 on failure
+  surface: 'services',
+  action: 'services.list',
+  // approval: true,             // optional: consume single-use approval token
+  // target: (input) => input.id,// optional audit target (never a secret)
+  handler: async ({ input, user, ctx }) => {
+    const { listServices } = await import('@/server/services/repo');  // dynamic!
+    return listServices(input.q);
   },
 });
+export const listServices = createServerFn({ method: 'GET' })
+  .middleware([gate])
+  .handler(serverFnNoop);
 ```
 
-- Each method handler receives `{ request: Request, params, pathname, context, next }` and
-  returns `Response | Promise<Response>`. `defineApiRoute` IS the framework-agnostic core
-  (`(request: Request) => Promise<Response>`); the route file just wires it into
-  `server.handlers` per HTTP method.
-- The TanStack Router generator scans `src/routes/api/**` and registers paths in
-  `routeTree.gen.ts` on the next dev/build pass. For a brand-new route file whose path is not
-  yet in the generated registry, call `createFileRoute()` **path-less** (the generator
-  rewrites it to `createFileRoute('/api/...')`) so `tsc` stays green until generation runs —
-  see `src/routes/api/_ping.ts` for the reference.
-- Reference implementation + full pipeline docs: top of
-  `src/server/define-api-route.ts`. Demo route: `src/routes/api/_ping.ts`.
+**Why this exact shape (compiler + import-protection constraints — proven, do not deviate):**
+- `defineServerFn(opts)` returns a TanStack **function middleware**, NOT a finished server
+  fn. The compiler requires every `createServerFn(...)` to be assigned to a top-level
+  variable, and only EXTRACTS (server-strips) a `.handler()` body at a top-level literal
+  site. A factory that returned `createServerFn().handler()` fails the compiler AND leaks its
+  `src/server` import into the client bundle (import-protection `Denied by file pattern:
+  src/server`). `createMiddleware().server()` bodies ARE extracted (even from a factory), so
+  the gate is a middleware.
+- The `handler` you pass to `defineServerFn` runs INSIDE the extracted gate, so its
+  `await import('@/server/...')` is server-only. Always import server modules **dynamically
+  inside the handler** — never statically at the top of a `*.functions.ts` file.
+- The top-level `.handler(serverFnNoop)` is a trivial passthrough; the gate computes + sets
+  the result.
+- Frontend calls the fn directly (typed RPC): `await listServices({ data: { q } })` from a
+  loader/component — no `fetch('/api/...')`.
+
+Pipeline (per request, inside the gate → `server-fn-runner.server.ts` → `defineApiRoute`):
+resolveContext → method match → input validate (400+details) → auth/RBAC (401/403) → CSRF on
+mutations (double-submit + session-bound; 403, 401 if no session) → rate-limit (429+Retry-
+After) → optional approval consume (412) → handler → audit (success AND failure, never
+throws) → typed success/error envelope. Gate failures are thrown as a `Response` and returned
+verbatim by the RPC handler (status + body + headers preserved).
+
+Reference + full docs: `src/lib/api/define-server-fn.ts`, `src/lib/api/server-fn-runner.server.ts`,
+`src/server/server-fn-pipeline.ts`.
+
+### WP-01 runtime evidence (proven on the BUILT node server, not just compile)
+`pnpm --filter @cortexos/dashboard-next build` is green and `node .output/server/index.mjs`
+boots ("Listening on http://localhost:PORT/"). A temporary probe route drove the gate through
+the real createServerFn runtime (`getRequest()` reading the live request) — all 10 gates
+passed (probe since removed):
+
+| scenario | expected | got |
+|----------|----------|-----|
+| auth:any GET, no session | 401 `auth` | 401 ✅ |
+| auth:any GET, valid session | 200 | 200 ✅ |
+| auth:admin GET, non-admin | 403 `permission` | 403 ✅ |
+| auth:admin GET, admin | 200 | 200 ✅ |
+| auth:any GET, bad input (`n=not-a-number`) | 400 `validation` | 400 ✅ |
+| POST mutation, no CSRF header | 403 `permission` | 403 ✅ |
+| POST mutation, stolen CSRF cookie (no header) | 403 | 403 ✅ |
+| POST mutation, mismatched CSRF header | 403 | 403 ✅ |
+| POST mutation, valid session-bound CSRF | 201 | 201 ✅ |
+| POST mutation, no session | 401 `auth` | 401 ✅ |
+
+Kept: `defineServerFn` + `server-fn-runner.server.ts` + `server-fn-pipeline.ts` + the unit
+test `src/lib/api/__tests__/define-server-fn.test.ts` (13 tests, exercises the gate pipeline).
+Note: server-fn handler bodies only run under the Vite/Nitro build transform — a bare
+`await fn()` in vitest never invokes the extracted handler, so the end-to-end RPC proof is the
+built-server probe above, and the unit test covers the pipeline directly.
+
+**Dead REST artifacts removed:** `src/routes/api/_ping.ts` (+ its test) and the REST-named
+`src/server/define-api-route.ts` (relocated to `src/server/server-fn-pipeline.ts`).
 
 ## Wave 1 — backend domains (PARALLEL; need WP-01+WP-02)
 | WP | Title | Extra deps | Status | Owner | Commit |

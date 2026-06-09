@@ -1,36 +1,27 @@
 /**
- * defineApiRoute — the single request wrapper every `/api/*` handler uses.
+ * server-fn-pipeline — the framework-agnostic security pipeline behind
+ * `defineServerFn` (WP-01). Server-runtime internal.
  *
  * ============================================================================
- * TanStack /api route convention (this installed version)
+ * Transport: createServerFn RPC, NOT REST (see ADR-001)
  * ----------------------------------------------------------------------------
- * Installed: @tanstack/react-start ^1.167, @tanstack/react-router ^1.170,
- * @tanstack/start-client-core 1.170, router-core 1.171.
+ * This TanStack Start version (@tanstack/react-start 1.168) has NO working
+ * REST/HTTP server-route mechanism: a `/api/*` file route with `server.handlers`
+ * registers in `routeTree.gen.ts` but 404s at runtime. The ONLY server
+ * primitive is `createServerFn` (RPC). So this module is NOT consumed by a
+ * route file — it is imported DYNAMICALLY by `src/lib/api/define-server-fn.ts`
+ * (client-reachable, hence forbidden from statically importing `src/server/**`).
  *
- * This version has NO `createServerFileRoute` / `ServerRoute` export. Instead,
- * file-based server routes are declared on a normal file route via the `server`
- * option (augmented onto `FilebaseRouteOptionsInterface` by
- * `@tanstack/start-client-core/serverRoute`):
+ * `defineApiRoute(opts)` produces the proven core — a
+ * `(request: Request) => Promise<Response>`. `defineServerFn` obtains the
+ * incoming `Request` from the server-fn runtime (`getRequest()`), runs this
+ * core, then either throws the non-2xx `Response` verbatim (typed-error
+ * envelope) or returns the handler data with the accumulated Set-Cookie +
+ * framework headers replayed onto the runtime response.
  *
- *   import { createFileRoute } from '@tanstack/react-router';
- *   export const Route = createFileRoute('/api/_ping')({
- *     server: {
- *       handlers: {
- *         GET:  ({ request }) => coreHandler(request),
- *         POST: ({ request }) => coreHandler(request),
- *       },
- *     },
- *   });
- *
- * Each method handler receives `{ request: Request, params, pathname, context,
- * next }` and returns `Response | Promise<Response>`. `defineApiRoute` produces
- * exactly that core — a `(request: Request) => Promise<Response>` — and the
- * route file wires it into the per-method `server.handlers` map. The TanStack
- * Router file-route generator picks up `src/routes/api/**` files automatically.
- *
- * Wave-1 WPs: declare your routes the same way (one file per endpoint under
- * `src/routes/api/<domain>/`, `server.handlers` keyed by HTTP method, each
- * delegating to a `defineApiRoute(...)` core). See `STATUS.md` (Wave 0 note).
+ * Wave-1 WPs: do NOT write `/api/*` route files. Define server functions in
+ * `src/lib/api/<domain>.functions.ts` via `defineServerFn(...)`. See ADR-001
+ * and `STATUS.md` (Wave 0 note).
  * ============================================================================
  *
  * Pipeline (mirrors the legacy `route-helper.defineRoute`, adapted to Web
