@@ -52,6 +52,20 @@ const ROUTES = [
   { path: '/terminal', landmark: 'main#main-content' },
 ];
 
+// Console-error patterns that are test-environment artifacts, not product
+// defects. The harness hits the app directly on :3080, which bypasses the
+// Caddy reverse proxy that would normally route /terminal/ws to the
+// cortex-terminal sidecar on :3081. Errors that match an entry for the
+// route are surfaced as `known-artifact:` in the report and do NOT count
+// toward the FAIL verdict. Any other console error still FAILs.
+const KNOWN_ENV_ARTIFACTS = [
+  {
+    route: '/terminal',
+    pattern: /WebSocket connection to 'ws:\/\/127\.0\.0\.1:3080\/terminal\/ws' failed: Error during WebSocket handshake: Unexpected response code: 404/,
+    reason: 'direct-:3080 run bypasses Caddy /terminal/ws→:3081 (AN-001 §5; recon-d001-d003)',
+  },
+];
+
 // Error-boundary signatures (root + per-route) that count as a render FAIL.
 const ERROR_SIGNATURES = [
   "This page didn't load", // __root.tsx ErrorComponent
@@ -210,9 +224,19 @@ async function main() {
           }
         }
 
-        // 3. Console errors / failed requests are FAILs.
-        if (consoleErrors.length > 0) {
-          reasons.push(`${consoleErrors.length} console error(s)`);
+        // 3. Console errors / failed requests are FAILs. Known env
+        // artifacts for this route are filtered out of the FAIL count
+        // and surfaced separately in the report (see `known-artifact:`
+        // lines below).
+        const artifactsForRoute = KNOWN_ENV_ARTIFACTS.filter((a) => a.route === route.path);
+        const matchedArtifactReasons = artifactsForRoute
+          .filter((a) => consoleErrors.some((e) => a.pattern.test(e)))
+          .map((a) => a.reason);
+        const realConsoleErrors = consoleErrors.filter(
+          (e) => !artifactsForRoute.some((a) => a.pattern.test(e)),
+        );
+        if (realConsoleErrors.length > 0) {
+          reasons.push(`${realConsoleErrors.length} console error(s)`);
         }
         if (badResponses.length > 0) {
           reasons.push(`${badResponses.length} 4xx/5xx server-fn response(s)`);
@@ -234,6 +258,7 @@ async function main() {
         finalUrl,
         reasons,
         consoleErrors: consoleErrors.slice(0, 8),
+        knownArtifacts: matchedArtifactReasons,
         failedRequests: failedRequests.slice(0, 8),
         badResponses: badResponses.slice(0, 8),
         shot,
@@ -272,6 +297,11 @@ async function main() {
     for (const r of fails) {
       console.log(`\n## ${r.path}  (final: ${r.finalUrl})`);
       console.log(`  reasons: ${r.reasons.join('; ')}`);
+      if (r.knownArtifacts && r.knownArtifacts.length) {
+        for (const reason of r.knownArtifacts) {
+          console.log(`  known-artifact: ${reason}`);
+        }
+      }
       if (r.consoleErrors.length) {
         console.log('  console errors:');
         for (const e of r.consoleErrors) console.log(`    - ${e}`);
