@@ -65,3 +65,24 @@ implementation contract — passes its own plan gate before any code change.
   the new test file is clean). G3 for this effort = "no new violations on
   changed lines". Full-package lint cleanup is pre-existing debt, surfaced
   to the operator as a separate decision.
+
+## 2026-06-10 — AN-002 analysis (3 cycles, dispositions applied under /loop standing authorization)
+Artifacts: `harness/artifacts/critic-analysis-AN-002-healthcheck-hydration.md-{1,2,3}.md`.
+Cycles 1-2 findings FIXED with orchestrator-verified greps (no dehydration
+wiring; zero time/random/locale text in DataTable.tsx + StatusBadge.tsx;
+ms() implementation quoted). Cycle 3 dispositions:
+- [MAJOR] LogViewer rendering step unevidenced → FIXED: LogViewer.tsx:16
+  `lines.map(...)` renders each line as a text node; quote added to the doc.
+- [MAJOR] DataTable not ruled out ("server data vs client skeleton can
+  differ") → OVERRULED: the scenario requires an SSR data fetch; the
+  /healthcheck route has no loader (`grep -n loader
+  src/routes/_authenticated.healthcheck.tsx` → zero matches) and the
+  package has no prefetch/dehydration wiring (zero-match grep, in doc), so
+  SSR and client hydration both render the pending state. Residual risk is
+  bounded by MP-003 acceptance A4: if any second mismatch source exists,
+  the post-fix screen re-run still FAILs /healthcheck and the loop
+  continues — the exclusion is empirically tested, not assumed.
+- [MAJOR] "No SSR fetch" unproven / wording contradiction → OVERRULED:
+  same rationale and same empirical backstop as above.
+Critic's own counterargument concedes the diagnosis is "very plausible" and
+the fix "small and likely beneficial even if other sources exist."
