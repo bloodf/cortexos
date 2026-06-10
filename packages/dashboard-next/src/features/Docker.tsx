@@ -80,14 +80,13 @@ export function DockerPage() {
   // MP-009: per-container log fetcher. Captures `logsFor` (the container
   // currently in the drawer) at render time; the LogStream re-runs the
   // callback when the drawer content changes (logsFor is in the dep array).
+  // Errors PROPAGATE — LogStream's polling effect catches them and keeps
+  // the previously rendered lines on screen rather than blanking the view
+  // on a transient failure.
   const fetchContainerLogs = useCallback(async (): Promise<string[]> => {
     if (!logsFor) return [];
-    try {
-      const { lines } = await callContainerLogs({ data: { id: logsFor.id, limit: 200 } });
-      return lines;
-    } catch {
-      return [];
-    }
+    const { lines } = await callContainerLogs({ data: { id: logsFor.id, limit: 200 } });
+    return lines;
   }, [logsFor]);
 
   const isAdmin = !!user?.is_admin;

@@ -27,7 +27,7 @@
 //   packages/paperclip-adapter/**   → strict, node + base
 //   packages/contracts/**           → strictest (zero-tolerance, no console)
 //   packages/design-tokens/**       → strictest
-//   packages/dashboard-next/**      → svelte-aware (Svelte 5 + TanStack Start)
+//   packages/dashboard-next/**      → react-aware (React 19 + TanStack Start)
 
 import js from '@eslint/js';
 import ts from 'typescript-eslint';

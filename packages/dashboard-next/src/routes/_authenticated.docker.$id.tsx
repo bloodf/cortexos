@@ -93,14 +93,13 @@ function ContainerDetail() {
   // MP-009: container-scoped log fetcher. Captures `c` (the route's
   // resolved container) at render time; the LogStream re-runs the
   // callback when the route param / containers list changes.
+  // Errors PROPAGATE — LogStream's polling effect catches them and keeps
+  // the previously rendered lines on screen rather than blanking the view
+  // on a transient failure.
   const fetchContainerLogs = useCallback(async (): Promise<string[]> => {
     if (!c) return [];
-    try {
-      const { lines } = await callContainerLogs({ data: { id: c.id, limit: 200 } });
-      return lines;
-    } catch {
-      return [];
-    }
+    const { lines } = await callContainerLogs({ data: { id: c.id, limit: 200 } });
+    return lines;
   }, [c]);
 
   const invalidate = () =>

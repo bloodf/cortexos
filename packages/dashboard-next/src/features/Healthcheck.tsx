@@ -21,18 +21,16 @@ export function HealthcheckPage() {
   const [period, setPeriod] = useState<"1h" | "24h" | "7d">("24h");
 
   // MP-009: live host-journal line fetcher. `callHostLogs` is admin-only,
-  // so non-admin users see an empty stream (errors are swallowed; the
-  // 401/403 audit trail lives on the server). Server gate runs a
-  // 10/min/user rate-limit and audit-logs every call.
+  // so non-admin users see an empty stream. Errors PROPAGATE so
+  // LogStream's polling effect can catch them and keep the previously
+  // rendered lines on screen (the 401/403 audit trail lives on the
+  // server; the gate also runs a 10/min/user rate-limit and
+  // audit-logs every call).
   const fetchHostLogs = useCallback(async (): Promise<string[]> => {
-    try {
-      const { lines } = await callHostLogs({ data: { limit: 200 } });
-      return lines.map(
-        (l) => `[${l.ts}] ${l.priority.padEnd(7)} ${l.unit}: ${l.message}`,
-      );
-    } catch {
-      return [];
-    }
+    const { lines } = await callHostLogs({ data: { limit: 200 } });
+    return lines.map(
+      (l) => `[${l.ts}] ${l.priority.padEnd(7)} ${l.unit}: ${l.message}`,
+    );
   }, []);
 
   const recheck = async (row: Service) => {

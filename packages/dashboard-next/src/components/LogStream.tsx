@@ -63,15 +63,26 @@ export function LogStream({
 	// result into `lines`. The mock generator is the no-fetcher fallback.
 	// (Direct setInterval polling, NOT React Query — keeps the component
 	// self-contained and SSR-safe without requiring a QueryClient.)
+	//
+	// Error contract: call-site fetchers let rejections propagate. This
+	// effect catches them and KEEPS the previously rendered lines — no
+	// state update, nothing logged — so a transient failure does not
+	// blank the log view.
 	useEffect(() => {
 		if (!fetcher) return;
 		let cancelled = false;
 		const tick = async () => {
 			try {
 				const result = await fetcher();
-				if (!cancelled) setLines(result);
+				if (!cancelled) {
+					// Truncate to the last `max` lines so the fetcher path
+					// honors the same `max` UX as the mock path.
+					setLines(
+						result.length > max ? result.slice(result.length - max) : result,
+					);
+				}
 			} catch {
-				// swallow — UI keeps the previous lines
+				// Fetcher rejected — keep the previous lines, no state update.
 			}
 		};
 		// Fire immediately on mount, then on each interval tick.
@@ -83,7 +94,7 @@ export function LogStream({
 			if (timer.current) clearInterval(timer.current);
 			timer.current = null;
 		};
-	}, [fetcher, refetchIntervalMs, paused]);
+	}, [fetcher, refetchIntervalMs, paused, max]);
 
 	// MP-003: defer initial 40 lines to a mount-only effect so SSR and the
 	// first client render produce identical markup (fixes React #418 on
