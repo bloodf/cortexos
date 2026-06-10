@@ -421,3 +421,12 @@ evidence: zero importers outside form.tsx (orchestrator grep). Lint final:
 exit 0 — package fully clean (11,579 → 0). Release gate: verification run
 10 = 18/18 PASS, exit 0, real journal lines, no mock markers
 (screen-defects-10.md). Operator-approved merge to main executed.
+
+## 2026-06-10 — MP-012 complete (d21eb37): polish done, zero loose ends
+gpt-5.5 review PASS, zero findings. All checks green: tree-wide
+root-helper references 0, lint exit 0, 558/558, asset set identical.
+Server-bundle hash difference escalated by the worker per plan →
+orchestrator adjudication: benign build non-determinism (embedded asset
+manifest KEY ORDERING shifts between builds; asset set diff empty; no
+code change) — approved. Harness false-PASS gap fixed and live-tested
+(run-worker fails on unchanged pre-existing expected outputs).
