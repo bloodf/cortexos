@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { instrument, traceLLMCall, shutdown, __resetForTests, __getConfigForTests } from '../src';
+import { instrument, traceLLMCall, shutdown, __resetForTests, __getConfigForTests } from '../src/index.js';
 
 const ENV_KEYS = [
   'LANGFUSE_HOST',

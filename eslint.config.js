@@ -70,19 +70,6 @@ export default [
     ignores: IGNORE,
   },
 
-  // 1b) Import resolver — TypeScript + Node so import-x can resolve .ts/.tsx
-  {
-    settings: {
-      'import-x/resolver': {
-        typescript: {
-          project: ['./tsconfig.base.json', 'packages/*/tsconfig.json'],
-          noWarnOnMultipleProjects: true,
-        },
-        node: {},
-      },
-    },
-  },
-
   // 2) JS recommended baseline
   js.configs.recommended,
 
@@ -314,9 +301,9 @@ export default [
   // 7d) Plain-JS Node packages — Node ESM requires extensions on relative imports
   {
     files: [
-      'packages/cortex-audit/src/**/*.{js,mjs}',
-      'packages/cortex-telemetry/src/**/*.{js,mjs}',
-      'packages/cortex-terminal/src/**/*.{js,mjs}',
+      'packages/cortex-audit/**/*.{js,mjs}',
+      'packages/cortex-telemetry/**/*.{js,mjs}',
+      'packages/cortex-terminal/**/*.{js,mjs}',
     ],
     rules: {
       'import-x/extensions': ['error', 'ignorePackages', { js: 'always', mjs: 'always' }],

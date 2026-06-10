@@ -16,7 +16,7 @@ import {
   chainHashOf,
   GENESIS_PREV_HASH,
   setPool,
-} from '../src';
+} from '../src/index.js';
 
 function makeShim() {
   const rows = [];

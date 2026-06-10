@@ -13,7 +13,7 @@
  * operator-driven verification runs. Never blocks production: failures are
  * surfaced via non-zero exit status only.
  */
-import { verifyChain, anchorToRekor } from '../src';
+import { verifyChain, anchorToRekor } from '../src/index.js';
 
 function parseFlags(argv) {
   const out = {};
