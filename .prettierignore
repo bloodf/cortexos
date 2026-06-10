@@ -12,6 +12,8 @@ node_modules
 **/coverage/**
 **/.turbo/**
 **/.wrangler/**
+**/.output/**
+**/.tanstack/**
 
 # Lockfiles
 pnpm-lock.yaml

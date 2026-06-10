@@ -52,6 +52,8 @@ const IGNORE = [
   '**/coverage/**',
   '**/.turbo/**',
   '**/.wrangler/**',
+  '**/.output/**',
+  '**/.tanstack/**',
   '**/*.min.js',
   '**/pnpm-lock.yaml',
 ];
