@@ -64,6 +64,11 @@ ALL commands run from `/opt/cortexos`; paths repo-relative.
 - `packages/dashboard-next/src/components/DataTable.test.tsx`
 - `packages/dashboard-next/src/hooks/useAuth.test.tsx`
 - `packages/dashboard-next/src/test/jest-dom.d.ts` (new, per MP8-R4)
+- `packages/dashboard-next/src/test/setup.ts` (amendment, post-impl: the
+  legacy package's deleted vitest.setup.ts carried an explicit
+  `expect.extend(matchers)` workaround; MP-007's removal broke RUNTIME
+  matcher registration alongside the MP8-R4 type break. setup.ts restores
+  the explicit extend. Logged in GATE-RESOLUTION.)
 - Report (never committed):
   `/opt/cortexos/.planning/harness/artifacts/impl-mp-008-report.md`
 

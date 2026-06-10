@@ -172,6 +172,17 @@ dispositions, all FIXED:
 No overrules. The gate measurably hardened the design (auth levels,
 stderr coverage, hydration guard).
 
+## 2026-06-10 — MP-009 plan (3 cycles, dispositions applied under /loop standing authorization)
+Artifacts: `harness/artifacts/critic-plan-MP-009-real-logs.md-{1,2,3}.md`.
+Cycle 1 FIXED (binary stderr acceptance A5; component RED test added;
+objective ISO-timestamp predicate replaces "journal-shaped"; A3 delta
+counts). Cycle 2 FIXED (TDD ordering: component test stays RED through
+Task 2 by design; docker server test file added to ownership;
+refetchIntervalMs acceptance A7; A6 names the exact verification command).
+Cycle 3 disposition: [BLOCKER] ownership lists 12 files but A2 said
+"eleven" — FIXED (typo; count updated to twelve; critic's counterargument
+concurred it was a typo). No overrules.
+
 ## 2026-06-10 — orchestrator process error: commit race (rule 7 violation)
 While M3 executed MP-007, the orchestrator committed planning docs; M3 had
 already staged the tree deletions via `git rm`, so docs commit `84138bb`
@@ -191,6 +202,19 @@ MP-008 amended (MP8-R4): new in-package `src/test/jest-dom.d.ts`
 augmentation; no dependency changes. Not re-gated (cycle limit spent;
 amendment follows the MP-003 precedent — evidence logged here, kimi diff
 gate still reviews the resulting code before push).
+
+## 2026-06-10 — MP-008 execution notes
+- M3 silent-death pattern: the monolithic MP-008 job died three times with
+  empty logs (a passing smoke between attempts proved the provider lane
+  healthy). Pivoted to micro-jobs; micro-job A (useAuth.test.tsx only)
+  succeeded first try. Lesson: cap M3 job size; mandate incremental
+  report writes.
+- Ownership deviation LEGITIMIZED: micro-job A also edited
+  `src/test/setup.ts` (explicit `expect.extend(matchers)`) — the legacy
+  package's deleted vitest.setup.ts had carried that runtime workaround,
+  and ~15 unrelated UI tests broke without it (same MP-007 root-cause
+  family as MP8-R4). The worker documented the deviation in its report
+  rather than silently proceeding; ownership amended.
 
 ## 2026-06-10 — MP-008 plan (3 cycles, dispositions applied under /loop standing authorization)
 Artifacts: `harness/artifacts/critic-plan-MP-008-test-repairs.md-{1,2,3}.md`.
