@@ -55,6 +55,11 @@ ALL commands run from `/opt/cortexos`; paths repo-relative under
   tailLogs stderr-merge test from Task 1 lives here)
 - `src/features/Healthcheck.tsx`, `src/features/Docker.tsx`,
   `src/routes/_authenticated.docker.$id.tsx` (fetcher wiring only)
+- `src/lib/api/client.ts` (amendment, post-impl: the call sites consume
+  the typed api client object, so the new hostLogs/containerLogs fetchers
+  wire through it — deviation documented in impl-mp-009-report.md and
+  GATE-RESOLUTION; single-owner constraint respected, no concurrent
+  editor)
 - Report (never committed):
   `/opt/cortexos/.planning/harness/artifacts/impl-mp-009-report.md`
 

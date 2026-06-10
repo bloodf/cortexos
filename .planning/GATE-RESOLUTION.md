@@ -172,6 +172,14 @@ dispositions, all FIXED:
 No overrules. The gate measurably hardened the design (auth levels,
 stderr coverage, hydration guard).
 
+## 2026-06-10 — MP-009 execution notes
+M3 monolithic job died silently after completing Tasks 1-2 and most of
+Task 3 (incremental report preserved the handoff — the MP-008 lesson paying
+off). Micro-job 9B finished Task 3: scoped suites green (hydration 4/4,
+pipeline 30/30 + 34/34). Ownership deviation LEGITIMIZED: `src/lib/api/
+client.ts` carries the api-client wiring the call sites consume; worker
+documented the diff hunk in the report. Ownership amended (13 files).
+
 ## 2026-06-10 — MP-009 plan (3 cycles, dispositions applied under /loop standing authorization)
 Artifacts: `harness/artifacts/critic-plan-MP-009-real-logs.md-{1,2,3}.md`.
 Cycle 1 FIXED (binary stderr acceptance A5; component RED test added;
@@ -215,6 +223,14 @@ gate still reviews the resulting code before push).
   and ~15 unrelated UI tests broke without it (same MP-007 root-cause
   family as MP8-R4). The worker documented the deviation in its report
   rather than silently proceeding; ownership amended.
+
+## 2026-06-10 — MP-008 diff gate (PASS, commit 7613c15)
+`critic-diff-fe9a740-1.md`: kimi PASS. One MINOR accepted: jest-dom.d.ts
+imports `@testing-library/jest-dom/matchers` instead of the plan's
+`.../types/matchers` — the plan's literal path is not in the package's
+`exports` field; the worker documented the adaptation in a code comment.
+Full suite 543/543 green with the env file sourced and no shell override
+(the vitest config NODE_ENV pin proven).
 
 ## 2026-06-10 — MP-008 plan (3 cycles, dispositions applied under /loop standing authorization)
 Artifacts: `harness/artifacts/critic-plan-MP-008-test-repairs.md-{1,2,3}.md`.
