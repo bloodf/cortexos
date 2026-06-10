@@ -157,6 +157,14 @@ reordered RED-first). Cycle 3 dispositions:
   local); A4 is the orchestrator's pre-push gate. Same critic accepted this
   pattern in MP-003's PASS (cycle 2).
 
+## 2026-06-10 — operator approvals (recorded verbatim)
+Via AskUserQuestion in the live session:
+- Legacy removal: "Yes — login works, remove legacy" — operator confirmed a
+  real browser PAM login on dashboard-next and approved WP-54 phases 2-3
+  (delete packages/dashboard, stacks/cortex-dashboard, rollback artifacts).
+- Debt scope: all four items approved — broken tests + NODE_ENV leak, lint
+  cleanup wave, /admin/account redirect check, real logs on /healthcheck.
+
 ## 2026-06-10 — final verify-screens diff gate (PASS) + one FALSE finding
 `critic-diff-45a3837-4.md`: kimi PASS on the combined script diff
 `f908922~1..HEAD` reviewed against the MP-005 plan. Its single MAJOR
