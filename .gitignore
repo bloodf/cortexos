@@ -194,6 +194,7 @@ backups/
 /e2e/
 /public/
 .cache/
+.wrangler/
 *.log
 *.tgz
 *.tar.gz
