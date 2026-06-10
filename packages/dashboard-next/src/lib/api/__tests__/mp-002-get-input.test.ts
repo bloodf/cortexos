@@ -73,8 +73,8 @@ describe("MP-002 — GET server-fn input from middleware data", () => {
 
     // The runner forwards `inputData` (the framework-deserialized data) to the
     // pipeline. We simulate this by passing `inputData` in the opts. Assign
-    // to a variable first so TypeScript's excess-property check does not
-    // strip the field (the pipeline reads `opts.inputData` at runtime).
+    // to a variable first so the field is not hidden by inference
+    // (the pipeline reads `opts.inputData` at runtime).
     const opts = {
       methods: ["GET"] as const,
       auth: "any" as const,

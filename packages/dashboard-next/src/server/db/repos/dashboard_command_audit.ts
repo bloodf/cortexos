@@ -5,7 +5,7 @@
  *
  *   Phase 1 — `startDashboardCommand(input)`:
  *     INSERT a new row with `status='created'`, before dispatching the
- *     request to the root helper (lib/root-helper/executor.ts:46-124).
+ *     request to the execution pipeline.
  *     The row captures: who requested it, what command, with what args,
  *     what env-allowlist, what timeout, what policy + mutation_class.
  *

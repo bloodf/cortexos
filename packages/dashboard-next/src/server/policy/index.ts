@@ -25,14 +25,7 @@
 // Types
 // ---------------------------------------------------------------------------
 
-export type Surface =
-  | "terminal"
-  | "systemd"
-  | "docker"
-  | "incus"
-  | "packages"
-  | "env-browser"
-  | "root-helper";
+export type Surface = "terminal" | "systemd" | "docker" | "incus" | "packages" | "env-browser";
 
 export interface AllowlistEntry {
   /** Operation name as referenced by the UI (e.g. `term.ps`, `systemd.restart`). */
