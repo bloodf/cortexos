@@ -45,8 +45,9 @@ function LoginPage() {
     try {
       await login(u, p);
       router.navigate({ to: search.redirect || "/overview" });
-    } catch (e: any) {
-      setErr(e?.message || t.auth.invalid);
+    } catch (e: unknown) {
+      const err = e as { message?: string };
+      setErr(err.message || t.auth.invalid);
     } finally {
       setBusy(false);
     }

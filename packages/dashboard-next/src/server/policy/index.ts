@@ -123,7 +123,7 @@ const SMUGGLING_PATTERNS: ReadonlyArray<{ pattern: RegExp; reason: string }> = [
   { pattern: /\bexec\b/, reason: "exec()" },
   { pattern: /\.\.\//, reason: "path traversal ../" },
   { pattern: /\.\.\\/, reason: "path traversal ..\\" },
-  { pattern: /[​-‍﻿]/, reason: "zero-width Unicode" },
+  { pattern: /[\u200B-\u200D\uFEFF]/, reason: "zero-width Unicode" },
   { pattern: /[‪-‮⁦-⁩]/, reason: "RTL/override Unicode" },
 ];
 

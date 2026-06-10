@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { renderWithProviders, screen } from "@/test/utils";
+import { renderWithProviders } from "@/test/render-helpers";
+import { screen } from "@testing-library/react";
 import {
   Skeleton,
   TableSkeleton,

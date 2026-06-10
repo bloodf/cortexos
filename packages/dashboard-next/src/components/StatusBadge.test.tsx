@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { UIProvider } from "@/hooks/useUI";
+import { UIProvider } from "@/hooks/ui-provider";
 import { StatusBadge } from "./StatusBadge";
 
 const wrap = (ui: React.ReactNode) => render(<UIProvider>{ui}</UIProvider>);

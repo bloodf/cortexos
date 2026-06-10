@@ -131,14 +131,17 @@ export function DataTable<T>({
     refetchInterval: server?.refetchInterval,
   });
 
-  const serverRows = server ? (serverQuery.data?.rows ?? []) : null;
+  const serverRows = useMemo(
+    () => (server ? (serverQuery.data?.rows ?? []) : null),
+    [server, serverQuery.data],
+  );
   const serverTotal = server ? (serverQuery.data?.total ?? 0) : 0;
   const isServerLoading = server ? serverQuery.isLoading && !serverQuery.data : false;
   const isServerFetching = server ? serverQuery.isFetching : false;
   const loading = server ? isServerLoading : !!loadingProp;
 
   // ----- Local mode (when no server) -----
-  const rows = localRows ?? [];
+  const rows = useMemo(() => localRows ?? [], [localRows]);
   const filtered = useMemo(() => {
     if (server) return [];
     if (!debouncedQ || !filterFn) return rows;
@@ -162,11 +165,15 @@ export function DataTable<T>({
   const total = server ? serverTotal : sortedLocal.length;
   const pages = Math.max(1, Math.ceil(total / pageSize));
   const safePage = Math.min(page, pages - 1);
-  const view: T[] = server
-    ? (serverRows ?? [])
-    : paginate
-      ? sortedLocal.slice(safePage * pageSize, (safePage + 1) * pageSize)
-      : sortedLocal;
+  const view = useMemo<T[]>(
+    () =>
+      server
+        ? (serverRows ?? [])
+        : paginate
+          ? sortedLocal.slice(safePage * pageSize, (safePage + 1) * pageSize)
+          : sortedLocal,
+    [server, serverRows, paginate, sortedLocal, safePage, pageSize],
+  );
 
   const isSortable = (c: Column<T>) => (server ? (c.serverSortable ?? !!c.sort) : !!c.sort);
   const toggleSort = (k: string) => {

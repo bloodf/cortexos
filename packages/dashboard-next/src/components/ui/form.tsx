@@ -159,13 +159,10 @@ const FormMessage = React.forwardRef<
 });
 FormMessage.displayName = "FormMessage";
 
-export {
-  useFormField,
-  Form,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormDescription,
-  FormMessage,
-  FormField,
-};
+// `useFormField` is intentionally NOT re-exported here: it's a custom hook
+// (not a component), and this file already exports the Form* components. The
+// `react-refresh/only-export-components` rule rejects a file that mixes
+// components with non-component exports. `useFormField` is consumed only
+// inside this file by the other Form* components, so removing the re-export
+// is a behavior-preserving fix.
+export { Form, FormItem, FormLabel, FormControl, FormDescription, FormMessage, FormField };

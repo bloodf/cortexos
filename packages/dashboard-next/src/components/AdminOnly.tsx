@@ -27,14 +27,20 @@ export function AdminOnly({
   if (fallback !== undefined) return <>{fallback}</>;
   if (!isValidElement(children)) return null;
 
-  const disabled = cloneElement(children as ReactElement<any>, {
+  const disabledChild = children as ReactElement<{
+    className?: string;
+    onClick?: (e: React.MouseEvent) => void;
+    disabled?: boolean;
+    "aria-disabled"?: boolean;
+  }>;
+  const disabled = cloneElement(disabledChild, {
     disabled: true,
     "aria-disabled": true,
     onClick: (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
     },
-    className: `${(children as ReactElement<any>).props.className ?? ""} opacity-50 cursor-not-allowed`,
+    className: `${disabledChild.props.className ?? ""} opacity-50 cursor-not-allowed`,
   });
 
   if (!showTooltip) return disabled;

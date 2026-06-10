@@ -11,7 +11,8 @@ import {
 } from "@/components/ui/command";
 import { useAuth } from "@/hooks/useAuth";
 import { useT } from "@/hooks/useT";
-import { useUI, ACCENTS } from "@/hooks/useUI";
+import { useUI } from "@/hooks/useUI";
+import { ACCENTS } from "@/hooks/accents";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/mocks/api";
 import { live } from "@/mocks/drift";
@@ -28,6 +29,7 @@ import {
   Heart,
   Keyboard,
   LogOut,
+  type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -80,7 +82,13 @@ export function CommandPalette({ open, onOpenChange, onOpenHelp }: Props) {
     navigate({ to });
   };
 
-  const actions: { id: string; label: string; icon: any; admin?: boolean; run: () => void }[] = [
+  const actions: {
+    id: string;
+    label: string;
+    icon: LucideIcon;
+    admin?: boolean;
+    run: () => void;
+  }[] = [
     {
       id: "act-theme",
       label: `Switch theme to ${theme === "dark" ? "light" : "dark"}`,

@@ -36,7 +36,11 @@ import {
 
 const execFileAsync = promisify(execFile);
 
-const useReal = () => process.env.CORTEX_DOCKER_REAL !== "0";
+// `useReal` is not a React hook; it's a synchronous env-var predicate. The
+// `use` prefix misleads eslint-plugin-react-hooks' rules-of-hooks detector —
+// rename to a non-`use` verb to keep the linter happy without changing any
+// call-site semantics.
+const isRealEnabled = () => process.env.CORTEX_DOCKER_REAL !== "0";
 
 // Docker 25.0+ JSON format (line-delimited, one object per line)
 interface DockerPsJson {
@@ -141,7 +145,7 @@ async function getContainers(): Promise<Container[]> {
 export async function listContainers(
   opts: { filter?: ContainerFilter; query?: string } = {},
 ): Promise<Container[]> {
-  if (!useReal()) return stubListContainers(opts);
+  if (!isRealEnabled()) return stubListContainers(opts);
   let rows = await getContainers();
   const filter = opts.filter ?? "all";
   if (filter === "running") {
@@ -167,20 +171,20 @@ export async function listContainers(
 
 export async function getContainerById(id: string): Promise<Container | null> {
   if (!id) return null;
-  if (!useReal()) return stubGetContainerById(id);
+  if (!isRealEnabled()) return stubGetContainerById(id);
   const rows = await getContainers();
   return rows.find((c) => c.id === id || c.id.endsWith(id)) ?? null;
 }
 
 export async function getContainerByName(name: string): Promise<Container | null> {
   if (!name) return null;
-  if (!useReal()) return stubGetContainerByName(name);
+  if (!isRealEnabled()) return stubGetContainerByName(name);
   const rows = await getContainers();
   return rows.find((c) => c.name === name) ?? null;
 }
 
 export async function tailLogs(id: string, n: number): Promise<string[]> {
-  if (!useReal()) return stubTailLogs(id, n);
+  if (!isRealEnabled()) return stubTailLogs(id, n);
   const c = await getContainerById(id);
   if (!c) return [];
   const max = Math.max(1, Math.min(1000, n));
@@ -207,7 +211,7 @@ export async function tailLogs(id: string, n: number): Promise<string[]> {
 // ---------------------------------------------------------------------------
 
 export async function startContainer(id: string): Promise<{ id: string; state: string }> {
-  if (!useReal()) {
+  if (!isRealEnabled()) {
     const c = stubStartContainer(id);
     return { id: c.id, state: c.state };
   }
@@ -217,7 +221,7 @@ export async function startContainer(id: string): Promise<{ id: string; state: s
 }
 
 export async function stopContainer(id: string): Promise<{ id: string; state: string }> {
-  if (!useReal()) {
+  if (!isRealEnabled()) {
     const c = stubStopContainer(id);
     return { id: c.id, state: c.state };
   }
@@ -227,7 +231,7 @@ export async function stopContainer(id: string): Promise<{ id: string; state: st
 }
 
 export async function restartContainer(id: string): Promise<{ id: string; state: string }> {
-  if (!useReal()) {
+  if (!isRealEnabled()) {
     const c = stubRestartContainer(id);
     return { id: c.id, state: c.state };
   }
@@ -237,7 +241,7 @@ export async function restartContainer(id: string): Promise<{ id: string; state:
 }
 
 export async function removeContainer(id: string): Promise<boolean> {
-  if (!useReal()) return stubRemoveContainer(id);
+  if (!isRealEnabled()) return stubRemoveContainer(id);
   await execFileAsync("docker", ["rm", id], { timeout: 30000 });
   invalidateCache();
   return true;
@@ -324,7 +328,7 @@ async function getImages(): Promise<DockerImage[]> {
 }
 
 export async function listImages(opts: { query?: string } = {}): Promise<DockerImage[]> {
-  if (!useReal()) return stubListImages(opts);
+  if (!isRealEnabled()) return stubListImages(opts);
   let rows = await getImages();
   const needle = (opts.query ?? "").trim().toLowerCase();
   if (needle) {
@@ -404,7 +408,7 @@ async function getVolumes(): Promise<DockerVolume[]> {
 }
 
 export async function listVolumes(opts: { query?: string } = {}): Promise<DockerVolume[]> {
-  if (!useReal()) return stubListVolumes(opts);
+  if (!isRealEnabled()) return stubListVolumes(opts);
   let rows = await getVolumes();
   const needle = (opts.query ?? "").trim().toLowerCase();
   if (needle) {

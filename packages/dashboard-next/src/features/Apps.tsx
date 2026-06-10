@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api/client";
+import type { Service } from "@/mocks/types";
 import { useT } from "@/hooks/useT";
 import { useFavorites } from "@/hooks/useFavorites";
 import { cn } from "@/lib/utils";
@@ -160,7 +161,7 @@ function ServiceList({
   isFavorite,
   onToggle,
 }: {
-  items: any[];
+  items: Service[];
   view: "grid" | "list";
   isFavorite: (s: string) => boolean;
   onToggle: (s: string) => void;
@@ -246,7 +247,7 @@ function ServiceList({
           </div>
           {s.badges.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
-              {s.badges.slice(0, 3).map((b: any) => (
+              {s.badges.slice(0, 3).map((b) => (
                 <span
                   key={b.slug}
                   className="rounded-full px-2 py-0.5 text-[10px] font-medium"

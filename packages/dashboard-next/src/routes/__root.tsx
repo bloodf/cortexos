@@ -12,8 +12,9 @@ import { Toaster } from "sonner";
 import appCss from "../styles.css?url";
 import brandMark from "@/assets/cortexos-mark.svg";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { UIProvider, useUI } from "../hooks/useUI";
-import { AuthProvider } from "../hooks/useAuth";
+import { UIProvider } from "../hooks/ui-provider";
+import { useUI } from "../hooks/useUI";
+import { AuthProvider } from "../hooks/auth-provider";
 import { startDrift } from "../mocks/drift";
 
 function NotFoundComponent() {

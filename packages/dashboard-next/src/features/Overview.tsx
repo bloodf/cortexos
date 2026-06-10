@@ -9,7 +9,7 @@ import { StatusHero } from "@/components/StatusHero";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useT } from "@/hooks/useT";
-import { WIDGETS, WIDGET_MAP, DEFAULT_LAYOUT } from "./overview/widgets";
+import { WIDGETS, WIDGET_MAP, DEFAULT_LAYOUT } from "./overview/widget-catalog";
 import { cn } from "@/lib/utils";
 
 const ResponsiveGrid = WidthProvider(Responsive);

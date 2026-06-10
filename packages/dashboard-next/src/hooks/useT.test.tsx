@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { UIProvider, useUI } from "./useUI";
+import { UIProvider } from "./ui-provider";
+import { useUI } from "./useUI";
 import { useT, useLocale } from "./useT";
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (

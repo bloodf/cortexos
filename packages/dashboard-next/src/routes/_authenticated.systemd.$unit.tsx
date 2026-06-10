@@ -47,22 +47,24 @@ export const Route = createFileRoute("/_authenticated/systemd/$unit")({
     if (!found) throw notFound();
     return { unit: found };
   },
-  notFoundComponent: () => {
-    const { unit } = useParams({ from: "/_authenticated/systemd/$unit" });
-    return (
-      <div className="p-6 space-y-4">
-        <PageHeader title="Unit not found" description={`No systemd unit matched "${unit}".`} />
-        <Button asChild variant="outline">
-          <Link to="/systemd">
-            <ArrowLeft className="size-4 mr-1" />
-            Back to Systemd
-          </Link>
-        </Button>
-      </div>
-    );
-  },
+  notFoundComponent: NotFoundComponent,
   component: SystemdDetail,
 });
+
+function NotFoundComponent() {
+  const { unit } = useParams({ from: "/_authenticated/systemd/$unit" });
+  return (
+    <div className="p-6 space-y-4">
+      <PageHeader title="Unit not found" description={`No systemd unit matched "${unit}".`} />
+      <Button asChild variant="outline">
+        <Link to="/systemd">
+          <ArrowLeft className="size-4 mr-1" />
+          Back to Systemd
+        </Link>
+      </Button>
+    </div>
+  );
+}
 
 function SystemdDetail() {
   const { unit: unitName } = useParams({ from: "/_authenticated/systemd/$unit" });

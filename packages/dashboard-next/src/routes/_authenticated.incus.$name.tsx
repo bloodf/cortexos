@@ -53,25 +53,24 @@ export const Route = createFileRoute("/_authenticated/incus/$name")({
       <Button onClick={reset}>Retry</Button>
     </div>
   ),
-  notFoundComponent: () => {
-    const { name } = useParams({ from: "/_authenticated/incus/$name" });
-    return (
-      <div className="p-6">
-        <PageHeader
-          title="Instance not found"
-          description={`No Incus instance matched "${name}".`}
-        />
-        <Button asChild variant="outline">
-          <Link to="/incus">
-            <ArrowLeft className="size-4 mr-1" />
-            Back to Incus
-          </Link>
-        </Button>
-      </div>
-    );
-  },
+  notFoundComponent: NotFoundComponent,
   component: IncusDetail,
 });
+
+function NotFoundComponent() {
+  const { name } = useParams({ from: "/_authenticated/incus/$name" });
+  return (
+    <div className="p-6">
+      <PageHeader title="Instance not found" description={`No Incus instance matched "${name}".`} />
+      <Button asChild variant="outline">
+        <Link to="/incus">
+          <ArrowLeft className="size-4 mr-1" />
+          Back to Incus
+        </Link>
+      </Button>
+    </div>
+  );
+}
 
 const statusColors: Record<string, string> = {
   active: "border-[var(--success)] text-[var(--success)]",

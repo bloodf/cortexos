@@ -17,6 +17,16 @@
 import * as jestDomMatchers from "@testing-library/jest-dom/matchers";
 
 declare module "vitest" {
-  interface Assertion<T = any> extends jestDomMatchers.TestingLibraryMatchers<any, T> {}
-  interface AsymmetricMatchersContaining extends jestDomMatchers.TestingLibraryMatchers<any, any> {}
+  interface Assertion<T = unknown> extends jestDomMatchers.TestingLibraryMatchers<unknown, T> {
+    /** @internal phantom member — silences @typescript-eslint/no-empty-object-type.
+     *  Never set or read; this is a module-augmentation interface whose sole
+     *  purpose is to merge the jest-dom matchers into vitest's Assertion. */
+    readonly __jestDomAugmentationMarker?: never;
+  }
+  interface AsymmetricMatchersContaining extends jestDomMatchers.TestingLibraryMatchers<
+    unknown,
+    unknown
+  > {
+    readonly __jestDomAugmentationMarker?: never;
+  }
 }

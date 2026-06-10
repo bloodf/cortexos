@@ -24,7 +24,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import type { User as ContractUser } from "@cortexos/contracts/entities";
-import { AuthProvider, useAuth } from "./useAuth";
+import { AuthProvider } from "./auth-provider";
+import { useAuth } from "./useAuth";
 
 vi.mock("@/lib/api/auth.functions", () => {
   // Minimal ContractUser factory — the hook only reads `username` and

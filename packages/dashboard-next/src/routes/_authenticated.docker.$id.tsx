@@ -48,22 +48,24 @@ export const Route = createFileRoute("/_authenticated/docker/$id")({
       <Button onClick={reset}>Retry</Button>
     </div>
   ),
-  notFoundComponent: () => {
-    const { id } = useParams({ from: "/_authenticated/docker/$id" });
-    return (
-      <div className="p-6 space-y-4">
-        <PageHeader title="Container not found" description={`No container matched "${id}".`} />
-        <Button asChild variant="outline">
-          <Link to="/docker">
-            <ArrowLeft className="size-4 mr-1" />
-            Back to Docker
-          </Link>
-        </Button>
-      </div>
-    );
-  },
+  notFoundComponent: NotFoundComponent,
   component: ContainerDetail,
 });
+
+function NotFoundComponent() {
+  const { id } = useParams({ from: "/_authenticated/docker/$id" });
+  return (
+    <div className="p-6 space-y-4">
+      <PageHeader title="Container not found" description={`No container matched "${id}".`} />
+      <Button asChild variant="outline">
+        <Link to="/docker">
+          <ArrowLeft className="size-4 mr-1" />
+          Back to Docker
+        </Link>
+      </Button>
+    </div>
+  );
+}
 
 function ContainerDetail() {
   const { id } = useParams({ from: "/_authenticated/docker/$id" });

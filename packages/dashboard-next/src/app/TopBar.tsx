@@ -26,7 +26,8 @@ import {
   DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useUI, ACCENTS } from "@/hooks/useUI";
+import { useUI } from "@/hooks/useUI";
+import { ACCENTS } from "@/hooks/accents";
 import { useAuth } from "@/hooks/useAuth";
 import { useT } from "@/hooks/useT";
 import { useQuery } from "@tanstack/react-query";
@@ -148,7 +149,10 @@ export function TopBar({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-40">
           <DropdownMenuLabel>Theme</DropdownMenuLabel>
-          <DropdownMenuRadioGroup value={theme} onValueChange={(v) => setTheme(v as any)}>
+          <DropdownMenuRadioGroup
+            value={theme}
+            onValueChange={(v) => setTheme(v as Parameters<typeof setTheme>[0])}
+          >
             <DropdownMenuRadioItem value="light">
               <Sun className="size-3.5 mr-2" />
               Light
