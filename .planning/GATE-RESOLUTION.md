@@ -172,6 +172,26 @@ dispositions, all FIXED:
 No overrules. The gate measurably hardened the design (auth levels,
 stderr coverage, hydration guard).
 
+## 2026-06-10 — orchestrator process error: commit race (rule 7 violation)
+While M3 executed MP-007, the orchestrator committed planning docs; M3 had
+already staged the tree deletions via `git rm`, so docs commit `84138bb`
+swallowed 791 files of MP-007's deletions. M3 correctly went IMPL-BLOCKED.
+Repair (nothing had been pushed): soft-reset to `91a4ca3`, rebuilt
+`54c124e` (docs only) and `8034090` (MP-007 atomic: deletions + 8 edits +
+lockfile, plan's exact message). Lesson enforced going forward: NO
+orchestrator git writes while any M3 job is active — commits queue until
+the worker reports.
+
+## 2026-06-10 — MP-008 tsc amendment (post-gate, evidence-driven)
+MP-007's reinstall surfaced 27× TS2339 (`toBeInTheDocument` missing):
+the legacy package pinned vitest@4.1.6 workspace-wide; its removal moved
+dashboard-next to vitest@4.1.8 and broke jest-dom's `declare module
+'vitest'` augmentation resolution (4 vitest majors coexist in .pnpm).
+MP-008 amended (MP8-R4): new in-package `src/test/jest-dom.d.ts`
+augmentation; no dependency changes. Not re-gated (cycle limit spent;
+amendment follows the MP-003 precedent — evidence logged here, kimi diff
+gate still reviews the resulting code before push).
+
 ## 2026-06-10 — MP-008 plan (3 cycles, dispositions applied under /loop standing authorization)
 Artifacts: `harness/artifacts/critic-plan-MP-008-test-repairs.md-{1,2,3}.md`.
 Cycle 1 BLOCKER FIXED (mock keys corrected to the module's real exports

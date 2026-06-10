@@ -39,17 +39,42 @@
 
 ALL commands run from `/opt/cortexos`; paths repo-relative.
 
+- MP8-R4 (amendment, post-MP-007; evidence in GATE-RESOLUTION.md "MP-008
+  tsc amendment"): `tsc --noEmit` fails with 27× TS2339
+  `toBeInTheDocument does not exist on type 'Assertion<...>'` across
+  DataTable/DiffViewer tests. Cause: `@testing-library/jest-dom`'s
+  `declare module 'vitest'` augmentation no longer resolves to
+  dashboard-next's vitest instance — the legacy package pinned
+  vitest@4.1.6 into the workspace (removed-lockfile lines show
+  `@testing-library/svelte(...)(vitest@4.1.6)`), and after MP-007's
+  reinstall dashboard-next resolves vitest@4.1.8 while the augmentation
+  path does not. Fix: new file
+  `packages/dashboard-next/src/test/jest-dom.d.ts` declaring the
+  augmentation in-package (where `vitest` resolves to the package's own
+  instance):
+  `import type { TestingLibraryMatchers } from "@testing-library/jest-dom/types/matchers";`
+  then `declare module "vitest" { interface Assertion<T = any> extends
+  TestingLibraryMatchers<any, T> {} interface
+  AsymmetricMatchersContaining extends TestingLibraryMatchers<any, any> {} }`.
+  No dependency changes; `@testing-library/jest-dom` is already a direct
+  devDep (`package.json:86`).
+
 ## File ownership (exclusive — touch nothing else)
 - `packages/dashboard-next/vitest.config.ts`
 - `packages/dashboard-next/src/components/DataTable.test.tsx`
 - `packages/dashboard-next/src/hooks/useAuth.test.tsx`
+- `packages/dashboard-next/src/test/jest-dom.d.ts` (new, per MP8-R4)
 - Report (never committed):
   `/opt/cortexos/.planning/harness/artifacts/impl-mp-008-report.md`
 
 ## Tasks (TDD order)
 1. RED: `bash -c 'set -a; source /opt/cortexos/.secrets/dashboard.env; set +a; export NODE_ENV=test; cd packages/dashboard-next && pnpm exec vitest run src/components/DataTable.test.tsx src/hooks/useAuth.test.tsx'`
    → expect `11 failed | 2 passed (13)`; quote the summary. Also
-   `grep -c 'env:' packages/dashboard-next/vitest.config.ts` → 0.
+   `grep -c 'env:' packages/dashboard-next/vitest.config.ts` → 0. And the
+   MP8-R4 RED: `pnpm --filter @cortexos/dashboard-next exec tsc --noEmit`
+   currently exits non-zero with 27× TS2339 (quote the count).
+1b. Create `src/test/jest-dom.d.ts` per MP8-R4; `tsc --noEmit` now exits 0
+   (quote). This restores the pre-MP-007 type state before the test edits.
 2. vitest.config.ts: add `env: { NODE_ENV: "test" }` inside the `test`
    block. No other config change.
 3. DataTable.test.tsx: switch renders to `renderWithProviders`
