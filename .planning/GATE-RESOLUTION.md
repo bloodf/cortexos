@@ -1,5 +1,21 @@
 # Gate resolutions — cycle-limit escalations
 
+## 2026-06-10 — MP-012 plan (3 cycles, dispositions applied under /loop standing authorization)
+Artifacts: `harness/artifacts/critic-plan-MP-012-post-release-polish.md-{1,2,3}.md`.
+Cycle 1 FIXED (GATE-RESOLUTION + server-fn-pipeline.ts embedded;
+inputData cite pinned to :97; exact gate commands spelled out). Cycle 2
+FIXED (binary emitted-code check via content-hashed asset filenames;
+tree-wide root-helper grep replaces the overstated "tsc proves absence").
+Cycle 3 dispositions, both FIXED:
+- [MAJOR] server bundle not covered by the emitted-code check → sha256
+  comparison of .output/server/index.mjs added (orchestrator baseline
+  57e0e138a90b10b2…), with an escalate-don't-self-approve rule if build
+  non-determinism makes hashes differ.
+- [MAJOR] MP12-R4 line cite wrong → corrected to :76 (grep-verified; the
+  original :46 came from the old kimi gate's approximate cite).
+No overrules. Implementer: kimi (M3 unreliability precedent); reviewer:
+gpt-5.5 with embedded plan+diff (author ≠ reviewer).
+
 Per operating rule 4: documents that hit 3 reject cycles are escalated with
 a disposition per remaining finding. Overrules require rationale here; no
 finding is dismissed silently.
