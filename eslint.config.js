@@ -56,6 +56,12 @@ const IGNORE = [
   '**/.tanstack/**',
   '**/*.min.js',
   '**/pnpm-lock.yaml',
+  // untracked vendored/host-local content, first-party scope per MP-015
+  'hermes/**',
+  'hermes-webui/**',
+  'stacks/**',
+  'scripts/**',
+  'templates/**',
 ];
 
 export default [
@@ -309,6 +315,21 @@ export default [
       '@typescript-eslint/no-require-imports': 'off',
       'import-x/no-extraneous-dependencies': 'off',
       'no-console': 'off',
+    },
+  },
+
+  // 7f) Parser coverage — packages without their own tsconfig.json
+  {
+    files: ['**/*.ts', '**/*.cts', '**/*.mts', '**/*.tsx', '**/*.d.ts'],
+    languageOptions: {
+      parserOptions: {
+        projectService: {
+          allowDefaultProject: [
+            'packages/cortex-audit/src/index.d.ts',
+            'packages/cortex-telemetry/src/index.d.ts',
+          ],
+        },
+      },
     },
   },
 ];
