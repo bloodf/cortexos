@@ -6,6 +6,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 import { Toaster } from "sonner";
 import appCss from "../styles.css?url";
+import brandMark from "@/assets/cortexos-mark.svg";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { UIProvider, useUI } from "../hooks/useUI";
 import { AuthProvider } from "../hooks/useAuth";
@@ -54,7 +55,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "CortexOS — Infrastructure Control-Plane" },
       { name: "description", content: "Self-hosted control-plane for systemd, Docker and Incus." },
     ],
-    links: [{ rel: "stylesheet", href: appCss }],
+    links: [
+      { rel: "stylesheet", href: appCss },
+      { rel: "icon", type: "image/svg+xml", href: brandMark },
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,
