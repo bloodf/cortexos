@@ -156,3 +156,14 @@ reordered RED-first). Cycle 3 dispositions:
   (A4), MP-004 (A4); implementer-verifiable completion is A1-A3 (binary,
   local); A4 is the orchestrator's pre-push gate. Same critic accepted this
   pattern in MP-003's PASS (cycle 2).
+
+## 2026-06-10 — final verify-screens diff gate (PASS) + one FALSE finding
+`critic-diff-45a3837-4.md`: kimi PASS on the combined script diff
+`f908922~1..HEAD` reviewed against the MP-005 plan. Its single MAJOR
+("KNOWN_ENV_ARTIFACTS hunks out of MP-005 scope") → FALSE: those hunks are
+MP-004's work, gated separately through 3 cycles
+(`critic-diff-45a3837-{1,2,3}.md`) with all findings fixed; the combined
+base window simply spans both plans. Verification run 6
+(screen-defects-6.md) empirically confirms both mechanisms: /processes
+false positive gone, /terminal known-artifact line printed, console-error
+counting live (17/18 PASS; the /overview favicon 404 is MP-006's subject).
