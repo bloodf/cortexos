@@ -469,3 +469,14 @@ terminal/dashboard-next). No kimi line-review of the mechanical diff
 (rule-9 adaptation, MP-010 precedent): assurance = binary acceptance
 (numstat-pinned ignore line, suppression grep 0, path allowlist) + the
 gate battery + post-deploy screens.
+
+## 2026-06-10 — wave strategy: operator directive (recorded verbatim)
+AskUserQuestion answer: "We can code-fix everything, but need to be our
+own code only, we are not working towards any open-source project or
+anything. Just the code under the cortexos repo." Orchestrator
+classification: every non-packages lint finding sits in UNTRACKED
+vendored/host-local content (hermes 0, hermes-webui 0 tracked; stacks 1
+tracked env file; scripts 2 tracked shell files; templates 4 tracked
+unit files — none lintable JS/TS). Therefore: MP-015 scopes root
+lint/format to first-party tracked code; the code-fix waves cover
+packages/ (~1,900 findings) in full.
