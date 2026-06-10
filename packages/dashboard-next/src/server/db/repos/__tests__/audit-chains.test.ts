@@ -10,10 +10,10 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { sql } from "drizzle-orm";
+import type { PGlite } from "@electric-sql/pglite";
 import { createTestDb, type PgliteDbClient } from "../../test-utils";
 import { appendAuditLog, verifyAuditLogChain, jcs } from "../audit";
 import { auditLog } from "../../schema";
-import type { PGlite } from "@electric-sql/pglite";
 
 let db: PgliteDbClient;
 let client: PGlite;
@@ -82,7 +82,7 @@ describe("appendAuditLog — input validation", () => {
       appendAuditLog(db, {
         eventType: "x",
         source: "test",
-        payload: undefined as never,
+        payload: undefined,
       }),
     ).rejects.toThrow(/payload required/);
   });
@@ -91,7 +91,7 @@ describe("appendAuditLog — input validation", () => {
       appendAuditLog(db, {
         eventType: "x",
         source: "test",
-        payload: null as never,
+        payload: null,
       }),
     ).rejects.toThrow(/payload required/);
   });
@@ -217,6 +217,6 @@ describe("auditLog — roundtrip + select", () => {
     });
     const rows = await db.select().from(auditLog);
     expect(rows.length).toBe(1);
-    expect(rows[0]!.eventType).toBe("e");
+    expect(rows[0].eventType).toBe("e");
   });
 });

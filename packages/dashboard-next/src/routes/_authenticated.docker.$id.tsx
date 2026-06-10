@@ -1,6 +1,8 @@
 import { createFileRoute, Link, useParams, notFound } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Play, RotateCw, Square, Trash2, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { useCallback, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { TechIcon } from "@/components/TechIcon";
 import { LogStream } from "@/components/LogStream";
@@ -14,9 +16,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { api, callDockerAction, callMintApproval, callContainerLogs } from "@/lib/api/client";
 import { useAuth } from "@/hooks/useAuth";
 import { bytes, relativeTime } from "@/lib/format";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { useCallback, useState } from "react";
 
 // ---------------------------------------------------------------------------
 // Approval-gated docker action helper (mirrors Docker.tsx)

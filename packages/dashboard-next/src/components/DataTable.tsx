@@ -154,8 +154,8 @@ export function DataTable<T>({
     const col = columns.find((c) => c.key === sortKey);
     if (!col?.sort) return filtered;
     return [...filtered].sort((a, b) => {
-      const av = col.sort!(a),
-        bv = col.sort!(b);
+      const av = col.sort!(a);
+      const bv = col.sort!(b);
       if (av === bv) return 0;
       const d = av > bv ? 1 : -1;
       return sortDir === "asc" ? d : -d;
@@ -241,7 +241,7 @@ export function DataTable<T>({
         {showSelectionBar ? (
           <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-2 py-1 text-xs">
             <span className="font-medium">{selectedRows.length} selected</span>
-            {selectionToolbar!(selectedRows, clearSelection)}
+            {selectionToolbar(selectedRows, clearSelection)}
             <Button size="sm" variant="ghost" onClick={clearSelection}>
               Clear
             </Button>

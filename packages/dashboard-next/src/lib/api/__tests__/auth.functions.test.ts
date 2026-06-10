@@ -78,7 +78,7 @@ function parseSetCookies(res: Response): Map<string, { value: string; attrs: Set
     const eq = first.indexOf("=");
     const name = first.slice(0, eq);
     const value = decodeURIComponent(first.slice(eq + 1));
-    const attrs = new Set(parts.map((p) => p.split("=")[0]!.toLowerCase()));
+    const attrs = new Set(parts.map((p) => p.split("=")[0].toLowerCase()));
     out.set(name, { value, attrs });
   }
   return out;

@@ -62,13 +62,7 @@ export const AuditSurfaceSchema = z.enum([
 export type AuditSurface = z.infer<typeof AuditSurfaceSchema>;
 
 /** The result of the audited action. */
-export const AuditResultSchema = z.enum([
-  'success',
-  'failure',
-  'denied',
-  'error',
-  'pending',
-]);
+export const AuditResultSchema = z.enum(['success', 'failure', 'denied', 'error', 'pending']);
 export type AuditResult = z.infer<typeof AuditResultSchema>;
 
 /** The decision class — what kind of gate produced the result. */
@@ -84,12 +78,7 @@ export type AuditDecision = z.infer<typeof AuditDecisionSchema>;
  * Severity per the threat model — drives alerting and log retention.
  * `info` is the default for routine reads. `critical` pages on-call.
  */
-export const AuditSeveritySchema = z.enum([
-  'info',
-  'notice',
-  'warning',
-  'critical',
-]);
+export const AuditSeveritySchema = z.enum(['info', 'notice', 'warning', 'critical']);
 export type AuditSeverity = z.infer<typeof AuditSeveritySchema>;
 
 /**
@@ -248,19 +237,13 @@ export const canonicalJson = (value: unknown): string => {
   }
   if (typeof value === 'string') return JSON.stringify(value);
   if (Array.isArray(value)) {
-    return '[' + value.map((v) => canonicalJson(v)).join(',') + ']';
+    return `[${value.map((v) => canonicalJson(v)).join(',')}]`;
   }
   if (typeof value === 'object') {
-    const entries = Object.entries(value as Record<string, unknown>).sort(
-      ([a], [b]) => (a < b ? -1 : a > b ? 1 : 0),
+    const entries = Object.entries(value as Record<string, unknown>).sort(([a], [b]) =>
+      a < b ? -1 : a > b ? 1 : 0,
     );
-    return (
-      '{' +
-      entries
-        .map(([k, v]) => JSON.stringify(k) + ':' + canonicalJson(v))
-        .join(',') +
-      '}'
-    );
+    return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonicalJson(v)}`).join(',')}}`;
   }
   throw new Error(`cannot canonicalize value of type ${typeof value}`);
 };

@@ -21,8 +21,14 @@ function toAuthUser(u: ContractUser): AuthUser {
 // The gate-middleware pattern (defineServerFn + serverFnNoop) makes TypeScript
 // infer the server-fn return as `undefined`; the real payload is carried by the
 // gate at runtime. Recover the typed call shapes at this single boundary.
-type LoginResult = { user: ContractUser | null; session: unknown };
-type MeResult = { user: ContractUser | null; session: unknown };
+interface LoginResult {
+  user: ContractUser | null;
+  session: unknown;
+}
+interface MeResult {
+  user: ContractUser | null;
+  session: unknown;
+}
 const callLogin = loginFn as unknown as (opts: {
   data: { username: string; password: string };
 }) => Promise<LoginResult>;

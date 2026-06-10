@@ -20,5 +20,5 @@ creation_rules:
   - path_regex: (templates/)?\.secrets/.*\.enc\.yaml$
     age:
       # Replace these placeholders with real age public keys before use.
-      - age1placeholder0000000000000000000000000000000000000000000000  # ops lead (rotate quarterly)
-      - age1placeholder1111111111111111111111111111111111111111111111  # recovery custodian (offline)
+      - age1placeholder0000000000000000000000000000000000000000000000 # ops lead (rotate quarterly)
+      - age1placeholder1111111111111111111111111111111111111111111111 # recovery custodian (offline)

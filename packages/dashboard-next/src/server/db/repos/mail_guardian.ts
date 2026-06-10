@@ -186,7 +186,7 @@ export async function batchUpdateMailReviewDecisions(
       approver,
       resolvedAt: new Date(),
     })
-    .where(eq(mailGuardianReviews.id, ids[0]!));
+    .where(eq(mailGuardianReviews.id, ids[0]));
   // Note: drizzle-orm's `inArray` may not be available on this version,
   // so we issue one UPDATE per id for batch safety.
   let updated = 0;

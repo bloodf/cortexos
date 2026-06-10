@@ -34,7 +34,7 @@ export interface AllowlistEntry {
   readonly surface: Surface;
   /** The fixed argv to execute. Placeholders like `<unit>`, `<path>` are
    *  filled in by the route handler from the allowlisted values. */
-  readonly argv: ReadonlyArray<string>;
+  readonly argv: readonly string[];
   /** Whether this operation requires an approval token. */
   readonly requiresApproval: boolean;
   /** Human-readable description (for audit + UI). */
@@ -86,7 +86,7 @@ export function listAllowlistedBySurface(surface: Surface): AllowlistEntry[] {
  * A hit is logged at WARN; the call is rejected. The denylist is NOT the
  * security control — the allowlist is — but it catches regressions.
  */
-const DENY_PATTERNS: ReadonlyArray<{ pattern: RegExp; reason: string }> = [
+const DENY_PATTERNS: readonly { pattern: RegExp; reason: string }[] = [
   { pattern: /rm\s+-rf\s+\//, reason: "catastrophic delete at filesystem root" },
   { pattern: /:\(\)\s*\{.*:\|:.*&.*\}\s*;\s*:/, reason: "fork bomb" },
   { pattern: /\bmkfs\b/, reason: "filesystem creation on a device" },
@@ -101,7 +101,7 @@ const DENY_PATTERNS: ReadonlyArray<{ pattern: RegExp; reason: string }> = [
 /** Sub-shell + arg-smuggling patterns (THREAT_MODEL §7.2.2 / T-104).
  *  These are rejected at the schema-validation step BEFORE the policy.class
  *  check, so even a `free`-class tool can't smuggle them. */
-const SMUGGLING_PATTERNS: ReadonlyArray<{ pattern: RegExp; reason: string }> = [
+const SMUGGLING_PATTERNS: readonly { pattern: RegExp; reason: string }[] = [
   { pattern: /\$\(/, reason: "command substitution $()" },
   { pattern: /`/, reason: "backtick command substitution" },
   { pattern: /;\s*\w/, reason: "command separator ;" },

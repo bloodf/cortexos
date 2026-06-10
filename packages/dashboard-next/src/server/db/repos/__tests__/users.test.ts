@@ -207,8 +207,8 @@ describe("users repo — admin sessions", () => {
     expect(sessions).toBeDefined(); // exercises the read path; details asserted below
     const all = await listActiveAdminSessions(db);
     expect(all.length).toBe(1);
-    expect(all[0]!.userId).toBe(userId);
-    expect(all[0]!.username).toBe("tester");
+    expect(all[0].userId).toBe(userId);
+    expect(all[0].username).toBe("tester");
   });
 });
 

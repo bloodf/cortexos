@@ -85,10 +85,11 @@ export function LogStream({
     };
     // Fire immediately on mount, then on each interval tick.
     void tick();
-    if (paused)
+    if (paused) {
       return () => {
         cancelled = true;
       };
+    }
     timer.current = setInterval(() => {
       void tick();
     }, refetchIntervalMs);

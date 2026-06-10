@@ -21,9 +21,7 @@ describe('audit — canonicalJson', () => {
     expect(canonicalJson({ b: 1, a: 2 })).toBe('{"a":2,"b":1}');
   });
   it('recursively sorts nested object keys', () => {
-    expect(canonicalJson({ b: { y: 1, x: 2 }, a: 3 })).toBe(
-      '{"a":3,"b":{"x":2,"y":1}}',
-    );
+    expect(canonicalJson({ b: { y: 1, x: 2 }, a: 3 })).toBe('{"a":3,"b":{"x":2,"y":1}}');
   });
   it('handles arrays (order preserved)', () => {
     expect(canonicalJson([3, 1, 2])).toBe('[3,1,2]');
@@ -53,9 +51,7 @@ describe('audit — payloadHashOf', () => {
   });
   it('matches a manual sha256 of the canonical JSON', () => {
     const payload = { a: 1, b: [1, 2, 3] };
-    const expected = createHash('sha256')
-      .update(canonicalJson(payload), 'utf8')
-      .digest('hex');
+    const expected = createHash('sha256').update(canonicalJson(payload), 'utf8').digest('hex');
     expect(payloadHashOf(payload)).toBe(expected);
   });
 });

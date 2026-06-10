@@ -21,6 +21,7 @@ package-lock.json
 yarn.lock
 
 # Generated files
+**/*.gen.ts
 **/*.min.js
 **/*.min.css
 **/*.d.ts

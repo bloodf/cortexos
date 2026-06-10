@@ -9,12 +9,7 @@
  * @module
  */
 import { z } from 'zod';
-import {
-  zUuidV4,
-  zIsoTimestamp,
-  type UserId,
-  type SessionId,
-} from '../primitives.js';
+import { zUuidV4, zIsoTimestamp, type UserId, type SessionId } from '../primitives.js';
 
 // ---------------------------------------------------------------------------
 // Group membership
@@ -48,7 +43,11 @@ export type UserStatus = z.infer<typeof UserStatusSchema>;
 
 export const UserSchema = z.object({
   id: zUuidV4,
-  username: z.string().min(1).max(64).regex(/^[a-z_][a-z0-9_-]{0,63}$/),
+  username: z
+    .string()
+    .min(1)
+    .max(64)
+    .regex(/^[a-z_][a-z0-9_-]{0,63}$/),
   /** True iff user is a member of the admin group (SR-003). */
   isAdmin: z.boolean(),
   isActive: z.boolean().default(true),

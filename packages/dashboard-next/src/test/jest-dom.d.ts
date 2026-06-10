@@ -14,7 +14,7 @@
 // the package's `exports` field; the public re-export that surfaces the
 // same type is `@testing-library/jest-dom/matchers` (which wraps the
 // interface as `matchers.TestingLibraryMatchers<E, R>`).
-import * as jestDomMatchers from "@testing-library/jest-dom/matchers";
+import type * as jestDomMatchers from "@testing-library/jest-dom/matchers";
 
 declare module "vitest" {
   interface Assertion<T = unknown> extends jestDomMatchers.TestingLibraryMatchers<unknown, T> {

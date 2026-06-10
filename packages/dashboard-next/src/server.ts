@@ -1,6 +1,5 @@
-import "./lib/error-capture";
-
 import { consumeLastCapturedError } from "./lib/error-capture";
+
 import { renderErrorPage } from "./lib/error-page";
 import { bootRuntime } from "./server/runtime";
 
@@ -10,9 +9,9 @@ import { bootRuntime } from "./server/runtime";
 // WP-10 wires the health scheduler into bootRuntime().
 bootRuntime();
 
-type ServerEntry = {
+interface ServerEntry {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
-};
+}
 
 let serverEntryPromise: Promise<ServerEntry> | undefined;
 

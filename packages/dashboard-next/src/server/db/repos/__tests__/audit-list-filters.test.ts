@@ -5,9 +5,9 @@
  * not yet exercised by audit.test.ts.
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import type { PGlite } from "@electric-sql/pglite";
 import { createTestDb, type PgliteDbClient } from "../../test-utils";
 import { insertAgentGatewayAudit, listAgentGatewayAudit, countAgentGatewayAudit } from "../audit";
-import type { PGlite } from "@electric-sql/pglite";
 
 let db: PgliteDbClient;
 let client: PGlite;

@@ -1,8 +1,8 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { ChevronDown, X, LayoutGrid, Server, ScrollText, Settings2 } from "lucide-react";
-import brandMark from "@/assets/cortexos-mark.svg";
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
+import brandMark from "@/assets/cortexos-mark.svg";
 import { NAV, PINNED, type GroupId } from "./NavConfig";
 import { useT } from "@/hooks/useT";
 import { useAuth } from "@/hooks/useAuth";

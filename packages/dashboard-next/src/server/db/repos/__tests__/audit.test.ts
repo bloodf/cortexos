@@ -165,7 +165,7 @@ describe("audit repo — audit_log hash chain", () => {
     // Tamper with the row directly (simulating a compromised DB)
     // Bypass the repo and use raw SQL.
     const { sql } = await import("drizzle-orm");
-    await db.execute(sql`UPDATE audit_log SET payload = '{"a": 999}'::jsonb` as never);
+    await db.execute(sql`UPDATE audit_log SET payload = '{"a": 999}'::jsonb`);
     const res = await verifyAuditLogChain(db);
     expect(res.valid).toBe(false);
     if (!res.valid) {
@@ -186,7 +186,7 @@ describe("audit repo — audit_log hash chain", () => {
     });
     const { sql } = await import("drizzle-orm");
     await db.execute(
-      sql`UPDATE audit_log SET prev_hash = '0000000000000000000000000000000000000000000000000000000000000000' WHERE id = (SELECT id FROM audit_log ORDER BY id OFFSET 1 LIMIT 1)` as never,
+      sql`UPDATE audit_log SET prev_hash = '0000000000000000000000000000000000000000000000000000000000000000' WHERE id = (SELECT id FROM audit_log ORDER BY id OFFSET 1 LIMIT 1)`,
     );
     const res = await verifyAuditLogChain(db);
     expect(res.valid).toBe(false);
@@ -209,8 +209,8 @@ describe("audit repo — audit_log hash chain", () => {
     const { auditLog } = await import("../../schema");
     const rows = await db.select().from(auditLog).orderBy(auditLog.id);
     // Second row's prev_hash must equal first row's chain_hash.
-    const tip1Hash = rows[0]!.chainHash;
-    const row2Prev = rows[1]!.prevHash;
+    const tip1Hash = rows[0].chainHash;
+    const row2Prev = rows[1].prevHash;
     expect(row2Prev).toBe(tip1Hash);
   });
 });

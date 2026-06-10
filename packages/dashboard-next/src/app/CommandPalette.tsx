@@ -1,23 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import {
-  CommandDialog,
-  CommandInput,
-  CommandList,
-  CommandEmpty,
-  CommandGroup,
-  CommandItem,
-  CommandSeparator,
-} from "@/components/ui/command";
-import { useAuth } from "@/hooks/useAuth";
-import { useT } from "@/hooks/useT";
-import { useUI } from "@/hooks/useUI";
-import { ACCENTS } from "@/hooks/accents";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/mocks/api";
-import { live } from "@/mocks/drift";
-import { NAV, PINNED } from "./NavConfig";
-import { LOCALES, LOCALE_LABEL, type Locale } from "@/i18n";
 import {
   Lock,
   Moon,
@@ -32,6 +15,23 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  CommandDialog,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+  CommandSeparator,
+} from "@/components/ui/command";
+import { useAuth } from "@/hooks/useAuth";
+import { useT } from "@/hooks/useT";
+import { useUI } from "@/hooks/useUI";
+import { ACCENTS } from "@/hooks/accents";
+import { api } from "@/mocks/api";
+import { live } from "@/mocks/drift";
+import { NAV, PINNED } from "./NavConfig";
+import { LOCALES, LOCALE_LABEL, type Locale } from "@/i18n";
 
 interface Props {
   open: boolean;
@@ -243,7 +243,7 @@ export function CommandPalette({ open, onOpenChange, onOpenHelp }: Props) {
             <CommandItem
               key={l}
               onSelect={() => {
-                setLocale(l as Locale);
+                setLocale(l);
                 toast.success(`Language: ${LOCALE_LABEL[l]}`);
                 close();
               }}

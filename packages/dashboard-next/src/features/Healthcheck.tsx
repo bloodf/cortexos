@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { TechIcon } from "@/components/TechIcon";
@@ -13,7 +14,6 @@ import type { Service } from "@/lib/api/client";
 import { recheckServiceHealth } from "@/lib/api/services.functions";
 import { useT } from "@/hooks/useT";
 import { ms } from "@/lib/format";
-import { toast } from "sonner";
 
 export function HealthcheckPage() {
   const t = useT();

@@ -1,6 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Play, Square, RotateCw, Server, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { DataTable, type Column } from "@/components/DataTable";
 import { Button } from "@/components/ui/button";
@@ -14,8 +16,6 @@ import { useT } from "@/hooks/useT";
 import { useAuth } from "@/hooks/useAuth";
 import type { SystemdUnit } from "@/mocks/types";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
-import { useState } from "react";
 
 // ---------------------------------------------------------------------------
 // Approval-gated systemd action helper (mirrors Docker.tsx / admin/rpc.ts)

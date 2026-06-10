@@ -45,8 +45,8 @@ function requireShim(): SvelteKitShim {
       // We replicate that contract by throwing a tagged error.
       throw new ApiErrorThrown(status, body);
     }) as SvelteKitShim["error"],
-    json: ((data, init) => new Response(JSON.stringify(data), init)) as SvelteKitShim["json"],
-    fail: ((status, data) => ({ status, data })) as SvelteKitShim["fail"],
+    json: (data, init) => new Response(JSON.stringify(data), init),
+    fail: (status, data) => ({ status, data }),
   };
 }
 

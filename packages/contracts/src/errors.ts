@@ -198,7 +198,7 @@ export type CortexError = z.infer<typeof CortexErrorSchema>;
 /** Extract a code from an unknown thrown value. Best-effort. */
 export const errorCodeOf = (e: unknown): ErrorCode | 'unknown' => {
   if (typeof e === 'object' && e !== null && 'code' in e) {
-    const code = (e as { code: unknown }).code;
+    const { code } = e;
     if (typeof code === 'string') {
       const result = ErrorCodeSchema.safeParse(code);
       if (result.success) return result.data;

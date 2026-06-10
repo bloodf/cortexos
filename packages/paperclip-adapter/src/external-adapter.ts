@@ -11,8 +11,8 @@
  * deterministic so it can be wrapped or replayed in tests.
  */
 
-import { fetch as undiciFetch } from "undici";
-import type { AdapterResult } from "./types.js";
+import { fetch as undiciFetch } from 'undici';
+import type { AdapterResult } from './types.js';
 
 type FetchLike = (url: string, init?: any) => Promise<Response | any>;
 
@@ -24,7 +24,7 @@ export interface ExternalAdapterOptions {
 }
 
 export interface PollResult {
-  items: Array<{ id: string; title?: string; status?: string }>;
+  items: { id: string; title?: string; status?: string }[];
 }
 
 export interface CheckoutResult {
@@ -44,24 +44,24 @@ export class ExternalAdapter {
   private readonly fetchImpl: FetchLike;
 
   constructor(opts: ExternalAdapterOptions) {
-    if (!opts.baseUrl) throw new TypeError("ExternalAdapter: baseUrl required");
-    if (!opts.token) throw new TypeError("ExternalAdapter: token required");
-    this.baseUrl = opts.baseUrl.replace(/\/$/, "");
+    if (!opts.baseUrl) throw new TypeError('ExternalAdapter: baseUrl required');
+    if (!opts.token) throw new TypeError('ExternalAdapter: token required');
+    this.baseUrl = opts.baseUrl.replace(/\/$/, '');
     this.token = opts.token;
-    this.fetchImpl = opts.fetchImpl ?? (undiciFetch as unknown as FetchLike);
+    this.fetchImpl = opts.fetchImpl ?? undiciFetch;
   }
 
   /** Fetch the lite inbox for this agent. */
   async poll(): Promise<AdapterResult<PollResult>> {
-    return this.request<PollResult>("GET", "/api/agents/me/inbox-lite");
+    return this.request<PollResult>('GET', '/api/agents/me/inbox-lite');
   }
 
   /** Claim an issue for a given runId. */
   async checkout(issueId: string, runId: string): Promise<AdapterResult<CheckoutResult>> {
-    if (!issueId) throw new TypeError("ExternalAdapter.checkout: issueId required");
-    if (!runId) throw new TypeError("ExternalAdapter.checkout: runId required");
+    if (!issueId) throw new TypeError('ExternalAdapter.checkout: issueId required');
+    if (!runId) throw new TypeError('ExternalAdapter.checkout: runId required');
     const res = await this.request<{ issueId?: string; status?: string }>(
-      "POST",
+      'POST',
       `/api/issues/${encodeURIComponent(issueId)}/checkout`,
       { runId },
       { body: {} },
@@ -70,9 +70,7 @@ export class ExternalAdapter {
       ok: res.ok,
       status: res.status,
       error: res.error,
-      data: res.ok
-        ? { issueId, runId, claimed: true }
-        : { issueId, runId, claimed: false },
+      data: res.ok ? { issueId, runId, claimed: true } : { issueId, runId, claimed: false },
     };
   }
 
@@ -82,10 +80,10 @@ export class ExternalAdapter {
     runId: string,
     body: Record<string, unknown>,
   ): Promise<AdapterResult<CompleteResult>> {
-    if (!issueId) throw new TypeError("ExternalAdapter.complete: issueId required");
-    if (!runId) throw new TypeError("ExternalAdapter.complete: runId required");
+    if (!issueId) throw new TypeError('ExternalAdapter.complete: issueId required');
+    if (!runId) throw new TypeError('ExternalAdapter.complete: runId required');
     const res = await this.request<{ status?: string }>(
-      "PATCH",
+      'PATCH',
       `/api/issues/${encodeURIComponent(issueId)}`,
       { runId },
       { body },
@@ -94,7 +92,7 @@ export class ExternalAdapter {
       ok: res.ok,
       status: res.status,
       error: res.error,
-      data: res.ok ? { issueId, status: res.data?.status ?? "completed" } : null,
+      data: res.ok ? { issueId, status: res.data?.status ?? 'completed' } : null,
     };
   }
 
@@ -107,9 +105,9 @@ export class ExternalAdapter {
     const url = `${this.baseUrl}${path}`;
     const h: Record<string, string> = {
       Authorization: `Bearer ${this.token}`,
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     };
-    if (headers.runId) h["X-Paperclip-Run-Id"] = headers.runId;
+    if (headers.runId) h['X-Paperclip-Run-Id'] = headers.runId;
 
     try {
       const res = await this.fetchImpl(url, {
@@ -120,7 +118,7 @@ export class ExternalAdapter {
       const data = (await safeJson(res)) as T | null;
       return {
         ok: Boolean(res.ok),
-        status: typeof res.status === "number" ? res.status : 0,
+        status: typeof res.status === 'number' ? res.status : 0,
         data,
       };
     } catch (e: unknown) {

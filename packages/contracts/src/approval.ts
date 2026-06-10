@@ -75,12 +75,7 @@ export const APPROVAL_CLOCK_SKEW_SEC = 5;
 // Action class
 // ---------------------------------------------------------------------------
 
-export const ApprovalClassSchema = z.enum([
-  'destructive',
-  'privileged',
-  'reveal',
-  'write',
-]);
+export const ApprovalClassSchema = z.enum(['destructive', 'privileged', 'reveal', 'write']);
 export type ApprovalClass = z.infer<typeof ApprovalClassSchema>;
 
 export const ttlForClass = (cls: ApprovalClass): number => {
@@ -116,9 +111,7 @@ export const ttlForClass = (cls: ApprovalClass): number => {
  */
 export const actionHashOf = (descriptor: unknown): string => {
   const canonical = canonicalJson(descriptor);
-  return createHmac('sha256', 'cortexos-action-hash')
-    .update(canonical, 'utf8')
-    .digest('hex');
+  return createHmac('sha256', 'cortexos-action-hash').update(canonical, 'utf8').digest('hex');
 };
 
 // ---------------------------------------------------------------------------
@@ -294,10 +287,8 @@ export const verifyApprovalToken = (params: {
 const signToken = (claims: ApprovalClaims, secret: string): ApprovalTokenWire => {
   const claimsJson = canonicalJson(claims);
   const claimsB64 = base64UrlEncode(Buffer.from(claimsJson, 'utf8'));
-  const sig = createHmac('sha256', secret)
-    .update(claimsB64, 'utf8')
-    .digest('base64url');
-  return `${claimsB64}.${sig}` as ApprovalTokenWire;
+  const sig = createHmac('sha256', secret).update(claimsB64, 'utf8').digest('base64url');
+  return `${claimsB64}.${sig}`;
 };
 
 /**
@@ -305,17 +296,12 @@ const signToken = (claims: ApprovalClaims, secret: string): ApprovalTokenWire =>
  * malformed or bad-signature. Does NOT check action binding, expiry, or
  * consumed-state — those are checked by `verifyApprovalToken`.
  */
-const parseToken = (
-  token: ApprovalTokenWire,
-  secret: string,
-): ApprovalClaims | null => {
+const parseToken = (token: ApprovalTokenWire, secret: string): ApprovalClaims | null => {
   const dot = token.indexOf('.');
   if (dot < 0) return null;
   const claimsB64 = token.slice(0, dot);
   const sigB64 = token.slice(dot + 1);
-  const expectedSig = createHmac('sha256', secret)
-    .update(claimsB64, 'utf8')
-    .digest();
+  const expectedSig = createHmac('sha256', secret).update(claimsB64, 'utf8').digest();
   let actualSig: Buffer;
   try {
     actualSig = Buffer.from(sigB64, 'base64url');
@@ -342,5 +328,4 @@ const parseToken = (
 };
 
 /** Base64-URL-encode a Buffer. Pure helper, no padding. */
-const base64UrlEncode = (buf: Buffer): string =>
-  buf.toString('base64url');
+const base64UrlEncode = (buf: Buffer): string => buf.toString('base64url');

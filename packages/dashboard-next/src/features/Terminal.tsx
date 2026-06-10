@@ -69,24 +69,27 @@ function run(cmd: string, user: string): string[] {
   if (c === "help") return HELP;
   if (c === "whoami") return [user];
   if (c === "uname -a") return ["Linux cortex 6.8.0-cortex #1 SMP x86_64 GNU/Linux"];
-  if (c === "uptime")
+  if (c === "uptime") {
     return [
       ` ${new Date().toTimeString().slice(0, 5)} up 14 days,  3:42,  2 users,  load average: 0.42, 0.51, 0.49`,
     ];
-  if (c === "free -h")
+  }
+  if (c === "free -h") {
     return [
       "              total        used        free      shared",
       "Mem:           62Gi        24Gi        20Gi       1.2Gi",
       "Swap:         8.0Gi          0B       8.0Gi",
     ];
-  if (c === "df -h")
+  }
+  if (c === "df -h") {
     return [
       "Filesystem      Size  Used Avail Use% Mounted on",
       "/dev/nvme0n1p2  1.8T  720G  1.1T  40% /",
       "/dev/nvme1n1    3.6T  1.2T  2.4T  34% /var/lib/incus",
       "tmpfs            32G  124M   32G   1% /tmp",
     ];
-  if (c === "systemctl status")
+  }
+  if (c === "systemctl status") {
     return [
       "\x1b[32m●\x1b[0m caddy.service     – active (running)",
       "\x1b[32m●\x1b[0m docker.service    – active (running)",
@@ -94,6 +97,7 @@ function run(cmd: string, user: string): string[] {
       "\x1b[32m●\x1b[0m postgresql        – active (running)",
       "\x1b[31m●\x1b[0m mysql.service     – \x1b[31mfailed\x1b[0m",
     ];
+  }
   if (c.startsWith("journalctl -u ")) {
     const unit = c.slice(14);
     return Array.from(
@@ -102,14 +106,15 @@ function run(cmd: string, user: string): string[] {
         `${new Date(Date.now() - i * 2000).toISOString().slice(11, 19)} cortex ${unit}: handled request in ${(8 + Math.random() * 40).toFixed(1)}ms`,
     );
   }
-  if (c === "docker ps")
+  if (c === "docker ps") {
     return [
       "CONTAINER ID  IMAGE                STATUS         PORTS              NAMES",
       "a1b2c3d4e5f6  ollama/ollama:latest Up 4 days      11434->11434/tcp   ollama",
       "b2c3d4e5f6a1  grafana/grafana      Up 4 days      3000->3000/tcp     grafana",
       "c3d4e5f6a1b2  redis:7              Up 4 days      6379->6379/tcp     redis",
     ];
-  if (c === "incus list")
+  }
+  if (c === "incus list") {
     return [
       "+----------+---------+------------------+-----------+",
       "|   NAME   |  STATE  |      IPv4        |   TYPE    |",
@@ -119,15 +124,17 @@ function run(cmd: string, user: string): string[] {
       "| pg-snap  | STOPPED | -                | CONTAINER |",
       "+----------+---------+------------------+-----------+",
     ];
-  if (c === "tmux" || c === "tmux ls")
+  }
+  if (c === "tmux" || c === "tmux ls") {
     return [
       "cortex: 3 windows (created Mon May 27 09:00:12 2026)",
       "deploy: 1 windows (created Mon May 27 12:14:08 2026)",
     ];
+  }
   if (c.startsWith("tmux send-keys")) {
     return [`\x1b[36m[tmux]\x1b[0m dispatched: ${c.slice(15)}`];
   }
-  if (c === "ls" || c === "ls -la")
+  if (c === "ls" || c === "ls -la") {
     return [
       "drwxr-xr-x  4 admin admin 4096 May 30 09:12 .",
       "drwxr-xr-x  3 root  root  4096 May 28 12:00 ..",
@@ -135,6 +142,7 @@ function run(cmd: string, user: string): string[] {
       "drwxr-xr-x  2 admin admin 4096 May 30 09:00 projects",
       "drwxr-xr-x  2 admin admin 4096 May 30 09:00 .ssh",
     ];
+  }
   if (c === "exit") return ["\x1b[33msession closed.\x1b[0m"];
   return [`\x1b[31mmock: command not found:\x1b[0m ${c}`];
 }
@@ -238,29 +246,23 @@ function TerminalTab({ id, active, username, dark, onReady, onState }: TerminalT
         } else if (ev.key === "ArrowUp") {
           if (s.hIdx + 1 < s.history.length) {
             s.hIdx++;
-            term.write(
-              "\r" + PROMPT(username) + " ".repeat(s.buffer.length) + "\r" + PROMPT(username),
-            );
+            term.write(`\r${PROMPT(username)}${" ".repeat(s.buffer.length)}\r${PROMPT(username)}`);
             s.buffer = s.history[s.hIdx];
             term.write(s.buffer);
           }
         } else if (ev.key === "ArrowDown") {
           if (s.hIdx > 0) {
             s.hIdx--;
-            term.write(
-              "\r" + PROMPT(username) + " ".repeat(s.buffer.length) + "\r" + PROMPT(username),
-            );
+            term.write(`\r${PROMPT(username)}${" ".repeat(s.buffer.length)}\r${PROMPT(username)}`);
             s.buffer = s.history[s.hIdx];
             term.write(s.buffer);
           } else if (s.hIdx === 0) {
             s.hIdx = -1;
-            term.write(
-              "\r" + PROMPT(username) + " ".repeat(s.buffer.length) + "\r" + PROMPT(username),
-            );
+            term.write(`\r${PROMPT(username)}${" ".repeat(s.buffer.length)}\r${PROMPT(username)}`);
             s.buffer = "";
           }
         } else if (ev.ctrlKey && ev.key === "c") {
-          term.write("^C\r\n" + PROMPT(username));
+          term.write(`^C\r\n${PROMPT(username)}`);
           s.buffer = "";
         } else if (ev.ctrlKey && ev.key === "l") {
           term.clear();
@@ -366,7 +368,7 @@ function TerminalTab({ id, active, username, dark, onReady, onState }: TerminalT
         // Live mode: type the command straight into the PTY.
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
           try {
-            wsRef.current.send(JSON.stringify({ type: "input", data: cmd + "\n" }));
+            wsRef.current.send(JSON.stringify({ type: "input", data: `${cmd}\n` }));
           } catch {
             /* gone */
           }
@@ -375,12 +377,10 @@ function TerminalTab({ id, active, username, dark, onReady, onState }: TerminalT
         // Mock mode: overwrite current buffer with cmd, echo, and submit.
         const s = stateRef.current;
         if (s.buffer.length) {
-          term.write(
-            "\r" + PROMPT(username) + " ".repeat(s.buffer.length) + "\r" + PROMPT(username),
-          );
+          term.write(`\r${PROMPT(username)}${" ".repeat(s.buffer.length)}\r${PROMPT(username)}`);
         }
         s.buffer = cmd;
-        term.write(cmd + "\r\n");
+        term.write(`${cmd}\r\n`);
         submit(cmd);
       },
       focus: () => term.focus(),
@@ -667,21 +667,21 @@ function ConnStateBadge({ state }: { state: LiveState }) {
 // NamedOpsPanel — real server-side named-op dispatch (WP-19)
 // ---------------------------------------------------------------------------
 
-type TermOp = {
+interface TermOp {
   op: string;
   description: string;
   requiresApproval: boolean;
   placeholders: readonly string[];
-};
+}
 
-type OpResult = {
+interface OpResult {
   op: string;
   argv: readonly string[];
   stdout: string;
   stderr: string;
   exitCode: number;
   durationMs: number;
-};
+}
 
 // Cast helpers — same gate-middleware boundary pattern as client.ts.
 const listTerminalOpsFn = listTerminalOps as unknown as (opts: {

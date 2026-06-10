@@ -145,9 +145,7 @@ describe('errors — CortexErrorSchema (discriminated union)', () => {
   });
 
   it('rejects a payload with an unknown code', () => {
-    expect(() =>
-      CortexErrorSchema.parse({ code: 'not_a_real_code', message: 'x' }),
-    ).toThrow();
+    expect(() => CortexErrorSchema.parse({ code: 'not_a_real_code', message: 'x' })).toThrow();
   });
 });
 

@@ -88,7 +88,14 @@ export type IncusWizardStepNetwork = z.infer<typeof IncusWizardStepNetworkSchema
 /** The wizard's known step identifiers. The `profile` step is a no-op
  *  for now (no per-step validation surface yet — it's a UI-only
  *  summary of the chosen profiles from the image step). */
-export const IncusWizardStepSchema = z.enum(['target', 'image', 'hermes', 'network', 'profile', 'review']);
+export const IncusWizardStepSchema = z.enum([
+  'target',
+  'image',
+  'hermes',
+  'network',
+  'profile',
+  'review',
+]);
 export type IncusWizardStep = z.infer<typeof IncusWizardStepSchema>;
 
 /** Wire shape for the per-step validation action's form payload. */
@@ -99,7 +106,11 @@ export const IncusWizardStepValidationInputSchema = z.object({
 export type IncusWizardStepValidationInput = z.infer<typeof IncusWizardStepValidationInputSchema>;
 
 export const IncusInstanceSchema = z.object({
-  name: z.string().min(1).max(64).regex(/^[a-z0-9][a-z0-9-]{0,62}[a-z0-9]$/),
+  name: z
+    .string()
+    .min(1)
+    .max(64)
+    .regex(/^[a-z0-9][a-z0-9-]{0,62}[a-z0-9]$/),
   slug: z
     .string()
     .min(1)

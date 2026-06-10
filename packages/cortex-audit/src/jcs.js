@@ -12,8 +12,8 @@
  * `JSON.stringify` is safe for primitive serialization here.
  */
 export function jcs(value) {
-  if (value === null || typeof value !== "object") return JSON.stringify(value);
-  if (Array.isArray(value)) return `[${value.map(jcs).join(",")}]`;
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(jcs).join(',')}]`;
   const keys = Object.keys(value).sort();
-  return `{${keys.map((k) => `${JSON.stringify(k)}:${jcs(value[k])}`).join(",")}}`;
+  return `{${keys.map((k) => `${JSON.stringify(k)}:${jcs(value[k])}`).join(',')}}`;
 }

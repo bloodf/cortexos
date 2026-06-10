@@ -130,10 +130,9 @@ export const DockerActionInputSchema = z
       .optional(),
     target: z.string().min(1).max(256).optional(),
   })
-  .refine(
-    (v) => v.action === 'pull' || v.action === 'list' || typeof v.name === 'string',
-    { message: 'name is required for non-pull/non-list actions' },
-  );
+  .refine((v) => v.action === 'pull' || v.action === 'list' || typeof v.name === 'string', {
+    message: 'name is required for non-pull/non-list actions',
+  });
 export type DockerActionInput = z.infer<typeof DockerActionInputSchema>;
 
 export const DockerActionResultSchema = z.object({

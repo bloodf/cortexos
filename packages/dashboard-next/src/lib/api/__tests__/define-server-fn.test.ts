@@ -21,6 +21,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 
+import { z } from "zod";
 import {
   InMemorySessionStore,
   setSessionStore,
@@ -33,7 +34,6 @@ import {
   _resetRateLimitBuckets,
   type ApiRouteCore,
 } from "@/server/server-fn-pipeline";
-import { z } from "zod";
 import { defineServerFn } from "../define-server-fn";
 
 let store: InMemorySessionStore;
@@ -57,7 +57,7 @@ const anyCore: ApiRouteCore = defineApiRoute({
   handler: ({ user, input }) => ({
     ok: true,
     user: user ? user.username : null,
-    n: (input as { n?: number }).n ?? null,
+    n: input.n ?? null,
   }),
 });
 

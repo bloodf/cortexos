@@ -46,7 +46,7 @@ export function toIncusInstanceRow(inst: ContractLiveInstance): MockIncusInstanc
     // Attach IP as a non-standard field for downstream use (does not conflict
     // with the mock shape which has no ip field).
     ...(ipv4 ? { _ip: ipv4 } : {}),
-  } as MockIncusInstance;
+  };
 }
 
 // ---------------------------------------------------------------------------

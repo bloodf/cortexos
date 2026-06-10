@@ -70,7 +70,7 @@ export type Handler<TIn, TOut> = (args: {
 
 export interface RouteOptions<TIn, TOut> {
   /** HTTP methods this route accepts. */
-  methods: ReadonlyArray<HttpMethod>;
+  methods: readonly HttpMethod[];
   /** Optional input schema. Validated → 400 with field `details` on failure. */
   input?: ZodType<TIn, ZodTypeDef, unknown>;
   /** Required role: 'public' | 'any' | 'admin' | a specific group. */
@@ -135,9 +135,9 @@ function checkRateLimit(key: string, limit: number, windowSec: number): RateLimi
     events = [];
     rateLimitBuckets.set(key, events);
   }
-  while (events.length > 0 && events[0]! < cutoff) events.shift();
+  while (events.length > 0 && events[0] < cutoff) events.shift();
   if (events.length >= limit) {
-    const oldest = events[0]!;
+    const oldest = events[0];
     const retryAfterSec = Math.max(1, Math.ceil((oldest + windowMs - now) / 1000));
     return { allowed: false, retryAfterSec };
   }
@@ -266,7 +266,7 @@ export function defineApiRoute<TIn, TOut>(opts: RouteOptions<TIn, TOut>): ApiRou
 
     // --- 5. approval consume (single-use, session + action bound) → 412 ---
     if (opts.approval) {
-      const actionHash = actionHashFor(opts.action, (input ?? {}) as Record<string, unknown>);
+      const actionHash = actionHashFor(opts.action, input ?? {});
       const token = request.headers.get(APPROVAL_HEADER);
       const sessionId = ctx.session?.id ?? null;
       const result = token && sessionId ? consumeApproval(token, sessionId) : null;
@@ -330,8 +330,8 @@ function extractApiError(e: unknown): ApiError | null {
   if (e instanceof ApiErrorThrown) {
     if (e.apiError) return e.apiError;
     // Reconstruct from the thrown body's code.
-    const code = e.body.code;
-    const message = e.body.message;
+    const { code } = e.body;
+    const { message } = e.body;
     switch (code) {
       case "auth":
         return { kind: "auth", message };
@@ -342,7 +342,7 @@ function extractApiError(e: unknown): ApiError | null {
           kind: "validation",
           message,
           details: Array.isArray(e.body.details)
-            ? (e.body.details as ReadonlyArray<{ field: string; message: string }>)
+            ? (e.body.details as readonly { field: string; message: string }[])
             : [],
         };
       case "not_found":

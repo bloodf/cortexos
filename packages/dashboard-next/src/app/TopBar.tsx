@@ -14,6 +14,7 @@ import {
   ChevronRight,
   User as UserIcon,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -30,7 +31,6 @@ import { useUI } from "@/hooks/useUI";
 import { ACCENTS } from "@/hooks/accents";
 import { useAuth } from "@/hooks/useAuth";
 import { useT } from "@/hooks/useT";
-import { useQuery } from "@tanstack/react-query";
 import { api } from "@/mocks/api";
 import { NAV } from "./NavConfig";
 import { LOCALES, LOCALE_LABEL, type Locale } from "@/i18n";
@@ -255,7 +255,7 @@ export function TopBar({
             Language
           </DropdownMenuLabel>
           {LOCALES.map((l) => (
-            <DropdownMenuItem key={l} onClick={() => setLocale(l as Locale)} className="gap-2">
+            <DropdownMenuItem key={l} onClick={() => setLocale(l)} className="gap-2">
               {locale === l ? <Check className="size-3.5" /> : <span className="size-3.5" />}
               {LOCALE_LABEL[l]}
             </DropdownMenuItem>
@@ -285,7 +285,7 @@ function breadcrumbs(path: string, t: ReturnType<typeof useT>): { label: string;
   const all = NAV.flatMap((g) => g.items);
   const out: { label: string; to?: string }[] = [];
   for (let i = 0; i < parts.length; i++) {
-    const p = "/" + parts.slice(0, i + 1).join("/");
+    const p = `/${parts.slice(0, i + 1).join("/")}`;
     const nav = all.find((n) => n.to === p);
     if (nav) out.push({ label: t.nav[nav.key], to: i < parts.length - 1 ? p : undefined });
     else out.push({ label: parts[i].replace(/-/g, " ").replace(/^./, (c) => c.toUpperCase()) });

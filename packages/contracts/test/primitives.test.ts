@@ -187,14 +187,10 @@ describe('primitives — zSlug', () => {
 
 describe('primitives — zIsoTimestamp', () => {
   it('accepts an ISO-8601 datetime with offset', () => {
-    expect(zIsoTimestamp.parse('2026-06-03T13:08:43-03:00')).toBe(
-      '2026-06-03T13:08:43-03:00',
-    );
+    expect(zIsoTimestamp.parse('2026-06-03T13:08:43-03:00')).toBe('2026-06-03T13:08:43-03:00');
   });
   it('accepts a UTC Z timestamp', () => {
-    expect(zIsoTimestamp.parse('2026-06-03T16:08:43Z')).toBe(
-      '2026-06-03T16:08:43Z',
-    );
+    expect(zIsoTimestamp.parse('2026-06-03T16:08:43Z')).toBe('2026-06-03T16:08:43Z');
   });
   it('rejects non-ISO strings', () => {
     expect(() => zIsoTimestamp.parse('2026/06/03 13:08:43')).toThrow();

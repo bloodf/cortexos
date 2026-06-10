@@ -15,7 +15,7 @@ interface Props {
 
 export function AreaTrend({ data, series, height = 160, yDomain, xKey = "t" }: Props) {
   return (
-    <ResponsiveContainer width="100%" height={(height as number) ?? "100%"}>
+    <ResponsiveContainer width="100%" height={height ?? "100%"}>
       <AreaChart data={data} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
         <defs>
           {series.map((s) => (

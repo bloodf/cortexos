@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Build JSON-Schema files from every Zod schema in the contracts package.
  *
@@ -158,15 +157,11 @@ const SCHEMAS = [
 
 const main = async () => {
   if (!existsSync(DIST)) {
-    console.error(
-      `✖ dist/ not found at ${DIST}. Run \`pnpm run build\` first (tsc).`,
-    );
+    console.error(`✖ dist/ not found at ${DIST}. Run \`pnpm run build\` first (tsc).`);
     process.exit(1);
   }
   if (!existsSync(SCHEMAS_INDEX_JS)) {
-    console.error(
-      `✖ compiled schemas barrel not found at ${SCHEMAS_INDEX_JS}.`,
-    );
+    console.error(`✖ compiled schemas barrel not found at ${SCHEMAS_INDEX_JS}.`);
     process.exit(1);
   }
   await mkdir(OUT_DIR, { recursive: true });
@@ -191,7 +186,7 @@ const main = async () => {
       markdownDescription: false,
     });
     const outFile = join(OUT_DIR, `${name}.json`);
-    await writeFile(outFile, JSON.stringify(jsonSchema, null, 2) + '\n', 'utf8');
+    await writeFile(outFile, `${JSON.stringify(jsonSchema, null, 2)}\n`, 'utf8');
     written += 1;
   }
 
@@ -202,7 +197,7 @@ const main = async () => {
     count: written,
     schemas: SCHEMAS.filter((n) => !skipped.includes(n)),
   };
-  await writeFile(indexFile, JSON.stringify(indexBody, null, 2) + '\n', 'utf8');
+  await writeFile(indexFile, `${JSON.stringify(indexBody, null, 2)}\n`, 'utf8');
 
   if (skipped.length > 0) {
     console.warn(
@@ -210,9 +205,7 @@ const main = async () => {
       skipped.join(', '),
     );
   }
-  console.log(
-    `✓ Wrote ${written} JSON-Schema files to ${OUT_DIR} (index: ${indexFile})`,
-  );
+  console.log(`✓ Wrote ${written} JSON-Schema files to ${OUT_DIR} (index: ${indexFile})`);
 };
 
 main().catch((err) => {

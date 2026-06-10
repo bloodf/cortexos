@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * verify-screens.mjs — headless-browser RENDER verification of the live
  * dashboard-next app (:3080). Proves each authed screen actually renders real
@@ -298,7 +297,7 @@ async function main() {
   // ---- Report ----
   const pad = (s, n) => String(s).padEnd(n);
   console.log("\n=== PER-ROUTE VERDICT ===\n");
-  console.log(pad("ROUTE", 22) + pad("VERDICT", 9) + "DETAIL");
+  console.log(`${pad("ROUTE", 22) + pad("VERDICT", 9)}DETAIL`);
   console.log("-".repeat(80));
   let failCount = 0;
   for (const r of results) {

@@ -53,13 +53,7 @@ export type HealthType = z.infer<typeof HealthTypeSchema>;
 // ---------------------------------------------------------------------------
 
 /** The live status of a service, set by the health probe. */
-export const ServiceStatusSchema = z.enum([
-  'online',
-  'offline',
-  'unknown',
-  'checking',
-  'degraded',
-]);
+export const ServiceStatusSchema = z.enum(['online', 'offline', 'unknown', 'checking', 'degraded']);
 export type ServiceStatus = z.infer<typeof ServiceStatusSchema>;
 
 // ---------------------------------------------------------------------------
@@ -104,7 +98,11 @@ export type BadgeInput = z.infer<typeof BadgeInputSchema>;
 export const BadgeRefSchema = z.object({
   slug: zSlug,
   label: z.string().min(1).max(64),
-  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
+  color: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .nullable()
+    .optional(),
 });
 export type BadgeRef = z.infer<typeof BadgeRefSchema>;
 

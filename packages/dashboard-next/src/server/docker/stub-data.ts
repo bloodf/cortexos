@@ -36,17 +36,17 @@ export interface Container {
   readonly state: ContainerState;
   /** Free-form status text (e.g. "Up 3 days"). */
   readonly status: string;
-  readonly ports: ReadonlyArray<string>;
+  readonly ports: readonly string[];
   readonly created: string;
   readonly privileged: boolean;
-  readonly networks: ReadonlyArray<string>;
-  readonly mounts: ReadonlyArray<ContainerMount>;
+  readonly networks: readonly string[];
+  readonly mounts: readonly ContainerMount[];
   /**
    * Last N log lines kept in memory. The stub does not actually
    * read docker logs — it returns synthetic lines. Real data uses
    * `docker logs --tail <N> <id>`.
    */
-  readonly logs: ReadonlyArray<string>;
+  readonly logs: readonly string[];
 }
 
 export type ContainerFilter = "all" | "running" | "stopped" | "paused" | "restarting";
@@ -66,7 +66,7 @@ function frozenMinusMinutes(minutes: number): string {
 // Container seed
 // ---------------------------------------------------------------------------
 
-const SEED: ReadonlyArray<Omit<Container, "logs">> = [
+const SEED: readonly Omit<Container, "logs">[] = [
   {
     id: asContainerId("sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
     name: "grafana-1",
@@ -118,7 +118,7 @@ const SEED: ReadonlyArray<Omit<Container, "logs">> = [
 ];
 
 /** Synthetic per-container log lines. */
-const SYNTHETIC_LOGS: Readonly<Record<string, ReadonlyArray<string>>> = {
+const SYNTHETIC_LOGS: Readonly<Record<string, readonly string[]>> = {
   "grafana-1": [
     't=2026-06-09T10:00:00 lvl=info msg="Starting Grafana" version=11.2.0',
     't=2026-06-09T10:00:01 lvl=info msg="HTTP Server Listen" address=[::]:3000',
@@ -182,7 +182,7 @@ export function tailLogs(id: string, n: number): string[] {
   const c = getContainerById(id);
   if (!c) return [];
   const max = Math.max(1, Math.min(1000, n));
-  return c.logs.slice(-max) as string[];
+  return c.logs.slice(-max);
 }
 
 // ---------------------------------------------------------------------------
@@ -234,7 +234,7 @@ export interface DockerImage {
   readonly created: string;
 }
 
-const IMAGE_SEED: ReadonlyArray<DockerImage> = [
+const IMAGE_SEED: readonly DockerImage[] = [
   {
     id: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1",
     repo: "grafana/grafana",
@@ -294,7 +294,7 @@ export interface DockerVolume {
   readonly labels: Readonly<Record<string, string>>;
 }
 
-const VOLUME_SEED: ReadonlyArray<DockerVolume> = [
+const VOLUME_SEED: readonly DockerVolume[] = [
   {
     name: "grafana-data",
     driver: "local",

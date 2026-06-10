@@ -124,7 +124,7 @@ const incusActionGate = defineServerFn({
     }
 
     // rejected — map code to typed error
-    const code = result.code;
+    const { code } = result;
     if (code === "unknown_instance" || code === "not_allowlisted") {
       throw notFoundError(result.reason, "instance");
     }
@@ -196,7 +196,7 @@ const execNamedGate = defineServerFn({
       };
     }
 
-    const code = result.code;
+    const { code } = result;
     if (code === "unknown_instance") {
       throw notFoundError(result.reason, "instance");
     }

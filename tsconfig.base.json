@@ -15,5 +15,13 @@
     "allowJs": true,
     "checkJs": false
   },
-  "exclude": ["node_modules", "**/node_modules", "dist", "build", ".next", ".svelte-kit", "coverage"]
+  "exclude": [
+    "node_modules",
+    "**/node_modules",
+    "dist",
+    "build",
+    ".next",
+    ".svelte-kit",
+    "coverage"
+  ]
 }

@@ -11,17 +11,17 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: "Run npm publish in --dry-run mode (no upload)"
+        description: 'Run npm publish in --dry-run mode (no upload)'
         required: false
-        default: "false"
+        default: 'false'
         type: choice
         options:
-          - "true"
-          - "false"
+          - 'true'
+          - 'false'
 
 permissions:
   contents: read
-  id-token: write  # required for npm provenance
+  id-token: write # required for npm provenance
 
 jobs:
   release:
@@ -40,8 +40,8 @@ jobs:
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
-          registry-url: "https://registry.npmjs.org"
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
 

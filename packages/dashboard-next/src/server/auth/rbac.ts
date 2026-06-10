@@ -61,7 +61,7 @@ function throwPermission(message: string): never {
  * throws a 401 (no session) — an inactive account is also a 401.
  */
 export function requireAuth(ctx: RequestCtx): User {
-  const user = ctx.user;
+  const { user } = ctx;
   if (!user) throwAuth();
   if (!user.isActive) throwAuth("Account is inactive");
   return user;

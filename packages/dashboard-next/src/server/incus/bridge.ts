@@ -45,6 +45,12 @@ import {
   type ProgressStep,
   type IncusInstanceConfig,
 } from "@cortexos/contracts";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { audit } from "../audit";
+import { actionHashFor } from "../approval";
+import { allowlistedCommand, type AllowlistEntry } from "../policy";
+import type { User } from "../entities";
 
 /**
  * Local log-line shape. The contracts package does not export an
@@ -57,12 +63,6 @@ export interface IncusLogLine {
   name: string;
   message: string;
 }
-import { audit } from "../audit";
-import { actionHashFor } from "../approval";
-import { allowlistedCommand, type AllowlistEntry } from "../policy";
-import type { User } from "../entities";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 
@@ -126,12 +126,12 @@ export type IncusActionKind =
 // ---------------------------------------------------------------------------
 
 /** A single Incus log line. Mirrors the contracts shape. */
-export type IncusLogLineEntry = {
+export interface IncusLogLineEntry {
   ts: string;
   priority: "info" | "warn" | "error" | "debug";
   name: string;
   message: string;
-};
+}
 
 /** Snapshot row stored in the mock. */
 interface MockInstanceRecord extends IncusInstance {
@@ -146,11 +146,11 @@ interface MockInstanceRecord extends IncusInstance {
       networks: Record<
         string,
         {
-          addresses: Array<{
+          addresses: {
             family: "inet" | "inet6";
             address: string;
             scope?: "global" | "link" | "local";
-          }>;
+          }[];
           state?: string;
           type?: string;
         }
@@ -158,7 +158,7 @@ interface MockInstanceRecord extends IncusInstance {
       pid?: number;
     };
     profiles: string[];
-    snapshots: Array<{ name: string; createdAt: string; stateful: boolean }>;
+    snapshots: { name: string; createdAt: string; stateful: boolean }[];
   };
 }
 
@@ -327,7 +327,7 @@ function parseMemoryLimit(value: string | undefined): number | null {
   const cleaned = value.trim().toLowerCase();
   const m = /^(\d+(?:\.\d+)?)\s*(b|kb|mb|mib|gb|gib|tb|tib)?$/.exec(cleaned);
   if (!m) return null;
-  const num = parseFloat(m[1]!);
+  const num = parseFloat(m[1]);
   const unit = m[2] ?? "b";
   switch (unit) {
     case "b":
@@ -352,7 +352,7 @@ function parseMemoryLimit(value: string | undefined): number | null {
 function parseCpuLimit(value: string | undefined): number | null {
   if (!value) return null;
   const m = /^(\d+)$/.exec(value.trim());
-  return m ? parseInt(m[1]!, 10) : null;
+  return m ? parseInt(m[1], 10) : null;
 }
 
 /** Map an Incus status string to the contracts IncusInstanceStatus. */
@@ -393,9 +393,9 @@ function mapIncusImageType(type: string): IncusImage["type"] {
 function extractBridge(devices: Record<string, unknown>): string {
   for (const [, dev] of Object.entries(devices)) {
     if (dev && typeof dev === "object" && (dev as Record<string, unknown>).type === "nic") {
-      const network = (dev as Record<string, unknown>).network;
+      const { network } = dev as Record<string, unknown>;
       if (typeof network === "string") return network;
-      const parent = (dev as Record<string, unknown>).parent;
+      const { parent } = dev as Record<string, unknown>;
       if (typeof parent === "string") return parent;
     }
   }
@@ -411,7 +411,7 @@ function extractPool(devices: Record<string, unknown>): string {
       (dev as Record<string, unknown>).type === "disk" &&
       (dev as Record<string, unknown>).path === "/"
     ) {
-      const pool = (dev as Record<string, unknown>).pool;
+      const { pool } = dev as Record<string, unknown>;
       if (typeof pool === "string") return pool;
     }
   }
@@ -440,11 +440,11 @@ function mapIncusJsonToMockRecord(item: Record<string, unknown>): MockInstanceRe
     for (const [ifName, ifData] of Object.entries(netState)) {
       if (!ifData || typeof ifData !== "object") continue;
       const iface = ifData as Record<string, unknown>;
-      const addrs: Array<{
+      const addrs: {
         family: "inet" | "inet6";
         address: string;
         scope?: "global" | "link" | "local";
-      }> = [];
+      }[] = [];
       const addrList = Array.isArray(iface.addresses) ? iface.addresses : [];
       for (const a of addrList) {
         if (!a || typeof a !== "object") continue;
@@ -501,7 +501,7 @@ function mapIncusJsonToMockRecord(item: Record<string, unknown>): MockInstanceRe
     },
     devices,
     lastValidation: null,
-    createdBy: "00000000-0000-4000-8000-000000000000" as IncusInstance["createdBy"],
+    createdBy: "00000000-0000-4000-8000-000000000000",
     createdAt: String(item.created_at ?? new Date().toISOString()),
     updatedAt: String(item.last_used_at ?? item.created_at ?? new Date().toISOString()),
     allowlisted: true,
@@ -592,7 +592,7 @@ async function listImagesFromIncus(): Promise<IncusImage[]> {
       .filter((i): i is Record<string, unknown> => typeof i === "object" && i !== null)
       .map((item): IncusImage => {
         const aliases = Array.isArray(item.aliases)
-          ? (item.aliases as Array<Record<string, unknown>>)
+          ? (item.aliases as Record<string, unknown>[])
               .map((a) => String(a.name ?? ""))
               .filter((n) => n.length > 0)
           : [];
@@ -641,7 +641,7 @@ const SEED_INSTANCES: readonly MockInstanceRecord[] = [
       ranAt: "2026-05-12T10:00:00.000Z",
       notes: "preflight passed",
     },
-    createdBy: "00000000-0000-4000-8000-000000000001" as IncusInstance["createdBy"],
+    createdBy: "00000000-0000-4000-8000-000000000001",
     createdAt: "2026-05-01T08:00:00.000Z",
     updatedAt: "2026-05-12T10:00:00.000Z",
     allowlisted: true,
@@ -682,7 +682,7 @@ const SEED_INSTANCES: readonly MockInstanceRecord[] = [
       eth0: { name: "eth0", nictype: "bridged", parent: "incusbr0", type: "nic" },
     },
     lastValidation: null,
-    createdBy: "00000000-0000-4000-8000-000000000002" as IncusInstance["createdBy"],
+    createdBy: "00000000-0000-4000-8000-000000000002",
     createdAt: "2026-05-15T14:30:00.000Z",
     updatedAt: "2026-05-15T14:30:00.000Z",
     allowlisted: true,
@@ -717,7 +717,7 @@ const SEED_INSTANCES: readonly MockInstanceRecord[] = [
       ranAt: "2026-05-18T03:00:00.000Z",
       notes: "preflight failed: image alias not found",
     },
-    createdBy: "00000000-0000-4000-8000-000000000003" as IncusInstance["createdBy"],
+    createdBy: "00000000-0000-4000-8000-000000000003",
     createdAt: "2026-04-20T09:00:00.000Z",
     updatedAt: "2026-05-18T03:00:00.000Z",
     allowlisted: true,
@@ -746,7 +746,7 @@ const SEED_INSTANCES: readonly MockInstanceRecord[] = [
     },
     devices: {},
     lastValidation: null,
-    createdBy: "00000000-0000-4000-8000-000000000004" as IncusInstance["createdBy"],
+    createdBy: "00000000-0000-4000-8000-000000000004",
     createdAt: "2026-05-22T11:00:00.000Z",
     updatedAt: "2026-05-22T11:00:00.000Z",
     allowlisted: true,
@@ -807,9 +807,9 @@ function makeDefaultMock(): { mock: MockIncusExecutor; executor: IncusExecutor }
 // ---------------------------------------------------------------------------
 
 let currentMock: MockIncusExecutor | null = null;
-let executor: IncusExecutor = ((_p) => {
+let executor: IncusExecutor = (_p) => {
   throw new Error("incus bridge: executor used before init");
-}) as IncusExecutor;
+};
 
 (function init() {
   const useReal = process.platform === "linux" && process.env.CORTEX_INCUS_BRIDGE_REAL !== "0";
@@ -1480,11 +1480,9 @@ let execNamedExecutor: MockExecNamedExecutor = async (op, args, name) => {
       const unit = typeof args.unit === "string" ? args.unit : "sshd";
       const n = typeof args.n === "number" ? args.n : 10;
       return {
-        stdout:
-          `-- Logs begin at ${new Date().toISOString()} --\n` +
-          Array.from({ length: n })
-            .map((_, i) => `May 12 10:0${i % 10}:00 ${name} ${unit}[${100 + i}]: ready`)
-            .join("\n"),
+        stdout: `-- Logs begin at ${new Date().toISOString()} --\n${Array.from({ length: n })
+          .map((_, i) => `May 12 10:0${i % 10}:00 ${name} ${unit}[${100 + i}]: ready`)
+          .join("\n")}`,
         stderr: "",
         exitCode: 0,
       };
@@ -1620,7 +1618,7 @@ export async function dispatchExecNamed(
   }
   walk(input.args, "");
   if (argErrors.length > 0) {
-    const first = argErrors[0]!;
+    const first = argErrors[0];
     audit({
       actorUserId: ctx.user.id,
       actorSessionId: null,
@@ -1731,11 +1729,11 @@ export async function dispatchExecNamed(
 // ---------------------------------------------------------------------------
 
 /** Project the incus-surface allowlist into a UI shape. */
-export function listInstanceActions(): ReadonlyArray<{
+export function listInstanceActions(): readonly {
   action: IncusActionKind;
   description: string;
   requiresApproval: boolean;
-}> {
+}[] {
   return (["start", "stop", "restart", "delete", "launch", "list", "exec-named"] as const).map(
     (action) => {
       const policyName = `incus.${action}`;

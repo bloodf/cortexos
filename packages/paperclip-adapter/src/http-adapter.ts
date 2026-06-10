@@ -5,7 +5,7 @@
  * to Paperclip's agent-registration endpoint to bind a role to a webhook.
  */
 
-import type { HttpAdapterConfig, RoleId } from "./types.js";
+import type { HttpAdapterConfig, RoleId } from './types.js';
 
 export interface HttpAdapterOptions {
   /** Default event types if `register` does not supply them. */
@@ -14,7 +14,7 @@ export interface HttpAdapterOptions {
   now?: () => Date;
 }
 
-const DEFAULT_EVENTS: readonly string[] = ["issue.created", "issue.updated", "issue.assigned"];
+const DEFAULT_EVENTS: readonly string[] = ['issue.created', 'issue.updated', 'issue.assigned'];
 
 export class HttpAdapter {
   private readonly defaultEvents: readonly string[];
@@ -37,16 +37,16 @@ export class HttpAdapter {
     secret: string,
     events?: readonly string[],
   ): HttpAdapterConfig {
-    if (!role || typeof role !== "string") {
-      throw new TypeError("HttpAdapter.register: role must be a non-empty string");
+    if (!role || typeof role !== 'string') {
+      throw new TypeError('HttpAdapter.register: role must be a non-empty string');
     }
-    if (!secret || typeof secret !== "string") {
-      throw new TypeError("HttpAdapter.register: secret must be a non-empty string");
+    if (!secret || typeof secret !== 'string') {
+      throw new TypeError('HttpAdapter.register: secret must be a non-empty string');
     }
     assertValidWebhookUrl(webhookUrl);
 
     return Object.freeze({
-      kind: "http" as const,
+      kind: 'http' as const,
       role,
       webhookUrl,
       secret,
@@ -57,8 +57,8 @@ export class HttpAdapter {
 }
 
 function assertValidWebhookUrl(webhookUrl: string): void {
-  if (!webhookUrl || typeof webhookUrl !== "string") {
-    throw new TypeError("HttpAdapter.register: webhookUrl must be a non-empty string");
+  if (!webhookUrl || typeof webhookUrl !== 'string') {
+    throw new TypeError('HttpAdapter.register: webhookUrl must be a non-empty string');
   }
   let parsed: URL;
   try {
@@ -66,7 +66,7 @@ function assertValidWebhookUrl(webhookUrl: string): void {
   } catch {
     throw new TypeError(`HttpAdapter.register: webhookUrl is not a valid URL: ${webhookUrl}`);
   }
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     throw new TypeError(
       `HttpAdapter.register: webhookUrl protocol must be http or https, got ${parsed.protocol}`,
     );

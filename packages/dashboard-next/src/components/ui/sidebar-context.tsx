@@ -1,6 +1,6 @@
 import * as React from "react";
 
-type SidebarContextProps = {
+interface SidebarContextProps {
   state: "expanded" | "collapsed";
   open: boolean;
   setOpen: (open: boolean) => void;
@@ -8,7 +8,7 @@ type SidebarContextProps = {
   setOpenMobile: (open: boolean) => void;
   isMobile: boolean;
   toggleSidebar: () => void;
-};
+}
 
 // Direct `const` export so the rule's `createContext` branch (which pushes to
 // `reactContextExports` and returns early) recognizes this as a context rather

@@ -71,7 +71,7 @@ export interface PamAuthenticator {
    * The list is intersected with the dashboard's allowlist of groups
    * — we only ever report groups the dashboard understands.
    */
-  getGroups(username: string): Promise<ReadonlyArray<GroupName>>;
+  getGroups(username: string): Promise<readonly GroupName[]>;
 
   /** Convenience: is the user a member of `cortexos-admin`? */
   isAdmin(username: string): Promise<boolean>;
@@ -195,7 +195,7 @@ export class LinuxPamAuthenticator implements PamAuthenticator {
     }
   }
 
-  async getGroups(username: string): Promise<ReadonlyArray<GroupName>> {
+  async getGroups(username: string): Promise<readonly GroupName[]> {
     const all = readPosixGroups(username);
     return all.filter(isDashboardGroup);
   }
@@ -212,7 +212,7 @@ export class LinuxPamAuthenticator implements PamAuthenticator {
 
 interface FakeUser {
   password: string;
-  groups: ReadonlyArray<GroupName>;
+  groups: readonly GroupName[];
   disabled?: boolean;
 }
 
@@ -234,7 +234,7 @@ export class FakePamAuthenticator implements PamAuthenticator {
   setFakeUser(input: {
     username: string;
     password: string;
-    groups?: ReadonlyArray<GroupName>;
+    groups?: readonly GroupName[];
     disabled?: boolean;
   }): void {
     this.users.set(input.username, {
@@ -273,7 +273,7 @@ export class FakePamAuthenticator implements PamAuthenticator {
     return { ok: true, username };
   }
 
-  async getGroups(username: string): Promise<ReadonlyArray<GroupName>> {
+  async getGroups(username: string): Promise<readonly GroupName[]> {
     if (this.users.size === 0) {
       // Default: every user is in the admin group on the fake. This
       // is the right default for the "no users registered" dev mode
@@ -384,7 +384,7 @@ function safeUserExists(username: string): boolean {
 }
 
 /** Best-effort `id -Gn <user>` call. Returns `[]` on any failure. */
-function readPosixGroups(username: string): ReadonlyArray<string> {
+function readPosixGroups(username: string): readonly string[] {
   if (process.platform === "win32") return [];
   try {
     const out = execFileSync("id", ["-Gn", username], {

@@ -8,7 +8,7 @@ export type RoleId = string;
 /** HTTP webhook adapter configuration payload returned by `HttpAdapter.register`. */
 export interface HttpAdapterConfig {
   /** Adapter kind discriminator — always "http" for HttpAdapter. */
-  kind: "http";
+  kind: 'http';
   /** Agent role this adapter is bound to. */
   role: RoleId;
   /** Fully qualified webhook URL Paperclip will POST events to. */
@@ -39,10 +39,10 @@ export interface OmcArtifact {
 
 /** Rich-comment block emitted into Paperclip-friendly markdown blocks. */
 export type RichCommentBlock =
-  | { type: "heading"; content: string }
-  | { type: "paragraph"; content: string }
-  | { type: "code"; content: string }
-  | { type: "list"; content: string[] };
+  | { type: 'heading'; content: string }
+  | { type: 'paragraph'; content: string }
+  | { type: 'code'; content: string }
+  | { type: 'list'; content: string[] };
 
 /** Lightweight result envelope returned by external-adapter primitives. */
 export interface AdapterResult<T> {

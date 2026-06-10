@@ -18,6 +18,8 @@
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
+import { tailLogs } from "@/server/docker/real-data";
+
 const { execFileMock } = vi.hoisted(() => ({ execFileMock: vi.fn() }));
 
 vi.mock("node:child_process", async () => {
@@ -27,8 +29,6 @@ vi.mock("node:child_process", async () => {
     execFile: execFileMock,
   };
 });
-
-import { tailLogs } from "@/server/docker/real-data";
 
 beforeEach(() => {
   execFileMock.mockReset();

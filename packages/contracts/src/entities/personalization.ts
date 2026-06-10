@@ -100,12 +100,7 @@ export type LogEntry = z.infer<typeof LogEntrySchema>;
 // ---------------------------------------------------------------------------
 
 /** The AI policy class — drives approval, rate limits, and audit. */
-export const AIPolicyClassSchema = z.enum([
-  'free',
-  'privileged',
-  'destructive',
-  'forbidden',
-]);
+export const AIPolicyClassSchema = z.enum(['free', 'privileged', 'destructive', 'forbidden']);
 export type AIPolicyClass = z.infer<typeof AIPolicyClassSchema>;
 
 /** A single AI tool definition. Loaded from `policy.json` (SR-103). */
@@ -215,12 +210,7 @@ export const MailVerdictSchema = z.enum([
 ]);
 export type MailVerdict = z.infer<typeof MailVerdictSchema>;
 
-export const MailOwnerDecisionSchema = z.enum([
-  'keep',
-  'spam',
-  'block_sender',
-  'allow_sender',
-]);
+export const MailOwnerDecisionSchema = z.enum(['keep', 'spam', 'block_sender', 'allow_sender']);
 export type MailOwnerDecision = z.infer<typeof MailOwnerDecisionSchema>;
 
 export const MailReviewSchema = z.object({
@@ -259,7 +249,11 @@ export const AgentFileSchema = z.object({
 export type AgentFile = z.infer<typeof AgentFileSchema>;
 
 export const AgentSchema = z.object({
-  slug: z.string().min(1).max(64).regex(/^[a-z0-9][a-z0-9-]{0,62}[a-z0-9]$/),
+  slug: z
+    .string()
+    .min(1)
+    .max(64)
+    .regex(/^[a-z0-9][a-z0-9-]{0,62}[a-z0-9]$/),
   name: z.string().min(1).max(128),
   description: z.string().max(2000).optional(),
   files: z.array(AgentFileSchema).default([]),

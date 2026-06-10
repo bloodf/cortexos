@@ -1,6 +1,8 @@
 import { createFileRoute, Link, useParams, notFound } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Play, RotateCw, Square, Trash2, Boxes, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,8 +18,6 @@ import { api, callIncusAction, callMintApproval, callInstanceLogs } from "@/lib/
 import { useAuth } from "@/hooks/useAuth";
 import { bytes, relativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
-import { useState } from "react";
 
 // ---------------------------------------------------------------------------
 // Approval-gated incus action helper (mirrors dispatchDockerAction)
@@ -216,9 +216,9 @@ function IncusDetail() {
     .join("\n");
 
   const beforeCfg = devicesCfg || "# no device config";
-  const afterCfg =
-    beforeCfg.replace(/limits\.cpu: \d+/, `limits.cpu: ${inst.cpu + 1}`).trim() +
-    "\nsecurity.nesting: true";
+  const afterCfg = `${beforeCfg
+    .replace(/limits\.cpu: \d+/, `limits.cpu: ${inst.cpu + 1}`)
+    .trim()}\nsecurity.nesting: true`;
 
   const logLines = logsData?.lines ?? [];
 

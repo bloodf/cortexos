@@ -52,7 +52,7 @@ export function resetAudit(): void {
 }
 
 /** Return the chain (most recent last). Read-only. */
-export function listAudit(): ReadonlyArray<AuditEvent> {
+export function listAudit(): readonly AuditEvent[] {
   return events;
 }
 
@@ -170,7 +170,7 @@ export type AuditVerifyResult =
 export function verifyAuditChain(): AuditVerifyResult {
   let h = GENESIS_HASH;
   for (let i = 0; i < events.length; i++) {
-    const row = events[i]!;
+    const row = events[i];
     if (i === 0) {
       if (row.prevHash !== null) {
         return {
@@ -179,14 +179,12 @@ export function verifyAuditChain(): AuditVerifyResult {
           reason: `row 0 prevHash must be null, got ${row.prevHash}`,
         };
       }
-    } else {
-      if (row.prevHash !== h) {
-        return {
-          ok: false,
-          index: i,
-          reason: `prevHash mismatch at index ${i}: expected ${h}, got ${row.prevHash ?? "null"}`,
-        };
-      }
+    } else if (row.prevHash !== h) {
+      return {
+        ok: false,
+        index: i,
+        reason: `prevHash mismatch at index ${i}: expected ${h}, got ${row.prevHash ?? "null"}`,
+      };
     }
     h = advanceRunningHash(row, h);
   }
@@ -200,7 +198,7 @@ export function _expectedRunningHashAt(i: number): string {
   }
   let hh = GENESIS_HASH;
   for (let j = 0; j <= i; j++) {
-    hh = advanceRunningHash(events[j]!, hh);
+    hh = advanceRunningHash(events[j], hh);
   }
   return hh;
 }

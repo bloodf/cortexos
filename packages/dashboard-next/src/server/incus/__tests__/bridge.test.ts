@@ -24,9 +24,8 @@ import {
   type DispatchContext,
   type ExecDispatchContext,
 } from "../bridge";
-import { asUserId } from "../../entities";
+import { asUserId, asSessionId } from "../../entities";
 import { mintApproval, resetApprovalStore, actionHashFor } from "../../approval";
-import { asSessionId } from "../../entities";
 
 beforeAll(() => {
   // Pin a deterministic HMAC key so approval tokens work.
@@ -101,7 +100,7 @@ describe("listInstances", () => {
     expect(items.length).toBeGreaterThan(0);
     // Verify sorted.
     for (let i = 1; i < items.length; i++) {
-      expect(items[i]!.name.localeCompare(items[i - 1]!.name)).toBeGreaterThanOrEqual(0);
+      expect(items[i].name.localeCompare(items[i - 1].name)).toBeGreaterThanOrEqual(0);
     }
   });
 
@@ -155,7 +154,7 @@ describe("listInstanceLogs", () => {
 describe("dispatchAction — policy allowlist", () => {
   it("rejects an op not on the allowlist", async () => {
     const result = await dispatchAction(
-      { action: "exec-named" as never, name: "hermes-canary" },
+      { action: "exec-named", name: "hermes-canary" },
       makeAdminCtx(),
     );
     // exec-named goes through dispatchExecNamed, not dispatchAction; the
@@ -362,7 +361,7 @@ describe("dispatchExecNamed — instance lookup", () => {
   it("rejects unknown_instance for nonexistent instance", async () => {
     const result = await dispatchExecNamed(
       "no-such-instance",
-      { op: "term.ps" as never, args: {} },
+      { op: "term.ps", args: {} },
       makeExecCtx(),
     );
     expect(result.status).toBe("rejected");
@@ -413,7 +412,7 @@ describe("dispatchExecNamed — arg smuggling", () => {
   it("rejects args containing shell metacharacters", async () => {
     const result = await dispatchExecNamed(
       "hermes-canary",
-      { op: "term.cat" as never, args: { path: "/etc/passwd; rm -rf /" } },
+      { op: "term.cat", args: { path: "/etc/passwd; rm -rf /" } },
       makeExecCtx(),
     );
     expect(result.status).toBe("rejected");
@@ -425,7 +424,7 @@ describe("dispatchExecNamed — arg smuggling", () => {
   it("rejects args containing path traversal", async () => {
     const result = await dispatchExecNamed(
       "hermes-canary",
-      { op: "term.cat" as never, args: { path: "../../etc/shadow" } },
+      { op: "term.cat", args: { path: "../../etc/shadow" } },
       makeExecCtx(),
     );
     expect(result.status).toBe("rejected");
@@ -443,7 +442,7 @@ describe("dispatchExecNamed — argv_bash_c", () => {
   it("rejects args containing literal bash -c", async () => {
     const result = await dispatchExecNamed(
       "hermes-canary",
-      { op: "term.exec_named" as never, args: { command: "bash -c id" } },
+      { op: "term.exec_named", args: { command: "bash -c id" } },
       makeExecCtx(),
     );
     expect(result.status).toBe("rejected");
@@ -462,7 +461,7 @@ describe("dispatchExecNamed — accepted ops", () => {
   it("term.ps returns mock stdout", async () => {
     const result = await dispatchExecNamed(
       "hermes-canary",
-      { op: "term.ps" as never, args: {} },
+      { op: "term.ps", args: {} },
       makeExecCtx(),
     );
     expect(result.status).toBe("accepted");
@@ -475,7 +474,7 @@ describe("dispatchExecNamed — accepted ops", () => {
   it("term.df returns mock disk usage", async () => {
     const result = await dispatchExecNamed(
       "hermes-canary",
-      { op: "term.df" as never, args: {} },
+      { op: "term.df", args: {} },
       makeExecCtx(),
     );
     expect(result.status).toBe("accepted");
@@ -487,7 +486,7 @@ describe("dispatchExecNamed — accepted ops", () => {
   it("term.ls returns mock listing", async () => {
     const result = await dispatchExecNamed(
       "hermes-canary",
-      { op: "term.ls" as never, args: { path: "/home" } },
+      { op: "term.ls", args: { path: "/home" } },
       makeExecCtx(),
     );
     expect(result.status).toBe("accepted");

@@ -55,7 +55,7 @@ describe("services repo", () => {
       hasWebui: false,
       showInHealthcheck: false,
       showInWebui: false,
-    } as never);
+    });
     const active = await listServices(db, { activeOnly: true });
     const all = await listServices(db, { activeOnly: false });
     expect(active.rows.find((s) => s.slug === "hidden")).toBeUndefined();
@@ -67,7 +67,7 @@ describe("services repo", () => {
     const page2 = await listServices(db, { page: 2, pageSize: 1 });
     expect(page1.rows.length).toBe(1);
     expect(page2.rows.length).toBe(1);
-    expect(page1.rows[0]!.id).not.toBe(page2.rows[0]!.id);
+    expect(page1.rows[0].id).not.toBe(page2.rows[0].id);
   });
 
   it("listServices filters by category", async () => {
@@ -89,7 +89,7 @@ describe("services repo", () => {
 
   it("getServiceById returns the row", async () => {
     const result = await listServices(db, { activeOnly: true, pageSize: 1 });
-    const first = result.rows[0]!;
+    const first = result.rows[0];
     const got = await getServiceById(db, first.id);
     expect(got?.id).toBe(first.id);
   });
@@ -122,7 +122,7 @@ describe("services repo", () => {
       hasWebui: true,
       showInHealthcheck: true,
       showInWebui: true,
-    } as never);
+    });
     expect(s.slug).toBe("test-svc");
   });
 
@@ -143,7 +143,7 @@ describe("services repo", () => {
       hasWebui: true,
       showInHealthcheck: true,
       showInWebui: true,
-    } as never);
+    });
     const updated = await updateService(db, created.id, { name: "Upd2" });
     expect(updated?.name).toBe("Upd2");
     expect(updated?.slug).toBe("upd-svc"); // unchanged
@@ -166,7 +166,7 @@ describe("services repo", () => {
       hasWebui: true,
       showInHealthcheck: true,
       showInWebui: true,
-    } as never);
+    });
     const updated = await updateService(db, created.id, { notAColumn: "x" } as never);
     expect(updated?.name).toBe("Ignore");
   });
@@ -188,7 +188,7 @@ describe("services repo", () => {
       hasWebui: true,
       showInHealthcheck: true,
       showInWebui: true,
-    } as never);
+    });
     expect(await deleteService(db, created.id)).toBe(true);
     expect(await getServiceById(db, created.id)).toBeNull();
   });

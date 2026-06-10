@@ -92,7 +92,7 @@ describe("migrate — runSqlMigrations", () => {
         },
         query: async <T = Record<string, unknown>>(sql: string, params?: unknown[]) => {
           const res = params ? await client.query<T>(sql, params) : await client.query<T>(sql);
-          return res.rows as T[];
+          return res.rows;
         },
       },
       ignoreUnsupportedExtensions: true,

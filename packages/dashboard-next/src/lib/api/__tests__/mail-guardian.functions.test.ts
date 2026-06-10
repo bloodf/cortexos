@@ -90,7 +90,7 @@ const deleteAccountCore: ApiRouteCore = defineApiRoute({
   input: z.object({ slug: z.string().trim().min(1).max(64) }).strict(),
   surface: "mail-guardian",
   action: "mail-guardian.accounts.delete",
-  target: (i) => (i as { slug: string }).slug,
+  target: (i) => i.slug,
   rateLimit: { limit: 30, windowSec: 60, bucket: "user" },
   handler: () => ({ ok: true, slug: "test" }),
 });
@@ -119,7 +119,7 @@ const flagReviewCore: ApiRouteCore = defineApiRoute({
   input: z.object({ id: z.coerce.number().int().positive() }).strict(),
   surface: "mail-guardian",
   action: "mail-guardian.flag",
-  target: (i) => String((i as { id: number }).id),
+  target: (i) => String(i.id),
   rateLimit: { limit: 60, windowSec: 60, bucket: "user" },
   handler: () => ({
     id: 1,
@@ -136,7 +136,7 @@ const approveReviewCore: ApiRouteCore = defineApiRoute({
   input: z.object({ id: z.coerce.number().int().positive() }).strict(),
   surface: "mail-guardian",
   action: "mail-guardian.approve",
-  target: (i) => String((i as { id: number }).id),
+  target: (i) => String(i.id),
   rateLimit: { limit: 60, windowSec: 60, bucket: "user" },
   handler: () => ({
     id: 1,

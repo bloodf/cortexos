@@ -8,16 +8,16 @@ name: distro-matrix
 on:
   push:
     paths:
-      - "scripts/os-detect.sh"
-      - "scripts/pkg.sh"
-      - "scripts/__tests__/os-detect.bats"
-      - ".github/workflows/distro-matrix.yml"
+      - 'scripts/os-detect.sh'
+      - 'scripts/pkg.sh'
+      - 'scripts/__tests__/os-detect.bats'
+      - '.github/workflows/distro-matrix.yml'
   pull_request:
     paths:
-      - "scripts/os-detect.sh"
-      - "scripts/pkg.sh"
-      - "scripts/__tests__/os-detect.bats"
-      - ".github/workflows/distro-matrix.yml"
+      - 'scripts/os-detect.sh'
+      - 'scripts/pkg.sh'
+      - 'scripts/__tests__/os-detect.bats'
+      - '.github/workflows/distro-matrix.yml'
   workflow_dispatch: {}
 
 jobs:

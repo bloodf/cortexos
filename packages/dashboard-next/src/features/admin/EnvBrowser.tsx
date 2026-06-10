@@ -24,7 +24,7 @@ import { readAdminEnv, unlockAdminEnv } from "./rpc";
  * (`/opt/cortexos/.secrets/`, `/opt/cortexos/stacks/`) and exposes no
  * directory-listing fn, so the picker is seeded from a known list (WP-40).
  */
-const KNOWN_PATHS: ReadonlyArray<string> = [
+const KNOWN_PATHS: readonly string[] = [
   "/opt/cortexos/.secrets/dashboard.env",
   "/opt/cortexos/.secrets/cortexos.env",
 ];
@@ -36,7 +36,7 @@ function remainingSeconds(expiresAt: number | null): number {
 
 export function AdminEnvPage() {
   const [selected, setSelected] = useState(0);
-  const path = KNOWN_PATHS[selected] ?? KNOWN_PATHS[0]!;
+  const path = KNOWN_PATHS[selected] ?? KNOWN_PATHS[0];
 
   const [unlockOpen, setUnlockOpen] = useState(false);
   const [password, setPassword] = useState("");
@@ -48,7 +48,7 @@ export function AdminEnvPage() {
     queryFn: () => readAdminEnv(path),
     // Once a reveal grant is live, keep the cleartext fresh until it expires.
     refetchInterval: (q) => {
-      const data = q.state.data;
+      const { data } = q.state;
       if (data?.revealed && data.revealExpiresAt && data.revealExpiresAt > Date.now()) {
         return 30_000;
       }
@@ -57,7 +57,7 @@ export function AdminEnvPage() {
     retry: false,
   });
 
-  const data = query.data;
+  const { data } = query;
   const revealed = !!data?.revealed && remainingSeconds(data.revealExpiresAt) > 0;
 
   // Tick the countdown each second while a grant is live; refetch when it lapses

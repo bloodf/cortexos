@@ -107,14 +107,14 @@ export const PageSchema = <T extends z.ZodTypeAny>(item: T) =>
     /** Timestamp the page was assembled (server clock, ISO-8601). */
     timestamp: z.string().datetime({ offset: true }),
   });
-export type Page<T> = {
+export interface Page<T> {
   data: T[];
   total: number;
   limit: number;
   offset: number;
   nextCursor: string | null;
   timestamp: string;
-};
+}
 
 // ---------------------------------------------------------------------------
 // Page input (request)
@@ -152,9 +152,11 @@ export const DEFAULT_PAGE_INPUT: PageInput = {
  * Compute the next offset for a page. Returns `null` when the next page
  * would be empty (i.e. `offset + limit >= total`).
  */
-export const nextOffset = (
-  page: { offset: number; limit: number; total: number },
-): number | null => {
+export const nextOffset = (page: {
+  offset: number;
+  limit: number;
+  total: number;
+}): number | null => {
   const consumed = page.offset + page.limit;
   return consumed >= page.total ? null : consumed;
 };
@@ -172,8 +174,8 @@ export const buildPage = <T>(
   input: PageInput,
   nowIso: string,
 ): Page<T> => {
-  const limit = input.limit;
-  const offset = input.offset;
+  const { limit } = input;
+  const { offset } = input;
   const next = nextOffset({ offset, limit, total });
   const nextCursor = next === null ? null : encodeCursor({ offset: next });
   return {
@@ -197,22 +199,18 @@ const encodeCursor = (state: { offset: number }): string => {
 };
 
 /** Decode a cursor produced by `encodeCursor`. Returns `null` on parse fail. */
-export const decodeCursor = (
-  cursor: string,
-): { offset: number } | null => {
+export const decodeCursor = (cursor: string): { offset: number } | null => {
   try {
     const pad = '='.repeat((4 - (cursor.length % 4)) % 4);
     const b64 = cursor.replace(/-/g, '+').replace(/_/g, '/') + pad;
     const json =
-      typeof Buffer !== 'undefined'
-        ? Buffer.from(b64, 'base64').toString('utf8')
-        : atob(b64);
+      typeof Buffer !== 'undefined' ? Buffer.from(b64, 'base64').toString('utf8') : atob(b64);
     const parsed: unknown = JSON.parse(json);
     if (
       typeof parsed === 'object' &&
       parsed !== null &&
       'offset' in parsed &&
-      typeof (parsed as { offset: unknown }).offset === 'number'
+      typeof parsed.offset === 'number'
     ) {
       return { offset: (parsed as { offset: number }).offset };
     }

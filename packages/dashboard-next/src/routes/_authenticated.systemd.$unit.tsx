@@ -1,6 +1,8 @@
 import { createFileRoute, Link, useParams, notFound } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Play, RotateCw, Square, Loader2, Server } from "lucide-react";
+import { toast } from "sonner";
+import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,8 +15,6 @@ import { api, callSystemdAction, callMintApproval, callUnitLogs } from "@/lib/ap
 import { csrfHeaders } from "@/features/admin/csrf";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
-import { useState } from "react";
 
 // ---------------------------------------------------------------------------
 // Approval-gated systemd action helper (mirrors Systemd.tsx)

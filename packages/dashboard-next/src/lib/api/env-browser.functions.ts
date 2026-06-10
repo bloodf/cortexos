@@ -39,10 +39,7 @@ import { defineServerFn, serverFnNoop, type ServerFnOptions } from "@/lib/api/de
 // list and SECRET_KEY_RE / maskValue are load-bearing; do not weaken them.
 // ---------------------------------------------------------------------------
 
-const ALLOWED_PREFIXES: ReadonlyArray<string> = [
-  "/opt/cortexos/.secrets/",
-  "/opt/cortexos/stacks/",
-];
+const ALLOWED_PREFIXES: readonly string[] = ["/opt/cortexos/.secrets/", "/opt/cortexos/stacks/"];
 
 const SECRET_KEY_RE = new RegExp(
   "(password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|client[_-]?secret|session[_-]?id|cookie|authorization|bearer)",
@@ -126,7 +123,7 @@ interface ReadEnvOutput {
   path: string;
   revealed: boolean;
   revealExpiresAt: number | null;
-  entries: Array<{ key: string; value: string; masked: string }>;
+  entries: { key: string; value: string; masked: string }[];
 }
 
 /**

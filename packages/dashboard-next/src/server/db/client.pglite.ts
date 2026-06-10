@@ -47,7 +47,7 @@ function pgliteExecutor(client: PGlite): Executor {
     },
     query: async <T = Record<string, unknown>>(sqlText: string, params?: unknown[]) => {
       const res = params ? await client.query<T>(sqlText, params) : await client.query<T>(sqlText);
-      return res.rows as T[];
+      return res.rows;
     },
   };
 }

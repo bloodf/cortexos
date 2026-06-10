@@ -84,7 +84,7 @@ function toStatus(
  */
 export function toMailReviewRow(m: ServerMailReview): MockMailReview {
   const summary = m.summary || "(no summary)";
-  const snippet = summary.length > 120 ? summary.slice(0, 117) + "…" : summary;
+  const snippet = summary.length > 120 ? `${summary.slice(0, 117)}…` : summary;
   const fromDisplay = `${m.accountSlug}/<${m.fromHash.slice(0, 8)}…>`;
   return {
     id: String(m.id),

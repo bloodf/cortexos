@@ -42,8 +42,7 @@ import {
 
 import { actionHashFor, consumeApproval, mintApproval } from "@/server/approval";
 import { audit } from "@/server/audit";
-import type { User } from "@/server/entities";
-import type { SessionId } from "@/server/entities";
+import type { User, SessionId } from "@/server/entities";
 
 export { SystemdUnitSchema, SystemdLogLineSchema };
 
@@ -369,7 +368,7 @@ async function getUnitFromSystemctl(name: string): Promise<SystemdUnit | null> {
     const props: Record<string, string> = {};
     for (const line of stdout.split("\n")) {
       const m = /^(\w+)=(.*)$/.exec(line);
-      if (m) props[m[1]!] = m[2]!;
+      if (m) props[m[1]] = m[2]!;
     }
     if (Object.keys(props).length <= 1) return null;
     const unitFileState = props.UnitFileState ?? "";
@@ -417,9 +416,9 @@ async function listUnitsFromSystemctl(): Promise<SystemdUnit[]> {
 // ---------------------------------------------------------------------------
 
 let currentMock: MockUnitExecutor | null = null;
-let executor: UnitExecutor = (() => {
+let executor: UnitExecutor = () => {
   throw new Error("systemd bridge: executor used before init");
-}) as UnitExecutor;
+};
 
 (function init() {
   const useReal = process.platform === "linux" && process.env.CORTEX_SYSTEMD_BRIDGE_REAL !== "0";

@@ -157,7 +157,7 @@ async function probeProcess(slug: string): Promise<ProbeResult> {
 function tcpTargetFor(row: CatalogRow): { host: string; port: number } | null {
   const url = row.healthUrl ?? "";
   const m = url.match(/^(?:tcp:\/\/)?([^:/#]+):(\d+)/);
-  if (m) return { host: m[1]!, port: Number(m[2]) };
+  if (m) return { host: m[1], port: Number(m[2]) };
   const port = TCP_DEFAULT_PORTS[row.slug];
   if (port) return { host: "127.0.0.1", port };
   return null;
@@ -221,7 +221,7 @@ async function pool<T>(
   let i = 0;
   const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
     while (i < items.length) {
-      const item = items[i++]!;
+      const item = items[i++];
       await worker(item);
     }
   });

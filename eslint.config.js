@@ -110,7 +110,11 @@ export default [
       // import-x/no-unresolved: false positives for TS path aliases; typescript-eslint handles it
       'import-x/no-unresolved': 'off',
       // import-x/extensions: Vite/TS handle extensions; linting them is noise
-      'import-x/extensions': ['error', 'ignorePackages', { js: 'never', mjs: 'never', ts: 'never' }],
+      'import-x/extensions': [
+        'error',
+        'ignorePackages',
+        { js: 'never', mjs: 'never', ts: 'never' },
+      ],
       // no-console: apps and CLIs legitimately log; per-package override for libs
       'no-console': ['warn', { allow: ['warn', 'error', 'info'] }],
       // no-underscore-dangle: we use _id, _count for unused-discard pattern

@@ -71,9 +71,7 @@ describe('query — FilterSchema', () => {
     expect(parsed).toHaveLength(1);
   });
   it('rejects unknown op', () => {
-    expect(() =>
-      FilterSchema.parse([{ field: 'a', op: 'regex' as 'eq' }]),
-    ).toThrow();
+    expect(() => FilterSchema.parse([{ field: 'a', op: 'regex' as 'eq' }])).toThrow();
   });
   it('accepts `isNull` and `isNotNull` without a value', () => {
     const parsed = FilterSchema.parse([{ field: 'a', op: 'isNull' }]);

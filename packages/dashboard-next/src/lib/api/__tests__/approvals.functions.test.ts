@@ -22,6 +22,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { z } from "zod";
 import { sql } from "drizzle-orm";
 
+import type { PGlite } from "@electric-sql/pglite";
 import {
   InMemorySessionStore,
   setSessionStore,
@@ -42,7 +43,6 @@ import {
 } from "@/server/approval";
 import { appendAuditLog, verifyAuditLogChain } from "@/server/db/repos/audit";
 import { createTestDb, type PgliteDbClient } from "@/server/db/test-utils";
-import type { PGlite } from "@electric-sql/pglite";
 import type { SessionId } from "@/server/entities";
 
 let store: InMemorySessionStore;

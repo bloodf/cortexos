@@ -113,14 +113,14 @@ function decodeToken(token: string): ApprovalClaims {
   if (version !== "v1") {
     throw new Error(`Unsupported token version: ${version}`);
   }
-  const expected = createHmac("sha256", getServerHmacKey()).update(payload!).digest("base64url");
+  const expected = createHmac("sha256", getServerHmacKey()).update(payload).digest("base64url");
   // Constant-time compare.
-  const a = Buffer.from(hmac!, "utf8");
+  const a = Buffer.from(hmac, "utf8");
   const b = Buffer.from(expected, "utf8");
   if (a.length !== b.length || !timingSafeEqual(a, b)) {
     throw new Error("Token signature invalid");
   }
-  const claims = JSON.parse(Buffer.from(payload!, "base64url").toString("utf8")) as ApprovalClaims;
+  const claims = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as ApprovalClaims;
   if (
     typeof claims.actionHash !== "string" ||
     typeof claims.sessionId !== "string" ||

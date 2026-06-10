@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Standalone migration CLI for the Cortex Dashboard.
  * Runs SQL migrations against the production Postgres database.

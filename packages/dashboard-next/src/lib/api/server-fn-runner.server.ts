@@ -44,7 +44,7 @@ export async function runServerFnGate<TIn, TOut>(opts: RouteOptions<TIn, TOut>):
     } else if (lower !== "content-type" && lower !== "content-length") {
       // Framework security headers (X-Frame-Options, etc.). Skip transport
       // headers the RPC layer manages itself.
-      setResponseHeader(name as never, value);
+      setResponseHeader(name, value);
     }
   }
 

@@ -28,32 +28,6 @@
  */
 
 // Re-export auth for the Wave-2 shell/login WP.
-export * as auth from "./auth";
-
-// Re-export error types so Wave-2 consumers can import from one place.
-export type { ApiClientError, ApiErrorCode, ApiErrorEnvelope } from "./http";
-
-// ---------------------------------------------------------------------------
-// Shared pagination types (mirrors mocks/api.ts — keep in sync)
-// ---------------------------------------------------------------------------
-
-export type SortDir = "asc" | "desc";
-
-export interface ListParams {
-  q?: string;
-  page?: number;
-  pageSize?: number;
-  sortKey?: string | null;
-  sortDir?: SortDir;
-}
-
-export interface ListResult<T> {
-  rows: T[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
-
 // ---------------------------------------------------------------------------
 // Import mock row types so adapters can use them and client can type correctly.
 // We import type-only — no runtime dependency on the mock data.
@@ -82,6 +56,118 @@ import type {
   MountInfo,
 } from "@/mocks/types";
 
+// ---------------------------------------------------------------------------
+// Wired server-function imports (WP-10 — services domain)
+// ---------------------------------------------------------------------------
+import {
+  listServices as _listServices,
+  listServiceHealth as _listServiceHealth,
+} from "./services.functions";
+
+import { toServiceRow } from "@/lib/adapters/services";
+import type { HealthSnapshotRow } from "@/lib/adapters/services";
+
+// ---------------------------------------------------------------------------
+// Wired server-function imports (WP-14 — system / network / processes / storage)
+// ---------------------------------------------------------------------------
+import {
+  getSystem as _getSystem,
+  getNetwork as _getNetwork,
+  getProcesses as _getProcesses,
+  getStorage as _getStorage,
+} from "./system.functions";
+
+// ---------------------------------------------------------------------------
+// Wired server-function imports (WP-13 — systemd domain)
+// ---------------------------------------------------------------------------
+import {
+  listUnits as _listUnits,
+  getUnit as _getUnit,
+  systemdAction as _systemdAction,
+  unitLogs as _unitLogs,
+  hostLogs as _hostLogs,
+} from "./systemd.functions";
+
+// ---------------------------------------------------------------------------
+// Wired server-function imports (WP-12 — incus domain)
+// ---------------------------------------------------------------------------
+import {
+  listInstances as _listInstances,
+  incusAction as _incusAction,
+  instanceLogs as _instanceLogs,
+} from "./incus.functions";
+
+// ---------------------------------------------------------------------------
+// Wired server-function imports (WP-11 — docker domain)
+// ---------------------------------------------------------------------------
+import {
+  listContainers as _listContainers,
+  listImages as _listImages,
+  listVolumes as _listVolumes,
+  dockerAction as _dockerAction,
+  containerLogs as _containerLogs,
+} from "./docker.functions";
+import { mintApproval as _mintApproval, verifyAudit as _verifyAudit } from "./approvals.functions";
+
+// ---------------------------------------------------------------------------
+// Wired server-function imports (WP-37 — mail-guardian domain)
+// ---------------------------------------------------------------------------
+import {
+  listReviews as _listReviews,
+  listAccounts as _listAccounts,
+  createAccount as _createAccount,
+  updateAccount as _updateAccount,
+  deleteAccount as _deleteAccount,
+  flagReview as _flagReview,
+  approveReview as _approveReview,
+  batch as _batchDecision,
+} from "./mail-guardian.functions";
+
+import { toMailReviewRow } from "@/lib/adapters/mail";
+import type { ServerMailReview, ServerMailAccount } from "@/lib/adapters/mail";
+
+// ---------------------------------------------------------------------------
+// Reconciliation block — restores call helpers that concurrent Wave-2 edits to
+// this facade dropped (WP-38 approvals/audit, WP-39 alerts, WP-41 agents).
+// Same `as unknown as` boundary-cast pattern as the helpers above.
+// ---------------------------------------------------------------------------
+import {
+  grantApproval as _grantApproval,
+  revokeApproval as _revokeApproval,
+} from "./approvals.functions";
+import {
+  createAlert as _createAlert,
+  patchAlert as _patchAlert,
+  deleteAlert as _deleteAlert,
+} from "./alerts.functions";
+import { uploadAgentFile as _uploadAgentFile } from "./agents.functions";
+
+export * as auth from "./auth";
+
+// Re-export error types so Wave-2 consumers can import from one place.
+export type { ApiClientError, ApiErrorCode, ApiErrorEnvelope } from "./http";
+
+// ---------------------------------------------------------------------------
+// Shared pagination types (mirrors mocks/api.ts — keep in sync)
+// ---------------------------------------------------------------------------
+
+export type SortDir = "asc" | "desc";
+
+export interface ListParams {
+  q?: string;
+  page?: number;
+  pageSize?: number;
+  sortKey?: string | null;
+  sortDir?: SortDir;
+}
+
+export interface ListResult<T> {
+  rows: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 // Re-export these so Wave-2 consumers that used to `import type { X }
 // from "@/mocks/types"` can switch to `@/lib/api/client` in one step.
 export type {
@@ -108,42 +194,37 @@ export type {
   MountInfo,
 };
 
-// ---------------------------------------------------------------------------
-// Wired server-function imports (WP-10 — services domain)
-// ---------------------------------------------------------------------------
-import {
-  listServices as _listServices,
-  listServiceHealth as _listServiceHealth,
-} from "./services.functions";
-
-import { toServiceRow } from "@/lib/adapters/services";
-import type { HealthSnapshotRow } from "@/lib/adapters/services";
-
 // The gate-middleware pattern (defineServerFn + serverFnNoop) means TypeScript
 // infers the outer server fn return as `undefined` — the actual type is carried
 // by the gate at runtime. Cast through `unknown` at the boundary to recover the
 // typed payloads. This is the only place these casts live; call sites are typed.
 
-type ListServicesInput = {
+interface ListServicesInput {
   category?: string;
   kind?: "app" | "service" | "docker" | "process" | "dashboard-launcher";
   status?: string;
   activeOnly?: boolean;
   page?: number;
   pageSize?: number;
-};
-type ListServicesOutput = { rows: import("@cortexos/contracts/entities").Service[]; total: number };
-type ServiceHealthInput = { id: number; limit?: number };
-type ServiceHealthOutput = {
-  snapshots: Array<{
+}
+interface ListServicesOutput {
+  rows: import("@cortexos/contracts/entities").Service[];
+  total: number;
+}
+interface ServiceHealthInput {
+  id: number;
+  limit?: number;
+}
+interface ServiceHealthOutput {
+  snapshots: {
     id: string;
     serviceId: number;
     status: string;
     latencyMs: number | null;
     checkedAt: string;
     note: string | null;
-  }>;
-};
+  }[];
+}
 
 const listServicesFn = _listServices as unknown as (opts: {
   data: ListServicesInput;
@@ -157,21 +238,16 @@ export const listServices = _listServices;
 export const listServiceHealth = _listServiceHealth;
 export type { HealthSnapshotRow };
 
-// ---------------------------------------------------------------------------
-// Wired server-function imports (WP-14 — system / network / processes / storage)
-// ---------------------------------------------------------------------------
-import {
-  getSystem as _getSystem,
-  getNetwork as _getNetwork,
-  getProcesses as _getProcesses,
-  getStorage as _getStorage,
-} from "./system.functions";
-
 // WP-14 gate-middleware boundary casts — same pattern as services above.
 type GetSystemOutput = SystemData;
 type GetNetworkOutput = NetworkData;
-type GetProcessesOutput = { processes: ProcessInfo[] };
-type GetStorageOutput = { disks: DriveInfo[]; mounts: MountInfo[] };
+interface GetProcessesOutput {
+  processes: ProcessInfo[];
+}
+interface GetStorageOutput {
+  disks: DriveInfo[];
+  mounts: MountInfo[];
+}
 
 const getSystemFn = _getSystem as unknown as (opts: {
   data: Record<string, never>;
@@ -186,27 +262,20 @@ const getStorageFn = _getStorage as unknown as (opts: {
   data: Record<string, never>;
 }) => Promise<GetStorageOutput>;
 
-// ---------------------------------------------------------------------------
-// Wired server-function imports (WP-13 — systemd domain)
-// ---------------------------------------------------------------------------
-import {
-  listUnits as _listUnits,
-  getUnit as _getUnit,
-  systemdAction as _systemdAction,
-  unitLogs as _unitLogs,
-  hostLogs as _hostLogs,
-} from "./systemd.functions";
-
 // WP-13 gate-middleware boundary casts — same pattern as other domains.
-type ListUnitsOutput = { units: SystemdUnit[] };
-type GetUnitOutput = { unit: SystemdUnit };
+interface ListUnitsOutput {
+  units: SystemdUnit[];
+}
+interface GetUnitOutput {
+  unit: SystemdUnit;
+}
 // SystemdActionInput schema has only `action` + `name`; the approval token is
 // passed via `x-cortex-approval-token` header (gate: approval: true), not in data.
-type SystemdActionInputType = {
+interface SystemdActionInputType {
   action: "start" | "stop" | "restart" | "reload" | "enable" | "disable";
   name: string;
-};
-type SystemdActionOutput = {
+}
+interface SystemdActionOutput {
   action: string;
   name: string;
   status: "accepted";
@@ -215,20 +284,34 @@ type SystemdActionOutput = {
   exitCode: number | null;
   unit: SystemdUnit | null;
   durationMs: number;
-};
-type UnitLogsInputType = { name: string; limit?: number };
-type UnitLogsOutput = { unit: string; limit: number; count: number; lines: string[] };
+}
+interface UnitLogsInputType {
+  name: string;
+  limit?: number;
+}
+interface UnitLogsOutput {
+  unit: string;
+  limit: number;
+  count: number;
+  lines: string[];
+}
 // MP-009 — hostLogs (admin only): returns host-journal lines, no unit filter.
 // Each `lines` entry is a structured SystemdLogLine from the @cortexos/contracts
 // schema (AN-004 §4 data-shape note), mapped to display text by the caller.
-type HostLogsInputType = { limit?: number };
-type HostLogsLogLine = {
+interface HostLogsInputType {
+  limit?: number;
+}
+interface HostLogsLogLine {
   ts: string;
   priority: "emerg" | "alert" | "crit" | "err" | "warning" | "notice" | "info" | "debug";
   unit: string;
   message: string;
-};
-type HostLogsOutput = { limit: number; count: number; lines: HostLogsLogLine[] };
+}
+interface HostLogsOutput {
+  limit: number;
+  count: number;
+  lines: HostLogsLogLine[];
+}
 
 const listUnitsFn = _listUnits as unknown as (opts: {
   data: Record<string, never>;
@@ -264,24 +347,17 @@ export const listUnits = _listUnits;
 export const getUnit = _getUnit;
 export const hostLogs = _hostLogs;
 
-// ---------------------------------------------------------------------------
-// Wired server-function imports (WP-12 — incus domain)
-// ---------------------------------------------------------------------------
-import {
-  listInstances as _listInstances,
-  incusAction as _incusAction,
-  instanceLogs as _instanceLogs,
-} from "./incus.functions";
-
 // WP-12 gate-middleware boundary casts — same pattern as other domains.
-type ListInstancesOutput = { items: import("@cortexos/contracts").IncusInstance[] };
-type IncusActionInputType = {
+interface ListInstancesOutput {
+  items: import("@cortexos/contracts").IncusInstance[];
+}
+interface IncusActionInputType {
   action: "start" | "stop" | "restart" | "delete" | "launch" | "list";
   name: string;
   confirmation?: string;
   approvalToken?: string;
-};
-type IncusActionOutput = {
+}
+interface IncusActionOutput {
   result: {
     action: string;
     name: string;
@@ -291,15 +367,20 @@ type IncusActionOutput = {
     instance: import("@cortexos/contracts").IncusInstance;
     durationMs: number;
   };
-};
-type InstanceLogsInputType = { name: string; tail?: number };
-export type IncusLogLine = {
+}
+interface InstanceLogsInputType {
+  name: string;
+  tail?: number;
+}
+export interface IncusLogLine {
   ts: string;
   priority: "info" | "warn" | "error" | "debug";
   name: string;
   message: string;
-};
-type InstanceLogsOutput = { lines: IncusLogLine[] };
+}
+interface InstanceLogsOutput {
+  lines: IncusLogLine[];
+}
 
 const listInstancesFn = _listInstances as unknown as (opts: {
   data: Record<string, never>;
@@ -329,7 +410,7 @@ function toIncusInstance(inst: import("@cortexos/contracts").IncusInstance): Inc
     image: inst.image,
     cpu: inst.cpu ?? 0,
     memory: inst.memory ?? 0,
-    config: {} as Record<string, string>,
+    config: {},
     devices: inst.devices as Record<string, Record<string, string>>,
     last_validation: lv
       ? { ok: lv.ok ?? false, ran_at: lv.ranAt ?? inst.updatedAt, notes: lv.notes ?? "" }
@@ -344,38 +425,36 @@ function toIncusInstance(inst: import("@cortexos/contracts").IncusInstance): Inc
   };
 }
 
-// ---------------------------------------------------------------------------
-// Wired server-function imports (WP-11 — docker domain)
-// ---------------------------------------------------------------------------
-import {
-  listContainers as _listContainers,
-  listImages as _listImages,
-  listVolumes as _listVolumes,
-  dockerAction as _dockerAction,
-  containerLogs as _containerLogs,
-} from "./docker.functions";
-import { mintApproval as _mintApproval } from "./approvals.functions";
-
 // WP-11 gate-middleware boundary casts — same pattern as other domains.
-type ListContainersOutput = { items: import("@/server/docker/stub-data").Container[] };
-type ListImagesOutput = { items: import("@/server/docker/stub-data").DockerImage[] };
-type ListVolumesOutput = { items: import("@/server/docker/stub-data").DockerVolume[] };
-type DockerActionInputType = { op: string; args: Record<string, unknown>; approvalToken?: string };
-type DockerActionOutput = {
+interface ListContainersOutput {
+  items: import("@/server/docker/stub-data").Container[];
+}
+interface ListImagesOutput {
+  items: import("@/server/docker/stub-data").DockerImage[];
+}
+interface ListVolumesOutput {
+  items: import("@/server/docker/stub-data").DockerVolume[];
+}
+interface DockerActionInputType {
+  op: string;
+  args: Record<string, unknown>;
+  approvalToken?: string;
+}
+interface DockerActionOutput {
   result: { op: string; argv: readonly string[]; output: string; durationMs: number };
-};
-type MintApprovalInputType = {
+}
+interface MintApprovalInputType {
   action: string;
   payload: Record<string, unknown>;
   ttlSec?: number;
-};
-type MintApprovalOutput = {
+}
+interface MintApprovalOutput {
   token: string;
   expiresAt: number;
   issuedAt: number;
   actionHash: string;
   ttlSec: number;
-};
+}
 
 const listContainersFn = _listContainers as unknown as (opts: {
   data: { filter?: string; query?: string };
@@ -387,8 +466,16 @@ const listVolumesFn = _listVolumes as unknown as (opts: {
   data: { query?: string };
 }) => Promise<ListVolumesOutput>;
 // MP-009 — containerLogs (admin only): returns tail-N docker logs.
-type ContainerLogsInputType = { id: string; limit?: number };
-type ContainerLogsOutput = { id: string; limit: number; count: number; lines: string[] };
+interface ContainerLogsInputType {
+  id: string;
+  limit?: number;
+}
+interface ContainerLogsOutput {
+  id: string;
+  limit: number;
+  count: number;
+  lines: string[];
+}
 const containerLogsFn = _containerLogs as unknown as (opts: {
   data: ContainerLogsInputType;
 }) => Promise<ContainerLogsOutput>;
@@ -431,38 +518,23 @@ function toDockerVolume(v: import("@/server/docker/stub-data").DockerVolume): Do
   return { name: v.name, driver: v.driver, mountpoint: v.mountpoint, size: v.size ?? 0 };
 }
 
-// ---------------------------------------------------------------------------
-// Wired server-function imports (WP-37 — mail-guardian domain)
-// ---------------------------------------------------------------------------
-import {
-  listReviews as _listReviews,
-  listAccounts as _listAccounts,
-  createAccount as _createAccount,
-  updateAccount as _updateAccount,
-  deleteAccount as _deleteAccount,
-  flagReview as _flagReview,
-  approveReview as _approveReview,
-  batch as _batchDecision,
-} from "./mail-guardian.functions";
-
-import { toMailReviewRow } from "@/lib/adapters/mail";
-import type { ServerMailReview, ServerMailAccount } from "@/lib/adapters/mail";
-
 // WP-37 gate-middleware boundary casts — same pattern as other domains.
-type ListReviewsInput = {
+interface ListReviewsInput {
   accountSlug?: string;
   pendingOnly?: boolean;
   page?: number;
   pageSize?: number;
-};
-type ListReviewsOutput = {
+}
+interface ListReviewsOutput {
   reviews: ServerMailReview[];
   total: number;
   page: number;
   pageSize: number;
-};
-type ListAccountsOutput = { accounts: ServerMailAccount[] };
-type AccountCreateInput = {
+}
+interface ListAccountsOutput {
+  accounts: ServerMailAccount[];
+}
+interface AccountCreateInput {
   slug: string;
   address: string;
   host: string;
@@ -474,8 +546,8 @@ type AccountCreateInput = {
   trashMailbox?: string | null;
   reviewMailbox: string;
   enabled: boolean;
-};
-type AccountUpdateInput = {
+}
+interface AccountUpdateInput {
   slug: string;
   address: string;
   host: string;
@@ -487,19 +559,34 @@ type AccountUpdateInput = {
   trashMailbox?: string | null;
   reviewMailbox: string;
   enabled: boolean;
-};
-type AccountDeleteInput = { slug: string };
-type AccountMutationOutput = { account: ServerMailAccount };
-type AccountDeleteOutput = { ok: true; slug: string };
-type ReviewIdInput = { id: number };
-type ReviewDecisionOutput = {
+}
+interface AccountDeleteInput {
+  slug: string;
+}
+interface AccountMutationOutput {
+  account: ServerMailAccount;
+}
+interface AccountDeleteOutput {
+  ok: true;
+  slug: string;
+}
+interface ReviewIdInput {
+  id: number;
+}
+interface ReviewDecisionOutput {
   id: number;
   ownerDecision: string | null;
   resolvedAt: string | null;
   approver: string | null;
-};
-type MailBatchInput = { ids: number[]; action: "approve" | "flag" };
-type MailBatchOutput = { updated: number; action: string };
+}
+interface MailBatchInput {
+  ids: number[];
+  action: "approve" | "flag";
+}
+interface MailBatchOutput {
+  updated: number;
+  action: string;
+}
 
 const listReviewsFn = _listReviews as unknown as (opts: {
   data: ListReviewsInput;
@@ -785,7 +872,7 @@ export const api = {
    */
   mail: async (): Promise<MailReview[]> => {
     const { reviews } = await listReviewsFn({ data: {} });
-    return (reviews as ServerMailReview[]).map(toMailReviewRow);
+    return reviews.map(toMailReviewRow);
   },
 
   /**
@@ -796,7 +883,7 @@ export const api = {
     const pageSize = p?.pageSize ?? 25;
     const result = await listReviewsFn({ data: { page, pageSize } });
     return {
-      rows: (result.reviews as ServerMailReview[]).map(toMailReviewRow),
+      rows: result.reviews.map(toMailReviewRow),
       total: result.total,
       page: p?.page ?? 0,
       pageSize,
@@ -846,26 +933,11 @@ void (getUnitFn satisfies typeof getUnitFn);
 // Wired server-function re-exports (WP-19 — terminal named ops)
 // ---------------------------------------------------------------------------
 export { listTerminalOps, dispatchTerminalOp } from "./terminal.functions";
-
-// ---------------------------------------------------------------------------
-// Reconciliation block — restores call helpers that concurrent Wave-2 edits to
-// this facade dropped (WP-38 approvals/audit, WP-39 alerts, WP-41 agents).
-// Same `as unknown as` boundary-cast pattern as the helpers above.
-// ---------------------------------------------------------------------------
-import {
-  grantApproval as _grantApproval,
-  revokeApproval as _revokeApproval,
-} from "./approvals.functions";
-import { verifyAudit as _verifyAudit } from "./approvals.functions";
-import {
-  createAlert as _createAlert,
-  patchAlert as _patchAlert,
-  deleteAlert as _deleteAlert,
-} from "./alerts.functions";
-import { uploadAgentFile as _uploadAgentFile } from "./agents.functions";
 export type { HermesProfile } from "@/server/agents/registry";
 
-type CsrfOpts = { headers?: Record<string, string> };
+interface CsrfOpts {
+  headers?: Record<string, string>;
+}
 
 export const callGrantApproval = _grantApproval as unknown as (
   opts: { data: { id: number } } & CsrfOpts,

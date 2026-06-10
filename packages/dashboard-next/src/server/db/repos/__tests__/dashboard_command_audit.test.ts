@@ -241,6 +241,6 @@ describe("dashboard_command_audit — read paths", () => {
     const p2 = await listDashboardCommands(db, { limit: 1, offset: 1 });
     expect(p1.length).toBe(1);
     expect(p2.length).toBe(1);
-    expect(p1[0]!.id).not.toBe(p2[0]!.id);
+    expect(p1[0].id).not.toBe(p2[0].id);
   });
 });

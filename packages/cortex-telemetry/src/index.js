@@ -7,7 +7,7 @@
 // no-op. Services that import this package must remain safe to boot in
 // dev/test environments where no observability stack is running.
 
-import process from "node:process";
+import process from 'node:process';
 
 let __initialized = false;
 let __traceloop = null;
@@ -16,29 +16,29 @@ let __config = null;
 
 function envFlag(name, fallback = false) {
   const v = process.env[name];
-  if (v === undefined || v === "") return fallback;
-  return v === "1" || v.toLowerCase() === "true";
+  if (v === undefined || v === '') return fallback;
+  return v === '1' || v.toLowerCase() === 'true';
 }
 
 function readConfig({ service, env } = {}) {
-  const host = process.env.LANGFUSE_HOST || "";
-  const publicKey = process.env.LANGFUSE_PUBLIC_KEY || "";
-  const secretKey = process.env.LANGFUSE_SECRET_KEY || "";
+  const host = process.env.LANGFUSE_HOST || '';
+  const publicKey = process.env.LANGFUSE_PUBLIC_KEY || '';
+  const secretKey = process.env.LANGFUSE_SECRET_KEY || '';
   return {
     enabled: Boolean(host && publicKey && secretKey),
     host,
     publicKey,
     secretKey,
-    service: service || process.env.CORTEX_TELEMETRY_SERVICE || "cortexos",
-    env: env || process.env.CORTEX_TELEMETRY_ENV || process.env.NODE_ENV || "production",
-    disabledByFlag: envFlag("CORTEX_TELEMETRY_DISABLED", false),
+    service: service || process.env.CORTEX_TELEMETRY_SERVICE || 'cortexos',
+    env: env || process.env.CORTEX_TELEMETRY_ENV || process.env.NODE_ENV || 'production',
+    disabledByFlag: envFlag('CORTEX_TELEMETRY_DISABLED', false),
   };
 }
 
 function langfuseOtelHeaders(publicKey, secretKey) {
   return {
-    Authorization: `Basic ${Buffer.from(`${publicKey}:${secretKey}`).toString("base64")}`,
-    "x-langfuse-ingestion-version": "4",
+    Authorization: `Basic ${Buffer.from(`${publicKey}:${secretKey}`).toString('base64')}`,
+    'x-langfuse-ingestion-version': '4',
   };
 }
 
@@ -63,9 +63,9 @@ export function instrument(opts = {}) {
   }
   try {
     // Lazy-load so the dependency cost is paid only when telemetry is on.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const traceloopMod = requireOptional("@traceloop/node-server-sdk");
-    const langfuseMod = requireOptional("langfuse");
+
+    const traceloopMod = requireOptional('@traceloop/node-server-sdk');
+    const langfuseMod = requireOptional('langfuse');
     if (!traceloopMod || !langfuseMod) {
       __config = { ...cfg, enabled: false };
       return { enabled: false, service: cfg.service, env: cfg.env };
@@ -73,11 +73,12 @@ export function instrument(opts = {}) {
     traceloopMod.initialize({
       appName: cfg.service,
       apiKey: cfg.secretKey,
-      baseUrl: `${cfg.host.replace(/\/$/, "")}/api/public/otel`,
+      baseUrl: `${cfg.host.replace(/\/$/, '')}/api/public/otel`,
       headers: langfuseOtelHeaders(cfg.publicKey, cfg.secretKey),
-      disableBatch: cfg.env !== "production",
+      disableBatch: cfg.env !== 'production',
     });
-    const LangfuseCtor = langfuseMod.Langfuse || langfuseMod.default?.Langfuse || langfuseMod.default;
+    const LangfuseCtor =
+      langfuseMod.Langfuse || langfuseMod.default?.Langfuse || langfuseMod.default;
     __langfuse = new LangfuseCtor({
       publicKey: cfg.publicKey,
       secretKey: cfg.secretKey,
@@ -97,7 +98,7 @@ function requireOptional(name) {
   try {
     // Use createRequire so the package stays ESM-pure while still allowing
     // optional dependency loading.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+
     const { createRequire } = globalThis.__cortexTelemetryRequire || _loadCreateRequire();
     const req = createRequire(import.meta.url);
     return req(name);
@@ -109,15 +110,17 @@ function requireOptional(name) {
 function _loadCreateRequire() {
   // Hoist to avoid repeated dynamic import cost. Stored on globalThis so the
   // test suite can swap it for a stub.
-  // eslint-disable-next-line no-undef
+
   const mod = { createRequire: undefined };
   try {
     // node:module is built-in; require() it via Node's CJS shim.
-    const m = process.getBuiltinModule ? process.getBuiltinModule("module") : null;
-    if (m && typeof m.createRequire === "function") {
+    const m = process.getBuiltinModule ? process.getBuiltinModule('node:module') : null;
+    if (m && typeof m.createRequire === 'function') {
       mod.createRequire = m.createRequire;
     }
-  } catch { /* fall through */ }
+  } catch {
+    /* fall through */
+  }
   globalThis.__cortexTelemetryRequire = mod;
   return mod;
 }
@@ -141,8 +144,8 @@ function _loadCreateRequire() {
  * @returns {Promise<T>}
  */
 export async function traceLLMCall(spec, handler) {
-  if (typeof handler !== "function") {
-    throw new TypeError("traceLLMCall: handler must be a function");
+  if (typeof handler !== 'function') {
+    throw new TypeError('traceLLMCall: handler must be a function');
   }
   if (!__initialized) instrument();
   if (!__config?.enabled || !__langfuse) {
@@ -175,7 +178,7 @@ export async function traceLLMCall(spec, handler) {
   } catch (err) {
     generation.end({
       endTime: new Date(),
-      level: "ERROR",
+      level: 'ERROR',
       statusMessage: err?.message || String(err),
     });
     throw err;
@@ -183,22 +186,22 @@ export async function traceLLMCall(spec, handler) {
 }
 
 function extractOutput(result) {
-  if (!result || typeof result !== "object") return result;
-  if ("output" in result) return result.output;
-  if ("text" in result) return result.text;
-  if ("content" in result) return result.content;
+  if (!result || typeof result !== 'object') return result;
+  if ('output' in result) return result.output;
+  if ('text' in result) return result.text;
+  if ('content' in result) return result.content;
   return result;
 }
 
 function extractUsage(result) {
-  if (!result || typeof result !== "object") return undefined;
+  if (!result || typeof result !== 'object') return undefined;
   const u = result.usage || result.token_usage || result.tokenUsage;
-  if (!u || typeof u !== "object") return undefined;
+  if (!u || typeof u !== 'object') return undefined;
   return {
     input: u.input ?? u.prompt_tokens ?? u.inputTokens,
     output: u.output ?? u.completion_tokens ?? u.outputTokens,
     total: u.total ?? u.total_tokens ?? u.totalTokens,
-    unit: u.unit || "TOKENS",
+    unit: u.unit || 'TOKENS',
   };
 }
 
@@ -208,8 +211,16 @@ function extractUsage(result) {
  */
 export async function shutdown() {
   if (!__initialized || !__config?.enabled) return;
-  try { if (__langfuse?.shutdownAsync) await __langfuse.shutdownAsync(); } catch { /* best effort */ }
-  try { if (__traceloop?.forceFlush) await __traceloop.forceFlush(); } catch { /* best effort */ }
+  try {
+    if (__langfuse?.shutdownAsync) await __langfuse.shutdownAsync();
+  } catch {
+    /* best effort */
+  }
+  try {
+    if (__traceloop?.forceFlush) await __traceloop.forceFlush();
+  } catch {
+    /* best effort */
+  }
 }
 
 /** Internal: test reset hook. */

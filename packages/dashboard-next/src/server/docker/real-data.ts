@@ -100,8 +100,8 @@ async function loadContainersJson(): Promise<Container[]> {
         const parts = m.split(":");
         if (parts.length < 2) return null;
         return {
-          source: parts[0]!,
-          destination: parts[1]!,
+          source: parts[0],
+          destination: parts[1],
           mode: parts[2] || "rw",
         };
       })

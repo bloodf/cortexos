@@ -68,7 +68,7 @@ export type DispatchResult =
   | {
       status: "accepted";
       op: string;
-      argv: ReadonlyArray<string>;
+      argv: readonly string[];
       durationMs: number;
       output: string;
     }
@@ -94,7 +94,7 @@ export type DispatchResult =
  * `executeRootCommand`. Signature is kept tiny so the bridge is
  * trivially testable.
  */
-export type Executor = (argv: ReadonlyArray<string>) => Promise<{
+export type Executor = (argv: readonly string[]) => Promise<{
   stdout: string;
   stderr: string;
   exitCode: number;
@@ -184,10 +184,10 @@ function collectArgSmugglingHits(
  * True if the resolved argv contains a literal `bash -c` pair. Belt-and-
  * braces guard for PB-2 / SR-019.
  */
-function argvContainsBashDashC(argv: ReadonlyArray<string>): boolean {
+function argvContainsBashDashC(argv: readonly string[]): boolean {
   for (let i = 0; i < argv.length - 1; i++) {
-    const a = argv[i]!;
-    const b = argv[i + 1]!;
+    const a = argv[i];
+    const b = argv[i + 1];
     if (/(^|\/)(bash|sh|zsh|ksh)$/.test(a) && b === "-c") {
       return true;
     }
@@ -286,7 +286,7 @@ export async function dispatch(
   const hits: { field: string; reason: string; matched: string }[] = [];
   collectArgSmugglingHits(input.args, "", hits);
   if (hits.length > 0) {
-    const first = hits[0]!;
+    const first = hits[0];
     audit({
       actorUserId: ctx.user.id,
       actorSessionId: null,
@@ -510,12 +510,12 @@ export async function dispatch(
 // listDockerOps — allowlisted docker ops for the UI
 // ---------------------------------------------------------------------------
 
-export function listDockerOps(): ReadonlyArray<{
+export function listDockerOps(): readonly {
   op: string;
   description: string;
   requiresApproval: boolean;
-  placeholders: ReadonlyArray<string>;
-}> {
+  placeholders: readonly string[];
+}[] {
   return listAllowlistedBySurface("docker").map((e) => ({
     op: e.name,
     description: e.description,

@@ -11,10 +11,10 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { sql } from "drizzle-orm";
+import type { PGlite } from "@electric-sql/pglite";
 import { createTestDb, type PgliteDbClient } from "../../test-utils";
 import { appendAuditLog, verifyAuditLogChain, jcs } from "../audit";
 import { auditLog } from "../../schema";
-import type { PGlite } from "@electric-sql/pglite";
 
 let db: PgliteDbClient;
 let client: PGlite;
@@ -88,7 +88,7 @@ describe("verifyAuditLogChain — windowed queries", () => {
 
     // Tampering on the second row should break the chain
     const rows = await db.select().from(auditLog).orderBy(auditLog.id);
-    const secondId = rows[1]!.id;
+    const secondId = rows[1].id;
     await db.execute(
       sql`UPDATE audit_log SET payload = '{"b": 9999}'::jsonb WHERE id = ${secondId}`,
     );

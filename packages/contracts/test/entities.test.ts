@@ -179,9 +179,7 @@ describe('entities — Session', () => {
     expect(parsed.id).toBe(UUID);
   });
   it('rejects a too-short CSRF token', () => {
-    expect(() =>
-      SessionSchema.parse({ ...validSession, csrfToken: 'short' }),
-    ).toThrow();
+    expect(() => SessionSchema.parse({ ...validSession, csrfToken: 'short' })).toThrow();
   });
   it('CurrentSessionSchema wraps user + session', () => {
     const parsed = CurrentSessionSchema.parse({
@@ -272,9 +270,7 @@ describe('entities — Service', () => {
     expect(parsed.color).toBe('#ff0000');
   });
   it('BadgeInputSchema rejects a non-hex color', () => {
-    expect(() =>
-      BadgeInputSchema.parse({ slug: 'core', label: 'Core', color: 'red' }),
-    ).toThrow();
+    expect(() => BadgeInputSchema.parse({ slug: 'core', label: 'Core', color: 'red' })).toThrow();
   });
   it('ServiceHealthSnapshotSchema round-trips', () => {
     const v = {
@@ -463,19 +459,18 @@ describe('entities — Docker', () => {
     expect(roundTrip(DockerNetworkSchema, v)).toMatchObject(v);
   });
   it('DockerActionInputSchema accepts start with name', () => {
-    expect(
-      DockerActionInputSchema.parse({ action: 'start', name: 'grafana' }),
-    ).toMatchObject({ action: 'start', name: 'grafana' });
+    expect(DockerActionInputSchema.parse({ action: 'start', name: 'grafana' })).toMatchObject({
+      action: 'start',
+      name: 'grafana',
+    });
   });
   it('DockerActionInputSchema requires name for non-pull', () => {
-    expect(() =>
-      DockerActionInputSchema.parse({ action: 'start' }),
-    ).toThrow();
+    expect(() => DockerActionInputSchema.parse({ action: 'start' })).toThrow();
   });
   it('DockerActionInputSchema accepts pull without name', () => {
-    expect(
-      DockerActionInputSchema.parse({ action: 'pull', target: 'redis:7' }),
-    ).toMatchObject({ action: 'pull' });
+    expect(DockerActionInputSchema.parse({ action: 'pull', target: 'redis:7' })).toMatchObject({
+      action: 'pull',
+    });
   });
   it('DockerActionResultSchema round-trips', () => {
     const v = { stdout: 'ok', stderr: '', exitCode: 0 };
@@ -653,9 +648,7 @@ describe('entities — Systemd', () => {
     expect(roundTrip(SystemdUnitSchema, v)).toMatchObject(v);
   });
   it('SystemdActionInputSchema rejects an unknown action', () => {
-    expect(() =>
-      SystemdActionInputSchema.parse({ action: 'blow-up', name: 'x' }),
-    ).toThrow();
+    expect(() => SystemdActionInputSchema.parse({ action: 'blow-up', name: 'x' })).toThrow();
   });
   it('SystemdActionInputSchema round-trips', () => {
     const v = { action: 'restart' as const, name: 'cortex-dashboard.service' };
@@ -831,9 +824,7 @@ describe('entities — Terminal + env-browser', () => {
   });
   it('TerminalActionSchema accepts each action', () => {
     for (const action of ['connect', 'exec', 'disconnect', 'resize']) {
-      expect(
-        TerminalActionSchema.parse({ action, sessionId: UUID }).action,
-      ).toBe(action);
+      expect(TerminalActionSchema.parse({ action, sessionId: UUID }).action).toBe(action);
     }
   });
   it('TerminalCommandSchema round-trips', () => {
@@ -1077,64 +1068,84 @@ describe('sanity — exhaustive parse coverage', () => {
   it('all major entities are importable and parseable', () => {
     // A simple smoke test: confirm a representative subset parses valid input.
     const samples: Array<[string, z.ZodTypeAny, unknown]> = [
-      ['ServiceSchema', ServiceSchema, {
-        id: UUID,
-        slug: 'svc',
-        name: 'S',
-        kind: 'service',
-        category: 'C',
-        healthUrl: 'http://x',
-        healthType: 'http',
-        openUrl: 'http://x',
-        status: 'online',
-        sortOrder: 0,
-        isActive: true,
-        hasWebui: false,
-        showInHealthcheck: true,
-        showInWebui: true,
-        badges: [],
-        createdAt: ISO,
-        updatedAt: ISO,
-      }],
-      ['DockerContainerSchema', DockerContainerSchema, {
-        id: 'sha256:'.padEnd(71, 'a'),
-        name: 'c',
-        image: 'i',
-        state: 'running',
-        ports: [],
-        created: ISO,
-        privileged: false,
-        networks: [],
-        mounts: [],
-      }],
-      ['IncusImageSchema', IncusImageSchema, {
-        fingerprint: 'a'.repeat(64),
-        architecture: 'x86_64',
-        type: 'container',
-        size: 1,
-        uploadedAt: ISO,
-        aliases: [],
-      }],
-      ['SystemdUnitSchema', SystemdUnitSchema, {
-        name: 'x',
-        description: '',
-        load: 'loaded',
-        active: 'active',
-        sub: 'running',
-        enabled: true,
-        type: 'service',
-      }],
-      ['AlertRuleSchema', AlertRuleSchema, {
-        id: UUID,
-        name: 'x',
-        serviceId: null,
-        condition: 'offline',
-        severity: 'warning',
-        channels: ['ui'],
-        enabled: true,
-        createdAt: ISO,
-        updatedAt: ISO,
-      }],
+      [
+        'ServiceSchema',
+        ServiceSchema,
+        {
+          id: UUID,
+          slug: 'svc',
+          name: 'S',
+          kind: 'service',
+          category: 'C',
+          healthUrl: 'http://x',
+          healthType: 'http',
+          openUrl: 'http://x',
+          status: 'online',
+          sortOrder: 0,
+          isActive: true,
+          hasWebui: false,
+          showInHealthcheck: true,
+          showInWebui: true,
+          badges: [],
+          createdAt: ISO,
+          updatedAt: ISO,
+        },
+      ],
+      [
+        'DockerContainerSchema',
+        DockerContainerSchema,
+        {
+          id: 'sha256:'.padEnd(71, 'a'),
+          name: 'c',
+          image: 'i',
+          state: 'running',
+          ports: [],
+          created: ISO,
+          privileged: false,
+          networks: [],
+          mounts: [],
+        },
+      ],
+      [
+        'IncusImageSchema',
+        IncusImageSchema,
+        {
+          fingerprint: 'a'.repeat(64),
+          architecture: 'x86_64',
+          type: 'container',
+          size: 1,
+          uploadedAt: ISO,
+          aliases: [],
+        },
+      ],
+      [
+        'SystemdUnitSchema',
+        SystemdUnitSchema,
+        {
+          name: 'x',
+          description: '',
+          load: 'loaded',
+          active: 'active',
+          sub: 'running',
+          enabled: true,
+          type: 'service',
+        },
+      ],
+      [
+        'AlertRuleSchema',
+        AlertRuleSchema,
+        {
+          id: UUID,
+          name: 'x',
+          serviceId: null,
+          condition: 'offline',
+          severity: 'warning',
+          channels: ['ui'],
+          enabled: true,
+          createdAt: ISO,
+          updatedAt: ISO,
+        },
+      ],
     ];
     for (const [name, schema, value] of samples) {
       const result = schema.safeParse(value);

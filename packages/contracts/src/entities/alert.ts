@@ -73,10 +73,10 @@ export const AlertRuleInputSchema = z
     enabled: z.boolean().default(true),
   })
   .refine(
-    (v) => v.condition === 'response_time' ? v.thresholdMs !== undefined : v.thresholdMs === undefined,
+    (v) =>
+      v.condition === 'response_time' ? v.thresholdMs !== undefined : v.thresholdMs === undefined,
     {
-      message:
-        'thresholdMs is required when condition=response_time, and forbidden otherwise',
+      message: 'thresholdMs is required when condition=response_time, and forbidden otherwise',
     },
   );
 export type AlertRuleInput = z.infer<typeof AlertRuleInputSchema>;

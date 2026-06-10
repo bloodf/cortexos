@@ -8,8 +8,8 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { sql } from "drizzle-orm";
-import { createTestDb, type PgliteDbClient } from "../test-utils";
 import type { PGlite } from "@electric-sql/pglite";
+import { createTestDb, type PgliteDbClient } from "../test-utils";
 
 let db: PgliteDbClient;
 let client: PGlite;

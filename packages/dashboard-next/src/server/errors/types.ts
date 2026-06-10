@@ -10,7 +10,7 @@ export interface ValidationError {
   readonly kind: "validation";
   readonly message: string;
   /** Field-level details: `{ field: string, message: string }[]`. */
-  readonly details: ReadonlyArray<{ field: string; message: string }>;
+  readonly details: readonly { field: string; message: string }[];
 }
 
 export interface AuthError {
@@ -79,7 +79,7 @@ export function isApiError(e: unknown): e is ApiError {
 /** Helper constructors — return typed `ApiError` values. */
 export const validationError = (
   message: string,
-  details: ReadonlyArray<{ field: string; message: string }> = [],
+  details: readonly { field: string; message: string }[] = [],
 ): ValidationError => ({ kind: "validation", message, details });
 
 export const authError = (message = "Authentication required"): AuthError => ({

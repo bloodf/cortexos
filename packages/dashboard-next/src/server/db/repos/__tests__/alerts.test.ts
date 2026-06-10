@@ -34,7 +34,7 @@ beforeEach(async () => {
   client = r.client;
   const { services } = await import("../../schema");
   const svc = await db.select().from(services).limit(1);
-  serviceId = svc[0]!.id;
+  serviceId = svc[0].id;
 }, 30_000);
 
 afterEach(async () => {
@@ -142,7 +142,7 @@ describe("alerts repo — rule-based", () => {
     });
     const hist = await listAlertHistory(db, { ruleId: rule.id });
     expect(hist.length).toBe(1);
-    expect(hist[0]!.message).toBe("service is down");
+    expect(hist[0].message).toBe("service is down");
   });
 
   it("deleteAlertHistoryOlderThan sweeps old rows", async () => {
@@ -180,7 +180,7 @@ describe("alerts repo — operational", () => {
     await expect(
       createOperationalAlert(db, {
         kind: "test",
-        severity: "fatal" as never,
+        severity: "fatal",
         title: "x",
       }),
     ).rejects.toThrow("Invalid alert severity");

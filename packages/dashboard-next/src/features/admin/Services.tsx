@@ -114,7 +114,7 @@ export function AdminServicesPage() {
       slug: r.slug,
       name: r.name,
       category: r.category,
-      healthType: r.health_type as HealthType,
+      healthType: r.health_type,
       kind: r.kind as Kind,
       healthUrl: r.health_url ?? "",
       openUrl: r.open_url ?? "",

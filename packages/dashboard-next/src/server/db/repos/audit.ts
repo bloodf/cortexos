@@ -213,7 +213,7 @@ export async function countAgentGatewayAudit(
 export function jcs(value: unknown): string {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
   if (Array.isArray(value)) return `[${value.map(jcs).join(",")}]`;
-  const keys = Object.keys(value as Record<string, unknown>).sort();
+  const keys = Object.keys(value).sort();
   return `{${keys
     .map((k) => `${JSON.stringify(k)}:${jcs((value as Record<string, unknown>)[k])}`)
     .join(",")}}`;
@@ -341,8 +341,8 @@ export async function verifyAuditLogChain(
     valid: true,
     count: rows.length,
     // rows.length > 0 is guaranteed by the early return above.
-    firstId: Number(rows[0]!.id),
-    lastId: Number(rows[rows.length - 1]!.id),
+    firstId: Number(rows[0].id),
+    lastId: Number(rows[rows.length - 1].id),
   };
 }
 
@@ -401,7 +401,7 @@ export async function appendAuditLog(
         payloadHash,
         prevHash,
         chainHash,
-        payload: input.payload as Record<string, unknown>,
+        payload: input.payload,
       })
       .returning();
     const row = inserted[0];

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { renderWithProviders } from "@/test/render-helpers";
 import { screen } from "@testing-library/react";
+import { renderWithProviders } from "@/test/render-helpers";
 import {
   Skeleton,
   TableSkeleton,
@@ -8,7 +8,7 @@ import {
   ChartSkeleton,
   DetailSkeleton,
   InlineSkeleton,
-} from "./index";
+} from ".";
 
 describe("Skeleton primitives", () => {
   it("renders a base skeleton", () => {

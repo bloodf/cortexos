@@ -68,7 +68,7 @@ export interface User {
    *  (contracts shape — the form flowing through App.Locals after
    *  the contracts bridge). The auth module's `isAdmin` and
    *  `hasGroup` helpers handle both. */
-  readonly groupMemberships: ReadonlyArray<GroupName | GroupMembershipEntry>;
+  readonly groupMemberships: readonly (GroupName | GroupMembershipEntry)[];
 }
 
 export interface Session {
@@ -135,7 +135,7 @@ export interface AlertRule {
   name: string;
   query: string;
   severity: AlertSeverity;
-  channels: ReadonlyArray<string>;
+  channels: readonly string[];
   enabled: boolean;
 }
 
@@ -239,7 +239,7 @@ export interface PendingApproval {
 // ---------------------------------------------------------------------------
 
 export interface Page<T> {
-  items: ReadonlyArray<T>;
+  items: readonly T[];
   total: number;
   page: number;
   pageSize: number;

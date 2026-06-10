@@ -48,7 +48,7 @@ export interface ResolvedSession {
   readonly session: Session;
   readonly user: User;
   /** The dashboard-relevant groups the user is in (string names). */
-  readonly groups: ReadonlyArray<GroupName>;
+  readonly groups: readonly GroupName[];
   /** Convenience: derived from `groups`. */
   readonly isAdmin: boolean;
 }
@@ -192,7 +192,7 @@ interface MemSessionRow {
 interface MemUserRow {
   id: number;
   username: string;
-  groupMemberships: ReadonlyArray<GroupMembershipEntry>;
+  groupMemberships: readonly GroupMembershipEntry[];
   isActive: boolean;
 }
 
@@ -217,10 +217,10 @@ export class InMemorySessionStore implements SessionStore {
   /** Test helper: register a user directly (bypasses PAM). */
   upsertUser(input: {
     username: string;
-    groupMemberships: ReadonlyArray<GroupName>;
+    groupMemberships: readonly GroupName[];
     isActive?: boolean;
   }): { id: number; username: string } {
-    const entries: ReadonlyArray<GroupMembershipEntry> = input.groupMemberships.map((name) => ({
+    const entries: readonly GroupMembershipEntry[] = input.groupMemberships.map((name) => ({
       name,
       isAdmin: name === "cortexos-admin",
     }));
@@ -286,7 +286,7 @@ export class InMemorySessionStore implements SessionStore {
     // The session's `isAdmin` is the source of truth for this request — it was
     // re-validated by resolveContext on a TTL (SR-011). The user's stored
     // groupMemberships are an upsert-time snapshot and may be stale.
-    const groups: ReadonlyArray<GroupName> = row.isAdmin
+    const groups: readonly GroupName[] = row.isAdmin
       ? ["cortexos-admin", "cortexos-users"]
       : ["cortexos-users"];
     return {
@@ -434,10 +434,10 @@ export class DrizzleSessionStore implements SessionStore {
     // The DB doesn't store groupMemberships (that's a session-time projection
     // of OS group membership). resolveContext re-derives it from PAM; here we
     // default to whatever the cached is_admin says.
-    const groups: ReadonlyArray<GroupName> = row.isAdmin
+    const groups: readonly GroupName[] = row.isAdmin
       ? ["cortexos-admin", "cortexos-users"]
       : ["cortexos-users"];
-    const groupMemberships: ReadonlyArray<GroupMembershipEntry> = groups.map((name) => ({
+    const groupMemberships: readonly GroupMembershipEntry[] = groups.map((name) => ({
       name,
       isAdmin: row.isAdmin && name === "cortexos-admin",
     }));
@@ -552,7 +552,7 @@ function toUserEntity(row: MemUserRow, _id: number, isAdminOverride?: boolean): 
     isAdminOverride !== undefined
       ? isAdminOverride
       : row.groupMemberships.some((g) => g.name === "cortexos-admin");
-  const groupMemberships: ReadonlyArray<GroupMembershipEntry> = isAdmin
+  const groupMemberships: readonly GroupMembershipEntry[] = isAdmin
     ? [
         { name: "cortexos-admin", isAdmin: true },
         { name: "cortexos-users", isAdmin: false },
@@ -581,7 +581,7 @@ function rowToSession(row: typeof adminSessions.$inferSelect, now: number): Sess
 }
 
 function rowToUser(row: typeof pamUsers.$inferSelect, isAdminCached: boolean): User {
-  const groups: ReadonlyArray<GroupName> = isAdminCached
+  const groups: readonly GroupName[] = isAdminCached
     ? ["cortexos-admin", "cortexos-users"]
     : ["cortexos-users"];
   return {

@@ -77,27 +77,26 @@ const b = (slug: string): BadgeRef => {
 
 const def = (
   n: Partial<Service> & { id: number; slug: string; name: string; category: string },
-): Service =>
-  ({
-    open_url: `https://${n.slug}.cortex.local`,
-    status: "online",
-    responseTime: 20 + Math.round(Math.random() * 80),
-    icon_color: BRAND_COLORS[n.slug] ?? null,
-    icon_image: null,
-    kind: "app",
-    health_url: `https://${n.slug}.cortex.local/health`,
-    health_type: "http",
-    description: null,
-    env_source: `/etc/cortex/${n.slug}.env`,
-    is_active: true,
-    has_webui: true,
-    show_in_healthcheck: true,
-    show_in_webui: true,
-    sort_order: n.id ?? 0,
-    icon_type: "auto",
-    badges: [],
-    ...n,
-  }) as Service;
+): Service => ({
+  open_url: `https://${n.slug}.cortex.local`,
+  status: "online",
+  responseTime: 20 + Math.round(Math.random() * 80),
+  icon_color: BRAND_COLORS[n.slug] ?? null,
+  icon_image: null,
+  kind: "app",
+  health_url: `https://${n.slug}.cortex.local/health`,
+  health_type: "http",
+  description: null,
+  env_source: `/etc/cortex/${n.slug}.env`,
+  is_active: true,
+  has_webui: true,
+  show_in_healthcheck: true,
+  show_in_webui: true,
+  sort_order: n.id ?? 0,
+  icon_type: "auto",
+  badges: [],
+  ...n,
+});
 
 export const SERVICES: Service[] = [
   def({
@@ -1200,9 +1199,9 @@ export const APPROVALS: ApprovalRequest[] = [
 // Hash-chain seed
 function fakeHash(prev: string, payload: string): string {
   let h = 5381;
-  const s = prev + "|" + payload;
+  const s = `${prev}|${payload}`;
   for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
-  return ("00000000" + h.toString(16)).slice(-8) + "…";
+  return `${`00000000${h.toString(16)}`.slice(-8)}…`;
 }
 let chainPrev = "genesis…";
 function ae(

@@ -13,10 +13,7 @@ import {
   ApprovalClassSchema,
   ApprovalTokenSchema,
 } from '../src/approval.js';
-import {
-  userId as makeUserId,
-  sessionId as makeSessionId,
-} from '../src/primitives.js';
+import { userId as makeUserId, sessionId as makeSessionId } from '../src/primitives.js';
 
 const SECRET = 'test-secret-do-not-use-in-prod';
 const FIXED_DATE = new Date('2026-06-03T13:08:43Z');

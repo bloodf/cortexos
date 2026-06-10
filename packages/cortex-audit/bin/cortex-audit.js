@@ -13,45 +13,49 @@
  * operator-driven verification runs. Never blocks production: failures are
  * surfaced via non-zero exit status only.
  */
-import { verifyChain, anchorToRekor } from "../src/index.js";
+import { verifyChain, anchorToRekor } from '../src';
 
 function parseFlags(argv) {
   const out = {};
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === "--from")  out.from  = argv[++i];
-    else if (a === "--to")    out.to    = argv[++i];
-    else if (a === "--since") out.since = argv[++i];
-    else if (a === "--help" || a === "-h") out.help = true;
+    if (a === '--from') out.from = argv[++i];
+    else if (a === '--to') out.to = argv[++i];
+    else if (a === '--since') out.since = argv[++i];
+    else if (a === '--help' || a === '-h') out.help = true;
   }
   return out;
 }
 
 function usage() {
   process.stdout.write(
-`Usage: cortex-audit <verify|anchor> [options]
+    `Usage: cortex-audit <verify|anchor> [options]
 
   verify  [--from ISO] [--to ISO]
   anchor  [--since ISO]
-`);
+`,
+  );
 }
 
 async function main() {
   const [, , cmd, ...rest] = process.argv;
   const flags = parseFlags(rest);
 
-  if (!cmd || flags.help) { usage(); process.exit(cmd ? 0 : 64); }
+  if (!cmd || flags.help) {
+    usage();
+    process.exit(cmd ? 0 : 64);
+  }
 
-  if (cmd === "verify") {
+  if (cmd === 'verify') {
     const result = await verifyChain(
       flags.from ? new Date(flags.from) : undefined,
-      flags.to   ? new Date(flags.to)   : undefined,
+      flags.to ? new Date(flags.to) : undefined,
     );
-    process.stdout.write(JSON.stringify(result) + "\n");
+    process.stdout.write(`${JSON.stringify(result)}\n`);
     process.exit(result.valid ? 0 : 1);
   }
 
-  if (cmd === "anchor") {
+  if (cmd === 'anchor') {
     const since = flags.since ? new Date(flags.since) : undefined;
     const v = await verifyChain(since);
     if (!v.valid) {
@@ -60,7 +64,7 @@ async function main() {
     }
     try {
       const result = await anchorToRekor(since);
-      process.stdout.write(JSON.stringify(result) + "\n");
+      process.stdout.write(`${JSON.stringify(result)}\n`);
       process.exit(0);
     } catch (e) {
       process.stderr.write(`anchor failed: ${e.message}\n`);

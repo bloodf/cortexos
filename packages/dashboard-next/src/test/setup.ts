@@ -12,10 +12,11 @@
 // (and in the GATE-RESOLUTION entry for MP-008 follow-up).
 import { expect } from "vitest";
 import * as matchers from "@testing-library/jest-dom/matchers";
-expect.extend(matchers);
 import "@testing-library/jest-dom/vitest";
 import { afterEach, vi } from "vitest";
 import { cleanup } from "@testing-library/react";
+
+expect.extend(matchers);
 
 afterEach(() => {
   cleanup();
@@ -44,7 +45,7 @@ if (typeof window !== "undefined") {
       observe() {}
       unobserve() {}
       disconnect() {}
-    } as unknown as typeof ResizeObserver;
+    };
   }
   if (!window.IntersectionObserver) {
     window.IntersectionObserver = class {
@@ -57,7 +58,7 @@ if (typeof window !== "undefined") {
       takeRecords() {
         return [];
       }
-    } as unknown as typeof IntersectionObserver;
+    };
   }
   // Element.scrollIntoView used by some shadcn primitives
   if (!Element.prototype.scrollIntoView) {

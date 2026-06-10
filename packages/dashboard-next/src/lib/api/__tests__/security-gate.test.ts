@@ -42,6 +42,7 @@ import { createHash } from "node:crypto";
 
 import { describe, it, expect, beforeEach, beforeAll, afterEach, afterAll } from "vitest";
 
+import { z } from "zod";
 import {
   InMemorySessionStore,
   setSessionStore,
@@ -70,7 +71,6 @@ import {
 } from "@/server/approval";
 import { _resetRevealGrants } from "@/server/env-reveal";
 import { asSessionId } from "@/server/entities";
-import { z } from "zod";
 
 import { loginGateOptions, meGateOptions } from "../auth.functions";
 import { readEnvGateOptions, unlockGateOptions } from "../env-browser.functions";
@@ -160,7 +160,7 @@ const anyGetCore: ApiRouteCore = defineApiRoute({
   handler: ({ user, input }) => ({
     ok: true,
     user: user ? user.username : null,
-    n: (input as { n?: number }).n ?? null,
+    n: input.n ?? null,
   }),
 });
 
@@ -190,7 +190,7 @@ const destructiveCore: ApiRouteCore = defineApiRoute({
   approval: true,
   surface: "system",
   action: DESTRUCTIVE_ACTION,
-  handler: ({ input }) => ({ ok: true, destroyed: (input as { target: string }).target }),
+  handler: ({ input }) => ({ ok: true, destroyed: input.target }),
 });
 
 function get(core: ApiRouteCore, path: string, token?: string): Promise<Response> {
@@ -243,7 +243,7 @@ function parseSetCookies(res: Response): Map<string, { value: string; attrs: Set
     const eq = first.indexOf("=");
     const name = first.slice(0, eq);
     const value = decodeURIComponent(first.slice(eq + 1));
-    const attrs = new Set(parts.map((p) => p.split("=")[0]!.toLowerCase()));
+    const attrs = new Set(parts.map((p) => p.split("=")[0].toLowerCase()));
     out.set(name, { value, attrs });
   }
   return out;
@@ -582,7 +582,7 @@ describe("[5] Approval tokens (§3.5 / PB-1)", () => {
 
   it("pipeline: destructive op WITH a valid session+action-bound token → 200, single-use", async () => {
     const { token, csrf, sessionId } = await makeSession({ isAdmin: true });
-    const user = (await store.resolveByToken(token))!.user;
+    const { user } = (await store.resolveByToken(token))!;
     const approval = mintApproval({
       action: DESTRUCTIVE_ACTION,
       payload: { target: "box-1" },
@@ -612,7 +612,7 @@ describe("[5] Approval tokens (§3.5 / PB-1)", () => {
 
   it("pipeline: token bound to a DIFFERENT action's hash → 412 (action mismatch)", async () => {
     const { token, csrf, sessionId } = await makeSession({ isAdmin: true });
-    const user = (await store.resolveByToken(token))!.user;
+    const { user } = (await store.resolveByToken(token))!;
     // Minted with the wrong payload → actionHash will not match the request.
     const approval = mintApproval({
       action: DESTRUCTIVE_ACTION,
@@ -939,7 +939,7 @@ describe("[8] Audit HMAC chain — tamper detection (§6.4)", () => {
       errorCode: null,
       payload: {},
     });
-    expect(audit.listAudit()[0]!.prevHash).toBeNull();
+    expect(audit.listAudit()[0].prevHash).toBeNull();
     audit.resetAudit();
   });
 });

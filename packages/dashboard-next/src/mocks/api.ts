@@ -66,8 +66,8 @@ async function listFrom<T>(
   if (sortKey && cfg.sort?.[sortKey]) {
     const get = cfg.sort[sortKey];
     rows = [...rows].sort((a, b) => {
-      const av = get(a),
-        bv = get(b);
+      const av = get(a);
+      const bv = get(b);
       if (av === bv) return 0;
       const d = av > bv ? 1 : -1;
       return sortDir === "desc" ? -d : d;

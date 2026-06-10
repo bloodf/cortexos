@@ -79,7 +79,6 @@ describe("migrate — errorMessage (private) via runSqlMigrations", () => {
         }
         // For the bootstrap (CREATE TABLE IF NOT EXISTS migrations) and
         // the migrations bookkeeping INSERT, just succeed.
-        return;
       },
       query: async () => [],
     };

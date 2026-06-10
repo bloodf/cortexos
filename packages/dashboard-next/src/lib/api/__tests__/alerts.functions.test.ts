@@ -90,7 +90,7 @@ const getCore: ApiRouteCore = defineApiRoute({
   input: z.object({ id: z.coerce.number().int().positive() }).strict(),
   surface: "alerts",
   action: "alerts.read",
-  target: (i) => String((i as { id: number }).id),
+  target: (i) => String(i.id),
   handler: () => ({ rule: { id: 1 } }),
 });
 
@@ -115,7 +115,7 @@ const deleteCore: ApiRouteCore = defineApiRoute({
   input: z.object({ id: z.number().int().positive() }).strict(),
   surface: "alerts",
   action: "alerts.delete",
-  target: (i) => String((i as { id: number }).id),
+  target: (i) => String(i.id),
   handler: () => ({ ok: true }),
 });
 

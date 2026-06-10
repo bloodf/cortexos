@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { CheckCircle2, Check, X, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,6 @@ import { useAuth } from "@/hooks/useAuth";
 import type { ApprovalRequest } from "@/mocks/types";
 import { relativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 
 export function ApprovalsPage() {
   const t = useT();

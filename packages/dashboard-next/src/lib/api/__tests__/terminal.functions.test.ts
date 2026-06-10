@@ -73,7 +73,7 @@ const dispatchCore: ApiRouteCore = defineApiRoute({
   action: "terminal.dispatch",
   target: (i) => (i as { op: string }).op,
   handler: async ({ input, user, ctx }) => {
-    const i = input as { op: string; args: Record<string, unknown> };
+    const i = input;
     const entry = allowlistedCommand(i.op);
     if (!entry || entry.surface !== "terminal") {
       throw permissionError(`Unsupported terminal op: ${i.op}`);

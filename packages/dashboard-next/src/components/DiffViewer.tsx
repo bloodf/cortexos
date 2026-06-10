@@ -77,8 +77,8 @@ export function DiffViewer({
 
 /** Tiny LCS diff. O(n*m) — fine for config files. */
 function diff(a: string[], b: string[]): Row[] {
-  const n = a.length,
-    m = b.length;
+  const n = a.length;
+  const m = b.length;
   const dp: number[][] = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
   for (let i = n - 1; i >= 0; i--) {
     for (let j = m - 1; j >= 0; j--) {
@@ -86,10 +86,10 @@ function diff(a: string[], b: string[]): Row[] {
     }
   }
   const rows: Row[] = [];
-  let i = 0,
-    j = 0,
-    la = 1,
-    lb = 1;
+  let i = 0;
+  let j = 0;
+  let la = 1;
+  let lb = 1;
   while (i < n && j < m) {
     if (a[i] === b[j]) {
       rows.push({ type: "same", text: a[i], lineA: la++, lineB: lb++ });

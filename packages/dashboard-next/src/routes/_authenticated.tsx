@@ -4,7 +4,10 @@ import { me as meFn } from "@/lib/api/auth.functions";
 
 // The gate-middleware pattern (defineServerFn + serverFnNoop) makes TypeScript
 // infer the server-fn return as `undefined`; recover the real shape here.
-type MeResult = { user: unknown; session: unknown };
+interface MeResult {
+  user: unknown;
+  session: unknown;
+}
 const callMe = meFn as unknown as (opts?: { data?: Record<string, never> }) => Promise<MeResult>;
 
 export const Route = createFileRoute("/_authenticated")({

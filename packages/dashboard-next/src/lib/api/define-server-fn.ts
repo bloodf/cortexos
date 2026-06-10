@@ -142,7 +142,7 @@ export function defineServerFn<TIn = unknown, TOut = unknown>(opts: ServerFnOpti
       target: opts.target,
       approval: opts.approval,
       handler: opts.handler,
-      inputData: data as TIn | undefined,
+      inputData: data,
     });
     return next({ result } as never);
   });

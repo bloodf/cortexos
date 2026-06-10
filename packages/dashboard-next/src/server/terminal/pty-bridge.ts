@@ -90,7 +90,7 @@ export type DispatchResult =
   | {
       status: "accepted";
       op: string;
-      argv: ReadonlyArray<string>;
+      argv: readonly string[];
       stdout: string;
       stderr: string;
       exitCode: number;
@@ -117,7 +117,7 @@ export type DispatchResult =
  * the deterministic test/non-linux mock. The signature is kept tiny so the
  * bridge is trivially testable.
  */
-export type Executor = (argv: ReadonlyArray<string>) => Promise<{
+export type Executor = (argv: readonly string[]) => Promise<{
   stdout: string;
   stderr: string;
   exitCode: number;
@@ -224,10 +224,10 @@ export function validateAllArgs(
  * True if the resolved argv contains a literal `<shell> -c` pair (PB-2
  * belt-and-braces). Catches a future caller that pre-constructs an argv.
  */
-function argvContainsBashDashC(argv: ReadonlyArray<string>): boolean {
+function argvContainsBashDashC(argv: readonly string[]): boolean {
   for (let i = 0; i < argv.length - 1; i++) {
-    const a = argv[i]!;
-    const b = argv[i + 1]!;
+    const a = argv[i];
+    const b = argv[i + 1];
     if (/(^|\/)(bash|sh|zsh|ksh)$/.test(a) && b === "-c") return true;
   }
   return false;
@@ -317,7 +317,7 @@ export async function dispatch(
   // 2. Recursive arg-smuggling scan.
   const hits = validateAllArgs(input.args);
   if (hits.length > 0) {
-    const first = hits[0]!;
+    const first = hits[0];
     audit({
       actorUserId: ctx.user.id,
       actorSessionId: null,
@@ -448,12 +448,12 @@ export async function dispatch(
 // listTerminalOps — surface the terminal allowlist for the UI.
 // ---------------------------------------------------------------------------
 
-export function listTerminalOps(): ReadonlyArray<{
+export function listTerminalOps(): readonly {
   op: string;
   description: string;
   requiresApproval: boolean;
-  placeholders: ReadonlyArray<string>;
-}> {
+  placeholders: readonly string[];
+}[] {
   return listAllowlistedBySurface("terminal").map((e) => ({
     op: e.name,
     description: e.description,
@@ -508,7 +508,7 @@ export async function spawnPty(
     // native addon. node-pty is NOT in package.json yet — adding it needs the
     // build allowlist for the native .node addon (flagged in STATUS.md WP-19).
     const ptyModule = "node-pty";
-    pty = (await import(/* @vite-ignore */ ptyModule)) as unknown as typeof pty;
+    pty = await import(/* @vite-ignore */ ptyModule);
   } catch {
     throw new Error(
       "pty_unavailable: node-pty is not installed and this framework has no " +

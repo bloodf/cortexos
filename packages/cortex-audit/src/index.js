@@ -19,13 +19,13 @@
  *     failure. Continuity of the production path beats absolute completeness
  *     of the audit trail; gaps are observable via `verifyChain`.
  */
-import { createHash } from "node:crypto";
-import { v4 as uuidv4 } from "uuid";
-import pg from "pg";
-import { jcs } from "./jcs.js";
-import { anchorDigest } from "./rekor.js";
+import { createHash } from 'node:crypto';
+import { v4 as uuidv4 } from 'uuid';
+import pg from 'pg';
+import { jcs } from './jcs.js';
+import { anchorDigest } from './rekor.js';
 
-const GENESIS_PREV_HASH = "0".repeat(64);
+const GENESIS_PREV_HASH = '0'.repeat(64);
 
 let injectedPool = null;
 
@@ -37,13 +37,13 @@ export function setPool(pool) {
 /** Lazy default pool — env-driven, mirrors dashboard/src/lib/db/client.ts. */
 function defaultPool() {
   if (!process.env.DB_PASSWORD) {
-    throw new Error("DB_PASSWORD environment variable is required");
+    throw new Error('DB_PASSWORD environment variable is required');
   }
   return new pg.Pool({
-    host: process.env.DB_HOST || "127.0.0.1",
-    port: parseInt(process.env.DB_PORT || "5432", 10),
-    database: process.env.DB_NAME || "cortex_dashboard",
-    user: process.env.DB_USER || "dashboard",
+    host: process.env.DB_HOST || '127.0.0.1',
+    port: parseInt(process.env.DB_PORT || '5432', 10),
+    database: process.env.DB_NAME || 'cortex_dashboard',
+    user: process.env.DB_USER || 'dashboard',
     password: process.env.DB_PASSWORD,
   });
 }
@@ -56,7 +56,7 @@ export function getPool() {
 }
 
 function sha256Hex(input) {
-  return createHash("sha256").update(input).digest("hex");
+  return createHash('sha256').update(input).digest('hex');
 }
 
 /** Compute the canonical payload hash (SHA-256 over JCS-canonical JSON). */
@@ -66,10 +66,9 @@ export function payloadHashOf(payload) {
 
 /** Compute the chain hash from prev_hash + payload_hash (both hex). */
 export function chainHashOf(prevHashHex, payloadHashHex) {
-  return sha256Hex(Buffer.concat([
-    Buffer.from(prevHashHex, "hex"),
-    Buffer.from(payloadHashHex, "hex"),
-  ]));
+  return sha256Hex(
+    Buffer.concat([Buffer.from(prevHashHex, 'hex'), Buffer.from(payloadHashHex, 'hex')]),
+  );
 }
 
 /**
@@ -86,17 +85,17 @@ export function chainHashOf(prevHashHex, payloadHashHex) {
  * @param {pg.Pool|pg.Client} [opts.pool]
  */
 export async function append(event, opts = {}) {
-  if (!event || typeof event !== "object") throw new Error("append: event required");
-  if (!event.event_type) throw new Error("append: event_type required");
-  if (!event.source) throw new Error("append: source required");
+  if (!event || typeof event !== 'object') throw new Error('append: event required');
+  if (!event.event_type) throw new Error('append: event_type required');
+  if (!event.source) throw new Error('append: source required');
   if (event.payload === undefined || event.payload === null) {
-    throw new Error("append: payload required");
+    throw new Error('append: payload required');
   }
 
   const pool = opts.pool || getPool();
   const client = await pool.connect();
   try {
-    await client.query("BEGIN");
+    await client.query('BEGIN');
 
     // Lock the current tip so concurrent appends serialise. ORDER BY
     // (occurred_at, id) DESC matches the PK and is therefore an index scan.
@@ -134,10 +133,14 @@ export async function append(event, opts = {}) {
       ],
     );
 
-    await client.query("COMMIT");
+    await client.query('COMMIT');
     return insert.rows[0];
   } catch (e) {
-    try { await client.query("ROLLBACK"); } catch { /* ignore */ }
+    try {
+      await client.query('ROLLBACK');
+    } catch {
+      /* ignore */
+    }
     throw e;
   } finally {
     client.release();
@@ -157,9 +160,15 @@ export async function verifyChain(fromTs, toTs, opts = {}) {
   const pool = opts.pool || getPool();
   const where = [];
   const params = [];
-  if (fromTs) { params.push(fromTs); where.push(`occurred_at >= $${params.length}`); }
-  if (toTs)   { params.push(toTs);   where.push(`occurred_at <  $${params.length}`); }
-  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  if (fromTs) {
+    params.push(fromTs);
+    where.push(`occurred_at >= $${params.length}`);
+  }
+  if (toTs) {
+    params.push(toTs);
+    where.push(`occurred_at <  $${params.length}`);
+  }
+  const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
   const { rows } = await pool.query(
     `SELECT id, occurred_at, payload_hash, prev_hash, chain_hash, payload
@@ -194,7 +203,7 @@ export async function verifyChain(fromTs, toTs, opts = {}) {
       return {
         valid: false,
         count: rows.length,
-        brokenAt: { id: row.id, occurred_at: row.occurred_at, reason: "prev_hash_mismatch" },
+        brokenAt: { id: row.id, occurred_at: row.occurred_at, reason: 'prev_hash_mismatch' },
       };
     }
     const recomputedPayload = payloadHashOf(row.payload);
@@ -202,7 +211,7 @@ export async function verifyChain(fromTs, toTs, opts = {}) {
       return {
         valid: false,
         count: rows.length,
-        brokenAt: { id: row.id, occurred_at: row.occurred_at, reason: "payload_hash_mismatch" },
+        brokenAt: { id: row.id, occurred_at: row.occurred_at, reason: 'payload_hash_mismatch' },
       };
     }
     const recomputedChain = chainHashOf(row.prev_hash, row.payload_hash);
@@ -210,7 +219,7 @@ export async function verifyChain(fromTs, toTs, opts = {}) {
       return {
         valid: false,
         count: rows.length,
-        brokenAt: { id: row.id, occurred_at: row.occurred_at, reason: "chain_hash_mismatch" },
+        brokenAt: { id: row.id, occurred_at: row.occurred_at, reason: 'chain_hash_mismatch' },
       };
     }
     expectedPrev = row.chain_hash;
@@ -240,7 +249,7 @@ export async function anchorToRekor(batchSinceTs, opts = {}) {
   const anchorFn = opts.anchorFn || anchorDigest;
 
   const pendingParams = batchSinceTs ? [batchSinceTs] : [];
-  const pendingWhere = batchSinceTs ? "AND occurred_at >= $1" : "";
+  const pendingWhere = batchSinceTs ? 'AND occurred_at >= $1' : '';
   const { rows: pending } = await pool.query(
     `SELECT COUNT(*)::int AS c
        FROM audit_log
@@ -249,7 +258,7 @@ export async function anchorToRekor(batchSinceTs, opts = {}) {
     pendingParams,
   );
   if (pending[0].c === 0) {
-    return { anchored: false, reason: "no_pending_rows" };
+    return { anchored: false, reason: 'no_pending_rows' };
   }
 
   const { rows: tipRows } = await pool.query(
@@ -258,11 +267,11 @@ export async function anchorToRekor(batchSinceTs, opts = {}) {
       ORDER BY occurred_at DESC, id DESC
       LIMIT 1`,
   );
-  if (tipRows.length === 0) return { anchored: false, reason: "empty_table" };
+  if (tipRows.length === 0) return { anchored: false, reason: 'empty_table' };
   const tip = tipRows[0];
 
   if (tip.chain_hash && /^[0-9a-f]{64}$/i.test(tip.chain_hash) === false) {
-    throw new Error("anchorToRekor: tip chain_hash is not 64 hex chars");
+    throw new Error('anchorToRekor: tip chain_hash is not 64 hex chars');
   }
 
   const { logIndex, uuid } = await anchorFn(tip.chain_hash);

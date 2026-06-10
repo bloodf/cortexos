@@ -7,7 +7,7 @@
  *   - BEGIN/COMMIT/ROLLBACK + FOR UPDATE serialisation
  *   - the four SQL shapes the audit module sends
  */
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach } from 'vitest';
 import {
   append,
   verifyChain,
@@ -16,7 +16,7 @@ import {
   chainHashOf,
   GENESIS_PREV_HASH,
   setPool,
-} from "../src/index.js";
+} from '../src';
 
 function makeShim() {
   const rows = [];
@@ -24,52 +24,73 @@ function makeShim() {
   let txMutex = Promise.resolve();
 
   function matchInsert(text) {
-    return text.includes("INSERT INTO audit_log");
+    return text.includes('INSERT INTO audit_log');
   }
   function matchSelectTip(text) {
-    return text.includes("FROM audit_log") &&
-           text.includes("ORDER BY occurred_at DESC, id DESC") &&
-           text.includes("LIMIT 1") &&
-           text.includes("FOR UPDATE");
+    return (
+      text.includes('FROM audit_log') &&
+      text.includes('ORDER BY occurred_at DESC, id DESC') &&
+      text.includes('LIMIT 1') &&
+      text.includes('FOR UPDATE')
+    );
   }
   function matchSelectTipNoLock(text) {
-    return text.includes("FROM audit_log") &&
-           text.includes("ORDER BY occurred_at DESC, id DESC") &&
-           text.includes("LIMIT 1") &&
-           !text.includes("FOR UPDATE");
+    return (
+      text.includes('FROM audit_log') &&
+      text.includes('ORDER BY occurred_at DESC, id DESC') &&
+      text.includes('LIMIT 1') &&
+      !text.includes('FOR UPDATE')
+    );
   }
   function matchSelectWindow(text) {
-    return text.includes("FROM audit_log") &&
-           text.includes("ORDER BY occurred_at ASC, id ASC");
+    return text.includes('FROM audit_log') && text.includes('ORDER BY occurred_at ASC, id ASC');
   }
   function matchSelectAnchorPrev(text) {
-    return text.includes("WHERE occurred_at < $1") &&
-           text.includes("ORDER BY occurred_at DESC, id DESC");
+    return (
+      text.includes('WHERE occurred_at < $1') && text.includes('ORDER BY occurred_at DESC, id DESC')
+    );
   }
   function matchCountPending(text) {
-    return text.includes("COUNT(*)::int AS c") &&
-           text.includes("rekor_log_index IS NULL");
+    return text.includes('COUNT(*)::int AS c') && text.includes('rekor_log_index IS NULL');
   }
   function matchUpdateRekor(text) {
-    return text.includes("UPDATE audit_log") && text.includes("SET rekor_log_index");
+    return text.includes('UPDATE audit_log') && text.includes('SET rekor_log_index');
   }
 
   async function doQuery(text, params = []) {
-    if (text === "BEGIN" || text === "COMMIT" || text === "ROLLBACK") return { rows: [] };
+    if (text === 'BEGIN' || text === 'COMMIT' || text === 'ROLLBACK') return { rows: [] };
 
     if (matchSelectTip(text) || matchSelectTipNoLock(text)) {
       if (rows.length === 0) return { rows: [] };
       const last = rows[rows.length - 1];
-      return { rows: [{ chain_hash: last.chain_hash, id: last.id, occurred_at: last.occurred_at }] };
+      return {
+        rows: [{ chain_hash: last.chain_hash, id: last.id, occurred_at: last.occurred_at }],
+      };
     }
 
     if (matchInsert(text)) {
-      const [event_id, event_type, source, subject, actor, payload_hash, prev_hash, chain_hash, payload] = params;
+      const [
+        event_id,
+        event_type,
+        source,
+        subject,
+        actor,
+        payload_hash,
+        prev_hash,
+        chain_hash,
+        payload,
+      ] = params;
       const row = {
         id: nextId++,
         occurred_at: new Date(),
-        event_id, event_type, source, subject, actor,
-        payload_hash, prev_hash, chain_hash,
+        event_id,
+        event_type,
+        source,
+        subject,
+        actor,
+        payload_hash,
+        prev_hash,
+        chain_hash,
         rekor_log_index: null,
         payload,
       };
@@ -93,19 +114,24 @@ function makeShim() {
     if (matchSelectWindow(text)) {
       let result = rows.slice();
       let pIdx = 0;
-      if (text.includes("occurred_at >= $")) {
+      if (text.includes('occurred_at >= $')) {
         const ts = params[pIdx++];
         result = result.filter((r) => r.occurred_at >= ts);
       }
-      if (text.includes("occurred_at <  $")) {
+      if (text.includes('occurred_at <  $')) {
         const ts = params[pIdx++];
         result = result.filter((r) => r.occurred_at < ts);
       }
-      return { rows: result.map((r) => ({
-        id: r.id, occurred_at: r.occurred_at,
-        payload_hash: r.payload_hash, prev_hash: r.prev_hash,
-        chain_hash: r.chain_hash, payload: r.payload,
-      })) };
+      return {
+        rows: result.map((r) => ({
+          id: r.id,
+          occurred_at: r.occurred_at,
+          payload_hash: r.payload_hash,
+          prev_hash: r.prev_hash,
+          chain_hash: r.chain_hash,
+          payload: r.payload,
+        })),
+      };
     }
 
     if (matchUpdateRekor(text)) {
@@ -144,12 +170,12 @@ beforeEach(() => {
   setPool(shim);
 });
 
-describe("payloadHashOf / chainHashOf primitives", () => {
-  it("payload hash is stable across key order", () => {
+describe('payloadHashOf / chainHashOf primitives', () => {
+  it('payload hash is stable across key order', () => {
     expect(payloadHashOf({ a: 1, b: 2 })).toBe(payloadHashOf({ b: 2, a: 1 }));
   });
 
-  it("chain hash composes prev + payload deterministically", () => {
+  it('chain hash composes prev + payload deterministically', () => {
     const h1 = chainHashOf(GENESIS_PREV_HASH, payloadHashOf({ x: 1 }));
     const h2 = chainHashOf(GENESIS_PREV_HASH, payloadHashOf({ x: 1 }));
     expect(h1).toBe(h2);
@@ -157,90 +183,92 @@ describe("payloadHashOf / chainHashOf primitives", () => {
   });
 });
 
-describe("append()", () => {
-  it("first row uses GENESIS prev_hash", async () => {
+describe('append()', () => {
+  it('first row uses GENESIS prev_hash', async () => {
     const r = await append({
-      event_type: "test.evt",
-      source: "test",
-      payload: { hello: "world" },
+      event_type: 'test.evt',
+      source: 'test',
+      payload: { hello: 'world' },
     });
     expect(r.prev_hash).toBe(GENESIS_PREV_HASH);
-    expect(r.payload_hash).toBe(payloadHashOf({ hello: "world" }));
+    expect(r.payload_hash).toBe(payloadHashOf({ hello: 'world' }));
     expect(r.chain_hash).toBe(chainHashOf(r.prev_hash, r.payload_hash));
   });
 
-  it("subsequent rows chain off the previous chain_hash", async () => {
-    const r1 = await append({ event_type: "t", source: "s", payload: { n: 1 } });
-    const r2 = await append({ event_type: "t", source: "s", payload: { n: 2 } });
+  it('subsequent rows chain off the previous chain_hash', async () => {
+    const r1 = await append({ event_type: 't', source: 's', payload: { n: 1 } });
+    const r2 = await append({ event_type: 't', source: 's', payload: { n: 2 } });
     expect(r2.prev_hash).toBe(r1.chain_hash);
     expect(r2.chain_hash).toBe(chainHashOf(r2.prev_hash, r2.payload_hash));
   });
 
-  it("rejects missing required fields", async () => {
-    await expect(append({ source: "s", payload: {} })).rejects.toThrow(/event_type/);
-    await expect(append({ event_type: "t", payload: {} })).rejects.toThrow(/source/);
-    await expect(append({ event_type: "t", source: "s" })).rejects.toThrow(/payload/);
+  it('rejects missing required fields', async () => {
+    await expect(append({ source: 's', payload: {} })).rejects.toThrow(/event_type/);
+    await expect(append({ event_type: 't', payload: {} })).rejects.toThrow(/source/);
+    await expect(append({ event_type: 't', source: 's' })).rejects.toThrow(/payload/);
   });
 });
 
-describe("verifyChain()", () => {
-  it("returns valid:true on intact chain", async () => {
-    await append({ event_type: "t", source: "s", payload: { n: 1 } });
-    await append({ event_type: "t", source: "s", payload: { n: 2 } });
-    await append({ event_type: "t", source: "s", payload: { n: 3 } });
+describe('verifyChain()', () => {
+  it('returns valid:true on intact chain', async () => {
+    await append({ event_type: 't', source: 's', payload: { n: 1 } });
+    await append({ event_type: 't', source: 's', payload: { n: 2 } });
+    await append({ event_type: 't', source: 's', payload: { n: 3 } });
     const r = await verifyChain();
     expect(r.valid).toBe(true);
     expect(r.count).toBe(3);
   });
 
-  it("detects tampered payload (payload_hash_mismatch)", async () => {
-    await append({ event_type: "t", source: "s", payload: { n: 1 } });
-    await append({ event_type: "t", source: "s", payload: { n: 2 } });
+  it('detects tampered payload (payload_hash_mismatch)', async () => {
+    await append({ event_type: 't', source: 's', payload: { n: 1 } });
+    await append({ event_type: 't', source: 's', payload: { n: 2 } });
     shim.rows[1].payload = { n: 999 }; // tamper without recomputing hash
     const r = await verifyChain();
     expect(r.valid).toBe(false);
-    expect(r.brokenAt.reason).toBe("payload_hash_mismatch");
+    expect(r.brokenAt.reason).toBe('payload_hash_mismatch');
   });
 
-  it("detects tampered chain_hash (chain_hash_mismatch)", async () => {
-    await append({ event_type: "t", source: "s", payload: { n: 1 } });
-    await append({ event_type: "t", source: "s", payload: { n: 2 } });
-    shim.rows[1].chain_hash = "f".repeat(64);
+  it('detects tampered chain_hash (chain_hash_mismatch)', async () => {
+    await append({ event_type: 't', source: 's', payload: { n: 1 } });
+    await append({ event_type: 't', source: 's', payload: { n: 2 } });
+    shim.rows[1].chain_hash = 'f'.repeat(64);
     const r = await verifyChain();
     expect(r.valid).toBe(false);
-    expect(["chain_hash_mismatch", "prev_hash_mismatch"]).toContain(r.brokenAt.reason);
+    expect(['chain_hash_mismatch', 'prev_hash_mismatch']).toContain(r.brokenAt.reason);
   });
 
-  it("detects missing row via prev_hash break", async () => {
-    await append({ event_type: "t", source: "s", payload: { n: 1 } });
-    await append({ event_type: "t", source: "s", payload: { n: 2 } });
-    await append({ event_type: "t", source: "s", payload: { n: 3 } });
+  it('detects missing row via prev_hash break', async () => {
+    await append({ event_type: 't', source: 's', payload: { n: 1 } });
+    await append({ event_type: 't', source: 's', payload: { n: 2 } });
+    await append({ event_type: 't', source: 's', payload: { n: 3 } });
     // Splice out the middle row — chain becomes inconsistent.
     shim.rows.splice(1, 1);
     const r = await verifyChain();
     expect(r.valid).toBe(false);
-    expect(r.brokenAt.reason).toBe("prev_hash_mismatch");
+    expect(r.brokenAt.reason).toBe('prev_hash_mismatch');
   });
 
-  it("returns valid:true on empty window", async () => {
+  it('returns valid:true on empty window', async () => {
     const r = await verifyChain();
     expect(r).toEqual({ valid: true, count: 0 });
   });
 });
 
-describe("anchorToRekor()", () => {
-  it("no-ops when nothing pending", async () => {
-    const r = await anchorToRekor(undefined, { anchorFn: async () => ({ logIndex: 1, uuid: "x" }) });
+describe('anchorToRekor()', () => {
+  it('no-ops when nothing pending', async () => {
+    const r = await anchorToRekor(undefined, {
+      anchorFn: async () => ({ logIndex: 1, uuid: 'x' }),
+    });
     expect(r.anchored).toBe(false);
   });
 
-  it("anchors tip and backfills rekor_log_index", async () => {
-    await append({ event_type: "t", source: "s", payload: { n: 1 } });
-    await append({ event_type: "t", source: "s", payload: { n: 2 } });
+  it('anchors tip and backfills rekor_log_index', async () => {
+    await append({ event_type: 't', source: 's', payload: { n: 1 } });
+    await append({ event_type: 't', source: 's', payload: { n: 2 } });
     const r = await anchorToRekor(undefined, {
       anchorFn: async (digest) => {
         expect(digest).toMatch(/^[0-9a-f]{64}$/);
-        return { logIndex: 4242, uuid: "abc" };
+        return { logIndex: 4242, uuid: 'abc' };
       },
     });
     expect(r.anchored).toBe(true);

@@ -107,16 +107,7 @@ export type SystemdActionResult = z.infer<typeof SystemdActionResultSchema>;
 
 export const SystemdLogLineSchema = z.object({
   ts: zIsoTimestamp,
-  priority: z.enum([
-    'emerg',
-    'alert',
-    'crit',
-    'err',
-    'warning',
-    'notice',
-    'info',
-    'debug',
-  ]),
+  priority: z.enum(['emerg', 'alert', 'crit', 'err', 'warning', 'notice', 'info', 'debug']),
   unit: z.string().min(1).max(128),
   message: z.string().min(0).max(8192),
 });

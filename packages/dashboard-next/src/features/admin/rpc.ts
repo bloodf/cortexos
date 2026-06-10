@@ -12,6 +12,7 @@
  * Mutations (POST fns) attach the session-bound CSRF header via `csrfHeaders()`.
  */
 
+import type { Service as ContractService, User } from "@cortexos/contracts/entities";
 import {
   listServices as _listServices,
   createService as _createService,
@@ -22,7 +23,6 @@ import { readEnv as _readEnv, unlock as _unlock } from "@/lib/api/env-browser.fu
 import { me as _me } from "@/lib/api/auth.functions";
 
 import { toServiceRow } from "@/lib/adapters/services";
-import type { Service as ContractService, User } from "@cortexos/contracts/entities";
 import type { Service as MockService } from "@/mocks/types";
 
 import { csrfHeaders } from "./csrf";
@@ -31,7 +31,7 @@ import { csrfHeaders } from "./csrf";
 // Typed boundaries (recover payloads erased by the gate-middleware pattern)
 // ---------------------------------------------------------------------------
 
-type ServiceCreateData = {
+interface ServiceCreateData {
   slug: string;
   name: string;
   description?: string | null;
@@ -40,7 +40,7 @@ type ServiceCreateData = {
   category: string;
   openUrl?: string | null;
   kind?: "app" | "service" | "docker" | "process" | "dashboard-launcher";
-};
+}
 
 type ServicePatchData = Partial<ServiceCreateData> & {
   id: number;

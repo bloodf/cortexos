@@ -17,8 +17,8 @@
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { join } from "node:path";
-import { createMigratedPgliteDb } from "../../client.pglite";
 import type { PGlite } from "@electric-sql/pglite";
+import { createMigratedPgliteDb } from "../../client.pglite";
 
 let client: PGlite;
 let ran: string[];

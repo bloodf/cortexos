@@ -15,6 +15,7 @@ import {
   RefreshCw,
   Server,
 } from "lucide-react";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -51,7 +52,6 @@ import { csrfHeaders } from "@/features/admin/csrf";
 import type { MailReview } from "@/mocks/types";
 import { relativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 
 // ---------------------------------------------------------------------------
 // Risk colour helpers

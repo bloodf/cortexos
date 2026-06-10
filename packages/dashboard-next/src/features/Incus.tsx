@@ -12,6 +12,7 @@ import {
   RotateCw,
   Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { DataTable, type Column } from "@/components/DataTable";
 import { KeyValueList } from "@/components/KeyValueList";
@@ -45,7 +46,6 @@ import { useAuth } from "@/hooks/useAuth";
 import type { IncusInstance } from "@/mocks/types";
 import { bytes, relativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 
 // ---------------------------------------------------------------------------
 // Approval-gated incus action helper (mirrors Docker.tsx pattern)
