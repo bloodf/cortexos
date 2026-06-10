@@ -2,8 +2,11 @@
 # Adversarial gates.
 # Usage:
 #   run-critic.sh plan <doc> [context-files...]
-#       gpt-5.5 reviews a plan/analysis doc before use. Context files are
-#       embedded so findings rest on evidence, not guesses.
+#       gpt-5.5 reviews a plan before use. Context files are embedded so
+#       findings rest on evidence, not guesses.
+#   run-critic.sh analysis <doc> [context-files...]
+#       gpt-5.5 reviews an analysis/research doc: claims vs evidence, not
+#       plan structure (no ownership/TDD/acceptance requirements).
 #   run-critic.sh diff <plan> <git-base> [path-filters...]
 #       kimi reviews the diff <git-base>..HEAD against the plan, scoped to
 #       path-filters when given.
@@ -24,15 +27,20 @@ embed() { # embed <label> <file>
 }
 
 case "$MODE" in
-plan)
-  DOC="$(require_file "${1:?run-critic.sh plan <doc> [context...]}")"; shift
-  STEM="critic-plan-$(basename "$DOC" | tr -c 'A-Za-z0-9._-' '-' | sed 's/-*$//')"
+plan|analysis)
+  DOC="$(require_file "${1:?run-critic.sh plan|analysis <doc> [context...]}")"; shift
+  STEM="critic-$MODE-$(basename "$DOC" | tr -c 'A-Za-z0-9._-' '-' | sed 's/-*$//')"
   ART="$(next_artifact "$STEM")"
   PROMPT_FILE="$(mktemp)"
   trap 'rm -f "$PROMPT_FILE"' EXIT
   {
-    echo "You are an adversarial plan reviewer. Reject weak plans; a false PASS costs more than a false REJECT."
-    echo "Review the document below for: untraceable requirements (no file:line evidence), missing or non-binary acceptance criteria, missing file-ownership boundaries, tasks not TDD-ordered, missing out-of-scope list, internal contradictions, claims unsupported by the embedded context."
+    if [ "$MODE" = "plan" ]; then
+      echo "You are an adversarial plan reviewer. Reject weak plans; a false PASS costs more than a false REJECT."
+      echo "Review the document below for: untraceable requirements (no file:line evidence), missing or non-binary acceptance criteria, missing file-ownership boundaries, tasks not TDD-ordered, missing out-of-scope list, internal contradictions, claims unsupported by the embedded context."
+    else
+      echo "You are an adversarial reviewer of a defect ANALYSIS document. Reject analyses that could mislead an implementation plan; a false PASS costs more than a false REJECT."
+      echo "Review the document below for: factual claims not supported by the embedded context or by a quoted reproducible command, wrong or missing file:line citations, broken evidence chains (conclusion does not follow), unverified assumptions about framework or library behavior, internal contradictions, and risks of the recommended fix that the analysis fails to mention. Do NOT require plan-structure elements (acceptance criteria, file ownership, TDD ordering, out-of-scope lists) — those belong to the micro-plan derived from this analysis."
+    fi
     cat "$CONTRACT"
     echo
     echo "## Document under review"
