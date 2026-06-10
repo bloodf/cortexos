@@ -392,3 +392,16 @@ base window simply spans both plans. Verification run 6
 (screen-defects-6.md) empirically confirms both mechanisms: /processes
 false positive gone, /terminal known-artifact line printed, console-error
 counting live (17/18 PASS; the /overview favicon 404 is MP-006's subject).
+
+## 2026-06-10 — MP-011 final review cycle + release gate
+gpt-5.5 independent review of kimi's a9a20ef (tool-less lane requires
+embedded content — first attempt rejected on reviewability, re-dispatched
+with plan+diff embedded): REJECT with one VALID MAJOR — widget catalog
+moved to .ts dropped arrow-JSX, leaving `render: CpuW` invoked as
+`spec.render()` (Overview.tsx:213), a latent hook-order crash. FIXED in
+c45d675 (catalog renamed .tsx, element-creating renders restored);
+re-review PASS, zero findings. The useFormField finding → OVERRULED with
+evidence: zero importers outside form.tsx (orchestrator grep). Lint final:
+exit 0 — package fully clean (11,579 → 0). Release gate: verification run
+10 = 18/18 PASS, exit 0, real journal lines, no mock markers
+(screen-defects-10.md). Operator-approved merge to main executed.

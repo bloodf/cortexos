@@ -437,3 +437,11 @@ WP-54 fully complete: legacy `packages/dashboard` + `stacks/cortex-dashboard/` r
 
 Residual operator items: 45 lint problems (rule-id table in impl-mp-010-report.md);
 `cortex-dashboard-root-helper.service/.socket` provenance check (flagged, untouched).
+
+## Wave 7 — lint zero + release (2026-06-10)
+| WP | Title | Status | Commit | Evidence |
+|----|-------|--------|--------|----------|
+| MP-011 | residual lint manual fixes (hooks naming, export hygiene, any-elimination) | done | a9a20ef + c45d675 | lint exit 0 (11,579→0); 558/558; gpt-5.5 review PASS after hook-hazard fix |
+| — | root-helper units | disabled | host-side | ORPHANED-LEGACY per recon; stopped + disabled, files kept |
+| G5 | release gate (run 10) | **18/18 PASS, exit 0** | — | screen-defects-10.md |
+| RELEASE | merge fix/dashboard-deslop → main | done | (merge commit below) | operator-approved |
