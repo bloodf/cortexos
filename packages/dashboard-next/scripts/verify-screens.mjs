@@ -183,18 +183,13 @@ async function main() {
 
       const reasons = [];
       let finalUrl = '';
-      // Compute known-env-artifact matches at route-iteration scope (outside
-      // the try/catch) so `results.push` can read `matchedArtifactReasons`
-      // even when the try block throws. The FAIL-count reason itself
-      // (`reasons.push('... console error(s)')`) stays inside the try block
-      // so a navigation throw doesn't double-count the console-error reason.
-      const artifactsForRoute = KNOWN_ENV_ARTIFACTS.filter((a) => a.route === route.path);
-      const matchedArtifactReasons = artifactsForRoute
-        .filter((a) => consoleErrors.some((e) => a.pattern.test(e)))
-        .map((a) => a.reason);
-      const realConsoleErrors = consoleErrors.filter(
-        (e) => !artifactsForRoute.some((a) => a.pattern.test(e)),
-      );
+      // `matchedArtifactReasons` and `realConsoleErrors` are only assigned
+      // INSIDE the try block (after page.goto + all interactions) so they
+      // see the fully-populated `consoleErrors`. Empty defaults are
+      // declared at route-iteration scope so `results.push` below still
+      // has a defined value when the try block throws on navigation.
+      let matchedArtifactReasons = [];
+      let realConsoleErrors = [];
       try {
         const resp = await page.goto(route.path, {
           waitUntil: 'networkidle',
@@ -239,9 +234,17 @@ async function main() {
         // 3. Console errors / failed requests are FAILs. Known env
         // artifacts for this route are filtered out of the FAIL count
         // and surfaced separately in the report (see `known-artifact:`
-        // lines below). The filtering itself runs at route-iteration scope
-        // (above the try block) so its results are available to
-        // `results.push` on every code path.
+        // lines below). Computed here — after page.goto and all
+        // interactions — so `consoleErrors` is fully populated when we
+        // filter it. The defaults declared at route-iteration scope keep
+        // `results.push` working on the throw path.
+        const artifactsForRoute = KNOWN_ENV_ARTIFACTS.filter((a) => a.route === route.path);
+        matchedArtifactReasons = artifactsForRoute
+          .filter((a) => consoleErrors.some((e) => a.pattern.test(e)))
+          .map((a) => a.reason);
+        realConsoleErrors = consoleErrors.filter(
+          (e) => !artifactsForRoute.some((a) => a.pattern.test(e)),
+        );
         if (realConsoleErrors.length > 0) {
           reasons.push(`${realConsoleErrors.length} console error(s)`);
         }
