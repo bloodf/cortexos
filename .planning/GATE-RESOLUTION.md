@@ -172,6 +172,18 @@ dispositions, all FIXED:
 No overrules. The gate measurably hardened the design (auth levels,
 stderr coverage, hydration guard).
 
+## 2026-06-10 — MP-011 execution: M3 reliability failure, implementer re-routed to kimi (logged deviation)
+Four consecutive M3 jobs on MP-011 died silently (empty CLI logs; pi
+buffering means side effects are the only truth). Net progress across the
+deaths, verified by orchestrator: 45 → 8 problems, all 13 rules-of-hooks
+and all 12 no-explicit-any resolved with zero escalations; tsc 0 and
+558/558 green on the partial tree. ALSO: run-worker's expected_outputs
+check is satisfied by a PRE-EXISTING report file, so continuation jobs can
+false-PASS — harness gap noted for a future fix. DEVIATION from the role
+table: the final 8 only-export-components fixes are re-routed to kimi
+(reliable all session); gpt-5.5 will review the resulting diff so
+author ≠ reviewer is preserved (kimi cannot gate its own commit).
+
 ## 2026-06-10 — MP-011 plan (3 cycles, dispositions applied under /loop standing authorization)
 Artifacts: `harness/artifacts/critic-plan-MP-011-lint-residuals.md-{1,2,3}.md`.
 Cycle 1 BLOCKERs FIXED (unfiltered listing capture — the grep dropped
