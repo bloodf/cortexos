@@ -22,3 +22,29 @@ context): FIXED. Cycle 3 dispositions:
   orchestrator-verified existence + result, and keeps the source-level
   fallback check.
 No overrules.
+
+## 2026-06-10 — AN-001 analysis (3 cycles, dispositions applied under /loop standing authorization)
+Artifacts: `harness/artifacts/critic-plan-AN-001-*-1.md` (plan-rubric run),
+`harness/artifacts/critic-analysis-AN-001-*-{1,2}.md`.
+Cycle 1 (wrong rubric — plan criteria applied to an analysis doc): harness
+gained a dedicated `analysis` mode; the framework-behavior BLOCKER was FIXED
+with quoted `start-server-core` evidence. Cycle 2 findings FIXED: middleware
+`data` chain quoted from `start-client-core/createServerFn.js:62-70,121-124`;
+null-input fallback hazard addressed (`!== undefined`, adopted in MP-002);
+terminal-section evidence quoted (Terminal.tsx, caddy-terminal.snippet).
+Cycle 3 dispositions:
+- [MAJOR] client `?payload=` serialization unevidenced → FALSE: empirically
+  proven by the 21 live captured request URLs in screen-defects-2.md
+  (`grep -c 'payload=%7B' .planning/harness/artifacts/screen-defects-2.md` → 21);
+  evidence reference added to the doc.
+- [MAJOR] client.ts stub claims unevidenced in that gate run → FIXED:
+  orchestrator verified `grep -n notYetWired client.ts` → :457,664-679
+  (file had been embedded in the cycle-2 run, omitted from cycle 3 to bound
+  prompt size).
+- [MAJOR] §5 leaned on stale pty-bridge comments → FIXED: stale citation
+  removed as load-bearing; conclusion now rests on Terminal.tsx,
+  caddy-terminal.snippet, and the shipped cortex-terminal sidecar.
+Escalation handling: user's standing /loop directive ("dont stop until
+everything is done") + two prior "Proceed (Recommended)" approvals; all
+dispositions logged here, none silent. MP-002 — the operative
+implementation contract — passes its own plan gate before any code change.
