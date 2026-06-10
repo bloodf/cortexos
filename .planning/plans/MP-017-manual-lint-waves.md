@@ -85,8 +85,10 @@
   wave's accepted-list, adjudicated by the orchestrator before push.
 
 ## Execution slicing (sequential micro-jobs, one commit per wave)
-- Wave A: contracts (62) + paperclip-adapter (15).
-  Commit: `fix(lint): manual wave A — contracts, paperclip-adapter (MP-017)`
+- Wave A: contracts (62). AMENDED 2026-06-10: paperclip-adapter (15) is
+  removed from the campaign — the operator directed full removal of the
+  package (MP-018); its findings leave with it.
+  Commit: `fix(lint): manual wave A — contracts (MP-017)`
 - Wave B: cortex-audit (58) + cortex-telemetry (41) + cortex-terminal
   (21). Commit: `fix(lint): manual wave B — audit, telemetry, terminal (MP-017)`
 - Wave C: cortex-mail-guardian (94). Commit: `fix(lint): manual wave C — mail-guardian (MP-017)`

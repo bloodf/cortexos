@@ -540,3 +540,13 @@ sole explicit exception). Cycle 3 dispositions, all FIXED:
   importer-edited package.
 No overrules. Execution: kimi waves A→D3 sequential; gpt-5.5 reviews
 each wave commit.
+
+## 2026-06-10 — operator directive: paperclip removal (recorded verbatim)
+"We dont have paperclip anymore, we can remove everythin related to
+paperclip in the project." Orchestrator recon: zero code importers (the
+dashboard references are a seed-stub container name + test fixture); no
+host containers/units; footprint = the package (14 tracked files), its
+release workflow, three eslint.config.js references, the stub/fixture.
+MP-018 executes the removal; MP-017 Wave A amended to contracts-only
+(paperclip's 15 lint findings leave with the package). Wave A's first
+dispatch was stopped before any tree change (verified clean).
