@@ -410,3 +410,17 @@ covered by the DB query running correctly (it fails closed on the bogus token).
 |----|-------|-----------|--------|-------|--------|
 | WP-53 | i18n es/pt-br | WP-52 | done | claude | 103 keys/locale; es.ts + ptBR.ts satisfy Dict; tsc 0 errors |
 | WP-54 | legacy removal + docs | WP-52 | wip | claude | DOCS done (CLAUDE.md+AGENTS.md created in dashboard-next, 70-dashboard.md + root AGENTS.md updated); legacy removal (phases 2-3: rm packages/dashboard + stacks/cortex-dashboard) still pending user confirmation |
+
+## Wave 5 — screen-verification fixes (2026-06-10, CLI-harness multi-agent session)
+| WP | Title | Status | Commit | Evidence |
+|----|-------|--------|--------|----------|
+| MP-001 | verify-screens prints captured non-2xx URL/status/body | done | 7a49181 | kimi diff gate PASS |
+| MP-002 | server-fn GET 400 root-cause fix — validate middleware `data`, not raw `?payload` query | done | 5412149 | AN-001 analysis; TDD test; 451 tests green; kimi PASS; cleared 11/14 failing routes |
+| MP-003 | LogStream SSR hydration mismatch (React #418 on /healthcheck) | done | 45a3837 | AN-002 analysis; determinism test; kimi PASS |
+| MP-004 | verify-screens: /terminal WS-404 classified as test-env artifact (allowlist, printed) | done | f908922+3cbf5e9+0d284b1+4d4206e | 3 kimi gate cycles; final PASS |
+| MP-005 | verify-screens: structural error-boundary check (kills process-argv false positive) | done | 533dc03 | fixture RED/GREEN; kimi PASS |
+| MP-006 | SVG favicon link — stops /favicon.ico 404 console error | done | 17ae96e | kimi PASS, zero findings |
+| G5 | full screen verification | **18/18 PASS, exit 0** | — | .planning/harness/artifacts/screen-defects-7.md |
+
+Gate ledger: `.planning/GATE-RESOLUTION.md`. Harness: `.planning/harness/`.
+Still USER-GATED: legacy `packages/dashboard` removal (WP-54 phases 2-3).
