@@ -49,7 +49,6 @@ hermes/**
 hermes-webui/**
 stacks/**
 scripts/**
-templates/**
 
 # Configuration
 .eslintrc.cjs

@@ -70,6 +70,19 @@ export default [
     ignores: IGNORE,
   },
 
+  // 1b) Import resolver — TypeScript + Node so import-x can resolve .ts/.tsx
+  {
+    settings: {
+      'import-x/resolver': {
+        typescript: {
+          project: ['./tsconfig.base.json', 'packages/*/tsconfig.json'],
+          noWarnOnMultipleProjects: true,
+        },
+        node: {},
+      },
+    },
+  },
+
   // 2) JS recommended baseline
   js.configs.recommended,
 
@@ -115,12 +128,10 @@ export default [
       // fork), not the canonical `import/*` from eslint-plugin-import.
       // import-x/no-unresolved: false positives for TS path aliases; typescript-eslint handles it
       'import-x/no-unresolved': 'off',
-      // import-x/extensions: Vite/TS handle extensions; linting them is noise
-      'import-x/extensions': [
-        'error',
-        'ignorePackages',
-        { js: 'never', mjs: 'never', ts: 'never' },
-      ],
+      // import-x/extensions: off — Vite/TS handle extensions; linting them is noise.
+      // Also false positives for TS path-alias imports (no TS resolver configured
+      // for import-x — same rationale as no-unresolved above).
+      'import-x/extensions': 'off',
       // no-console: apps and CLIs legitimately log; per-package override for libs
       'no-console': ['warn', { allow: ['warn', 'error', 'info'] }],
       // no-underscore-dangle: we use _id, _count for unused-discard pattern
@@ -297,6 +308,18 @@ export default [
       // default; each package can opt in by setting parserOptions.project.
       // '@typescript-eslint/no-floating-promises': 'error',
       // '@typescript-eslint/no-misused-promises': 'error',
+    },
+  },
+
+  // 7d) Plain-JS Node packages — Node ESM requires extensions on relative imports
+  {
+    files: [
+      'packages/cortex-audit/src/**/*.{js,mjs}',
+      'packages/cortex-telemetry/src/**/*.{js,mjs}',
+      'packages/cortex-terminal/src/**/*.{js,mjs}',
+    ],
+    rules: {
+      'import-x/extensions': ['error', 'ignorePackages', { js: 'always', mjs: 'always' }],
     },
   },
 
