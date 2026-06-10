@@ -512,3 +512,31 @@ dashboard-next tsconfig embedded). Cycle 3 dispositions:
   line-cited; file embedded in cycles 1-2 where the figure was accepted
   (embed-set rotation artifact, same class as prior cycles).
 No overrules. Implementer kimi; reviewer gpt-5.5 (embedded diff).
+
+## 2026-06-10 — MP-016 complete (6bc5b7d + 7e872f5) + 16d review adjudication
+Extensions findings 783 → 0 (independently verified). The 16d review's
+single MAJOR (three source-file import rewrites beyond the two config
+edits: '../src' → '../src/index.js' in cortex-audit bin/test +
+cortex-telemetry test) → ADJUDICATED ACCEPT: mechanical, required fallout
+of the gated glob-widening — the rule now correctly demands extensions
+there and Node ESM requires them (MP16-R3's own rationale); reviewer's
+counterargument concedes; audit gates green post-change (12/12, quoted in
+the report). Worker scratch debris /opt/cortexos/test2.config.mjs
+(untracked resolver experiment) deleted by orchestrator.
+
+## 2026-06-10 — MP-017 plan (3 cycles, dispositions applied under /loop standing authorization)
+Artifacts: `harness/artifacts/critic-plan-MP-017-manual-lint-waves.md-{1,2,3}.md`.
+Cycle 1 FIXED (R3 escalation mechanism made internally consistent;
+explicit per-wave ownership added; exact suppression grep; playbook cite
+corrected to MP-011's plan file). Cycle 2 FIXED (BLOCKER dissolved — the
+"+1 root finding" was the worker's untracked scratch file, deleted;
+Task-0 phantom reference removed; cross-package importer clause made the
+sole explicit exception). Cycle 3 dispositions, all FIXED:
+- [BLOCKER] D1/D2 partial waves vs full-package A1 → A1 now defines
+  rule-group zeroing for split waves; full-package zero at D3.
+- [MAJOR] fig.mjs vs test2.config.mjs → truncation artifact explained
+  in-plan with the identification chain.
+- [MAJOR] importer edits without gates → A2 extended to gate every
+  importer-edited package.
+No overrules. Execution: kimi waves A→D3 sequential; gpt-5.5 reviews
+each wave commit.
