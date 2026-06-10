@@ -33,9 +33,9 @@ ALL commands run from `/opt/cortexos`.
    — quote the problem-count line.
 2. AUTOFIX: `pnpm --filter @cortexos/dashboard-next exec eslint . --fix`
    (exit code may be non-zero — residuals remain; that is expected).
-3. Re-run the Task-1 lint command — quote the new counts. Expected: total
-   problems drop to roughly the non-fixable residue (~40); if the drop is
-   less than 90% of baseline, STOP and report IMPL-BLOCKED.
+3. Re-run the Task-1 lint command — quote the new counts. Binary stop
+   condition: if the reduction is less than 90% of the Task-1 baseline,
+   STOP and report IMPL-BLOCKED.
 4. Gates, env per established pattern
    (`set -a; source /opt/cortexos/.secrets/dashboard.env; set +a`):
    - `pnpm --filter @cortexos/dashboard-next exec tsc --noEmit` exit 0.
@@ -43,8 +43,11 @@ ALL commands run from `/opt/cortexos`.
      ≥ 558 tests.
    - `pnpm --filter @cortexos/dashboard-next build` exit 0.
    Quote all three summaries.
-5. RESIDUAL INVENTORY: `pnpm --filter @cortexos/dashboard-next exec eslint . 2>&1 | grep -oE '[a-z@/-]+$' | sort | uniq -c | sort -rn | head -15`
-   (count per rule id) — quote the table.
+5. RESIDUAL INVENTORY (default formatter — eslint v9 removed the core
+   `unix` formatter): `pnpm --filter @cortexos/dashboard-next exec eslint . 2>&1 | awk '/error|warning/ {print $NF}' | grep -E '^[a-z0-9@]' | sort | uniq -c | sort -rn | head -15`
+   (stylish output ends each finding line with the rule id as the last
+   field, so ids with digits like `jsx-a11y/*` survive intact) — quote
+   the table.
 6. ONE commit of the autofixed files only (do NOT stage `.planning/**` or
    `.output/**`), message exactly:
    style(dashboard-next): eslint --fix wave — mechanical autofix, no manual edits (MP-010)
@@ -54,10 +57,13 @@ ALL commands run from `/opt/cortexos`.
 ## Acceptance (binary)
 - A1: baseline and post-fix counts quoted; reduction ≥ 90% of baseline.
 - A2: tsc exit 0; full suite zero failures with ≥ 558 tests; build exit 0.
-- A3: `git show --stat HEAD | tail -1` quoted; every changed path is under
-  `packages/dashboard-next/`; the diff contains no eslint-disable
-  comments added (`git diff HEAD~1..HEAD | grep -c '^+.*eslint-disable'`
-  → 0 — added lines only, so context/removed lines cannot skew it).
+- A3 (path-level, binary): `git show --stat HEAD | tail -1` quoted for the
+  size summary, AND
+  `git diff --name-only HEAD~1..HEAD | grep -vc '^packages/dashboard-next/'`
+  outputs 0 (no changed path outside the package); the diff contains no
+  eslint suppression/inline-config comments added — covering ALL forms:
+  `git diff HEAD~1..HEAD | grep -cE '^\+.*(eslint-disable|eslint-enable|eslint-env|/\* *global |/\* *exported )'`
+  → 0 (added lines only, so context/removed lines cannot skew it).
 - A4: residual rule-id table present in the report.
 - A5 (orchestrator, after rebuild + restart): screen verification 18/18
   PASS.

@@ -172,6 +172,32 @@ dispositions, all FIXED:
 No overrules. The gate measurably hardened the design (auth levels,
 stderr coverage, hydration guard).
 
+## 2026-06-10 — CORRECTION: the G3 "zero new violations" claim was unverified
+The MP-010 cycle-3 gate exposed that eslint v9 dropped the core `unix`
+formatter: `--format unix` exits 0 printing only an install-advisory line.
+The earlier "zero eslint findings intersect MP-002's changed lines" check
+(logged in the G3 amendment) ran on that empty output — claim UNVERIFIED.
+Re-verified 2026-06-10 with the default formatter: MP-002's changed lines
+carry TWO minor stylistic violations (define-server-fn.ts:145
+@typescript-eslint/no-unnecessary-type-assertion — auto-fixable;
+server-fn-pipeline.ts:184 no-use-before-define — style-only, references a
+later-defined helper, consistent with the file's pre-existing structure).
+Neither affects behavior; MP-010's autofix wave addresses the fixable one.
+The G3 amendment's conclusion (lint debt is pre-existing, MP-002 sound)
+stands; its "zero" figure is corrected to "two minor stylistic".
+
+## 2026-06-10 — MP-010 plan (3 cycles, dispositions applied under /loop standing authorization)
+Artifacts: `harness/artifacts/critic-plan-MP-010-lint-wave.md-{1,2,3}.md`.
+Cycles 1-2 FIXED (unsupported figures removed/cited; added-lines-only
+suppression grep; path-level ownership check; digit-safe rule-id
+extraction). Cycle 3 dispositions, both FIXED:
+- [BLOCKER] `--format unix` removed in eslint v9 (empirically confirmed —
+  and the confirmation exposed the G3 correction above) → Task 5 now uses
+  the default formatter with awk-on-last-field rule-id extraction.
+- [MAJOR] suppression grep covered only eslint-disable → broadened to all
+  eslint inline-config comment forms.
+No overrules.
+
 ## 2026-06-10 — MP-007 + MP-009 diff gates (dispositions under /loop standing authorization)
 MP-009 (`critic-diff-55f9e0f-1.md`, REJECT):
 - [MAJOR] setInterval instead of plan's useQuery → OVERRULED, plan
