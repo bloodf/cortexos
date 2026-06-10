@@ -296,6 +296,24 @@ async function main() {
     console.log(pad(r.path, 22) + pad(verdict, 9) + detail);
   }
 
+  // Surface known-env-artifact matches for ALL routes (PASS and FAIL) so
+  // a passing route (e.g. /terminal whose only console error was the
+  // direct-:3080 WS 404) does not have its artifact silently swallowed.
+  // The FAIL-count and verdict logic above is unchanged.
+  console.log('\n=== KNOWN ENV ARTIFACTS ===');
+  const artifactRoutes = results.filter(
+    (r) => r.knownArtifacts && r.knownArtifacts.length,
+  );
+  if (artifactRoutes.length === 0) {
+    console.log('none.');
+  } else {
+    for (const r of artifactRoutes) {
+      for (const reason of r.knownArtifacts) {
+        console.log(`  ${r.path}: ${reason}`);
+      }
+    }
+  }
+
   console.log('\n=== FAIL DETAIL ===');
   const fails = results.filter((r) => !r.pass);
   if (fails.length === 0) {
