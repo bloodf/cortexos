@@ -118,7 +118,7 @@ built-server probe above, and the unit test covers the pipeline directly.
 | WP-16 | api approvals + audit | WP-03 (no new pkg deps) | done | claude | |
 | WP-17 | api alerts | — | todo | | |
 | WP-18 | api env-browser | WP-03 | done | claude | |
-| WP-19 | api terminal (WS PTY) | — | wip | claude | named-op path DONE; live PTY transport-blocked (see WP-19 note) |
+| WP-19 | api terminal (WS PTY) | — | done | claude | named-op path DONE; live PTY now via standalone sidecar (cortex-terminal) — see WP-19 RESOLUTION |
 | WP-20 | api auth | WP-03 | done | claude | (pending) |
 | WP-21 | api agents | — | done | claude | |
 
@@ -326,6 +326,61 @@ both land. WP-36 (frontend) should keep the mock terminal and wire the named-op 
 Evidence: `vitest run src/server src/lib/api` = 408 passed (33 files; +24 new WP-19 tests).
 `tsc --noEmit` = 0 errors. `grep -r 'M2_PTY_STUB\|M2_STUB_MARKER' src/server/terminal/` = CLEAN.
 No dependency changes; no edits outside WP-19's OWNS + the new `src/lib/api/terminal.functions.ts`.
+
+### WP-19 — RESOLUTION (live PTY shipped via standalone sidecar)
+The transport blocker above stands for the *in-process* dashboard (TanStack Start exposes no
+WS upgrade to app code). Resolved by running the interactive PTY as a **SEPARATE Node service**
+instead — it cannot affect the live dashboard, and `node-pty@1.1.0` now compiles on this host.
+
+New package: `packages/cortex-terminal/` (own package.json, deps node-pty/ws/pg).
+- `src/server.js` — a `ws` WebSocketServer on loopback (default `127.0.0.1:3081`, env
+  `TERMINAL_PORT`). It owns the HTTP `upgrade` so it authenticates BEFORE accepting the socket:
+  1. **Origin/CSRF** — WS `Origin` header must equal `ALLOWED_ORIGIN` (blocks cross-site WS
+     hijacking; cookies are sent on cross-site WS too, so the cookie alone is insufficient).
+     Mismatch → HTTP 403 abort. (If `ALLOWED_ORIGIN` is unset it logs a loud dev-only warning.)
+  2. **Cookie** — parses `cortexos_session` from the upgrade headers; absent → HTTP 401 abort.
+  3. **Session** — validates against Postgres (fresh `pg` Client, DB_* from
+     `/opt/cortexos/.secrets/dashboard.env`):
+     `select s.is_admin, u.username from admin_sessions s join pam_users u on u.id=s.user_id
+      where s.token=$1 and s.expires_at > now()`. No row → close **4401**.
+  4. **RBAC** — `is_admin` must be true → else close **4403** (admin-only).
+  5. On success spawns `pty.spawn(TERMINAL_SHELL|/bin/bash, [], {name:'xterm-color', cwd, env})`,
+     pipes `pty.onData → ws.send` and `ws message {type:'input'|'resize'} → pty.write/resize`.
+     Idle timeout (`TERMINAL_IDLE_SEC`, default 900s) kills the pty (close 4408); clean pty exit
+     sends `{type:'exit',code}` + close 4000. Graceful SIGTERM closes all sockets (1012).
+  6. Logs connection lifecycle (user, ip, codes) but **NEVER** pty content. Robust: malformed
+     frames are ignored, never crash; `uncaughtException`/`unhandledRejection` are logged, not fatal.
+  Same admin-host-shell trust model as the legacy `/api/terminal` (admins already have host access).
+
+Frontend (`packages/dashboard-next/src/features/Terminal.tsx`): each xterm tab now opens a
+same-origin WS to `wss://<host>/terminal/ws` (Caddy proxies → 127.0.0.1:3081), binds
+`term.onData → {type:'input'}` and forwards `{type:'resize',cols,rows}` on fit/resize. A
+connection-state badge shows connecting/live/mock/disconnected. If the socket fails to establish
+(non-auth close), it degrades to the existing local-mock key handler; auth rejections (4401/4403)
+do NOT fall back — they show the reason. The Named-Operations panel is unchanged.
+
+Deploy artifacts (templates/ is gitignored → live in docs/rebuild/):
+- `docs/rebuild/cortex-terminal.service` — systemd unit (root, EnvironmentFile dashboard.env,
+  `TERMINAL_PORT=3081`, `ALLOWED_ORIGIN=<dashboard public origin>`, `Restart=always`).
+- `docs/rebuild/caddy-terminal.snippet` — `/terminal/ws` → `127.0.0.1:3081` (place BEFORE the
+  catch-all `reverse_proxy 127.0.0.1:3080`; Caddy auto-forwards the WS upgrade headers).
+
+Verify evidence: `node -e "import('node-pty')..."` = `pty ok`; `node --check src/server.js` = OK;
+`tsc --noEmit` (dashboard-next) = 0 errors; local smoke (sidecar on test port) = no-origin→403,
+origin-ok+no-cookie→401, origin-ok+bad-cookie→close 4401, `/healthz`→ok, SIGTERM graceful. The
+authenticated-cookie path cannot be exercised headlessly (needs a real admin session) — it is
+covered by the DB query running correctly (it fails closed on the bogus token).
+
+**Orchestrator deploy steps:**
+1. Rebuild dashboard-next (frontend change) and redeploy:
+   `pnpm --filter @cortexos/dashboard-next build && sudo systemctl restart cortex-dashboard.service`.
+2. Install sidecar deps if needed: `pnpm install` (node-pty/ws/pg already in cortex-terminal/).
+3. `sudo cp docs/rebuild/cortex-terminal.service /etc/systemd/system/cortex-terminal.service`,
+   then edit `ALLOWED_ORIGIN=` to the real dashboard origin (the exact scheme+host the browser
+   sends), `sudo systemctl daemon-reload && sudo systemctl enable --now cortex-terminal.service`.
+   Probe: `curl -fsS http://127.0.0.1:3081/healthz` → `ok`.
+4. Merge `docs/rebuild/caddy-terminal.snippet` into the dashboard's Caddy site block (BEFORE the
+   :3080 catch-all), `sudo systemctl reload caddy`.
 
 ## Wave 2 — frontend route-groups (PARALLEL; need WP-04)
 | WP | Title | Pairs with | Status | Owner | Commit |

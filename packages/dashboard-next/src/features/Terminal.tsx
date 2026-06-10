@@ -18,8 +18,18 @@ import { listTerminalOps, dispatchTerminalOp } from "@/lib/api/client";
 
 const PROMPT = (user: string) => `\x1b[32m${user}@cortex\x1b[0m:\x1b[34m~\x1b[0m$ `;
 
+// Live PTY sidecar (WP-19). Same-origin WebSocket; Caddy proxies
+// `/terminal/ws` → 127.0.0.1:3081. Built relative to the current page so it
+// works on any host (Tailscale, localhost, etc.).
+function terminalWsUrl(): string {
+  const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${proto}//${window.location.host}/terminal/ws`;
+}
+
+type LiveState = "connecting" | "live" | "mock" | "closed";
+
 const BANNER = [
-  "\x1b[1;36mCortexOS shell\x1b[0m · \x1b[33mlive PTY pending WP-19\x1b[0m (node-pty + streaming transport not yet wired)",
+  "\x1b[1;36mCortexOS shell\x1b[0m · \x1b[33mlocal mock\x1b[0m (live PTY unavailable — sidecar not reachable)",
   "Interactive shell is a local mock. Use \x1b[36mNamed Operations\x1b[0m below for real server commands.",
   "Type \x1b[33mhelp\x1b[0m for mock commands. Use \x1b[33mclear\x1b[0m to wipe the screen.",
   "",
@@ -117,12 +127,14 @@ interface TerminalTabProps {
   username: string;
   dark: boolean;
   onReady: (id: string, handle: TabHandle) => void;
+  onState?: (id: string, state: LiveState) => void;
 }
 
-function TerminalTab({ id, active, username, dark, onReady }: TerminalTabProps) {
+function TerminalTab({ id, active, username, dark, onReady, onState }: TerminalTabProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<XTerm | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
   const stateRef = useRef({ buffer: "", history: [] as string[], hIdx: -1 });
 
   // Mount xterm once per tab
@@ -144,9 +156,24 @@ function TerminalTab({ id, active, username, dark, onReady }: TerminalTabProps) 
     termRef.current = term;
     fitRef.current = fit;
 
-    BANNER.forEach((l) => term.writeln(l));
-    term.write(PROMPT(username));
+    // ---- live-shell disposers (set only in live mode) ----
+    let mockKeyDisposable: { dispose: () => void } | null = null;
+    let liveDataDisposable: { dispose: () => void } | null = null;
+    let ws: WebSocket | null = null;
+    let disposed = false;
 
+    const setState = (s: LiveState) => { if (!disposed) onState?.(id, s); };
+
+    // Push xterm dimensions to the PTY so it matches the visible viewport.
+    const sendResize = () => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        try {
+          ws.send(JSON.stringify({ type: "resize", cols: term.cols, rows: term.rows }));
+        } catch { /* socket gone */ }
+      }
+    };
+
+    // ---- mock command handler (fallback) ----
     const submit = (line: string) => {
       const s = stateRef.current;
       if (line.trim()) s.history.unshift(line);
@@ -160,48 +187,134 @@ function TerminalTab({ id, active, username, dark, onReady }: TerminalTabProps) 
       term.write(PROMPT(username));
     };
 
-    term.onKey(({ key, domEvent }) => {
-      const ev = domEvent;
-      const s = stateRef.current;
-      if (ev.key === "Enter") {
-        term.write("\r\n");
-        submit(s.buffer);
-      } else if (ev.key === "Backspace") {
-        if (s.buffer.length > 0) { s.buffer = s.buffer.slice(0, -1); term.write("\b \b"); }
-      } else if (ev.key === "ArrowUp") {
-        if (s.hIdx + 1 < s.history.length) {
-          s.hIdx++;
-          term.write("\r" + PROMPT(username) + " ".repeat(s.buffer.length) + "\r" + PROMPT(username));
-          s.buffer = s.history[s.hIdx];
-          term.write(s.buffer);
-        }
-      } else if (ev.key === "ArrowDown") {
-        if (s.hIdx > 0) {
-          s.hIdx--;
-          term.write("\r" + PROMPT(username) + " ".repeat(s.buffer.length) + "\r" + PROMPT(username));
-          s.buffer = s.history[s.hIdx];
-          term.write(s.buffer);
-        } else if (s.hIdx === 0) {
-          s.hIdx = -1;
-          term.write("\r" + PROMPT(username) + " ".repeat(s.buffer.length) + "\r" + PROMPT(username));
+    // Attach the local mock key handler + banner. Used when the live PTY
+    // sidecar is unreachable so the page degrades gracefully.
+    const attachMock = () => {
+      setState("mock");
+      BANNER.forEach((l) => term.writeln(l));
+      term.write(PROMPT(username));
+      mockKeyDisposable = term.onKey(({ key, domEvent }) => {
+        const ev = domEvent;
+        const s = stateRef.current;
+        if (ev.key === "Enter") {
+          term.write("\r\n");
+          submit(s.buffer);
+        } else if (ev.key === "Backspace") {
+          if (s.buffer.length > 0) { s.buffer = s.buffer.slice(0, -1); term.write("\b \b"); }
+        } else if (ev.key === "ArrowUp") {
+          if (s.hIdx + 1 < s.history.length) {
+            s.hIdx++;
+            term.write("\r" + PROMPT(username) + " ".repeat(s.buffer.length) + "\r" + PROMPT(username));
+            s.buffer = s.history[s.hIdx];
+            term.write(s.buffer);
+          }
+        } else if (ev.key === "ArrowDown") {
+          if (s.hIdx > 0) {
+            s.hIdx--;
+            term.write("\r" + PROMPT(username) + " ".repeat(s.buffer.length) + "\r" + PROMPT(username));
+            s.buffer = s.history[s.hIdx];
+            term.write(s.buffer);
+          } else if (s.hIdx === 0) {
+            s.hIdx = -1;
+            term.write("\r" + PROMPT(username) + " ".repeat(s.buffer.length) + "\r" + PROMPT(username));
+            s.buffer = "";
+          }
+        } else if (ev.ctrlKey && ev.key === "c") {
+          term.write("^C\r\n" + PROMPT(username));
           s.buffer = "";
+        } else if (ev.ctrlKey && ev.key === "l") {
+          term.clear();
+          term.write(PROMPT(username) + s.buffer);
+        } else if (key.length === 1 && key.charCodeAt(0) >= 32) {
+          s.buffer += key;
+          term.write(key);
         }
-      } else if (ev.ctrlKey && ev.key === "c") {
-        term.write("^C\r\n" + PROMPT(username));
-        s.buffer = "";
-      } else if (ev.ctrlKey && ev.key === "l") {
-        term.clear();
-        term.write(PROMPT(username) + s.buffer);
-      } else if (key.length === 1 && key.charCodeAt(0) >= 32) {
-        s.buffer += key;
-        term.write(key);
+      });
+    };
+
+    // ---- live PTY (WP-19): bind xterm I/O straight to the sidecar WS ----
+    const connectLive = () => {
+      setState("connecting");
+      try {
+        ws = new WebSocket(terminalWsUrl());
+      } catch {
+        attachMock();
+        return;
       }
-    });
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        if (disposed) { ws?.close(); return; }
+        setState("live");
+        try { fit.fit(); } catch { /* noop */ }
+        sendResize();
+        // Raw keystrokes → PTY (xterm onData yields the encoded bytes).
+        liveDataDisposable = term.onData((data) => {
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            try { ws.send(JSON.stringify({ type: "input", data })); } catch { /* gone */ }
+          }
+        });
+        term.focus();
+      };
+
+      // Sidecar sends raw pty bytes as text frames, plus a JSON {type:'exit'}.
+      ws.onmessage = (ev) => {
+        const data = typeof ev.data === "string" ? ev.data : "";
+        if (data.startsWith("{") && data.includes('"type"')) {
+          try {
+            const msg = JSON.parse(data);
+            if (msg && msg.type === "exit") {
+              term.writeln(`\r\n\x1b[33m[process exited${typeof msg.code === "number" ? ` with code ${msg.code}` : ""}]\x1b[0m`);
+              return;
+            }
+          } catch { /* not control — fall through and print */ }
+        }
+        term.write(data);
+      };
+
+      ws.onclose = (ev) => {
+        liveDataDisposable?.dispose();
+        liveDataDisposable = null;
+        if (disposed) return;
+        wsRef.current = null;
+        // 4401/4403 are auth rejections — never fall back to mock for those.
+        if (ev.code === 4401) {
+          setState("closed");
+          term.writeln("\r\n\x1b[31m[session expired — reload to re-authenticate]\x1b[0m");
+        } else if (ev.code === 4403) {
+          setState("closed");
+          term.writeln("\r\n\x1b[31m[forbidden — admin access required]\x1b[0m");
+        } else if (ev.code === 4408) {
+          setState("closed");
+          term.writeln("\r\n\x1b[33m[disconnected — idle timeout]\x1b[0m");
+        } else if (ev.code === 4000 || ev.code === 1000 || ev.code === 1012) {
+          // clean shell exit / normal / server restart
+          setState("closed");
+          term.writeln("\r\n\x1b[33m[disconnected]\x1b[0m");
+        } else {
+          // Transport never established or hard failure → degrade to mock.
+          setState("mock");
+          term.writeln("\r\n\x1b[33m[live shell unavailable — falling back to local mock]\x1b[0m");
+          attachMock();
+        }
+      };
+
+      ws.onerror = () => {
+        // onclose fires after onerror; let onclose decide fallback.
+      };
+    };
+
+    connectLive();
 
     const handle: TabHandle = {
       execute: (cmd: string) => {
+        // Live mode: type the command straight into the PTY.
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          try { wsRef.current.send(JSON.stringify({ type: "input", data: cmd + "\n" })); } catch { /* gone */ }
+          return;
+        }
+        // Mock mode: overwrite current buffer with cmd, echo, and submit.
         const s = stateRef.current;
-        // overwrite current buffer with cmd, echo, and submit
         if (s.buffer.length) {
           term.write("\r" + PROMPT(username) + " ".repeat(s.buffer.length) + "\r" + PROMPT(username));
         }
@@ -213,14 +326,22 @@ function TerminalTab({ id, active, username, dark, onReady }: TerminalTabProps) 
     };
     onReady(id, handle);
 
-    const onResize = () => { try { fitRef.current?.fit(); } catch { /* noop */ } };
+    const onResize = () => {
+      try { fitRef.current?.fit(); } catch { /* noop */ }
+      sendResize();
+    };
     window.addEventListener("resize", onResize);
     const ro = new ResizeObserver(onResize);
     ro.observe(containerRef.current);
 
     return () => {
+      disposed = true;
       window.removeEventListener("resize", onResize);
       ro.disconnect();
+      mockKeyDisposable?.dispose();
+      liveDataDisposable?.dispose();
+      if (ws) { try { ws.close(1000, "tab closed"); } catch { /* noop */ } }
+      wsRef.current = null;
       term.dispose();
       termRef.current = null;
       fitRef.current = null;
@@ -261,12 +382,19 @@ export function TerminalPage() {
   const [activeId, setActiveId] = useState("t1");
   const [broadcast, setBroadcast] = useState(false);
   const [cmd, setCmd] = useState("");
+  const [states, setStates] = useState<Record<string, LiveState>>({});
   const handlesRef = useRef<Map<string, TabHandle>>(new Map());
   const counterRef = useRef(1);
 
   const onReady = useCallback((id: string, handle: TabHandle) => {
     handlesRef.current.set(id, handle);
   }, []);
+
+  const onState = useCallback((id: string, state: LiveState) => {
+    setStates((prev) => (prev[id] === state ? prev : { ...prev, [id]: state }));
+  }, []);
+
+  const activeState = states[activeId] ?? "connecting";
 
   const addTab = () => {
     counterRef.current += 1;
@@ -319,7 +447,7 @@ export function TerminalPage() {
       <PageHeader
         icon={<TermIcon className="size-5" />}
         title={t.nav.terminal}
-        description="Interactive shell on the host. Open multiple tabs and broadcast tmux-style send-keys to all panes."
+        description="Live interactive shell on the host (admin-only PTY). Falls back to a local mock when the sidecar is unreachable. Open multiple tabs and broadcast send-keys to all panes."
       />
 
       <Card className="elev-1 overflow-hidden">
@@ -353,6 +481,9 @@ export function TerminalPage() {
           <Button variant="ghost" size="sm" className="h-7 px-2" onClick={addTab} aria-label="New tab">
             <Plus className="size-3.5" />
           </Button>
+          <div className="ml-auto pr-1">
+            <ConnStateBadge state={activeState} />
+          </div>
         </div>
 
         {/* Terminals */}
@@ -365,6 +496,7 @@ export function TerminalPage() {
               username={user.username}
               dark={dark}
               onReady={onReady}
+              onState={onState}
             />
           ))}
         </div>
@@ -396,6 +528,26 @@ export function TerminalPage() {
 
       <NamedOpsPanel />
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ConnStateBadge — live PTY connection indicator (WP-19)
+// ---------------------------------------------------------------------------
+
+function ConnStateBadge({ state }: { state: LiveState }) {
+  const map: Record<LiveState, { label: string; cls: string; dot: string }> = {
+    connecting: { label: "connecting", cls: "text-amber-600 dark:text-amber-400", dot: "bg-amber-500 animate-pulse" },
+    live: { label: "live shell", cls: "text-emerald-600 dark:text-emerald-400", dot: "bg-emerald-500" },
+    mock: { label: "local mock", cls: "text-muted-foreground", dot: "bg-muted-foreground/60" },
+    closed: { label: "disconnected", cls: "text-destructive", dot: "bg-destructive" },
+  };
+  const m = map[state];
+  return (
+    <span className={cn("inline-flex items-center gap-1.5 text-[11px] font-mono", m.cls)}>
+      <span className={cn("inline-block size-1.5 rounded-full", m.dot)} />
+      {m.label}
+    </span>
   );
 }
 
