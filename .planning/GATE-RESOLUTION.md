@@ -172,6 +172,37 @@ dispositions, all FIXED:
 No overrules. The gate measurably hardened the design (auth levels,
 stderr coverage, hydration guard).
 
+## 2026-06-10 — MP-008 plan (3 cycles, dispositions applied under /loop standing authorization)
+Artifacts: `harness/artifacts/critic-plan-MP-008-test-repairs.md-{1,2,3}.md`.
+Cycle 1 BLOCKER FIXED (mock keys corrected to the module's real exports
+login/logout/me — useAuth.tsx:3 aliases verified; AGENTS/CLAUDE.md cite
+pinned to packages/dashboard-next/CLAUDE.md:157-158). Cycle 2 FIXED
+(mock-factory-scoped awk grep for the rejection; "starts logged out"
+repair added). Cycle 3 dispositions, all FIXED:
+- [MAJOR] lint gate non-binary → before/after problem-count comparison on
+  the three owned files (same standard as the G3 amendment).
+- [MAJOR] mount-probe race could clobber login/logout assertions → race
+  guard now required in EVERY test (await probe settlement before actions).
+- [MINOR] acceptance didn't bind Task 6 → A6 added.
+No overrules.
+
+## 2026-06-10 — AN-003 analysis (3 cycles, dispositions applied under /loop standing authorization)
+Artifacts: `harness/artifacts/critic-analysis-AN-003-broken-tests.md-{1,2,3}.md`.
+Cycle 1 BLOCKER FIXED (switchUser is a no-op at useAuth.tsx:83 — that test
+gets rewritten to assert the no-op contract, not mocked into passing).
+Cycle 2 FIXED (DataTable useQuery cite verified; coverage wording tempered
+with zero-match grep; vitest env mechanism quoted from dist). Cycle 3
+dispositions, all FIXED:
+- [MAJOR] empty-credentials contradiction → corrected: the test passes via
+  ANY-throw today; the mock must implement the rejection or the test gets
+  rewritten — no silent wrong-reason pass.
+- [MAJOR] NODE_ENV chain unevidenced → verified: dashboard.env:2 has
+  NODE_ENV="production" (quoted form; earlier unquoted grep missed it);
+  react-dom production stack frame cited from impl-mp-003-report.md:170.
+- [MAJOR] "493 passing" wrong-env figure → corrected to 532
+  (impl-mp-003-report.md:378); 493 was the production-env run (:162).
+No overrules.
+
 ## 2026-06-10 — operator approvals (recorded verbatim)
 Via AskUserQuestion in the live session:
 - Legacy removal: "Yes — login works, remove legacy" — operator confirmed a
