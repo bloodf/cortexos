@@ -409,7 +409,7 @@ covered by the DB query running correctly (it fails closed on the bogus token).
 | WP | Title | Depends-on | Status | Owner | Commit |
 |----|-------|-----------|--------|-------|--------|
 | WP-53 | i18n es/pt-br | WP-52 | done | claude | 103 keys/locale; es.ts + ptBR.ts satisfy Dict; tsc 0 errors |
-| WP-54 | legacy removal + docs | WP-52 | wip | claude | DOCS done (CLAUDE.md+AGENTS.md created in dashboard-next, 70-dashboard.md + root AGENTS.md updated); legacy removal (phases 2-3: rm packages/dashboard + stacks/cortex-dashboard) still pending user confirmation |
+| WP-54 | legacy removal + docs | WP-52 | done | claude | DOCS done (CLAUDE.md+AGENTS.md created in dashboard-next, 70-dashboard.md + root AGENTS.md updated); legacy removal (phases 2-3: rm packages/dashboard + stacks/cortex-dashboard) done 2026-06-10 (operator-confirmed browser PAM login on dashboard-next, MP-007) |
 
 ## Wave 5 — screen-verification fixes (2026-06-10, CLI-harness multi-agent session)
 | WP | Title | Status | Commit | Evidence |
@@ -423,4 +423,4 @@ covered by the DB query running correctly (it fails closed on the bogus token).
 | G5 | full screen verification | **18/18 PASS, exit 0** | — | .planning/harness/artifacts/screen-defects-7.md |
 
 Gate ledger: `.planning/GATE-RESOLUTION.md`. Harness: `.planning/harness/`.
-Still USER-GATED: legacy `packages/dashboard` removal (WP-54 phases 2-3).
+WP-54 fully complete: legacy `packages/dashboard` + `stacks/cortex-dashboard/` removed from repo (2026-06-10, operator-confirmed browser PAM login on dashboard-next; see MP-007). No SvelteKit rollback path remains — see `HANDOFF.md` rollback section.

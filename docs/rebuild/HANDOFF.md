@@ -24,9 +24,12 @@ Branch: `fix/dashboard-deslop`. Last commit: `af82182`.
    `*.functions.ts` inputs the UI is mis-shaping, and FIX them (frontend call args or the zod
    schema). Re-run until every authed route renders clean (no error boundary, no console errors,
    no failed server-fn calls).
-2. **Legacy removal — USER-GATED, do not do autonomously.** Only after the operator confirms a
-   real browser PAM login works do you remove `packages/dashboard` (legacy SvelteKit) + the
-   rollback artifacts. Until then KEEP them.
+2. **Legacy removed (WP-54 phases 2-3 done, 2026-06-10).** `packages/dashboard` (legacy
+   SvelteKit, 783 files) and `stacks/cortex-dashboard/` (orphaned compose) are deleted from the
+   repo. **No SvelteKit rollback path remains** — the legacy backup at
+   `/etc/systemd/system/cortex-dashboard.service.legacy-svelte.bak` (host-owned) is no longer a
+   viable rollback target, since the legacy build tree it points at is gone. The live service runs
+   `packages/dashboard-next` and the operator confirmed a real browser PAM login before deletion.
 3. Any other defects the verification surfaces.
 
 ## Uncommitted working tree (from the paused verify agent — decide: commit or discard)
@@ -57,9 +60,12 @@ Branch: `fix/dashboard-deslop`. Last commit: `af82182`.
   `systemctl restart caddy`. Backup: `/etc/caddy/Caddyfile.pre-terminal.bak`.
 - **Terminal sidecar**: `cortex-terminal.service`, `ALLOWED_ORIGIN=same-origin`, unit canonical at
   `docs/rebuild/cortex-terminal.service`, Caddy snippet `docs/rebuild/caddy-terminal.snippet`.
-- **Rollback**: `sudo cp /etc/systemd/system/cortex-dashboard.service.legacy-svelte.bak
-  /etc/systemd/system/cortex-dashboard.service && sudo systemctl daemon-reload && sudo systemctl
-  restart cortex-dashboard.service` (legacy build at `packages/dashboard/build/index.js`).
+- **Rollback**: no longer available — `packages/dashboard/` (legacy SvelteKit) and
+  `stacks/cortex-dashboard/` have been removed from the repo (WP-54 phases 2-3, 2026-06-10). The
+  live service is `packages/dashboard-next` only. The host-side
+  `/etc/systemd/system/cortex-dashboard.service.legacy-svelte.bak` is no longer a viable rollback
+  target (the legacy build tree it pointed at is gone); an operator who needs a pre-rebuild state
+  must restore from git history of a known-good commit, not from the host backup.
 - Commit message footer: `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`.
 
 ---

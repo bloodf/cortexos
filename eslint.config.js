@@ -2,7 +2,7 @@
 //
 // Boring tech, one source of truth, no snowflakes.
 //
-// Stack (locked in `packages/dashboard/docs/TECH_STACK.md` §1):
+// Stack:
 //   - ESLint 9.39.4
 //   - eslint-config-airbnb-extended 3.1.0  (NOT the stale canonical airbnb)
 //   - typescript-eslint 8.60.1
@@ -18,8 +18,7 @@
 // `airbnbExtConfigs.node.recommended`. The values are ARRAYS of config
 // blocks — they must be spread (`...airbnbExtConfigs.base.recommended`).
 //
-// Per-package overrides are expressed via `files` globs. The SvelteKit app
-// (when M1-WS2 lands at `packages/dashboard/`) and the workspace-internal
+// Per-package overrides are expressed via `files` globs. Workspace-internal
 // libs each get their own rule strictness:
 //
 //   packages/cortex-audit/**        → strict, node + base
@@ -28,11 +27,7 @@
 //   packages/paperclip-adapter/**   → strict, node + base
 //   packages/contracts/**           → strictest (zero-tolerance, no console)
 //   packages/design-tokens/**       → strictest
-//   packages/dashboard/**           → svelte-aware (Svelte 5 + SvelteKit)
-//
-// `packages/dashboard/eslint.config.mjs` (Next.js, pre-SvelteKit) is
-// intentionally left alone. When M1-WS2 lands, that file is replaced by the
-// SvelteKit app and the Svelte overrides below take over.
+//   packages/dashboard-next/**      → svelte-aware (Svelte 5 + TanStack Start)
 
 import js from '@eslint/js';
 import ts from 'typescript-eslint';
@@ -43,8 +38,6 @@ import importX from 'eslint-plugin-import-x';
 import stylistic from '@stylistic/eslint-plugin';
 import n from 'eslint-plugin-n';
 import globals from 'globals';
-
-import customRules from './packages/dashboard/eslint-rules/index.cjs';
 
 const SRC_GLOBS = ['**/*.{js,jsx,mjs,cjs,ts,tsx,svelte}'];
 
@@ -60,20 +53,7 @@ const IGNORE = [
   '**/.turbo/**',
   '**/*.min.js',
   '**/pnpm-lock.yaml',
-  'packages/dashboard/.next/**',
-  'packages/dashboard/next-env.d.ts',
-  'packages/dashboard/eslint-rules/fixtures/**', // run via pnpm test:lint-rules, not normal lint
 ];
-
-// Local rule plugin — `local/<rule-name>` references in rules below
-// resolve to these definitions.
-const localPlugin = {
-  plugins: {
-    local: {
-      rules: customRules,
-    },
-  },
-};
 
 export default [
   // 1) Global ignores
@@ -304,57 +284,6 @@ export default [
       // default; each package can opt in by setting parserOptions.project.
       // '@typescript-eslint/no-floating-promises': 'error',
       // '@typescript-eslint/no-misused-promises': 'error',
-    },
-  },
-
-  // 7b) SvelteKit app (packages/dashboard) — when M1-WS2 lands:
-  //     browser + node globals, full svelte rules, +server.ts admin gating.
-  {
-    ...localPlugin,
-    files: ['packages/dashboard/src/**/*.{js,ts,svelte}'],
-    languageOptions: {
-      parserOptions: {
-        // project is per-package; the SvelteKit tsconfig (M1-WS2) will provide
-        // this. Until then, type-aware rules are off.
-        project: null,
-        tsconfigRootDir: import.meta.dirname,
-      },
-      globals: {
-        ...globals.browser,
-        ...globals.node,
-        ...globals.es2024,
-      },
-    },
-    rules: {
-      // Svelte 5 runes: relaxed, not banned
-      '@typescript-eslint/no-unused-vars': 'warn',
-      // Local rule: ban bash -c in Svelte/TS files inside the SvelteKit app
-      'local/no-bash-c-in-template': 'error',
-    },
-  },
-
-  // 7c) Server-only routes inside dashboard — require admin guard on
-  //     privileged paths.
-  {
-    ...localPlugin,
-    files: [
-      'packages/dashboard/src/routes/admin/**/+server.ts',
-      'packages/dashboard/src/routes/api/services/**/+server.ts',
-      'packages/dashboard/src/routes/api/commands/**/+server.ts',
-      'packages/dashboard/src/routes/api/audit/**/+server.ts',
-      'packages/dashboard/src/routes/api/users/**/+server.ts',
-    ],
-    rules: {
-      'local/require-admin-on-privileged-route': 'error',
-    },
-  },
-
-  // 7d) Admin route group — requireAdmin (not requireAuth).
-  {
-    ...localPlugin,
-    files: ['packages/dashboard/src/routes/admin/**/*.{svelte,ts,js}'],
-    rules: {
-      'local/no-requireauth-in-admin': 'error',
     },
   },
 
