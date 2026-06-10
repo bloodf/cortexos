@@ -157,6 +157,21 @@ reordered RED-first). Cycle 3 dispositions:
   local); A4 is the orchestrator's pre-push gate. Same critic accepted this
   pattern in MP-003's PASS (cycle 2).
 
+## 2026-06-10 — AN-004 analysis (3 cycles, dispositions applied under /loop standing authorization)
+Artifacts: `harness/artifacts/critic-analysis-AN-004-real-logs.md-{1,2,3}.md`.
+Cycle 1 BLOCKERs FIXED (SystemdLogLine→string mapping made explicit;
+unsafe hardcoded-unit recommendation replaced by new `hostLogs`). Cycle 2
+FIXED (SSR/useQuery risk pinned to the no-dehydration grep + the MP-003
+hydration test as binding guard; docker stderr-drop caveat added). Cycle 3
+dispositions, all FIXED:
+- [MAJOR] hostLogs auth:"any" exposure → admin-gated in the design.
+- [MAJOR] containerLogs auth:"any" vs dockerAction admin → admin-gated,
+  "stricter than needed" remark withdrawn.
+- [MAJOR] LogStream call-site cites unverified → orchestrator-verified
+  grep quoted in the doc.
+No overrules. The gate measurably hardened the design (auth levels,
+stderr coverage, hydration guard).
+
 ## 2026-06-10 — operator approvals (recorded verbatim)
 Via AskUserQuestion in the live session:
 - Legacy removal: "Yes — login works, remove legacy" — operator confirmed a
