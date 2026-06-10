@@ -96,3 +96,19 @@ ALL commands run from `/opt/cortexos`.
   and report — that contradicts the root-cause analysis).
 - Changing the rule for TS packages beyond adding the missing `tsx`
   entry; touching package-level eslint configs.
+
+## Amendment 2 (post-impl, evidence-driven — logged in GATE-RESOLUTION)
+The `tsx: 'never'` map entry cleared the relative-import findings but 241
+remain (orchestrator GREEN run 2026-06-10): 240 in dashboard-next, ALL on
+`@/...` TS path-alias imports (samples: `Missing file extension for
+"@/lib/adapters/services"`, `"@/i18n"`), +1 in a root-level config file.
+import-x cannot resolve TS path aliases without a TS resolver — the root
+config already documents this exact limitation one rule above
+(`import-x/no-unresolved: 'off'` — "false positives for TS path aliases").
+AMENDED FIX for the TS-side block (eslint.config.js:131-135): set
+`'import-x/extensions': 'off'` with the comment extended to cover alias
+imports (bundler/tsconfig-resolved; no TS resolver configured for
+import-x — same rationale as no-unresolved). The :324 JS-packages
+override (js/mjs 'always') stays — extensions remain enforced where Node
+runtime requires them. No new dependencies. GREEN criterion unchanged:
+extensions findings → 0.
