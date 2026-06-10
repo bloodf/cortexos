@@ -76,3 +76,11 @@ root-owned `stacks/honcho/mcp/.wrangler/tmp` (regenerable cache litter)
 clearing the prettier traversal blocker. Amended acceptance: A1 applies
 to the re-run; A2 covers the same three files (second commit:
 `chore: ignore Nitro .output in root lint/format — real inventory (MP-013b)`).
+
+### Amendment correction (post-review)
+The MP-013b dispatch prompt explicitly authorized `**/.tanstack/**`
+alongside `**/.output/**` (TanStack Start codegen cache — dir exists at
+packages/dashboard-next/.tanstack, untracked: `git ls-files … | wc -l` → 0,
+contents only `tmp`), but this Amendment section omitted it — the
+gpt-5.5 review correctly flagged the plan/diff mismatch. `.tanstack` is
+hereby recorded as planned. Nothing tracked or lintable was suppressed.

@@ -430,3 +430,14 @@ orchestrator adjudication: benign build non-determinism (embedded asset
 manifest KEY ORDERING shifts between builds; asset set diff empty; no
 code change) — approved. Harness false-PASS gap fixed and live-tested
 (run-worker fails on unchanged pre-existing expected outputs).
+
+## 2026-06-10 — MP-013 complete + review disposition; monorepo audit scope
+Commits 1197942 + 879dc4c (gate-hygiene ignores). gpt-5.5 review REJECT:
+[BLOCKER] `.tanstack` ignore unplanned → FALSE in substance / FIXED in
+form: the orchestrator authorized it in the dispatch prompt but omitted
+it from the plan amendment (process slip, mine); `.tanstack` is untracked
+codegen cache (evidence in the plan's correction note). True inventory
+after artifact ignores: lint 3,273 (packages 2308 / stacks 542 / hermes
+224 / scripts 185 / templates 14; ~940 auto-fixable); format 69 files.
+Operator approved (AskUserQuestion): FULL CLEANUP — autofix wave then
+manual waves per area.
