@@ -183,6 +183,18 @@ async function main() {
 
       const reasons = [];
       let finalUrl = '';
+      // Compute known-env-artifact matches at route-iteration scope (outside
+      // the try/catch) so `results.push` can read `matchedArtifactReasons`
+      // even when the try block throws. The FAIL-count reason itself
+      // (`reasons.push('... console error(s)')`) stays inside the try block
+      // so a navigation throw doesn't double-count the console-error reason.
+      const artifactsForRoute = KNOWN_ENV_ARTIFACTS.filter((a) => a.route === route.path);
+      const matchedArtifactReasons = artifactsForRoute
+        .filter((a) => consoleErrors.some((e) => a.pattern.test(e)))
+        .map((a) => a.reason);
+      const realConsoleErrors = consoleErrors.filter(
+        (e) => !artifactsForRoute.some((a) => a.pattern.test(e)),
+      );
       try {
         const resp = await page.goto(route.path, {
           waitUntil: 'networkidle',
@@ -227,14 +239,9 @@ async function main() {
         // 3. Console errors / failed requests are FAILs. Known env
         // artifacts for this route are filtered out of the FAIL count
         // and surfaced separately in the report (see `known-artifact:`
-        // lines below).
-        const artifactsForRoute = KNOWN_ENV_ARTIFACTS.filter((a) => a.route === route.path);
-        const matchedArtifactReasons = artifactsForRoute
-          .filter((a) => consoleErrors.some((e) => a.pattern.test(e)))
-          .map((a) => a.reason);
-        const realConsoleErrors = consoleErrors.filter(
-          (e) => !artifactsForRoute.some((a) => a.pattern.test(e)),
-        );
+        // lines below). The filtering itself runs at route-iteration scope
+        // (above the try block) so its results are available to
+        // `results.push` on every code path.
         if (realConsoleErrors.length > 0) {
           reasons.push(`${realConsoleErrors.length} console error(s)`);
         }
