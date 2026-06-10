@@ -41,10 +41,20 @@ All paths relative to `packages/dashboard-next/`.
   only after mount. Keep the interval ticker behavior unchanged. Test now
   passes.
 3. Gates from `/opt/cortexos`
-  (`set -a; source /opt/cortexos/.secrets/dashboard.env; set +a`):
+  (`set -a; source /opt/cortexos/.secrets/dashboard.env; set +a; export NODE_ENV=test`
+  — the env file's `NODE_ENV=production` is correct for the service but
+  breaks @testing-library/react in vitest; override for tests only):
   - `pnpm --filter @cortexos/dashboard-next exec tsc --noEmit`
   - `pnpm --filter @cortexos/dashboard-next exec vitest run`
-    (full package suite — LogStream may be used by other routes)
+    (full package suite — LogStream may be used by other routes).
+    AMENDED baseline (orchestrator-verified 2026-06-10, two isolation runs:
+    LogStream change stashed; MP-002 files reverted to 894590f — identical
+    results both times): exactly 11 pre-existing failures in
+    `src/components/DataTable.test.tsx` (7) and `src/hooks/useAuth.test.tsx`
+    (4), all `No Start context found in AsyncLocalStorage` — the
+    direct-server-fn-call test pattern AGENTS.md documents as unsupported.
+    Acceptance: zero failures outside those two files; those two files fail
+    with exactly those 11 tests (no new failures anywhere).
   - `pnpm exec eslint packages/dashboard-next/src/components/LogStream.tsx`
     must report no NEW errors on changed lines vs the pre-edit file (the
     package has known pre-existing lint debt; only the touched lines count).
@@ -53,7 +63,9 @@ All paths relative to `packages/dashboard-next/`.
 
 ## Acceptance (binary)
 - A1: report quotes the failing test output (RED) and its pass (GREEN).
-- A2: `tsc --noEmit` exit 0; full `vitest run` exit 0, zero failures.
+- A2: `tsc --noEmit` exit 0; full `vitest run` under `NODE_ENV=test` shows
+  zero failures outside the amended 11-test baseline (Task 3), and the new
+  determinism test passes.
 - A3: `git diff <pre-commit>..HEAD --stat` lists exactly the two owned files.
 - A4 (orchestrator, after central rebuild + restart): screen verification
   shows `/healthcheck` PASS with zero console errors.

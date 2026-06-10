@@ -101,3 +101,22 @@ all FIXED:
   explicit: exactly `/terminal FAIL→PASS` (+ known-artifact line), /overview
   + /healthcheck owned elsewhere, any other diff line fails.
 No overrules.
+
+## 2026-06-10 — MP-003 gate-command amendment (post-gate, evidence-driven)
+M3 reported IMPL-BLOCKED at Task 3: sourcing `dashboard.env` exports
+`NODE_ENV=production` into vitest → 50 failures across 14
+@testing-library files (M3 stash-verified they reproduce without its
+change). Orchestrator isolation runs:
+- `NODE_ENV=test` reduces failures to exactly 11 in
+  `DataTable.test.tsx` + `useAuth.test.tsx` — all
+  "No Start context found in AsyncLocalStorage" (direct server-fn calls
+  from jsdom; the pattern AGENTS.md documents as unsupported).
+- Same 11 fail with the LogStream change stashed AND with the three MP-002
+  files reverted to `894590f` — pre-existing debt, not a regression.
+Amendment to the gate-PASSed MP-003 (not re-gated; mechanical test-runner
+env fix + evidenced baseline, logged here per rule 4's no-silent-changes
+intent; kimi diff gate still guards the code): Task 3 adds
+`export NODE_ENV=test` and an 11-failure baseline scoped to those two
+files; A2 requires zero failures outside it.
+OPERATOR FLAG: the 11 broken tests + dashboard.env's NODE_ENV leaking into
+dev tooling deserve their own cleanup item; out of scope here.
