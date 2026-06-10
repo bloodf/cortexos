@@ -32,6 +32,19 @@ LOG="$ARTIFACTS_DIR/$ID.log"
 echo "[run-worker] job=$ID worker=$WORKER timeout=${TMO}s prompt=$PROMPT_FILE"
 echo "[run-worker] log=$LOG"
 
+# Snapshot pre-dispatch state of expected outputs: a pre-existing file (e.g.
+# a continuation job's report) must CHANGE during the job, or the job did
+# nothing and "exists non-empty" would false-PASS.
+declare -A PRESTATE
+for out in "${EXPECTED[@]}"; do
+  abs="$(readlink -f "$out" 2>/dev/null || true)"
+  if [ -n "$abs" ] && [ -e "$abs" ]; then
+    PRESTATE["$out"]="$(stat -c '%Y:%s' "$abs" 2>/dev/null || echo absent)"
+  else
+    PRESTATE["$out"]=absent
+  fi
+done
+
 dispatch "$WORKER" "$TMO" "$PROMPT_FILE" "$LOG"
 RC=$?
 echo "[run-worker] cli rc=$RC ($(wc -c < "$LOG") bytes logged)"
@@ -40,7 +53,13 @@ FAIL=0
 for out in "${EXPECTED[@]}"; do
   abs="$(readlink -f "$out" 2>/dev/null || true)"
   if [ -n "$abs" ] && [ -s "$abs" ]; then
-    echo "[run-worker] output OK: $abs"
+    now="$(stat -c '%Y:%s' "$abs" 2>/dev/null || echo gone)"
+    if [ "${PRESTATE[$out]}" != "absent" ] && [ "$now" = "${PRESTATE[$out]}" ]; then
+      echo "[run-worker] output UNCHANGED (pre-existing, job made no progress): $abs"
+      FAIL=1
+    else
+      echo "[run-worker] output OK: $abs"
+    fi
   else
     echo "[run-worker] output MISSING/EMPTY: $out"
     FAIL=1
