@@ -1,0 +1,102 @@
+/**
+ * Adapter: MailGuardianReview DB row → sys-pilot MailReview mock shape.
+ *
+ * The real DB stores hashes (fromHash, subjectHash, bodyHash) to protect PII;
+ * plaintext is never persisted. We derive display-friendly values from the
+ * available fields:
+ *   from     ← accountSlug + truncated fromHash
+ *   subject  ← summary (the model-generated summary stored in the row)
+ *   snippet  ← first 120 chars of summary
+ *   body     ← summary (full — no plaintext body available)
+ *   risk     ← derived from modelVerdict + modelConfidence
+ *   status   ← derived from ownerDecision + resolvedAt
+ *   received_at ← requestedAt
+ *
+ * Functions are pure — no side-effects, no API calls.
+ */
+import type { MailReview as MockMailReview } from "@/mocks/types";
+
+/**
+ * Server-side MailGuardianReview row shape returned by listReviews.
+ * Mirrors the DB schema (mail_guardian_reviews) — hashes only, no plaintext.
+ */
+export interface ServerMailReview {
+  id: number;
+  accountSlug: string;
+  messageUid: number;
+  messageId: string | null;
+  fromHash: string;
+  domainHash: string;
+  subjectHash: string;
+  bodyHash: string;
+  summary: string;
+  modelVerdict: string;
+  modelConfidence: string;
+  ownerDecision: string | null;
+  approver: string | null;
+  requestedAt: Date | string;
+  resolvedAt: Date | string | null;
+}
+
+/**
+ * Server-side MailGuardianAccount (safe — password redacted).
+ */
+export interface ServerMailAccount {
+  id: number;
+  slug: string;
+  address: string;
+  host: string;
+  port: number;
+  secure: boolean;
+  username: string;
+  hasPassword: boolean;
+  inbox: string;
+  trashMailbox: string | null;
+  reviewMailbox: string;
+  enabled: boolean;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+/** Derive risk level from modelVerdict + modelConfidence. */
+function toRisk(verdict: string, confidence: string): MockMailReview["risk"] {
+  const conf = parseFloat(confidence);
+  if (verdict === "spam") {
+    return conf >= 0.8 ? "high" : "medium";
+  }
+  return "low";
+}
+
+/** Derive display status from ownerDecision + resolvedAt. */
+function toStatus(
+  ownerDecision: string | null,
+  resolvedAt: Date | string | null,
+): MockMailReview["status"] {
+  if (!resolvedAt) return "pending";
+  if (ownerDecision === "spam") return "flagged";
+  if (ownerDecision === "keep") return "approved";
+  return "pending";
+}
+
+/**
+ * Map a server MailGuardianReview row to the mock MailReview shape that
+ * sys-pilot components consume.
+ */
+export function toMailReviewRow(m: ServerMailReview): MockMailReview {
+  const summary = m.summary || "(no summary)";
+  const snippet = summary.length > 120 ? summary.slice(0, 117) + "…" : summary;
+  const fromDisplay = `${m.accountSlug}/<${m.fromHash.slice(0, 8)}…>`;
+  return {
+    id: String(m.id),
+    from: fromDisplay,
+    subject: summary,
+    snippet,
+    body: summary,
+    risk: toRisk(m.modelVerdict, m.modelConfidence),
+    status: toStatus(m.ownerDecision, m.resolvedAt),
+    received_at:
+      m.requestedAt instanceof Date ? m.requestedAt.toISOString() : String(m.requestedAt),
+  };
+}
+
+export type { MockMailReview };

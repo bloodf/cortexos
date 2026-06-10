@@ -5,7 +5,7 @@
 
 agentic-engineering: opt-in
 
-Self-hosted AI infrastructure system: deployment docs and installer prompts, Docker Compose stacks for databases/monitoring, a SvelteKit 5 dashboard for server control, the 9Router AI gateway configuration, and agent orchestration templates. Target host runs Ubuntu 24.04+ (Debian 13 supported) at `/opt/cortexos`.
+Self-hosted AI infrastructure system: deployment docs and installer prompts, Docker Compose stacks for databases/monitoring, a TanStack Start + React 19 dashboard for server control, the 9Router AI gateway configuration, and agent orchestration templates. Target host runs Ubuntu 24.04+ (Debian 13 supported) at `/opt/cortexos`.
 
 ## Decisions
 
@@ -27,7 +27,7 @@ Self-hosted AI infrastructure system: deployment docs and installer prompts, Doc
 - `prompts/` - installer and tool prompts executed step-by-step on hosts
 - `templates/` - systemd units and config templates copied to servers
 - `stacks/` - Docker Compose service stacks
-- `packages/dashboard/` - SvelteKit 5 control dashboard (3 locales: en, es, pt-br)
+- `packages/dashboard-next/` - TanStack Start + React 19 control dashboard (3 locales: en, es, pt-br); live on `cortex-dashboard.service` at `:3080`
 - `packages/cortex-telemetry/` - OpenLLMetry instrumentation for Langfuse
 - `scripts/` - host ops scripts (`pkg.sh`, smoke tests, backups)
 - `docs/` - deployment, secrets, and architecture docs

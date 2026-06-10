@@ -1,0 +1,54 @@
+# CortexOS Terminal PTY sidecar (WP-19).
+#
+# A SEPARATE process from cortex-dashboard.service (:3080). It hosts the
+# interactive admin shell over a loopback WebSocket (default 127.0.0.1:3081);
+# Caddy reverse-proxies wss://<host>/terminal/ws → 127.0.0.1:3081.
+#
+# Runs as root because it is a full host control-plane shell (THREAT_MODEL
+# §0.5 — same model as the legacy /api/terminal). Auth is enforced in-process:
+# the cortexos_session cookie is validated against admin_sessions and must be
+# is_admin=true, plus a strict Origin/CSRF check (ALLOWED_ORIGIN).
+#
+# NOTE: templates/ is gitignored, so this canonical unit lives here in
+# docs/rebuild/. The orchestrator copies it to /etc/systemd/system/ and
+# substitutes the placeholders below (no render script needed — they are
+# literal absolute paths on this host).
+
+[Unit]
+Description=CortexOS Terminal PTY sidecar (node-pty WebSocket)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/cortexos/packages/cortex-terminal
+# Loopback bind; Caddy fronts TLS. ALLOWED_ORIGIN MUST be the public dashboard
+# origin (the exact scheme+host the browser sends in the WS Origin header),
+# e.g. https://cortex.tailnet-name.ts.net  — set it to your real origin.
+Environment=TERMINAL_HOST=127.0.0.1
+Environment=TERMINAL_PORT=3081
+Environment=TERMINAL_SHELL=/bin/bash
+Environment=TERMINAL_IDLE_SEC=900
+Environment=ALLOWED_ORIGIN=https://REPLACE-WITH-DASHBOARD-ORIGIN
+Environment=NODE_ENV=production
+# Supplies DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD for session validation.
+EnvironmentFile=/opt/cortexos/.secrets/dashboard.env
+ExecStart=/usr/bin/node src/server.js
+Restart=always
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=10
+StandardOutput=journal
+StandardError=journal
+
+# systemd hardening. node-pty must fork shells, so this is deliberately
+# looser than the dashboard unit (no ProtectHome — admins land in their home).
+NoNewPrivileges=no
+ProtectSystem=false
+PrivateTmp=yes
+RestrictRealtime=yes
+LockPersonality=yes
+
+[Install]
+WantedBy=multi-user.target

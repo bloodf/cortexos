@@ -1,0 +1,38 @@
+# CortexOS Terminal sidecar — Caddy reverse-proxy snippet (WP-19).
+#
+# Add this INSIDE the existing site block that already proxies the dashboard
+# to 127.0.0.1:3080 (e.g. your `cortex.<tailnet>.ts.net { ... }` block).
+# Order matters: this /terminal/ws matcher must come BEFORE the catch-all
+# `reverse_proxy 127.0.0.1:3080` so the WS upgrade is routed to the sidecar.
+#
+# Caddy auto-detects and forwards the WebSocket Upgrade/Connection headers for
+# reverse_proxy, so no extra header_up directives are required for the upgrade
+# itself. We do forward the real client IP for the sidecar's forensic logging.
+
+@terminal_ws path /terminal/ws
+handle @terminal_ws {
+	reverse_proxy 127.0.0.1:3081 {
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+		# Long-lived interactive shell: don't time the stream out.
+		flush_interval -1
+	}
+}
+
+# ... existing dashboard route remains the fall-through:
+# reverse_proxy 127.0.0.1:3080
+
+# ---------------------------------------------------------------------------
+# Full illustrative site block (adapt host + existing routes to your Caddyfile):
+#
+# cortex.<tailnet>.ts.net {
+#     @terminal_ws path /terminal/ws
+#     handle @terminal_ws {
+#         reverse_proxy 127.0.0.1:3081 {
+#             header_up X-Forwarded-For {remote_host}
+#             header_up X-Forwarded-Proto {scheme}
+#             flush_interval -1
+#         }
+#     }
+#     reverse_proxy 127.0.0.1:3080
+# }

@@ -1,0 +1,8 @@
+{
+  "name": "@cortexos/terminal",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "scripts": { "start": "node src/server.js" },
+  "dependencies": { "node-pty": "^1.0.0", "ws": "^8.18.0", "pg": "^8.13.0" }
+}

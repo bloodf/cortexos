@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ProcessDeps } from "../src/processor.js";
-import { applyReviewDecision, buildReviewMessage, sweep } from "../src/processor.js";
+import { applyReviewDecision, buildReviewMessage, processMessage, sweep } from "../src/processor.js";
 
 vi.mock("../src/model.js", () => ({
 	classifyEmail: async () => ({
@@ -46,6 +46,7 @@ describe("mail guardian sweep", () => {
 			},
 			store: {
 				hasProcessed: async (_accountSlug: string, uid: number) => uid === 1,
+				findRules: async () => [],
 				hasAllowRule: async () => false,
 				createPendingReview: async () => 10,
 				markProcessed: async () => undefined,
@@ -67,6 +68,40 @@ describe("mail guardian sweep", () => {
 
 		await expect(sweep(deps)).resolves.toMatchObject({ processed: 6, review: 3, skipped: 3 });
 		expect(listed).toEqual(["one", "two", "three"]);
+	});
+});
+
+describe("mail guardian rule pre-filter", () => {
+	it("trashes a message matched by a block rule without calling the model", async () => {
+		const moved: Array<{ slug: string; uid: number }> = [];
+		const processed: Array<{ slug: string; uid: number; action: string }> = [];
+		const deps = {
+			config: { accounts: [account("one")], dryRun: false, maxMessagesPerSweep: 10 },
+			store: {
+				hasProcessed: async () => false,
+				findRules: async () => [{ verdict: "spam", scope: "sender", ruleType: "block" }],
+				markProcessed: async (slug: string, uid: number, action: string) => {
+					processed.push({ slug, uid, action });
+				},
+			},
+			mail: {
+				moveToTrash: async (mailAccount: { slug: string }, uid: number) => {
+					moved.push({ slug: mailAccount.slug, uid });
+					return "Trash";
+				},
+			},
+		} as unknown as ProcessDeps;
+
+		const result = await processMessage(deps, account("one"), {
+			uid: 7,
+			from: "blocked@spam.test",
+			subject: "x",
+			text: "y",
+		});
+
+		expect(result).toBe("trashed");
+		expect(moved).toEqual([{ slug: "one", uid: 7 }]);
+		expect(processed).toEqual([{ slug: "one", uid: 7, action: "trashed" }]);
 	});
 });
 

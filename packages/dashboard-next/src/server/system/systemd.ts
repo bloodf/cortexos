@@ -1,0 +1,901 @@
+/**
+ * Systemd bridge — server-side dispatcher for systemd unit operations (WP-13).
+ *
+ * Ported from the legacy SvelteKit handlers:
+ *   packages/dashboard/src/lib/server/systemd/bridge.ts
+ *   packages/dashboard/src/routes/api/systemd/actions/+server.ts
+ *   packages/dashboard/src/routes/(authed)/systemd/[name]/logs/+server.ts
+ *
+ * Hard rules (THREAT_MODEL §4.4.2 + PB-5 + SR-019):
+ *   - Unit name is regex-validated against a strict pattern.
+ *   - Destructive actions (restart, stop, disable) require an approval token
+ *     (SR-120). The approval gate in defineServerFn carries this via
+ *     `approval: true`; the bridge additionally verifies the token is bound
+ *     to the correct action + unit name.
+ *   - The real executor NEVER accepts a `bash -c <string>` argv. execFile is
+ *     called with a fixed argv array; the unit name is a validated argument.
+ *   - On Linux + systemd, CORTEX_SYSTEMD_BRIDGE_REAL !== '0' uses the real
+ *     executor. On macOS / CI / tests, the M2 mock is used.
+ *
+ * Public surface:
+ *   - listUnits()                       → SystemdUnit[]
+ *   - getUnit(name)                     → SystemdUnit | null
+ *   - listLogs(name, limit)             → SystemdLogLine[]
+ *   - dispatchAction(input, ctx)        → DispatchResult (never throws)
+ *   - setExecutorForTests(fn | null)    → test helper
+ *   - _resetSystemdBridgeForTests()     → test helper
+ *   - _getMockExecutorForTests()        → test helper
+ */
+
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+
+import {
+  SystemdUnitSchema,
+  SystemdLogLineSchema,
+  type SystemdUnit,
+  type SystemdLogLine,
+  type SystemdActionKind,
+  type SystemdActiveState,
+  type SystemdLoadState,
+} from "@cortexos/contracts";
+
+import { actionHashFor, consumeApproval, mintApproval } from "@/server/approval";
+import { audit } from "@/server/audit";
+import type { User } from "@/server/entities";
+import type { SessionId } from "@/server/entities";
+
+export { SystemdUnitSchema, SystemdLogLineSchema };
+
+// ---------------------------------------------------------------------------
+// Executor interface — the seam between M2 (mock) and M3 (real systemctl).
+// ---------------------------------------------------------------------------
+
+export interface UnitExecutorContext {
+  unit: SystemdUnit;
+  action: SystemdActionKind;
+  user: User;
+  ip: string;
+  requestId: string;
+}
+
+export interface UnitExecutorResult {
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+  /** Updated unit snapshot after the action (for optimistic UI updates). */
+  unit: SystemdUnit;
+}
+
+export type UnitExecutor = (ctx: UnitExecutorContext) => Promise<UnitExecutorResult>;
+
+// ---------------------------------------------------------------------------
+// Mock executor (M2) — in-memory, deterministic, no shell.
+// ---------------------------------------------------------------------------
+
+export class MockUnitExecutor {
+  private readonly snapshots = new Map<string, SystemdUnit>();
+  private readonly logsByUnit = new Map<string, SystemdLogLine[]>();
+
+  seed(units: readonly SystemdUnit[]): void {
+    for (const u of units) {
+      if (!this.snapshots.has(u.name)) this.snapshots.set(u.name, { ...u });
+    }
+  }
+
+  snapshot(name: string): SystemdUnit | null {
+    const u = this.snapshots.get(name);
+    return u ? { ...u } : null;
+  }
+
+  list(): SystemdUnit[] {
+    return Array.from(this.snapshots.values())
+      .map((u) => ({ ...u }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  pushLog(name: string, line: SystemdLogLine): void {
+    const list = this.logsByUnit.get(name) ?? [];
+    list.push(line);
+    if (list.length > 500) list.splice(0, list.length - 500);
+    this.logsByUnit.set(name, list);
+  }
+
+  logsFor(name: string): readonly SystemdLogLine[] {
+    return this.logsByUnit.get(name) ?? [];
+  }
+
+  run = async (ctx: UnitExecutorContext): Promise<UnitExecutorResult> => {
+    const current = this.snapshots.get(ctx.unit.name);
+    if (!current) {
+      return {
+        stdout: "",
+        stderr: `Unit ${ctx.unit.name} not loaded in mock executor`,
+        exitCode: 1,
+        unit: ctx.unit,
+      };
+    }
+    const next = applyAction(current, ctx.action);
+    this.snapshots.set(ctx.unit.name, next);
+    return {
+      stdout: `__cortexos_systemd_mock__ ${ctx.action} ${ctx.unit.name}`,
+      stderr: "",
+      exitCode: 0,
+      unit: next,
+    };
+  };
+}
+
+/**
+ * Apply a systemd action to a unit snapshot. Pure function. The mock executor
+ * calls this to derive the next state; mirrors common-case systemctl semantics.
+ */
+export function applyAction(unit: SystemdUnit, action: SystemdActionKind): SystemdUnit {
+  switch (action) {
+    case "start":
+      return { ...unit, active: "active", sub: "running" };
+    case "stop":
+      return { ...unit, active: "inactive", sub: "dead" };
+    case "restart":
+      return { ...unit, active: "active", sub: "running" };
+    case "reload":
+      return { ...unit, active: "active", sub: "running" };
+    case "enable":
+      return { ...unit, enabled: true };
+    case "disable":
+      return { ...unit, enabled: false };
+    case "status":
+    case "list-units":
+      return { ...unit };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Seed data — representative set for the M2 mock.
+// ---------------------------------------------------------------------------
+
+const SEED_UNITS: readonly SystemdUnit[] = [
+  {
+    name: "caddy.service",
+    description: "Caddy HTTP/2 web server",
+    load: "loaded",
+    active: "active",
+    sub: "running",
+    enabled: true,
+    type: "service",
+    unitPath: "/etc/systemd/system/caddy.service",
+    allowlisted: true,
+    critical: false,
+  },
+  {
+    name: "tailscaled.service",
+    description: "Tailscale node agent",
+    load: "loaded",
+    active: "active",
+    sub: "running",
+    enabled: true,
+    type: "service",
+    unitPath: "/usr/lib/systemd/system/tailscaled.service",
+    allowlisted: true,
+    critical: false,
+  },
+  {
+    name: "postgresql.service",
+    description: "PostgreSQL database server",
+    load: "loaded",
+    active: "active",
+    sub: "running",
+    enabled: true,
+    type: "service",
+    unitPath: "/usr/lib/systemd/system/postgresql.service",
+    allowlisted: true,
+    critical: true,
+  },
+  {
+    name: "redis-server.service",
+    description: "Advanced key-value store",
+    load: "loaded",
+    active: "inactive",
+    sub: "dead",
+    enabled: true,
+    type: "service",
+    unitPath: "/usr/lib/systemd/system/redis-server.service",
+    allowlisted: true,
+    critical: false,
+  },
+  {
+    name: "nginx.service",
+    description: "A high performance web server and a reverse proxy server",
+    load: "loaded",
+    active: "failed",
+    sub: "failed",
+    enabled: true,
+    type: "service",
+    unitPath: "/etc/systemd/system/nginx.service",
+    allowlisted: true,
+    critical: true,
+  },
+  {
+    name: "docker.service",
+    description: "Docker Application Container Engine",
+    load: "loaded",
+    active: "active",
+    sub: "running",
+    enabled: true,
+    type: "service",
+    unitPath: "/usr/lib/systemd/system/docker.service",
+    allowlisted: true,
+    critical: true,
+  },
+  {
+    name: "unattended-upgrades.service",
+    description: "Unattended Upgrades Shutdown",
+    load: "loaded",
+    active: "inactive",
+    sub: "dead",
+    enabled: false,
+    type: "service",
+    unitPath: "/usr/lib/systemd/system/unattended-upgrades.service",
+    allowlisted: false,
+    critical: false,
+  },
+  {
+    name: "cron.service",
+    description: "Regular background program processing daemon",
+    load: "loaded",
+    active: "active",
+    sub: "running",
+    enabled: true,
+    type: "service",
+    unitPath: "/usr/lib/systemd/system/cron.service",
+    allowlisted: true,
+    critical: false,
+  },
+];
+
+function seedLogs(mock: MockUnitExecutor): void {
+  const now = new Date().toISOString();
+  for (const u of SEED_UNITS) {
+    mock.pushLog(u.name, {
+      ts: now,
+      priority: "info",
+      unit: u.name,
+      message: `Started ${u.name}.`,
+    });
+    mock.pushLog(u.name, {
+      ts: now,
+      priority: "info",
+      unit: u.name,
+      message: `Reached target ${u.description || u.name}.`,
+    });
+    if (u.active === "failed") {
+      mock.pushLog(u.name, {
+        ts: now,
+        priority: "err",
+        unit: u.name,
+        message: `Main process exited, code=exited, status=1/FAILURE.`,
+      });
+    }
+  }
+}
+
+function makeDefaultMock(): { mock: MockUnitExecutor; executor: UnitExecutor } {
+  const mock = new MockUnitExecutor();
+  mock.seed(SEED_UNITS);
+  seedLogs(mock);
+  return { mock, executor: (ctx) => mock.run(ctx) };
+}
+
+// ---------------------------------------------------------------------------
+// Real executor (Linux only) — execFile with fixed argv, no shell.
+// ---------------------------------------------------------------------------
+
+const execFileAsync = promisify(execFile);
+
+/**
+ * Parse `systemctl show` key=value output into a partial SystemdUnit.
+ */
+function parseSystemctlShow(out: string, fallback: SystemdUnit): SystemdUnit {
+  const get = (k: string): string | undefined => {
+    const m = new RegExp(`^${k}=(.*)$`, "m").exec(out);
+    return m?.[1];
+  };
+  const active = (get("ActiveState") as SystemdActiveState) ?? fallback.active;
+  const sub = get("SubState") ?? fallback.sub;
+  const load = (get("LoadState") as SystemdLoadState) ?? fallback.load;
+  const unitFileState = get("UnitFileState") ?? "";
+  const enabled = unitFileState === "enabled" || unitFileState === "enabled-runtime";
+  const type = get("Type") ?? fallback.type;
+  const unitPath = get("FragmentPath") ?? null;
+  const description = get("Description") ?? fallback.description;
+  return {
+    ...fallback,
+    description,
+    load,
+    active,
+    sub,
+    enabled,
+    type,
+    unitPath: unitPath === "" ? null : unitPath,
+  };
+}
+
+const realSystemdExecutor: UnitExecutor = async (ctx) => {
+  // Fixed argv — no shell, no string interpolation (PB-2 / T-104).
+  const args: string[] = [ctx.action, ctx.unit.name];
+  try {
+    const { stdout, stderr } = await execFileAsync("/usr/bin/systemctl", args, {
+      timeout: 30_000,
+      maxBuffer: 4 * 1024 * 1024,
+    });
+    // Query real post-action state for the UI snapshot.
+    const { stdout: showOut } = await execFileAsync(
+      "/usr/bin/systemctl",
+      [
+        "show",
+        ctx.unit.name,
+        "--property=ActiveState,SubState,LoadState,UnitFileState,Type,FragmentPath,Description",
+      ],
+      { timeout: 10_000, maxBuffer: 256 * 1024 },
+    );
+    const updated = parseSystemctlShow(showOut, ctx.unit);
+    return { stdout: stdout ?? "", stderr: stderr ?? "", exitCode: 0, unit: updated };
+  } catch (err) {
+    const e = err as { code?: number | string; stdout?: string; stderr?: string; message?: string };
+    return {
+      stdout: e.stdout ?? "",
+      stderr: e.stderr ?? e.message ?? "systemctl exec failed",
+      exitCode: typeof e.code === "number" ? e.code : 1,
+      unit: ctx.unit,
+    };
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Real listUnits / getUnit from live systemctl.
+// ---------------------------------------------------------------------------
+
+async function getUnitFromSystemctl(name: string): Promise<SystemdUnit | null> {
+  try {
+    const { stdout } = await execFileAsync(
+      "/usr/bin/systemctl",
+      [
+        "show",
+        name,
+        "--property=Names,Description,LoadState,ActiveState,SubState,UnitFileState,Type,FragmentPath",
+      ],
+      { timeout: 5_000, maxBuffer: 64 * 1024 },
+    );
+    const props: Record<string, string> = {};
+    for (const line of stdout.split("\n")) {
+      const m = /^(\w+)=(.*)$/.exec(line);
+      if (m) props[m[1]!] = m[2]!;
+    }
+    if (Object.keys(props).length <= 1) return null;
+    const unitFileState = props.UnitFileState ?? "";
+    return {
+      name,
+      description: props.Description ?? "",
+      load: (props.LoadState as SystemdLoadState) ?? "loaded",
+      active: (props.ActiveState as SystemdActiveState) ?? "unknown",
+      sub: props.SubState ?? "",
+      enabled: unitFileState === "enabled" || unitFileState === "enabled-runtime",
+      type: props.Type ?? "service",
+      unitPath: props.FragmentPath?.trim() || null,
+      allowlisted: true,
+      critical: false,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function listUnitsFromSystemctl(): Promise<SystemdUnit[]> {
+  try {
+    const { stdout } = await execFileAsync(
+      "/usr/bin/systemctl",
+      ["list-units", "--type=service", "--all", "--no-pager", "--no-legend", "--plain"],
+      { timeout: 5_000, maxBuffer: 256 * 1024 },
+    );
+    const out: SystemdUnit[] = [];
+    for (const line of stdout.split("\n")) {
+      const m = /^(\S+)\s+(\S+)\s+(\S+)\s+(\S+)/.exec(line.trim());
+      if (!m) continue;
+      const [, name] = m;
+      if (!name || !name.endsWith(".service")) continue;
+      const unit = await getUnitFromSystemctl(name);
+      if (unit) out.push(unit);
+    }
+    return out.sort((a, b) => a.name.localeCompare(b.name));
+  } catch {
+    return [];
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Module-level state — executor is the only swappable piece.
+// ---------------------------------------------------------------------------
+
+let currentMock: MockUnitExecutor | null = null;
+let executor: UnitExecutor = (() => {
+  throw new Error("systemd bridge: executor used before init");
+}) as UnitExecutor;
+
+(function init() {
+  const useReal = process.platform === "linux" && process.env.CORTEX_SYSTEMD_BRIDGE_REAL !== "0";
+  if (useReal) {
+    executor = realSystemdExecutor;
+    return;
+  }
+  const { mock, executor: e } = makeDefaultMock();
+  currentMock = mock;
+  executor = e;
+})();
+
+/** Test helper: swap the executor. Pass `null` to reset to the default mock. */
+export function setExecutorForTests(fn: UnitExecutor | null): void {
+  if (fn) {
+    executor = fn;
+    return;
+  }
+  const { mock, executor: e } = makeDefaultMock();
+  currentMock = mock;
+  executor = e;
+}
+
+/** Test helper: peek at the underlying mock. */
+export function _getMockExecutorForTests(): MockUnitExecutor {
+  if (!currentMock) {
+    const { mock, executor: e } = makeDefaultMock();
+    currentMock = mock;
+    executor = e;
+  }
+  return currentMock;
+}
+
+/** Reset the in-memory store + re-seed with the default units. */
+export function _resetSystemdBridgeForTests(): void {
+  const { mock, executor: e } = makeDefaultMock();
+  currentMock = mock;
+  executor = e;
+}
+
+/** The default seed — exposed so tests can assert against a known set. */
+export const _SEED_UNITS: readonly SystemdUnit[] = SEED_UNITS;
+
+// ---------------------------------------------------------------------------
+// Loaders — used by server functions.
+// ---------------------------------------------------------------------------
+
+/** List all units. Uses real systemctl on Linux; mock otherwise. */
+export async function listUnits(): Promise<SystemdUnit[]> {
+  if (!currentMock) {
+    return listUnitsFromSystemctl();
+  }
+  return currentMock.list();
+}
+
+/** Look up a unit by name. Returns null when not found. */
+export async function getUnit(name: string): Promise<SystemdUnit | null> {
+  if (!currentMock) {
+    return getUnitFromSystemctl(name);
+  }
+  return currentMock.snapshot(name);
+}
+
+/** Return the most-recent `limit` log lines for a unit. */
+export async function listLogs(name: string, limit: number): Promise<SystemdLogLine[]> {
+  if (currentMock) {
+    const all = currentMock.logsFor(name);
+    return [...all].slice(-Math.max(0, limit));
+  }
+  // Real journalctl path (Linux only).
+  try {
+    const { stdout } = await execFileAsync(
+      "/usr/bin/journalctl",
+      ["--unit", name, "-n", String(limit), "--no-pager", "--output=json"],
+      { timeout: 10_000, maxBuffer: 4 * 1024 * 1024 },
+    );
+    const lines: SystemdLogLine[] = [];
+    for (const rawLine of stdout.split("\n")) {
+      const trimmed = rawLine.trim();
+      if (!trimmed) continue;
+      try {
+        const entry = JSON.parse(trimmed) as Record<string, unknown>;
+        const ts = entry.__REALTIME_TIMESTAMP
+          ? new Date(Number(entry.__REALTIME_TIMESTAMP) / 1000).toISOString()
+          : new Date().toISOString();
+        const priorityNum = Number(entry.PRIORITY ?? 6);
+        const priorityMap: Record<number, SystemdLogLine["priority"]> = {
+          0: "emerg",
+          1: "alert",
+          2: "crit",
+          3: "err",
+          4: "warning",
+          5: "notice",
+          6: "info",
+          7: "debug",
+        };
+        const priority = priorityMap[priorityNum] ?? "info";
+        lines.push({
+          ts,
+          priority,
+          unit: String(entry._SYSTEMD_UNIT ?? name),
+          message: String(entry.MESSAGE ?? ""),
+        });
+      } catch {
+        // skip malformed lines
+      }
+    }
+    return lines;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Return the most-recent `limit` log lines for the WHOLE host journal
+ * (no `--unit` filter, MP-009). Same line shape as `listLogs` (SystemdLogLine).
+ * execFile fixed-argv; never invokes a shell.
+ */
+export async function listHostLogs(limit: number): Promise<SystemdLogLine[]> {
+  if (currentMock) {
+    // Mock: concatenate seeded per-unit logs (newest-last in the mock
+    // store) so the dashboard has something to render. Same SystemdLogLine
+    // shape; callers map to display text.
+    const cap = Math.max(0, limit);
+    const merged: SystemdLogLine[] = [];
+    for (const u of _SEED_UNITS) {
+      merged.push(...currentMock.logsFor(u.name));
+    }
+    // newest last in the mock store → take the tail
+    return merged.slice(-cap);
+  }
+  // Real journalctl path (Linux only). NO `--unit` filter — whole host.
+  try {
+    const { stdout } = await execFileAsync(
+      "/usr/bin/journalctl",
+      ["-n", String(limit), "--no-pager", "--output=json"],
+      { timeout: 10_000, maxBuffer: 4 * 1024 * 1024 },
+    );
+    const lines: SystemdLogLine[] = [];
+    for (const rawLine of stdout.split("\n")) {
+      const trimmed = rawLine.trim();
+      if (!trimmed) continue;
+      try {
+        const entry = JSON.parse(trimmed) as Record<string, unknown>;
+        const ts = entry.__REALTIME_TIMESTAMP
+          ? new Date(Number(entry.__REALTIME_TIMESTAMP) / 1000).toISOString()
+          : new Date().toISOString();
+        const priorityNum = Number(entry.PRIORITY ?? 6);
+        const priorityMap: Record<number, SystemdLogLine["priority"]> = {
+          0: "emerg",
+          1: "alert",
+          2: "crit",
+          3: "err",
+          4: "warning",
+          5: "notice",
+          6: "info",
+          7: "debug",
+        };
+        const priority = priorityMap[priorityNum] ?? "info";
+        lines.push({
+          ts,
+          priority,
+          unit: String(entry._SYSTEMD_UNIT ?? "host"),
+          message: String(entry.MESSAGE ?? ""),
+        });
+      } catch {
+        // skip malformed lines
+      }
+    }
+    return lines;
+  } catch {
+    return [];
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Dispatch — the privileged path. Always returns a DispatchResult.
+// ---------------------------------------------------------------------------
+
+export interface DispatchInput {
+  action: SystemdActionKind;
+  name: string;
+}
+
+export interface DispatchContext {
+  user: User;
+  ip: string;
+  userAgent: string | null;
+  requestId: string;
+  sessionId: string;
+  /** Approval token — required for destructive actions (restart, stop, disable). */
+  approvalToken?: string;
+}
+
+export type DispatchResult =
+  | {
+      status: "accepted";
+      action: SystemdActionKind;
+      name: string;
+      stdout: string;
+      stderr: string;
+      exitCode: number;
+      unit: SystemdUnit;
+      durationMs: number;
+    }
+  | {
+      status: "approval_required";
+      action: SystemdActionKind;
+      name: string;
+      actionHash: string;
+      ttlSec: number;
+      message: string;
+    }
+  | {
+      status: "rejected";
+      action: SystemdActionKind;
+      name: string;
+      code:
+        | "unknown_unit"
+        | "not_allowlisted"
+        | "unit_name_invalid"
+        | "approval_required"
+        | "approval_invalid"
+        | "approval_expired"
+        | "approval_session_mismatch"
+        | "approval_already_used"
+        | "executor_error";
+      reason: string;
+    };
+
+/** Actions that require an approval token (SR-120). */
+const DESTRUCTIVE_ACTIONS: ReadonlySet<SystemdActionKind> = new Set<SystemdActionKind>([
+  "restart",
+  "stop",
+  "disable",
+]);
+
+/** Strict unit-name regex — no shell metacharacters (SR-030, T-030). */
+const UNIT_NAME_RE = /^[A-Za-z0-9_.@-]+$/;
+
+const APPROVAL_TTL_SEC = 60;
+
+/**
+ * Dispatch a systemd action. Checks:
+ *   1. Unit name regex.
+ *   2. Unit exists in the executor's snapshot and is allowlisted.
+ *   3. Destructive actions require a valid approval token.
+ *   4. Run the executor.
+ */
+export async function dispatchAction(
+  input: DispatchInput,
+  ctx: DispatchContext,
+): Promise<DispatchResult> {
+  const t0 = Date.now();
+  const policyName = `systemd.${input.action}`;
+
+  // 1. Unit name regex.
+  if (!UNIT_NAME_RE.test(input.name)) {
+    audit({
+      actorUserId: ctx.user.id,
+      actorSessionId: null,
+      actorIp: ctx.ip,
+      actorUserAgent: ctx.userAgent,
+      surface: "systemd",
+      action: "systemd.bridge.reject",
+      target: input.name,
+      result: "denied",
+      errorCode: "unit_name_invalid",
+      requestId: ctx.requestId,
+      payload: { phase: "name_regex", op: policyName, name: input.name },
+    });
+    return {
+      status: "rejected",
+      action: input.action,
+      name: input.name,
+      code: "unit_name_invalid",
+      reason: `unit name '${input.name}' does not match ${UNIT_NAME_RE.source}`,
+    };
+  }
+
+  // 2. Unit lookup + allowlist check.
+  const unit = await getUnit(input.name);
+  if (!unit) {
+    audit({
+      actorUserId: ctx.user.id,
+      actorSessionId: null,
+      actorIp: ctx.ip,
+      actorUserAgent: ctx.userAgent,
+      surface: "systemd",
+      action: "systemd.bridge.reject",
+      target: input.name,
+      result: "failure",
+      errorCode: "unknown_unit",
+      requestId: ctx.requestId,
+      payload: { phase: "lookup", op: policyName, name: input.name },
+    });
+    return {
+      status: "rejected",
+      action: input.action,
+      name: input.name,
+      code: "unknown_unit",
+      reason: `unit '${input.name}' is not in the executor's snapshot`,
+    };
+  }
+  if (!unit.allowlisted) {
+    audit({
+      actorUserId: ctx.user.id,
+      actorSessionId: null,
+      actorIp: ctx.ip,
+      actorUserAgent: ctx.userAgent,
+      surface: "systemd",
+      action: "systemd.bridge.reject",
+      target: input.name,
+      result: "denied",
+      errorCode: "not_allowlisted",
+      requestId: ctx.requestId,
+      payload: { phase: "allowlist_unit", op: policyName, name: input.name },
+    });
+    return {
+      status: "rejected",
+      action: input.action,
+      name: input.name,
+      code: "not_allowlisted",
+      reason: `unit '${input.name}' is not allowlisted`,
+    };
+  }
+
+  // 3. Destructive action → approval gate.
+  if (DESTRUCTIVE_ACTIONS.has(input.action)) {
+    const actionHash = actionHashFor(policyName, { name: input.name });
+    if (!ctx.approvalToken) {
+      audit({
+        actorUserId: ctx.user.id,
+        actorSessionId: null,
+        actorIp: ctx.ip,
+        actorUserAgent: ctx.userAgent,
+        surface: "systemd",
+        action: "systemd.bridge.approval_required",
+        target: input.name,
+        result: "success",
+        errorCode: null,
+        requestId: ctx.requestId,
+        payload: { phase: "approval_required", op: policyName, actionHash },
+      });
+      return {
+        status: "approval_required",
+        action: input.action,
+        name: input.name,
+        actionHash,
+        ttlSec: APPROVAL_TTL_SEC,
+        message: `Destructive systemd action '${input.action}' on '${input.name}' requires an approval token`,
+      };
+    }
+    const v = consumeApproval(ctx.approvalToken, ctx.sessionId as SessionId);
+    if (!v.ok) {
+      const reason = `approval token ${v.reason}`;
+      audit({
+        actorUserId: ctx.user.id,
+        actorSessionId: null,
+        actorIp: ctx.ip,
+        actorUserAgent: ctx.userAgent,
+        surface: "systemd",
+        action: "systemd.bridge.reject",
+        target: input.name,
+        result: "denied",
+        errorCode: v.reason,
+        requestId: ctx.requestId,
+        payload: { phase: "approval_verify", op: policyName, reason: v.reason },
+      });
+      return {
+        status: "rejected",
+        action: input.action,
+        name: input.name,
+        code:
+          v.reason === "expired"
+            ? "approval_expired"
+            : v.reason === "already_used"
+              ? "approval_already_used"
+              : v.reason === "session_mismatch"
+                ? "approval_session_mismatch"
+                : "approval_invalid",
+        reason,
+      };
+    }
+    if (v.claims.actionHash !== actionHash) {
+      audit({
+        actorUserId: ctx.user.id,
+        actorSessionId: null,
+        actorIp: ctx.ip,
+        actorUserAgent: ctx.userAgent,
+        surface: "systemd",
+        action: "systemd.bridge.reject",
+        target: input.name,
+        result: "denied",
+        errorCode: "approval_invalid",
+        requestId: ctx.requestId,
+        payload: {
+          phase: "approval_action_mismatch",
+          expected: actionHash,
+          got: v.claims.actionHash,
+        },
+      });
+      return {
+        status: "rejected",
+        action: input.action,
+        name: input.name,
+        code: "approval_invalid",
+        reason: "approval token is not bound to this action + name",
+      };
+    }
+  }
+
+  // 4. Run the executor.
+  try {
+    const result = await executor({
+      unit,
+      action: input.action,
+      user: ctx.user,
+      ip: ctx.ip,
+      requestId: ctx.requestId,
+    });
+    audit({
+      actorUserId: ctx.user.id,
+      actorSessionId: null,
+      actorIp: ctx.ip,
+      actorUserAgent: ctx.userAgent,
+      surface: "systemd",
+      action: "systemd.bridge.dispatch",
+      target: input.name,
+      result: "success",
+      errorCode: null,
+      requestId: ctx.requestId,
+      payload: {
+        op: policyName,
+        exitCode: result.exitCode,
+        stdoutBytes: result.stdout.length,
+        stderrBytes: result.stderr.length,
+      },
+    });
+    return {
+      status: "accepted",
+      action: input.action,
+      name: input.name,
+      stdout: result.stdout,
+      stderr: result.stderr,
+      exitCode: result.exitCode,
+      unit: result.unit,
+      durationMs: Date.now() - t0,
+    };
+  } catch (e) {
+    audit({
+      actorUserId: ctx.user.id,
+      actorSessionId: null,
+      actorIp: ctx.ip,
+      actorUserAgent: ctx.userAgent,
+      surface: "systemd",
+      action: "systemd.bridge.dispatch",
+      target: input.name,
+      result: "failure",
+      errorCode: "executor_error",
+      requestId: ctx.requestId,
+      payload: { op: policyName, error: (e as Error).message },
+    });
+    return {
+      status: "rejected",
+      action: input.action,
+      name: input.name,
+      code: "executor_error",
+      reason: `executor error: ${(e as Error).message}`,
+    };
+  }
+}
+
+/**
+ * Self-mint an approval token for non-destructive actions that still need
+ * one to pass the gate. Exposed so the server functions can call this
+ * without importing the approval module directly.
+ */
+export { mintApproval };

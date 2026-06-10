@@ -10,7 +10,6 @@
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "test:lint-rules": "node packages/dashboard/eslint-rules/verify-local-rules.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

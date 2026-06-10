@@ -1,0 +1,4 @@
+artifacts/
+jobs/
+prompts/impl-*.md
+prompts/recon-*.md

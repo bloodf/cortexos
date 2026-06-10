@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { loadConfig } from "./config.js";
+import { accountFromRow, loadConfig, mergeAccounts } from "./config.js";
 import { readFileSync, writeFileSync } from "node:fs";
 import { TlsImapMailClient } from "./imap.js";
 import { GuardianStore } from "./store.js";
@@ -11,6 +11,14 @@ async function buildDeps() {
 	const mail = new TlsImapMailClient();
 	const store = new GuardianStore(config);
 	await store.ensureSchema();
+	// DB-backed accounts take precedence by slug; env accounts remain for
+	// backward compatibility. The merged set replaces config.accounts.
+	const dbRows = await store.listAccounts();
+	const dbAccounts = dbRows.map(accountFromRow);
+	config.accounts = mergeAccounts(config.accounts, dbAccounts);
+	if (config.accounts.length < 1) {
+		throw new Error("no mail accounts configured (set MAIL_GUARDIAN_ACCOUNT_* env vars or add a row to mail_guardian_accounts)");
+	}
 	const telegram = config.telegramBotToken ? new BotApiTelegramClient(config.telegramBotToken) : disabledTelegramClient();
 	return { config, mail, store, telegram };
 }

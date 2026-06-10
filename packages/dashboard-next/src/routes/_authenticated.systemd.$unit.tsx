@@ -1,0 +1,285 @@
+import { createFileRoute, Link, useParams, notFound } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Play, RotateCw, Square, Loader2, Server } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { KeyValueList } from "@/components/KeyValueList";
+import { LogViewer } from "@/components/LogViewer";
+import { DetailSkeleton } from "@/components/skeletons";
+import { EmptyState } from "@/components/EmptyState";
+import { api, callSystemdAction, callMintApproval, callUnitLogs } from "@/lib/api/client";
+import { csrfHeaders } from "@/features/admin/csrf";
+import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { useState } from "react";
+
+// ---------------------------------------------------------------------------
+// Approval-gated systemd action helper (mirrors Systemd.tsx)
+// ---------------------------------------------------------------------------
+
+async function dispatchSystemdAction(
+  action: "start" | "stop" | "restart" | "reload" | "enable" | "disable",
+  name: string,
+): Promise<void> {
+  const mint = await callMintApproval({
+    data: { action: `systemd.${action}`, payload: { action, name } },
+  });
+  await callSystemdAction({
+    data: { action, name },
+    headers: {
+      ...csrfHeaders(),
+      "x-cortex-approval-token": mint.token,
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Route
+// ---------------------------------------------------------------------------
+
+export const Route = createFileRoute("/_authenticated/systemd/$unit")({
+  loader: async ({ params }) => {
+    const all = await api.systemd();
+    const found = all.find((u) => u.name === params.unit);
+    if (!found) throw notFound();
+    return { unit: found };
+  },
+  notFoundComponent: NotFoundComponent,
+  component: SystemdDetail,
+});
+
+function NotFoundComponent() {
+  const { unit } = useParams({ from: "/_authenticated/systemd/$unit" });
+  return (
+    <div className="p-6 space-y-4">
+      <PageHeader title="Unit not found" description={`No systemd unit matched "${unit}".`} />
+      <Button asChild variant="outline">
+        <Link to="/systemd">
+          <ArrowLeft className="size-4 mr-1" />
+          Back to Systemd
+        </Link>
+      </Button>
+    </div>
+  );
+}
+
+function SystemdDetail() {
+  const { unit: unitName } = useParams({ from: "/_authenticated/systemd/$unit" });
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
+
+  // Live unit state — refetches every 15s.
+  const {
+    data: units = [],
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["systemd", "units"],
+    queryFn: api.systemd,
+    refetchInterval: 15_000,
+  });
+
+  // Journal logs — fetched once on mount (static snapshot).
+  const {
+    data: logsData,
+    isLoading: logsLoading,
+    isError: logsError,
+    refetch: refetchLogs,
+  } = useQuery({
+    queryKey: ["systemd", "logs", unitName],
+    queryFn: () =>
+      callUnitLogs({ data: { name: unitName, limit: 200 } }) as Promise<{
+        unit: string;
+        limit: number;
+        count: number;
+        lines: string[];
+      }>,
+    staleTime: 30_000,
+  });
+
+  const u = units.find((x) => x.name === unitName);
+  const isAdmin = !!user?.is_admin;
+  const acting = pendingAction !== null;
+
+  const invalidate = () => void qc.invalidateQueries({ queryKey: ["systemd", "units"] });
+
+  const handleAction = async (
+    action: "start" | "stop" | "restart" | "reload" | "enable" | "disable",
+  ) => {
+    setPendingAction(action);
+    try {
+      await dispatchSystemdAction(action, unitName);
+      toast.success(`${unitName}: ${action} dispatched`);
+      invalidate();
+      // Also refresh logs after an action.
+      void refetchLogs();
+    } catch {
+      toast.error(`Failed to ${action} ${unitName}`);
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-5">
+        <Button asChild variant="ghost" size="sm" className="-ml-2">
+          <Link to="/systemd">
+            <ArrowLeft className="size-3.5 mr-1" />
+            Systemd
+          </Link>
+        </Button>
+        <DetailSkeleton />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="space-y-4 p-6">
+        <EmptyState
+          title="Failed to load unit"
+          description="Could not read systemd unit data. Check that systemd is available on the host."
+          action={
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => qc.invalidateQueries({ queryKey: ["systemd", "units"] })}
+            >
+              Retry
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
+
+  if (!u) return null;
+
+  return (
+    <div className="space-y-5">
+      <Button asChild variant="ghost" size="sm" className="-ml-2">
+        <Link to="/systemd">
+          <ArrowLeft className="size-3.5 mr-1" />
+          Systemd
+        </Link>
+      </Button>
+
+      <PageHeader
+        icon={<Server className="size-5" />}
+        title={u.name}
+        description={u.description}
+        actions={
+          <div className="flex gap-2">
+            <Badge
+              variant="outline"
+              className={cn(
+                u.active === "active" && "border-[var(--success)] text-[var(--success)]",
+                u.active === "failed" && "border-destructive text-destructive",
+              )}
+            >
+              {u.active}
+            </Badge>
+            {isAdmin && u.active !== "active" && (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={acting}
+                onClick={() => void handleAction("start")}
+              >
+                {pendingAction === "start" ? (
+                  <Loader2 className="size-3.5 mr-1 animate-spin" />
+                ) : (
+                  <Play className="size-3.5 mr-1" />
+                )}
+                Start
+              </Button>
+            )}
+            {isAdmin && u.active === "active" && (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={acting}
+                onClick={() => void handleAction("stop")}
+              >
+                {pendingAction === "stop" ? (
+                  <Loader2 className="size-3.5 mr-1 animate-spin" />
+                ) : (
+                  <Square className="size-3.5 mr-1" />
+                )}
+                Stop
+              </Button>
+            )}
+            {isAdmin && (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={acting}
+                onClick={() => void handleAction("restart")}
+              >
+                {pendingAction === "restart" ? (
+                  <Loader2 className="size-3.5 mr-1 animate-spin" />
+                ) : (
+                  <RotateCw className="size-3.5 mr-1" />
+                )}
+                Restart
+              </Button>
+            )}
+          </div>
+        }
+      />
+
+      <Tabs defaultValue="overview">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="logs">Journal</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="pt-4">
+          <KeyValueList
+            items={[
+              { key: "Load", value: u.load },
+              { key: "Active", value: u.active },
+              { key: "Sub", value: u.sub },
+              { key: "Enabled at boot", value: u.enabled ? "yes" : "no" },
+            ]}
+          />
+        </TabsContent>
+
+        <TabsContent value="logs" className="pt-4">
+          {logsLoading ? (
+            <div className="rounded-md border bg-muted/30 h-64 flex items-center justify-center text-sm text-muted-foreground">
+              Loading journal…
+            </div>
+          ) : logsError ? (
+            <EmptyState
+              title="Failed to load logs"
+              description="Could not read journal for this unit."
+              action={
+                <Button size="sm" variant="outline" onClick={() => void refetchLogs()}>
+                  Retry
+                </Button>
+              }
+            />
+          ) : (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {logsData?.count ?? 0} lines
+                </span>
+                <Button size="sm" variant="outline" onClick={() => void refetchLogs()}>
+                  Refresh
+                </Button>
+              </div>
+              <LogViewer lines={logsData?.lines ?? []} height={420} />
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
