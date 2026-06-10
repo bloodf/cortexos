@@ -85,6 +85,15 @@ ALL commands run from `/opt/cortexos`; paths repo-relative.
   confined to the eight EDIT-listed files.
 - A3 (orchestrator, after central rebuild + restart): screen verification
   run shows 18/18 PASS (live app unaffected).
+- A4 (living docs, binary): `grep -nE 'WP-54.*\| *done *\|' docs/rebuild/STATUS.md`
+  returns ≥1 match (WP-54 row no longer "wip"); `grep -ncE 'pending user
+  confirmation' docs/rebuild/STATUS.md` relevant to WP-54 drops to 0 on
+  lines containing WP-54; and `grep -ciE 'legacy .*(removed|deleted)' docs/rebuild/HANDOFF.md`
+  returns ≥1 (HANDOFF states the removal and that SvelteKit rollback is no
+  longer available).
+- A5 (lockfile, binary): the report quotes `pnpm install` exit 0 and the
+  `git diff --stat -- pnpm-lock.yaml` output; `git show HEAD --stat` lists
+  `pnpm-lock.yaml` among the modified files.
 
 ## Out of scope
 - Host/systemd changes (orchestrator-owned, after this lands).

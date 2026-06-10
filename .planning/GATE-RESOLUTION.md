@@ -165,6 +165,17 @@ Via AskUserQuestion in the live session:
 - Debt scope: all four items approved — broken tests + NODE_ENV leak, lint
   cleanup wave, /admin/account redirect check, real logs on /healthcheck.
 
+## 2026-06-10 — MP-007 plan (3 cycles, dispositions applied under /loop standing authorization)
+Artifacts: `harness/artifacts/critic-plan-MP-007-legacy-removal.md-{1,2,3}.md`.
+Cycle 1 FIXED (STATUS.md:412 cite; no-trailing-slash grep pattern). Cycle 2
+FIXED (A3 host-work contradiction removed; operator approval recorded
+verbatim in this file and cited). Cycle 3 dispositions, both FIXED:
+- [MAJOR] no binary acceptance for living-docs updates → added A4 (WP-54
+  row shows done; HANDOFF states removal).
+- [MAJOR] no proof requirement for pnpm install/lockfile → added A5
+  (install exit code + lockfile in commit stat).
+No overrules.
+
 ## 2026-06-10 — final verify-screens diff gate (PASS) + one FALSE finding
 `critic-diff-45a3837-4.md`: kimi PASS on the combined script diff
 `f908922~1..HEAD` reviewed against the MP-005 plan. Its single MAJOR
