@@ -457,3 +457,15 @@ allowlist — added; artifact line-cites added). Cycle 3 dispositions:
 - [MAJOR] .prettierignore single-line boundary not binary-enforced →
   FIXED: numstat + added-line-content checks added to A4.
 No overrules. Implementer kimi; reviewer gpt-5.5 (embedded diff).
+
+## 2026-06-10 — MP-014 result + rule-9 adaptation (MP-010 precedent)
+Commit `ee62e98`: prettier --write (68 files; format:check exit 0
+repo-wide) + eslint --fix (930 problems; 3,273 → 2,343). REVERT-IF-BROKEN
+exercised twice: `mocks/drift.ts` (stripped `as` assertions broke tsc)
+and `db/__tests__/client.test.ts` (constructor-mock function expression) —
+both reverted, findings rejoin the manual residue. Full package-gate
+battery green (contracts/audit/mail-guardian/telemetry/paperclip-adapter/
+terminal/dashboard-next). No kimi line-review of the mechanical diff
+(rule-9 adaptation, MP-010 precedent): assurance = binary acceptance
+(numstat-pinned ignore line, suppression grep 0, path allowlist) + the
+gate battery + post-deploy screens.
