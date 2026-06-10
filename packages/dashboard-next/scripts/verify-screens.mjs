@@ -210,9 +210,19 @@ async function main() {
         }
 
         // 2. No error boundary text on screen.
-        const bodyText = (await page.locator('body').innerText().catch(() => '')) || '';
+        // Structural check: only count signature matches that appear inside
+        // elements that legitimately render error UI (h1/h2/h3 headings,
+        // [role="alert"], or the description <p> inside a <header>). This
+        // excludes data-table cells, log lines, argv strings, etc. that may
+        // echo signature text in normal product content (MP-005).
+        const errorLandmarks = page.locator(
+          'h1, h2, h3, [role="alert"], header p',
+        );
         for (const sig of ERROR_SIGNATURES) {
-          if (bodyText.includes(sig)) {
+          const sigCount = await errorLandmarks
+            .filter({ hasText: sig })
+            .count();
+          if (sigCount > 0) {
             reasons.push(`error-boundary text present: "${sig}"`);
           }
         }
