@@ -494,3 +494,21 @@ FIXED: tasks renumbered 1→8 with the capture as Task 2 strictly before
 the Task-3 ignores; A1 now binary-requires the complete pre-ignore path
 list with per-path tags. No overrules. Implementer kimi; reviewer
 gpt-5.5 (embedded diff).
+
+## 2026-06-10 — MP-016 plan (3 cycles, dispositions applied under /loop standing authorization)
+Artifacts: `harness/artifacts/critic-plan-MP-016-extensions-rule-correctness.md-{1,2,3}.md`.
+Cycle 1 FIXED (ephemeral /tmp evidence made durable as
+recon-extensions-breakdown.md; 1,908 baseline cited to
+impl-mp-015-report.md:120; exact gate commands spelled out). Cycle 2
+FIXED (real catch: the unscoped tsx grep could never be 0 — replaced
+with the awk map-slice check, orchestrator-verified → 0; .js-package
+scope cited to recon-monorepo-audit.md:40/:81/:98/:103/:174;
+dashboard-next tsconfig embedded). Cycle 3 dispositions:
+- [BLOCKER] 783 vs 780 count contradiction → FIXED: reconciled in the
+  plan — 783 (residue-breakdown.md:30) is authoritative; the per-mode
+  regex capture misses ~3 message variants; GREEN is count-independent
+  (extensions findings → 0) and A1 already carries ±5.
+- [MAJOR] residue-breakdown.md not embedded in cycle 3 → FIXED: :30/:131
+  line-cited; file embedded in cycles 1-2 where the figure was accepted
+  (embed-set rotation artifact, same class as prior cycles).
+No overrules. Implementer kimi; reviewer gpt-5.5 (embedded diff).

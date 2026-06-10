@@ -1,13 +1,22 @@
 # MP-016 — fix the import-x/extensions rule's internal inconsistencies (783 findings, config-correctness)
 
 ## Requirements
-- MP16-R1: 783 `import-x/extensions` findings (top rule in
-  `.planning/harness/artifacts/recon-residue-breakdown.md` top-20 table,
-  row 1); breakdown evidence (orchestrator 2026-06-10, from the full run
-  saved at /tmp during triage and quoted here): 777× `Missing file
-  extension for "…"` + 1× `Missing file extension "tsx"` (778 in
-  dashboard-next) and 2× `Unexpected use of file extension "js"`
-  (cortex-audit).
+- MP16-R1: 783 `import-x/extensions` findings — authoritative count from
+  `.planning/harness/artifacts/recon-residue-breakdown.md:30` (top-20
+  table row 1: `| 1 | 783 | import-x/extensions |`; also :131).
+  Per-mode/per-package breakdown — durable artifact
+  `.planning/harness/artifacts/recon-extensions-breakdown.md`: :2 — 777×
+  `Missing file extension for "…"`; :3 — 2× `Unexpected use of file
+  extension "js"`; :4 — 1× `Missing file extension "tsx"`; :5-6 —
+  per-package: 778 dashboard-next, 2 cortex-audit. COUNT NOTE: the
+  per-mode regexes sum to 780, not 783 — the capture's `grep -oE`
+  patterns miss ~3 message variants; the 783 table figure is
+  authoritative, the breakdown shows the dominant modes, and the GREEN
+  criterion below is count-independent (extensions findings → 0).
+  Current lint total baseline 1,908 per
+  `.planning/harness/artifacts/impl-mp-015-report.md:120`
+  (`✖ 1908 problems (1838 errors, 70 warnings)`; per-dir table at :138 —
+  `1908 packages`).
 - MP16-R2 (root cause A — missing map entry): `eslint.config.js:118-122`
   already declares the intent — comment `import-x/extensions: Vite/TS
   handle extensions; linting them is noise` — and configures
@@ -16,7 +25,8 @@
   relative import of a `.tsx` module demands an extension. The workspace
   is bundler-resolved (`tsconfig.base.json:6` —
   `"moduleResolution": "bundler"`;
-  `packages/dashboard-next/tsconfig.json:17` — `"Bundler"`), so
+  `packages/dashboard-next/tsconfig.json:17` — `"Bundler"`; both files
+  embedded in this gate run), so
   extensionless TS/TSX imports are the workspace's own documented
   convention. Fix: add `tsx: 'never'` (and `cts`/`mts` for completeness
   ONLY if findings exist for them — check, else leave) to the existing
@@ -29,7 +39,10 @@
   the runtime. Fix: a scoped override block for plain-JS Node packages
   (`packages/cortex-audit/**`, `packages/cortex-telemetry/**`,
   `packages/cortex-terminal/**` — the workspace's .js-source packages
-  per the monorepo audit) setting
+  per `.planning/harness/artifacts/recon-monorepo-audit.md` package
+  sections at :40, :81, :98 with the terminal's `"start": "node
+  src/server.js"` at :103 and its `node --check src/server.js` gate at
+  :174; embedded in this gate run) setting
   `'import-x/extensions': ['error', 'ignorePackages', { js: 'always', mjs: 'always' }]`.
   Code must NOT be changed to satisfy the wrong rule direction.
 - MP16-R4: while touching `.prettierignore`-adjacent config is NOT in
@@ -45,19 +58,24 @@ ALL commands run from `/opt/cortexos`.
 
 ## Tasks (append to the report after EVERY step)
 1. RED (quote): `pnpm exec eslint . 2>&1 | grep -c 'import-x/extensions'`
-   → ~783; `grep -c 'tsx' eslint.config.js` within the extensions map → 0
-   (quote the current map lines); `grep -c 'templates/\*\*' .prettierignore`
-   → 2.
+   → ~783; map-scoped check (binary, verified by orchestrator pre-gate):
+   `awk "/'import-x\/extensions'/,/\],/" eslint.config.js | grep -c 'tsx'`
+   → 0 (quote the awk slice itself — the current map lines);
+   `grep -c 'templates/\*\*' .prettierignore` → 2.
 2. Apply MP16-R2 (add `tsx: 'never'` to the existing map), MP16-R3 (the
    scoped JS-packages override), MP16-R4 (dedupe line).
 3. GREEN (quote): `pnpm exec eslint . 2>&1 | grep -c 'import-x/extensions'`
    → 0; full `pnpm lint 2>&1 | tail -2` (expected total ≈ 1,908 − 783 =
-   ~1,125); `grep -c 'templates/\*\*' .prettierignore` → 1;
+   ~1,125, both figures per MP16-R1's cited baselines);
+   `grep -c 'templates/\*\*' .prettierignore` → 1;
    `pnpm run format:check 2>&1 | tail -1` still exit 0.
-4. Gates (quote): dashboard-next tsc exit 0 + full suite (env sourced,
-   no override) zero failures ≥ 558; `pnpm --filter @cortexos/audit test`
-   green (its package was touched by the rule scope);
-   `node --check packages/cortex-terminal/src/server.js` exit 0.
+4. Gates, exact commands (quote each with exit code):
+   - `pnpm --filter @cortexos/dashboard-next exec tsc --noEmit` → exit 0
+   - `bash -c 'set -a; source /opt/cortexos/.secrets/dashboard.env; set +a; cd packages/dashboard-next && pnpm exec vitest run'`
+     → zero failures, ≥ 558 tests
+   - `pnpm --filter @cortexos/audit test` → exit 0 (its package is
+     touched by the new rule scope)
+   - `node --check packages/cortex-terminal/src/server.js` → exit 0
 5. ONE commit of exactly the two owned files:
    chore: complete import-x/extensions rule intent — tsx exception + Node-ESM js packages (MP-016)
    Do NOT stage .planning/**. NEVER push.
