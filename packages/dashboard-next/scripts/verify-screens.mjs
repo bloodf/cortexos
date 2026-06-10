@@ -312,7 +312,7 @@ async function main() {
   } else {
     for (const r of artifactRoutes) {
       for (const reason of r.knownArtifacts) {
-        console.log(`  ${r.path}: ${reason}`);
+        console.log(`  known-artifact: ${r.path}: ${reason}`);
       }
     }
   }
