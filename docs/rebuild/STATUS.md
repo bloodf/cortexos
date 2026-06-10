@@ -424,3 +424,16 @@ covered by the DB query running correctly (it fails closed on the bogus token).
 
 Gate ledger: `.planning/GATE-RESOLUTION.md`. Harness: `.planning/harness/`.
 WP-54 fully complete: legacy `packages/dashboard` + `stacks/cortex-dashboard/` removed from repo (2026-06-10, operator-confirmed browser PAM login on dashboard-next; see MP-007). No SvelteKit rollback path remains — see `HANDOFF.md` rollback section.
+
+## Wave 6 — release-readiness completion (2026-06-10, second /loop session)
+| WP | Title | Status | Commit | Evidence |
+|----|-------|--------|--------|----------|
+| MP-007 | legacy SvelteKit removal (packages/dashboard + stacks/cortex-dashboard, 791 files) + functional ref cleanup + host unit fix | done | 8034090 (+unit fix on host) | recon-legacy-refs; 18/18 post-removal |
+| MP-008 | jsdom test repairs (QueryClient providers, auth-fn mocks, switchUser no-op rewrite) + vitest NODE_ENV pin + jest-dom type/runtime restore | done | 7613c15 | 543/543 → suite green without shell env override |
+| MP-009 | real logs: hostLogs (journalctl, admin-gated) on /healthcheck; containerLogs (stderr-merged, admin-gated) on docker views; LogStream fetcher | done | 5f93130 + d962319 | run 8/9 probes: real journal lines, no mock markers |
+| MP-010 | eslint --fix wave | done | e85736a | 11,579 → 45 problems (99.61%); 558/558; build green |
+| — | /admin/account → /overview | intended | — | recon-account-redirect: deliberate stub, no change |
+| G5 | final screen verification (run 9) | **18/18 PASS, exit 0** | — | screen-defects-9.md |
+
+Residual operator items: 45 lint problems (rule-id table in impl-mp-010-report.md);
+`cortex-dashboard-root-helper.service/.socket` provenance check (flagged, untouched).
