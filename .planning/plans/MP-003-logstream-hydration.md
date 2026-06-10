@@ -1,10 +1,12 @@
 # MP-003 — fix LogStream SSR/client hydration mismatch (React #418 on /healthcheck)
 
 ## Requirements
-- MP3-R1: defect D-002 in `.planning/harness/artifacts/screen-defects-3.md` —
+- MP3-R1: defect D-002 at
+  `.planning/harness/artifacts/screen-defects-3.md:18-20` —
   `/healthcheck` throws `[pageerror] Minified React error #418` (hydration
-  text mismatch). Root cause per gated analysis AN-002
-  (`.planning/harness/artifacts/AN-002-healthcheck-hydration.md`):
+  text mismatch). Root cause per analysis AN-002 (committed at
+  `.planning/analysis/AN-002-healthcheck-hydration.md`; gate dispositions
+  in `.planning/GATE-RESOLUTION.md`):
   `packages/dashboard-next/src/components/LogStream.tsx:24-33` — `makeLine()`
   uses `new Date()` + `Math.random()` and runs inside the `useState`
   initializer (`:30`), so SSR and the client hydration render produce
@@ -31,10 +33,13 @@ All paths relative to `packages/dashboard-next/`.
   two outputs are identical. With the current code the 40 random lines make
   them differ — the test MUST fail. Quote the failing output in the report.
 2. GREEN: in `LogStream.tsx`, change the `useState` initializer to `[]` and
-  populate the initial 40 lines inside the existing mount `useEffect`
-  (per AN-002 "Recommended minimal fix": server and client both render the
-  empty list; random lines appear only after mount). Keep the interval
-  ticker behavior unchanged. Test now passes.
+  add a NEW mount-only `useEffect` with an empty dependency array that
+  populates the initial 40 lines once. Do NOT put this in the existing
+  interval effect (`LogStream.tsx:33-44`, deps `[paused, intervalMs, max]`)
+  — that effect re-runs on dependency changes and would regenerate the
+  lines. Server and client both render the empty list; random lines appear
+  only after mount. Keep the interval ticker behavior unchanged. Test now
+  passes.
 3. Gates from `/opt/cortexos`
   (`set -a; source /opt/cortexos/.secrets/dashboard.env; set +a`):
   - `pnpm --filter @cortexos/dashboard-next exec tsc --noEmit`
