@@ -172,6 +172,23 @@ dispositions, all FIXED:
 No overrules. The gate measurably hardened the design (auth levels,
 stderr coverage, hydration guard).
 
+## 2026-06-10 — MP-011 plan (3 cycles, dispositions applied under /loop standing authorization)
+Artifacts: `harness/artifacts/critic-plan-MP-011-lint-residuals.md-{1,2,3}.md`.
+Cycle 1 BLOCKERs FIXED (unfiltered listing capture — the grep dropped
+stylish filename headers; ownership extended to named importers/new
+modules for export moves; lint-clean criterion switched to exit code,
+since eslint success is silent). Cycle 2 FIXED (PARTIAL outcome defined
+end-to-end: gated partial commit + escalated occurrences named; ownership
+provenance tags per changed path). Cycle 3 dispositions, both FIXED:
+- [MAJOR] MP11-R2 baselines untraceable → cited (558 from
+  impl-mp-010-report Task-3 gate; 18/18 from screen-defects-9.md:3-6).
+- [MAJOR] Task-3 lint gate contradicted the PARTIAL outcome → Task 3 now
+  defines both outcomes' lint criteria explicitly.
+No overrules. Operator separately approved (this session): MERGE TO MAIN
+once residuals are fixed and final verification is green. Root-helper
+units: ORPHANED-LEGACY per recon-root-helper.md — stopped + disabled
+(unit files kept on host for reversibility).
+
 ## 2026-06-10 — MP-010 result + rule-9 adaptation (orchestrator decision, logged for operator review)
 Commit `e85736a`: 11,579 → 45 lint problems (99.61% reduction; threshold
 ≥90%), tsc 0, full suite 558/558, build green, 195 files / +16,701/−12,322
