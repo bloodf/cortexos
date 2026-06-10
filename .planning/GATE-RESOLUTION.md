@@ -86,3 +86,18 @@ ms() implementation quoted). Cycle 3 dispositions:
   same rationale and same empirical backstop as above.
 Critic's own counterargument concedes the diagnosis is "very plausible" and
 the fix "small and likely beneficial even if other sources exist."
+
+## 2026-06-10 — MP-004 plan (3 cycles, dispositions applied under /loop standing authorization)
+Artifacts: `harness/artifacts/critic-plan-MP-004-verify-screens-terminal-artifact.md-{1,2,3}.md`.
+Cycles 1-2 findings FIXED (path typo in A2; defect/evidence line-cites added;
+binary narrowness + printed-not-dropped checks added). Cycle 3 dispositions,
+all FIXED:
+- [BLOCKER] allowlist regex matched only the message prefix and would mask
+  other terminal WS failures → pattern now includes the full
+  "Error during WebSocket handshake: Unexpected response code: 404" tail.
+- [MAJOR] A2 did not pin route/pattern contents → added exact-content greps
+  on the awk slice (`route: '/terminal'`, the 404 tail).
+- [MAJOR] A4 diff method contradicted its exclusions → expected-diff set now
+  explicit: exactly `/terminal FAIL→PASS` (+ known-artifact line), /overview
+  + /healthcheck owned elsewhere, any other diff line fails.
+No overrules.
