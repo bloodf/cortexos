@@ -120,3 +120,39 @@ intent; kimi diff gate still guards the code): Task 3 adds
 files; A2 requires zero failures outside it.
 OPERATOR FLAG: the 11 broken tests + dashboard.env's NODE_ENV leaking into
 dev tooling deserve their own cleanup item; out of scope here.
+
+## 2026-06-10 — MP-004 diff gates (3 cycles, dispositions applied under /loop standing authorization)
+Artifacts: `harness/artifacts/critic-diff-45a3837-{1,2,3}.md` (combined diff
+`f908922~1..HEAD`, verify-screens.mjs).
+- Cycle 1 PASS + MAJOR (known-artifact printed only in fails loop) →
+  FIXED in `ca4a5af` (print for all routes).
+- Cycle 2 REJECT BLOCKER (M3's hoist in `3cbf5e9` computed the filters
+  BEFORE page.goto — console errors silently ignored for ALL routes;
+  invalidated verification run 5's class-(b) results) → FIXED in `0d284b1`
+  (declare at route scope, assign after page events; ordering
+  orchestrator-verified by line inspection).
+- Cycle 3 REJECT MAJOR (all-routes artifact section lacks the literal
+  `known-artifact:` prefix A4(i) greps for) → FIXED in the MP-004 fix-4
+  commit (one-string change). Confirmation kimi gate runs on the final
+  combined diff before push per rule 9.
+No overrules. The gate caught a real observability-corrupting defect
+(cycle 2) that static checks and the implementer's self-review missed.
+
+## 2026-06-10 — MP-005 plan (3 cycles, dispositions applied under /loop standing authorization)
+Artifacts: `harness/artifacts/critic-plan-MP-005-verify-screens-structural-boundary-check.md-{1,2,3}.md`.
+Cycle 1 findings FIXED (superseded-evidence contradiction stated explicitly;
+line cites added; executable sensitivity fixtures added). Cycle 2 findings
+FIXED (EmptyState `<h3>` surface added to selector + fixtures; fixtures
+reordered RED-first). Cycle 3 dispositions:
+- [MAJOR] Systemd.tsx:224 not in evidence base → FIXED-BY-VERIFICATION:
+  orchestrator ran `grep -n -A4 'Failed to load' src/features/Systemd.tsx`
+  → `224: title="Failed to load units"`; file omitted from the embed set
+  only to bound prompt size.
+- [MAJOR] screen-defects-5.md not in evidence base → FIXED-BY-VERIFICATION:
+  artifact exists; :32 is the `/processes FAIL error-boundary` row, quoted
+  earlier in this log's run-5 analysis.
+- [MAJOR] A4 deferred to orchestrator → OVERRULED: deliberate design,
+  identical to the accepted A-criteria pattern in MP-002 (A4/A5), MP-003
+  (A4), MP-004 (A4); implementer-verifiable completion is A1-A3 (binary,
+  local); A4 is the orchestrator's pre-push gate. Same critic accepted this
+  pattern in MP-003's PASS (cycle 2).
