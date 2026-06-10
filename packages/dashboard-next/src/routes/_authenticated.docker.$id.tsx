@@ -11,12 +11,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { DetailSkeleton } from "@/components/skeletons";
 import { EmptyState } from "@/components/EmptyState";
-import { api, callDockerAction, callMintApproval } from "@/lib/api/client";
+import { api, callDockerAction, callMintApproval, callContainerLogs } from "@/lib/api/client";
 import { useAuth } from "@/hooks/useAuth";
 import { bytes, relativeTime } from "@/lib/format";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 // ---------------------------------------------------------------------------
 // Approval-gated docker action helper (mirrors Docker.tsx)
@@ -89,6 +89,19 @@ function ContainerDetail() {
 
   const c = containers.find((x) => x.id === id || x.name === id);
   const isAdmin = !!user?.is_admin;
+
+  // MP-009: container-scoped log fetcher. Captures `c` (the route's
+  // resolved container) at render time; the LogStream re-runs the
+  // callback when the route param / containers list changes.
+  const fetchContainerLogs = useCallback(async (): Promise<string[]> => {
+    if (!c) return [];
+    try {
+      const { lines } = await callContainerLogs({ data: { id: c.id, limit: 200 } });
+      return lines;
+    } catch {
+      return [];
+    }
+  }, [c]);
 
   const invalidate = () =>
     qc.invalidateQueries({ queryKey: ["docker", "containers"] });
@@ -288,7 +301,7 @@ function ContainerDetail() {
           </div>
         </TabsContent>
         <TabsContent value="logs" className="pt-4">
-          <LogStream height={480} />
+          <LogStream height={480} fetcher={fetchContainerLogs} refetchIntervalMs={3000} />
         </TabsContent>
         <TabsContent value="config" className="pt-4">
           <pre className="rounded-lg border bg-card p-4 text-xs overflow-x-auto">

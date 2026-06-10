@@ -250,3 +250,77 @@ describe("systemd.logs gate (auth: any)", () => {
 		expect(res.status).toBe(401);
 	});
 });
+
+// ---------------------------------------------------------------------------
+// hostLogs gate (MP-009 — auth: admin, GET, limit int 1..500).
+// No `getUnit` precondition (this is the WHOLE host journal, not a unit).
+// Returns { lines: string[] }.
+// ---------------------------------------------------------------------------
+
+const hostLogsCore: ApiRouteCore = defineApiRoute({
+	methods: ["GET"],
+	auth: "admin",
+	input: z
+		.object({
+			limit: z.coerce.number().int().min(1).max(500).optional(),
+		})
+		.strict(),
+	surface: "systemd",
+	action: "systemd.host.logs",
+	rateLimit: { limit: 10, windowSec: 60, bucket: "user" },
+	handler: () => ({ limit: 100, count: 2, lines: ["ts1 hello", "ts2 world"] }),
+});
+
+describe("systemd.host.logs gate (auth: admin, no unit precondition)", () => {
+	it("200 with admin session and default limit", async () => {
+		const { token } = await makeSession({ isAdmin: true });
+		const res = await hostLogsCore(
+			new Request("http://localhost/_serverFn/systemd.host.logs", {
+				headers: { cookie: cookieHeader({ [SESSION_COOKIE]: token }) },
+			}),
+		);
+		expect(res.status).toBe(200);
+		expect(await res.json()).toMatchObject({ lines: ["ts1 hello", "ts2 world"] });
+	});
+
+	it("401 without a session", async () => {
+		const res = await hostLogsCore(
+			new Request("http://localhost/_serverFn/systemd.host.logs"),
+		);
+		expect(res.status).toBe(401);
+		expect((await res.json()).code).toBe("auth");
+	});
+
+	it("403 for an authenticated non-admin", async () => {
+		const { token } = await makeSession({ isAdmin: false });
+		const res = await hostLogsCore(
+			new Request("http://localhost/_serverFn/systemd.host.logs", {
+				headers: { cookie: cookieHeader({ [SESSION_COOKIE]: token }) },
+			}),
+		);
+		expect(res.status).toBe(403);
+		expect((await res.json()).code).toBe("permission");
+	});
+
+	it("400 for limit out of range (0)", async () => {
+		const { token } = await makeSession({ isAdmin: true });
+		const res = await hostLogsCore(
+			new Request("http://localhost/_serverFn/systemd.host.logs?limit=0", {
+				headers: { cookie: cookieHeader({ [SESSION_COOKIE]: token }) },
+			}),
+		);
+		expect(res.status).toBe(400);
+		expect((await res.json()).code).toBe("validation");
+	});
+
+	it("400 for limit out of range (501)", async () => {
+		const { token } = await makeSession({ isAdmin: true });
+		const res = await hostLogsCore(
+			new Request("http://localhost/_serverFn/systemd.host.logs?limit=501", {
+				headers: { cookie: cookieHeader({ [SESSION_COOKIE]: token }) },
+			}),
+		);
+		expect(res.status).toBe(400);
+		expect((await res.json()).code).toBe("validation");
+	});
+});

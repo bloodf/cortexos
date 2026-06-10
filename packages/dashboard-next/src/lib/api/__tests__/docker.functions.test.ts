@@ -229,3 +229,98 @@ describe("CORTEX_DOCKER_REAL=0 → stub data (no real docker calls)", () => {
 		expect(items.some((v) => v.name === "grafana-data")).toBe(true);
 	});
 });
+
+// ---------------------------------------------------------------------------
+// containerLogs gate (MP-009 — auth: admin, GET, id hex regex max 64,
+// limit int 1..500). Mirrors the unitLogs shape in systemd.functions.test.ts
+// but for the docker surface. Returns { lines: string[] }.
+// ---------------------------------------------------------------------------
+
+const containerLogsCore: ApiRouteCore = defineApiRoute({
+	methods: ["GET"],
+	auth: "admin",
+	input: z
+		.object({
+			id: z
+				.string()
+				.min(1)
+				.max(64)
+				.regex(/^[0-9a-fA-F]+$/, "container id must be hex"),
+			limit: z.coerce.number().int().min(1).max(500).optional(),
+		})
+		.strict(),
+	surface: "docker",
+	action: "docker.container.logs",
+	target: (i) => (i as { id: string }).id,
+	handler: () => ({ lines: ["alpha", "beta"] }),
+});
+
+describe("docker.container.logs gate (auth: admin)", () => {
+	it("200 with admin session and valid input", async () => {
+		const { token } = await makeSession({ isAdmin: true });
+		const res = await containerLogsCore(
+			new Request(
+				"http://localhost/_serverFn/docker.container.logs?id=abc123&limit=10",
+				{ headers: { cookie: cookieHeader({ [SESSION_COOKIE]: token }) } },
+			),
+		);
+		expect(res.status).toBe(200);
+		expect(await res.json()).toMatchObject({ lines: ["alpha", "beta"] });
+	});
+
+	it("401 without a session", async () => {
+		const res = await containerLogsCore(
+			new Request("http://localhost/_serverFn/docker.container.logs?id=abc123"),
+		);
+		expect(res.status).toBe(401);
+		expect((await res.json()).code).toBe("auth");
+	});
+
+	it("403 for an authenticated non-admin", async () => {
+		const { token } = await makeSession({ isAdmin: false });
+		const res = await containerLogsCore(
+			new Request(
+				"http://localhost/_serverFn/docker.container.logs?id=abc123",
+				{ headers: { cookie: cookieHeader({ [SESSION_COOKIE]: token }) } },
+			),
+		);
+		expect(res.status).toBe(403);
+		expect((await res.json()).code).toBe("permission");
+	});
+
+	it("400 for an invalid id (non-hex characters)", async () => {
+		const { token } = await makeSession({ isAdmin: true });
+		const res = await containerLogsCore(
+			new Request(
+				"http://localhost/_serverFn/docker.container.logs?id=zzz!",
+				{ headers: { cookie: cookieHeader({ [SESSION_COOKIE]: token }) } },
+			),
+		);
+		expect(res.status).toBe(400);
+		expect((await res.json()).code).toBe("validation");
+	});
+
+	it("400 for limit out of range (0)", async () => {
+		const { token } = await makeSession({ isAdmin: true });
+		const res = await containerLogsCore(
+			new Request(
+				"http://localhost/_serverFn/docker.container.logs?id=abc&limit=0",
+				{ headers: { cookie: cookieHeader({ [SESSION_COOKIE]: token }) } },
+			),
+		);
+		expect(res.status).toBe(400);
+		expect((await res.json()).code).toBe("validation");
+	});
+
+	it("400 for limit out of range (501)", async () => {
+		const { token } = await makeSession({ isAdmin: true });
+		const res = await containerLogsCore(
+			new Request(
+				"http://localhost/_serverFn/docker.container.logs?id=abc&limit=501",
+				{ headers: { cookie: cookieHeader({ [SESSION_COOKIE]: token }) } },
+			),
+		);
+		expect(res.status).toBe(400);
+		expect((await res.json()).code).toBe("validation");
+	});
+});

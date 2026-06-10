@@ -203,3 +203,35 @@ const unitLogsGate = defineServerFn({
 export const unitLogs = createServerFn({ method: "GET" })
 	.middleware([unitLogsGate])
 	.handler(serverFnNoop);
+
+// ---------------------------------------------------------------------------
+// hostLogs — GET, auth: admin, rate-limit 10/min/user (MP-009).
+// Returns the most-recent `limit` log lines for the WHOLE host journal
+// (no `--unit` filter; no `getUnit` precondition). Same line shape as
+// unitLogs: SystemdLogLine[]. Mapped to display text by the client
+// (`[ts] PRIO unit: msg`).
+// ---------------------------------------------------------------------------
+
+const HostLogsInput = z
+	.object({
+		limit: z.coerce.number().int().min(1).max(500).optional(),
+	})
+	.strict();
+
+const hostLogsGate = defineServerFn({
+	method: "GET",
+	auth: "admin",
+	input: HostLogsInput,
+	rateLimit: { limit: 10, windowSec: 60, bucket: "user" },
+	surface: "systemd",
+	action: "systemd.host.logs",
+	handler: async ({ input }) => {
+		const { listHostLogs } = await import("@/server/system/systemd");
+		const limit = input.limit ?? 100;
+		const lines = await listHostLogs(limit);
+		return { limit, count: lines.length, lines };
+	},
+});
+export const hostLogs = createServerFn({ method: "GET" })
+	.middleware([hostLogsGate])
+	.handler(serverFnNoop);

@@ -182,12 +182,18 @@ export async function tailLogs(id: string, n: number): Promise<string[]> {
   if (!c) return [];
   const max = Math.max(1, Math.min(1000, n));
   try {
-    const { stdout } = await execFileAsync(
+    // `docker logs` writes the container's stderr stream to the CLI's stderr
+    // (and stdout to CLI's stdout). Merging both streams (MP-009) — previously
+    // only stdout was captured, so any container that emits errors via
+    // stderr showed up blank.
+    const { stdout, stderr } = await execFileAsync(
       'docker',
       ['logs', '--tail', String(max), c.id],
       { timeout: 10000, maxBuffer: 2 * 1024 * 1024 },
     );
-    return stdout.split('\n').filter(Boolean);
+    return [...stdout.split('\n'), ...stderr.split('\n')]
+      .map((l) => l.replace(/\r$/, ''))
+      .filter(Boolean);
   } catch {
     return [`(logs unavailable for ${c.name})`];
   }

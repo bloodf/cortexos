@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Play, Square, RotateCw, Trash2, FileText, Container, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { DataTable, type Column } from "@/components/DataTable";
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TableSkeleton } from "@/components/skeletons";
 import { EmptyState } from "@/components/EmptyState";
-import { api, callDockerAction, callMintApproval } from "@/lib/api/client";
+import { api, callDockerAction, callMintApproval, callContainerLogs } from "@/lib/api/client";
 import { useT } from "@/hooks/useT";
 import { useAuth } from "@/hooks/useAuth";
 import { bytes, relativeTime } from "@/lib/format";
@@ -76,6 +76,19 @@ export function DockerPage() {
   });
   const [logsFor, setLogsFor] = useState<DockerContainer | null>(null);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
+
+  // MP-009: per-container log fetcher. Captures `logsFor` (the container
+  // currently in the drawer) at render time; the LogStream re-runs the
+  // callback when the drawer content changes (logsFor is in the dep array).
+  const fetchContainerLogs = useCallback(async (): Promise<string[]> => {
+    if (!logsFor) return [];
+    try {
+      const { lines } = await callContainerLogs({ data: { id: logsFor.id, limit: 200 } });
+      return lines;
+    } catch {
+      return [];
+    }
+  }, [logsFor]);
 
   const isAdmin = !!user?.is_admin;
 
@@ -411,7 +424,7 @@ export function DockerPage() {
           {
             id: "logs",
             label: "Logs",
-            content: logsFor ? <LogStream height={420} /> : null,
+            content: logsFor ? <LogStream height={420} fetcher={fetchContainerLogs} refetchIntervalMs={3000} /> : null,
           },
         ]}
       />

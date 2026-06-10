@@ -528,6 +528,62 @@ export async function listLogs(name: string, limit: number): Promise<SystemdLogL
   }
 }
 
+/**
+ * Return the most-recent `limit` log lines for the WHOLE host journal
+ * (no `--unit` filter, MP-009). Same line shape as `listLogs` (SystemdLogLine).
+ * execFile fixed-argv; never invokes a shell.
+ */
+export async function listHostLogs(limit: number): Promise<SystemdLogLine[]> {
+	if (currentMock) {
+		// Mock: concatenate seeded per-unit logs (newest-last in the mock
+		// store) so the dashboard has something to render. Same SystemdLogLine
+		// shape; callers map to display text.
+		const cap = Math.max(0, limit);
+		const merged: SystemdLogLine[] = [];
+		for (const u of _SEED_UNITS) {
+			merged.push(...currentMock.logsFor(u.name));
+		}
+		// newest last in the mock store → take the tail
+		return merged.slice(-cap);
+	}
+	// Real journalctl path (Linux only). NO `--unit` filter — whole host.
+	try {
+		const { stdout } = await execFileAsync(
+			'/usr/bin/journalctl',
+			['-n', String(limit), '--no-pager', '--output=json'],
+			{ timeout: 10_000, maxBuffer: 4 * 1024 * 1024 },
+		);
+		const lines: SystemdLogLine[] = [];
+		for (const rawLine of stdout.split('\n')) {
+			const trimmed = rawLine.trim();
+			if (!trimmed) continue;
+			try {
+				const entry = JSON.parse(trimmed) as Record<string, unknown>;
+				const ts = entry.__REALTIME_TIMESTAMP
+					? new Date(Number(entry.__REALTIME_TIMESTAMP) / 1000).toISOString()
+					: new Date().toISOString();
+				const priorityNum = Number(entry.PRIORITY ?? 6);
+				const priorityMap: Record<number, SystemdLogLine['priority']> = {
+					0: 'emerg', 1: 'alert', 2: 'crit', 3: 'err',
+					4: 'warning', 5: 'notice', 6: 'info', 7: 'debug',
+				};
+				const priority = priorityMap[priorityNum] ?? 'info';
+				lines.push({
+					ts,
+					priority,
+					unit: String(entry._SYSTEMD_UNIT ?? 'host'),
+					message: String(entry.MESSAGE ?? ''),
+				});
+			} catch {
+				// skip malformed lines
+			}
+		}
+		return lines;
+	} catch {
+		return [];
+	}
+}
+
 // ---------------------------------------------------------------------------
 // Dispatch — the privileged path. Always returns a DispatchResult.
 // ---------------------------------------------------------------------------

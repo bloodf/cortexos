@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -8,7 +8,7 @@ import { DataTable, type Column } from "@/components/DataTable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LogStream } from "@/components/LogStream";
-import { api } from "@/lib/api/client";
+import { api, callHostLogs } from "@/lib/api/client";
 import type { Service } from "@/lib/api/client";
 import { recheckServiceHealth } from "@/lib/api/services.functions";
 import { useT } from "@/hooks/useT";
@@ -19,6 +19,21 @@ export function HealthcheckPage() {
   const t = useT();
   const qc = useQueryClient();
   const [period, setPeriod] = useState<"1h" | "24h" | "7d">("24h");
+
+  // MP-009: live host-journal line fetcher. `callHostLogs` is admin-only,
+  // so non-admin users see an empty stream (errors are swallowed; the
+  // 401/403 audit trail lives on the server). Server gate runs a
+  // 10/min/user rate-limit and audit-logs every call.
+  const fetchHostLogs = useCallback(async (): Promise<string[]> => {
+    try {
+      const { lines } = await callHostLogs({ data: { limit: 200 } });
+      return lines.map(
+        (l) => `[${l.ts}] ${l.priority.padEnd(7)} ${l.unit}: ${l.message}`,
+      );
+    } catch {
+      return [];
+    }
+  }, []);
 
   const recheck = async (row: Service) => {
     toast.info(`Re-checking ${row.name}…`);
@@ -82,7 +97,9 @@ export function HealthcheckPage() {
 
       <Card className="elev-1">
         <CardHeader className="pb-2"><CardTitle className="text-sm">Live log stream</CardTitle></CardHeader>
-        <CardContent><LogStream height={360} /></CardContent>
+        <CardContent>
+          <LogStream height={360} fetcher={fetchHostLogs} refetchIntervalMs={3000} />
+        </CardContent>
       </Card>
     </div>
   );

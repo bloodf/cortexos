@@ -120,6 +120,44 @@ export const listVolumes = createServerFn({ method: "GET" })
   .handler(serverFnNoop);
 
 // ---------------------------------------------------------------------------
+// containerLogs — GET, auth: admin (MP-009, AN-004 §4).
+// Returns the most-recent `limit` lines from `docker logs` (stdout+stderr
+// merged inside the bridge). The id is a hex regex max 64 to match docker's
+// container id shape and avoid shell-injection. `auth: "admin"` matches
+// `dockerAction` gating because container logs can expose secrets
+// (env vars, tokens) accidentally printed to stdout/stderr by apps.
+// ---------------------------------------------------------------------------
+
+const ContainerLogsInput = z
+  .object({
+    id: z
+      .string()
+      .min(1)
+      .max(64)
+      .regex(/^[0-9a-fA-F]+$/, "container id must be hex"),
+    limit: z.coerce.number().int().min(1).max(500).optional(),
+  })
+  .strict();
+
+const containerLogsGate = defineServerFn({
+  method: "GET",
+  auth: "admin",
+  input: ContainerLogsInput,
+  surface: "docker",
+  action: "docker.container.logs",
+  target: (input) => input.id,
+  handler: async ({ input }) => {
+    const { tailLogs } = await import("@/server/docker/real-data");
+    const limit = input.limit ?? 100;
+    const lines = await tailLogs(input.id, limit);
+    return { id: input.id, limit, count: lines.length, lines };
+  },
+});
+export const containerLogs = createServerFn({ method: "GET" })
+  .middleware([containerLogsGate])
+  .handler(serverFnNoop);
+
+// ---------------------------------------------------------------------------
 // dockerAction — POST, auth: admin, rate-limit 10/min/user
 //
 // The bridge owns the approval-token verification + consumption (PB-5); we

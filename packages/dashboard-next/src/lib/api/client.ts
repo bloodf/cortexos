@@ -194,6 +194,7 @@ import {
   getUnit as _getUnit,
   systemdAction as _systemdAction,
   unitLogs as _unitLogs,
+  hostLogs as _hostLogs,
 } from "./systemd.functions";
 
 // WP-13 gate-middleware boundary casts — same pattern as other domains.
@@ -217,6 +218,17 @@ type SystemdActionOutput = {
 };
 type UnitLogsInputType = { name: string; limit?: number };
 type UnitLogsOutput = { unit: string; limit: number; count: number; lines: string[] };
+// MP-009 — hostLogs (admin only): returns host-journal lines, no unit filter.
+// Each `lines` entry is a structured SystemdLogLine from the @cortexos/contracts
+// schema (AN-004 §4 data-shape note), mapped to display text by the caller.
+type HostLogsInputType = { limit?: number };
+type HostLogsLogLine = {
+	ts: string;
+	priority: "emerg" | "alert" | "crit" | "err" | "warning" | "notice" | "info" | "debug";
+	unit: string;
+	message: string;
+};
+type HostLogsOutput = { limit: number; count: number; lines: HostLogsLogLine[] };
 
 const listUnitsFn = _listUnits as unknown as (
   opts: { data: Record<string, never> },
@@ -224,6 +236,9 @@ const listUnitsFn = _listUnits as unknown as (
 const getUnitFn = _getUnit as unknown as (
   opts: { data: { name: string } },
 ) => Promise<GetUnitOutput>;
+const hostLogsFn = _hostLogs as unknown as (
+  opts: { data: HostLogsInputType },
+) => Promise<HostLogsOutput>;
 
 /**
  * Call systemdAction RPC — admin only; approval: true gate.
@@ -237,10 +252,17 @@ export const callSystemdAction = _systemdAction as unknown as (opts: {
 export const callUnitLogs = _unitLogs as unknown as (
   opts: { data: UnitLogsInputType },
 ) => Promise<UnitLogsOutput>;
+/**
+ * MP-009 — Call hostLogs RPC directly (admin only). Returns the most-recent
+ * `limit` lines from the whole host journal (no unit filter, no
+ * `getUnit` precondition).
+ */
+export const callHostLogs = hostLogsFn;
 
 // Re-export the raw typed server fns for direct use.
 export const listUnits = _listUnits;
 export const getUnit = _getUnit;
+export const hostLogs = _hostLogs;
 
 // ---------------------------------------------------------------------------
 // Wired server-function imports (WP-12 — incus domain)
@@ -330,6 +352,7 @@ import {
   listImages as _listImages,
   listVolumes as _listVolumes,
   dockerAction as _dockerAction,
+  containerLogs as _containerLogs,
 } from "./docker.functions";
 import { mintApproval as _mintApproval } from "./approvals.functions";
 
@@ -363,6 +386,12 @@ const listImagesFn = _listImages as unknown as (
 const listVolumesFn = _listVolumes as unknown as (
   opts: { data: { query?: string } },
 ) => Promise<ListVolumesOutput>;
+// MP-009 — containerLogs (admin only): returns tail-N docker logs.
+type ContainerLogsInputType = { id: string; limit?: number };
+type ContainerLogsOutput = { id: string; limit: number; count: number; lines: string[] };
+const containerLogsFn = _containerLogs as unknown as (
+  opts: { data: ContainerLogsInputType },
+) => Promise<ContainerLogsOutput>;
 
 /** Call dockerAction RPC directly — requires a pre-minted approval token. */
 export const callDockerAction = _dockerAction as unknown as (
@@ -372,6 +401,12 @@ export const callDockerAction = _dockerAction as unknown as (
 export const callMintApproval = _mintApproval as unknown as (
   opts: { data: MintApprovalInputType },
 ) => Promise<MintApprovalOutput>;
+/**
+ * MP-009 — Call containerLogs RPC directly (admin only). Returns the
+ * most-recent `limit` lines from `docker logs` for a single container
+ * id (stdout+stderr merged inside the bridge).
+ */
+export const callContainerLogs = containerLogsFn;
 
 /** Map a server Container to the mock DockerContainer shape. */
 function toDockerContainer(c: import("@/server/docker/stub-data").Container): DockerContainer {
