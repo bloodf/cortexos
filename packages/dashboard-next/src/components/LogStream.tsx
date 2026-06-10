@@ -30,9 +30,16 @@ function makeLine() {
 }
 
 export function LogStream({ height = 480, intervalMs = 700, max = 400 }: { height?: number; intervalMs?: number; max?: number }) {
-  const [lines, setLines] = useState<string[]>(() => Array.from({ length: 40 }, makeLine));
+  const [lines, setLines] = useState<string[]>([]);
   const [paused, setPaused] = useState(false);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // MP-003: defer initial 40 lines to a mount-only effect so SSR and the
+  // first client render produce identical markup (fixes React #418 on
+  // /healthcheck). Empty deps — never re-runs on dependency changes.
+  useEffect(() => {
+    setLines(Array.from({ length: 40 }, makeLine));
+  }, []);
 
   useEffect(() => {
     if (paused) return;
