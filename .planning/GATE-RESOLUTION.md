@@ -480,3 +480,17 @@ tracked env file; scripts 2 tracked shell files; templates 4 tracked
 unit files — none lintable JS/TS). Therefore: MP-015 scopes root
 lint/format to first-party tracked code; the code-fix waves cover
 packages/ (~1,900 findings) in full.
+
+## 2026-06-10 — MP-015 plan (3 cycles, dispositions applied under /loop standing authorization)
+Artifacts: `harness/artifacts/critic-plan-MP-015-first-party-scope.md-{1,2,3}.md`.
+Cycle 1 FIXED (parser-error verbatim sample captured to
+recon-parser-coverage-sample.md; tsconfig ownership bounded; per-dir
+count pipeline made binary). Cycle 2 FIXED (real sequencing catch: the
+pre-ignore allowDefaultProject capture must precede the ignores — 19 of
+41 sit under stacks/; MP15-R2 reworded: first-party entries fixed via
+coverage, non-first-party leave scope by directive, never suppressed;
+evidence-append file added to ownership). Cycle 3 dispositions, both
+FIXED: tasks renumbered 1→8 with the capture as Task 2 strictly before
+the Task-3 ignores; A1 now binary-requires the complete pre-ignore path
+list with per-path tags. No overrules. Implementer kimi; reviewer
+gpt-5.5 (embedded diff).
