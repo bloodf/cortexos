@@ -55,7 +55,7 @@ export const WIDGETS: WidgetSpec[] = [
     icon: Cpu,
     default: { w: 4, h: 2 },
     min: { w: 4, h: 2 },
-    render: CpuW,
+    render: () => <CpuW />,
   },
   {
     id: "memory",
@@ -63,7 +63,7 @@ export const WIDGETS: WidgetSpec[] = [
     icon: MemoryStick,
     default: { w: 4, h: 2 },
     min: { w: 4, h: 2 },
-    render: MemW,
+    render: () => <MemW />,
   },
   {
     id: "storage",
@@ -71,7 +71,7 @@ export const WIDGETS: WidgetSpec[] = [
     icon: HardDrive,
     default: { w: 2, h: 2 },
     min: { w: 2, h: 2 },
-    render: StorageW,
+    render: () => <StorageW />,
   },
   {
     id: "cpu-temp",
@@ -79,7 +79,7 @@ export const WIDGETS: WidgetSpec[] = [
     icon: Thermometer,
     default: { w: 2, h: 2 },
     min: { w: 2, h: 2 },
-    render: CpuTempW,
+    render: () => <CpuTempW />,
   },
   {
     id: "services",
@@ -87,7 +87,7 @@ export const WIDGETS: WidgetSpec[] = [
     icon: Activity,
     default: { w: 2, h: 2 },
     min: { w: 2, h: 2 },
-    render: ServicesW,
+    render: () => <ServicesW />,
   },
   {
     id: "uptime",
@@ -95,7 +95,7 @@ export const WIDGETS: WidgetSpec[] = [
     icon: Clock,
     default: { w: 2, h: 2 },
     min: { w: 2, h: 2 },
-    render: UptimeW,
+    render: () => <UptimeW />,
   },
   {
     id: "docker",
@@ -103,7 +103,7 @@ export const WIDGETS: WidgetSpec[] = [
     icon: Container,
     default: { w: 2, h: 2 },
     min: { w: 2, h: 2 },
-    render: DockerW,
+    render: () => <DockerW />,
   },
   {
     id: "incus",
@@ -111,7 +111,7 @@ export const WIDGETS: WidgetSpec[] = [
     icon: Boxes,
     default: { w: 2, h: 2 },
     min: { w: 2, h: 2 },
-    render: IncusW,
+    render: () => <IncusW />,
   },
   {
     id: "live",
@@ -119,7 +119,7 @@ export const WIDGETS: WidgetSpec[] = [
     icon: Activity,
     default: { w: 8, h: 5 },
     min: { w: 5, h: 4 },
-    render: LiveTrendW,
+    render: () => <LiveTrendW />,
   },
   {
     id: "sensors",
@@ -127,7 +127,7 @@ export const WIDGETS: WidgetSpec[] = [
     icon: Thermometer,
     default: { w: 4, h: 2 },
     min: { w: 4, h: 2 },
-    render: SensorsW,
+    render: () => <SensorsW />,
   },
   {
     id: "processes",
@@ -135,7 +135,7 @@ export const WIDGETS: WidgetSpec[] = [
     icon: Cpu,
     default: { w: 8, h: 5 },
     min: { w: 5, h: 4 },
-    render: ProcessesW,
+    render: () => <ProcessesW />,
   },
   {
     id: "network",
@@ -143,7 +143,7 @@ export const WIDGETS: WidgetSpec[] = [
     icon: Wifi,
     default: { w: 8, h: 5 },
     min: { w: 6, h: 4 },
-    render: NetworkW,
+    render: () => <NetworkW />,
   },
   {
     id: "alerts",
@@ -151,7 +151,7 @@ export const WIDGETS: WidgetSpec[] = [
     icon: AlertTriangle,
     default: { w: 4, h: 4 },
     min: { w: 3, h: 3 },
-    render: AlertsW,
+    render: () => <AlertsW />,
   },
   {
     id: "db",
@@ -159,7 +159,7 @@ export const WIDGETS: WidgetSpec[] = [
     icon: Database,
     default: { w: 4, h: 4 },
     min: { w: 3, h: 3 },
-    render: DbW,
+    render: () => <DbW />,
   },
   {
     id: "mon",
@@ -167,7 +167,7 @@ export const WIDGETS: WidgetSpec[] = [
     icon: BarChart3,
     default: { w: 4, h: 4 },
     min: { w: 3, h: 3 },
-    render: MonW,
+    render: () => <MonW />,
   },
   {
     id: "drives",
@@ -175,7 +175,7 @@ export const WIDGETS: WidgetSpec[] = [
     icon: HardDrive,
     default: { w: 6, h: 4 },
     min: { w: 4, h: 3 },
-    render: DrivesW,
+    render: () => <DrivesW />,
   },
 ];
 

@@ -419,11 +419,11 @@ export function DrivesW() {
   );
 }
 
-// ── Widget catalog moved to `./widgets-catalog.ts` ────────────
+// ── Widget catalog moved to `./widget-catalog.tsx` ────────────
 // The catalog (`WIDGETS`, `WIDGET_MAP`, `DEFAULT_LAYOUT`, `WidgetSpec`) is
 // pure data; it was previously in this file but the
 // `react-refresh/only-export-components` rule fires on the array literals
 // (the rule's `allowConstantExport: true` only whitelists primitive
 // `Literal`/`UnaryExpression`/`TemplateLiteral`/`BinaryExpression` initializers
-// — not `ArrayExpression`). Consumers import from `./widgets-catalog` now;
+// — not `ArrayExpression`). Consumers import from `./widget-catalog` now;
 // this file keeps only the widget component implementations.
