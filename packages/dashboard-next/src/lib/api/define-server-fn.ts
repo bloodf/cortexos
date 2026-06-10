@@ -130,7 +130,7 @@ export const serverFnNoop = (): undefined => undefined;
  * is severed from the client bundle.
  */
 export function defineServerFn<TIn = unknown, TOut = unknown>(opts: ServerFnOptions<TIn, TOut>) {
-  return createMiddleware({ type: 'function' }).server(async ({ next }) => {
+  return createMiddleware({ type: 'function' }).server(async ({ data, next }) => {
     const { runServerFnGate } = await import('./server-fn-runner.server');
     const result = await runServerFnGate<TIn, TOut>({
       methods: [opts.method],
@@ -142,6 +142,7 @@ export function defineServerFn<TIn = unknown, TOut = unknown>(opts: ServerFnOpti
       target: opts.target,
       approval: opts.approval,
       handler: opts.handler,
+      inputData: data as TIn | undefined,
     });
     return next({ result } as never);
   });

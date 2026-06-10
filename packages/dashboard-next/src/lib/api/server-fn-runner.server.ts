@@ -20,7 +20,9 @@ import { getRequest, setCookie, setResponseHeader } from '@tanstack/react-start/
 
 import { defineApiRoute, type RouteOptions } from '@/server/server-fn-pipeline';
 
-export async function runServerFnGate<TIn, TOut>(opts: RouteOptions<TIn, TOut>): Promise<TOut> {
+export async function runServerFnGate<TIn, TOut>(
+  opts: RouteOptions<TIn, TOut> & { inputData?: TIn },
+): Promise<TOut> {
   const request = getRequest();
 
   const core = defineApiRoute<TIn, TOut>(opts);

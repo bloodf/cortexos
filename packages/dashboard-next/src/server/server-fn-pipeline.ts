@@ -80,6 +80,16 @@ export interface RouteOptions<TIn, TOut> {
   target?: (input: TIn, ctx: RequestCtx) => string | null;
   /** Require + consume an approval token (`x-cortex-approval-token`). */
   approval?: boolean;
+  /**
+   * Pre-deserialized input forwarded by the runner from the TanStack Start
+   * `.server()` middleware context (`data`). When supplied, the pipeline
+   * validates THIS object instead of re-parsing the raw request — bypasses
+   * the `?payload=<serialized>` envelope that GET server-fns travel in and
+   * that `.strict()` schemas reject as an unknown key. `readRequestInput`
+   * remains the fallback when `inputData` is `undefined` (direct-`Request`
+   * tests, non-TanStack callers).
+   */
+  inputData?: TIn;
   /** The actual handler. */
   handler: Handler<TIn, TOut>;
 }
@@ -171,7 +181,7 @@ export function defineApiRoute<TIn, TOut>(opts: RouteOptions<TIn, TOut>): ApiRou
     // --- 1. input parse + validate → 400 ---
     let input: TIn;
     if (opts.input) {
-      const raw = await readRequestInput(request);
+      const raw = opts.inputData !== undefined ? opts.inputData : await readRequestInput(request);
       const parsed = opts.input.safeParse(raw);
       if (!parsed.success) {
         const details = parsed.error.issues.map((i) => ({
