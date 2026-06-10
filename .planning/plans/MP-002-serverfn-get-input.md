@@ -1,11 +1,16 @@
 # MP-002 — thread middleware-deserialized data into the server-fn gate
 
 ## Requirements
-- MP2-R1: every GET server-fn call carrying input returns 400
-  `{"message":"Validation failed","code":"validation","details":[{"field":"_root","message":"Unrecognized key(s) in object: 'payload'"}]}`.
-  Defects D-001..D-035 class (a) in
-  `.planning/harness/artifacts/screen-defects-2.md` all share this body
-  (21 identical occurrences). Root cause per gated analysis AN-001
+- MP2-R1: every GET server-fn call carrying input returns 400. All class
+  (a) defect bodies in `.planning/harness/artifacts/screen-defects-2.md`
+  (D-001..D-035) contain the detail
+  `{"field":"_root","message":"Unrecognized key(s) in object: 'payload'"}`
+  (21 occurrences; reproduce with
+  `grep -c "Unrecognized key" .planning/harness/artifacts/screen-defects-2.md`).
+  Some entries (e.g. D-026) additionally report missing required fields
+  (`{"field":"path","message":"Required"}`) — same root cause: the raw
+  `{ payload: "..." }` object both carries the unknown `payload` key and
+  lacks the schema's required keys. Root cause per gated analysis AN-001
   (`.planning/harness/artifacts/AN-001-payload-validation.md`):
   - `src/server/server-fn-pipeline.ts:358-363` — `readRequestInput` dumps
     raw query params for GET, returning `{ payload: "<serialized>" }`.
@@ -29,6 +34,8 @@ All paths below are relative to `packages/dashboard-next/`.
 - `src/server/server-fn-pipeline.ts`
 - `src/lib/api/__tests__/mp-002-get-input.test.ts` (new test file)
 - Report file: `/opt/cortexos/.planning/harness/artifacts/impl-mp-002-report.md`
+  — written, never committed (`artifacts/` is gitignored); the commit in
+  Task 4 and check A3 cover exactly the four owned source/test files above.
 
 ## Tasks (TDD order)
 1. RED: create `src/lib/api/__tests__/mp-002-get-input.test.ts` following the
@@ -67,8 +74,12 @@ All paths below are relative to `packages/dashboard-next/`.
 - A1: report quotes T1's failing output from step 1 and its passing result
   after step 2.
 - A2: `tsc --noEmit` exit 0; `vitest run src/server src/lib/api` exit 0 with
-  zero failed tests (the pre-existing suite covers POST/CSRF/envelope, so
-  MP2-R2 is verified by it staying green).
+  zero failed tests. MP2-R2 is verified by the pre-existing suite staying
+  green: `src/lib/api/__tests__/define-server-fn.test.ts`,
+  `security-gate.test.ts`, and the per-domain `*.functions.test.ts` files
+  exercise the gate pipeline including CSRF (reproduce:
+  `grep -rln 'CSRF\|csrf' packages/dashboard-next/src/lib/api/__tests__/`
+  → services, auth, docker, env-browser, define-server-fn tests).
 - A3: `git diff <pre-commit>..HEAD --stat` lists exactly the four owned
   source/test files.
 - A4 (orchestrator, after central rebuild + service restart): WP-B re-run
