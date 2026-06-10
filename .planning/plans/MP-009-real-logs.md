@@ -24,9 +24,14 @@
     precondition, same rate-limit/audit shape as `unitLogs` (:184-205).
   - `LogStream` gains `fetcher?: () => Promise<string[]>` +
     `refetchIntervalMs?` props: when `fetcher` is set, lines come from
-    `useQuery` polling; the mock generator remains ONLY as the
-    no-fetcher fallback (used nowhere after this plan). Keep `paused`,
-    `clear`, `height`, `max` UX.
+    polling. AMENDED (post-diff-gate, overrule logged in
+    GATE-RESOLUTION): the implementation polls via a self-contained
+    `setInterval` effect rather than `useQuery` — functionally
+    equivalent, SSR-safe, and avoids requiring a QueryClient in every
+    mount/test context (the exact dependency class that broke the
+    DataTable jsdom tests, MP-008). The mock generator remains ONLY as
+    the no-fetcher fallback (used nowhere after this plan). Keep
+    `paused`, `clear`, `height`, `max` UX (max enforced in BOTH paths).
   - Data shapes: docker fetcher passes `string[]` through; systemd
     fetchers map each `SystemdLogLine` to `[timestamp] PRIORITY unit:
     message` (AN-004 data-shape note).

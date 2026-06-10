@@ -172,6 +172,28 @@ dispositions, all FIXED:
 No overrules. The gate measurably hardened the design (auth levels,
 stderr coverage, hydration guard).
 
+## 2026-06-10 — MP-007 + MP-009 diff gates (dispositions under /loop standing authorization)
+MP-009 (`critic-diff-55f9e0f-1.md`, REJECT):
+- [MAJOR] setInterval instead of plan's useQuery → OVERRULED, plan
+  amended: functionally equivalent polling, SSR-safe, and avoids the
+  QueryClient-in-every-context dependency that broke DataTable tests
+  (MP-008); A6 verified live (real journal lines, 18/18). The deviation
+  was documented in-code by the worker, not hidden.
+- [MAJOR] `max` ignored in fetcher path → FIXED (gate-fixes micro-job).
+- [MINOR] call-site fetchers blank display on transient errors → FIXED
+  (rejections propagate; LogStream keeps previous lines).
+MP-007 (`critic-diff-54c124e-1.md`, REJECT):
+- [MAJOR] eslint.config.js comment mislabels dashboard-next as
+  svelte-aware → FIXED (gate-fixes micro-job).
+- [MAJOR] lockfile churn beyond the importer removal → OVERRULED:
+  removing packages/dashboard removed the svelte parser/plugin tree,
+  which re-resolves shared root devDependency peers
+  (eslint-config-airbnb-extended gaining @typescript-eslint/parser is
+  exactly that cascade); annotations like `optional: true` are pnpm
+  resolution metadata, not version changes. The resulting tree is proven:
+  tsc 0, 558/558 tests, build green, screens 18/18.
+The gate-fixes commit gets its own kimi pass before push.
+
 ## 2026-06-10 — MP-009 execution notes
 M3 monolithic job died silently after completing Tasks 1-2 and most of
 Task 3 (incremental report preserved the handoff — the MP-008 lesson paying
