@@ -21,9 +21,7 @@ import type { IncusInstance as MockIncusInstance } from "@/mocks/types";
  * Fields with no live counterpart (project metadata, last_validation, etc.)
  * are given empty/null defaults — callers should not fabricate data.
  */
-export function toIncusInstanceRow(
-  inst: ContractLiveInstance,
-): MockIncusInstance {
+export function toIncusInstanceRow(inst: ContractLiveInstance): MockIncusInstance {
   // Extract first global IPv4 for display purposes (best-effort).
   const ipv4 = extractIpv4(inst);
 
@@ -33,14 +31,14 @@ export function toIncusInstanceRow(
     status: mapIncusStatus(inst.statusCode ?? inst.status),
     type: inst.type,
     image: inst.architecture ?? "unknown",
-    cpu: 0,          // not available from live list; WP-12 bridge may enrich
-    memory: 0,       // same
-    config: {},      // not in live list shape
-    devices: {},     // not in live list shape
+    cpu: 0, // not available from live list; WP-12 bridge may enrich
+    memory: 0, // same
+    config: {}, // not in live list shape
+    devices: {}, // not in live list shape
     last_validation: null,
     created_at: inst.createdAt,
     project: {
-      name: inst.name,  // incus name is the project identifier
+      name: inst.name, // incus name is the project identifier
       description: "",
       repo_url: "",
       branch: "main",
@@ -70,7 +68,10 @@ function mapIncusStatus(raw: string): MockStatus {
 }
 
 function slugify(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 function extractIpv4(inst: ContractLiveInstance): string | null {

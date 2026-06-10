@@ -35,14 +35,14 @@
  * fake is gated by CORTEX_AUTH_FAKE_PAM=1.
  */
 
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from "node:child_process";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 /** The RBAC groups the dashboard understands. Mirrors `entities.GroupName`. */
-export type GroupName = 'cortexos-admin' | 'cortexos-auditor' | 'cortexos-users';
+export type GroupName = "cortexos-admin" | "cortexos-auditor" | "cortexos-users";
 
 /** Result of a PAM authentication attempt. */
 export type PamAuthResult =
@@ -50,10 +50,10 @@ export type PamAuthResult =
   | { ok: false; reason: PamAuthFailureReason };
 
 export type PamAuthFailureReason =
-  | 'invalid_credentials'
-  | 'unknown_user'
-  | 'account_disabled'
-  | 'system_error';
+  | "invalid_credentials"
+  | "unknown_user"
+  | "account_disabled"
+  | "system_error";
 
 /** Authenticator contract. */
 export interface PamAuthenticator {
@@ -88,22 +88,22 @@ let cached: PamAuthenticator | null = null;
 
 function pickDefault(): PamAuthenticator {
   // Explicit dev / test override.
-  if (process.env.CORTEX_AUTH_FAKE_PAM === '1') {
+  if (process.env.CORTEX_AUTH_FAKE_PAM === "1") {
     return new FakePamAuthenticator();
   }
   // On Linux, the production path. On other platforms, fall back to
   // the fake and log a warning so a deploy on macOS / Windows is loud.
-  if (process.platform === 'linux') {
+  if (process.platform === "linux") {
     return new LinuxPamAuthenticator();
   }
   // Non-Linux: warn loudly. The fake backend accepts any credentials
   // and treats every user as admin — this is acceptable for local
   // dev / CI but MUST never run in production (a Linux host will
   // never hit this branch).
-   
+
   console.warn(
-    '[cortexos/auth] authenticate-pam is Linux-only; using FakePamAuthenticator. ' +
-      'Set CORTEX_AUTH_FAKE_PAM=1 to silence this warning, or deploy on Linux.',
+    "[cortexos/auth] authenticate-pam is Linux-only; using FakePamAuthenticator. " +
+      "Set CORTEX_AUTH_FAKE_PAM=1 to silence this warning, or deploy on Linux.",
   );
   return new FakePamAuthenticator();
 }
@@ -146,20 +146,19 @@ export function resetPamAuthenticator(): void {
  *     `cortexos-admin` is the only admin-bearing group.
  */
 /** PAM service name — defaults to `cortexos-dashboard`, override via env. */
-const PAM_SERVICE_NAME = process.env.CORTEX_AUTH_PAM_SERVICE || 'cortexos-dashboard';
+const PAM_SERVICE_NAME = process.env.CORTEX_AUTH_PAM_SERVICE || "cortexos-dashboard";
 
 export class LinuxPamAuthenticator implements PamAuthenticator {
-  readonly name = 'linux-pam';
+  readonly name = "linux-pam";
 
   async authenticate(username: string, password: string): Promise<PamAuthResult> {
     if (!username || !password) {
-      return { ok: false, reason: 'invalid_credentials' };
+      return { ok: false, reason: "invalid_credentials" };
     }
     const pam = await loadAuthenticatePam();
     if (!pam) {
-       
-      console.error('[cortexos/auth] authenticate-pam module unavailable; cannot auth');
-      return { ok: false, reason: 'system_error' };
+      console.error("[cortexos/auth] authenticate-pam module unavailable; cannot auth");
+      return { ok: false, reason: "system_error" };
     }
     // 1. Best-effort pre-check — does the user exist on the system?
     //    We use this to short-circuit the PAM call for known-bad
@@ -169,7 +168,7 @@ export class LinuxPamAuthenticator implements PamAuthenticator {
     if (!userExists) {
       // Run a fake auth round-trip to keep timing roughly constant.
       fakeAuthRoundTrip(password);
-      return { ok: false, reason: 'invalid_credentials' };
+      return { ok: false, reason: "invalid_credentials" };
     }
     // 2. Real PAM auth. The native `authenticate-pam` package is
     //    callback-based (Node-style: (err) => void), not Promise-
@@ -182,18 +181,16 @@ export class LinuxPamAuthenticator implements PamAuthenticator {
         // exact auth stack we want (no `pam_env` surprises, no
         // `pam_mail` chatter). The `remoteHost` is the client IP —
         // PAM_RHOST helps audit logs correlate the auth attempt.
-        pam.authenticate(
-          username,
-          password,
-          (err: unknown) => (err ? reject(err) : resolve()),
-          { serviceName: PAM_SERVICE_NAME, remoteHost: 'cortex-dashboard' },
-        );
+        pam.authenticate(username, password, (err: unknown) => (err ? reject(err) : resolve()), {
+          serviceName: PAM_SERVICE_NAME,
+          remoteHost: "cortex-dashboard",
+        });
       });
       return { ok: true, username };
     } catch (err) {
       const reason = classifyPamError(err);
-       
-      console.warn('[cortexos/auth] pam.denied', { username, reason, err: (err as Error).message });
+
+      console.warn("[cortexos/auth] pam.denied", { username, reason, err: (err as Error).message });
       return { ok: false, reason };
     }
   }
@@ -205,7 +202,7 @@ export class LinuxPamAuthenticator implements PamAuthenticator {
 
   async isAdmin(username: string): Promise<boolean> {
     const groups = await this.getGroups(username);
-    return groups.includes('cortexos-admin');
+    return groups.includes("cortexos-admin");
   }
 }
 
@@ -230,7 +227,7 @@ interface FakeUser {
  * `resetFakePam()`.
  */
 export class FakePamAuthenticator implements PamAuthenticator {
-  readonly name = 'fake-pam';
+  readonly name = "fake-pam";
   private users = new Map<string, FakeUser>();
 
   /** Test helper: register or replace a fake user. */
@@ -242,7 +239,7 @@ export class FakePamAuthenticator implements PamAuthenticator {
   }): void {
     this.users.set(input.username, {
       password: input.password,
-      groups: input.groups ?? ['cortexos-admin', 'cortexos-users'],
+      groups: input.groups ?? ["cortexos-admin", "cortexos-users"],
       disabled: input.disabled ?? false,
     });
   }
@@ -256,7 +253,7 @@ export class FakePamAuthenticator implements PamAuthenticator {
     // By default (no users registered) any non-empty password is
     // accepted; this matches the dev "always works" posture.
     if (this.users.size === 0) {
-      if (!username || !password) return { ok: false, reason: 'invalid_credentials' };
+      if (!username || !password) return { ok: false, reason: "invalid_credentials" };
       return { ok: true, username };
     }
     const u = this.users.get(username);
@@ -265,13 +262,13 @@ export class FakePamAuthenticator implements PamAuthenticator {
       // real auth path (so the test asserting "unknown user returns
       // fast" is fair to the real backend in production).
       await new Promise((r) => setTimeout(r, 1));
-      return { ok: false, reason: 'invalid_credentials' };
+      return { ok: false, reason: "invalid_credentials" };
     }
     if (u.disabled) {
-      return { ok: false, reason: 'account_disabled' };
+      return { ok: false, reason: "account_disabled" };
     }
     if (u.password !== password) {
-      return { ok: false, reason: 'invalid_credentials' };
+      return { ok: false, reason: "invalid_credentials" };
     }
     return { ok: true, username };
   }
@@ -282,14 +279,14 @@ export class FakePamAuthenticator implements PamAuthenticator {
       // is the right default for the "no users registered" dev mode
       // — but ONLY for dev / tests. Production (Linux) takes the
       // real path.
-      return ['cortexos-admin', 'cortexos-users'];
+      return ["cortexos-admin", "cortexos-users"];
     }
     return this.users.get(username)?.groups ?? [];
   }
 
   async isAdmin(username: string): Promise<boolean> {
     const g = await this.getGroups(username);
-    return g.includes('cortexos-admin');
+    return g.includes("cortexos-admin");
   }
 }
 
@@ -299,9 +296,9 @@ export class FakePamAuthenticator implements PamAuthenticator {
 
 /** Dashboard-understood group allowlist (THREAT_MODEL SR-003). */
 const DASHBOARD_GROUPS: ReadonlySet<GroupName> = new Set([
-  'cortexos-admin',
-  'cortexos-auditor',
-  'cortexos-users',
+  "cortexos-admin",
+  "cortexos-auditor",
+  "cortexos-users",
 ]);
 
 function isDashboardGroup(g: string): g is GroupName {
@@ -343,9 +340,9 @@ async function loadAuthenticatePam(): Promise<typeof pamModule> {
         // produces ERR_UNKNOWN_FILE_EXTENSION (Node 20+). We use
         // `createRequire` so the CJS loader handles the `.node`
         // resolution. The package's own main is CJS anyway.
-        const { createRequire } = await import('node:module');
+        const { createRequire } = await import("node:module");
         const requireFromHere = createRequire(import.meta.url);
-        const mod = requireFromHere('authenticate-pam') as {
+        const mod = requireFromHere("authenticate-pam") as {
           authenticate: (
             u: string,
             p: string,
@@ -355,9 +352,8 @@ async function loadAuthenticatePam(): Promise<typeof pamModule> {
         };
         pamModule = mod;
       } catch (err) {
-         
         console.error(
-          '[cortexos/auth] failed to load authenticate-pam native binding:',
+          "[cortexos/auth] failed to load authenticate-pam native binding:",
           (err as Error).message,
         );
         pamModule = null;
@@ -374,11 +370,11 @@ void loadAuthenticatePam();
 
 /** Best-effort `id -u <user>` lookup. */
 function safeUserExists(username: string): boolean {
-  if (process.platform === 'win32') return true; // dev on Windows; never trust
+  if (process.platform === "win32") return true; // dev on Windows; never trust
   try {
-    const out = execFileSync('id', ['-u', username], {
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore'],
+    const out = execFileSync("id", ["-u", username], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
     });
     return /^\d+$/.test(out.trim());
   } catch {
@@ -389,11 +385,11 @@ function safeUserExists(username: string): boolean {
 
 /** Best-effort `id -Gn <user>` call. Returns `[]` on any failure. */
 function readPosixGroups(username: string): ReadonlyArray<string> {
-  if (process.platform === 'win32') return [];
+  if (process.platform === "win32") return [];
   try {
-    const out = execFileSync('id', ['-Gn', username], {
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore'],
+    const out = execFileSync("id", ["-Gn", username], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
     });
     return out
       .split(/\s+/)
@@ -407,10 +403,10 @@ function readPosixGroups(username: string): ReadonlyArray<string> {
 /** Classify an `authenticate-pam` error into a `PamAuthFailureReason`. */
 function classifyPamError(err: unknown): PamAuthFailureReason {
   const msg = err instanceof Error ? err.message : String(err);
-  if (/auth/i.test(msg) && /fail/i.test(msg)) return 'invalid_credentials';
-  if (/disabled|inactive|expired/i.test(msg)) return 'account_disabled';
-  if (/no such|unknown|not found/i.test(msg)) return 'unknown_user';
-  return 'system_error';
+  if (/auth/i.test(msg) && /fail/i.test(msg)) return "invalid_credentials";
+  if (/disabled|inactive|expired/i.test(msg)) return "account_disabled";
+  if (/no such|unknown|not found/i.test(msg)) return "unknown_user";
+  return "system_error";
 }
 
 /** Run a short hash round-trip to keep timing close to real PAM. */
@@ -421,10 +417,10 @@ function fakeAuthRoundTrip(password: string): void {
   // order of magnitude (~1-3ms) on a modern CPU without dominating
   // a test.
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { createHash } = require('node:crypto') as typeof import('node:crypto');
+  const { createHash } = require("node:crypto") as typeof import("node:crypto");
   for (let i = 0; i < 4; i++) {
-    createHash('sha256')
+    createHash("sha256")
       .update(password + i)
-      .digest('hex');
+      .digest("hex");
   }
 }

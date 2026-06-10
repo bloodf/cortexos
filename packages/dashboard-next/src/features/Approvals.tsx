@@ -6,7 +6,13 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { api, callGrantApproval, callRevokeApproval } from "@/lib/api/client";
 import { useT } from "@/hooks/useT";
@@ -91,16 +97,27 @@ export function ApprovalsPage() {
         {a.status === "pending" && user?.is_admin && (
           <div className="flex gap-2 pt-2">
             <Button size="sm" disabled={!!pending} onClick={() => handleGrant(a)}>
-              {isGranting ? <Loader2 className="size-3.5 mr-1 animate-spin" /> : <Check className="size-3.5 mr-1" />}
+              {isGranting ? (
+                <Loader2 className="size-3.5 mr-1 animate-spin" />
+              ) : (
+                <Check className="size-3.5 mr-1" />
+              )}
               Approve
             </Button>
             <Button
               size="sm"
               variant="outline"
               disabled={!!pending}
-              onClick={() => { setDenyFor(a.id); setReason(""); }}
+              onClick={() => {
+                setDenyFor(a.id);
+                setReason("");
+              }}
             >
-              {isDenying ? <Loader2 className="size-3.5 mr-1 animate-spin" /> : <X className="size-3.5 mr-1" />}
+              {isDenying ? (
+                <Loader2 className="size-3.5 mr-1 animate-spin" />
+              ) : (
+                <X className="size-3.5 mr-1" />
+              )}
               Deny
             </Button>
           </div>
@@ -112,7 +129,11 @@ export function ApprovalsPage() {
   if (isLoading) {
     return (
       <div className="space-y-5">
-        <PageHeader icon={<CheckCircle2 className="size-5" />} title={t.nav.approvals} description="Loading…" />
+        <PageHeader
+          icon={<CheckCircle2 className="size-5" />}
+          title={t.nav.approvals}
+          description="Loading…"
+        />
         <div className="space-y-3">
           {[...Array(3)].map((_, i) => (
             <Card key={i} className="elev-1 p-4 h-24 animate-pulse bg-muted/40" />
@@ -125,7 +146,11 @@ export function ApprovalsPage() {
   if (isError) {
     return (
       <div className="space-y-5">
-        <PageHeader icon={<CheckCircle2 className="size-5" />} title={t.nav.approvals} description="Error loading approvals" />
+        <PageHeader
+          icon={<CheckCircle2 className="size-5" />}
+          title={t.nav.approvals}
+          description="Error loading approvals"
+        />
         <p className="text-sm text-destructive">Failed to load approvals. Please try again.</p>
       </div>
     );
@@ -144,26 +169,34 @@ export function ApprovalsPage() {
           <TabsTrigger value="resolved">Resolved ({resolved.length})</TabsTrigger>
         </TabsList>
         <TabsContent value="pending" className="mt-4 space-y-3">
-          {open.length === 0
-            ? <p className="text-sm text-muted-foreground">No pending approvals.</p>
-            : open.map(card)}
+          {open.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No pending approvals.</p>
+          ) : (
+            open.map(card)
+          )}
         </TabsContent>
         <TabsContent value="resolved" className="mt-4 space-y-3">
-          {resolved.length === 0
-            ? <p className="text-sm text-muted-foreground">No resolved approvals.</p>
-            : resolved.map(card)}
+          {resolved.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No resolved approvals.</p>
+          ) : (
+            resolved.map(card)
+          )}
         </TabsContent>
       </Tabs>
       <Dialog open={!!denyFor} onOpenChange={(o) => !o && setDenyFor(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Deny request</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Deny request</DialogTitle>
+          </DialogHeader>
           <Textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Reason (optional)"
           />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDenyFor(null)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setDenyFor(null)}>
+              Cancel
+            </Button>
             <Button
               variant="destructive"
               disabled={!!pending}
@@ -172,7 +205,9 @@ export function ApprovalsPage() {
                 if (target) void handleRevoke(target, reason);
               }}
             >
-              {pending?.startsWith("deny-") ? <Loader2 className="size-3.5 mr-1 animate-spin" /> : null}
+              {pending?.startsWith("deny-") ? (
+                <Loader2 className="size-3.5 mr-1 animate-spin" />
+              ) : null}
               Deny
             </Button>
           </DialogFooter>

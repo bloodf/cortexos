@@ -21,7 +21,7 @@
  * adopted, additional members (cookies.set, fetch, etc.) will be available.
  */
 
-import type { User, Session } from './entities';
+import type { User, Session } from "./entities";
 
 /** What we store on `event.locals` after a request has been authenticated. */
 export interface AppLocals extends Record<string, unknown> {
@@ -70,7 +70,7 @@ export interface CookiesAdapter {
     opts: {
       path: string;
       httpOnly?: boolean;
-      sameSite?: 'lax' | 'strict' | 'none';
+      sameSite?: "lax" | "strict" | "none";
       secure?: boolean;
       maxAge?: number;
     },

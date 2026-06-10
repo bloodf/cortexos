@@ -9,13 +9,13 @@
  * always returns 0 kbps for both — correct legacy behaviour).
  */
 
-import fs from 'node:fs';
-import type { NetworkInterface, NetworkData } from './types';
+import fs from "node:fs";
+import type { NetworkInterface, NetworkData } from "./types";
 
 interface Sample {
-	rx: number;
-	tx: number;
-	ts: number;
+  rx: number;
+  tx: number;
+  ts: number;
 }
 
 const prev = new Map<string, Sample>();
@@ -26,12 +26,12 @@ const prev = new Map<string, Sample>();
  * or CNI plugins lack this symlink.
  */
 export function isPhysicalInterface(name: string): boolean {
-	try {
-		fs.accessSync(`/sys/class/net/${name}/device`);
-		return true;
-	} catch {
-		return false;
-	}
+  try {
+    fs.accessSync(`/sys/class/net/${name}/device`);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -40,17 +40,20 @@ export function isPhysicalInterface(name: string): boolean {
  * Exported for unit testing the pure parsing logic without fs mocking.
  */
 export function parseProcNetDevLine(
-	name: string,
-	dataPart: string,
+  name: string,
+  dataPart: string,
 ): { name: string; rx: number; tx: number } | null {
-	if (!name || !dataPart) return null;
-	// /proc/net/dev columns after the colon (space-separated):
-	// rx: bytes pkts errs drop fifo frame compressed multicast
-	// tx: bytes pkts errs drop fifo colls carrier compressed
-	const cols = dataPart.trim().split(/\s+/).map((s) => Number.parseInt(s, 10));
-	const rx = cols[0] ?? 0;
-	const tx = cols[8] ?? 0;
-	return { name, rx, tx };
+  if (!name || !dataPart) return null;
+  // /proc/net/dev columns after the colon (space-separated):
+  // rx: bytes pkts errs drop fifo frame compressed multicast
+  // tx: bytes pkts errs drop fifo colls carrier compressed
+  const cols = dataPart
+    .trim()
+    .split(/\s+/)
+    .map((s) => Number.parseInt(s, 10));
+  const rx = cols[0] ?? 0;
+  const tx = cols[8] ?? 0;
+  return { name, rx, tx };
 }
 
 /**
@@ -60,7 +63,7 @@ export function parseProcNetDevLine(
  * direct unit testing without /proc/net/dev file access.
  */
 export function filterPhysicalNames(names: string[]): string[] {
-	return names.filter(isPhysicalInterface);
+  return names.filter(isPhysicalInterface);
 }
 
 /**
@@ -68,41 +71,41 @@ export function filterPhysicalNames(names: string[]): string[] {
  * Returns an empty array on any error (non-Linux, permission, etc.).
  */
 export function readNetworkInterfaces(): NetworkInterface[] {
-	try {
-		const raw = fs.readFileSync('/proc/net/dev', 'utf8');
-		const lines = raw.split('\n');
-		const interfaces: NetworkInterface[] = [];
-		// First 2 lines are headers; data starts at index 2.
-		for (let i = 2; i < lines.length; i++) {
-			const line = lines[i];
-			if (!line) continue;
-			const colonIdx = line.indexOf(':');
-			if (colonIdx === -1) continue;
-			const name = line.slice(0, colonIdx).trim();
-			const dataPart = line.slice(colonIdx + 1);
-			if (!name || !dataPart) continue;
-			if (!isPhysicalInterface(name)) continue;
-			const parsed = parseProcNetDevLine(name, dataPart);
-			if (!parsed) continue;
-			const { rx, tx } = parsed;
-			const now = Date.now();
-			const last = prev.get(name);
-			let rxKbps = 0;
-			let txKbps = 0;
-			if (last) {
-				const sec = Math.max(1, (now - last.ts) / 1000);
-				rxKbps = Math.max(0, (rx - last.rx) / 1024 / sec);
-				txKbps = Math.max(0, (tx - last.tx) / 1024 / sec);
-			}
-			prev.set(name, { rx, tx, ts: now });
-			interfaces.push({ name, rxKbps, txKbps, rxBytesTotal: rx, txBytesTotal: tx });
-		}
-		return interfaces;
-	} catch {
-		return [];
-	}
+  try {
+    const raw = fs.readFileSync("/proc/net/dev", "utf8");
+    const lines = raw.split("\n");
+    const interfaces: NetworkInterface[] = [];
+    // First 2 lines are headers; data starts at index 2.
+    for (let i = 2; i < lines.length; i++) {
+      const line = lines[i];
+      if (!line) continue;
+      const colonIdx = line.indexOf(":");
+      if (colonIdx === -1) continue;
+      const name = line.slice(0, colonIdx).trim();
+      const dataPart = line.slice(colonIdx + 1);
+      if (!name || !dataPart) continue;
+      if (!isPhysicalInterface(name)) continue;
+      const parsed = parseProcNetDevLine(name, dataPart);
+      if (!parsed) continue;
+      const { rx, tx } = parsed;
+      const now = Date.now();
+      const last = prev.get(name);
+      let rxKbps = 0;
+      let txKbps = 0;
+      if (last) {
+        const sec = Math.max(1, (now - last.ts) / 1000);
+        rxKbps = Math.max(0, (rx - last.rx) / 1024 / sec);
+        txKbps = Math.max(0, (tx - last.tx) / 1024 / sec);
+      }
+      prev.set(name, { rx, tx, ts: now });
+      interfaces.push({ name, rxKbps, txKbps, rxBytesTotal: rx, txBytesTotal: tx });
+    }
+    return interfaces;
+  } catch {
+    return [];
+  }
 }
 
 export function getNetworkData(): NetworkData {
-	return { interfaces: readNetworkInterfaces() };
+  return { interfaces: readNetworkInterfaces() };
 }

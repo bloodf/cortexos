@@ -44,15 +44,15 @@ import { defineServerFn, serverFnNoop, type ServerFnOptions } from "@/lib/api/de
 // ---------------------------------------------------------------------------
 
 const LoginInput = z
-	.object({
-		username: z
-			.string()
-			.min(1)
-			.max(64)
-			.regex(/^[a-z_][a-z0-9_-]*$/, "invalid username"),
-		password: z.string().min(1).max(1024),
-	})
-	.strict();
+  .object({
+    username: z
+      .string()
+      .min(1)
+      .max(64)
+      .regex(/^[a-z_][a-z0-9_-]*$/, "invalid username"),
+    password: z.string().min(1).max(1024),
+  })
+  .strict();
 
 // ---------------------------------------------------------------------------
 // login — POST, auth: public → { user, session }
@@ -70,68 +70,64 @@ type LoginInputT = z.infer<typeof LoginInput>;
  * through the `defineApiRoute` pipeline (the createServerFn transform only runs
  * in the Vite/Nitro build) — a single source of truth for the gate + handler.
  */
-export const loginGateOptions: ServerFnOptions<
-	LoginInputT,
-	{ user: unknown; session: unknown }
-> = {
-	method: "POST",
-	auth: "public",
-	input: LoginInput,
-	// Per-IP bucket so a wrong-username probe cannot enumerate via rate-limit
-	// timing differences (WP-20: bucket 'ip', strict).
-	rateLimit: { limit: 5, windowSec: 60, bucket: "ip" },
-	surface: "auth",
-	action: "auth.login",
-	// Audit target is the username (never the password).
-	target: (input) => input.username,
-	handler: async ({ input, ctx }) => {
-		const { getPamAuthenticator } = await import("@/server/auth/pam");
-		const { getSessionStore } = await import("@/server/auth/session-store");
-		const { generateCsrfToken, setSessionCookie, setCsrfCookie } = await import(
-			"@/server/auth/cookies"
-		);
-		const { authError } = await import("@/server/errors/types");
+export const loginGateOptions: ServerFnOptions<LoginInputT, { user: unknown; session: unknown }> = {
+  method: "POST",
+  auth: "public",
+  input: LoginInput,
+  // Per-IP bucket so a wrong-username probe cannot enumerate via rate-limit
+  // timing differences (WP-20: bucket 'ip', strict).
+  rateLimit: { limit: 5, windowSec: 60, bucket: "ip" },
+  surface: "auth",
+  action: "auth.login",
+  // Audit target is the username (never the password).
+  target: (input) => input.username,
+  handler: async ({ input, ctx }) => {
+    const { getPamAuthenticator } = await import("@/server/auth/pam");
+    const { getSessionStore } = await import("@/server/auth/session-store");
+    const { generateCsrfToken, setSessionCookie, setCsrfCookie } =
+      await import("@/server/auth/cookies");
+    const { authError } = await import("@/server/errors/types");
 
-		// 1. Authenticate via PAM. Coarse failure only — do NOT reveal whether
-		//    the username exists vs the password is wrong (THREAT_MODEL T-101).
-		const pam = getPamAuthenticator();
-		const auth = await pam.authenticate(input.username, input.password);
-		if (!auth.ok) {
-			throw authError("Invalid credentials");
-		}
+    // 1. Authenticate via PAM. Coarse failure only — do NOT reveal whether
+    //    the username exists vs the password is wrong (THREAT_MODEL T-101).
+    const pam = getPamAuthenticator();
+    const auth = await pam.authenticate(input.username, input.password);
+    if (!auth.ok) {
+      throw authError("Invalid credentials");
+    }
 
-		// 2. Group lookup → admin derive. cortexos-admin is the ONLY admin-
-		//    bearing group (SR-003). A valid system user who is not in
-		//    cortexos-admin still gets a session (cortexos-users) — RBAC gates
-		//    on subsequent admin routes deny them; this matches the legacy
-		//    handler, which issued a session for any authenticated user.
-		const groups = await pam.getGroups(auth.username);
-		const isAdmin = groups.includes("cortexos-admin");
+    // 2. Group lookup → admin derive. cortexos-admin is the ONLY admin-
+    //    bearing group (SR-003). A valid system user who is not in
+    //    cortexos-admin still gets a session (cortexos-users) — RBAC gates
+    //    on subsequent admin routes deny them; this matches the legacy
+    //    handler, which issued a session for any authenticated user.
+    const groups = await pam.getGroups(auth.username);
+    const isAdmin = groups.includes("cortexos-admin");
 
-		// 3. Mint a session-bound CSRF token + create the session.
-		const csrfToken = generateCsrfToken();
-		const store = getSessionStore();
-		const created = await store.createSession({
-			username: auth.username,
-			csrfToken,
-			ip: ctx.clientIp,
-			userAgent: ctx.userAgent,
-			isAdmin,
-		});
+    // 3. Mint a session-bound CSRF token + create the session.
+    const csrfToken = generateCsrfToken();
+    const store = getSessionStore();
+    const created = await store.createSession({
+      username: auth.username,
+      csrfToken,
+      ip: ctx.clientIp,
+      userAgent: ctx.userAgent,
+      isAdmin,
+    });
 
-		// 4. Set cookies via the request cookie jar. The pipeline replays these
-		//    as Set-Cookie. Session cookie is HttpOnly; CSRF cookie is JS-readable
-		//    (double-submit pattern).
-		setSessionCookie(ctx.cookies, created.token);
-		setCsrfCookie(ctx.cookies, csrfToken);
+    // 4. Set cookies via the request cookie jar. The pipeline replays these
+    //    as Set-Cookie. Session cookie is HttpOnly; CSRF cookie is JS-readable
+    //    (double-submit pattern).
+    setSessionCookie(ctx.cookies, created.token);
+    setCsrfCookie(ctx.cookies, csrfToken);
 
-		return { user: created.user, session: created.session };
-	},
+    return { user: created.user, session: created.session };
+  },
 };
 const loginGate = defineServerFn(loginGateOptions);
 export const login = createServerFn({ method: "POST" })
-	.middleware([loginGate])
-	.handler(serverFnNoop);
+  .middleware([loginGate])
+  .handler(serverFnNoop);
 
 // ---------------------------------------------------------------------------
 // logout — POST, auth: any → { ok: true }
@@ -143,31 +139,30 @@ export const login = createServerFn({ method: "POST" })
 
 /** Logout gate options (exported for the node-env test — see loginGateOptions). */
 export const logoutGateOptions: ServerFnOptions<unknown, { ok: true }> = {
-	method: "POST",
-	auth: "any",
-	surface: "auth",
-	action: "auth.logout",
-	handler: async ({ ctx }) => {
-		const { getSessionStore } = await import("@/server/auth/session-store");
-		const { getSessionCookie, clearSessionCookie, clearCsrfCookie } = await import(
-			"@/server/auth/cookies"
-		);
+  method: "POST",
+  auth: "any",
+  surface: "auth",
+  action: "auth.logout",
+  handler: async ({ ctx }) => {
+    const { getSessionStore } = await import("@/server/auth/session-store");
+    const { getSessionCookie, clearSessionCookie, clearCsrfCookie } =
+      await import("@/server/auth/cookies");
 
-		const token = getSessionCookie(ctx.cookies);
-		if (token) {
-			await getSessionStore().deleteByToken(token);
-		}
-		// Clear cookies unconditionally — logout is idempotent.
-		clearSessionCookie(ctx.cookies);
-		clearCsrfCookie(ctx.cookies);
+    const token = getSessionCookie(ctx.cookies);
+    if (token) {
+      await getSessionStore().deleteByToken(token);
+    }
+    // Clear cookies unconditionally — logout is idempotent.
+    clearSessionCookie(ctx.cookies);
+    clearCsrfCookie(ctx.cookies);
 
-		return { ok: true } as const;
-	},
+    return { ok: true } as const;
+  },
 };
 const logoutGate = defineServerFn(logoutGateOptions);
 export const logout = createServerFn({ method: "POST" })
-	.middleware([logoutGate])
-	.handler(serverFnNoop);
+  .middleware([logoutGate])
+  .handler(serverFnNoop);
 
 // ---------------------------------------------------------------------------
 // me — GET, auth: public → { user, session } | { user: null, session: null }
@@ -180,18 +175,16 @@ export const logout = createServerFn({ method: "POST" })
 
 /** Me gate options (exported for the node-env test — see loginGateOptions). */
 export const meGateOptions: ServerFnOptions<unknown, { user: unknown; session: unknown }> = {
-	method: "GET",
-	auth: "public",
-	surface: "auth",
-	action: "auth.me",
-	handler: ({ ctx }) => {
-		if (!ctx.user || !ctx.session) {
-			return { user: null, session: null };
-		}
-		return { user: ctx.user, session: ctx.session };
-	},
+  method: "GET",
+  auth: "public",
+  surface: "auth",
+  action: "auth.me",
+  handler: ({ ctx }) => {
+    if (!ctx.user || !ctx.session) {
+      return { user: null, session: null };
+    }
+    return { user: ctx.user, session: ctx.session };
+  },
 };
 const meGate = defineServerFn(meGateOptions);
-export const me = createServerFn({ method: "GET" })
-	.middleware([meGate])
-	.handler(serverFnNoop);
+export const me = createServerFn({ method: "GET" }).middleware([meGate]).handler(serverFnNoop);

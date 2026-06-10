@@ -5,9 +5,13 @@ type Theme = "light" | "dark" | "system";
 type Accent = "cortex" | "teal" | "emerald" | "amber";
 
 interface UICtx {
-  theme: Theme; setTheme: (t: Theme) => void; effective: "light" | "dark";
-  accent: Accent; setAccent: (a: Accent) => void;
-  locale: Locale; setLocale: (l: Locale) => void;
+  theme: Theme;
+  setTheme: (t: Theme) => void;
+  effective: "light" | "dark";
+  accent: Accent;
+  setAccent: (a: Accent) => void;
+  locale: Locale;
+  setLocale: (l: Locale) => void;
 }
 
 const Ctx = createContext<UICtx | null>(null);
@@ -32,9 +36,12 @@ export function UIProvider({ children }: { children: ReactNode }) {
       const t = (localStorage.getItem(THEME_KEY) as Theme | null) || "dark";
       const a = (localStorage.getItem(ACCENT_KEY) as Accent | null) || "cortex";
       const l = localStorage.getItem(LOCALE_KEY);
-      setThemeState(t); setAccentState(a);
+      setThemeState(t);
+      setAccentState(a);
       if (isLocale(l ?? undefined)) setLocaleState(l as Locale);
-    } catch { /* noop */ }
+    } catch {
+      /* noop */
+    }
   }, []);
 
   useEffect(() => {
@@ -46,11 +53,36 @@ export function UIProvider({ children }: { children: ReactNode }) {
     root.style.colorScheme = eff;
   }, [theme, accent]);
 
-  const setTheme = (t: Theme) => { setThemeState(t); try { localStorage.setItem(THEME_KEY, t); } catch { /* noop */ } };
-  const setAccent = (a: Accent) => { setAccentState(a); try { localStorage.setItem(ACCENT_KEY, a); } catch { /* noop */ } };
-  const setLocale = (l: Locale) => { setLocaleState(l); try { localStorage.setItem(LOCALE_KEY, l); } catch { /* noop */ } };
+  const setTheme = (t: Theme) => {
+    setThemeState(t);
+    try {
+      localStorage.setItem(THEME_KEY, t);
+    } catch {
+      /* noop */
+    }
+  };
+  const setAccent = (a: Accent) => {
+    setAccentState(a);
+    try {
+      localStorage.setItem(ACCENT_KEY, a);
+    } catch {
+      /* noop */
+    }
+  };
+  const setLocale = (l: Locale) => {
+    setLocaleState(l);
+    try {
+      localStorage.setItem(LOCALE_KEY, l);
+    } catch {
+      /* noop */
+    }
+  };
 
-  return <Ctx.Provider value={{ theme, setTheme, effective, accent, setAccent, locale, setLocale }}>{children}</Ctx.Provider>;
+  return (
+    <Ctx.Provider value={{ theme, setTheme, effective, accent, setAccent, locale, setLocale }}>
+      {children}
+    </Ctx.Provider>
+  );
 }
 
 export function useUI() {

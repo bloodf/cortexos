@@ -16,9 +16,9 @@
  * pipeline's Set-Cookie + framework headers replayed onto the runtime response.
  */
 
-import { getRequest, setCookie, setResponseHeader } from '@tanstack/react-start/server';
+import { getRequest, setCookie, setResponseHeader } from "@tanstack/react-start/server";
 
-import { defineApiRoute, type RouteOptions } from '@/server/server-fn-pipeline';
+import { defineApiRoute, type RouteOptions } from "@/server/server-fn-pipeline";
 
 export async function runServerFnGate<TIn, TOut>(
   opts: RouteOptions<TIn, TOut> & { inputData?: TIn },
@@ -41,9 +41,9 @@ export async function runServerFnGate<TIn, TOut>(
   // RPC — the client receives the value, not a Response object).
   for (const [name, value] of response.headers.entries()) {
     const lower = name.toLowerCase();
-    if (lower === 'set-cookie') {
+    if (lower === "set-cookie") {
       applySetCookie(value);
-    } else if (lower !== 'content-type' && lower !== 'content-length') {
+    } else if (lower !== "content-type" && lower !== "content-length") {
       // Framework security headers (X-Frame-Options, etc.). Skip transport
       // headers the RPC layer manages itself.
       setResponseHeader(name as never, value);
@@ -60,33 +60,33 @@ export async function runServerFnGate<TIn, TOut>(
  * of attributes the pipeline emits (Path, Max-Age, HttpOnly, SameSite, Secure).
  */
 function applySetCookie(serialized: string): void {
-  const parts = serialized.split(';').map((p) => p.trim());
+  const parts = serialized.split(";").map((p) => p.trim());
   const first = parts.shift();
   if (!first) return;
-  const eq = first.indexOf('=');
+  const eq = first.indexOf("=");
   if (eq < 0) return;
   const name = first.slice(0, eq);
   const value = decodeURIComponent(first.slice(eq + 1));
 
   const options: Record<string, unknown> = {};
   for (const attr of parts) {
-    const [rawKey, rawVal] = attr.split('=');
-    const key = (rawKey ?? '').toLowerCase();
+    const [rawKey, rawVal] = attr.split("=");
+    const key = (rawKey ?? "").toLowerCase();
     switch (key) {
-      case 'path':
-        options.path = rawVal ?? '/';
+      case "path":
+        options.path = rawVal ?? "/";
         break;
-      case 'max-age':
+      case "max-age":
         options.maxAge = Number(rawVal);
         break;
-      case 'httponly':
+      case "httponly":
         options.httpOnly = true;
         break;
-      case 'secure':
+      case "secure":
         options.secure = true;
         break;
-      case 'samesite':
-        options.sameSite = (rawVal ?? 'lax').toLowerCase();
+      case "samesite":
+        options.sameSite = (rawVal ?? "lax").toLowerCase();
         break;
       default:
         break;

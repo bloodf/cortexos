@@ -1,11 +1,21 @@
 import { CopyButton } from "./CopyButton";
 import { cn } from "@/lib/utils";
 
-interface Props { code: string; language?: string; className?: string; maxHeight?: number }
+interface Props {
+  code: string;
+  language?: string;
+  className?: string;
+  maxHeight?: number;
+}
 
 export function CodeBlock({ code, language, className, maxHeight }: Props) {
   return (
-    <div className={cn("relative group rounded-md border bg-[oklch(0.14_0.01_260)] text-[oklch(0.92_0.01_260)]", className)}>
+    <div
+      className={cn(
+        "relative group rounded-md border bg-[oklch(0.14_0.01_260)] text-[oklch(0.92_0.01_260)]",
+        className,
+      )}
+    >
       <div className="flex items-center justify-between border-b border-white/5 px-3 py-1.5 text-[10px] uppercase tracking-wide text-white/50">
         <span>{language ?? "text"}</span>
         <CopyButton value={code} size="xs" className="text-white/70 hover:text-white" />

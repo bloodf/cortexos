@@ -3,7 +3,18 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
-import { Terminal as TermIcon, Lock, Plus, X, Send, Radio, Play, Loader2, ChevronDown, ChevronRight } from "lucide-react";
+import {
+  Terminal as TermIcon,
+  Lock,
+  Plus,
+  X,
+  Send,
+  Radio,
+  Play,
+  Loader2,
+  ChevronDown,
+  ChevronRight,
+} from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -58,60 +69,72 @@ function run(cmd: string, user: string): string[] {
   if (c === "help") return HELP;
   if (c === "whoami") return [user];
   if (c === "uname -a") return ["Linux cortex 6.8.0-cortex #1 SMP x86_64 GNU/Linux"];
-  if (c === "uptime") return [` ${new Date().toTimeString().slice(0, 5)} up 14 days,  3:42,  2 users,  load average: 0.42, 0.51, 0.49`];
-  if (c === "free -h") return [
-    "              total        used        free      shared",
-    "Mem:           62Gi        24Gi        20Gi       1.2Gi",
-    "Swap:         8.0Gi          0B       8.0Gi",
-  ];
-  if (c === "df -h") return [
-    "Filesystem      Size  Used Avail Use% Mounted on",
-    "/dev/nvme0n1p2  1.8T  720G  1.1T  40% /",
-    "/dev/nvme1n1    3.6T  1.2T  2.4T  34% /var/lib/incus",
-    "tmpfs            32G  124M   32G   1% /tmp",
-  ];
-  if (c === "systemctl status") return [
-    "\x1b[32m●\x1b[0m caddy.service     – active (running)",
-    "\x1b[32m●\x1b[0m docker.service    – active (running)",
-    "\x1b[32m●\x1b[0m incus.service     – active (running)",
-    "\x1b[32m●\x1b[0m postgresql        – active (running)",
-    "\x1b[31m●\x1b[0m mysql.service     – \x1b[31mfailed\x1b[0m",
-  ];
+  if (c === "uptime")
+    return [
+      ` ${new Date().toTimeString().slice(0, 5)} up 14 days,  3:42,  2 users,  load average: 0.42, 0.51, 0.49`,
+    ];
+  if (c === "free -h")
+    return [
+      "              total        used        free      shared",
+      "Mem:           62Gi        24Gi        20Gi       1.2Gi",
+      "Swap:         8.0Gi          0B       8.0Gi",
+    ];
+  if (c === "df -h")
+    return [
+      "Filesystem      Size  Used Avail Use% Mounted on",
+      "/dev/nvme0n1p2  1.8T  720G  1.1T  40% /",
+      "/dev/nvme1n1    3.6T  1.2T  2.4T  34% /var/lib/incus",
+      "tmpfs            32G  124M   32G   1% /tmp",
+    ];
+  if (c === "systemctl status")
+    return [
+      "\x1b[32m●\x1b[0m caddy.service     – active (running)",
+      "\x1b[32m●\x1b[0m docker.service    – active (running)",
+      "\x1b[32m●\x1b[0m incus.service     – active (running)",
+      "\x1b[32m●\x1b[0m postgresql        – active (running)",
+      "\x1b[31m●\x1b[0m mysql.service     – \x1b[31mfailed\x1b[0m",
+    ];
   if (c.startsWith("journalctl -u ")) {
     const unit = c.slice(14);
-    return Array.from({ length: 8 }, (_, i) =>
-      `${new Date(Date.now() - i * 2000).toISOString().slice(11, 19)} cortex ${unit}: handled request in ${(8 + Math.random() * 40).toFixed(1)}ms`
+    return Array.from(
+      { length: 8 },
+      (_, i) =>
+        `${new Date(Date.now() - i * 2000).toISOString().slice(11, 19)} cortex ${unit}: handled request in ${(8 + Math.random() * 40).toFixed(1)}ms`,
     );
   }
-  if (c === "docker ps") return [
-    "CONTAINER ID  IMAGE                STATUS         PORTS              NAMES",
-    "a1b2c3d4e5f6  ollama/ollama:latest Up 4 days      11434->11434/tcp   ollama",
-    "b2c3d4e5f6a1  grafana/grafana      Up 4 days      3000->3000/tcp     grafana",
-    "c3d4e5f6a1b2  redis:7              Up 4 days      6379->6379/tcp     redis",
-  ];
-  if (c === "incus list") return [
-    "+----------+---------+------------------+-----------+",
-    "|   NAME   |  STATE  |      IPv4        |   TYPE    |",
-    "+----------+---------+------------------+-----------+",
-    "| dev-vm   | RUNNING | 10.42.0.12       | VIRTUAL   |",
-    "| build-c  | RUNNING | 10.42.0.13       | CONTAINER |",
-    "| pg-snap  | STOPPED | -                | CONTAINER |",
-    "+----------+---------+------------------+-----------+",
-  ];
-  if (c === "tmux" || c === "tmux ls") return [
-    "cortex: 3 windows (created Mon May 27 09:00:12 2026)",
-    "deploy: 1 windows (created Mon May 27 12:14:08 2026)",
-  ];
+  if (c === "docker ps")
+    return [
+      "CONTAINER ID  IMAGE                STATUS         PORTS              NAMES",
+      "a1b2c3d4e5f6  ollama/ollama:latest Up 4 days      11434->11434/tcp   ollama",
+      "b2c3d4e5f6a1  grafana/grafana      Up 4 days      3000->3000/tcp     grafana",
+      "c3d4e5f6a1b2  redis:7              Up 4 days      6379->6379/tcp     redis",
+    ];
+  if (c === "incus list")
+    return [
+      "+----------+---------+------------------+-----------+",
+      "|   NAME   |  STATE  |      IPv4        |   TYPE    |",
+      "+----------+---------+------------------+-----------+",
+      "| dev-vm   | RUNNING | 10.42.0.12       | VIRTUAL   |",
+      "| build-c  | RUNNING | 10.42.0.13       | CONTAINER |",
+      "| pg-snap  | STOPPED | -                | CONTAINER |",
+      "+----------+---------+------------------+-----------+",
+    ];
+  if (c === "tmux" || c === "tmux ls")
+    return [
+      "cortex: 3 windows (created Mon May 27 09:00:12 2026)",
+      "deploy: 1 windows (created Mon May 27 12:14:08 2026)",
+    ];
   if (c.startsWith("tmux send-keys")) {
     return [`\x1b[36m[tmux]\x1b[0m dispatched: ${c.slice(15)}`];
   }
-  if (c === "ls" || c === "ls -la") return [
-    "drwxr-xr-x  4 admin admin 4096 May 30 09:12 .",
-    "drwxr-xr-x  3 root  root  4096 May 28 12:00 ..",
-    "-rw-r--r--  1 admin admin  220 May 28 12:00 .bashrc",
-    "drwxr-xr-x  2 admin admin 4096 May 30 09:00 projects",
-    "drwxr-xr-x  2 admin admin 4096 May 30 09:00 .ssh",
-  ];
+  if (c === "ls" || c === "ls -la")
+    return [
+      "drwxr-xr-x  4 admin admin 4096 May 30 09:12 .",
+      "drwxr-xr-x  3 root  root  4096 May 28 12:00 ..",
+      "-rw-r--r--  1 admin admin  220 May 28 12:00 .bashrc",
+      "drwxr-xr-x  2 admin admin 4096 May 30 09:00 projects",
+      "drwxr-xr-x  2 admin admin 4096 May 30 09:00 .ssh",
+    ];
   if (c === "exit") return ["\x1b[33msession closed.\x1b[0m"];
   return [`\x1b[31mmock: command not found:\x1b[0m ${c}`];
 }
@@ -152,7 +175,11 @@ function TerminalTab({ id, active, username, dark, onReady, onState }: TerminalT
     const fit = new FitAddon();
     term.loadAddon(fit);
     term.open(containerRef.current);
-    try { fit.fit(); } catch { /* noop */ }
+    try {
+      fit.fit();
+    } catch {
+      /* noop */
+    }
     termRef.current = term;
     fitRef.current = fit;
 
@@ -162,14 +189,18 @@ function TerminalTab({ id, active, username, dark, onReady, onState }: TerminalT
     let ws: WebSocket | null = null;
     let disposed = false;
 
-    const setState = (s: LiveState) => { if (!disposed) onState?.(id, s); };
+    const setState = (s: LiveState) => {
+      if (!disposed) onState?.(id, s);
+    };
 
     // Push xterm dimensions to the PTY so it matches the visible viewport.
     const sendResize = () => {
       if (ws && ws.readyState === WebSocket.OPEN) {
         try {
           ws.send(JSON.stringify({ type: "resize", cols: term.cols, rows: term.rows }));
-        } catch { /* socket gone */ }
+        } catch {
+          /* socket gone */
+        }
       }
     };
 
@@ -200,23 +231,32 @@ function TerminalTab({ id, active, username, dark, onReady, onState }: TerminalT
           term.write("\r\n");
           submit(s.buffer);
         } else if (ev.key === "Backspace") {
-          if (s.buffer.length > 0) { s.buffer = s.buffer.slice(0, -1); term.write("\b \b"); }
+          if (s.buffer.length > 0) {
+            s.buffer = s.buffer.slice(0, -1);
+            term.write("\b \b");
+          }
         } else if (ev.key === "ArrowUp") {
           if (s.hIdx + 1 < s.history.length) {
             s.hIdx++;
-            term.write("\r" + PROMPT(username) + " ".repeat(s.buffer.length) + "\r" + PROMPT(username));
+            term.write(
+              "\r" + PROMPT(username) + " ".repeat(s.buffer.length) + "\r" + PROMPT(username),
+            );
             s.buffer = s.history[s.hIdx];
             term.write(s.buffer);
           }
         } else if (ev.key === "ArrowDown") {
           if (s.hIdx > 0) {
             s.hIdx--;
-            term.write("\r" + PROMPT(username) + " ".repeat(s.buffer.length) + "\r" + PROMPT(username));
+            term.write(
+              "\r" + PROMPT(username) + " ".repeat(s.buffer.length) + "\r" + PROMPT(username),
+            );
             s.buffer = s.history[s.hIdx];
             term.write(s.buffer);
           } else if (s.hIdx === 0) {
             s.hIdx = -1;
-            term.write("\r" + PROMPT(username) + " ".repeat(s.buffer.length) + "\r" + PROMPT(username));
+            term.write(
+              "\r" + PROMPT(username) + " ".repeat(s.buffer.length) + "\r" + PROMPT(username),
+            );
             s.buffer = "";
           }
         } else if (ev.ctrlKey && ev.key === "c") {
@@ -244,14 +284,25 @@ function TerminalTab({ id, active, username, dark, onReady, onState }: TerminalT
       wsRef.current = ws;
 
       ws.onopen = () => {
-        if (disposed) { ws?.close(); return; }
+        if (disposed) {
+          ws?.close();
+          return;
+        }
         setState("live");
-        try { fit.fit(); } catch { /* noop */ }
+        try {
+          fit.fit();
+        } catch {
+          /* noop */
+        }
         sendResize();
         // Raw keystrokes → PTY (xterm onData yields the encoded bytes).
         liveDataDisposable = term.onData((data) => {
           if (ws && ws.readyState === WebSocket.OPEN) {
-            try { ws.send(JSON.stringify({ type: "input", data })); } catch { /* gone */ }
+            try {
+              ws.send(JSON.stringify({ type: "input", data }));
+            } catch {
+              /* gone */
+            }
           }
         });
         term.focus();
@@ -264,10 +315,14 @@ function TerminalTab({ id, active, username, dark, onReady, onState }: TerminalT
           try {
             const msg = JSON.parse(data);
             if (msg && msg.type === "exit") {
-              term.writeln(`\r\n\x1b[33m[process exited${typeof msg.code === "number" ? ` with code ${msg.code}` : ""}]\x1b[0m`);
+              term.writeln(
+                `\r\n\x1b[33m[process exited${typeof msg.code === "number" ? ` with code ${msg.code}` : ""}]\x1b[0m`,
+              );
               return;
             }
-          } catch { /* not control — fall through and print */ }
+          } catch {
+            /* not control — fall through and print */
+          }
         }
         term.write(data);
       };
@@ -310,13 +365,19 @@ function TerminalTab({ id, active, username, dark, onReady, onState }: TerminalT
       execute: (cmd: string) => {
         // Live mode: type the command straight into the PTY.
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-          try { wsRef.current.send(JSON.stringify({ type: "input", data: cmd + "\n" })); } catch { /* gone */ }
+          try {
+            wsRef.current.send(JSON.stringify({ type: "input", data: cmd + "\n" }));
+          } catch {
+            /* gone */
+          }
           return;
         }
         // Mock mode: overwrite current buffer with cmd, echo, and submit.
         const s = stateRef.current;
         if (s.buffer.length) {
-          term.write("\r" + PROMPT(username) + " ".repeat(s.buffer.length) + "\r" + PROMPT(username));
+          term.write(
+            "\r" + PROMPT(username) + " ".repeat(s.buffer.length) + "\r" + PROMPT(username),
+          );
         }
         s.buffer = cmd;
         term.write(cmd + "\r\n");
@@ -327,7 +388,11 @@ function TerminalTab({ id, active, username, dark, onReady, onState }: TerminalT
     onReady(id, handle);
 
     const onResize = () => {
-      try { fitRef.current?.fit(); } catch { /* noop */ }
+      try {
+        fitRef.current?.fit();
+      } catch {
+        /* noop */
+      }
       sendResize();
     };
     window.addEventListener("resize", onResize);
@@ -340,7 +405,13 @@ function TerminalTab({ id, active, username, dark, onReady, onState }: TerminalT
       ro.disconnect();
       mockKeyDisposable?.dispose();
       liveDataDisposable?.dispose();
-      if (ws) { try { ws.close(1000, "tab closed"); } catch { /* noop */ } }
+      if (ws) {
+        try {
+          ws.close(1000, "tab closed");
+        } catch {
+          /* noop */
+        }
+      }
       wsRef.current = null;
       term.dispose();
       termRef.current = null;
@@ -352,7 +423,13 @@ function TerminalTab({ id, active, username, dark, onReady, onState }: TerminalT
   // Refit when becoming active
   useEffect(() => {
     if (active) {
-      requestAnimationFrame(() => { try { fitRef.current?.fit(); } catch { /* noop */ } });
+      requestAnimationFrame(() => {
+        try {
+          fitRef.current?.fit();
+        } catch {
+          /* noop */
+        }
+      });
     }
   }, [active]);
 
@@ -364,15 +441,13 @@ function TerminalTab({ id, active, username, dark, onReady, onState }: TerminalT
       : { background: "#fafafa", foreground: "#1a1a1a", cursor: "#7c3aed" };
   }, [dark]);
 
-  return (
-    <div
-      ref={containerRef}
-      className={cn("h-full w-full", !active && "hidden")}
-    />
-  );
+  return <div ref={containerRef} className={cn("h-full w-full", !active && "hidden")} />;
 }
 
-interface TabMeta { id: string; name: string }
+interface TabMeta {
+  id: string;
+  name: string;
+}
 
 export function TerminalPage() {
   const t = useT();
@@ -434,8 +509,18 @@ export function TerminalPage() {
   if (!user?.is_admin) {
     return (
       <div className="space-y-5">
-        <PageHeader icon={<TermIcon className="size-5" />} title={t.nav.terminal} description="Interactive shell on the host." />
-        <Card className="elev-1"><EmptyState icon={<Lock className="size-10" />} title="403 · Admin only" description="Terminal access is restricted to administrators." /></Card>
+        <PageHeader
+          icon={<TermIcon className="size-5" />}
+          title={t.nav.terminal}
+          description="Interactive shell on the host."
+        />
+        <Card className="elev-1">
+          <EmptyState
+            icon={<Lock className="size-10" />}
+            title="403 · Admin only"
+            description="Terminal access is restricted to administrators."
+          />
+        </Card>
       </div>
     );
   }
@@ -460,7 +545,7 @@ export function TerminalPage() {
                 "group flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-mono cursor-pointer border",
                 tab.id === activeId
                   ? "bg-card border-border text-foreground"
-                  : "border-transparent text-muted-foreground hover:bg-muted/40"
+                  : "border-transparent text-muted-foreground hover:bg-muted/40",
               )}
               onClick={() => {
                 setActiveId(tab.id);
@@ -471,14 +556,23 @@ export function TerminalPage() {
               <span>{tab.name}</span>
               <button
                 aria-label={`Close ${tab.name}`}
-                onClick={(e) => { e.stopPropagation(); closeTab(tab.id); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  closeTab(tab.id);
+                }}
                 className="opacity-50 hover:opacity-100"
               >
                 <X className="size-3" />
               </button>
             </div>
           ))}
-          <Button variant="ghost" size="sm" className="h-7 px-2" onClick={addTab} aria-label="New tab">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2"
+            onClick={addTab}
+            aria-label="New tab"
+          >
             <Plus className="size-3.5" />
           </Button>
           <div className="ml-auto pr-1">
@@ -516,12 +610,22 @@ export function TerminalPage() {
           <Input
             value={cmd}
             onChange={(e) => setCmd(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); sendCommand(); } }}
-            placeholder={broadcast ? "send-keys to all panes…" : `send-keys to ${tabs.find((tab) => tab.id === activeId)?.name ?? "active"}…`}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                sendCommand();
+              }
+            }}
+            placeholder={
+              broadcast
+                ? "send-keys to all panes…"
+                : `send-keys to ${tabs.find((tab) => tab.id === activeId)?.name ?? "active"}…`
+            }
             className="font-mono h-8"
           />
           <Button size="sm" onClick={() => sendCommand()} disabled={!cmd.trim()}>
-            <Send className="size-3.5 mr-1.5" />Send
+            <Send className="size-3.5 mr-1.5" />
+            Send
           </Button>
         </div>
       </Card>
@@ -537,8 +641,16 @@ export function TerminalPage() {
 
 function ConnStateBadge({ state }: { state: LiveState }) {
   const map: Record<LiveState, { label: string; cls: string; dot: string }> = {
-    connecting: { label: "connecting", cls: "text-amber-600 dark:text-amber-400", dot: "bg-amber-500 animate-pulse" },
-    live: { label: "live shell", cls: "text-emerald-600 dark:text-emerald-400", dot: "bg-emerald-500" },
+    connecting: {
+      label: "connecting",
+      cls: "text-amber-600 dark:text-amber-400",
+      dot: "bg-amber-500 animate-pulse",
+    },
+    live: {
+      label: "live shell",
+      cls: "text-emerald-600 dark:text-emerald-400",
+      dot: "bg-emerald-500",
+    },
     mock: { label: "local mock", cls: "text-muted-foreground", dot: "bg-muted-foreground/60" },
     closed: { label: "disconnected", cls: "text-destructive", dot: "bg-destructive" },
   };
@@ -572,8 +684,12 @@ type OpResult = {
 };
 
 // Cast helpers — same gate-middleware boundary pattern as client.ts.
-const listTerminalOpsFn = listTerminalOps as unknown as (opts: { data: Record<string, never> }) => Promise<{ ops: TermOp[] }>;
-const dispatchTerminalOpFn = dispatchTerminalOp as unknown as (opts: { data: { op: string; args: Record<string, unknown> } }) => Promise<OpResult>;
+const listTerminalOpsFn = listTerminalOps as unknown as (opts: {
+  data: Record<string, never>;
+}) => Promise<{ ops: TermOp[] }>;
+const dispatchTerminalOpFn = dispatchTerminalOp as unknown as (opts: {
+  data: { op: string; args: Record<string, unknown> };
+}) => Promise<OpResult>;
 
 function NamedOpsPanel() {
   const { data, isLoading } = useQuery({
@@ -586,19 +702,32 @@ function NamedOpsPanel() {
 
   return (
     <Card className="elev-1">
-      <CardHeader className="pb-2 cursor-pointer select-none" onClick={() => setExpanded((v) => !v)}>
+      <CardHeader
+        className="pb-2 cursor-pointer select-none"
+        onClick={() => setExpanded((v) => !v)}
+      >
         <div className="flex items-center gap-2">
-          {expanded ? <ChevronDown className="size-4 text-muted-foreground" /> : <ChevronRight className="size-4 text-muted-foreground" />}
+          {expanded ? (
+            <ChevronDown className="size-4 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="size-4 text-muted-foreground" />
+          )}
           <CardTitle className="text-sm">Named Operations</CardTitle>
-          <span className="text-xs text-muted-foreground ml-1">real server dispatch · allowlisted ops only</span>
+          <span className="text-xs text-muted-foreground ml-1">
+            real server dispatch · allowlisted ops only
+          </span>
           {isLoading && <Loader2 className="size-3.5 animate-spin text-muted-foreground ml-auto" />}
-          {!isLoading && <span className="text-xs text-muted-foreground ml-auto">{ops.length} ops</span>}
+          {!isLoading && (
+            <span className="text-xs text-muted-foreground ml-auto">{ops.length} ops</span>
+          )}
         </div>
       </CardHeader>
       {expanded && (
         <CardContent className="pt-0 space-y-2">
           {ops.length === 0 && !isLoading && (
-            <p className="text-xs text-muted-foreground py-2">No allowlisted terminal ops registered.</p>
+            <p className="text-xs text-muted-foreground py-2">
+              No allowlisted terminal ops registered.
+            </p>
           )}
           {ops.map((op) => (
             <NamedOpRow key={op.op} op={op} />
@@ -611,13 +740,12 @@ function NamedOpsPanel() {
 
 function NamedOpRow({ op }: { op: TermOp }) {
   const [args, setArgs] = useState<Record<string, string>>(() =>
-    Object.fromEntries(op.placeholders.map((p) => [p, ""]))
+    Object.fromEntries(op.placeholders.map((p) => [p, ""])),
   );
   const [result, setResult] = useState<OpResult | null>(null);
 
   const mutation = useMutation({
-    mutationFn: () =>
-      dispatchTerminalOpFn({ data: { op: op.op, args } }),
+    mutationFn: () => dispatchTerminalOpFn({ data: { op: op.op, args } }),
     onSuccess: (data) => setResult(data),
   });
 
@@ -629,7 +757,11 @@ function NamedOpRow({ op }: { op: TermOp }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-mono text-xs font-medium">{op.op}</span>
-            {op.requiresApproval && <Badge variant="outline" className="text-[10px] h-4 px-1">approval</Badge>}
+            {op.requiresApproval && (
+              <Badge variant="outline" className="text-[10px] h-4 px-1">
+                approval
+              </Badge>
+            )}
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">{op.description}</p>
         </div>
@@ -640,7 +772,11 @@ function NamedOpRow({ op }: { op: TermOp }) {
           disabled={!canRun || mutation.isPending}
           onClick={() => mutation.mutate()}
         >
-          {mutation.isPending ? <Loader2 className="size-3.5 animate-spin" /> : <Play className="size-3.5" />}
+          {mutation.isPending ? (
+            <Loader2 className="size-3.5 animate-spin" />
+          ) : (
+            <Play className="size-3.5" />
+          )}
         </Button>
       </div>
 
@@ -668,13 +804,19 @@ function NamedOpRow({ op }: { op: TermOp }) {
         <div className="rounded border bg-background p-2 space-y-1">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <span className="font-mono">{result.argv.join(" ")}</span>
-            <span className="ml-auto">exit {result.exitCode} · {result.durationMs}ms</span>
+            <span className="ml-auto">
+              exit {result.exitCode} · {result.durationMs}ms
+            </span>
           </div>
           {result.stdout && (
-            <pre className="text-xs font-mono whitespace-pre-wrap break-all max-h-40 overflow-y-auto">{result.stdout}</pre>
+            <pre className="text-xs font-mono whitespace-pre-wrap break-all max-h-40 overflow-y-auto">
+              {result.stdout}
+            </pre>
           )}
           {result.stderr && (
-            <pre className="text-xs font-mono whitespace-pre-wrap break-all max-h-20 overflow-y-auto text-destructive">{result.stderr}</pre>
+            <pre className="text-xs font-mono whitespace-pre-wrap break-all max-h-20 overflow-y-auto text-destructive">
+              {result.stderr}
+            </pre>
           )}
         </div>
       )}

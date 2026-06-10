@@ -2,7 +2,9 @@ import { describe, it, expect } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { UIProvider, useUI } from "./useUI";
 
-const wrapper = ({ children }: { children: React.ReactNode }) => <UIProvider>{children}</UIProvider>;
+const wrapper = ({ children }: { children: React.ReactNode }) => (
+  <UIProvider>{children}</UIProvider>
+);
 
 describe("useUI", () => {
   it("provides default values", () => {

@@ -31,12 +31,12 @@
  *   - resetAudit() → test helper (clears events + running hash)
  */
 
-import { createHash, randomUUID } from 'node:crypto';
-import type { AuditEvent, SessionId, UserId } from '../entities';
-import { asAuditEventId } from '../entities';
+import { createHash, randomUUID } from "node:crypto";
+import type { AuditEvent, SessionId, UserId } from "../entities";
+import { asAuditEventId } from "../entities";
 
-const GENESIS_LITERAL = 'cortexos-audit-genesis';
-const GENESIS_HASH = createHash('sha256').update(GENESIS_LITERAL).digest('hex');
+const GENESIS_LITERAL = "cortexos-audit-genesis";
+const GENESIS_HASH = createHash("sha256").update(GENESIS_LITERAL).digest("hex");
 
 // ---------------------------------------------------------------------------
 // Store + running-hash state
@@ -71,7 +71,7 @@ export function _runningHashForTests(): string {
 // ---------------------------------------------------------------------------
 
 function sha256Hex(input: string): string {
-  return createHash('sha256').update(input).digest('hex');
+  return createHash("sha256").update(input).digest("hex");
 }
 
 function payloadHash(payload: Record<string, unknown>): string {
@@ -109,7 +109,7 @@ export interface AuditInput {
   surface: string;
   action: string;
   target: string | null;
-  result: AuditEvent['result'];
+  result: AuditEvent["result"];
   errorCode: string | null;
   /** Correlates with the HTTP request. */
   requestId?: string;
@@ -184,7 +184,7 @@ export function verifyAuditChain(): AuditVerifyResult {
         return {
           ok: false,
           index: i,
-          reason: `prevHash mismatch at index ${i}: expected ${h}, got ${row.prevHash ?? 'null'}`,
+          reason: `prevHash mismatch at index ${i}: expected ${h}, got ${row.prevHash ?? "null"}`,
         };
       }
     }

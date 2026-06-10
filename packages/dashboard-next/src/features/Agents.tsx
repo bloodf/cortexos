@@ -1,8 +1,18 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useMemo, useRef, useState } from "react";
 import {
-  Activity, AlertTriangle, Bot, ExternalLink, FileText, FolderTree,
-  Pause, PlayCircle, Power, RotateCw, Search, Upload,
+  Activity,
+  AlertTriangle,
+  Bot,
+  ExternalLink,
+  FileText,
+  FolderTree,
+  Pause,
+  PlayCircle,
+  Power,
+  RotateCw,
+  Search,
+  Upload,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { PageHeader } from "@/components/PageHeader";
@@ -72,13 +82,16 @@ export function AgentsPage() {
     });
   }, [agents, q, stateFilter]);
 
-  const counts = useMemo(() => ({
-    all: agents.length,
-    running: agents.filter((a) => a.state === "running").length,
-    idle: agents.filter((a) => a.state === "idle").length,
-    stopped: agents.filter((a) => a.state === "stopped").length,
-    error: agents.filter((a) => a.state === "error").length,
-  }), [agents]);
+  const counts = useMemo(
+    () => ({
+      all: agents.length,
+      running: agents.filter((a) => a.state === "running").length,
+      idle: agents.filter((a) => a.state === "idle").length,
+      stopped: agents.filter((a) => a.state === "stopped").length,
+      error: agents.filter((a) => a.state === "error").length,
+    }),
+    [agents],
+  );
 
   const handleAction = (action: string, a: Agent) => {
     if (!user?.is_admin) {
@@ -113,7 +126,9 @@ export function AgentsPage() {
               onClick={() => setStateFilter(s)}
               className={cn(
                 "rounded-md border px-2.5 h-8 text-xs capitalize transition-colors",
-                stateFilter === s ? "bg-accent text-accent-foreground border-accent" : "hover:bg-muted/50",
+                stateFilter === s
+                  ? "bg-accent text-accent-foreground border-accent"
+                  : "hover:bg-muted/50",
               )}
             >
               {s} <span className="text-muted-foreground ml-1 tabular-nums">{counts[s]}</span>
@@ -124,7 +139,9 @@ export function AgentsPage() {
 
       {isLoading ? (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => <CardSkeleton key={i} lines={4} />)}
+          {Array.from({ length: 6 }).map((_, i) => (
+            <CardSkeleton key={i} lines={4} />
+          ))}
         </div>
       ) : isError ? (
         <Card className="elev-1">
@@ -139,9 +156,20 @@ export function AgentsPage() {
           <EmptyState
             icon={<Bot className="size-8" />}
             title="No agents match"
-            description={agents.length === 0 ? "No Hermes agents are registered yet." : "Try clearing your filters."}
+            description={
+              agents.length === 0
+                ? "No Hermes agents are registered yet."
+                : "Try clearing your filters."
+            }
             action={
-              <Button variant="outline" size="sm" onClick={() => { setQ(""); setStateFilter("all"); }}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setQ("");
+                  setStateFilter("all");
+                }}
+              >
                 Clear filters
               </Button>
             }
@@ -150,7 +178,10 @@ export function AgentsPage() {
       ) : (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((a) => (
-            <Card key={a.slug} className="elev-1 p-4 flex flex-col gap-3 group hover:border-primary/40 transition-colors">
+            <Card
+              key={a.slug}
+              className="elev-1 p-4 flex flex-col gap-3 group hover:border-primary/40 transition-colors"
+            >
               <div className="flex items-start gap-3">
                 <div className="relative shrink-0">
                   <div className="size-10 rounded-md bg-primary/10 text-primary grid place-items-center">
@@ -168,25 +199,56 @@ export function AgentsPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <h3 className="font-semibold truncate">{a.name}</h3>
-                    <span className="text-[10px] text-muted-foreground font-mono truncate">{a.slug}</span>
+                    <span className="text-[10px] text-muted-foreground font-mono truncate">
+                      {a.slug}
+                    </span>
                   </div>
-                  <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{a.description}</p>
+                  <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                    {a.description}
+                  </p>
                 </div>
-                <span className={cn("text-[10px] uppercase tracking-wide rounded-full border px-2 py-0.5 shrink-0", HEALTH_TONE[a.health])}>
+                <span
+                  className={cn(
+                    "text-[10px] uppercase tracking-wide rounded-full border px-2 py-0.5 shrink-0",
+                    HEALTH_TONE[a.health],
+                  )}
+                >
                   {HEALTH_LABEL[a.health]}
                 </span>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-xs">
-                <Cell label="Model" value={<span className="font-mono truncate block" title={a.model}>{a.model}</span>} />
-                <Cell label="Provider" value={<span className="capitalize">{a.modelProvider}</span>} />
+                <Cell
+                  label="Model"
+                  value={
+                    <span className="font-mono truncate block" title={a.model}>
+                      {a.model}
+                    </span>
+                  }
+                />
+                <Cell
+                  label="Provider"
+                  value={<span className="capitalize">{a.modelProvider}</span>}
+                />
                 <Cell label="Uptime" value={formatUptime(a.uptimeSec)} />
                 <Cell label="Queue" value={<span className="tabular-nums">{a.queueDepth}</span>} />
-                <Cell label="Req/min" value={<span className="tabular-nums">{a.requestsPerMin}</span>} />
+                <Cell
+                  label="Req/min"
+                  value={<span className="tabular-nums">{a.requestsPerMin}</span>}
+                />
                 <Cell
                   label="Error rate"
                   value={
-                    <span className={cn("tabular-nums", a.errorRatePct >= 5 ? "text-[var(--destructive)]" : a.errorRatePct >= 1 ? "text-[var(--warning)]" : "")}>
+                    <span
+                      className={cn(
+                        "tabular-nums",
+                        a.errorRatePct >= 5
+                          ? "text-[var(--destructive)]"
+                          : a.errorRatePct >= 1
+                            ? "text-[var(--warning)]"
+                            : "",
+                      )}
+                    >
                       {a.errorRatePct.toFixed(1)}%
                     </span>
                   }
@@ -197,7 +259,9 @@ export function AgentsPage() {
                 <span className="flex items-center gap-1.5">
                   <Activity className="size-3" /> p95 {a.p95LatencyMs}ms
                 </span>
-                <span>v{a.version} · {relativeTime(a.lastActivity)}</span>
+                <span>
+                  v{a.version} · {relativeTime(a.lastActivity)}
+                </span>
               </div>
 
               <div className="flex items-center gap-1 pt-1 border-t -mx-4 -mb-4 px-3 py-2 bg-muted/20 rounded-b-lg">
@@ -206,24 +270,53 @@ export function AgentsPage() {
                     <ExternalLink className="size-3.5 mr-1" /> Hermes UI
                   </a>
                 </Button>
-                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setInspect(a)}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 text-xs"
+                  onClick={() => setInspect(a)}
+                >
                   <FileText className="size-3.5 mr-1" /> Inspect
                 </Button>
                 <div className="flex-1" />
                 {a.state === "running" || a.state === "idle" ? (
                   <>
-                    <Button size="icon" variant="outline-warning" className="size-7" title="Restart" onClick={() => handleAction("Restart", a)}>
+                    <Button
+                      size="icon"
+                      variant="outline-warning"
+                      className="size-7"
+                      title="Restart"
+                      onClick={() => handleAction("Restart", a)}
+                    >
                       <RotateCw className="size-3.5" />
                     </Button>
-                    <Button size="icon" variant="outline" className="size-7" title="Pause" onClick={() => handleAction("Pause", a)}>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="size-7"
+                      title="Pause"
+                      onClick={() => handleAction("Pause", a)}
+                    >
                       <Pause className="size-3.5" />
                     </Button>
-                    <Button size="icon" variant="outline-destructive" className="size-7" title="Stop" onClick={() => handleAction("Stop", a)}>
+                    <Button
+                      size="icon"
+                      variant="outline-destructive"
+                      className="size-7"
+                      title="Stop"
+                      onClick={() => handleAction("Stop", a)}
+                    >
                       <Power className="size-3.5" />
                     </Button>
                   </>
                 ) : (
-                  <Button size="icon" variant="outline-success" className="size-7" title="Start" onClick={() => handleAction("Start", a)}>
+                  <Button
+                    size="icon"
+                    variant="outline-success"
+                    className="size-7"
+                    title="Start"
+                    onClick={() => handleAction("Start", a)}
+                  >
                     <PlayCircle className="size-3.5" />
                   </Button>
                 )}
@@ -232,7 +325,13 @@ export function AgentsPage() {
               {a.state === "error" && (
                 <div className="flex items-start gap-2 rounded-md border border-[var(--destructive)]/30 bg-[var(--destructive)]/5 px-2.5 py-1.5 text-[11px] text-[var(--destructive)]">
                   <AlertTriangle className="size-3.5 mt-0.5 shrink-0" />
-                  <span>Agent crashed — check <Link to="/audit" className="underline">audit log</Link> for details.</span>
+                  <span>
+                    Agent crashed — check{" "}
+                    <Link to="/audit" className="underline">
+                      audit log
+                    </Link>{" "}
+                    for details.
+                  </span>
                 </div>
               )}
             </Card>
@@ -245,12 +344,11 @@ export function AgentsPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FolderTree className="size-4" />
-              {inspect?.name} <span className="text-xs text-muted-foreground font-mono">{inspect?.slug}</span>
+              {inspect?.name}{" "}
+              <span className="text-xs text-muted-foreground font-mono">{inspect?.slug}</span>
             </DialogTitle>
           </DialogHeader>
-          {inspect && (
-            <InspectorBody agent={inspect} isAdmin={!!user?.is_admin} />
-          )}
+          {inspect && <InspectorBody agent={inspect} isAdmin={!!user?.is_admin} />}
         </DialogContent>
       </Dialog>
     </div>
@@ -307,10 +405,14 @@ function InspectorBody({ agent, isAdmin }: { agent: Agent; isAdmin: boolean }) {
       return uploadAgentFile({ data: { slug: agent.slug, filename, content } });
     },
     onSuccess: (_, vars) => {
-      toast.success("File uploaded", { description: `${vars.filename} written to ${agent.slug} profile directory.` });
+      toast.success("File uploaded", {
+        description: `${vars.filename} written to ${agent.slug} profile directory.`,
+      });
     },
     onError: (err) => {
-      toast.error("Upload failed", { description: err instanceof Error ? err.message : "Unknown error" });
+      toast.error("Upload failed", {
+        description: err instanceof Error ? err.message : "Unknown error",
+      });
     },
   });
 
@@ -344,23 +446,28 @@ function InspectorBody({ agent, isAdmin }: { agent: Agent; isAdmin: boolean }) {
         </button>
 
         {/* Disk files from the profile home directory (if any) */}
-        {hasDiskFiles && agent.files.map((f) => (
-          <button
-            key={f.path}
-            onClick={() => setActiveFile(f.path)}
-            className={cn(
-              "w-full text-left rounded px-2 py-1.5 text-xs flex items-center gap-2 hover:bg-muted/50 font-mono",
-              activeFile === f.path && "bg-accent text-accent-foreground",
-            )}
-          >
-            <FileText className="size-3 text-muted-foreground" />
-            <span className="truncate">{f.path}</span>
-          </button>
-        ))}
+        {hasDiskFiles &&
+          agent.files.map((f) => (
+            <button
+              key={f.path}
+              onClick={() => setActiveFile(f.path)}
+              className={cn(
+                "w-full text-left rounded px-2 py-1.5 text-xs flex items-center gap-2 hover:bg-muted/50 font-mono",
+                activeFile === f.path && "bg-accent text-accent-foreground",
+              )}
+            >
+              <FileText className="size-3 text-muted-foreground" />
+              <span className="truncate">{f.path}</span>
+            </button>
+          ))}
 
         <div className="pt-3 mt-3 border-t space-y-1.5 text-xs">
-          <Badge variant="secondary" className="font-mono">{agent.model}</Badge>
-          <p className="text-muted-foreground text-[11px]">v{agent.version} · {agent.slug}</p>
+          <Badge variant="secondary" className="font-mono">
+            {agent.model}
+          </Badge>
+          <p className="text-muted-foreground text-[11px]">
+            v{agent.version} · {agent.slug}
+          </p>
         </div>
 
         {/* File upload — admin only, scoped to this profile's home directory */}
@@ -388,7 +495,11 @@ function InspectorBody({ agent, isAdmin }: { agent: Agent; isAdmin: boolean }) {
       </div>
 
       <div className="min-w-0">
-        <CodeBlock language={activeLanguage} code={activeContent} className="h-[420px] overflow-auto" />
+        <CodeBlock
+          language={activeLanguage}
+          code={activeContent}
+          className="h-[420px] overflow-auto"
+        />
       </div>
     </div>
   );

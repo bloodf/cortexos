@@ -1,6 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { renderWithProviders, screen } from "@/test/utils";
-import { Skeleton, TableSkeleton, CardSkeleton, ChartSkeleton, DetailSkeleton, InlineSkeleton } from "./index";
+import {
+  Skeleton,
+  TableSkeleton,
+  CardSkeleton,
+  ChartSkeleton,
+  DetailSkeleton,
+  InlineSkeleton,
+} from "./index";
 
 describe("Skeleton primitives", () => {
   it("renders a base skeleton", () => {

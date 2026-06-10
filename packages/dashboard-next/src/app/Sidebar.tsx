@@ -9,7 +9,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-interface Props { collapsed: boolean; mobileOpen: boolean; onClose: () => void }
+interface Props {
+  collapsed: boolean;
+  mobileOpen: boolean;
+  onClose: () => void;
+}
 
 const GROUP_ICONS: Record<GroupId, LucideIcon> = {
   platform: LayoutGrid,
@@ -25,16 +29,21 @@ export function Sidebar({ collapsed, mobileOpen, onClose }: Props) {
   const { user } = useAuth();
   const path = useRouterState({ select: (s) => s.location.pathname });
 
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(
-    { platform: true, infra: true, secOps: true, admin: false },
-  );
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
+    platform: true,
+    infra: true,
+    secOps: true,
+    admin: false,
+  });
 
   // Hydrate from localStorage after mount to avoid SSR mismatch
   useEffect(() => {
     try {
       const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
       if (stored && typeof stored === "object") setOpenGroups((prev) => ({ ...prev, ...stored }));
-    } catch { /* noop */ }
+    } catch {
+      /* noop */
+    }
   }, []);
 
   useEffect(() => {
@@ -49,7 +58,11 @@ export function Sidebar({ collapsed, mobileOpen, onClose }: Props) {
   }, [path]);
 
   useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(openGroups)); } catch { /* noop */ }
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(openGroups));
+    } catch {
+      /* noop */
+    }
   }, [openGroups]);
 
   const toggle = (id: string) => setOpenGroups((p) => ({ ...p, [id]: !p[id] }));
@@ -81,9 +94,15 @@ export function Sidebar({ collapsed, mobileOpen, onClose }: Props) {
         <div className="h-14 flex items-center justify-between border-b border-sidebar-border px-3">
           <Link to="/overview" className="flex items-center gap-2 min-w-0">
             <img src={brandMark} alt="" className="size-7 shrink-0" aria-hidden />
-            {!collapsed && <span className="font-semibold tracking-tight truncate">{t.app.name}</span>}
+            {!collapsed && (
+              <span className="font-semibold tracking-tight truncate">{t.app.name}</span>
+            )}
           </Link>
-          <button onClick={onClose} className="md:hidden text-sidebar-foreground/60" aria-label="Close">
+          <button
+            onClick={onClose}
+            className="md:hidden text-sidebar-foreground/60"
+            aria-label="Close"
+          >
             <X className="size-4" />
           </button>
         </div>
@@ -143,7 +162,9 @@ export function Sidebar({ collapsed, mobileOpen, onClose }: Props) {
                   >
                     <Icon className="size-3.5" />
                     <span className="flex-1 text-left text-[10px]">{groupTitle[group.id]}</span>
-                    <ChevronDown className={cn("size-3 transition-transform", !isOpen && "-rotate-90")} />
+                    <ChevronDown
+                      className={cn("size-3 transition-transform", !isOpen && "-rotate-90")}
+                    />
                   </button>
                   {isOpen && (
                     <ul className="mt-0.5 ml-2 pl-2 border-l border-sidebar-border/60 space-y-0.5">
@@ -178,7 +199,9 @@ export function Sidebar({ collapsed, mobileOpen, onClose }: Props) {
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-medium truncate">{user.username}</p>
-                <p className="text-[10px] text-sidebar-foreground/60">{user.is_admin ? "Admin" : "User"}</p>
+                <p className="text-[10px] text-sidebar-foreground/60">
+                  {user.is_admin ? "Admin" : "User"}
+                </p>
               </div>
             </div>
           )}
@@ -188,14 +211,30 @@ export function Sidebar({ collapsed, mobileOpen, onClose }: Props) {
   );
 }
 
-function NavLink({ to, icon, label, active, collapsed, onClick }: { to: string; icon: React.ReactNode; label: string; active: boolean; collapsed: boolean; onClick: () => void }) {
+function NavLink({
+  to,
+  icon,
+  label,
+  active,
+  collapsed,
+  onClick,
+}: {
+  to: string;
+  icon: React.ReactNode;
+  label: string;
+  active: boolean;
+  collapsed: boolean;
+  onClick: () => void;
+}) {
   const link = (
     <Link
       to={to}
       onClick={onClick}
       className={cn(
         "flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors",
-        active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+        active
+          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+          : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
         collapsed && "md:justify-center md:px-2",
       )}
     >
@@ -208,9 +247,7 @@ function NavLink({ to, icon, label, active, collapsed, onClick }: { to: string; 
     return (
       <li>
         <Tooltip delayDuration={200}>
-          <TooltipTrigger asChild>
-            {link}
-          </TooltipTrigger>
+          <TooltipTrigger asChild>{link}</TooltipTrigger>
           <TooltipContent side="right" sideOffset={8}>
             {label}
           </TooltipContent>

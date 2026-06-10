@@ -28,13 +28,13 @@
  *   deleteByToken / sweepExpired / revalidateRole / gcExpired
  */
 
-import { randomBytes } from 'node:crypto';
-import { and, eq, gt, sql } from 'drizzle-orm';
-import type { DbClient } from '../db/client';
-import { getDb } from '../db/client';
-import { adminSessions, pamUsers } from '../db/schema';
-import type { GroupMembershipEntry, GroupName, Session, User } from '../entities';
-import { asSessionId, asUserId } from '../entities';
+import { randomBytes } from "node:crypto";
+import { and, eq, gt, sql } from "drizzle-orm";
+import type { DbClient } from "../db/client";
+import { getDb } from "../db/client";
+import { adminSessions, pamUsers } from "../db/schema";
+import type { GroupMembershipEntry, GroupName, Session, User } from "../entities";
+import { asSessionId, asUserId } from "../entities";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -165,7 +165,7 @@ function pickDefault(): SessionStore {
  * encoded. ~43 characters.
  */
 export function generateSessionToken(): string {
-  return randomBytes(32).toString('base64url');
+  return randomBytes(32).toString("base64url");
 }
 
 /** Default session TTL: 30 days. */
@@ -222,7 +222,7 @@ export class InMemorySessionStore implements SessionStore {
   }): { id: number; username: string } {
     const entries: ReadonlyArray<GroupMembershipEntry> = input.groupMemberships.map((name) => ({
       name,
-      isAdmin: name === 'cortexos-admin',
+      isAdmin: name === "cortexos-admin",
     }));
     for (const u of this.users.values()) {
       if (u.username === input.username) {
@@ -245,7 +245,7 @@ export class InMemorySessionStore implements SessionStore {
     // 1. Upsert the user. Same username → same id.
     const user = this.upsertUser({
       username: input.username,
-      groupMemberships: input.isAdmin ? ['cortexos-admin', 'cortexos-users'] : ['cortexos-users'],
+      groupMemberships: input.isAdmin ? ["cortexos-admin", "cortexos-users"] : ["cortexos-users"],
     });
     // 2. Create the session row.
     const now = Date.now();
@@ -287,8 +287,8 @@ export class InMemorySessionStore implements SessionStore {
     // re-validated by resolveContext on a TTL (SR-011). The user's stored
     // groupMemberships are an upsert-time snapshot and may be stale.
     const groups: ReadonlyArray<GroupName> = row.isAdmin
-      ? ['cortexos-admin', 'cortexos-users']
-      : ['cortexos-users'];
+      ? ["cortexos-admin", "cortexos-users"]
+      : ["cortexos-users"];
     return {
       session: toSessionEntity(row),
       user: toUserEntity(user, user.id, row.isAdmin),
@@ -366,7 +366,7 @@ export class DrizzleSessionStore implements SessionStore {
   async createSession(input: CreateSessionInput): Promise<CreateSessionResult> {
     // 1. Upsert pam_users. Idempotent on username (the unique key).
     const username = input.username.trim();
-    if (!username) throw new Error('PAM username is required');
+    if (!username) throw new Error("PAM username is required");
     const upserted = await this.db
       .insert(pamUsers)
       .values({ username })
@@ -376,7 +376,7 @@ export class DrizzleSessionStore implements SessionStore {
       })
       .returning();
     const userRow = upserted[0];
-    if (!userRow) throw new Error('Failed to upsert PAM user');
+    if (!userRow) throw new Error("Failed to upsert PAM user");
 
     // 2. Insert the session row.
     const now = Date.now();
@@ -398,7 +398,7 @@ export class DrizzleSessionStore implements SessionStore {
       })
       .returning();
     const sessionRow = inserted[0];
-    if (!sessionRow) throw new Error('Failed to insert session');
+    if (!sessionRow) throw new Error("Failed to insert session");
 
     return {
       token,
@@ -435,11 +435,11 @@ export class DrizzleSessionStore implements SessionStore {
     // of OS group membership). resolveContext re-derives it from PAM; here we
     // default to whatever the cached is_admin says.
     const groups: ReadonlyArray<GroupName> = row.isAdmin
-      ? ['cortexos-admin', 'cortexos-users']
-      : ['cortexos-users'];
+      ? ["cortexos-admin", "cortexos-users"]
+      : ["cortexos-users"];
     const groupMemberships: ReadonlyArray<GroupMembershipEntry> = groups.map((name) => ({
       name,
-      isAdmin: row.isAdmin && name === 'cortexos-admin',
+      isAdmin: row.isAdmin && name === "cortexos-admin",
     }));
 
     return {
@@ -491,7 +491,7 @@ export class DrizzleSessionStore implements SessionStore {
     return {
       id: asSessionId(String(row.id)),
       userId: asUserId(String(row.userId)),
-      csrfToken: row.csrfToken ?? '',
+      csrfToken: row.csrfToken ?? "",
       expiresAt: newExpiresAtMs,
       ua: row.userAgent,
       ip: row.ip,
@@ -523,7 +523,7 @@ export class DrizzleSessionStore implements SessionStore {
   }
 
   async gcExpired(): Promise<{ deleted: number; ranAt: number }> {
-    const { gcExpiredSessions } = await import('../db/session-gc');
+    const { gcExpiredSessions } = await import("../db/session-gc");
     return gcExpiredSessions(this.db);
   }
 }
@@ -551,13 +551,13 @@ function toUserEntity(row: MemUserRow, _id: number, isAdminOverride?: boolean): 
   const isAdmin =
     isAdminOverride !== undefined
       ? isAdminOverride
-      : row.groupMemberships.some((g) => g.name === 'cortexos-admin');
+      : row.groupMemberships.some((g) => g.name === "cortexos-admin");
   const groupMemberships: ReadonlyArray<GroupMembershipEntry> = isAdmin
     ? [
-        { name: 'cortexos-admin', isAdmin: true },
-        { name: 'cortexos-users', isAdmin: false },
+        { name: "cortexos-admin", isAdmin: true },
+        { name: "cortexos-users", isAdmin: false },
       ]
-    : row.groupMemberships.filter((g) => g.name !== 'cortexos-admin');
+    : row.groupMemberships.filter((g) => g.name !== "cortexos-admin");
   return {
     id: asUserId(String(row.id)),
     username: row.username,
@@ -572,7 +572,7 @@ function rowToSession(row: typeof adminSessions.$inferSelect, now: number): Sess
   return {
     id: asSessionId(String(row.id)),
     userId: asUserId(String(row.userId)),
-    csrfToken: row.csrfToken ?? '',
+    csrfToken: row.csrfToken ?? "",
     expiresAt: row.expiresAt.getTime(),
     ua: row.userAgent,
     ip: row.ip,
@@ -582,8 +582,8 @@ function rowToSession(row: typeof adminSessions.$inferSelect, now: number): Sess
 
 function rowToUser(row: typeof pamUsers.$inferSelect, isAdminCached: boolean): User {
   const groups: ReadonlyArray<GroupName> = isAdminCached
-    ? ['cortexos-admin', 'cortexos-users']
-    : ['cortexos-users'];
+    ? ["cortexos-admin", "cortexos-users"]
+    : ["cortexos-users"];
   return {
     id: asUserId(String(row.id)),
     username: row.username,
@@ -608,7 +608,7 @@ function rowToSessionFromJoin(row: {
   return {
     id: asSessionId(String(row.sessionId)),
     userId: asUserId(String(row.userId)),
-    csrfToken: row.csrfToken ?? '',
+    csrfToken: row.csrfToken ?? "",
     expiresAt: row.expiresAt.getTime(),
     ua: row.userAgent,
     ip: row.ip,

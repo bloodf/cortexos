@@ -24,8 +24,7 @@ import {
 import { asUserId } from "../../entities";
 
 beforeAll(() => {
-  process.env.CORTEX_MASTER_KEY ??=
-    "test-master-key-0123456789abcdef0123456789abcdef";
+  process.env.CORTEX_MASTER_KEY ??= "test-master-key-0123456789abcdef0123456789abcdef";
   // Force the deterministic mock executor regardless of platform.
   process.env.CORTEX_TERMINAL_BRIDGE_REAL = "0";
 });
@@ -96,14 +95,7 @@ describe("dispatch (accepted)", () => {
     );
     expect(res.status).toBe("accepted");
     if (res.status !== "accepted") return;
-    expect(res.argv).toEqual([
-      "journalctl",
-      "-u",
-      "caddy.service",
-      "-n",
-      "50",
-      "--no-pager",
-    ]);
+    expect(res.argv).toEqual(["journalctl", "-u", "caddy.service", "-n", "50", "--no-pager"]);
   });
 
   it("forwards a non-zero exit code without treating it as a rejection", async () => {
@@ -148,10 +140,7 @@ describe("dispatch (rejected)", () => {
   });
 
   it("rejects command substitution in an arg", async () => {
-    const res = await dispatch(
-      { op: "term.ls", args: { path: "/etc/$(whoami)" } },
-      makeCtx(),
-    );
+    const res = await dispatch({ op: "term.ls", args: { path: "/etc/$(whoami)" } }, makeCtx());
     expect(res.status).toBe("rejected");
     if (res.status !== "rejected") return;
     expect(res.code).toBe("arg_smuggling");
@@ -210,11 +199,6 @@ describe("spawnPty", () => {
   });
 
   it("exposes a fixed shell allowlist", () => {
-    expect([..._ALLOWED_SHELLS]).toEqual([
-      "/bin/bash",
-      "/bin/sh",
-      "/usr/bin/bash",
-      "/usr/bin/zsh",
-    ]);
+    expect([..._ALLOWED_SHELLS]).toEqual(["/bin/bash", "/bin/sh", "/usr/bin/bash", "/usr/bin/zsh"]);
   });
 });

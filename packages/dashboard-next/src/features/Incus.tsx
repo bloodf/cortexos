@@ -376,10 +376,7 @@ export function IncusPage() {
                     {
                       key: "Status",
                       value: (
-                        <Badge
-                          variant="outline"
-                          className={cn(statusColors[active.status] ?? "")}
-                        >
+                        <Badge variant="outline" className={cn(statusColors[active.status] ?? "")}>
                           {active.status}
                         </Badge>
                       ),
@@ -472,9 +469,7 @@ function ProvisionWizard({
       setDone(true);
       onCreated();
     } catch (err) {
-      appendLog(
-        `Error: ${err instanceof Error ? err.message : "Unknown error"}`,
-      );
+      appendLog(`Error: ${err instanceof Error ? err.message : "Unknown error"}`);
     } finally {
       setLaunching(false);
     }

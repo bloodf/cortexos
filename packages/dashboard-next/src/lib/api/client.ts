@@ -145,12 +145,12 @@ type ServiceHealthOutput = {
   }>;
 };
 
-const listServicesFn = _listServices as unknown as (
-  opts: { data: ListServicesInput },
-) => Promise<ListServicesOutput>;
-const listServiceHealthFn = _listServiceHealth as unknown as (
-  opts: { data: ServiceHealthInput },
-) => Promise<ServiceHealthOutput>;
+const listServicesFn = _listServices as unknown as (opts: {
+  data: ListServicesInput;
+}) => Promise<ListServicesOutput>;
+const listServiceHealthFn = _listServiceHealth as unknown as (opts: {
+  data: ServiceHealthInput;
+}) => Promise<ServiceHealthOutput>;
 
 // Re-export the raw typed server fns for Wave-2 direct use.
 export const listServices = _listServices;
@@ -173,18 +173,18 @@ type GetNetworkOutput = NetworkData;
 type GetProcessesOutput = { processes: ProcessInfo[] };
 type GetStorageOutput = { disks: DriveInfo[]; mounts: MountInfo[] };
 
-const getSystemFn = _getSystem as unknown as (
-  opts: { data: Record<string, never> },
-) => Promise<GetSystemOutput>;
-const getNetworkFn = _getNetwork as unknown as (
-  opts: { data: Record<string, never> },
-) => Promise<GetNetworkOutput>;
-const getProcessesFn = _getProcesses as unknown as (
-  opts: { data: Record<string, never> },
-) => Promise<GetProcessesOutput>;
-const getStorageFn = _getStorage as unknown as (
-  opts: { data: Record<string, never> },
-) => Promise<GetStorageOutput>;
+const getSystemFn = _getSystem as unknown as (opts: {
+  data: Record<string, never>;
+}) => Promise<GetSystemOutput>;
+const getNetworkFn = _getNetwork as unknown as (opts: {
+  data: Record<string, never>;
+}) => Promise<GetNetworkOutput>;
+const getProcessesFn = _getProcesses as unknown as (opts: {
+  data: Record<string, never>;
+}) => Promise<GetProcessesOutput>;
+const getStorageFn = _getStorage as unknown as (opts: {
+  data: Record<string, never>;
+}) => Promise<GetStorageOutput>;
 
 // ---------------------------------------------------------------------------
 // Wired server-function imports (WP-13 — systemd domain)
@@ -223,22 +223,22 @@ type UnitLogsOutput = { unit: string; limit: number; count: number; lines: strin
 // schema (AN-004 §4 data-shape note), mapped to display text by the caller.
 type HostLogsInputType = { limit?: number };
 type HostLogsLogLine = {
-	ts: string;
-	priority: "emerg" | "alert" | "crit" | "err" | "warning" | "notice" | "info" | "debug";
-	unit: string;
-	message: string;
+  ts: string;
+  priority: "emerg" | "alert" | "crit" | "err" | "warning" | "notice" | "info" | "debug";
+  unit: string;
+  message: string;
 };
 type HostLogsOutput = { limit: number; count: number; lines: HostLogsLogLine[] };
 
-const listUnitsFn = _listUnits as unknown as (
-  opts: { data: Record<string, never> },
-) => Promise<ListUnitsOutput>;
-const getUnitFn = _getUnit as unknown as (
-  opts: { data: { name: string } },
-) => Promise<GetUnitOutput>;
-const hostLogsFn = _hostLogs as unknown as (
-  opts: { data: HostLogsInputType },
-) => Promise<HostLogsOutput>;
+const listUnitsFn = _listUnits as unknown as (opts: {
+  data: Record<string, never>;
+}) => Promise<ListUnitsOutput>;
+const getUnitFn = _getUnit as unknown as (opts: {
+  data: { name: string };
+}) => Promise<GetUnitOutput>;
+const hostLogsFn = _hostLogs as unknown as (opts: {
+  data: HostLogsInputType;
+}) => Promise<HostLogsOutput>;
 
 /**
  * Call systemdAction RPC — admin only; approval: true gate.
@@ -249,9 +249,9 @@ export const callSystemdAction = _systemdAction as unknown as (opts: {
   headers?: Record<string, string>;
 }) => Promise<SystemdActionOutput>;
 /** Call unitLogs RPC directly — returns journal lines for a unit. */
-export const callUnitLogs = _unitLogs as unknown as (
-  opts: { data: UnitLogsInputType },
-) => Promise<UnitLogsOutput>;
+export const callUnitLogs = _unitLogs as unknown as (opts: {
+  data: UnitLogsInputType;
+}) => Promise<UnitLogsOutput>;
 /**
  * MP-009 — Call hostLogs RPC directly (admin only). Returns the most-recent
  * `limit` lines from the whole host journal (no unit filter, no
@@ -301,18 +301,18 @@ export type IncusLogLine = {
 };
 type InstanceLogsOutput = { lines: IncusLogLine[] };
 
-const listInstancesFn = _listInstances as unknown as (
-  opts: { data: Record<string, never> },
-) => Promise<ListInstancesOutput>;
+const listInstancesFn = _listInstances as unknown as (opts: {
+  data: Record<string, never>;
+}) => Promise<ListInstancesOutput>;
 
 /** Call incusAction RPC directly — requires a pre-minted approval token for destructive ops. */
-export const callIncusAction = _incusAction as unknown as (
-  opts: { data: IncusActionInputType },
-) => Promise<IncusActionOutput>;
+export const callIncusAction = _incusAction as unknown as (opts: {
+  data: IncusActionInputType;
+}) => Promise<IncusActionOutput>;
 /** Call instanceLogs RPC — returns newest-first log lines for a named instance. */
-export const callInstanceLogs = _instanceLogs as unknown as (
-  opts: { data: InstanceLogsInputType },
-) => Promise<InstanceLogsOutput>;
+export const callInstanceLogs = _instanceLogs as unknown as (opts: {
+  data: InstanceLogsInputType;
+}) => Promise<InstanceLogsOutput>;
 
 /** Map a contracts IncusInstance to the mock IncusInstance shape used by the UI. */
 function toIncusInstance(inst: import("@cortexos/contracts").IncusInstance): IncusInstance {
@@ -377,30 +377,30 @@ type MintApprovalOutput = {
   ttlSec: number;
 };
 
-const listContainersFn = _listContainers as unknown as (
-  opts: { data: { filter?: string; query?: string } },
-) => Promise<ListContainersOutput>;
-const listImagesFn = _listImages as unknown as (
-  opts: { data: { query?: string } },
-) => Promise<ListImagesOutput>;
-const listVolumesFn = _listVolumes as unknown as (
-  opts: { data: { query?: string } },
-) => Promise<ListVolumesOutput>;
+const listContainersFn = _listContainers as unknown as (opts: {
+  data: { filter?: string; query?: string };
+}) => Promise<ListContainersOutput>;
+const listImagesFn = _listImages as unknown as (opts: {
+  data: { query?: string };
+}) => Promise<ListImagesOutput>;
+const listVolumesFn = _listVolumes as unknown as (opts: {
+  data: { query?: string };
+}) => Promise<ListVolumesOutput>;
 // MP-009 — containerLogs (admin only): returns tail-N docker logs.
 type ContainerLogsInputType = { id: string; limit?: number };
 type ContainerLogsOutput = { id: string; limit: number; count: number; lines: string[] };
-const containerLogsFn = _containerLogs as unknown as (
-  opts: { data: ContainerLogsInputType },
-) => Promise<ContainerLogsOutput>;
+const containerLogsFn = _containerLogs as unknown as (opts: {
+  data: ContainerLogsInputType;
+}) => Promise<ContainerLogsOutput>;
 
 /** Call dockerAction RPC directly — requires a pre-minted approval token. */
-export const callDockerAction = _dockerAction as unknown as (
-  opts: { data: DockerActionInputType },
-) => Promise<DockerActionOutput>;
+export const callDockerAction = _dockerAction as unknown as (opts: {
+  data: DockerActionInputType;
+}) => Promise<DockerActionOutput>;
 /** Call mintApproval RPC directly — admin only; mints a single-use approval token. */
-export const callMintApproval = _mintApproval as unknown as (
-  opts: { data: MintApprovalInputType },
-) => Promise<MintApprovalOutput>;
+export const callMintApproval = _mintApproval as unknown as (opts: {
+  data: MintApprovalInputType;
+}) => Promise<MintApprovalOutput>;
 /**
  * MP-009 — Call containerLogs RPC directly (admin only). Returns the
  * most-recent `limit` lines from `docker logs` for a single container
@@ -449,38 +449,91 @@ import { toMailReviewRow } from "@/lib/adapters/mail";
 import type { ServerMailReview, ServerMailAccount } from "@/lib/adapters/mail";
 
 // WP-37 gate-middleware boundary casts — same pattern as other domains.
-type ListReviewsInput = { accountSlug?: string; pendingOnly?: boolean; page?: number; pageSize?: number };
-type ListReviewsOutput = { reviews: ServerMailReview[]; total: number; page: number; pageSize: number };
+type ListReviewsInput = {
+  accountSlug?: string;
+  pendingOnly?: boolean;
+  page?: number;
+  pageSize?: number;
+};
+type ListReviewsOutput = {
+  reviews: ServerMailReview[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
 type ListAccountsOutput = { accounts: ServerMailAccount[] };
 type AccountCreateInput = {
-  slug: string; address: string; host: string; port: number; secure: boolean;
-  username: string; password: string; inbox: string; trashMailbox?: string | null;
-  reviewMailbox: string; enabled: boolean;
+  slug: string;
+  address: string;
+  host: string;
+  port: number;
+  secure: boolean;
+  username: string;
+  password: string;
+  inbox: string;
+  trashMailbox?: string | null;
+  reviewMailbox: string;
+  enabled: boolean;
 };
 type AccountUpdateInput = {
-  slug: string; address: string; host: string; port: number; secure: boolean;
-  username: string; password?: string; inbox: string; trashMailbox?: string | null;
-  reviewMailbox: string; enabled: boolean;
+  slug: string;
+  address: string;
+  host: string;
+  port: number;
+  secure: boolean;
+  username: string;
+  password?: string;
+  inbox: string;
+  trashMailbox?: string | null;
+  reviewMailbox: string;
+  enabled: boolean;
 };
 type AccountDeleteInput = { slug: string };
 type AccountMutationOutput = { account: ServerMailAccount };
 type AccountDeleteOutput = { ok: true; slug: string };
 type ReviewIdInput = { id: number };
-type ReviewDecisionOutput = { id: number; ownerDecision: string | null; resolvedAt: string | null; approver: string | null };
+type ReviewDecisionOutput = {
+  id: number;
+  ownerDecision: string | null;
+  resolvedAt: string | null;
+  approver: string | null;
+};
 type MailBatchInput = { ids: number[]; action: "approve" | "flag" };
 type MailBatchOutput = { updated: number; action: string };
 
-const listReviewsFn = _listReviews as unknown as (opts: { data: ListReviewsInput }) => Promise<ListReviewsOutput>;
+const listReviewsFn = _listReviews as unknown as (opts: {
+  data: ListReviewsInput;
+}) => Promise<ListReviewsOutput>;
 
 /** Call mail-guardian account CRUD server fns directly — admin only, CSRF required. */
-export const callListMailAccounts = _listAccounts as unknown as (opts: { data: Record<string, never> }) => Promise<ListAccountsOutput>;
-export const callCreateMailAccount = _createAccount as unknown as (opts: { data: AccountCreateInput; headers?: Record<string, string> }) => Promise<AccountMutationOutput>;
-export const callUpdateMailAccount = _updateAccount as unknown as (opts: { data: AccountUpdateInput; headers?: Record<string, string> }) => Promise<AccountMutationOutput>;
-export const callDeleteMailAccount = _deleteAccount as unknown as (opts: { data: AccountDeleteInput; headers?: Record<string, string> }) => Promise<AccountDeleteOutput>;
+export const callListMailAccounts = _listAccounts as unknown as (opts: {
+  data: Record<string, never>;
+}) => Promise<ListAccountsOutput>;
+export const callCreateMailAccount = _createAccount as unknown as (opts: {
+  data: AccountCreateInput;
+  headers?: Record<string, string>;
+}) => Promise<AccountMutationOutput>;
+export const callUpdateMailAccount = _updateAccount as unknown as (opts: {
+  data: AccountUpdateInput;
+  headers?: Record<string, string>;
+}) => Promise<AccountMutationOutput>;
+export const callDeleteMailAccount = _deleteAccount as unknown as (opts: {
+  data: AccountDeleteInput;
+  headers?: Record<string, string>;
+}) => Promise<AccountDeleteOutput>;
 /** Call flagReview/approveReview/batch directly — admin only, CSRF required. */
-export const callFlagReview = _flagReview as unknown as (opts: { data: ReviewIdInput; headers?: Record<string, string> }) => Promise<ReviewDecisionOutput>;
-export const callApproveReview = _approveReview as unknown as (opts: { data: ReviewIdInput; headers?: Record<string, string> }) => Promise<ReviewDecisionOutput>;
-export const callBatchDecision = _batchDecision as unknown as (opts: { data: MailBatchInput; headers?: Record<string, string> }) => Promise<MailBatchOutput>;
+export const callFlagReview = _flagReview as unknown as (opts: {
+  data: ReviewIdInput;
+  headers?: Record<string, string>;
+}) => Promise<ReviewDecisionOutput>;
+export const callApproveReview = _approveReview as unknown as (opts: {
+  data: ReviewIdInput;
+  headers?: Record<string, string>;
+}) => Promise<ReviewDecisionOutput>;
+export const callBatchDecision = _batchDecision as unknown as (opts: {
+  data: MailBatchInput;
+  headers?: Record<string, string>;
+}) => Promise<MailBatchOutput>;
 
 export type { ServerMailAccount };
 
@@ -490,9 +543,7 @@ export type { ServerMailAccount };
 
 /** Typed stub for domains whose server fns are not yet implemented (Wave-1). */
 function notYetWired(domain: string): never {
-  throw new Error(
-    `[WP-04 TODO] api.${domain} — server function not yet wired (Wave-1 WP pending)`,
-  );
+  throw new Error(`[WP-04 TODO] api.${domain} — server function not yet wired (Wave-1 WP pending)`);
 }
 
 /** Return a typed empty ListResult for domains without a backend yet. */
@@ -527,8 +578,7 @@ export const api = {
    * Returns top processes sorted by CPU.
    * Calls getProcesses RPC → server/system/processes.readProcesses().
    */
-  processes: (): Promise<ProcessInfo[]> =>
-    getProcessesFn({ data: {} }).then((r) => r.processes),
+  processes: (): Promise<ProcessInfo[]> => getProcessesFn({ data: {} }).then((r) => r.processes),
 
   /**
    * Returns physical network interface stats (rx/tx kbps + totals).
@@ -802,9 +852,16 @@ export { listTerminalOps, dispatchTerminalOp } from "./terminal.functions";
 // this facade dropped (WP-38 approvals/audit, WP-39 alerts, WP-41 agents).
 // Same `as unknown as` boundary-cast pattern as the helpers above.
 // ---------------------------------------------------------------------------
-import { grantApproval as _grantApproval, revokeApproval as _revokeApproval } from "./approvals.functions";
+import {
+  grantApproval as _grantApproval,
+  revokeApproval as _revokeApproval,
+} from "./approvals.functions";
 import { verifyAudit as _verifyAudit } from "./approvals.functions";
-import { createAlert as _createAlert, patchAlert as _patchAlert, deleteAlert as _deleteAlert } from "./alerts.functions";
+import {
+  createAlert as _createAlert,
+  patchAlert as _patchAlert,
+  deleteAlert as _deleteAlert,
+} from "./alerts.functions";
 import { uploadAgentFile as _uploadAgentFile } from "./agents.functions";
 export type { HermesProfile } from "@/server/agents/registry";
 
@@ -816,9 +873,9 @@ export const callGrantApproval = _grantApproval as unknown as (
 export const callRevokeApproval = _revokeApproval as unknown as (
   opts: { data: { id: number } } & CsrfOpts,
 ) => Promise<{ ok: boolean }>;
-export const callVerifyAudit = _verifyAudit as unknown as (
-  opts: { data: { from?: number } },
-) => Promise<{ ok: boolean; count: number; brokenAt: { id: number } }>;
+export const callVerifyAudit = _verifyAudit as unknown as (opts: {
+  data: { from?: number };
+}) => Promise<{ ok: boolean; count: number; brokenAt: { id: number } }>;
 export const callCreateAlert = _createAlert as unknown as (
   opts: { data: Record<string, unknown> } & CsrfOpts,
 ) => Promise<unknown>;

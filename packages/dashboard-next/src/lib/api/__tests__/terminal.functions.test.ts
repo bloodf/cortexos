@@ -27,11 +27,7 @@ import {
   _resetRateLimitBuckets,
   type ApiRouteCore,
 } from "@/server/server-fn-pipeline";
-import {
-  dispatch,
-  validateAllArgs,
-  setExecutorForTests,
-} from "@/server/terminal/pty-bridge";
+import { dispatch, validateAllArgs, setExecutorForTests } from "@/server/terminal/pty-bridge";
 import { allowlistedCommand } from "@/server/policy";
 import { validationError, permissionError } from "@/server/errors/types";
 
@@ -175,9 +171,7 @@ describe("terminal.list-ops gate (auth: admin)", () => {
   });
 
   it("401 without a session", async () => {
-    const res = await listOpsCore(
-      new Request("http://localhost/_serverFn/terminal.list-ops"),
-    );
+    const res = await listOpsCore(new Request("http://localhost/_serverFn/terminal.list-ops"));
     expect(res.status).toBe(401);
     expect((await res.json()).code).toBe("auth");
   });

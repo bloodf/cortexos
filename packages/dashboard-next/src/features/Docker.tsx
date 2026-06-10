@@ -28,10 +28,7 @@ import { LogStream } from "@/components/LogStream";
  * The bridge (PB-5) requires a valid token for every op.
  * On error, surfaces a user-facing toast and re-throws so callers can reset state.
  */
-async function dispatchDockerAction(
-  op: string,
-  args: Record<string, unknown>,
-): Promise<void> {
+async function dispatchDockerAction(op: string, args: Record<string, unknown>): Promise<void> {
   // 1. Mint a single-use approval token for this exact op+args.
   const mint = await callMintApproval({
     data: { action: op, payload: { op, args } },
@@ -203,12 +200,7 @@ export function DockerPage() {
         const isActing = pendingAction?.startsWith(r.id) ?? false;
         return (
           <div className="flex gap-1 justify-end">
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setLogsFor(r)}
-              title="Logs"
-            >
+            <Button size="sm" variant="ghost" onClick={() => setLogsFor(r)} title="Logs">
               <FileText className="size-3.5" />
             </Button>
             {r.state !== "running" ? (
@@ -343,7 +335,13 @@ export function DockerPage() {
         icon={<Container className="size-5" />}
         title={t.nav.docker}
         description={`${containers.filter((c) => c.state === "running").length} running · ${images.length} images · ${volumes.length} volumes`}
-        actions={isAdmin ? <Button size="sm" variant="outline">Pull image…</Button> : undefined}
+        actions={
+          isAdmin ? (
+            <Button size="sm" variant="outline">
+              Pull image…
+            </Button>
+          ) : undefined
+        }
       />
 
       <Tabs defaultValue="containers" className="space-y-4">
@@ -423,7 +421,9 @@ export function DockerPage() {
           {
             id: "logs",
             label: "Logs",
-            content: logsFor ? <LogStream height={420} fetcher={fetchContainerLogs} refetchIntervalMs={3000} /> : null,
+            content: logsFor ? (
+              <LogStream height={420} fetcher={fetchContainerLogs} refetchIntervalMs={3000} />
+            ) : null,
           },
         ]}
       />

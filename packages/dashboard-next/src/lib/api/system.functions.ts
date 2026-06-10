@@ -38,19 +38,19 @@ const EmptyInput = z.object({}).strict();
 // ---------------------------------------------------------------------------
 
 const systemGate = defineServerFn({
-	method: "GET",
-	auth: "any",
-	input: EmptyInput,
-	surface: "system",
-	action: "system.read",
-	handler: async () => {
-		const { collectSystem } = await import("@/server/system/readers");
-		return collectSystem();
-	},
+  method: "GET",
+  auth: "any",
+  input: EmptyInput,
+  surface: "system",
+  action: "system.read",
+  handler: async () => {
+    const { collectSystem } = await import("@/server/system/readers");
+    return collectSystem();
+  },
 });
 export const getSystem = createServerFn({ method: "GET" })
-	.middleware([systemGate])
-	.handler(serverFnNoop);
+  .middleware([systemGate])
+  .handler(serverFnNoop);
 
 // ---------------------------------------------------------------------------
 // getNetwork — GET, auth: any → { interfaces: NetworkInterface[] }
@@ -58,39 +58,39 @@ export const getSystem = createServerFn({ method: "GET" })
 // ---------------------------------------------------------------------------
 
 const networkGate = defineServerFn({
-	method: "GET",
-	auth: "any",
-	input: EmptyInput,
-	surface: "system",
-	action: "network.read",
-	handler: async () => {
-		const { getNetworkData } = await import("@/server/system/network");
-		return getNetworkData();
-	},
+  method: "GET",
+  auth: "any",
+  input: EmptyInput,
+  surface: "system",
+  action: "network.read",
+  handler: async () => {
+    const { getNetworkData } = await import("@/server/system/network");
+    return getNetworkData();
+  },
 });
 export const getNetwork = createServerFn({ method: "GET" })
-	.middleware([networkGate])
-	.handler(serverFnNoop);
+  .middleware([networkGate])
+  .handler(serverFnNoop);
 
 // ---------------------------------------------------------------------------
 // getProcesses — GET, auth: any → { processes: ProcessInfo[] }
 // ---------------------------------------------------------------------------
 
 const processesGate = defineServerFn({
-	method: "GET",
-	auth: "any",
-	input: EmptyInput,
-	surface: "system",
-	action: "processes.list",
-	handler: async () => {
-		const { readProcesses } = await import("@/server/system/processes");
-		const processes = await readProcesses();
-		return { processes };
-	},
+  method: "GET",
+  auth: "any",
+  input: EmptyInput,
+  surface: "system",
+  action: "processes.list",
+  handler: async () => {
+    const { readProcesses } = await import("@/server/system/processes");
+    const processes = await readProcesses();
+    return { processes };
+  },
 });
 export const getProcesses = createServerFn({ method: "GET" })
-	.middleware([processesGate])
-	.handler(serverFnNoop);
+  .middleware([processesGate])
+  .handler(serverFnNoop);
 
 // ---------------------------------------------------------------------------
 // getStorage — GET, auth: any → { disks: DriveInfo[], mounts: MountInfo[] }
@@ -98,17 +98,17 @@ export const getProcesses = createServerFn({ method: "GET" })
 // ---------------------------------------------------------------------------
 
 const storageGate = defineServerFn({
-	method: "GET",
-	auth: "any",
-	input: EmptyInput,
-	surface: "system",
-	action: "storage.read",
-	handler: async () => {
-		const { getDrives, getMounts } = await import("@/server/system/readers");
-		const [disks, mounts] = await Promise.all([getDrives(), getMounts()]);
-		return { disks, mounts };
-	},
+  method: "GET",
+  auth: "any",
+  input: EmptyInput,
+  surface: "system",
+  action: "storage.read",
+  handler: async () => {
+    const { getDrives, getMounts } = await import("@/server/system/readers");
+    const [disks, mounts] = await Promise.all([getDrives(), getMounts()]);
+    return { disks, mounts };
+  },
 });
 export const getStorage = createServerFn({ method: "GET" })
-	.middleware([storageGate])
-	.handler(serverFnNoop);
+  .middleware([storageGate])
+  .handler(serverFnNoop);

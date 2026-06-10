@@ -98,9 +98,7 @@ export interface HealthSnapshotRow {
   note: string | null;
 }
 
-export function toHealthSnapshotRow(
-  snap: ContractHealthSnapshot,
-): HealthSnapshotRow {
+export function toHealthSnapshotRow(snap: ContractHealthSnapshot): HealthSnapshotRow {
   return {
     id: snap.id,
     serviceId: snap.serviceId,
@@ -117,16 +115,17 @@ export function toHealthSnapshotRow(
 
 type MockStatus = MockService["status"];
 
-function mapServiceStatus(
-  status: ContractService["status"],
-): MockStatus {
+function mapServiceStatus(status: ContractService["status"]): MockStatus {
   switch (status) {
-    case "online": return "online";
-    case "offline": return "offline";
-    case "checking":  // mock has no "checking" — treat as unknown while probe runs
+    case "online":
+      return "online";
+    case "offline":
+      return "offline";
+    case "checking": // mock has no "checking" — treat as unknown while probe runs
     case "degraded":
     case "unknown":
-    default: return "unknown";
+    default:
+      return "unknown";
   }
 }
 

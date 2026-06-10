@@ -23,9 +23,9 @@
  *   - approvalStoreSize() → test/observability helper
  */
 
-import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
-import { getServerHmacKey } from '../config';
-import type { ApprovalToken, SessionId } from '../entities';
+import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { getServerHmacKey } from "../config";
+import type { ApprovalToken, SessionId } from "../entities";
 
 // ---------------------------------------------------------------------------
 // Token claims (the data we encode in the HMAC + track in the store)
@@ -72,7 +72,7 @@ export function _isTokenConsumed(token: string): boolean {
 // ---------------------------------------------------------------------------
 
 function sha256Hex(input: string): string {
-  return createHash('sha256').update(input).digest('hex');
+  return createHash("sha256").update(input).digest("hex");
 }
 
 /**
@@ -84,7 +84,7 @@ function sha256Hex(input: string): string {
 export function actionHashFor(action: string, payload: Record<string, unknown>): string {
   // Stable serialization — keys sorted alphabetically.
   const sorted = JSON.stringify({ action, payload }, (_, v) => {
-    if (v && typeof v === 'object' && !Array.isArray(v)) {
+    if (v && typeof v === "object" && !Array.isArray(v)) {
       const out: Record<string, unknown> = {};
       for (const k of Object.keys(v as Record<string, unknown>).sort()) {
         out[k] = (v as Record<string, unknown>)[k];
@@ -98,42 +98,38 @@ export function actionHashFor(action: string, payload: Record<string, unknown>):
 
 /** Encode a token as `v1.<base64url-payload>.<base64url-hmac>`. */
 function encodeToken(claims: ApprovalClaims): string {
-  const payload = Buffer.from(JSON.stringify(claims), 'utf8').toString('base64url');
-  const hmac = createHmac('sha256', getServerHmacKey())
-    .update(payload)
-    .digest('base64url');
+  const payload = Buffer.from(JSON.stringify(claims), "utf8").toString("base64url");
+  const hmac = createHmac("sha256", getServerHmacKey()).update(payload).digest("base64url");
   return `v1.${payload}.${hmac}`;
 }
 
 /** Decode + verify HMAC. Returns claims or throws. */
 function decodeToken(token: string): ApprovalClaims {
-  const parts = token.split('.');
+  const parts = token.split(".");
   if (parts.length !== 3) {
-    throw new Error('Malformed token');
+    throw new Error("Malformed token");
   }
   const [version, payload, hmac] = parts;
-  if (version !== 'v1') {
+  if (version !== "v1") {
     throw new Error(`Unsupported token version: ${version}`);
   }
-  const expected = createHmac('sha256', getServerHmacKey())
-    .update(payload!)
-    .digest('base64url');
+  const expected = createHmac("sha256", getServerHmacKey()).update(payload!).digest("base64url");
   // Constant-time compare.
-  const a = Buffer.from(hmac!, 'utf8');
-  const b = Buffer.from(expected, 'utf8');
+  const a = Buffer.from(hmac!, "utf8");
+  const b = Buffer.from(expected, "utf8");
   if (a.length !== b.length || !timingSafeEqual(a, b)) {
-    throw new Error('Token signature invalid');
+    throw new Error("Token signature invalid");
   }
-  const claims = JSON.parse(Buffer.from(payload!, 'base64url').toString('utf8')) as ApprovalClaims;
+  const claims = JSON.parse(Buffer.from(payload!, "base64url").toString("utf8")) as ApprovalClaims;
   if (
-    typeof claims.actionHash !== 'string' ||
-    typeof claims.sessionId !== 'string' ||
-    typeof claims.userId !== 'string' ||
-    typeof claims.iat !== 'number' ||
-    typeof claims.exp !== 'number' ||
-    typeof claims.nonce !== 'string'
+    typeof claims.actionHash !== "string" ||
+    typeof claims.sessionId !== "string" ||
+    typeof claims.userId !== "string" ||
+    typeof claims.iat !== "number" ||
+    typeof claims.exp !== "number" ||
+    typeof claims.nonce !== "string"
   ) {
-    throw new Error('Token claims malformed');
+    throw new Error("Token claims malformed");
   }
   return claims;
 }
@@ -159,7 +155,7 @@ export function mintApproval(input: MintInput): ApprovalToken {
     userId: input.userId,
     iat,
     exp: iat + ttl * 1000,
-    nonce: randomBytes(16).toString('hex'),
+    nonce: randomBytes(16).toString("hex"),
   };
   const token = encodeToken(claims);
   store.set(token, { claims, used: false });
@@ -180,7 +176,16 @@ export function mintApproval(input: MintInput): ApprovalToken {
 
 export type VerifyResult =
   | { ok: true; claims: ApprovalClaims }
-  | { ok: false; reason: 'unknown' | 'expired' | 'already_used' | 'session_mismatch' | 'malformed' | 'signature' };
+  | {
+      ok: false;
+      reason:
+        | "unknown"
+        | "expired"
+        | "already_used"
+        | "session_mismatch"
+        | "malformed"
+        | "signature";
+    };
 
 /**
  * Verify a token's HMAC + claims without consuming it. Use this for
@@ -192,23 +197,23 @@ export function verifyApproval(token: string, expectedSessionId: SessionId): Ver
     claims = decodeToken(token);
   } catch (e) {
     const reason = (e as Error).message;
-    if (reason.includes('signature')) return { ok: false, reason: 'signature' };
-    return { ok: false, reason: 'malformed' };
+    if (reason.includes("signature")) return { ok: false, reason: "signature" };
+    return { ok: false, reason: "malformed" };
   }
   if (claims.exp < Date.now()) {
-    return { ok: false, reason: 'expired' };
+    return { ok: false, reason: "expired" };
   }
   const rec = store.get(token);
   if (!rec) {
-    return { ok: false, reason: 'unknown' };
+    return { ok: false, reason: "unknown" };
   }
   // Check replay BEFORE session binding — a replayed token is the more
   // security-critical signal. The audit log distinguishes the two.
   if (rec.used) {
-    return { ok: false, reason: 'already_used' };
+    return { ok: false, reason: "already_used" };
   }
   if (claims.sessionId !== expectedSessionId) {
-    return { ok: false, reason: 'session_mismatch' };
+    return { ok: false, reason: "session_mismatch" };
   }
   return { ok: true, claims };
 }
@@ -222,10 +227,10 @@ export function consumeApproval(token: string, expectedSessionId: SessionId): Ve
   if (!v.ok) return v;
   const rec = store.get(token);
   if (!rec) {
-    return { ok: false, reason: 'unknown' };
+    return { ok: false, reason: "unknown" };
   }
   if (rec.used) {
-    return { ok: false, reason: 'already_used' };
+    return { ok: false, reason: "already_used" };
   }
   rec.used = true;
   return { ok: true, claims: v.claims };

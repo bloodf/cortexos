@@ -63,8 +63,7 @@ export function SystemdPage() {
   const isAdmin = !!user?.is_admin;
   const [pendingAction, setPendingAction] = useState<string | null>(null);
 
-  const invalidate = () =>
-    void qc.invalidateQueries({ queryKey: ["systemd", "units"] });
+  const invalidate = () => void qc.invalidateQueries({ queryKey: ["systemd", "units"] });
 
   const handleAction = async (
     action: "start" | "stop" | "restart" | "reload" | "enable" | "disable",
@@ -156,9 +155,7 @@ export function SystemdPage() {
         const stopKey = `stop-${r.name}`;
         const restartKey = `restart-${r.name}`;
         const isActing =
-          pendingAction === startKey ||
-          pendingAction === stopKey ||
-          pendingAction === restartKey;
+          pendingAction === startKey || pendingAction === stopKey || pendingAction === restartKey;
         return (
           <div className="flex justify-end gap-1">
             {r.active !== "active" ? (

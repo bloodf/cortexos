@@ -3,7 +3,10 @@ import { screen, fireEvent, waitFor } from "@testing-library/react";
 import { renderWithProviders } from "@/test/utils";
 import { DataTable, type Column } from "./DataTable";
 
-interface Row { id: number; name: string }
+interface Row {
+  id: number;
+  name: string;
+}
 const rows: Row[] = [
   { id: 1, name: "alpha" },
   { id: 2, name: "bravo" },
@@ -21,7 +24,9 @@ describe("DataTable", () => {
   });
 
   it("filters with filterFn", async () => {
-    renderWithProviders(<DataTable rows={rows} columns={cols} filterFn={(r, q) => r.name.includes(q)} />);
+    renderWithProviders(
+      <DataTable rows={rows} columns={cols} filterFn={(r, q) => r.name.includes(q)} />,
+    );
     const input = screen.getByPlaceholderText("Search…");
     fireEvent.change(input, { target: { value: "brav" } });
     // DataTable debounces the search query by 300ms (`DataTable.tsx:DEBOUNCE_MS`).

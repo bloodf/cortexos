@@ -11,7 +11,9 @@ export function isLocale(s: string | undefined): s is Locale {
   return !!s && (LOCALES as string[]).includes(s);
 }
 
-export function getDict(locale: Locale): Dict { return dicts[locale]; }
+export function getDict(locale: Locale): Dict {
+  return dicts[locale];
+}
 
 export const LOCALE_LABEL: Record<Locale, string> = {
   en: "English",

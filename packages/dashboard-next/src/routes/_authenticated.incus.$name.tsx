@@ -218,9 +218,8 @@ function IncusDetail() {
 
   const beforeCfg = devicesCfg || "# no device config";
   const afterCfg =
-    beforeCfg
-      .replace(/limits\.cpu: \d+/, `limits.cpu: ${inst.cpu + 1}`)
-      .trim() + "\nsecurity.nesting: true";
+    beforeCfg.replace(/limits\.cpu: \d+/, `limits.cpu: ${inst.cpu + 1}`).trim() +
+    "\nsecurity.nesting: true";
 
   const logLines = logsData?.lines ?? [];
 
@@ -239,10 +238,7 @@ function IncusDetail() {
         description={`${inst.type} · ${inst.image}`}
         actions={
           <div className="flex gap-2">
-            <Badge
-              variant="outline"
-              className={cn(statusColors[inst.status] ?? "")}
-            >
+            <Badge variant="outline" className={cn(statusColors[inst.status] ?? "")}>
               {inst.status}
             </Badge>
             {isAdmin && !isRunning && (
@@ -356,7 +352,7 @@ function IncusDetail() {
                       line.priority === "error" && "text-[var(--destructive)]",
                       line.priority === "warn" && "text-[var(--warning)]",
                       line.priority === "debug" && "text-muted-foreground",
-                      (line.priority === "info") && "text-[var(--success)]",
+                      line.priority === "info" && "text-[var(--success)]",
                     )}
                   >
                     {line.priority}

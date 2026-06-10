@@ -16,7 +16,12 @@ interface Props {
  * - Admin user → renders children unchanged.
  * - Standard user → renders the child disabled with a "Requires admin" tooltip.
  */
-export function AdminOnly({ children, fallback, showTooltip = true, message = "Requires admin role" }: Props) {
+export function AdminOnly({
+  children,
+  fallback,
+  showTooltip = true,
+  message = "Requires admin role",
+}: Props) {
   const { user } = useAuth();
   if (user?.is_admin) return <>{children}</>;
   if (fallback !== undefined) return <>{fallback}</>;
@@ -25,7 +30,10 @@ export function AdminOnly({ children, fallback, showTooltip = true, message = "R
   const disabled = cloneElement(children as ReactElement<any>, {
     disabled: true,
     "aria-disabled": true,
-    onClick: (e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); },
+    onClick: (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+    },
     className: `${(children as ReactElement<any>).props.className ?? ""} opacity-50 cursor-not-allowed`,
   });
 
@@ -33,9 +41,12 @@ export function AdminOnly({ children, fallback, showTooltip = true, message = "R
   return (
     <TooltipProvider delayDuration={150}>
       <Tooltip>
-        <TooltipTrigger asChild><span className="inline-flex">{disabled}</span></TooltipTrigger>
+        <TooltipTrigger asChild>
+          <span className="inline-flex">{disabled}</span>
+        </TooltipTrigger>
         <TooltipContent side="top" className="text-xs">
-          <Lock className="size-3 inline mr-1" />{message}
+          <Lock className="size-3 inline mr-1" />
+          {message}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

@@ -72,9 +72,7 @@ export function AlertsPage() {
       header: "When",
       sort: (r) => r.timestamp,
       cell: (r) => (
-        <span className="text-xs text-muted-foreground">
-          {relativeTime(r.timestamp)}
-        </span>
+        <span className="text-xs text-muted-foreground">{relativeTime(r.timestamp)}</span>
       ),
     },
     {
@@ -102,8 +100,7 @@ export function AlertsPage() {
           variant="outline"
           className={cn(
             r.status === "fired" && "border-destructive text-destructive",
-            r.status === "resolved" &&
-              "border-[var(--success)] text-[var(--success)]",
+            r.status === "resolved" && "border-[var(--success)] text-[var(--success)]",
           )}
         >
           {r.status}
@@ -137,9 +134,7 @@ export function AlertsPage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() =>
-                    qc.invalidateQueries({ queryKey: ["alerts", "history"] })
-                  }
+                  onClick={() => qc.invalidateQueries({ queryKey: ["alerts", "history"] })}
                 >
                   Retry
                 </Button>
@@ -168,9 +163,7 @@ export function AlertsPage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() =>
-                    qc.invalidateQueries({ queryKey: ["alerts", "history"] })
-                  }
+                  onClick={() => qc.invalidateQueries({ queryKey: ["alerts", "history"] })}
                 >
                   Retry
                 </Button>
@@ -201,9 +194,7 @@ export function AlertsPage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() =>
-                    qc.invalidateQueries({ queryKey: ["alerts", "rules"] })
-                  }
+                  onClick={() => qc.invalidateQueries({ queryKey: ["alerts", "rules"] })}
                 >
                   Retry
                 </Button>

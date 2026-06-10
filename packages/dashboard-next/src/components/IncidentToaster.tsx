@@ -8,7 +8,11 @@ import { api } from "@/mocks/api";
  * Mounted once at the app shell level.
  */
 export function IncidentToaster() {
-  const { data: alerts = [] } = useQuery({ queryKey: ["alerts", "history"], queryFn: api.alerts.history, refetchInterval: 4000 });
+  const { data: alerts = [] } = useQuery({
+    queryKey: ["alerts", "history"],
+    queryFn: api.alerts.history,
+    refetchInterval: 4000,
+  });
   const seen = useRef<Set<string>>(new Set());
   const primed = useRef(false);
 

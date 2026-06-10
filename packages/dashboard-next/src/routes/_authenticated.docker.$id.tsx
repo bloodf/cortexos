@@ -22,10 +22,7 @@ import { useCallback, useState } from "react";
 // Approval-gated docker action helper (mirrors Docker.tsx)
 // ---------------------------------------------------------------------------
 
-async function dispatchDockerAction(
-  op: string,
-  args: Record<string, unknown>,
-): Promise<void> {
+async function dispatchDockerAction(op: string, args: Record<string, unknown>): Promise<void> {
   const mint = await callMintApproval({
     data: { action: op, payload: { op, args } },
   });
@@ -55,10 +52,7 @@ export const Route = createFileRoute("/_authenticated/docker/$id")({
     const { id } = useParams({ from: "/_authenticated/docker/$id" });
     return (
       <div className="p-6 space-y-4">
-        <PageHeader
-          title="Container not found"
-          description={`No container matched "${id}".`}
-        />
+        <PageHeader title="Container not found" description={`No container matched "${id}".`} />
         <Button asChild variant="outline">
           <Link to="/docker">
             <ArrowLeft className="size-4 mr-1" />
@@ -102,8 +96,7 @@ function ContainerDetail() {
     return lines;
   }, [c]);
 
-  const invalidate = () =>
-    qc.invalidateQueries({ queryKey: ["docker", "containers"] });
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["docker", "containers"] });
 
   const handleStart = async () => {
     if (!c) return;

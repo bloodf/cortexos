@@ -11,7 +11,9 @@ import { useT } from "@/hooks/useT";
 import { useUI } from "@/hooks/useUI";
 import { LOCALES, LOCALE_LABEL, type Locale } from "@/i18n";
 
-interface LoginSearch { redirect?: string }
+interface LoginSearch {
+  redirect?: string;
+}
 
 export const Route = createFileRoute("/login")({
   validateSearch: (s: Record<string, unknown>): LoginSearch => ({
@@ -32,13 +34,22 @@ function LoginPage() {
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
-  if (user) { throw redirect({ to: search.redirect || "/overview" }); }
+  if (user) {
+    throw redirect({ to: search.redirect || "/overview" });
+  }
 
   const submit = async (e: FormEvent) => {
-    e.preventDefault(); setErr(""); setBusy(true);
-    try { await login(u, p); router.navigate({ to: search.redirect || "/overview" }); }
-    catch (e: any) { setErr(e?.message || t.auth.invalid); }
-    finally { setBusy(false); }
+    e.preventDefault();
+    setErr("");
+    setBusy(true);
+    try {
+      await login(u, p);
+      router.navigate({ to: search.redirect || "/overview" });
+    } catch (e: any) {
+      setErr(e?.message || t.auth.invalid);
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -48,12 +59,21 @@ function LoginPage() {
           <img src={brandLogo} alt={t.app.name} className="h-9 w-auto" />
         </div>
         <div className="text-white/90 max-w-md">
-          <p className="text-3xl font-semibold leading-tight">One pane of glass for your home server.</p>
-          <p className="mt-3 text-white/60">Native systemd · Docker · Incus · agents. Keyboard-first, observable, calm.</p>
+          <p className="text-3xl font-semibold leading-tight">
+            One pane of glass for your home server.
+          </p>
+          <p className="mt-3 text-white/60">
+            Native systemd · Docker · Incus · agents. Keyboard-first, observable, calm.
+          </p>
         </div>
         <div className="grid grid-cols-3 gap-3 text-white/80 text-xs">
           {["29 services", "live metrics", "audit chain"].map((x) => (
-            <div key={x} className="rounded-md bg-white/5 border border-white/10 px-3 py-2 backdrop-blur">{x}</div>
+            <div
+              key={x}
+              className="rounded-md bg-white/5 border border-white/10 px-3 py-2 backdrop-blur"
+            >
+              {x}
+            </div>
           ))}
         </div>
       </div>
@@ -70,19 +90,39 @@ function LoginPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="u">{t.auth.username}</Label>
-              <Input id="u" value={u} onChange={(e) => setU(e.target.value)} autoComplete="username" autoFocus />
+              <Input
+                id="u"
+                value={u}
+                onChange={(e) => setU(e.target.value)}
+                autoComplete="username"
+                autoFocus
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="p">{t.auth.password}</Label>
               <div className="relative">
-                <Input id="p" type={show ? "text" : "password"} value={p} onChange={(e) => setP(e.target.value)} autoComplete="current-password" className="pr-10" />
-                <button type="button" onClick={() => setShow(!show)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label={show ? t.auth.hide : t.auth.show}>
+                <Input
+                  id="p"
+                  type={show ? "text" : "password"}
+                  value={p}
+                  onChange={(e) => setP(e.target.value)}
+                  autoComplete="current-password"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShow(!show)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={show ? t.auth.hide : t.auth.show}
+                >
                   {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
               </div>
             </div>
             {err && <p className="text-sm text-destructive">{err}</p>}
-            <Button type="submit" className="w-full" disabled={busy}>{busy ? "…" : t.auth.signIn}</Button>
+            <Button type="submit" className="w-full" disabled={busy}>
+              {busy ? "…" : t.auth.signIn}
+            </Button>
           </form>
         </div>
         <footer className="flex items-center justify-between border-t px-6 py-3 text-xs text-muted-foreground">
@@ -92,7 +132,11 @@ function LoginPage() {
             onChange={(e) => setLocale(e.target.value as Locale)}
             className="bg-transparent border rounded px-2 py-1"
           >
-            {LOCALES.map((l) => <option key={l} value={l}>{LOCALE_LABEL[l]}</option>)}
+            {LOCALES.map((l) => (
+              <option key={l} value={l}>
+                {LOCALE_LABEL[l]}
+              </option>
+            ))}
           </select>
         </footer>
       </div>

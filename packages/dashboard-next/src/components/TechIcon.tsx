@@ -1,7 +1,12 @@
 import { BRAND_COLORS } from "@/mocks/seed";
 import { cn } from "@/lib/utils";
 
-interface Props { slug: string; name: string; size?: number; className?: string }
+interface Props {
+  slug: string;
+  name: string;
+  size?: number;
+  className?: string;
+}
 
 export function TechIcon({ slug, name, size = 32, className }: Props) {
   const color = BRAND_COLORS[slug] ?? "oklch(0.55 0.18 277)";
@@ -12,9 +17,13 @@ export function TechIcon({ slug, name, size = 32, className }: Props) {
     <div
       role="img"
       aria-label={name}
-      className={cn("flex items-center justify-center rounded-md font-semibold text-white shadow-sm shrink-0", className)}
+      className={cn(
+        "flex items-center justify-center rounded-md font-semibold text-white shadow-sm shrink-0",
+        className,
+      )}
       style={{
-        width: size, height: size,
+        width: size,
+        height: size,
         fontSize: Math.max(10, size * 0.38),
         background: `linear-gradient(135deg, ${color}, ${c2})`,
       }}
@@ -30,6 +39,9 @@ function mix(hex: string): string {
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
   const f = 0.7;
-  const m = (v: number) => Math.max(0, Math.min(255, Math.round(v * f))).toString(16).padStart(2, "0");
+  const m = (v: number) =>
+    Math.max(0, Math.min(255, Math.round(v * f)))
+      .toString(16)
+      .padStart(2, "0");
   return `#${m(r)}${m(g)}${m(b)}`;
 }

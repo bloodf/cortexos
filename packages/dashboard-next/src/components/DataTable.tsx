@@ -1,10 +1,26 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Loader2, Search } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Loader2,
+  Search,
+} from "lucide-react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 export interface Column<T> {
@@ -26,7 +42,10 @@ export interface ServerListParams {
   sortKey: string | null;
   sortDir: "asc" | "desc";
 }
-export interface ServerListResult<T> { rows: T[]; total: number }
+export interface ServerListResult<T> {
+  rows: T[];
+  total: number;
+}
 export interface ServerSource<T> {
   /** Stable query-key prefix; pagination/search state is appended automatically. */
   queryKey: readonly unknown[];
@@ -60,10 +79,24 @@ interface Props<T> {
 const DEBOUNCE_MS = 300;
 
 export function DataTable<T>({
-  rows: localRows, columns, filterFn, initialSort, initialSortDir = "asc", empty, loading: loadingProp,
-  density = "comfortable", searchPlaceholder = "Search…", toolbar,
-  pageSize: initialPageSize = 25, paginate = true, pageSizeOptions = [10, 25, 50, 100],
-  selectable, rowKey, selectionToolbar, onRowContextMenu, server,
+  rows: localRows,
+  columns,
+  filterFn,
+  initialSort,
+  initialSortDir = "asc",
+  empty,
+  loading: loadingProp,
+  density = "comfortable",
+  searchPlaceholder = "Search…",
+  toolbar,
+  pageSize: initialPageSize = 25,
+  paginate = true,
+  pageSizeOptions = [10, 25, 50, 100],
+  selectable,
+  rowKey,
+  selectionToolbar,
+  onRowContextMenu,
+  server,
 }: Props<T>) {
   const [q, setQ] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
@@ -78,23 +111,29 @@ export function DataTable<T>({
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => setDebouncedQ(q), DEBOUNCE_MS);
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
   }, [q]);
 
-  useEffect(() => { setPage(0); }, [pageSize, debouncedQ]);
+  useEffect(() => {
+    setPage(0);
+  }, [pageSize, debouncedQ]);
 
   // ----- Server mode -----
   const serverQuery = useQuery({
-    queryKey: server ? [...server.queryKey, "page", page, pageSize, debouncedQ, sortKey, sortDir] : ["__noop__"],
+    queryKey: server
+      ? [...server.queryKey, "page", page, pageSize, debouncedQ, sortKey, sortDir]
+      : ["__noop__"],
     queryFn: () => server!.fetch({ q: debouncedQ, page, pageSize, sortKey, sortDir }),
     enabled: !!server,
     placeholderData: keepPreviousData,
     refetchInterval: server?.refetchInterval,
   });
 
-  const serverRows = server ? serverQuery.data?.rows ?? [] : null;
-  const serverTotal = server ? serverQuery.data?.total ?? 0 : 0;
-  const isServerLoading = server ? (serverQuery.isLoading && !serverQuery.data) : false;
+  const serverRows = server ? (serverQuery.data?.rows ?? []) : null;
+  const serverTotal = server ? (serverQuery.data?.total ?? 0) : 0;
+  const isServerLoading = server ? serverQuery.isLoading && !serverQuery.data : false;
   const isServerFetching = server ? serverQuery.isFetching : false;
   const loading = server ? isServerLoading : !!loadingProp;
 
@@ -112,7 +151,8 @@ export function DataTable<T>({
     const col = columns.find((c) => c.key === sortKey);
     if (!col?.sort) return filtered;
     return [...filtered].sort((a, b) => {
-      const av = col.sort!(a), bv = col.sort!(b);
+      const av = col.sort!(a),
+        bv = col.sort!(b);
       if (av === bv) return 0;
       const d = av > bv ? 1 : -1;
       return sortDir === "asc" ? d : -d;
@@ -124,13 +164,17 @@ export function DataTable<T>({
   const safePage = Math.min(page, pages - 1);
   const view: T[] = server
     ? (serverRows ?? [])
-    : (paginate ? sortedLocal.slice(safePage * pageSize, (safePage + 1) * pageSize) : sortedLocal);
+    : paginate
+      ? sortedLocal.slice(safePage * pageSize, (safePage + 1) * pageSize)
+      : sortedLocal;
 
-  const isSortable = (c: Column<T>) =>
-    server ? (c.serverSortable ?? !!c.sort) : !!c.sort;
+  const isSortable = (c: Column<T>) => (server ? (c.serverSortable ?? !!c.sort) : !!c.sort);
   const toggleSort = (k: string) => {
     if (sortKey === k) setSortDir(sortDir === "asc" ? "desc" : "asc");
-    else { setSortKey(k); setSortDir("asc"); }
+    else {
+      setSortKey(k);
+      setSortDir("asc");
+    }
   };
 
   // ----- Selection -----
@@ -142,11 +186,13 @@ export function DataTable<T>({
   const toggleRow = (id: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
-  const allOnPageSelected = selectable && rowKey && view.length > 0 && view.every((r) => selected.has(rowKey(r)));
+  const allOnPageSelected =
+    selectable && rowKey && view.length > 0 && view.every((r) => selected.has(rowKey(r)));
   const toggleAllOnPage = () => {
     if (!selectable || !rowKey) return;
     setSelected((prev) => {
@@ -165,7 +211,10 @@ export function DataTable<T>({
       <div className="flex flex-wrap items-center gap-2">
         {showSearch && (
           <div className="relative flex-1 min-w-[180px] max-w-xs">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" aria-hidden />
+            <Search
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground"
+              aria-hidden
+            />
             <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
@@ -174,7 +223,10 @@ export function DataTable<T>({
               className="pl-8 h-9"
             />
             {server && isServerFetching && (
-              <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground animate-spin motion-reduce:hidden" aria-hidden />
+              <Loader2
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground animate-spin motion-reduce:hidden"
+                aria-hidden
+              />
             )}
           </div>
         )}
@@ -183,9 +235,13 @@ export function DataTable<T>({
           <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-2 py-1 text-xs">
             <span className="font-medium">{selectedRows.length} selected</span>
             {selectionToolbar!(selectedRows, clearSelection)}
-            <Button size="sm" variant="ghost" onClick={clearSelection}>Clear</Button>
+            <Button size="sm" variant="ghost" onClick={clearSelection}>
+              Clear
+            </Button>
           </div>
-        ) : toolbar}
+        ) : (
+          toolbar
+        )}
       </div>
       <div className="rounded-lg border bg-card overflow-hidden">
         <div className="overflow-x-auto">
@@ -202,7 +258,11 @@ export function DataTable<T>({
                   </th>
                 )}
                 {columns.map((c) => (
-                  <th key={c.key} className={cn("font-medium px-3 py-2", c.className)} style={{ width: c.width }}>
+                  <th
+                    key={c.key}
+                    className={cn("font-medium px-3 py-2", c.className)}
+                    style={{ width: c.width }}
+                  >
                     {isSortable(c) ? (
                       <button
                         onClick={() => toggleSort(c.key)}
@@ -210,9 +270,19 @@ export function DataTable<T>({
                         className="inline-flex items-center gap-1 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
                       >
                         {c.header}
-                        {sortKey === c.key ? (sortDir === "asc" ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />) : <ArrowUpDown className="size-3 opacity-50" />}
+                        {sortKey === c.key ? (
+                          sortDir === "asc" ? (
+                            <ArrowUp className="size-3" />
+                          ) : (
+                            <ArrowDown className="size-3" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="size-3 opacity-50" />
+                        )}
                       </button>
-                    ) : c.header}
+                    ) : (
+                      c.header
+                    )}
                   </th>
                 ))}
               </tr>
@@ -221,40 +291,73 @@ export function DataTable<T>({
               {loading ? (
                 Array.from({ length: 6 }).map((_, i) => (
                   <tr key={i} className="border-b last:border-0" aria-hidden>
-                    {selectable && <td className="px-3 py-2"><div className="size-4 rounded bg-muted/70 animate-pulse motion-reduce:animate-none" /></td>}
+                    {selectable && (
+                      <td className="px-3 py-2">
+                        <div className="size-4 rounded bg-muted/70 animate-pulse motion-reduce:animate-none" />
+                      </td>
+                    )}
                     {columns.map((c, ci) => (
-                      <td key={c.key} className={cn("px-3", density === "compact" ? "py-2" : "py-3")}>
-                        <div className={cn("h-3 rounded bg-muted/70 animate-pulse motion-reduce:animate-none", ci === 0 ? "w-3/4" : ci === columns.length - 1 ? "w-1/3" : "w-2/3")} />
+                      <td
+                        key={c.key}
+                        className={cn("px-3", density === "compact" ? "py-2" : "py-3")}
+                      >
+                        <div
+                          className={cn(
+                            "h-3 rounded bg-muted/70 animate-pulse motion-reduce:animate-none",
+                            ci === 0 ? "w-3/4" : ci === columns.length - 1 ? "w-1/3" : "w-2/3",
+                          )}
+                        />
                       </td>
                     ))}
                   </tr>
                 ))
               ) : view.length === 0 ? (
-                <tr><td colSpan={columns.length + (selectable ? 1 : 0)} className="px-3 py-10 text-center text-muted-foreground text-sm">{empty ?? "No results"}</td></tr>
-              ) : view.map((row, i) => {
-                const id = rowKey ? rowKey(row) : String(i);
-                const isSel = selectable && rowKey ? selected.has(id) : false;
-                return (
-                  <tr
-                    key={id}
-                    className={cn("border-b last:border-0 hover:bg-muted/30", isSel && "bg-primary/5")}
-                    onContextMenu={onRowContextMenu ? (e) => onRowContextMenu(row, e) : undefined}
+                <tr>
+                  <td
+                    colSpan={columns.length + (selectable ? 1 : 0)}
+                    className="px-3 py-10 text-center text-muted-foreground text-sm"
                   >
-                    {selectable && (
-                      <td className="px-3 py-2">
-                        <Checkbox
-                          checked={isSel}
-                          onCheckedChange={() => rowKey && toggleRow(rowKey(row))}
-                          aria-label="Select row"
-                        />
-                      </td>
-                    )}
-                    {columns.map((c) => (
-                      <td key={c.key} className={cn("px-3", density === "compact" ? "py-1.5" : "py-2.5", c.className)}>{c.cell(row)}</td>
-                    ))}
-                  </tr>
-                );
-              })}
+                    {empty ?? "No results"}
+                  </td>
+                </tr>
+              ) : (
+                view.map((row, i) => {
+                  const id = rowKey ? rowKey(row) : String(i);
+                  const isSel = selectable && rowKey ? selected.has(id) : false;
+                  return (
+                    <tr
+                      key={id}
+                      className={cn(
+                        "border-b last:border-0 hover:bg-muted/30",
+                        isSel && "bg-primary/5",
+                      )}
+                      onContextMenu={onRowContextMenu ? (e) => onRowContextMenu(row, e) : undefined}
+                    >
+                      {selectable && (
+                        <td className="px-3 py-2">
+                          <Checkbox
+                            checked={isSel}
+                            onCheckedChange={() => rowKey && toggleRow(rowKey(row))}
+                            aria-label="Select row"
+                          />
+                        </td>
+                      )}
+                      {columns.map((c) => (
+                        <td
+                          key={c.key}
+                          className={cn(
+                            "px-3",
+                            density === "compact" ? "py-1.5" : "py-2.5",
+                            c.className,
+                          )}
+                        >
+                          {c.cell(row)}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
@@ -272,23 +375,55 @@ export function DataTable<T>({
                 </SelectTrigger>
                 <SelectContent>
                   {pageSizeOptions.map((n) => (
-                    <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                    <SelectItem key={n} value={String(n)}>
+                      {n}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="flex items-center gap-1">
-              <span className="mr-2">Page {safePage + 1} / {pages}</span>
-              <Button size="icon" variant="outline" className="size-7" disabled={safePage === 0} onClick={() => setPage(0)} aria-label="First page">
+              <span className="mr-2">
+                Page {safePage + 1} / {pages}
+              </span>
+              <Button
+                size="icon"
+                variant="outline"
+                className="size-7"
+                disabled={safePage === 0}
+                onClick={() => setPage(0)}
+                aria-label="First page"
+              >
                 <ChevronsLeft className="size-3.5" />
               </Button>
-              <Button size="icon" variant="outline" className="size-7" disabled={safePage === 0} onClick={() => setPage(safePage - 1)} aria-label="Previous page">
+              <Button
+                size="icon"
+                variant="outline"
+                className="size-7"
+                disabled={safePage === 0}
+                onClick={() => setPage(safePage - 1)}
+                aria-label="Previous page"
+              >
                 <ChevronLeft className="size-3.5" />
               </Button>
-              <Button size="icon" variant="outline" className="size-7" disabled={safePage >= pages - 1} onClick={() => setPage(safePage + 1)} aria-label="Next page">
+              <Button
+                size="icon"
+                variant="outline"
+                className="size-7"
+                disabled={safePage >= pages - 1}
+                onClick={() => setPage(safePage + 1)}
+                aria-label="Next page"
+              >
                 <ChevronRight className="size-3.5" />
               </Button>
-              <Button size="icon" variant="outline" className="size-7" disabled={safePage >= pages - 1} onClick={() => setPage(pages - 1)} aria-label="Last page">
+              <Button
+                size="icon"
+                variant="outline"
+                className="size-7"
+                disabled={safePage >= pages - 1}
+                onClick={() => setPage(pages - 1)}
+                aria-label="Last page"
+              >
                 <ChevronsRight className="size-3.5" />
               </Button>
             </div>

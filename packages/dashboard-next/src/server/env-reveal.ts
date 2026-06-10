@@ -26,9 +26,9 @@ const grants = new Map<string, number>();
  * expiry timestamp (epoch ms).
  */
 export function grantReveal(sessionId: string): number {
-	const expiresAt = Date.now() + REVEAL_TTL_MS;
-	grants.set(sessionId, expiresAt);
-	return expiresAt;
+  const expiresAt = Date.now() + REVEAL_TTL_MS;
+  grants.set(sessionId, expiresAt);
+  return expiresAt;
 }
 
 /**
@@ -36,30 +36,30 @@ export function grantReveal(sessionId: string): number {
  * evicted lazily on read.
  */
 export function hasRevealGrant(sessionId: string | null | undefined): boolean {
-	if (!sessionId) return false;
-	const expiresAt = grants.get(sessionId);
-	if (expiresAt === undefined) return false;
-	if (expiresAt <= Date.now()) {
-		grants.delete(sessionId);
-		return false;
-	}
-	return true;
+  if (!sessionId) return false;
+  const expiresAt = grants.get(sessionId);
+  if (expiresAt === undefined) return false;
+  if (expiresAt <= Date.now()) {
+    grants.delete(sessionId);
+    return false;
+  }
+  return true;
 }
 
 /** Remaining reveal window expiry (epoch ms) or null when locked. */
 export function revealExpiresAt(sessionId: string | null | undefined): number | null {
-	if (!sessionId) return null;
-	const expiresAt = grants.get(sessionId);
-	if (expiresAt === undefined || expiresAt <= Date.now()) return null;
-	return expiresAt;
+  if (!sessionId) return null;
+  const expiresAt = grants.get(sessionId);
+  if (expiresAt === undefined || expiresAt <= Date.now()) return null;
+  return expiresAt;
 }
 
 /** Explicitly close a session's reveal window (e.g. on logout). */
 export function revokeReveal(sessionId: string | null | undefined): void {
-	if (sessionId) grants.delete(sessionId);
+  if (sessionId) grants.delete(sessionId);
 }
 
 /** Test helper: drop every grant. */
 export function _resetRevealGrants(): void {
-	grants.clear();
+  grants.clear();
 }

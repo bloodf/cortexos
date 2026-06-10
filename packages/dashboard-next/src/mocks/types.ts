@@ -13,7 +13,11 @@ export interface ServiceCheck {
   icon_image: string | null;
 }
 
-export interface BadgeRef { slug: string; label: string; color: string }
+export interface BadgeRef {
+  slug: string;
+  label: string;
+  color: string;
+}
 
 export interface Service extends ServiceCheck {
   kind: "app" | "service" | "docker" | "process";
@@ -39,12 +43,23 @@ export interface MachineSensor {
 }
 
 export interface DriveInfo {
-  name: string; model: string; size: number; type?: string;
-  mount?: string; used?: number; total?: number; percent?: number;
+  name: string;
+  model: string;
+  size: number;
+  type?: string;
+  mount?: string;
+  used?: number;
+  total?: number;
+  percent?: number;
 }
 
 export interface MountInfo {
-  filesystem: string; mount: string; total: number; used: number; free: number; percent: number;
+  filesystem: string;
+  mount: string;
+  total: number;
+  used: number;
+  free: number;
+  percent: number;
 }
 
 export interface SystemData {
@@ -62,28 +77,56 @@ export interface SystemData {
   };
 }
 
-export interface ProcessInfo { pid: number; user: string; command: string; cpu: number; mem: number }
+export interface ProcessInfo {
+  pid: number;
+  user: string;
+  command: string;
+  cpu: number;
+  mem: number;
+}
 
 export interface NetworkInterface {
-  name: string; rxKbps: number; txKbps: number;
-  rxBytesTotal: number; txBytesTotal: number;
+  name: string;
+  rxKbps: number;
+  txKbps: number;
+  rxBytesTotal: number;
+  txBytesTotal: number;
 }
-export interface NetworkData { interfaces: NetworkInterface[] }
+export interface NetworkData {
+  interfaces: NetworkInterface[];
+}
 
 export interface DockerContainer {
-  id: string; name: string; image: string;
-  status: string; state: "running" | "exited" | "paused" | "restarting";
-  ports: string; created: string;
+  id: string;
+  name: string;
+  image: string;
+  status: string;
+  state: "running" | "exited" | "paused" | "restarting";
+  ports: string;
+  created: string;
 }
-export interface DockerImage { id: string; repo: string; tag: string; size: number; created: string }
-export interface DockerVolume { name: string; driver: string; mountpoint: string; size: number }
+export interface DockerImage {
+  id: string;
+  repo: string;
+  tag: string;
+  size: number;
+  created: string;
+}
+export interface DockerVolume {
+  name: string;
+  driver: string;
+  mountpoint: string;
+  size: number;
+}
 
 export interface IncusInstance {
-  name: string; slug: string;
+  name: string;
+  slug: string;
   status: "draft" | "validated" | "provisioning" | "active" | "failed";
   type: "container" | "vm";
   image: string;
-  cpu: number; memory: number;
+  cpu: number;
+  memory: number;
   config: Record<string, string>;
   devices: Record<string, Record<string, string>>;
   last_validation: { ok: boolean; ran_at: string; notes: string } | null;
@@ -98,34 +141,74 @@ export interface IncusInstance {
 }
 
 export interface SystemdUnit {
-  name: string; description: string; load: string;
-  active: "active" | "inactive" | "failed"; sub: string; enabled: boolean;
+  name: string;
+  description: string;
+  load: string;
+  active: "active" | "inactive" | "failed";
+  sub: string;
+  enabled: boolean;
 }
 
 export interface AlertRule {
-  id: string; name: string; service_id: number;
+  id: string;
+  name: string;
+  service_id: number;
   condition: "offline" | "online" | "response_time";
-  threshold_ms: number | null; enabled: boolean;
+  threshold_ms: number | null;
+  enabled: boolean;
 }
 export interface AlertHistory {
-  id: string; ruleName: string; serviceName: string;
-  status: "fired" | "resolved" | "info"; message: string; timestamp: string;
+  id: string;
+  ruleName: string;
+  serviceName: string;
+  status: "fired" | "resolved" | "info";
+  message: string;
+  timestamp: string;
 }
 
 export interface ApprovalRequest {
-  id: string; actor: string; tool: string; summary: string; args_preview: string;
-  requested_at: string; status: "pending" | "approved" | "denied"; reason?: string;
+  id: string;
+  actor: string;
+  tool: string;
+  summary: string;
+  args_preview: string;
+  requested_at: string;
+  status: "pending" | "approved" | "denied";
+  reason?: string;
 }
 
 export interface AuditEntry {
-  id: string; actor: string; tool: string; tool_class: string; args_hash: string;
-  decision: "allow" | "deny"; decision_reason: string;
-  result: string; created_at: string;
+  id: string;
+  actor: string;
+  tool: string;
+  tool_class: string;
+  args_hash: string;
+  decision: "allow" | "deny";
+  decision_reason: string;
+  result: string;
+  created_at: string;
 }
 
-export interface Badge { slug: string; label: string; color: string; text_color: string }
-export interface PamUser { username: string; uid: number; groups: string[]; is_admin: boolean }
-export interface Project { slug: string; name: string; description: string; repo_url: string; branch: string; created_at: string }
+export interface Badge {
+  slug: string;
+  label: string;
+  color: string;
+  text_color: string;
+}
+export interface PamUser {
+  username: string;
+  uid: number;
+  groups: string[];
+  is_admin: boolean;
+}
+export interface Project {
+  slug: string;
+  name: string;
+  description: string;
+  repo_url: string;
+  branch: string;
+  created_at: string;
+}
 export type AgentRunState = "running" | "idle" | "stopped" | "error";
 export type AgentHealth = "healthy" | "degraded" | "down";
 export interface Agent {
@@ -147,19 +230,34 @@ export interface Agent {
   files: { path: string; language: string; content: string }[];
 }
 export interface MailReview {
-  id: string; from: string; subject: string; snippet: string; body: string;
-  risk: "low" | "medium" | "high"; status: "pending" | "approved" | "flagged"; received_at: string;
+  id: string;
+  from: string;
+  subject: string;
+  snippet: string;
+  body: string;
+  risk: "low" | "medium" | "high";
+  status: "pending" | "approved" | "flagged";
+  received_at: string;
 }
 
 export interface BackupSnapshot {
-  id: string; target: string; kind: "zfs" | "docker-volume" | "postgres";
-  createdAt: string; sizeBytes: number; retained: number;
+  id: string;
+  target: string;
+  kind: "zfs" | "docker-volume" | "postgres";
+  createdAt: string;
+  sizeBytes: number;
+  retained: number;
   status: "ok" | "running" | "failed";
 }
 
 export interface SchedulerJob {
-  id: string; name: string; cron: string; target: string;
-  lastRun: string; nextRun: string;
+  id: string;
+  name: string;
+  cron: string;
+  target: string;
+  lastRun: string;
+  nextRun: string;
   status: "ok" | "failing" | "paused";
-  durationMs: number; enabled: boolean;
+  durationMs: number;
+  enabled: boolean;
 }

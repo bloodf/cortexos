@@ -107,8 +107,7 @@ export function AdminAlertsPage() {
   });
 
   const deleteMut = useMutation({
-    mutationFn: (id: number) =>
-      callDeleteAlert({ data: { id }, headers: csrfHeaders() }),
+    mutationFn: (id: number) => callDeleteAlert({ data: { id }, headers: csrfHeaders() }),
     onSuccess: () => {
       toast.success("Alert rule deleted");
       invalidate();
@@ -159,9 +158,7 @@ export function AdminAlertsPage() {
       key: "service",
       header: "Service ID",
       sort: (r) => r.service_id,
-      cell: (r) => (
-        <code className="text-xs text-muted-foreground">#{r.service_id}</code>
-      ),
+      cell: (r) => <code className="text-xs text-muted-foreground">#{r.service_id}</code>,
     },
     {
       key: "condition",
@@ -177,19 +174,14 @@ export function AdminAlertsPage() {
       key: "threshold",
       header: "Threshold",
       cell: (r) => (
-        <span className="tabular-nums text-xs">
-          {r.threshold_ms ? `${r.threshold_ms}ms` : "—"}
-        </span>
+        <span className="tabular-nums text-xs">{r.threshold_ms ? `${r.threshold_ms}ms` : "—"}</span>
       ),
     },
     {
       key: "enabled",
       header: "Enabled",
       cell: (r) => (
-        <Badge
-          variant={r.enabled ? "default" : "secondary"}
-          className="text-[10px]"
-        >
+        <Badge variant={r.enabled ? "default" : "secondary"} className="text-[10px]">
           {r.enabled ? "on" : "off"}
         </Badge>
       ),
@@ -242,9 +234,7 @@ export function AdminAlertsPage() {
             <Button
               size="sm"
               variant="outline"
-              onClick={() =>
-                qc.invalidateQueries({ queryKey: ["alerts", "rules"] })
-              }
+              onClick={() => qc.invalidateQueries({ queryKey: ["alerts", "rules"] })}
             >
               Retry
             </Button>
@@ -263,9 +253,7 @@ export function AdminAlertsPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {editing ? "Edit alert rule" : "New alert rule"}
-            </DialogTitle>
+            <DialogTitle>{editing ? "Edit alert rule" : "New alert rule"}</DialogTitle>
             <DialogDescription>
               {editing
                 ? "Update the alert rule configuration."
@@ -282,9 +270,7 @@ export function AdminAlertsPage() {
                 placeholder="e.g. 1"
                 value={form.serviceId}
                 disabled={!!editing}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, serviceId: e.target.value }))
-                }
+                onChange={(e) => setForm((f) => ({ ...f, serviceId: e.target.value }))}
               />
             </div>
 
@@ -294,9 +280,7 @@ export function AdminAlertsPage() {
                 id="ar-name"
                 placeholder="e.g. API offline"
                 value={form.name}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, name: e.target.value }))
-                }
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               />
             </div>
 
@@ -304,9 +288,7 @@ export function AdminAlertsPage() {
               <Label>Condition</Label>
               <Select
                 value={form.condition}
-                onValueChange={(v) =>
-                  setForm((f) => ({ ...f, condition: v as Condition }))
-                }
+                onValueChange={(v) => setForm((f) => ({ ...f, condition: v as Condition }))}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -329,9 +311,7 @@ export function AdminAlertsPage() {
                   type="number"
                   placeholder="e.g. 2000"
                   value={form.thresholdMs}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, thresholdMs: e.target.value }))
-                  }
+                  onChange={(e) => setForm((f) => ({ ...f, thresholdMs: e.target.value }))}
                 />
               </div>
             )}
@@ -342,20 +322,14 @@ export function AdminAlertsPage() {
                 type="checkbox"
                 className="size-4"
                 checked={form.enabled}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, enabled: e.target.checked }))
-                }
+                onChange={(e) => setForm((f) => ({ ...f, enabled: e.target.checked }))}
               />
               <Label htmlFor="ar-enabled">Enabled</Label>
             </div>
           </div>
 
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDialogOpen(false)}
-              disabled={isPending}
-            >
+            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={isPending}>
               Cancel
             </Button>
             <Button onClick={handleSubmit} disabled={isPending}>

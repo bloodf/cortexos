@@ -31,9 +31,7 @@ export interface ContractApprovalRequest {
  * Map a contract ApprovalRequest to the mock ApprovalRequest shape that
  * sys-pilot components consume.
  */
-export function toApprovalRequestRow(
-  a: ContractApprovalRequest,
-): MockApprovalRequest {
+export function toApprovalRequestRow(a: ContractApprovalRequest): MockApprovalRequest {
   return {
     id: a.id,
     actor: a.actorUsername,
@@ -46,9 +44,7 @@ export function toApprovalRequestRow(
   };
 }
 
-function mapApprovalStatus(
-  s: ContractApprovalRequest["status"],
-): MockApprovalRequest["status"] {
+function mapApprovalStatus(s: ContractApprovalRequest["status"]): MockApprovalRequest["status"] {
   switch (s) {
     case "approved":
     case "consumed":

@@ -29,11 +29,11 @@ export interface RowAction {
 }
 
 const VARIANT_COLOR: Record<RowActionVariant, string> = {
-  "outline": "",
+  outline: "",
   "outline-success": "text-[var(--success)]",
   "outline-warning": "text-[var(--warning)]",
   "outline-destructive": "text-[var(--destructive)]",
-  "ghost": "",
+  ghost: "",
 };
 
 /** Approx width of one icon button (size-7 = 28px) + gap-1 (4px). */

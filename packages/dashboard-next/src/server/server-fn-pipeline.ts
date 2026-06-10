@@ -35,27 +35,32 @@
  * double-submit AND session-bound; RBAC admin is `cortexos-admin` only.
  */
 
-import type { ZodType, ZodTypeDef } from 'zod';
-import type { GroupName, User } from './entities';
-import type { ApiError } from './errors/types';
-import { ApiErrorThrown, errorBody, httpStatusFor, jsonError } from './errors';
-import { isApiError } from './errors/types';
-import { audit, type AuditInput } from './audit';
-import { actionHashFor, consumeApproval } from './approval';
-import { resolveContext, maybeGcExpiredSessions, FRAMEWORK_HEADERS, type RequestCtx } from './context';
-import { requireAdmin, requireAuth, requireGroup } from './auth/rbac';
-import { requireCsrf } from './auth/csrf';
+import type { ZodType, ZodTypeDef } from "zod";
+import type { GroupName, User } from "./entities";
+import type { ApiError } from "./errors/types";
+import { ApiErrorThrown, errorBody, httpStatusFor, jsonError } from "./errors";
+import { isApiError } from "./errors/types";
+import { audit, type AuditInput } from "./audit";
+import { actionHashFor, consumeApproval } from "./approval";
+import {
+  resolveContext,
+  maybeGcExpiredSessions,
+  FRAMEWORK_HEADERS,
+  type RequestCtx,
+} from "./context";
+import { requireAdmin, requireAuth, requireGroup } from "./auth/rbac";
+import { requireCsrf } from "./auth/csrf";
 import {
   RATE_LIMIT_DEFAULT_WINDOW_SEC,
   RATE_LIMIT_AUTH_PRIVILEGED_PER_60S,
   RATE_LIMIT_TOKEN_MINT_PER_60S,
-} from './config';
+} from "./config";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 export type Handler<TIn, TOut> = (args: {
   user: User | null;
@@ -69,9 +74,9 @@ export interface RouteOptions<TIn, TOut> {
   /** Optional input schema. Validated → 400 with field `details` on failure. */
   input?: ZodType<TIn, ZodTypeDef, unknown>;
   /** Required role: 'public' | 'any' | 'admin' | a specific group. */
-  auth: 'public' | 'any' | 'admin' | GroupName;
+  auth: "public" | "any" | "admin" | GroupName;
   /** Rate-limit configuration. Defaults applied per auth level when omitted. */
-  rateLimit?: { limit: number; windowSec: number; bucket: 'ip' | 'user' };
+  rateLimit?: { limit: number; windowSec: number; bucket: "ip" | "user" };
   /** Surface name for the audit log. */
   surface: string;
   /** Action name for the audit log (e.g. `services.list`). */
@@ -101,7 +106,7 @@ export type ApiRouteCore = (request: Request) => Promise<Response>;
 // Approval-token header
 // ---------------------------------------------------------------------------
 
-const APPROVAL_HEADER = 'x-cortex-approval-token';
+const APPROVAL_HEADER = "x-cortex-approval-token";
 
 // ---------------------------------------------------------------------------
 // In-process sliding-window rate limiter (ported from legacy rate-limit).
@@ -141,22 +146,30 @@ function checkRateLimit(key: string, limit: number, windowSec: number): RateLimi
 }
 
 /** Default rate limit for an auth level (per `01-API-CONTRACT.md`). */
-function defaultRateLimit(auth: RouteOptions<unknown, unknown>['auth']): {
+function defaultRateLimit(auth: RouteOptions<unknown, unknown>["auth"]): {
   limit: number;
   windowSec: number;
-  bucket: 'ip' | 'user';
+  bucket: "ip" | "user";
 } {
   // unauth strict 30/min · authed 10/min · admin 30/min.
-  if (auth === 'public') {
-    return { limit: RATE_LIMIT_TOKEN_MINT_PER_60S, windowSec: RATE_LIMIT_DEFAULT_WINDOW_SEC, bucket: 'ip' };
+  if (auth === "public") {
+    return {
+      limit: RATE_LIMIT_TOKEN_MINT_PER_60S,
+      windowSec: RATE_LIMIT_DEFAULT_WINDOW_SEC,
+      bucket: "ip",
+    };
   }
-  if (auth === 'admin') {
-    return { limit: RATE_LIMIT_TOKEN_MINT_PER_60S, windowSec: RATE_LIMIT_DEFAULT_WINDOW_SEC, bucket: 'user' };
+  if (auth === "admin") {
+    return {
+      limit: RATE_LIMIT_TOKEN_MINT_PER_60S,
+      windowSec: RATE_LIMIT_DEFAULT_WINDOW_SEC,
+      bucket: "user",
+    };
   }
   return {
     limit: RATE_LIMIT_AUTH_PRIVILEGED_PER_60S,
     windowSec: RATE_LIMIT_DEFAULT_WINDOW_SEC,
-    bucket: 'user',
+    bucket: "user",
   };
 }
 
@@ -171,9 +184,9 @@ export function defineApiRoute<TIn, TOut>(opts: RouteOptions<TIn, TOut>): ApiRou
 
     // --- method match → 405 ---
     if (!opts.methods.includes(method)) {
-      const res = new Response('Method not allowed', {
+      const res = new Response("Method not allowed", {
         status: 405,
-        headers: { allow: opts.methods.join(', ') },
+        headers: { allow: opts.methods.join(", ") },
       });
       return finalize(res, ctx);
     }
@@ -185,10 +198,10 @@ export function defineApiRoute<TIn, TOut>(opts: RouteOptions<TIn, TOut>): ApiRou
       const parsed = opts.input.safeParse(raw);
       if (!parsed.success) {
         const details = parsed.error.issues.map((i) => ({
-          field: i.path.join('.') || '_root',
+          field: i.path.join(".") || "_root",
           message: i.message,
         }));
-        const e: ApiError = { kind: 'validation', message: 'Validation failed', details };
+        const e: ApiError = { kind: "validation", message: "Validation failed", details };
         safeAudit(ctx, opts, null, e, null);
         return finalize(jsonError(e), ctx);
       }
@@ -199,10 +212,10 @@ export function defineApiRoute<TIn, TOut>(opts: RouteOptions<TIn, TOut>): ApiRou
 
     // --- 2. auth / RBAC → 401 / 403 ---
     let user: User | null = null;
-    if (opts.auth !== 'public') {
+    if (opts.auth !== "public") {
       try {
-        if (opts.auth === 'admin') user = requireAdmin(ctx);
-        else if (opts.auth === 'any') user = requireAuth(ctx);
+        if (opts.auth === "admin") user = requireAdmin(ctx);
+        else if (opts.auth === "any") user = requireAuth(ctx);
         else user = requireGroup(ctx, opts.auth);
       } catch (e) {
         const apiErr = extractApiError(e);
@@ -220,7 +233,7 @@ export function defineApiRoute<TIn, TOut>(opts: RouteOptions<TIn, TOut>): ApiRou
     // (WP-20: login is `auth:'public'`, CSRF skipped pre-session). This does
     // NOT weaken `any`/`admin`/group routes — every authenticated mutation
     // still enforces the full double-submit + session-bound CSRF below.
-    if (opts.auth !== 'public' && !['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+    if (opts.auth !== "public" && !["GET", "HEAD", "OPTIONS"].includes(method)) {
       try {
         requireCsrf(request, ctx.session?.csrfToken ?? null, ctx.cookies);
       } catch (e) {
@@ -238,14 +251,12 @@ export function defineApiRoute<TIn, TOut>(opts: RouteOptions<TIn, TOut>): ApiRou
       const cfg = opts.rateLimit ?? defaultRateLimit(opts.auth);
       const route = new URL(request.url).pathname;
       const key =
-        cfg.bucket === 'ip' || !user
-          ? `ip:${ctx.clientIp}:${route}`
-          : `user:${user.id}:${route}`;
+        cfg.bucket === "ip" || !user ? `ip:${ctx.clientIp}:${route}` : `user:${user.id}:${route}`;
       const rl = checkRateLimit(key, cfg.limit, cfg.windowSec);
       if (!rl.allowed) {
         const e: ApiError = {
-          kind: 'rate_limit',
-          message: 'Too many requests',
+          kind: "rate_limit",
+          message: "Too many requests",
           retryAfter: rl.retryAfterSec,
         };
         safeAudit(ctx, opts, user, e, input);
@@ -261,8 +272,8 @@ export function defineApiRoute<TIn, TOut>(opts: RouteOptions<TIn, TOut>): ApiRou
       const result = token && sessionId ? consumeApproval(token, sessionId) : null;
       if (!result || !result.ok || result.claims.actionHash !== actionHash) {
         const e: ApiError = {
-          kind: 'approval_required',
-          message: 'This action requires a valid approval token',
+          kind: "approval_required",
+          message: "This action requires a valid approval token",
           actionHash,
           ttlSec: 60,
         };
@@ -275,15 +286,15 @@ export function defineApiRoute<TIn, TOut>(opts: RouteOptions<TIn, TOut>): ApiRou
     try {
       const data = await opts.handler({ user, input, ctx });
       safeAudit(ctx, opts, user, null, input, data);
-      const status = method === 'POST' ? 201 : 200;
+      const status = method === "POST" ? 201 : 200;
       const res = new Response(JSON.stringify(data ?? null), {
         status,
-        headers: { 'content-type': 'application/json; charset=utf-8' },
+        headers: { "content-type": "application/json; charset=utf-8" },
       });
       return finalize(res, ctx);
     } catch (e) {
       const apiErr = extractApiError(e);
-      const finalErr: ApiError = apiErr ?? { kind: 'system', message: 'Internal error' };
+      const finalErr: ApiError = apiErr ?? { kind: "system", message: "Internal error" };
       safeAudit(ctx, opts, user, finalErr, input);
       return finalize(serializeError(finalErr), ctx);
     }
@@ -301,12 +312,12 @@ export function defineApiRoute<TIn, TOut>(opts: RouteOptions<TIn, TOut>): ApiRou
  * back-compat — we must not edit WP-03, so the wrapper owns the 412 status.
  */
 function serializeError(error: ApiError): Response {
-  if (error.kind === 'approval_required') {
+  if (error.kind === "approval_required") {
     const headers: Record<string, string> = {
-      'content-type': 'application/json; charset=utf-8',
-      'x-cortex-confirmation-token-required': 'true',
-      'x-cortex-approval-action-hash': error.actionHash,
-      'x-cortex-approval-ttl-sec': String(error.ttlSec),
+      "content-type": "application/json; charset=utf-8",
+      "x-cortex-confirmation-token-required": "true",
+      "x-cortex-approval-action-hash": error.actionHash,
+      "x-cortex-approval-ttl-sec": String(error.ttlSec),
     };
     return new Response(JSON.stringify(errorBody(error)), { status: 412, headers });
   }
@@ -322,26 +333,26 @@ function extractApiError(e: unknown): ApiError | null {
     const code = e.body.code;
     const message = e.body.message;
     switch (code) {
-      case 'auth':
-        return { kind: 'auth', message };
-      case 'permission':
-        return { kind: 'permission', message };
-      case 'validation':
+      case "auth":
+        return { kind: "auth", message };
+      case "permission":
+        return { kind: "permission", message };
+      case "validation":
         return {
-          kind: 'validation',
+          kind: "validation",
           message,
           details: Array.isArray(e.body.details)
             ? (e.body.details as ReadonlyArray<{ field: string; message: string }>)
             : [],
         };
-      case 'not_found':
-        return { kind: 'not_found', message };
-      case 'rate_limit':
-        return { kind: 'rate_limit', message, retryAfter: 60 };
-      case 'system':
-        return { kind: 'system', message };
+      case "not_found":
+        return { kind: "not_found", message };
+      case "rate_limit":
+        return { kind: "rate_limit", message, retryAfter: 60 };
+      case "system":
+        return { kind: "system", message };
       default:
-        return { kind: 'system', message };
+        return { kind: "system", message };
     }
   }
   return null;
@@ -367,13 +378,13 @@ function finalize(res: Response, ctx: RequestCtx): Response {
 
 async function readRequestInput(request: Request): Promise<unknown> {
   const method = request.method.toUpperCase();
-  if (method === 'GET' || method === 'DELETE') {
+  if (method === "GET" || method === "DELETE") {
     const obj: Record<string, unknown> = {};
     for (const [k, v] of new URL(request.url).searchParams.entries()) obj[k] = v;
     return obj;
   }
-  const ct = request.headers.get('content-type') ?? '';
-  if (ct.includes('application/json')) {
+  const ct = request.headers.get("content-type") ?? "";
+  if (ct.includes("application/json")) {
     try {
       return await request.json();
     } catch {
@@ -384,7 +395,7 @@ async function readRequestInput(request: Request): Promise<unknown> {
     const fd = await request.formData();
     const out: Record<string, unknown> = {};
     for (const [k, v] of fd.entries()) {
-      if (typeof v !== 'string') continue;
+      if (typeof v !== "string") continue;
       out[k] = v;
     }
     return out;
@@ -407,11 +418,11 @@ function safeAudit<TIn>(
 ): void {
   try {
     const target = opts.target ? opts.target(input as TIn, ctx) : null;
-    const result: AuditInput['result'] = err
-      ? err.kind === 'permission' || err.kind === 'auth'
-        ? 'denied'
-        : 'failure'
-      : 'success';
+    const result: AuditInput["result"] = err
+      ? err.kind === "permission" || err.kind === "auth"
+        ? "denied"
+        : "failure"
+      : "success";
     const url = new URL(ctx.request.url);
     const basePayload: Record<string, unknown> = {
       method: ctx.request.method,

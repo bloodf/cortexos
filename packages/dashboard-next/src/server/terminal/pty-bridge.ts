@@ -41,8 +41,8 @@
  * executor via `setExecutorForTests`.
  */
 
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 
 import {
   allowlistedCommand,
@@ -50,9 +50,9 @@ import {
   listAllowlistedBySurface,
   validateShellArg,
   type AllowlistEntry,
-} from '@/server/policy';
-import { audit } from '@/server/audit';
-import type { User } from '@/server/entities';
+} from "@/server/policy";
+import { audit } from "@/server/audit";
+import type { User } from "@/server/entities";
 
 // ---------------------------------------------------------------------------
 // Constants (preserved from the legacy bridge / WP-19 spec)
@@ -62,8 +62,8 @@ const EXEC_TIMEOUT_MS = 30_000;
 const MAX_BUFFER = 4 * 1024 * 1024;
 
 /** Shells the interactive PTY is permitted to spawn (WP-19 §3). */
-const ALLOWED_SHELLS = ['/bin/bash', '/bin/sh', '/usr/bin/bash', '/usr/bin/zsh'] as const;
-const DEFAULT_SHELL = '/bin/bash';
+const ALLOWED_SHELLS = ["/bin/bash", "/bin/sh", "/usr/bin/bash", "/usr/bin/zsh"] as const;
+const DEFAULT_SHELL = "/bin/bash";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -88,7 +88,7 @@ export interface DispatchContext {
 /** The structured result the bridge returns. Never throws. */
 export type DispatchResult =
   | {
-      status: 'accepted';
+      status: "accepted";
       op: string;
       argv: ReadonlyArray<string>;
       stdout: string;
@@ -97,16 +97,16 @@ export type DispatchResult =
       durationMs: number;
     }
   | {
-      status: 'rejected';
+      status: "rejected";
       op: string;
       code:
-        | 'unknown_op'
-        | 'arg_smuggling'
-        | 'argv_bash_c'
-        | 'arg_type'
-        | 'argv_render'
-        | 'placeholder_unbound'
-        | 'executor_error';
+        | "unknown_op"
+        | "arg_smuggling"
+        | "argv_bash_c"
+        | "arg_type"
+        | "argv_render"
+        | "placeholder_unbound"
+        | "executor_error";
       reason: string;
       /** When code === 'arg_smuggling' the offending field path. */
       field?: string;
@@ -132,20 +132,20 @@ const execFileAsync = promisify(execFile);
 const realExecutor: Executor = async (argv) => {
   const [cmd, ...rest] = argv;
   if (!cmd) {
-    return { stdout: '', stderr: 'empty argv', exitCode: 1 };
+    return { stdout: "", stderr: "empty argv", exitCode: 1 };
   }
   try {
     const { stdout, stderr } = await execFileAsync(cmd, rest, {
       timeout: EXEC_TIMEOUT_MS,
       maxBuffer: MAX_BUFFER,
     });
-    return { stdout: stdout ?? '', stderr: stderr ?? '', exitCode: 0 };
+    return { stdout: stdout ?? "", stderr: stderr ?? "", exitCode: 0 };
   } catch (err) {
     const e = err as { code?: number | string; stdout?: string; stderr?: string; message?: string };
     return {
-      stdout: e.stdout ?? '',
-      stderr: e.stderr ?? e.message ?? 'execFile failed',
-      exitCode: typeof e.code === 'number' ? e.code : 1,
+      stdout: e.stdout ?? "",
+      stderr: e.stderr ?? e.message ?? "execFile failed",
+      exitCode: typeof e.code === "number" ? e.code : 1,
     };
   }
 };
@@ -155,8 +155,8 @@ const realExecutor: Executor = async (argv) => {
 // ---------------------------------------------------------------------------
 
 const mockExecutor: Executor = async (argv) => ({
-  stdout: `__cortexos_terminal_mock__ ${argv.join(' ')}`,
-  stderr: '',
+  stdout: `__cortexos_terminal_mock__ ${argv.join(" ")}`,
+  stderr: "",
   exitCode: 0,
 });
 
@@ -165,7 +165,7 @@ const mockExecutor: Executor = async (argv) => ({
 // ---------------------------------------------------------------------------
 
 let executor: Executor =
-  process.platform === 'linux' && process.env.CORTEX_TERMINAL_BRIDGE_REAL !== '0'
+  process.platform === "linux" && process.env.CORTEX_TERMINAL_BRIDGE_REAL !== "0"
     ? realExecutor
     : mockExecutor;
 
@@ -173,7 +173,7 @@ let executor: Executor =
 export function setExecutorForTests(fn: Executor | null): void {
   executor =
     fn ??
-    (process.platform === 'linux' && process.env.CORTEX_TERMINAL_BRIDGE_REAL !== '0'
+    (process.platform === "linux" && process.env.CORTEX_TERMINAL_BRIDGE_REAL !== "0"
       ? realExecutor
       : mockExecutor);
 }
@@ -187,12 +187,12 @@ function collectArgSmugglingHits(
   path: string,
   hits: { field: string; reason: string; matched: string }[],
 ): void {
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     const r = validateShellArg(value);
     if (!r.ok) hits.push({ field: path, reason: r.reason, matched: r.matched });
     return;
   }
-  if (typeof value === 'number' || typeof value === 'boolean') return;
+  if (typeof value === "number" || typeof value === "boolean") return;
   if (value === null) return;
   if (Array.isArray(value)) {
     for (let i = 0; i < value.length; i++) {
@@ -200,7 +200,7 @@ function collectArgSmugglingHits(
     }
     return;
   }
-  if (typeof value === 'object') {
+  if (typeof value === "object") {
     for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
       collectArgSmugglingHits(v, path ? `${path}.${k}` : k, hits);
     }
@@ -216,7 +216,7 @@ export function validateAllArgs(
   args: Readonly<Record<string, unknown>>,
 ): { field: string; reason: string; matched: string }[] {
   const hits: { field: string; reason: string; matched: string }[] = [];
-  collectArgSmugglingHits(args, '', hits);
+  collectArgSmugglingHits(args, "", hits);
   return hits;
 }
 
@@ -228,7 +228,7 @@ function argvContainsBashDashC(argv: ReadonlyArray<string>): boolean {
   for (let i = 0; i < argv.length - 1; i++) {
     const a = argv[i]!;
     const b = argv[i + 1]!;
-    if (/(^|\/)(bash|sh|zsh|ksh)$/.test(a) && b === '-c') return true;
+    if (/(^|\/)(bash|sh|zsh|ksh)$/.test(a) && b === "-c") return true;
   }
   return false;
 }
@@ -242,21 +242,31 @@ const PLACEHOLDER_RE = /^<[a-zA-Z_][a-zA-Z0-9_-]*>$/;
 function renderArgv(
   entry: AllowlistEntry,
   args: Readonly<Record<string, unknown>>,
-): { argv: string[] } | { code: 'placeholder_unbound' | 'arg_type'; field: string; reason: string } {
+):
+  | { argv: string[] }
+  | { code: "placeholder_unbound" | "arg_type"; field: string; reason: string } {
   const argv: string[] = [];
   for (const token of entry.argv) {
     if (PLACEHOLDER_RE.test(token)) {
       const key = token.slice(1, -1);
       const v = args[key];
       if (v === undefined || v === null) {
-        return { code: 'placeholder_unbound', field: key, reason: `placeholder <${key}> not provided` };
+        return {
+          code: "placeholder_unbound",
+          field: key,
+          reason: `placeholder <${key}> not provided`,
+        };
       }
-      if (typeof v === 'string') {
+      if (typeof v === "string") {
         argv.push(v);
-      } else if (typeof v === 'number' && Number.isFinite(v)) {
+      } else if (typeof v === "number" && Number.isFinite(v)) {
         argv.push(String(v));
       } else {
-        return { code: 'arg_type', field: key, reason: `placeholder <${key}> must be string|number` };
+        return {
+          code: "arg_type",
+          field: key,
+          reason: `placeholder <${key}> must be string|number`,
+        };
       }
     } else {
       argv.push(token);
@@ -282,24 +292,24 @@ export async function dispatch(
 
   // 1. Op must be on the allowlist (gate also checks — defence in depth).
   const entry = allowlistedCommand(input.op);
-  if (!entry || entry.surface !== 'terminal') {
+  if (!entry || entry.surface !== "terminal") {
     audit({
       actorUserId: ctx.user.id,
       actorSessionId: null,
       actorIp: ctx.ip,
       actorUserAgent: ctx.userAgent,
-      surface: 'terminal',
-      action: 'terminal.bridge.reject',
+      surface: "terminal",
+      action: "terminal.bridge.reject",
       target: input.op,
-      result: 'failure',
-      errorCode: 'unknown_op',
+      result: "failure",
+      errorCode: "unknown_op",
       requestId: ctx.requestId,
-      payload: { phase: 'allowlist', op: input.op },
+      payload: { phase: "allowlist", op: input.op },
     });
     return {
-      status: 'rejected',
+      status: "rejected",
       op: input.op,
-      code: 'unknown_op',
+      code: "unknown_op",
       reason: `op '${input.op}' is not a terminal allowlist entry`,
     };
   }
@@ -313,41 +323,41 @@ export async function dispatch(
       actorSessionId: null,
       actorIp: ctx.ip,
       actorUserAgent: ctx.userAgent,
-      surface: 'terminal',
-      action: 'terminal.bridge.reject',
+      surface: "terminal",
+      action: "terminal.bridge.reject",
       target: input.op,
-      result: 'denied',
-      errorCode: 'arg_smuggling',
+      result: "denied",
+      errorCode: "arg_smuggling",
       requestId: ctx.requestId,
-      payload: { phase: 'arg_smuggling', hits },
+      payload: { phase: "arg_smuggling", hits },
     });
     return {
-      status: 'rejected',
+      status: "rejected",
       op: input.op,
-      code: 'arg_smuggling',
+      code: "arg_smuggling",
       reason: first.reason,
-      field: first.field || '_root',
+      field: first.field || "_root",
     };
   }
 
   // 3. Render the argv from the entry's placeholders.
   const rendered = renderArgv(entry, input.args);
-  if ('code' in rendered) {
+  if ("code" in rendered) {
     audit({
       actorUserId: ctx.user.id,
       actorSessionId: null,
       actorIp: ctx.ip,
       actorUserAgent: ctx.userAgent,
-      surface: 'terminal',
-      action: 'terminal.bridge.reject',
+      surface: "terminal",
+      action: "terminal.bridge.reject",
       target: input.op,
-      result: 'failure',
+      result: "failure",
       errorCode: rendered.code,
       requestId: ctx.requestId,
-      payload: { phase: 'render', code: rendered.code, field: rendered.field },
+      payload: { phase: "render", code: rendered.code, field: rendered.field },
     });
     return {
-      status: 'rejected',
+      status: "rejected",
       op: input.op,
       code: rendered.code,
       reason: rendered.reason,
@@ -362,19 +372,19 @@ export async function dispatch(
       actorSessionId: null,
       actorIp: ctx.ip,
       actorUserAgent: ctx.userAgent,
-      surface: 'terminal',
-      action: 'terminal.bridge.reject',
+      surface: "terminal",
+      action: "terminal.bridge.reject",
       target: input.op,
-      result: 'denied',
-      errorCode: 'argv_bash_c',
+      result: "denied",
+      errorCode: "argv_bash_c",
       requestId: ctx.requestId,
-      payload: { phase: 'argv_bash_c', argv: rendered.argv },
+      payload: { phase: "argv_bash_c", argv: rendered.argv },
     });
     return {
-      status: 'rejected',
+      status: "rejected",
       op: input.op,
-      code: 'argv_bash_c',
-      reason: 'rendered argv contains a literal `<shell> -c` pair',
+      code: "argv_bash_c",
+      reason: "rendered argv contains a literal `<shell> -c` pair",
     };
   }
 
@@ -388,18 +398,18 @@ export async function dispatch(
       actorSessionId: null,
       actorIp: ctx.ip,
       actorUserAgent: ctx.userAgent,
-      surface: 'terminal',
-      action: 'terminal.bridge.dispatch',
+      surface: "terminal",
+      action: "terminal.bridge.dispatch",
       target: input.op,
-      result: 'failure',
-      errorCode: 'executor_error',
+      result: "failure",
+      errorCode: "executor_error",
       requestId: ctx.requestId,
       payload: { argv: rendered.argv, error: (e as Error).message },
     });
     return {
-      status: 'rejected',
+      status: "rejected",
       op: input.op,
-      code: 'executor_error',
+      code: "executor_error",
       reason: `executor error: ${(e as Error).message}`,
     };
   }
@@ -409,10 +419,10 @@ export async function dispatch(
     actorSessionId: null,
     actorIp: ctx.ip,
     actorUserAgent: ctx.userAgent,
-    surface: 'terminal',
-    action: 'terminal.bridge.dispatch',
+    surface: "terminal",
+    action: "terminal.bridge.dispatch",
     target: input.op,
-    result: out.exitCode === 0 ? 'success' : 'failure',
+    result: out.exitCode === 0 ? "success" : "failure",
     errorCode: null,
     requestId: ctx.requestId,
     payload: {
@@ -424,7 +434,7 @@ export async function dispatch(
   });
 
   return {
-    status: 'accepted',
+    status: "accepted",
     op: input.op,
     argv: rendered.argv,
     stdout: out.stdout,
@@ -444,7 +454,7 @@ export function listTerminalOps(): ReadonlyArray<{
   requiresApproval: boolean;
   placeholders: ReadonlyArray<string>;
 }> {
-  return listAllowlistedBySurface('terminal').map((e) => ({
+  return listAllowlistedBySurface("terminal").map((e) => ({
     op: e.name,
     description: e.description,
     requiresApproval: e.requiresApproval,
@@ -501,17 +511,17 @@ export async function spawnPty(
     pty = (await import(/* @vite-ignore */ ptyModule)) as unknown as typeof pty;
   } catch {
     throw new Error(
-      'pty_unavailable: node-pty is not installed and this framework has no ' +
-        'WebSocket/SSE route to stream a live PTY (see docs/rebuild/ADR-001 + STATUS WP-19)',
+      "pty_unavailable: node-pty is not installed and this framework has no " +
+        "WebSocket/SSE route to stream a live PTY (see docs/rebuild/ADR-001 + STATUS WP-19)",
     );
   }
 
   return pty.spawn(shell, [], {
-    name: 'xterm-256color',
+    name: "xterm-256color",
     cols,
     rows,
-    cwd: '/home/cortexos',
-    env: { ...process.env, TERM: 'xterm-256color', COLORTERM: 'truecolor' },
+    cwd: "/home/cortexos",
+    env: { ...process.env, TERM: "xterm-256color", COLORTERM: "truecolor" },
   });
 }
 

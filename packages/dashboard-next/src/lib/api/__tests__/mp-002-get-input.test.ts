@@ -23,21 +23,21 @@
  * query params (`?q=x`) validates via `readRequestInput` as today.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import { z } from 'zod';
+import { describe, it, expect, beforeEach } from "vitest";
+import { z } from "zod";
 
 import {
   InMemorySessionStore,
   setSessionStore,
   resetSessionStore,
   generateSessionToken,
-} from '@/server/auth/session-store';
-import { SESSION_COOKIE } from '@/server/config';
+} from "@/server/auth/session-store";
+import { SESSION_COOKIE } from "@/server/config";
 import {
   defineApiRoute,
   _resetRateLimitBuckets,
   type ApiRouteCore,
-} from '@/server/server-fn-pipeline';
+} from "@/server/server-fn-pipeline";
 
 let store: InMemorySessionStore;
 
@@ -51,23 +51,23 @@ beforeEach(() => {
 function cookieHeader(parts: Record<string, string>): string {
   return Object.entries(parts)
     .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
-    .join('; ');
+    .join("; ");
 }
 
 async function makeSession(): Promise<{ token: string }> {
   const csrf = generateSessionToken();
   const res = await store.createSession({
-    username: 'alice',
+    username: "alice",
     csrfToken: csrf,
-    ip: '127.0.0.1',
-    userAgent: 'vitest',
+    ip: "127.0.0.1",
+    userAgent: "vitest",
     isAdmin: false,
   });
   return { token: res.token };
 }
 
-describe('MP-002 — GET server-fn input from middleware data', () => {
-  it('T1: GET input comes from middleware data, not raw query payload', async () => {
+describe("MP-002 — GET server-fn input from middleware data", () => {
+  it("T1: GET input comes from middleware data, not raw query payload", async () => {
     const { token } = await makeSession();
     let captured: unknown;
 
@@ -76,12 +76,12 @@ describe('MP-002 — GET server-fn input from middleware data', () => {
     // to a variable first so TypeScript's excess-property check does not
     // strip the field (the pipeline reads `opts.inputData` at runtime).
     const opts = {
-      methods: ['GET'] as const,
-      auth: 'any' as const,
+      methods: ["GET"] as const,
+      auth: "any" as const,
       input: z.object({ q: z.string().optional() }).strict(),
-      surface: 'system',
-      action: 'system.test.get-from-data',
-      inputData: { q: 'x' },
+      surface: "system",
+      action: "system.test.get-from-data",
+      inputData: { q: "x" },
       handler: ({ input }: { input: unknown }) => {
         captured = input;
         return { ok: true };
@@ -90,7 +90,7 @@ describe('MP-002 — GET server-fn input from middleware data', () => {
     const core: ApiRouteCore = defineApiRoute(opts);
 
     const res = await core(
-      new Request('http://localhost/_serverFn/probe?payload=ignored', {
+      new Request("http://localhost/_serverFn/probe?payload=ignored", {
         headers: { cookie: cookieHeader({ [SESSION_COOKIE]: token }) },
       }),
     );
@@ -100,19 +100,19 @@ describe('MP-002 — GET server-fn input from middleware data', () => {
     // 'Unrecognized key(s) in object: payload'. The handler never runs, so
     // `captured` stays undefined.
     expect(res.status).toBe(200);
-    expect(captured).toEqual({ q: 'x' });
+    expect(captured).toEqual({ q: "x" });
   });
 
-  it('T2: fallback to readRequestInput preserved when no inputData supplied', async () => {
+  it("T2: fallback to readRequestInput preserved when no inputData supplied", async () => {
     const { token } = await makeSession();
     let captured: unknown;
 
     const core: ApiRouteCore = defineApiRoute({
-      methods: ['GET'],
-      auth: 'any',
+      methods: ["GET"],
+      auth: "any",
       input: z.object({ q: z.string().optional() }).strict(),
-      surface: 'system',
-      action: 'system.test.fallback',
+      surface: "system",
+      action: "system.test.fallback",
       handler: ({ input }: { input: unknown }) => {
         captured = input;
         return { ok: true };
@@ -120,12 +120,12 @@ describe('MP-002 — GET server-fn input from middleware data', () => {
     });
 
     const res = await core(
-      new Request('http://localhost/_serverFn/probe?q=x', {
+      new Request("http://localhost/_serverFn/probe?q=x", {
         headers: { cookie: cookieHeader({ [SESSION_COOKIE]: token }) },
       }),
     );
 
     expect(res.status).toBe(200);
-    expect(captured).toEqual({ q: 'x' });
+    expect(captured).toEqual({ q: "x" });
   });
 });

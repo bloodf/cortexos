@@ -6,7 +6,11 @@ export type TimeRange = "1h" | "24h" | "7d";
 const RANGE_LABEL: Record<TimeRange, string> = { "1h": "1h", "24h": "24h", "7d": "7d" };
 const RANGE_POINTS: Record<TimeRange, number> = { "1h": 60, "24h": 96, "7d": 84 };
 
-interface Series { key: string; color: string; name: string }
+interface Series {
+  key: string;
+  color: string;
+  name: string;
+}
 
 interface Props {
   /** Live data array (most-recent last). Used as-is for 1h, synthesized for 24h/7d. */
@@ -21,7 +25,13 @@ interface Props {
  * Wraps AreaTrend with a 1h/24h/7d toggle. Longer ranges are synthesized
  * deterministically from the live buffer so the demo always has data.
  */
-export function TimeRangeAreaTrend({ data, series, height = 180, defaultRange = "1h", className }: Props) {
+export function TimeRangeAreaTrend({
+  data,
+  series,
+  height = 180,
+  defaultRange = "1h",
+  className,
+}: Props) {
   const [range, setRange] = useState<TimeRange>(defaultRange);
 
   const display = useMemo(() => {
@@ -52,7 +62,9 @@ export function TimeRangeAreaTrend({ data, series, height = 180, defaultRange = 
               aria-pressed={range === r}
               className={cn(
                 "px-2.5 py-1 rounded-sm transition-colors",
-                range === r ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                range === r
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               {RANGE_LABEL[r]}

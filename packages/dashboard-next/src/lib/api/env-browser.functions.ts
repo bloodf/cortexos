@@ -40,24 +40,24 @@ import { defineServerFn, serverFnNoop, type ServerFnOptions } from "@/lib/api/de
 // ---------------------------------------------------------------------------
 
 const ALLOWED_PREFIXES: ReadonlyArray<string> = [
-	"/opt/cortexos/.secrets/",
-	"/opt/cortexos/stacks/",
+  "/opt/cortexos/.secrets/",
+  "/opt/cortexos/stacks/",
 ];
 
 const SECRET_KEY_RE = new RegExp(
-	"(password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|client[_-]?secret|session[_-]?id|cookie|authorization|bearer)",
-	"i",
+  "(password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|client[_-]?secret|session[_-]?id|cookie|authorization|bearer)",
+  "i",
 );
 
 function maskValue(key: string, value: string): string {
-	if (SECRET_KEY_RE.test(key)) {
-		if (value.length <= 4) return "••••";
-		return `••••••••${value.slice(-4)}`;
-	}
-	if (value.length >= 40 && /^[A-Za-z0-9+/=_-]+$/.test(value)) {
-		return `••••••••${value.slice(-4)}`;
-	}
-	return value;
+  if (SECRET_KEY_RE.test(key)) {
+    if (value.length <= 4) return "••••";
+    return `••••••••${value.slice(-4)}`;
+  }
+  if (value.length >= 40 && /^[A-Za-z0-9+/=_-]+$/.test(value)) {
+    return `••••••••${value.slice(-4)}`;
+  }
+  return value;
 }
 
 /**
@@ -71,43 +71,43 @@ function maskValue(key: string, value: string): string {
  * (file absent) — there is no resolved path to trust in that case.
  */
 async function isPathAllowed(path: string): Promise<boolean> {
-	const { realpath } = await import("node:fs/promises");
-	try {
-		const resolved = await realpath(path);
-		// realpath succeeded: the resolved path is the sole source of truth.
-		return ALLOWED_PREFIXES.some((prefix) => resolved.startsWith(prefix));
-	} catch {
-		// realpath failed (file does not exist) — fall back to a literal prefix
-		// check on the (normalized) request. Reject any traversal segment.
-		if (path.includes("..")) return false;
-		return ALLOWED_PREFIXES.some((prefix) => path.startsWith(prefix));
-	}
+  const { realpath } = await import("node:fs/promises");
+  try {
+    const resolved = await realpath(path);
+    // realpath succeeded: the resolved path is the sole source of truth.
+    return ALLOWED_PREFIXES.some((prefix) => resolved.startsWith(prefix));
+  } catch {
+    // realpath failed (file does not exist) — fall back to a literal prefix
+    // check on the (normalized) request. Reject any traversal segment.
+    if (path.includes("..")) return false;
+    return ALLOWED_PREFIXES.some((prefix) => path.startsWith(prefix));
+  }
 }
 
 interface EnvEntry {
-	key: string;
-	value: string;
-	masked: string;
+  key: string;
+  value: string;
+  masked: string;
 }
 
 async function readEnvFile(path: string): Promise<EnvEntry[]> {
-	const { readFile } = await import("node:fs/promises");
-	const text = await readFile(path, "utf-8");
-	const lines = text.split("\n");
-	const entries: EnvEntry[] = [];
-	for (const line of lines) {
-		const trimmed = line.trim();
-		if (!trimmed || trimmed.startsWith("#")) continue;
-		const eq = trimmed.indexOf("=");
-		if (eq === -1) continue;
-		const key = trimmed.slice(0, eq).trim();
-		const value = trimmed
-			.slice(eq + 1)
-			.trim()
-			.replace(/^["']|["']$/g, "");
-		entries.push({ key, value, masked: maskValue(key, value) });
-	}
-	return entries;
+  const { readFile } = await import("node:fs/promises");
+  const text = await readFile(path, "utf-8");
+  const lines = text.split("\n");
+  const entries: EnvEntry[] = [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eq = trimmed.indexOf("=");
+    if (eq === -1) continue;
+    const key = trimmed.slice(0, eq).trim();
+    const value = trimmed
+      .slice(eq + 1)
+      .trim()
+      .replace(/^["']|["']$/g, "");
+    entries.push({ key, value, masked: maskValue(key, value) });
+  }
+  return entries;
 }
 
 // ---------------------------------------------------------------------------
@@ -123,10 +123,10 @@ const ReadEnvInput = z.object({ path: z.string().min(1).max(2048) }).strict();
 type ReadEnvInputT = z.infer<typeof ReadEnvInput>;
 
 interface ReadEnvOutput {
-	path: string;
-	revealed: boolean;
-	revealExpiresAt: number | null;
-	entries: Array<{ key: string; value: string; masked: string }>;
+  path: string;
+  revealed: boolean;
+  revealExpiresAt: number | null;
+  entries: Array<{ key: string; value: string; masked: string }>;
 }
 
 /**
@@ -135,49 +135,49 @@ interface ReadEnvOutput {
  * in the Vite/Nitro build) — a single source of truth for the gate + handler.
  */
 export const readEnvGateOptions: ServerFnOptions<ReadEnvInputT, ReadEnvOutput> = {
-	method: "GET",
-	auth: "admin",
-	input: ReadEnvInput,
-	rateLimit: { limit: 30, windowSec: 60, bucket: "user" },
-	surface: "env-browser",
-	action: "env-browser.read",
-	// Audit target is the requested path (safe — never a value).
-	target: (input) => input.path,
-	handler: async ({ input, ctx }) => {
-		const { notFoundError, permissionError } = await import("@/server/errors/types");
-		const { hasRevealGrant, revealExpiresAt } = await import("@/server/env-reveal");
+  method: "GET",
+  auth: "admin",
+  input: ReadEnvInput,
+  rateLimit: { limit: 30, windowSec: 60, bucket: "user" },
+  surface: "env-browser",
+  action: "env-browser.read",
+  // Audit target is the requested path (safe — never a value).
+  target: (input) => input.path,
+  handler: async ({ input, ctx }) => {
+    const { notFoundError, permissionError } = await import("@/server/errors/types");
+    const { hasRevealGrant, revealExpiresAt } = await import("@/server/env-reveal");
 
-		if (!(await isPathAllowed(input.path))) {
-			throw permissionError(`Path not in allowlist: ${input.path}`);
-		}
+    if (!(await isPathAllowed(input.path))) {
+      throw permissionError(`Path not in allowlist: ${input.path}`);
+    }
 
-		let entries: EnvEntry[];
-		try {
-			entries = await readEnvFile(input.path);
-		} catch {
-			throw notFoundError(`Env file not found: ${input.path}`, "env_file");
-		}
+    let entries: EnvEntry[];
+    try {
+      entries = await readEnvFile(input.path);
+    } catch {
+      throw notFoundError(`Env file not found: ${input.path}`, "env_file");
+    }
 
-		// Cleartext only when this session holds a live reveal grant.
-		const sessionId = ctx.session?.id ?? null;
-		const revealed = hasRevealGrant(sessionId);
+    // Cleartext only when this session holds a live reveal grant.
+    const sessionId = ctx.session?.id ?? null;
+    const revealed = hasRevealGrant(sessionId);
 
-		return {
-			path: input.path,
-			revealed,
-			revealExpiresAt: revealed ? revealExpiresAt(sessionId) : null,
-			entries: entries.map(({ key, value, masked }) => ({
-				key,
-				value: revealed ? value : masked,
-				masked,
-			})),
-		};
-	},
+    return {
+      path: input.path,
+      revealed,
+      revealExpiresAt: revealed ? revealExpiresAt(sessionId) : null,
+      entries: entries.map(({ key, value, masked }) => ({
+        key,
+        value: revealed ? value : masked,
+        masked,
+      })),
+    };
+  },
 };
 const readEnvGate = defineServerFn(readEnvGateOptions);
 export const readEnv = createServerFn({ method: "GET" })
-	.middleware([readEnvGate])
-	.handler(serverFnNoop);
+  .middleware([readEnvGate])
+  .handler(serverFnNoop);
 
 // ---------------------------------------------------------------------------
 // unlock — POST, auth: admin, rate-limit 5/60s/user → { ok, expiresAt, ttlSec }
@@ -193,47 +193,47 @@ const UnlockInput = z.object({ password: z.string().min(1).max(1024) }).strict()
 type UnlockInputT = z.infer<typeof UnlockInput>;
 
 interface UnlockOutput {
-	ok: true;
-	expiresAt: number;
-	ttlSec: number;
+  ok: true;
+  expiresAt: number;
+  ttlSec: number;
 }
 
 /** unlock gate options (exported for the node-env test — see readEnvGateOptions). */
 export const unlockGateOptions: ServerFnOptions<UnlockInputT, UnlockOutput> = {
-	method: "POST",
-	auth: "admin",
-	input: UnlockInput,
-	// Per-user bucket so one user cannot lock out another via a shared IP.
-	rateLimit: { limit: 5, windowSec: 60, bucket: "user" },
-	surface: "env-browser",
-	action: "env-browser.unlock",
-	// NB: never put the password (or any derivative) in the audit target.
-	target: () => null,
-	handler: async ({ input, user, ctx }) => {
-		const { getPamAuthenticator } = await import("@/server/auth/pam");
-		const { authError } = await import("@/server/errors/types");
-		const { grantReveal, REVEAL_TTL_SEC } = await import("@/server/env-reveal");
+  method: "POST",
+  auth: "admin",
+  input: UnlockInput,
+  // Per-user bucket so one user cannot lock out another via a shared IP.
+  rateLimit: { limit: 5, windowSec: 60, bucket: "user" },
+  surface: "env-browser",
+  action: "env-browser.unlock",
+  // NB: never put the password (or any derivative) in the audit target.
+  target: () => null,
+  handler: async ({ input, user, ctx }) => {
+    const { getPamAuthenticator } = await import("@/server/auth/pam");
+    const { authError } = await import("@/server/errors/types");
+    const { grantReveal, REVEAL_TTL_SEC } = await import("@/server/env-reveal");
 
-		const sessionId = ctx.session?.id ?? null;
-		if (!sessionId || !user) {
-			throw authError("No active session");
-		}
+    const sessionId = ctx.session?.id ?? null;
+    if (!sessionId || !user) {
+      throw authError("No active session");
+    }
 
-		// Re-verify the CURRENT operator's PAM password. `input.password` is the
-		// only place the secret lives — it is never logged or echoed.
-		const result = await getPamAuthenticator().authenticate(user.username, input.password);
-		if (!result.ok) {
-			// Coarse failure only — do not distinguish bad-password from other PAM
-			// reasons to the client (T-101). The PAM error detail is never surfaced.
-			throw authError("Password verification failed");
-		}
+    // Re-verify the CURRENT operator's PAM password. `input.password` is the
+    // only place the secret lives — it is never logged or echoed.
+    const result = await getPamAuthenticator().authenticate(user.username, input.password);
+    if (!result.ok) {
+      // Coarse failure only — do not distinguish bad-password from other PAM
+      // reasons to the client (T-101). The PAM error detail is never surfaced.
+      throw authError("Password verification failed");
+    }
 
-		const expiresAt = grantReveal(sessionId);
-		return { ok: true as const, expiresAt, ttlSec: REVEAL_TTL_SEC };
-	},
+    const expiresAt = grantReveal(sessionId);
+    return { ok: true as const, expiresAt, ttlSec: REVEAL_TTL_SEC };
+  },
 };
 
 const unlockGate = defineServerFn(unlockGateOptions);
 export const unlock = createServerFn({ method: "POST" })
-	.middleware([unlockGate])
-	.handler(serverFnNoop);
+  .middleware([unlockGate])
+  .handler(serverFnNoop);

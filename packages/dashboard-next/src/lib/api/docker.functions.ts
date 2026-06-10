@@ -182,9 +182,8 @@ const dockerActionGate = defineServerFn({
   handler: async ({ input, user, ctx }) => {
     const { allowlistedCommand } = await import("@/server/policy");
     const { dispatch } = await import("@/server/docker/bridge");
-    const { validationError, approvalRequiredError, permissionError } = await import(
-      "@/server/errors/types"
-    );
+    const { validationError, approvalRequiredError, permissionError } =
+      await import("@/server/errors/types");
     const { actionHashFor } = await import("@/server/approval");
 
     // Verify op is on the allowlist before touching the bridge.

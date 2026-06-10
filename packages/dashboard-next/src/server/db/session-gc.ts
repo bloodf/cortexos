@@ -20,9 +20,9 @@
  *      serving traffic.
  *   3. Tests can call it directly to verify the GC behaviour.
  */
-import { lt, sql } from 'drizzle-orm';
-import { adminSessions } from './schema';
-import type { DbClient } from './client';
+import { lt, sql } from "drizzle-orm";
+import { adminSessions } from "./schema";
+import type { DbClient } from "./client";
 
 export interface GcResult {
   /** Rows deleted by this call. */

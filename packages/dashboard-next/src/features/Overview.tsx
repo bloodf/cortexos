@@ -15,7 +15,9 @@ import { cn } from "@/lib/utils";
 const ResponsiveGrid = WidthProvider(Responsive);
 const STORAGE_KEY = "cortex.overview.layout.v3";
 
-interface Stored { items: { i: string; x: number; y: number; w: number; h: number }[] }
+interface Stored {
+  items: { i: string; x: number; y: number; w: number; h: number }[];
+}
 
 function load(): Stored {
   if (typeof window === "undefined") return { items: DEFAULT_LAYOUT };
@@ -25,12 +27,18 @@ function load(): Stored {
       const parsed = JSON.parse(raw) as Stored;
       if (parsed?.items?.length) return parsed;
     }
-  } catch { /* noop */ }
+  } catch {
+    /* noop */
+  }
   return { items: DEFAULT_LAYOUT };
 }
 
 function save(s: Stored) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch { /* noop */ }
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+  } catch {
+    /* noop */
+  }
 }
 
 export function OverviewPage() {
@@ -39,20 +47,36 @@ export function OverviewPage() {
   const [editing, setEditing] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => { setMounted(true); }, []);
-  useEffect(() => { save(state); }, [state]);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  useEffect(() => {
+    save(state);
+  }, [state]);
 
   const items = state.items.filter((it) => WIDGET_MAP[it.i]);
   const usedIds = new Set(items.map((i) => i.i));
   const available = WIDGETS.filter((w) => !usedIds.has(w.id));
 
-  const layout: LayoutItem[] = useMemo(() => items.map((it) => ({
-    i: it.i, x: it.x, y: it.y, w: it.w, h: it.h,
-    minW: WIDGET_MAP[it.i].min.w, minH: WIDGET_MAP[it.i].min.h,
-    isDraggable: editing, isResizable: editing,
-  })), [items, editing]);
+  const layout: LayoutItem[] = useMemo(
+    () =>
+      items.map((it) => ({
+        i: it.i,
+        x: it.x,
+        y: it.y,
+        w: it.w,
+        h: it.h,
+        minW: WIDGET_MAP[it.i].min.w,
+        minH: WIDGET_MAP[it.i].min.h,
+        isDraggable: editing,
+        isResizable: editing,
+      })),
+    [items, editing],
+  );
 
-  const onLayoutChange = (next: readonly { i: string; x: number; y: number; w: number; h: number }[]) => {
+  const onLayoutChange = (
+    next: readonly { i: string; x: number; y: number; w: number; h: number }[],
+  ) => {
     if (!editing) return;
     setState({ items: next.map((l) => ({ i: l.i, x: l.x, y: l.y, w: l.w, h: l.h })) });
   };
@@ -85,18 +109,26 @@ export function OverviewPage() {
               <Popover>
                 <PopoverTrigger asChild>
                   <Button size="sm" variant="outline" disabled={available.length === 0}>
-                    <Plus className="size-4 mr-1" />Add widget
+                    <Plus className="size-4 mr-1" />
+                    Add widget
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent align="end" className="w-72 p-2">
-                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground px-2 pb-1">Available widgets</div>
+                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground px-2 pb-1">
+                    Available widgets
+                  </div>
                   {available.length === 0 ? (
-                    <div className="px-2 py-4 text-sm text-muted-foreground text-center">All widgets are on the dashboard.</div>
+                    <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                      All widgets are on the dashboard.
+                    </div>
                   ) : (
                     <div className="space-y-0.5 max-h-80 overflow-y-auto">
                       {available.map((w) => (
-                        <button key={w.id} onClick={() => addWidget(w.id)}
-                          className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted text-left">
+                        <button
+                          key={w.id}
+                          onClick={() => addWidget(w.id)}
+                          className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted text-left"
+                        >
                           <w.icon className="size-3.5 text-muted-foreground" />
                           <span className="flex-1">{w.title}</span>
                           <Plus className="size-3.5 text-muted-foreground" />
@@ -109,14 +141,29 @@ export function OverviewPage() {
             )}
             {editing && (
               <Button size="sm" variant="outline" onClick={resetLayout}>
-                <RotateCcw className="size-4 mr-1" />Reset
+                <RotateCcw className="size-4 mr-1" />
+                Reset
               </Button>
             )}
-            <Button size="sm" variant={editing ? "default" : "outline"} onClick={() => {
-              setEditing(!editing);
-              if (editing) toast.success("Layout saved");
-            }}>
-              {editing ? <><Check className="size-4 mr-1" />Done</> : <><Pencil className="size-4 mr-1" />Edit</>}
+            <Button
+              size="sm"
+              variant={editing ? "default" : "outline"}
+              onClick={() => {
+                setEditing(!editing);
+                if (editing) toast.success("Layout saved");
+              }}
+            >
+              {editing ? (
+                <>
+                  <Check className="size-4 mr-1" />
+                  Done
+                </>
+              ) : (
+                <>
+                  <Pencil className="size-4 mr-1" />
+                  Edit
+                </>
+              )}
             </Button>
           </div>
         }
@@ -126,7 +173,8 @@ export function OverviewPage() {
 
       {editing && (
         <div className="rounded-md border border-dashed border-primary/40 bg-primary/5 text-primary text-xs px-3 py-2">
-          Edit mode — drag widgets to rearrange, drag bottom-right corner to resize, click × to remove.
+          Edit mode — drag widgets to rearrange, drag bottom-right corner to resize, click × to
+          remove.
         </div>
       )}
 

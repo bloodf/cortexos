@@ -22,16 +22,16 @@ import path from "node:path";
  * Throws Error('path_traversal') if the path escapes `agentDir`.
  */
 export function validateFilePath(agentDir: string, filename: string): string {
-	// Belt-and-suspenders: reject before resolve
-	if (filename.includes("..") || filename.startsWith("/")) {
-		throw new Error("path_traversal");
-	}
-	const target = path.resolve(agentDir, filename);
-	// After resolve: resolved path must still be inside agentDir
-	if (!target.startsWith(agentDir + path.sep) && target !== agentDir) {
-		throw new Error("path_traversal");
-	}
-	return target;
+  // Belt-and-suspenders: reject before resolve
+  if (filename.includes("..") || filename.startsWith("/")) {
+    throw new Error("path_traversal");
+  }
+  const target = path.resolve(agentDir, filename);
+  // After resolve: resolved path must still be inside agentDir
+  if (!target.startsWith(agentDir + path.sep) && target !== agentDir) {
+    throw new Error("path_traversal");
+  }
+  return target;
 }
 
 // ---------------------------------------------------------------------------
@@ -43,11 +43,11 @@ export function validateFilePath(agentDir: string, filename: string): string {
  * Returns empty array if the directory does not exist.
  */
 export function listAgentFiles(agentDir: string): string[] {
-	if (!fs.existsSync(agentDir)) return [];
-	return fs
-		.readdirSync(agentDir)
-		.filter((name) => !name.startsWith("."))
-		.sort();
+  if (!fs.existsSync(agentDir)) return [];
+  return fs
+    .readdirSync(agentDir)
+    .filter((name) => !name.startsWith("."))
+    .sort();
 }
 
 /**
@@ -56,9 +56,9 @@ export function listAgentFiles(agentDir: string): string[] {
  * Throws Error('path_traversal') if the resolved path escapes `agentDir`.
  */
 export function writeAgentFile(agentDir: string, filename: string, data: Buffer): void {
-	const target = validateFilePath(agentDir, filename);
-	fs.mkdirSync(path.dirname(target), { recursive: true });
-	fs.writeFileSync(target, data);
+  const target = validateFilePath(agentDir, filename);
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.writeFileSync(target, data);
 }
 
 /**
@@ -67,7 +67,7 @@ export function writeAgentFile(agentDir: string, filename: string, data: Buffer)
  * Throws Error('not_found') if the file does not exist.
  */
 export function deleteAgentFile(agentDir: string, filename: string): void {
-	const target = validateFilePath(agentDir, filename);
-	if (!fs.existsSync(target)) throw new Error("not_found");
-	fs.unlinkSync(target);
+  const target = validateFilePath(agentDir, filename);
+  if (!fs.existsSync(target)) throw new Error("not_found");
+  fs.unlinkSync(target);
 }

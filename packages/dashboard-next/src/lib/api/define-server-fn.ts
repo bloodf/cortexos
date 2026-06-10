@@ -71,17 +71,17 @@
  * ============================================================================
  */
 
-import { createMiddleware } from '@tanstack/react-start';
-import type { ZodType, ZodTypeDef } from 'zod';
+import { createMiddleware } from "@tanstack/react-start";
+import type { ZodType, ZodTypeDef } from "zod";
 
-import type { GroupName, User } from '@/server/entities';
-import type { RequestCtx } from '@/server/context';
+import type { GroupName, User } from "@/server/entities";
+import type { RequestCtx } from "@/server/context";
 
 // ---------------------------------------------------------------------------
 // Public option + handler shapes (mirror the legacy `defineApiRoute` signature)
 // ---------------------------------------------------------------------------
 
-export type ServerFnMethod = 'GET' | 'POST';
+export type ServerFnMethod = "GET" | "POST";
 
 export type ServerFnHandler<TIn, TOut> = (args: {
   user: User | null;
@@ -93,11 +93,11 @@ export interface ServerFnOptions<TIn, TOut> {
   /** RPC transport method. `GET` for reads, `POST` for mutations. */
   method: ServerFnMethod;
   /** Required role: 'public' | 'any' | 'admin' | a specific group. */
-  auth: 'public' | 'any' | 'admin' | GroupName;
+  auth: "public" | "any" | "admin" | GroupName;
   /** Optional input schema. Validated → 400 (`{code:'validation', details}`). */
   input?: ZodType<TIn, ZodTypeDef, unknown>;
   /** Rate-limit override. Defaults applied per auth level when omitted. */
-  rateLimit?: { limit: number; windowSec: number; bucket: 'ip' | 'user' };
+  rateLimit?: { limit: number; windowSec: number; bucket: "ip" | "user" };
   /** Surface name for the audit log. */
   surface: string;
   /** Action name for the audit log (e.g. `services.delete`). */
@@ -130,8 +130,8 @@ export const serverFnNoop = (): undefined => undefined;
  * is severed from the client bundle.
  */
 export function defineServerFn<TIn = unknown, TOut = unknown>(opts: ServerFnOptions<TIn, TOut>) {
-  return createMiddleware({ type: 'function' }).server(async ({ data, next }) => {
-    const { runServerFnGate } = await import('./server-fn-runner.server');
+  return createMiddleware({ type: "function" }).server(async ({ data, next }) => {
+    const { runServerFnGate } = await import("./server-fn-runner.server");
     const result = await runServerFnGate<TIn, TOut>({
       methods: [opts.method],
       auth: opts.auth,

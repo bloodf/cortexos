@@ -86,13 +86,8 @@ const incusActionGate = defineServerFn({
   target: (input) => `${input.action}:${input.name}`,
   handler: async ({ input, ctx }) => {
     const { dispatchAction } = await import("@/server/incus/bridge");
-    const {
-      approvalRequiredError,
-      notFoundError,
-      validationError,
-      permissionError,
-      systemError,
-    } = await import("@/server/errors/types");
+    const { approvalRequiredError, notFoundError, validationError, permissionError, systemError } =
+      await import("@/server/errors/types");
 
     const result = await dispatchAction(
       {
@@ -172,12 +167,8 @@ const execNamedGate = defineServerFn({
   target: (input) => `${input.name}:${input.op}`,
   handler: async ({ input, ctx }) => {
     const { dispatchExecNamed } = await import("@/server/incus/bridge");
-    const {
-      notFoundError,
-      validationError,
-      permissionError,
-      systemError,
-    } = await import("@/server/errors/types");
+    const { notFoundError, validationError, permissionError, systemError } =
+      await import("@/server/errors/types");
 
     // op must be a valid IncusShellOp — cast after allowlist check in bridge
     const result = await dispatchExecNamed(

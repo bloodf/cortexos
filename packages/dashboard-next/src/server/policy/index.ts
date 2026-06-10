@@ -26,13 +26,13 @@
 // ---------------------------------------------------------------------------
 
 export type Surface =
-  | 'terminal'
-  | 'systemd'
-  | 'docker'
-  | 'incus'
-  | 'packages'
-  | 'env-browser'
-  | 'root-helper';
+  | "terminal"
+  | "systemd"
+  | "docker"
+  | "incus"
+  | "packages"
+  | "env-browser"
+  | "root-helper";
 
 export interface AllowlistEntry {
   /** Operation name as referenced by the UI (e.g. `term.ps`, `systemd.restart`). */
@@ -94,37 +94,37 @@ export function listAllowlistedBySurface(surface: Surface): AllowlistEntry[] {
  * security control — the allowlist is — but it catches regressions.
  */
 const DENY_PATTERNS: ReadonlyArray<{ pattern: RegExp; reason: string }> = [
-  { pattern: /rm\s+-rf\s+\//, reason: 'catastrophic delete at filesystem root' },
-  { pattern: /:\(\)\s*\{.*:\|:.*&.*\}\s*;\s*:/, reason: 'fork bomb' },
-  { pattern: /\bmkfs\b/, reason: 'filesystem creation on a device' },
-  { pattern: /\bdd\s+if=.*\b(of|of=)\s*\/dev\/(sd|nvme|hd)/, reason: 'disk wipe via dd' },
-  { pattern: /\bchmod\s+-R\s+777\s+\//, reason: 'permission collapse on /' },
-  { pattern: /\bcurl\b.*\|\s*\bbash\b/, reason: 'remote code execution via curl|bash' },
-  { pattern: /\bwget\b.*-O-\s*\|\s*\bsh\b/, reason: 'remote code execution via wget|sh' },
-  { pattern: />\/etc\/passwd/, reason: 'auth destruction via >/etc/passwd' },
-  { pattern: /\bsystemctl\s+mask\b/, reason: 'permanent disable via systemctl mask' },
+  { pattern: /rm\s+-rf\s+\//, reason: "catastrophic delete at filesystem root" },
+  { pattern: /:\(\)\s*\{.*:\|:.*&.*\}\s*;\s*:/, reason: "fork bomb" },
+  { pattern: /\bmkfs\b/, reason: "filesystem creation on a device" },
+  { pattern: /\bdd\s+if=.*\b(of|of=)\s*\/dev\/(sd|nvme|hd)/, reason: "disk wipe via dd" },
+  { pattern: /\bchmod\s+-R\s+777\s+\//, reason: "permission collapse on /" },
+  { pattern: /\bcurl\b.*\|\s*\bbash\b/, reason: "remote code execution via curl|bash" },
+  { pattern: /\bwget\b.*-O-\s*\|\s*\bsh\b/, reason: "remote code execution via wget|sh" },
+  { pattern: />\/etc\/passwd/, reason: "auth destruction via >/etc/passwd" },
+  { pattern: /\bsystemctl\s+mask\b/, reason: "permanent disable via systemctl mask" },
 ];
 
 /** Sub-shell + arg-smuggling patterns (THREAT_MODEL §7.2.2 / T-104).
  *  These are rejected at the schema-validation step BEFORE the policy.class
  *  check, so even a `free`-class tool can't smuggle them. */
 const SMUGGLING_PATTERNS: ReadonlyArray<{ pattern: RegExp; reason: string }> = [
-  { pattern: /\$\(/, reason: 'command substitution $()' },
-  { pattern: /`/, reason: 'backtick command substitution' },
-  { pattern: /;\s*\w/, reason: 'command separator ;' },
-  { pattern: /&&/, reason: 'command separator &&' },
-  { pattern: /\|\|/, reason: 'command separator ||' },
-  { pattern: /\|(?!\|)/, reason: 'pipe |' },
-  { pattern: />/, reason: 'output redirect >' },
-  { pattern: /</, reason: 'input redirect <' },
-  { pattern: /\\\n/, reason: 'line-continuation \\n' },
-  { pattern: /\b(bash|sh|zsh|ksh)\s+-c\b/, reason: 'explicit bash -c' },
-  { pattern: /\beval\b/, reason: 'eval()' },
-  { pattern: /\bexec\b/, reason: 'exec()' },
-  { pattern: /\.\.\//, reason: 'path traversal ../' },
-  { pattern: /\.\.\\/, reason: 'path traversal ..\\' },
-  { pattern: /[​-‍﻿]/, reason: 'zero-width Unicode' },
-  { pattern: /[‪-‮⁦-⁩]/, reason: 'RTL/override Unicode' },
+  { pattern: /\$\(/, reason: "command substitution $()" },
+  { pattern: /`/, reason: "backtick command substitution" },
+  { pattern: /;\s*\w/, reason: "command separator ;" },
+  { pattern: /&&/, reason: "command separator &&" },
+  { pattern: /\|\|/, reason: "command separator ||" },
+  { pattern: /\|(?!\|)/, reason: "pipe |" },
+  { pattern: />/, reason: "output redirect >" },
+  { pattern: /</, reason: "input redirect <" },
+  { pattern: /\\\n/, reason: "line-continuation \\n" },
+  { pattern: /\b(bash|sh|zsh|ksh)\s+-c\b/, reason: "explicit bash -c" },
+  { pattern: /\beval\b/, reason: "eval()" },
+  { pattern: /\bexec\b/, reason: "exec()" },
+  { pattern: /\.\.\//, reason: "path traversal ../" },
+  { pattern: /\.\.\\/, reason: "path traversal ..\\" },
+  { pattern: /[​-‍﻿]/, reason: "zero-width Unicode" },
+  { pattern: /[‪-‮⁦-⁩]/, reason: "RTL/override Unicode" },
 ];
 
 /** Returns the first denylist hit in a string, or null. */
@@ -190,130 +190,139 @@ export function resetPolicy(): void {
 export function installDefaultAllowlist(): void {
   // Terminal (§4.4.1)
   addAllowlisted({
-    name: 'term.exec_named',
-    surface: 'terminal',
-    argv: ['/bin/sh', '-c', '<allowlisted-subcommand>'],
+    name: "term.exec_named",
+    surface: "terminal",
+    argv: ["/bin/sh", "-c", "<allowlisted-subcommand>"],
     requiresApproval: false,
-    description: 'Execute an allowlisted subcommand. Subcommand must itself be in the allowlist.',
+    description: "Execute an allowlisted subcommand. Subcommand must itself be in the allowlist.",
   });
   addAllowlisted({
-    name: 'term.read_file',
-    surface: 'terminal',
-    argv: ['cat', '<path>'],
+    name: "term.read_file",
+    surface: "terminal",
+    argv: ["cat", "<path>"],
     requiresApproval: false,
-    description: 'Read a file at an allowlisted path (SR-073).',
+    description: "Read a file at an allowlisted path (SR-073).",
   });
   addAllowlisted({
-    name: 'term.tail_log',
-    surface: 'terminal',
-    argv: ['journalctl', '-u', '<unit>', '-n', '<N>', '--no-pager'],
+    name: "term.tail_log",
+    surface: "terminal",
+    argv: ["journalctl", "-u", "<unit>", "-n", "<N>", "--no-pager"],
     requiresApproval: false,
-    description: 'Tail the journal for an allowlisted unit, last N lines (N <= 1000).',
+    description: "Tail the journal for an allowlisted unit, last N lines (N <= 1000).",
   });
   addAllowlisted({
-    name: 'term.ps',
-    surface: 'terminal',
-    argv: ['ps', 'auxf'],
+    name: "term.ps",
+    surface: "terminal",
+    argv: ["ps", "auxf"],
     requiresApproval: false,
-    description: 'Process list.',
+    description: "Process list.",
   });
   addAllowlisted({
-    name: 'term.top',
-    surface: 'terminal',
-    argv: ['top', '-b', '-n', '1'],
+    name: "term.top",
+    surface: "terminal",
+    argv: ["top", "-b", "-n", "1"],
     requiresApproval: false,
-    description: 'Top snapshot (one batch iteration, non-interactive).',
+    description: "Top snapshot (one batch iteration, non-interactive).",
   });
   addAllowlisted({
-    name: 'term.df',
-    surface: 'terminal',
-    argv: ['df', '-h'],
+    name: "term.df",
+    surface: "terminal",
+    argv: ["df", "-h"],
     requiresApproval: false,
-    description: 'Disk usage.',
+    description: "Disk usage.",
   });
   addAllowlisted({
-    name: 'term.fzf',
-    surface: 'terminal',
-    argv: ['fzf', '<query>'],
+    name: "term.fzf",
+    surface: "terminal",
+    argv: ["fzf", "<query>"],
     requiresApproval: false,
-    description: 'Fuzzy-finder (junegunn/fzf) — optional initial <query>.',
+    description: "Fuzzy-finder (junegunn/fzf) — optional initial <query>.",
   });
   addAllowlisted({
-    name: 'term.ls',
-    surface: 'terminal',
-    argv: ['ls', '-la', '<path>'],
+    name: "term.ls",
+    surface: "terminal",
+    argv: ["ls", "-la", "<path>"],
     requiresApproval: false,
-    description: 'List directory contents.',
+    description: "List directory contents.",
   });
   addAllowlisted({
-    name: 'term.cat',
-    surface: 'terminal',
-    argv: ['cat', '<path>'],
+    name: "term.cat",
+    surface: "terminal",
+    argv: ["cat", "<path>"],
     requiresApproval: false,
-    description: 'Read a file.',
+    description: "Read a file.",
   });
 
   // systemd (§4.4.2)
-  for (const action of ['start', 'stop', 'restart', 'reload', 'status', 'enable', 'disable', 'list-units']) {
+  for (const action of [
+    "start",
+    "stop",
+    "restart",
+    "reload",
+    "status",
+    "enable",
+    "disable",
+    "list-units",
+  ]) {
     addAllowlisted({
       name: `systemd.${action}`,
-      surface: 'systemd',
-      argv: ['/usr/bin/systemctl', action, '<unit>'],
-      requiresApproval: ['restart', 'stop'].includes(action),
+      surface: "systemd",
+      argv: ["/usr/bin/systemctl", action, "<unit>"],
+      requiresApproval: ["restart", "stop"].includes(action),
       description: `systemd ${action} on an allowlisted unit.`,
     });
   }
 
   // Docker (§4.4.3)
-  for (const action of ['start', 'stop', 'restart', 'rm', 'logs', 'inspect', 'list']) {
+  for (const action of ["start", "stop", "restart", "rm", "logs", "inspect", "list"]) {
     addAllowlisted({
       name: `docker.${action}`,
-      surface: 'docker',
-      argv: ['/usr/bin/docker', action, '<container>'],
-      requiresApproval: ['rm', 'restart', 'stop'].includes(action),
+      surface: "docker",
+      argv: ["/usr/bin/docker", action, "<container>"],
+      requiresApproval: ["rm", "restart", "stop"].includes(action),
       description: `docker ${action} on an allowlisted container.`,
     });
   }
   addAllowlisted({
-    name: 'docker.privileged',
-    surface: 'docker',
-    argv: ['/usr/bin/docker', 'run', '--privileged', '<container>'],
+    name: "docker.privileged",
+    surface: "docker",
+    argv: ["/usr/bin/docker", "run", "--privileged", "<container>"],
     requiresApproval: true,
-    description: 'Run a container in privileged mode (SR-042).',
+    description: "Run a container in privileged mode (SR-042).",
   });
   addAllowlisted({
-    name: 'docker.exec',
-    surface: 'docker',
-    argv: ['/usr/bin/docker', 'exec', '<container>', '<command>'],
+    name: "docker.exec",
+    surface: "docker",
+    argv: ["/usr/bin/docker", "exec", "<container>", "<command>"],
     requiresApproval: true,
-    description: 'Execute an allowlisted subcommand inside an allowlisted container (PB-2 fix).',
+    description: "Execute an allowlisted subcommand inside an allowlisted container (PB-2 fix).",
   });
 
   // Incus (§4.4.4)
-  for (const action of ['start', 'stop', 'restart', 'delete', 'launch', 'list']) {
+  for (const action of ["start", "stop", "restart", "delete", "launch", "list"]) {
     addAllowlisted({
       name: `incus.${action}`,
-      surface: 'incus',
-      argv: ['/usr/bin/incus', action, '<instance>'],
-      requiresApproval: ['delete', 'restart', 'stop'].includes(action),
+      surface: "incus",
+      argv: ["/usr/bin/incus", action, "<instance>"],
+      requiresApproval: ["delete", "restart", "stop"].includes(action),
       description: `incus ${action} on an allowlisted instance.`,
     });
   }
   addAllowlisted({
-    name: 'incus.exec-named',
-    surface: 'incus',
-    argv: ['/usr/bin/incus', 'exec', '<instance>', '--', '<allowlisted-subcommand>'],
+    name: "incus.exec-named",
+    surface: "incus",
+    argv: ["/usr/bin/incus", "exec", "<instance>", "--", "<allowlisted-subcommand>"],
     requiresApproval: false,
-    description: 'Execute an allowlisted subcommand inside an allowlisted instance (PB-4 fix).',
+    description: "Execute an allowlisted subcommand inside an allowlisted instance (PB-4 fix).",
   });
 
   // Package install (§4.4.5)
   addAllowlisted({
-    name: 'pkg.install',
-    surface: 'packages',
-    argv: ['/opt/cortexos/scripts/pkg.sh', 'install', '<package>'],
+    name: "pkg.install",
+    surface: "packages",
+    argv: ["/opt/cortexos/scripts/pkg.sh", "install", "<package>"],
     requiresApproval: true,
-    description: 'Install an allowlisted package (SR-060, SR-062).',
+    description: "Install an allowlisted package (SR-060, SR-062).",
   });
 }
 

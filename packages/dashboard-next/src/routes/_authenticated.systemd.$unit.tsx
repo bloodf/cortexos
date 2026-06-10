@@ -51,10 +51,7 @@ export const Route = createFileRoute("/_authenticated/systemd/$unit")({
     const { unit } = useParams({ from: "/_authenticated/systemd/$unit" });
     return (
       <div className="p-6 space-y-4">
-        <PageHeader
-          title="Unit not found"
-          description={`No systemd unit matched "${unit}".`}
-        />
+        <PageHeader title="Unit not found" description={`No systemd unit matched "${unit}".`} />
         <Button asChild variant="outline">
           <Link to="/systemd">
             <ArrowLeft className="size-4 mr-1" />
@@ -106,8 +103,7 @@ function SystemdDetail() {
   const isAdmin = !!user?.is_admin;
   const acting = pendingAction !== null;
 
-  const invalidate = () =>
-    void qc.invalidateQueries({ queryKey: ["systemd", "units"] });
+  const invalidate = () => void qc.invalidateQueries({ queryKey: ["systemd", "units"] });
 
   const handleAction = async (
     action: "start" | "stop" | "restart" | "reload" | "enable" | "disable",

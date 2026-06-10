@@ -19,22 +19,22 @@
  * In-memory session store (no DB; DB_PASSWORD unset under test).
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from "vitest";
 
 import {
   InMemorySessionStore,
   setSessionStore,
   resetSessionStore,
   generateSessionToken,
-} from '@/server/auth/session-store';
-import { SESSION_COOKIE, CSRF_COOKIE } from '@/server/config';
+} from "@/server/auth/session-store";
+import { SESSION_COOKIE, CSRF_COOKIE } from "@/server/config";
 import {
   defineApiRoute,
   _resetRateLimitBuckets,
   type ApiRouteCore,
-} from '@/server/server-fn-pipeline';
-import { z } from 'zod';
-import { defineServerFn } from '../define-server-fn';
+} from "@/server/server-fn-pipeline";
+import { z } from "zod";
+import { defineServerFn } from "../define-server-fn";
 
 let store: InMemorySessionStore;
 
@@ -49,11 +49,11 @@ beforeEach(() => {
 const pingInput = z.object({ n: z.coerce.number().int().optional() }).strict();
 
 const anyCore: ApiRouteCore = defineApiRoute({
-  methods: ['GET', 'POST'],
-  auth: 'any',
+  methods: ["GET", "POST"],
+  auth: "any",
   input: pingInput,
-  surface: 'system',
-  action: 'system.probe',
+  surface: "system",
+  action: "system.probe",
   handler: ({ user, input }) => ({
     ok: true,
     user: user ? user.username : null,
@@ -62,29 +62,29 @@ const anyCore: ApiRouteCore = defineApiRoute({
 });
 
 const adminCore: ApiRouteCore = defineApiRoute({
-  methods: ['GET'],
-  auth: 'admin',
-  surface: 'system',
-  action: 'system.probe.admin',
+  methods: ["GET"],
+  auth: "admin",
+  surface: "system",
+  action: "system.probe.admin",
   handler: ({ user }) => ({ ok: true, admin: user?.username ?? null }),
 });
 
 const mutateCore: ApiRouteCore = defineApiRoute({
-  methods: ['POST'],
-  auth: 'any',
+  methods: ["POST"],
+  auth: "any",
   input: z.object({ note: z.string().max(64).optional() }).strict(),
-  surface: 'system',
-  action: 'system.probe.mutate',
+  surface: "system",
+  action: "system.probe.mutate",
   handler: ({ user }) => ({ ok: true, user: user ? user.username : null }),
 });
 
 async function makeSession(opts: { isAdmin: boolean }): Promise<{ token: string; csrf: string }> {
   const csrf = generateSessionToken();
   const res = await store.createSession({
-    username: opts.isAdmin ? 'admin' : 'alice',
+    username: opts.isAdmin ? "admin" : "alice",
     csrfToken: csrf,
-    ip: '127.0.0.1',
-    userAgent: 'vitest',
+    ip: "127.0.0.1",
+    userAgent: "vitest",
     isAdmin: opts.isAdmin,
   });
   return { token: res.token, csrf };
@@ -93,143 +93,127 @@ async function makeSession(opts: { isAdmin: boolean }): Promise<{ token: string;
 function cookieHeader(parts: Record<string, string>): string {
   return Object.entries(parts)
     .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
-    .join('; ');
+    .join("; ");
 }
 
-describe('defineServerFn — produces a gate middleware', () => {
-  it('returns a TanStack function middleware with a server hook', () => {
+describe("defineServerFn — produces a gate middleware", () => {
+  it("returns a TanStack function middleware with a server hook", () => {
     const gate = defineServerFn({
-      method: 'GET',
-      auth: 'any',
-      surface: 'system',
-      action: 'system.shape',
+      method: "GET",
+      auth: "any",
+      surface: "system",
+      action: "system.shape",
       handler: () => ({ ok: true }),
     });
     // createMiddleware().server(...) yields an object carrying its options.
-    expect(gate).toBeTypeOf('object');
-    expect(gate).toHaveProperty('options');
+    expect(gate).toBeTypeOf("object");
+    expect(gate).toHaveProperty("options");
     expect(typeof (gate as unknown as { options: { server?: unknown } }).options.server).toBe(
-      'function',
+      "function",
     );
   });
 });
 
-describe('gate — auth:any', () => {
-  it('200 with a valid session', async () => {
+describe("gate — auth:any", () => {
+  it("200 with a valid session", async () => {
     const { token } = await makeSession({ isAdmin: false });
     const res = await anyCore(
-      new Request('http://localhost/_serverFn/probe', {
+      new Request("http://localhost/_serverFn/probe", {
         headers: { cookie: cookieHeader({ [SESSION_COOKIE]: token }) },
       }),
     );
     expect(res.status).toBe(200);
-    expect(await res.json()).toMatchObject({ ok: true, user: 'alice' });
+    expect(await res.json()).toMatchObject({ ok: true, user: "alice" });
   });
 
-  it('401 without a session', async () => {
-    const res = await anyCore(new Request('http://localhost/_serverFn/probe'));
+  it("401 without a session", async () => {
+    const res = await anyCore(new Request("http://localhost/_serverFn/probe"));
     expect(res.status).toBe(401);
-    expect((await res.json()).code).toBe('auth');
+    expect((await res.json()).code).toBe("auth");
   });
 
-  it('applies framework security headers on success', async () => {
+  it("applies framework security headers on success", async () => {
     const { token } = await makeSession({ isAdmin: false });
     const res = await anyCore(
-      new Request('http://localhost/_serverFn/probe', {
+      new Request("http://localhost/_serverFn/probe", {
         headers: { cookie: cookieHeader({ [SESSION_COOKIE]: token }) },
       }),
     );
-    expect(res.headers.get('x-frame-options')).toBe('DENY');
-    expect(res.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(res.headers.get("x-frame-options")).toBe("DENY");
+    expect(res.headers.get("x-content-type-options")).toBe("nosniff");
   });
 });
 
-describe('gate — auth:admin', () => {
-  it('403 for an authenticated non-admin', async () => {
+describe("gate — auth:admin", () => {
+  it("403 for an authenticated non-admin", async () => {
     const { token } = await makeSession({ isAdmin: false });
     const res = await adminCore(
-      new Request('http://localhost/_serverFn/probe', {
+      new Request("http://localhost/_serverFn/probe", {
         headers: { cookie: cookieHeader({ [SESSION_COOKIE]: token }) },
       }),
     );
     expect(res.status).toBe(403);
-    expect((await res.json()).code).toBe('permission');
+    expect((await res.json()).code).toBe("permission");
   });
 
-  it('200 for an admin', async () => {
+  it("200 for an admin", async () => {
     const { token } = await makeSession({ isAdmin: true });
     const res = await adminCore(
-      new Request('http://localhost/_serverFn/probe', {
+      new Request("http://localhost/_serverFn/probe", {
         headers: { cookie: cookieHeader({ [SESSION_COOKIE]: token }) },
       }),
     );
     expect(res.status).toBe(200);
-    expect(await res.json()).toMatchObject({ ok: true, admin: 'admin' });
+    expect(await res.json()).toMatchObject({ ok: true, admin: "admin" });
   });
 
-  it('401 for an admin route without a session', async () => {
-    const res = await adminCore(new Request('http://localhost/_serverFn/probe'));
+  it("401 for an admin route without a session", async () => {
+    const res = await adminCore(new Request("http://localhost/_serverFn/probe"));
     expect(res.status).toBe(401);
   });
 });
 
-describe('gate — input validation', () => {
-  it('400 with validation details on bad input', async () => {
+describe("gate — input validation", () => {
+  it("400 with validation details on bad input", async () => {
     const { token } = await makeSession({ isAdmin: false });
     const res = await anyCore(
-      new Request('http://localhost/_serverFn/probe?n=not-a-number', {
+      new Request("http://localhost/_serverFn/probe?n=not-a-number", {
         headers: { cookie: cookieHeader({ [SESSION_COOKIE]: token }) },
       }),
     );
     expect(res.status).toBe(400);
     const body = await res.json();
-    expect(body.code).toBe('validation');
+    expect(body.code).toBe("validation");
     expect(Array.isArray(body.details)).toBe(true);
     expect(body.details.length).toBeGreaterThan(0);
   });
 });
 
-describe('gate — mutation CSRF (double-submit + session-bound)', () => {
-  it('403 on POST without a CSRF header', async () => {
+describe("gate — mutation CSRF (double-submit + session-bound)", () => {
+  it("403 on POST without a CSRF header", async () => {
     const { token, csrf } = await makeSession({ isAdmin: false });
     const res = await mutateCore(
-      new Request('http://localhost/_serverFn/probe', {
-        method: 'POST',
+      new Request("http://localhost/_serverFn/probe", {
+        method: "POST",
         headers: {
           cookie: cookieHeader({ [SESSION_COOKIE]: token, [CSRF_COOKIE]: csrf }),
-          'content-type': 'application/json',
+          "content-type": "application/json",
         },
         body: JSON.stringify({}),
       }),
     );
     expect(res.status).toBe(403);
-    expect((await res.json()).code).toBe('permission');
+    expect((await res.json()).code).toBe("permission");
   });
 
-  it('403 on a CSRF cookie WITHOUT the matching header (stolen-cookie attack)', async () => {
+  it("403 on a CSRF cookie WITHOUT the matching header (stolen-cookie attack)", async () => {
     const { token, csrf } = await makeSession({ isAdmin: false });
     const res = await mutateCore(
-      new Request('http://localhost/_serverFn/probe', {
-        method: 'POST',
+      new Request("http://localhost/_serverFn/probe", {
+        method: "POST",
         headers: {
           cookie: cookieHeader({ [SESSION_COOKIE]: token, [CSRF_COOKIE]: csrf }),
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({}),
-      }),
-    );
-    expect(res.status).toBe(403);
-  });
-
-  it('403 on a mismatched CSRF header (not session-bound)', async () => {
-    const { token, csrf } = await makeSession({ isAdmin: false });
-    const res = await mutateCore(
-      new Request('http://localhost/_serverFn/probe', {
-        method: 'POST',
-        headers: {
-          cookie: cookieHeader({ [SESSION_COOKIE]: token, [CSRF_COOKIE]: csrf }),
-          'content-type': 'application/json',
-          'x-csrf-token': generateSessionToken(),
+          "content-type": "application/json",
         },
         body: JSON.stringify({}),
       }),
@@ -237,28 +221,44 @@ describe('gate — mutation CSRF (double-submit + session-bound)', () => {
     expect(res.status).toBe(403);
   });
 
-  it('201 with a valid session-bound CSRF token (cookie === header === session)', async () => {
+  it("403 on a mismatched CSRF header (not session-bound)", async () => {
     const { token, csrf } = await makeSession({ isAdmin: false });
     const res = await mutateCore(
-      new Request('http://localhost/_serverFn/probe', {
-        method: 'POST',
+      new Request("http://localhost/_serverFn/probe", {
+        method: "POST",
         headers: {
           cookie: cookieHeader({ [SESSION_COOKIE]: token, [CSRF_COOKIE]: csrf }),
-          'content-type': 'application/json',
-          'x-csrf-token': csrf,
+          "content-type": "application/json",
+          "x-csrf-token": generateSessionToken(),
         },
-        body: JSON.stringify({ note: 'hi' }),
+        body: JSON.stringify({}),
+      }),
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it("201 with a valid session-bound CSRF token (cookie === header === session)", async () => {
+    const { token, csrf } = await makeSession({ isAdmin: false });
+    const res = await mutateCore(
+      new Request("http://localhost/_serverFn/probe", {
+        method: "POST",
+        headers: {
+          cookie: cookieHeader({ [SESSION_COOKIE]: token, [CSRF_COOKIE]: csrf }),
+          "content-type": "application/json",
+          "x-csrf-token": csrf,
+        },
+        body: JSON.stringify({ note: "hi" }),
       }),
     );
     expect(res.status).toBe(201);
-    expect(await res.json()).toMatchObject({ ok: true, user: 'alice' });
+    expect(await res.json()).toMatchObject({ ok: true, user: "alice" });
   });
 
-  it('401 on POST with no session (CSRF surfaces as auth)', async () => {
+  it("401 on POST with no session (CSRF surfaces as auth)", async () => {
     const res = await mutateCore(
-      new Request('http://localhost/_serverFn/probe', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
+      new Request("http://localhost/_serverFn/probe", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
         body: JSON.stringify({}),
       }),
     );

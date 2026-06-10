@@ -2,7 +2,10 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import type { User as ContractUser } from "@cortexos/contracts/entities";
 import { login as loginFn, logout as logoutFn, me as meFn } from "@/lib/api/auth.functions";
 
-export interface AuthUser { username: string; is_admin: boolean }
+export interface AuthUser {
+  username: string;
+  is_admin: boolean;
+}
 
 interface AuthCtx {
   user: AuthUser | null;
@@ -36,8 +39,12 @@ function toAuthUser(u: ContractUser): AuthUser {
 // gate at runtime. Recover the typed call shapes at this single boundary.
 type LoginResult = { user: ContractUser | null; session: unknown };
 type MeResult = { user: ContractUser | null; session: unknown };
-const callLogin = loginFn as unknown as (opts: { data: { username: string; password: string } }) => Promise<LoginResult>;
-const callLogout = logoutFn as unknown as (opts: { headers?: Record<string, string> }) => Promise<{ ok: true }>;
+const callLogin = loginFn as unknown as (opts: {
+  data: { username: string; password: string };
+}) => Promise<LoginResult>;
+const callLogout = logoutFn as unknown as (opts: {
+  headers?: Record<string, string>;
+}) => Promise<{ ok: true }>;
 const callMe = meFn as unknown as (opts?: { data?: Record<string, never> }) => Promise<MeResult>;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -57,7 +64,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const login = useCallback(async (username: string, password: string) => {
@@ -80,12 +89,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
-  const switchUser = useCallback((_admin: boolean) => { /* no-op: role comes from PAM groups */ }, []);
+  const switchUser = useCallback((_admin: boolean) => {
+    /* no-op: role comes from PAM groups */
+  }, []);
 
   return (
-    <Ctx.Provider value={{ user, loading, login, logout, switchUser }}>
-      {children}
-    </Ctx.Provider>
+    <Ctx.Provider value={{ user, loading, login, logout, switchUser }}>{children}</Ctx.Provider>
   );
 }
 

@@ -32,23 +32,21 @@ let cachedDb: NodePgDatabase<typeof schema> | null = null;
  * missing — same posture as the existing `lib/db/client.ts`.
  */
 function readDbEnv() {
-	if (!process.env.DB_PASSWORD) {
-		throw new Error(
-			"DB_PASSWORD environment variable is required (drizzle client)",
-		);
-	}
-	return {
-		host: process.env.DB_HOST || "127.0.0.1",
-		port: parseInt(process.env.DB_PORT || "5432", 10),
-		database: process.env.DB_NAME || "cortex_dashboard",
-		user: process.env.DB_USER || "dashboard",
-		password: process.env.DB_PASSWORD,
-		// Match the existing pg pool tuning (lib/db/client.ts:30-34) so the
-		// two layers have the same connection semantics.
-		max: 20,
-		idleTimeoutMillis: 30_000,
-		connectionTimeoutMillis: 5_000,
-	} as const;
+  if (!process.env.DB_PASSWORD) {
+    throw new Error("DB_PASSWORD environment variable is required (drizzle client)");
+  }
+  return {
+    host: process.env.DB_HOST || "127.0.0.1",
+    port: parseInt(process.env.DB_PORT || "5432", 10),
+    database: process.env.DB_NAME || "cortex_dashboard",
+    user: process.env.DB_USER || "dashboard",
+    password: process.env.DB_PASSWORD,
+    // Match the existing pg pool tuning (lib/db/client.ts:30-34) so the
+    // two layers have the same connection semantics.
+    max: 20,
+    idleTimeoutMillis: 30_000,
+    connectionTimeoutMillis: 5_000,
+  } as const;
 }
 
 /**
@@ -57,11 +55,11 @@ function readDbEnv() {
  * (relational queries mode: `db.query.services.findMany()`).
  */
 export function getDb(): NodePgDatabase<typeof schema> {
-	if (!cachedDb) {
-		const pool = new Pool(readDbEnv());
-		cachedDb = drizzle(pool, { schema, logger: false });
-	}
-	return cachedDb;
+  if (!cachedDb) {
+    const pool = new Pool(readDbEnv());
+    cachedDb = drizzle(pool, { schema, logger: false });
+  }
+  return cachedDb;
 }
 
 /**
@@ -72,9 +70,9 @@ export function getDb(): NodePgDatabase<typeof schema> {
  * `DB_PASSWORD` is intentionally absent (build steps, type-only imports).
  */
 export const db = new Proxy({} as NodePgDatabase<typeof schema>, {
-	get(_target, prop, receiver) {
-		return Reflect.get(getDb(), prop, receiver);
-	},
+  get(_target, prop, receiver) {
+    return Reflect.get(getDb(), prop, receiver);
+  },
 });
 
 /**
@@ -82,7 +80,7 @@ export const db = new Proxy({} as NodePgDatabase<typeof schema>, {
  * Not exported from the package barrel.
  */
 export function _resetDbForTests() {
-	cachedDb = null;
+  cachedDb = null;
 }
 
 /**

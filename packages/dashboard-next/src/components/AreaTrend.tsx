@@ -1,12 +1,21 @@
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
-interface Series { key: string; color: string; name: string }
-interface Props { data: Record<string, number | string>[]; series: Series[]; height?: number | string; yDomain?: [number, number]; xKey?: string }
+interface Series {
+  key: string;
+  color: string;
+  name: string;
+}
+interface Props {
+  data: Record<string, number | string>[];
+  series: Series[];
+  height?: number | string;
+  yDomain?: [number, number];
+  xKey?: string;
+}
 
 export function AreaTrend({ data, series, height = 160, yDomain, xKey = "t" }: Props) {
   return (
     <ResponsiveContainer width="100%" height={(height as number) ?? "100%"}>
-
       <AreaChart data={data} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
         <defs>
           {series.map((s) => (
@@ -17,14 +26,34 @@ export function AreaTrend({ data, series, height = 160, yDomain, xKey = "t" }: P
           ))}
         </defs>
         <XAxis dataKey={xKey} tick={false} axisLine={false} />
-        <YAxis domain={yDomain} tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} width={28} />
+        <YAxis
+          domain={yDomain}
+          tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+          axisLine={false}
+          tickLine={false}
+          width={28}
+        />
         <Tooltip
-          contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
+          contentStyle={{
+            background: "var(--popover)",
+            border: "1px solid var(--border)",
+            borderRadius: 8,
+            fontSize: 12,
+          }}
           labelStyle={{ color: "var(--muted-foreground)" }}
           formatter={(v: number) => v.toFixed(1)}
         />
         {series.map((s) => (
-          <Area key={s.key} type="monotone" dataKey={s.key} name={s.name} stroke={s.color} strokeWidth={1.6} fill={`url(#g-${s.key})`} isAnimationActive={false} />
+          <Area
+            key={s.key}
+            type="monotone"
+            dataKey={s.key}
+            name={s.name}
+            stroke={s.color}
+            strokeWidth={1.6}
+            fill={`url(#g-${s.key})`}
+            isAnimationActive={false}
+          />
         ))}
       </AreaChart>
     </ResponsiveContainer>

@@ -16,11 +16,11 @@
  * Branded id primitive — match the contracts `DockerContainer.id`
  * shape (sha256:hex or a 12-64 char hex string).
  */
-export type ContainerId = string & { readonly __brand: 'ContainerId' };
+export type ContainerId = string & { readonly __brand: "ContainerId" };
 
 export const asContainerId = (s: string): ContainerId => s as ContainerId;
 
-export type ContainerState = 'running' | 'exited' | 'paused' | 'restarting' | 'created' | 'dead';
+export type ContainerState = "running" | "exited" | "paused" | "restarting" | "created" | "dead";
 
 /** Mounts (host:container[:ro]) — same shape the contracts use. */
 export interface ContainerMount {
@@ -49,13 +49,13 @@ export interface Container {
   readonly logs: ReadonlyArray<string>;
 }
 
-export type ContainerFilter = 'all' | 'running' | 'stopped' | 'paused' | 'restarting';
+export type ContainerFilter = "all" | "running" | "stopped" | "paused" | "restarting";
 
 // ---------------------------------------------------------------------------
 // Seed helpers
 // ---------------------------------------------------------------------------
 
-const FROZEN_NOW = '2026-06-09T12:00:00.000Z';
+const FROZEN_NOW = "2026-06-09T12:00:00.000Z";
 
 function frozenMinusMinutes(minutes: number): string {
   const t = Date.parse(FROZEN_NOW) - minutes * 60_000;
@@ -66,64 +66,64 @@ function frozenMinusMinutes(minutes: number): string {
 // Container seed
 // ---------------------------------------------------------------------------
 
-const SEED: ReadonlyArray<Omit<Container, 'logs'>> = [
+const SEED: ReadonlyArray<Omit<Container, "logs">> = [
   {
-    id: asContainerId('sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'),
-    name: 'grafana-1',
-    image: 'grafana/grafana:11.2.0',
-    state: 'running',
-    status: 'Up 2 hours',
-    ports: ['3000:3000'],
+    id: asContainerId("sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+    name: "grafana-1",
+    image: "grafana/grafana:11.2.0",
+    state: "running",
+    status: "Up 2 hours",
+    ports: ["3000:3000"],
     created: frozenMinusMinutes(120),
     privileged: false,
-    networks: ['monitoring', 'bridge'],
-    mounts: [{ source: 'grafana-data', destination: '/var/lib/grafana', mode: 'rw' }],
+    networks: ["monitoring", "bridge"],
+    mounts: [{ source: "grafana-data", destination: "/var/lib/grafana", mode: "rw" }],
   },
   {
-    id: asContainerId('sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'),
-    name: 'prometheus-1',
-    image: 'prom/prometheus:v2.55.0',
-    state: 'running',
-    status: 'Up 2 hours',
-    ports: ['9090:9090'],
+    id: asContainerId("sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
+    name: "prometheus-1",
+    image: "prom/prometheus:v2.55.0",
+    state: "running",
+    status: "Up 2 hours",
+    ports: ["9090:9090"],
     created: frozenMinusMinutes(120),
     privileged: false,
-    networks: ['monitoring'],
-    mounts: [{ source: 'prometheus-data', destination: '/prometheus', mode: 'rw' }],
+    networks: ["monitoring"],
+    mounts: [{ source: "prometheus-data", destination: "/prometheus", mode: "rw" }],
   },
   {
-    id: asContainerId('sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc'),
-    name: 'caddy-1',
-    image: 'caddy:2.8-alpine',
-    state: 'running',
-    status: 'Up 4 hours',
-    ports: ['80:80', '443:443'],
+    id: asContainerId("sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"),
+    name: "caddy-1",
+    image: "caddy:2.8-alpine",
+    state: "running",
+    status: "Up 4 hours",
+    ports: ["80:80", "443:443"],
     created: frozenMinusMinutes(240),
     privileged: false,
-    networks: ['bridge'],
-    mounts: [{ source: '/etc/caddy', destination: '/etc/caddy', mode: 'ro' }],
+    networks: ["bridge"],
+    mounts: [{ source: "/etc/caddy", destination: "/etc/caddy", mode: "ro" }],
   },
   {
-    id: asContainerId('sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd'),
-    name: 'postgres-1',
-    image: 'postgres:16-alpine',
-    state: 'exited',
-    status: 'Exited (0) 30 minutes ago',
-    ports: ['5432:5432'],
+    id: asContainerId("sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"),
+    name: "postgres-1",
+    image: "postgres:16-alpine",
+    state: "exited",
+    status: "Exited (0) 30 minutes ago",
+    ports: ["5432:5432"],
     created: frozenMinusMinutes(600),
     privileged: false,
-    networks: ['bridge'],
-    mounts: [{ source: 'postgres-data', destination: '/var/lib/postgresql/data', mode: 'rw' }],
+    networks: ["bridge"],
+    mounts: [{ source: "postgres-data", destination: "/var/lib/postgresql/data", mode: "rw" }],
   },
 ];
 
 /** Synthetic per-container log lines. */
 const SYNTHETIC_LOGS: Readonly<Record<string, ReadonlyArray<string>>> = {
-  'grafana-1': [
+  "grafana-1": [
     't=2026-06-09T10:00:00 lvl=info msg="Starting Grafana" version=11.2.0',
     't=2026-06-09T10:00:01 lvl=info msg="HTTP Server Listen" address=[::]:3000',
   ],
-  'prometheus-1': [
+  "prometheus-1": [
     'level=info ts=2026-06-09T10:00:00 caller=main.go:567 msg="Starting Prometheus"',
     'level=info ts=2026-06-09T10:00:01 caller=web.go:571 msg="Start listening" address=0.0.0.0:9090',
   ],
@@ -146,19 +146,17 @@ export function listContainers(
   opts: { filter?: ContainerFilter; query?: string } = {},
 ): Container[] {
   let rows = containers.slice();
-  const filter = opts.filter ?? 'all';
-  if (filter === 'running') {
-    rows = rows.filter((c) => c.state === 'running');
-  } else if (filter === 'stopped') {
-    rows = rows.filter(
-      (c) => c.state === 'exited' || c.state === 'created' || c.state === 'dead',
-    );
-  } else if (filter === 'paused') {
-    rows = rows.filter((c) => c.state === 'paused');
-  } else if (filter === 'restarting') {
-    rows = rows.filter((c) => c.state === 'restarting');
+  const filter = opts.filter ?? "all";
+  if (filter === "running") {
+    rows = rows.filter((c) => c.state === "running");
+  } else if (filter === "stopped") {
+    rows = rows.filter((c) => c.state === "exited" || c.state === "created" || c.state === "dead");
+  } else if (filter === "paused") {
+    rows = rows.filter((c) => c.state === "paused");
+  } else if (filter === "restarting") {
+    rows = rows.filter((c) => c.state === "restarting");
   }
-  const needle = (opts.query ?? '').trim().toLowerCase();
+  const needle = (opts.query ?? "").trim().toLowerCase();
   if (needle) {
     rows = rows.filter(
       (c) =>
@@ -202,19 +200,19 @@ function setState(c: Container, next: ContainerState, status: string): Container
 export function startContainer(id: string): Container {
   const c = getContainerById(id);
   if (!c) throw new Error(`Container '${id}' not found`);
-  return setState(c, 'running', 'Up 0 seconds');
+  return setState(c, "running", "Up 0 seconds");
 }
 
 export function stopContainer(id: string): Container {
   const c = getContainerById(id);
   if (!c) throw new Error(`Container '${id}' not found`);
-  return setState(c, 'exited', 'Exited (0) 0 seconds ago');
+  return setState(c, "exited", "Exited (0) 0 seconds ago");
 }
 
 export function restartContainer(id: string): Container {
   const c = getContainerById(id);
   if (!c) throw new Error(`Container '${id}' not found`);
-  return setState(c, 'running', 'Up 0 seconds (restarted)');
+  return setState(c, "running", "Up 0 seconds (restarted)");
 }
 
 export function removeContainer(id: string): boolean {
@@ -238,30 +236,30 @@ export interface DockerImage {
 
 const IMAGE_SEED: ReadonlyArray<DockerImage> = [
   {
-    id: 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1',
-    repo: 'grafana/grafana',
-    tag: '11.2.0',
+    id: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1",
+    repo: "grafana/grafana",
+    tag: "11.2.0",
     size: 385_000_000,
     created: frozenMinusMinutes(10_080),
   },
   {
-    id: 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2',
-    repo: 'prom/prometheus',
-    tag: 'v2.55.0',
+    id: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2",
+    repo: "prom/prometheus",
+    tag: "v2.55.0",
     size: 280_000_000,
     created: frozenMinusMinutes(10_080),
   },
   {
-    id: 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa3',
-    repo: 'caddy',
-    tag: '2.8-alpine',
+    id: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa3",
+    repo: "caddy",
+    tag: "2.8-alpine",
     size: 45_000_000,
     created: frozenMinusMinutes(20_160),
   },
   {
-    id: 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa4',
-    repo: 'postgres',
-    tag: '16-alpine',
+    id: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa4",
+    repo: "postgres",
+    tag: "16-alpine",
     size: 250_000_000,
     created: frozenMinusMinutes(20_160),
   },
@@ -271,7 +269,7 @@ let images: DockerImage[] = IMAGE_SEED.slice();
 
 export function listImages(opts: { query?: string } = {}): DockerImage[] {
   let rows = images.slice();
-  const needle = (opts.query ?? '').trim().toLowerCase();
+  const needle = (opts.query ?? "").trim().toLowerCase();
   if (needle) {
     rows = rows.filter(
       (i) =>
@@ -298,25 +296,25 @@ export interface DockerVolume {
 
 const VOLUME_SEED: ReadonlyArray<DockerVolume> = [
   {
-    name: 'grafana-data',
-    driver: 'local',
-    mountpoint: '/var/lib/docker/volumes/grafana-data/_data',
+    name: "grafana-data",
+    driver: "local",
+    mountpoint: "/var/lib/docker/volumes/grafana-data/_data",
     size: 45_000_000,
     createdAt: frozenMinusMinutes(10_080),
     labels: {},
   },
   {
-    name: 'prometheus-data',
-    driver: 'local',
-    mountpoint: '/var/lib/docker/volumes/prometheus-data/_data',
+    name: "prometheus-data",
+    driver: "local",
+    mountpoint: "/var/lib/docker/volumes/prometheus-data/_data",
     size: 120_000_000,
     createdAt: frozenMinusMinutes(10_080),
     labels: {},
   },
   {
-    name: 'postgres-data',
-    driver: 'local',
-    mountpoint: '/var/lib/docker/volumes/postgres-data/_data',
+    name: "postgres-data",
+    driver: "local",
+    mountpoint: "/var/lib/docker/volumes/postgres-data/_data",
     size: 85_000_000,
     createdAt: frozenMinusMinutes(20_160),
     labels: {},
@@ -327,7 +325,7 @@ let volumes: DockerVolume[] = VOLUME_SEED.slice();
 
 export function listVolumes(opts: { query?: string } = {}): DockerVolume[] {
   let rows = volumes.slice();
-  const needle = (opts.query ?? '').trim().toLowerCase();
+  const needle = (opts.query ?? "").trim().toLowerCase();
   if (needle) {
     rows = rows.filter(
       (v) =>

@@ -15,13 +15,13 @@ export * from "./schema";
 export { getDb, db, type DbClient } from "./client";
 export { createPgliteDb, createMigratedPgliteDb, type PgliteDbClient } from "./client.pglite";
 export {
-	runSqlMigrations,
-	getLanIp,
-	replaceVpsLanIp,
-	defaultMigrationsDir,
-	pgExecutor,
-	type Executor,
-	type RunMigrationsOptions,
+  runSqlMigrations,
+  getLanIp,
+  replaceVpsLanIp,
+  defaultMigrationsDir,
+  pgExecutor,
+  type Executor,
+  type RunMigrationsOptions,
 } from "./migrate";
 
 export * as users from "./repos/users";

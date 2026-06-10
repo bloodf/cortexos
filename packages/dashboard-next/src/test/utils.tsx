@@ -11,7 +11,10 @@ export function makeQueryClient() {
   });
 }
 
-interface ProvidersProps { children: ReactNode; client?: QueryClient }
+interface ProvidersProps {
+  children: ReactNode;
+  client?: QueryClient;
+}
 
 export function TestProviders({ children, client }: ProvidersProps) {
   const qc = client ?? makeQueryClient();

@@ -6,25 +6,27 @@
  * `drizzle-orm` packages. We mock the `pg` Pool so no real connection
  * is attempted, and set `DB_PASSWORD` to drive the happy path.
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 // Mock the `pg` package before importing the client. The mock is
 // re-applied per test so env changes take effect.
 const mockPool = { query: vi.fn() };
-vi.mock('pg', () => ({
+vi.mock("pg", () => ({
   // `Pool` is called as `new Pool(...)`, so the mock must be a
   // constructor that returns our shared mockPool. vi.fn()
   // doubles as a constructor when called with `new`.
-  Pool: vi.fn().mockImplementation(function Pool() { return mockPool; }),
+  Pool: vi.fn().mockImplementation(function Pool() {
+    return mockPool;
+  }),
 }));
 
 beforeEach(() => {
   // Set a baseline so getDb() doesn't throw "DB_PASSWORD required".
-  process.env.DB_PASSWORD = 'test-password';
-  process.env.DB_HOST = '127.0.0.1';
-  process.env.DB_PORT = '5432';
-  process.env.DB_NAME = 'cortex_test';
-  process.env.DB_USER = 'dashboard';
+  process.env.DB_PASSWORD = "test-password";
+  process.env.DB_HOST = "127.0.0.1";
+  process.env.DB_PORT = "5432";
+  process.env.DB_NAME = "cortex_test";
+  process.env.DB_USER = "dashboard";
 });
 
 afterEach(() => {
@@ -36,24 +38,24 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe('db/client', () => {
-  it('getDb() throws when DB_PASSWORD is missing', async () => {
+describe("db/client", () => {
+  it("getDb() throws when DB_PASSWORD is missing", async () => {
     delete process.env.DB_PASSWORD;
-    const { _resetDbForTests, getDb } = await import('../client');
+    const { _resetDbForTests, getDb } = await import("../client");
     _resetDbForTests();
     expect(() => getDb()).toThrow(/DB_PASSWORD/);
   });
 
-  it('getDb() returns a cached Drizzle client on second call', async () => {
-    const { getDb, _resetDbForTests } = await import('../client');
+  it("getDb() returns a cached Drizzle client on second call", async () => {
+    const { getDb, _resetDbForTests } = await import("../client");
     _resetDbForTests();
     const a = getDb();
     const b = getDb();
     expect(a).toBe(b); // same singleton
   });
 
-  it('_resetDbForTests() forces a new Pool on the next getDb()', async () => {
-    const { getDb, _resetDbForTests } = await import('../client');
+  it("_resetDbForTests() forces a new Pool on the next getDb()", async () => {
+    const { getDb, _resetDbForTests } = await import("../client");
     _resetDbForTests();
     const a = getDb();
     _resetDbForTests();
@@ -64,16 +66,16 @@ describe('db/client', () => {
     expect(b).toBeDefined();
   });
 
-  it('db proxy delegates property access to the cached client', async () => {
-    const { getDb, _resetDbForTests, db } = await import('../client');
+  it("db proxy delegates property access to the cached client", async () => {
+    const { getDb, _resetDbForTests, db } = await import("../client");
     _resetDbForTests();
     const client = getDb();
     // The proxy should return the same value as direct access.
     expect((db as { select: unknown }).select).toBe(client.select);
   });
 
-  it('exports the schema for downstream consumers', async () => {
-    const { schema } = await import('../client');
+  it("exports the schema for downstream consumers", async () => {
+    const { schema } = await import("../client");
     expect(schema).toBeDefined();
     expect(schema.adminSessions).toBeDefined();
     expect(schema.pamUsers).toBeDefined();

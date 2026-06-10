@@ -35,9 +35,7 @@ export interface LoginResult {
 // ---------------------------------------------------------------------------
 
 function notYetWired(fn: string): never {
-  throw new Error(
-    `[WP-04 TODO] auth.${fn} — server function not yet wired (WP-20 pending)`,
-  );
+  throw new Error(`[WP-04 TODO] auth.${fn} — server function not yet wired (WP-20 pending)`);
 }
 
 // ---------------------------------------------------------------------------

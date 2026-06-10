@@ -68,7 +68,10 @@ function toRisk(verdict: string, confidence: string): MockMailReview["risk"] {
 }
 
 /** Derive display status from ownerDecision + resolvedAt. */
-function toStatus(ownerDecision: string | null, resolvedAt: Date | string | null): MockMailReview["status"] {
+function toStatus(
+  ownerDecision: string | null,
+  resolvedAt: Date | string | null,
+): MockMailReview["status"] {
   if (!resolvedAt) return "pending";
   if (ownerDecision === "spam") return "flagged";
   if (ownerDecision === "keep") return "approved";
@@ -91,7 +94,8 @@ export function toMailReviewRow(m: ServerMailReview): MockMailReview {
     body: summary,
     risk: toRisk(m.modelVerdict, m.modelConfidence),
     status: toStatus(m.ownerDecision, m.resolvedAt),
-    received_at: m.requestedAt instanceof Date ? m.requestedAt.toISOString() : String(m.requestedAt),
+    received_at:
+      m.requestedAt instanceof Date ? m.requestedAt.toISOString() : String(m.requestedAt),
   };
 }
 

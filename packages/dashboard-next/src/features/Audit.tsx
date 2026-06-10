@@ -14,7 +14,11 @@ import { cn } from "@/lib/utils";
 
 export function AuditPage() {
   const t = useT();
-  const { data: items = [], isLoading, isError } = useQuery({
+  const {
+    data: items = [],
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ["audit"],
     queryFn: api.audit,
   });
@@ -31,7 +35,9 @@ export function AuditPage() {
       key: "created_at",
       header: "When",
       sort: (r) => r.created_at,
-      cell: (r) => <span className="text-xs text-muted-foreground">{relativeTime(r.created_at)}</span>,
+      cell: (r) => (
+        <span className="text-xs text-muted-foreground">{relativeTime(r.created_at)}</span>
+      ),
     },
     {
       key: "actor",

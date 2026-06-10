@@ -17,8 +17,6 @@
 import * as jestDomMatchers from "@testing-library/jest-dom/matchers";
 
 declare module "vitest" {
-  interface Assertion<T = any>
-    extends jestDomMatchers.TestingLibraryMatchers<any, T> {}
-  interface AsymmetricMatchersContaining
-    extends jestDomMatchers.TestingLibraryMatchers<any, any> {}
+  interface Assertion<T = any> extends jestDomMatchers.TestingLibraryMatchers<any, T> {}
+  interface AsymmetricMatchersContaining extends jestDomMatchers.TestingLibraryMatchers<any, any> {}
 }

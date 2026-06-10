@@ -2,10 +2,26 @@ export type Status = "online" | "offline" | "unknown" | "checking";
 
 export function statusColor(s: Status): { dot: string; text: string; bg: string } {
   switch (s) {
-    case "online": return { dot: "bg-[var(--success)]", text: "text-[var(--success)]", bg: "bg-[var(--success)]/10" };
-    case "offline": return { dot: "bg-[var(--destructive)]", text: "text-[var(--destructive)]", bg: "bg-[var(--destructive)]/10" };
-    case "checking": return { dot: "bg-[var(--warning)] animate-pulse", text: "text-[var(--warning)]", bg: "bg-[var(--warning)]/10" };
-    default: return { dot: "bg-muted-foreground", text: "text-muted-foreground", bg: "bg-muted" };
+    case "online":
+      return {
+        dot: "bg-[var(--success)]",
+        text: "text-[var(--success)]",
+        bg: "bg-[var(--success)]/10",
+      };
+    case "offline":
+      return {
+        dot: "bg-[var(--destructive)]",
+        text: "text-[var(--destructive)]",
+        bg: "bg-[var(--destructive)]/10",
+      };
+    case "checking":
+      return {
+        dot: "bg-[var(--warning)] animate-pulse",
+        text: "text-[var(--warning)]",
+        bg: "bg-[var(--warning)]/10",
+      };
+    default:
+      return { dot: "bg-muted-foreground", text: "text-muted-foreground", bg: "bg-muted" };
   }
 }
 

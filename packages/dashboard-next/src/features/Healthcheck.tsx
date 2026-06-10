@@ -28,15 +28,15 @@ export function HealthcheckPage() {
   // audit-logs every call).
   const fetchHostLogs = useCallback(async (): Promise<string[]> => {
     const { lines } = await callHostLogs({ data: { limit: 200 } });
-    return lines.map(
-      (l) => `[${l.ts}] ${l.priority.padEnd(7)} ${l.unit}: ${l.message}`,
-    );
+    return lines.map((l) => `[${l.ts}] ${l.priority.padEnd(7)} ${l.unit}: ${l.message}`);
   }, []);
 
   const recheck = async (row: Service) => {
     toast.info(`Re-checking ${row.name}…`);
     try {
-      const recheckFn = recheckServiceHealth as unknown as (opts: { data: { id: number; source: "manual" } }) => Promise<unknown>;
+      const recheckFn = recheckServiceHealth as unknown as (opts: {
+        data: { id: number; source: "manual" };
+      }) => Promise<unknown>;
       await recheckFn({ data: { id: row.id, source: "manual" } });
       await qc.invalidateQueries({ queryKey: ["healthcheck"] });
       toast.success(`${row.name} probe complete`);
@@ -47,7 +47,9 @@ export function HealthcheckPage() {
 
   const cols: Column<Service>[] = [
     {
-      key: "name", header: "Service", sort: (r) => r.name,
+      key: "name",
+      header: "Service",
+      sort: (r) => r.name,
       cell: (r) => (
         <div className="flex items-center gap-2">
           <TechIcon slug={r.slug} name={r.name} size={24} />
@@ -56,13 +58,43 @@ export function HealthcheckPage() {
             <p className="text-[10px] text-muted-foreground font-mono truncate">{r.health_url}</p>
           </div>
         </div>
-      )
+      ),
     },
-    { key: "category", header: "Category", sort: (r) => r.category, cell: (r) => <span className="text-xs">{r.category}</span> },
-    { key: "status", header: "Status", sort: (r) => r.status, cell: (r) => <StatusBadge status={r.status} /> },
-    { key: "rt", header: "Latency", sort: (r) => r.responseTime, className: "text-right tabular-nums", cell: (r) => r.responseTime > 0 ? ms(r.responseTime) : "—" },
-    { key: "type", header: "Type", sort: (r) => r.health_type, cell: (r) => <span className="text-xs font-mono">{r.health_type}</span> },
-    { key: "act", header: "", cell: (r) => <Button size="sm" variant="ghost" onClick={() => recheck(r)}><RefreshCw className="size-3.5" /></Button>, className: "text-right w-[60px]" },
+    {
+      key: "category",
+      header: "Category",
+      sort: (r) => r.category,
+      cell: (r) => <span className="text-xs">{r.category}</span>,
+    },
+    {
+      key: "status",
+      header: "Status",
+      sort: (r) => r.status,
+      cell: (r) => <StatusBadge status={r.status} />,
+    },
+    {
+      key: "rt",
+      header: "Latency",
+      sort: (r) => r.responseTime,
+      className: "text-right tabular-nums",
+      cell: (r) => (r.responseTime > 0 ? ms(r.responseTime) : "—"),
+    },
+    {
+      key: "type",
+      header: "Type",
+      sort: (r) => r.health_type,
+      cell: (r) => <span className="text-xs font-mono">{r.health_type}</span>,
+    },
+    {
+      key: "act",
+      header: "",
+      cell: (r) => (
+        <Button size="sm" variant="ghost" onClick={() => recheck(r)}>
+          <RefreshCw className="size-3.5" />
+        </Button>
+      ),
+      className: "text-right w-[60px]",
+    },
   ];
 
   return (
@@ -73,7 +105,15 @@ export function HealthcheckPage() {
         actions={
           <div className="flex gap-1 border rounded-md p-0.5 bg-muted/30">
             {(["1h", "24h", "7d"] as const).map((p) => (
-              <Button key={p} size="sm" variant={period === p ? "default" : "ghost"} className="h-7 px-3" onClick={() => setPeriod(p)}>{p}</Button>
+              <Button
+                key={p}
+                size="sm"
+                variant={period === p ? "default" : "ghost"}
+                className="h-7 px-3"
+                onClick={() => setPeriod(p)}
+              >
+                {p}
+              </Button>
             ))}
           </div>
         }
@@ -85,16 +125,19 @@ export function HealthcheckPage() {
         server={{ queryKey: ["healthcheck"], fetch: api.healthcheckList, refetchInterval: 3000 }}
       />
 
-
       <Card className="elev-1">
-        <CardHeader className="pb-2"><CardTitle className="text-sm">Incident timeline</CardTitle></CardHeader>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Incident timeline</CardTitle>
+        </CardHeader>
         <CardContent>
           <p className="text-xs text-muted-foreground">Alert history not yet wired (WP-17).</p>
         </CardContent>
       </Card>
 
       <Card className="elev-1">
-        <CardHeader className="pb-2"><CardTitle className="text-sm">Live log stream</CardTitle></CardHeader>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Live log stream</CardTitle>
+        </CardHeader>
         <CardContent>
           <LogStream height={360} fetcher={fetchHostLogs} refetchIntervalMs={3000} />
         </CardContent>

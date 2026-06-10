@@ -44,7 +44,7 @@ import {
   type IncusPreflightCheck,
   type ProgressStep,
   type IncusInstanceConfig,
-} from '@cortexos/contracts';
+} from "@cortexos/contracts";
 
 /**
  * Local log-line shape. The contracts package does not export an
@@ -53,16 +53,16 @@ import {
  */
 export interface IncusLogLine {
   ts: string;
-  priority: 'info' | 'warn' | 'error' | 'debug';
+  priority: "info" | "warn" | "error" | "debug";
   name: string;
   message: string;
 }
-import { audit } from '../audit';
-import { actionHashFor } from '../approval';
-import { allowlistedCommand, type AllowlistEntry } from '../policy';
-import type { User } from '../entities';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+import { audit } from "../audit";
+import { actionHashFor } from "../approval";
+import { allowlistedCommand, type AllowlistEntry } from "../policy";
+import type { User } from "../entities";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 
@@ -113,13 +113,13 @@ export type IncusExecutor = (ctx: IncusExecutorContext) => Promise<IncusExecutor
  * actions without resolving the Zod-inferred type.
  */
 export type IncusActionKind =
-  | 'start'
-  | 'stop'
-  | 'restart'
-  | 'delete'
-  | 'launch'
-  | 'list'
-  | 'exec-named';
+  | "start"
+  | "stop"
+  | "restart"
+  | "delete"
+  | "launch"
+  | "list"
+  | "exec-named";
 
 // ---------------------------------------------------------------------------
 // Mock executor (M2). In-memory, deterministic, no shell.
@@ -128,7 +128,7 @@ export type IncusActionKind =
 /** A single Incus log line. Mirrors the contracts shape. */
 export type IncusLogLineEntry = {
   ts: string;
-  priority: 'info' | 'warn' | 'error' | 'debug';
+  priority: "info" | "warn" | "error" | "debug";
   name: string;
   message: string;
 };
@@ -147,9 +147,9 @@ interface MockInstanceRecord extends IncusInstance {
         string,
         {
           addresses: Array<{
-            family: 'inet' | 'inet6';
+            family: "inet" | "inet6";
             address: string;
-            scope?: 'global' | 'link' | 'local';
+            scope?: "global" | "link" | "local";
           }>;
           state?: string;
           type?: string;
@@ -212,7 +212,7 @@ export class MockIncusExecutor {
     const current = this.snapshots.get(ctx.instance.name);
     if (!current) {
       return {
-        stdout: '',
+        stdout: "",
         stderr: `Instance ${ctx.instance.name} not loaded in mock executor`,
         exitCode: 1,
         instance: ctx.instance,
@@ -222,7 +222,7 @@ export class MockIncusExecutor {
     this.snapshots.set(ctx.instance.name, next);
     return {
       stdout: `__cortexos_incus_mock__ ${ctx.action} ${ctx.instance.name}`,
-      stderr: '',
+      stderr: "",
       exitCode: 0,
       instance: this.toContractsInstance(next),
     };
@@ -242,18 +242,18 @@ export class MockIncusExecutor {
  */
 export function applyAction(rec: MockInstanceRecord, action: IncusActionKind): MockInstanceRecord {
   switch (action) {
-    case 'start':
-      return { ...rec, status: 'active' };
-    case 'stop':
-      return { ...rec, status: 'stopped' };
-    case 'restart':
-      return { ...rec, status: 'active' };
-    case 'delete':
-      return { ...rec, status: 'failed' };
-    case 'launch':
-      return { ...rec, status: 'provisioning' };
-    case 'list':
-    case 'exec-named':
+    case "start":
+      return { ...rec, status: "active" };
+    case "stop":
+      return { ...rec, status: "stopped" };
+    case "restart":
+      return { ...rec, status: "active" };
+    case "delete":
+      return { ...rec, status: "failed" };
+    case "launch":
+      return { ...rec, status: "provisioning" };
+    case "list":
+    case "exec-named":
       return { ...rec };
   }
 }
@@ -285,33 +285,33 @@ function projectMockRecord(rec: MockInstanceRecord): IncusInstance {
 
 const realIncusExecutor: IncusExecutor = async (ctx) => {
   const args: Record<IncusActionKind, string[]> = {
-    start: ['start', ctx.instance.name],
-    stop: ['stop', ctx.instance.name],
-    restart: ['restart', ctx.instance.name],
-    delete: ['delete', ctx.instance.name, '--force'],
-    launch: ['launch', ctx.instance.image, ctx.instance.name],
-    list: ['list', ctx.instance.name, '--format', 'json'],
-    'exec-named': ['list', ctx.instance.name, '--format', 'json'],
+    start: ["start", ctx.instance.name],
+    stop: ["stop", ctx.instance.name],
+    restart: ["restart", ctx.instance.name],
+    delete: ["delete", ctx.instance.name, "--force"],
+    launch: ["launch", ctx.instance.image, ctx.instance.name],
+    list: ["list", ctx.instance.name, "--format", "json"],
+    "exec-named": ["list", ctx.instance.name, "--format", "json"],
   };
 
   try {
-    const { stdout, stderr } = await execFileAsync('incus', args[ctx.action], {
+    const { stdout, stderr } = await execFileAsync("incus", args[ctx.action], {
       timeout: 60_000,
       maxBuffer: 4 * 1024 * 1024,
     });
     const updated = await getMockRecord(ctx.instance.name);
     return {
-      stdout: stdout ?? '',
-      stderr: stderr ?? '',
+      stdout: stdout ?? "",
+      stderr: stderr ?? "",
       exitCode: 0,
       instance: updated ? projectMockRecord(updated) : ctx.instance,
     };
   } catch (err) {
     const e = err as { code?: number | string; stdout?: string; stderr?: string; message?: string };
     return {
-      stdout: e.stdout ?? '',
-      stderr: e.stderr ?? e.message ?? 'incus exec failed',
-      exitCode: typeof e.code === 'number' ? e.code : 1,
+      stdout: e.stdout ?? "",
+      stderr: e.stderr ?? e.message ?? "incus exec failed",
+      exitCode: typeof e.code === "number" ? e.code : 1,
       instance: ctx.instance,
     };
   }
@@ -328,20 +328,20 @@ function parseMemoryLimit(value: string | undefined): number | null {
   const m = /^(\d+(?:\.\d+)?)\s*(b|kb|mb|mib|gb|gib|tb|tib)?$/.exec(cleaned);
   if (!m) return null;
   const num = parseFloat(m[1]!);
-  const unit = m[2] ?? 'b';
+  const unit = m[2] ?? "b";
   switch (unit) {
-    case 'b':
+    case "b":
       return Math.round(num / (1024 * 1024));
-    case 'kb':
+    case "kb":
       return Math.round(num / 1024);
-    case 'mb':
-    case 'mib':
+    case "mb":
+    case "mib":
       return Math.round(num);
-    case 'gb':
-    case 'gib':
+    case "gb":
+    case "gib":
       return Math.round(num * 1024);
-    case 'tb':
-    case 'tib':
+    case "tb":
+    case "tib":
       return Math.round(num * 1024 * 1024);
     default:
       return Math.round(num);
@@ -359,51 +359,47 @@ function parseCpuLimit(value: string | undefined): number | null {
 function mapIncusStatus(status: string): IncusInstanceStatus {
   const s = status.toLowerCase();
   switch (s) {
-    case 'running':
-      return 'running';
-    case 'stopped':
-      return 'stopped';
-    case 'frozen':
-      return 'frozen';
-    case 'error':
-      return 'error';
-    case 'starting':
-      return 'provisioning';
-    case 'stopping':
-      return 'active';
+    case "running":
+      return "running";
+    case "stopped":
+      return "stopped";
+    case "frozen":
+      return "frozen";
+    case "error":
+      return "error";
+    case "starting":
+      return "provisioning";
+    case "stopping":
+      return "active";
     default:
-      return 'active';
+      return "active";
   }
 }
 
 /** Map an Incus type string to the contracts IncusInstanceType. */
-function mapIncusType(type: string): IncusInstance['type'] {
-  if (type === 'virtual-machine') return 'vm';
-  return 'container';
+function mapIncusType(type: string): IncusInstance["type"] {
+  if (type === "virtual-machine") return "vm";
+  return "container";
 }
 
 /** Map an Incus image type string to the contracts image type. */
-function mapIncusImageType(type: string): IncusImage['type'] {
-  if (type === 'virtual-machine') return 'virtual-machine';
-  if (type === 'container') return 'container';
-  return 'unknown';
+function mapIncusImageType(type: string): IncusImage["type"] {
+  if (type === "virtual-machine") return "virtual-machine";
+  if (type === "container") return "container";
+  return "unknown";
 }
 
 /** Extract bridge from expanded devices. */
 function extractBridge(devices: Record<string, unknown>): string {
   for (const [, dev] of Object.entries(devices)) {
-    if (
-      dev &&
-      typeof dev === 'object' &&
-      (dev as Record<string, unknown>).type === 'nic'
-    ) {
+    if (dev && typeof dev === "object" && (dev as Record<string, unknown>).type === "nic") {
       const network = (dev as Record<string, unknown>).network;
-      if (typeof network === 'string') return network;
+      if (typeof network === "string") return network;
       const parent = (dev as Record<string, unknown>).parent;
-      if (typeof parent === 'string') return parent;
+      if (typeof parent === "string") return parent;
     }
   }
-  return 'incusbr0';
+  return "incusbr0";
 }
 
 /** Extract pool from expanded devices. */
@@ -411,27 +407,24 @@ function extractPool(devices: Record<string, unknown>): string {
   for (const [, dev] of Object.entries(devices)) {
     if (
       dev &&
-      typeof dev === 'object' &&
-      (dev as Record<string, unknown>).type === 'disk' &&
-      (dev as Record<string, unknown>).path === '/'
+      typeof dev === "object" &&
+      (dev as Record<string, unknown>).type === "disk" &&
+      (dev as Record<string, unknown>).path === "/"
     ) {
       const pool = (dev as Record<string, unknown>).pool;
-      if (typeof pool === 'string') return pool;
+      if (typeof pool === "string") return pool;
     }
   }
-  return 'default';
+  return "default";
 }
 
 /** Map a single Incus list JSON entry to MockInstanceRecord. */
 function mapIncusJsonToMockRecord(item: Record<string, unknown>): MockInstanceRecord {
   const config = (item.config as Record<string, string>) ?? {};
   const imageName =
-    config['image.name'] ||
-    config['image.description'] ||
-    config['image.os'] ||
-    'unknown';
-  const type = mapIncusType(String(item.type ?? 'container'));
-  const status = mapIncusStatus(String(item.status ?? 'Stopped'));
+    config["image.name"] || config["image.description"] || config["image.os"] || "unknown";
+  const type = mapIncusType(String(item.type ?? "container"));
+  const status = mapIncusStatus(String(item.status ?? "Stopped"));
   const devices =
     (item.expanded_devices as Record<string, unknown>) ??
     (item.devices as Record<string, unknown>) ??
@@ -441,54 +434,54 @@ function mapIncusJsonToMockRecord(item: Record<string, unknown>): MockInstanceRe
   const profiles = Array.isArray(item.profiles) ? (item.profiles as string[]) : [];
 
   const state = (item?.state as Record<string, unknown>) ?? {};
-  const networks: NonNullable<MockInstanceRecord['live']>['state']['networks'] = {};
+  const networks: NonNullable<MockInstanceRecord["live"]>["state"]["networks"] = {};
   const netState = state.network as Record<string, unknown> | undefined;
-  if (netState && typeof netState === 'object') {
+  if (netState && typeof netState === "object") {
     for (const [ifName, ifData] of Object.entries(netState)) {
-      if (!ifData || typeof ifData !== 'object') continue;
+      if (!ifData || typeof ifData !== "object") continue;
       const iface = ifData as Record<string, unknown>;
       const addrs: Array<{
-        family: 'inet' | 'inet6';
+        family: "inet" | "inet6";
         address: string;
-        scope?: 'global' | 'link' | 'local';
+        scope?: "global" | "link" | "local";
       }> = [];
       const addrList = Array.isArray(iface.addresses) ? iface.addresses : [];
       for (const a of addrList) {
-        if (!a || typeof a !== 'object') continue;
+        if (!a || typeof a !== "object") continue;
         const addr = a as Record<string, unknown>;
-        const family = String(addr.family ?? '');
-        const address = String(addr.address ?? '');
+        const family = String(addr.family ?? "");
+        const address = String(addr.address ?? "");
         if (!address) continue;
-        if (family === 'inet' || family === 'inet6') {
+        if (family === "inet" || family === "inet6") {
           addrs.push({
             family,
             address,
-            scope: String(addr.scope ?? 'global') as 'global' | 'link' | 'local',
+            scope: String(addr.scope ?? "global") as "global" | "link" | "local",
           });
         }
       }
       networks[ifName] = {
         addresses: addrs,
-        state: typeof iface.state === 'string' ? iface.state : undefined,
-        type: typeof iface.type === 'string' ? iface.type : undefined,
+        state: typeof iface.state === "string" ? iface.state : undefined,
+        type: typeof iface.type === "string" ? iface.type : undefined,
       };
     }
   }
 
   return {
-    name: String(item.name ?? ''),
-    slug: String(item.name ?? ''),
+    name: String(item.name ?? ""),
+    slug: String(item.name ?? ""),
     status,
     type,
     image: imageName,
-    cpu: parseCpuLimit(config['limits.cpu']),
-    memory: parseMemoryLimit(config['limits.memory']),
+    cpu: parseCpuLimit(config["limits.cpu"]),
+    memory: parseMemoryLimit(config["limits.memory"]),
     config: {
       target: {
-        mode: 'new',
-        ghOrg: 'cortexos',
-        slug: String(item.name ?? ''),
-        branch: 'main',
+        mode: "new",
+        ghOrg: "cortexos",
+        slug: String(item.name ?? ""),
+        branch: "main",
       },
       image: {
         alias: imageName,
@@ -508,17 +501,17 @@ function mapIncusJsonToMockRecord(item: Record<string, unknown>): MockInstanceRe
     },
     devices,
     lastValidation: null,
-    createdBy: '00000000-0000-4000-8000-000000000000' as IncusInstance['createdBy'],
+    createdBy: "00000000-0000-4000-8000-000000000000" as IncusInstance["createdBy"],
     createdAt: String(item.created_at ?? new Date().toISOString()),
     updatedAt: String(item.last_used_at ?? item.created_at ?? new Date().toISOString()),
     allowlisted: true,
     live: {
-      status: String(item.status ?? 'Stopped').toUpperCase(),
+      status: String(item.status ?? "Stopped").toUpperCase(),
       statusCode: status,
-      architecture: String(item.architecture ?? 'x86_64'),
+      architecture: String(item.architecture ?? "x86_64"),
       state: {
         networks,
-        pid: typeof state.pid === 'number' ? state.pid : 0,
+        pid: typeof state.pid === "number" ? state.pid : 0,
       },
       profiles,
       snapshots: [],
@@ -533,15 +526,17 @@ function mapIncusJsonToMockRecord(item: Record<string, unknown>): MockInstanceRe
 /** List instances from the real incus CLI. */
 async function listInstancesFromIncus(): Promise<IncusInstance[]> {
   try {
-    const { stdout } = await execFileAsync('incus', ['list', '--format', 'json'], {
+    const { stdout } = await execFileAsync("incus", ["list", "--format", "json"], {
       timeout: 15_000,
       maxBuffer: 8 * 1024 * 1024,
     });
     const parsed = JSON.parse(stdout) as unknown[];
     const records = parsed
-      .filter((i): i is Record<string, unknown> => typeof i === 'object' && i !== null)
+      .filter((i): i is Record<string, unknown> => typeof i === "object" && i !== null)
       .map(mapIncusJsonToMockRecord);
-    return records.map((rec) => projectMockRecord(rec)).sort((a, b) => a.name.localeCompare(b.name));
+    return records
+      .map((rec) => projectMockRecord(rec))
+      .sort((a, b) => a.name.localeCompare(b.name));
   } catch {
     return [];
   }
@@ -550,14 +545,14 @@ async function listInstancesFromIncus(): Promise<IncusInstance[]> {
 /** Look up a single instance from the real incus CLI. */
 async function getInstanceFromIncus(name: string): Promise<IncusInstance | null> {
   try {
-    const { stdout } = await execFileAsync('incus', ['list', name, '--format', 'json'], {
+    const { stdout } = await execFileAsync("incus", ["list", name, "--format", "json"], {
       timeout: 10_000,
       maxBuffer: 2 * 1024 * 1024,
     });
     const parsed = JSON.parse(stdout) as unknown[];
     const item = parsed.find(
       (i): i is Record<string, unknown> =>
-        typeof i === 'object' && i !== null && String((i as Record<string, unknown>).name) === name,
+        typeof i === "object" && i !== null && String((i as Record<string, unknown>).name) === name,
     );
     if (!item) return null;
     return projectMockRecord(mapIncusJsonToMockRecord(item));
@@ -569,14 +564,14 @@ async function getInstanceFromIncus(name: string): Promise<IncusInstance | null>
 /** Look up a single instance as MockInstanceRecord (for dispatch). */
 async function getMockRecordFromIncus(name: string): Promise<MockInstanceRecord | null> {
   try {
-    const { stdout } = await execFileAsync('incus', ['list', name, '--format', 'json'], {
+    const { stdout } = await execFileAsync("incus", ["list", name, "--format", "json"], {
       timeout: 10_000,
       maxBuffer: 2 * 1024 * 1024,
     });
     const parsed = JSON.parse(stdout) as unknown[];
     const item = parsed.find(
       (i): i is Record<string, unknown> =>
-        typeof i === 'object' && i !== null && String((i as Record<string, unknown>).name) === name,
+        typeof i === "object" && i !== null && String((i as Record<string, unknown>).name) === name,
     );
     if (!item) return null;
     return mapIncusJsonToMockRecord(item);
@@ -588,25 +583,25 @@ async function getMockRecordFromIncus(name: string): Promise<MockInstanceRecord 
 /** List images from the real incus CLI. */
 async function listImagesFromIncus(): Promise<IncusImage[]> {
   try {
-    const { stdout } = await execFileAsync('incus', ['image', 'list', '--format', 'json'], {
+    const { stdout } = await execFileAsync("incus", ["image", "list", "--format", "json"], {
       timeout: 15_000,
       maxBuffer: 4 * 1024 * 1024,
     });
     const parsed = JSON.parse(stdout) as unknown[];
     return parsed
-      .filter((i): i is Record<string, unknown> => typeof i === 'object' && i !== null)
+      .filter((i): i is Record<string, unknown> => typeof i === "object" && i !== null)
       .map((item): IncusImage => {
         const aliases = Array.isArray(item.aliases)
           ? (item.aliases as Array<Record<string, unknown>>)
-              .map((a) => String(a.name ?? ''))
+              .map((a) => String(a.name ?? ""))
               .filter((n) => n.length > 0)
           : [];
         const props = (item.properties as Record<string, string>) ?? {};
         return {
-          fingerprint: String(item.fingerprint ?? ''),
-          architecture: String(item.architecture ?? ''),
-          type: mapIncusImageType(String(item.type ?? 'unknown')),
-          size: typeof item.size === 'number' ? item.size : 0,
+          fingerprint: String(item.fingerprint ?? ""),
+          architecture: String(item.architecture ?? ""),
+          type: mapIncusImageType(String(item.type ?? "unknown")),
+          size: typeof item.size === "number" ? item.size : 0,
           uploadedAt: String(item.uploaded_at ?? item.created_at ?? new Date().toISOString()),
           aliases,
           description: props.description ?? null,
@@ -624,176 +619,174 @@ async function listImagesFromIncus(): Promise<IncusImage[]> {
 
 const SEED_INSTANCES: readonly MockInstanceRecord[] = [
   {
-    name: 'hermes-canary',
-    slug: 'hermes-canary',
-    status: 'active',
-    type: 'container',
-    image: 'ubuntu/24.04',
+    name: "hermes-canary",
+    slug: "hermes-canary",
+    status: "active",
+    type: "container",
+    image: "ubuntu/24.04",
     cpu: 2,
     memory: 4096,
     config: {
-      target: { mode: 'new', branch: 'main', ghOrg: 'cortexos', slug: 'hermes-canary' },
-      image: { alias: 'ubuntu/24.04', gastown: false, profiles: ['default'], pool: 'default' },
-      hermes: { enabled: true, profile: 'hermes', port: 18695, model: 'gpt-4o-mini', proxies: [] },
-      network: { bridge: 'incusbr0', tailscale: true, webAccess: false },
+      target: { mode: "new", branch: "main", ghOrg: "cortexos", slug: "hermes-canary" },
+      image: { alias: "ubuntu/24.04", gastown: false, profiles: ["default"], pool: "default" },
+      hermes: { enabled: true, profile: "hermes", port: 18695, model: "gpt-4o-mini", proxies: [] },
+      network: { bridge: "incusbr0", tailscale: true, webAccess: false },
     },
     devices: {
-      root: { path: '/', pool: 'default', type: 'disk' },
-      eth0: { name: 'eth0', nictype: 'bridged', parent: 'incusbr0', type: 'nic' },
+      root: { path: "/", pool: "default", type: "disk" },
+      eth0: { name: "eth0", nictype: "bridged", parent: "incusbr0", type: "nic" },
     },
     lastValidation: {
       ok: true,
-      ranAt: '2026-05-12T10:00:00.000Z',
-      notes: 'preflight passed',
+      ranAt: "2026-05-12T10:00:00.000Z",
+      notes: "preflight passed",
     },
-    createdBy: '00000000-0000-4000-8000-000000000001' as IncusInstance['createdBy'],
-    createdAt: '2026-05-01T08:00:00.000Z',
-    updatedAt: '2026-05-12T10:00:00.000Z',
+    createdBy: "00000000-0000-4000-8000-000000000001" as IncusInstance["createdBy"],
+    createdAt: "2026-05-01T08:00:00.000Z",
+    updatedAt: "2026-05-12T10:00:00.000Z",
     allowlisted: true,
     live: {
-      status: 'RUNNING',
-      statusCode: 'running',
-      architecture: 'x86_64',
+      status: "RUNNING",
+      statusCode: "running",
+      architecture: "x86_64",
       state: {
         networks: {
           eth0: {
-            addresses: [{ family: 'inet', address: '10.0.0.42', scope: 'global' }],
-            state: 'up',
-            type: 'broadcast',
+            addresses: [{ family: "inet", address: "10.0.0.42", scope: "global" }],
+            state: "up",
+            type: "broadcast",
           },
         },
         pid: 12345,
       },
-      profiles: ['default'],
-      snapshots: [
-        { name: 'pre-upgrade', createdAt: '2026-05-10T12:00:00.000Z', stateful: false },
-      ],
+      profiles: ["default"],
+      snapshots: [{ name: "pre-upgrade", createdAt: "2026-05-10T12:00:00.000Z", stateful: false }],
     },
   },
   {
-    name: 'paperclip-relay',
-    slug: 'paperclip-relay',
-    status: 'provisioning',
-    type: 'vm',
-    image: 'debian/12',
+    name: "paperclip-relay",
+    slug: "paperclip-relay",
+    status: "provisioning",
+    type: "vm",
+    image: "debian/12",
     cpu: 4,
     memory: 8192,
     config: {
-      target: { mode: 'new', branch: 'main', ghOrg: 'cortexos', slug: 'paperclip-relay' },
-      image: { alias: 'debian/12', gastown: false, profiles: ['nested'], pool: 'nvme' },
+      target: { mode: "new", branch: "main", ghOrg: "cortexos", slug: "paperclip-relay" },
+      image: { alias: "debian/12", gastown: false, profiles: ["nested"], pool: "nvme" },
       hermes: { enabled: false, proxies: [] },
-      network: { bridge: 'incusbr0', tailscale: true, webAccess: true },
+      network: { bridge: "incusbr0", tailscale: true, webAccess: true },
     },
     devices: {
-      root: { path: '/', pool: 'nvme', type: 'disk' },
-      eth0: { name: 'eth0', nictype: 'bridged', parent: 'incusbr0', type: 'nic' },
+      root: { path: "/", pool: "nvme", type: "disk" },
+      eth0: { name: "eth0", nictype: "bridged", parent: "incusbr0", type: "nic" },
     },
     lastValidation: null,
-    createdBy: '00000000-0000-4000-8000-000000000002' as IncusInstance['createdBy'],
-    createdAt: '2026-05-15T14:30:00.000Z',
-    updatedAt: '2026-05-15T14:30:00.000Z',
+    createdBy: "00000000-0000-4000-8000-000000000002" as IncusInstance["createdBy"],
+    createdAt: "2026-05-15T14:30:00.000Z",
+    updatedAt: "2026-05-15T14:30:00.000Z",
     allowlisted: true,
     live: {
-      status: 'STARTING',
-      statusCode: 'provisioning',
-      architecture: 'x86_64',
+      status: "STARTING",
+      statusCode: "provisioning",
+      architecture: "x86_64",
       state: { networks: {}, pid: 0 },
-      profiles: ['nested'],
+      profiles: ["nested"],
       snapshots: [],
     },
   },
   {
-    name: 'archive-cold',
-    slug: 'archive-cold',
-    status: 'failed',
-    type: 'container',
-    image: 'alpine/3.20',
+    name: "archive-cold",
+    slug: "archive-cold",
+    status: "failed",
+    type: "container",
+    image: "alpine/3.20",
     cpu: 1,
     memory: 1024,
     config: {
-      target: { mode: 'new', branch: 'main', ghOrg: 'cortexos', slug: 'archive-cold' },
-      image: { alias: 'alpine/3.20', gastown: false, profiles: ['default'], pool: 'hdd' },
+      target: { mode: "new", branch: "main", ghOrg: "cortexos", slug: "archive-cold" },
+      image: { alias: "alpine/3.20", gastown: false, profiles: ["default"], pool: "hdd" },
       hermes: { enabled: false, proxies: [] },
-      network: { bridge: 'incusbr0', tailscale: false, webAccess: false },
+      network: { bridge: "incusbr0", tailscale: false, webAccess: false },
     },
     devices: {
-      root: { path: '/', pool: 'hdd', type: 'disk' },
+      root: { path: "/", pool: "hdd", type: "disk" },
     },
     lastValidation: {
       ok: false,
-      ranAt: '2026-05-18T03:00:00.000Z',
-      notes: 'preflight failed: image alias not found',
+      ranAt: "2026-05-18T03:00:00.000Z",
+      notes: "preflight failed: image alias not found",
     },
-    createdBy: '00000000-0000-4000-8000-000000000003' as IncusInstance['createdBy'],
-    createdAt: '2026-04-20T09:00:00.000Z',
-    updatedAt: '2026-05-18T03:00:00.000Z',
+    createdBy: "00000000-0000-4000-8000-000000000003" as IncusInstance["createdBy"],
+    createdAt: "2026-04-20T09:00:00.000Z",
+    updatedAt: "2026-05-18T03:00:00.000Z",
     allowlisted: true,
     live: {
-      status: 'ERROR',
-      statusCode: 'error',
-      architecture: 'x86_64',
+      status: "ERROR",
+      statusCode: "error",
+      architecture: "x86_64",
       state: { networks: {} },
-      profiles: ['default'],
+      profiles: ["default"],
       snapshots: [],
     },
   },
   {
-    name: 'cortex-graph-dev',
-    slug: 'cortex-graph-dev',
-    status: 'draft',
-    type: 'container',
-    image: 'ubuntu/24.04',
+    name: "cortex-graph-dev",
+    slug: "cortex-graph-dev",
+    status: "draft",
+    type: "container",
+    image: "ubuntu/24.04",
     cpu: 2,
     memory: 2048,
     config: {
-      target: { mode: 'clone', branch: 'main', ghOrg: 'cortexos', slug: 'cortex-graph-dev' },
-      image: { alias: 'ubuntu/24.04', gastown: false, profiles: ['default'], pool: 'default' },
+      target: { mode: "clone", branch: "main", ghOrg: "cortexos", slug: "cortex-graph-dev" },
+      image: { alias: "ubuntu/24.04", gastown: false, profiles: ["default"], pool: "default" },
       hermes: { enabled: false, proxies: [] },
-      network: { bridge: 'incusbr0', tailscale: true, webAccess: false },
+      network: { bridge: "incusbr0", tailscale: true, webAccess: false },
     },
     devices: {},
     lastValidation: null,
-    createdBy: '00000000-0000-4000-8000-000000000004' as IncusInstance['createdBy'],
-    createdAt: '2026-05-22T11:00:00.000Z',
-    updatedAt: '2026-05-22T11:00:00.000Z',
+    createdBy: "00000000-0000-4000-8000-000000000004" as IncusInstance["createdBy"],
+    createdAt: "2026-05-22T11:00:00.000Z",
+    updatedAt: "2026-05-22T11:00:00.000Z",
     allowlisted: true,
   },
 ];
 
 /** Pre-populate the log buffer so the detail page is non-empty. */
 function seedLogs(mock: MockIncusExecutor): void {
-  const now = '2026-05-12T10:00:00.000Z';
+  const now = "2026-05-12T10:00:00.000Z";
   for (const inst of SEED_INSTANCES) {
     mock.pushLog(inst.name, {
       ts: now,
-      priority: 'info',
+      priority: "info",
       name: inst.name,
       message: `Instance ${inst.name} started`,
     });
     mock.pushLog(inst.name, {
       ts: now,
-      priority: 'info',
+      priority: "info",
       name: inst.name,
       message: `Image ${inst.image} attached`,
     });
-    if (inst.status === 'failed' || inst.status === 'error') {
+    if (inst.status === "failed" || inst.status === "error") {
       mock.pushLog(inst.name, {
-        ts: '2026-05-18T03:00:00.000Z',
-        priority: 'error',
+        ts: "2026-05-18T03:00:00.000Z",
+        priority: "error",
         name: inst.name,
         message: `Provisioning failed: image alias not found`,
       });
     }
-    if (inst.status === 'provisioning') {
+    if (inst.status === "provisioning") {
       mock.pushLog(inst.name, {
-        ts: '2026-05-15T14:30:05.000Z',
-        priority: 'info',
+        ts: "2026-05-15T14:30:05.000Z",
+        priority: "info",
         name: inst.name,
         message: `Downloading image: ${inst.image}`,
       });
       mock.pushLog(inst.name, {
-        ts: '2026-05-15T14:30:10.000Z',
-        priority: 'info',
+        ts: "2026-05-15T14:30:10.000Z",
+        priority: "info",
         name: inst.name,
         message: `Image unpacked; unpacking rootfs`,
       });
@@ -815,12 +808,11 @@ function makeDefaultMock(): { mock: MockIncusExecutor; executor: IncusExecutor }
 
 let currentMock: MockIncusExecutor | null = null;
 let executor: IncusExecutor = ((_p) => {
-  throw new Error('incus bridge: executor used before init');
+  throw new Error("incus bridge: executor used before init");
 }) as IncusExecutor;
 
 (function init() {
-  const useReal =
-    process.platform === 'linux' && process.env.CORTEX_INCUS_BRIDGE_REAL !== '0';
+  const useReal = process.platform === "linux" && process.env.CORTEX_INCUS_BRIDGE_REAL !== "0";
   if (useReal) {
     executor = realIncusExecutor;
     return;
@@ -885,10 +877,7 @@ export async function getMockRecord(name: string): Promise<MockInstanceRecord | 
 }
 
 /** Return the most-recent `limit` log lines for an instance, newest first. */
-export async function listInstanceLogs(
-  name: string,
-  limit: number,
-): Promise<IncusLogLine[]> {
+export async function listInstanceLogs(name: string, limit: number): Promise<IncusLogLine[]> {
   if (currentMock) {
     const all = currentMock.logsFor(name);
     // The mock stores oldest-first; the API returns newest-first.
@@ -911,31 +900,31 @@ export async function listImages(): Promise<IncusImage[]> {
   if (currentMock) {
     return [
       {
-        fingerprint: 'aabbccddeeff00112233445566778899aabbccdd',
-        architecture: 'x86_64',
-        type: 'container',
+        fingerprint: "aabbccddeeff00112233445566778899aabbccdd",
+        architecture: "x86_64",
+        type: "container",
         size: 512_000_000,
-        uploadedAt: '2026-04-01T00:00:00.000Z',
-        aliases: ['ubuntu/24.04', 'ubuntu-lts'],
-        description: 'Ubuntu 24.04 LTS noble',
+        uploadedAt: "2026-04-01T00:00:00.000Z",
+        aliases: ["ubuntu/24.04", "ubuntu-lts"],
+        description: "Ubuntu 24.04 LTS noble",
       },
       {
-        fingerprint: '00112233445566778899aabbccddeeff00112233',
-        architecture: 'x86_64',
-        type: 'virtual-machine',
+        fingerprint: "00112233445566778899aabbccddeeff00112233",
+        architecture: "x86_64",
+        type: "virtual-machine",
         size: 2_000_000_000,
-        uploadedAt: '2026-03-15T00:00:00.000Z',
-        aliases: ['debian/12', 'debian-bookworm'],
-        description: 'Debian 12 bookworm',
+        uploadedAt: "2026-03-15T00:00:00.000Z",
+        aliases: ["debian/12", "debian-bookworm"],
+        description: "Debian 12 bookworm",
       },
       {
-        fingerprint: 'fedcba9876543210fedcba9876543210fedcba98',
-        architecture: 'x86_64',
-        type: 'container',
+        fingerprint: "fedcba9876543210fedcba9876543210fedcba98",
+        architecture: "x86_64",
+        type: "container",
         size: 24_000_000,
-        uploadedAt: '2026-02-10T00:00:00.000Z',
-        aliases: ['alpine/3.20'],
-        description: 'Alpine 3.20',
+        uploadedAt: "2026-02-10T00:00:00.000Z",
+        aliases: ["alpine/3.20"],
+        description: "Alpine 3.20",
       },
     ];
   }
@@ -961,8 +950,8 @@ export async function runPreflightReport(
   const existingInstances = currentMock ? SEED_INSTANCES : await listInstances();
   const knownNames = new Set(existingInstances.map((i) => i.name));
   checks.push({
-    id: 'name',
-    label: 'Instance name available',
+    id: "name",
+    label: "Instance name available",
     pass: !knownNames.has(name),
     detail: knownNames.has(name) ? `instance "${name}" already exists` : undefined,
   });
@@ -970,11 +959,11 @@ export async function runPreflightReport(
   // 2. Image.
   const existingImages = currentMock ? [] : await listImages();
   const knownAliases = currentMock
-    ? new Set(['ubuntu/24.04', 'debian/12', 'alpine/3.20'])
+    ? new Set(["ubuntu/24.04", "debian/12", "alpine/3.20"])
     : new Set(existingImages.flatMap((i) => i.aliases));
   checks.push({
-    id: 'image',
-    label: 'Base image present',
+    id: "image",
+    label: "Base image present",
     pass: knownAliases.has(config.image.alias),
     detail: knownAliases.has(config.image.alias)
       ? undefined
@@ -982,22 +971,20 @@ export async function runPreflightReport(
   });
 
   // 3. Storage pool.
-  const knownPools = new Set(['default', 'nvme', 'hdd']);
-  const pool = config.image.pool ?? '';
+  const knownPools = new Set(["default", "nvme", "hdd"]);
+  const pool = config.image.pool ?? "";
   checks.push({
-    id: 'pool',
-    label: 'Storage pool present',
+    id: "pool",
+    label: "Storage pool present",
     pass: knownPools.has(pool),
-    detail: knownPools.has(pool)
-      ? undefined
-      : `storage pool "${pool}" not found`,
+    detail: knownPools.has(pool) ? undefined : `storage pool "${pool}" not found`,
   });
 
   // 4. Network bridge.
-  const knownBridges = new Set(['incusbr0']);
+  const knownBridges = new Set(["incusbr0"]);
   checks.push({
-    id: 'bridge',
-    label: 'Network bridge present',
+    id: "bridge",
+    label: "Network bridge present",
     pass: knownBridges.has(config.network.bridge),
     detail: knownBridges.has(config.network.bridge)
       ? undefined
@@ -1007,8 +994,8 @@ export async function runPreflightReport(
   // 5. Hermes secret.
   if (config.hermes.enabled) {
     checks.push({
-      id: 'hermes-secret',
-      label: 'Hermes secret file present',
+      id: "hermes-secret",
+      label: "Hermes secret file present",
       pass: true,
       detail: `/opt/cortexos/.secrets/hermes/${config.hermes.profile}.env (mock)`,
     });
@@ -1030,13 +1017,13 @@ export async function runPreflightReport(
  */
 export function buildLaunchProgress(name: string): readonly ProgressStep[] {
   return [
-    { step: 'preflight', status: 'pending', detail: `Validating ${name}…` },
-    { step: 'image-pull', status: 'pending', detail: 'Pulling base image' },
-    { step: 'image-unpack', status: 'pending', detail: 'Unpacking rootfs' },
-    { step: 'launch', status: 'pending', detail: `Launching ${name}` },
-    { step: 'limits-apply', status: 'pending', detail: 'Applying CPU + memory limits' },
-    { step: 'network-attach', status: 'pending', detail: 'Attaching to bridge' },
-    { step: 'start', status: 'pending', detail: 'Starting instance' },
+    { step: "preflight", status: "pending", detail: `Validating ${name}…` },
+    { step: "image-pull", status: "pending", detail: "Pulling base image" },
+    { step: "image-unpack", status: "pending", detail: "Unpacking rootfs" },
+    { step: "launch", status: "pending", detail: `Launching ${name}` },
+    { step: "limits-apply", status: "pending", detail: "Applying CPU + memory limits" },
+    { step: "network-attach", status: "pending", detail: "Attaching to bridge" },
+    { step: "start", status: "pending", detail: "Starting instance" },
   ];
 }
 
@@ -1071,7 +1058,7 @@ export interface DispatchContext {
  */
 export type DispatchResult =
   | {
-      status: 'accepted';
+      status: "accepted";
       action: IncusActionKind;
       name: string;
       stdout: string;
@@ -1081,7 +1068,7 @@ export type DispatchResult =
       durationMs: number;
     }
   | {
-      status: 'approval_required';
+      status: "approval_required";
       action: IncusActionKind;
       name: string;
       actionHash: string;
@@ -1089,29 +1076,29 @@ export type DispatchResult =
       message: string;
     }
   | {
-      status: 'rejected';
+      status: "rejected";
       action: IncusActionKind;
       name: string;
       code:
-        | 'unknown_op'
-        | 'unknown_instance'
-        | 'not_allowlisted'
-        | 'instance_name_invalid'
-        | 'confirmation_required'
-        | 'approval_required'
-        | 'approval_invalid'
-        | 'approval_expired'
-        | 'approval_session_mismatch'
-        | 'approval_already_used'
-        | 'executor_error';
+        | "unknown_op"
+        | "unknown_instance"
+        | "not_allowlisted"
+        | "instance_name_invalid"
+        | "confirmation_required"
+        | "approval_required"
+        | "approval_invalid"
+        | "approval_expired"
+        | "approval_session_mismatch"
+        | "approval_already_used"
+        | "executor_error";
       reason: string;
     };
 
 /** The set of actions that the policy allowlist marks as destructive. */
 const DESTRUCTIVE_ACTIONS: ReadonlySet<IncusActionKind> = new Set<IncusActionKind>([
-  'stop',
-  'restart',
-  'delete',
+  "stop",
+  "restart",
+  "delete",
 ]);
 
 /** Strict regex for incus instance names. Mirrors the policy module. */
@@ -1121,7 +1108,7 @@ const INSTANCE_NAME_RE = /^[a-z0-9][a-z0-9-]{0,62}[a-z0-9]$/;
 const APPROVAL_TTL_SEC = 60;
 
 /** Confirmation phrase required to delete an instance. */
-export const DELETE_CONFIRMATION_PHRASE = 'delete';
+export const DELETE_CONFIRMATION_PHRASE = "delete";
 
 /**
  * Dispatch an Incus action.
@@ -1151,19 +1138,19 @@ export async function dispatchAction(
       actorSessionId: null,
       actorIp: ctx.ip,
       actorUserAgent: ctx.userAgent,
-      surface: 'incus',
-      action: 'incus.bridge.reject',
+      surface: "incus",
+      action: "incus.bridge.reject",
       target: input.name,
-      result: 'failure',
-      errorCode: 'unknown_op',
+      result: "failure",
+      errorCode: "unknown_op",
       requestId: ctx.requestId,
-      payload: { phase: 'allowlist', op: policyName },
+      payload: { phase: "allowlist", op: policyName },
     });
     return {
-      status: 'rejected',
+      status: "rejected",
       action: input.action,
       name: input.name,
-      code: 'unknown_op',
+      code: "unknown_op",
       reason: `op '${policyName}' is not on the policy allowlist`,
     };
   }
@@ -1175,19 +1162,19 @@ export async function dispatchAction(
       actorSessionId: null,
       actorIp: ctx.ip,
       actorUserAgent: ctx.userAgent,
-      surface: 'incus',
-      action: 'incus.bridge.reject',
+      surface: "incus",
+      action: "incus.bridge.reject",
       target: input.name,
-      result: 'denied',
-      errorCode: 'instance_name_invalid',
+      result: "denied",
+      errorCode: "instance_name_invalid",
       requestId: ctx.requestId,
-      payload: { phase: 'name_regex', op: policyName, name: input.name },
+      payload: { phase: "name_regex", op: policyName, name: input.name },
     });
     return {
-      status: 'rejected',
+      status: "rejected",
       action: input.action,
       name: input.name,
-      code: 'instance_name_invalid',
+      code: "instance_name_invalid",
       reason: `instance name '${input.name}' does not match ${INSTANCE_NAME_RE.source}`,
     };
   }
@@ -1200,19 +1187,19 @@ export async function dispatchAction(
       actorSessionId: null,
       actorIp: ctx.ip,
       actorUserAgent: ctx.userAgent,
-      surface: 'incus',
-      action: 'incus.bridge.reject',
+      surface: "incus",
+      action: "incus.bridge.reject",
       target: input.name,
-      result: 'failure',
-      errorCode: 'unknown_instance',
+      result: "failure",
+      errorCode: "unknown_instance",
       requestId: ctx.requestId,
-      payload: { phase: 'lookup', op: policyName, name: input.name },
+      payload: { phase: "lookup", op: policyName, name: input.name },
     });
     return {
-      status: 'rejected',
+      status: "rejected",
       action: input.action,
       name: input.name,
-      code: 'unknown_instance',
+      code: "unknown_instance",
       reason: `instance '${input.name}' is not in the executor's snapshot`,
     };
   }
@@ -1222,44 +1209,44 @@ export async function dispatchAction(
       actorSessionId: null,
       actorIp: ctx.ip,
       actorUserAgent: ctx.userAgent,
-      surface: 'incus',
-      action: 'incus.bridge.reject',
+      surface: "incus",
+      action: "incus.bridge.reject",
       target: input.name,
-      result: 'denied',
-      errorCode: 'not_allowlisted',
+      result: "denied",
+      errorCode: "not_allowlisted",
       requestId: ctx.requestId,
-      payload: { phase: 'allowlist_instance', op: policyName, name: input.name },
+      payload: { phase: "allowlist_instance", op: policyName, name: input.name },
     });
     return {
-      status: 'rejected',
+      status: "rejected",
       action: input.action,
       name: input.name,
-      code: 'not_allowlisted',
+      code: "not_allowlisted",
       reason: `instance '${input.name}' is not allowlisted`,
     };
   }
 
   // 3a. Delete confirmation phrase.
-  if (input.action === 'delete') {
-    if ((input.confirmation ?? '').trim().toLowerCase() !== DELETE_CONFIRMATION_PHRASE) {
+  if (input.action === "delete") {
+    if ((input.confirmation ?? "").trim().toLowerCase() !== DELETE_CONFIRMATION_PHRASE) {
       audit({
         actorUserId: ctx.user.id,
         actorSessionId: null,
         actorIp: ctx.ip,
         actorUserAgent: ctx.userAgent,
-        surface: 'incus',
-        action: 'incus.bridge.reject',
+        surface: "incus",
+        action: "incus.bridge.reject",
         target: input.name,
-        result: 'denied',
-        errorCode: 'confirmation_required',
+        result: "denied",
+        errorCode: "confirmation_required",
         requestId: ctx.requestId,
-        payload: { phase: 'confirmation', op: policyName, name: input.name },
+        payload: { phase: "confirmation", op: policyName, name: input.name },
       });
       return {
-        status: 'rejected',
+        status: "rejected",
         action: input.action,
         name: input.name,
-        code: 'confirmation_required',
+        code: "confirmation_required",
         reason: `delete requires a typed confirmation of '${DELETE_CONFIRMATION_PHRASE}'`,
       };
     }
@@ -1274,16 +1261,16 @@ export async function dispatchAction(
         actorSessionId: null,
         actorIp: ctx.ip,
         actorUserAgent: ctx.userAgent,
-        surface: 'incus',
-        action: 'incus.bridge.approval_required',
+        surface: "incus",
+        action: "incus.bridge.approval_required",
         target: input.name,
-        result: 'success',
+        result: "success",
         errorCode: null,
         requestId: ctx.requestId,
-        payload: { phase: 'approval_required', op: policyName, actionHash },
+        payload: { phase: "approval_required", op: policyName, actionHash },
       });
       return {
-        status: 'approval_required',
+        status: "approval_required",
         action: input.action,
         name: input.name,
         actionHash,
@@ -1293,7 +1280,7 @@ export async function dispatchAction(
     }
     // Verify the token. The approval is bound to the caller's
     // `SessionId` (THREAT_MODEL §3.4, PB-1).
-    const { verifyApproval } = await import('../approval');
+    const { verifyApproval } = await import("../approval");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const v = verifyApproval(ctx.approvalToken, ctx.sessionId as any);
     if (!v.ok) {
@@ -1303,26 +1290,26 @@ export async function dispatchAction(
         actorSessionId: null,
         actorIp: ctx.ip,
         actorUserAgent: ctx.userAgent,
-        surface: 'incus',
-        action: 'incus.bridge.reject',
+        surface: "incus",
+        action: "incus.bridge.reject",
         target: input.name,
-        result: 'denied',
+        result: "denied",
         errorCode: v.reason,
         requestId: ctx.requestId,
-        payload: { phase: 'approval_verify', op: policyName, reason: v.reason },
+        payload: { phase: "approval_verify", op: policyName, reason: v.reason },
       });
       return {
-        status: 'rejected',
+        status: "rejected",
         action: input.action,
         name: input.name,
         code:
-          v.reason === 'expired'
-            ? 'approval_expired'
-            : v.reason === 'already_used'
-              ? 'approval_already_used'
-              : v.reason === 'session_mismatch'
-                ? 'approval_session_mismatch'
-                : 'approval_invalid',
+          v.reason === "expired"
+            ? "approval_expired"
+            : v.reason === "already_used"
+              ? "approval_already_used"
+              : v.reason === "session_mismatch"
+                ? "approval_session_mismatch"
+                : "approval_invalid",
         reason,
       };
     }
@@ -1333,24 +1320,24 @@ export async function dispatchAction(
         actorSessionId: null,
         actorIp: ctx.ip,
         actorUserAgent: ctx.userAgent,
-        surface: 'incus',
-        action: 'incus.bridge.reject',
+        surface: "incus",
+        action: "incus.bridge.reject",
         target: input.name,
-        result: 'denied',
-        errorCode: 'approval_invalid',
+        result: "denied",
+        errorCode: "approval_invalid",
         requestId: ctx.requestId,
         payload: {
-          phase: 'approval_action_mismatch',
+          phase: "approval_action_mismatch",
           expected: actionHash,
           got: v.claims.actionHash,
         },
       });
       return {
-        status: 'rejected',
+        status: "rejected",
         action: input.action,
         name: input.name,
-        code: 'approval_invalid',
-        reason: 'approval token is not bound to this action + name',
+        code: "approval_invalid",
+        reason: "approval token is not bound to this action + name",
       };
     }
   }
@@ -1383,10 +1370,10 @@ export async function dispatchAction(
       actorSessionId: null,
       actorIp: ctx.ip,
       actorUserAgent: ctx.userAgent,
-      surface: 'incus',
-      action: 'incus.bridge.dispatch',
+      surface: "incus",
+      action: "incus.bridge.dispatch",
       target: input.name,
-      result: 'success',
+      result: "success",
       errorCode: null,
       requestId: ctx.requestId,
       payload: {
@@ -1397,7 +1384,7 @@ export async function dispatchAction(
       },
     });
     return {
-      status: 'accepted',
+      status: "accepted",
       action: input.action,
       name: input.name,
       stdout: result.stdout,
@@ -1412,19 +1399,19 @@ export async function dispatchAction(
       actorSessionId: null,
       actorIp: ctx.ip,
       actorUserAgent: ctx.userAgent,
-      surface: 'incus',
-      action: 'incus.bridge.dispatch',
+      surface: "incus",
+      action: "incus.bridge.dispatch",
       target: input.name,
-      result: 'failure',
-      errorCode: 'executor_error',
+      result: "failure",
+      errorCode: "executor_error",
       requestId: ctx.requestId,
       payload: { op: policyName, error: (e as Error).message },
     });
     return {
-      status: 'rejected',
+      status: "rejected",
       action: input.action,
       name: input.name,
-      code: 'executor_error',
+      code: "executor_error",
       reason: `executor error: ${(e as Error).message}`,
     };
   }
@@ -1436,12 +1423,12 @@ export async function dispatchAction(
 
 /** The closed set of shell ops the UI may invoke via exec-named. */
 export const EXEC_NAMED_OPS: ReadonlySet<IncusShellOp> = new Set<IncusShellOp>([
-  'term.ps',
-  'term.df',
-  'term.ls',
-  'term.cat',
-  'term.tail_log',
-  'term.exec_named',
+  "term.ps",
+  "term.df",
+  "term.ls",
+  "term.cat",
+  "term.tail_log",
+  "term.exec_named",
 ]);
 
 /**
@@ -1462,50 +1449,51 @@ export type MockExecNamedExecutor = (
 
 let execNamedExecutor: MockExecNamedExecutor = async (op, args, name) => {
   switch (op) {
-    case 'term.ps':
+    case "term.ps":
       return {
         stdout: `root         1  0.0  0.1  1234  5678 ?        Ss   00:00   0:01 /init ${name}`,
-        stderr: '',
+        stderr: "",
         exitCode: 0,
       };
-    case 'term.df':
+    case "term.df":
       return {
         stdout: `Filesystem      Size  Used Avail Use% Mounted on\n/dev/root        20G  2.4G   17G  13% /`,
-        stderr: '',
+        stderr: "",
         exitCode: 0,
       };
-    case 'term.ls': {
-      const path = typeof args.path === 'string' ? args.path : '/';
+    case "term.ls": {
+      const path = typeof args.path === "string" ? args.path : "/";
       return {
         stdout: `drwxr-xr-x  2 root root 4096 May 12 10:00 ${path}`,
-        stderr: '',
+        stderr: "",
         exitCode: 0,
       };
     }
-    case 'term.cat': {
+    case "term.cat": {
       return {
         stdout: `${name}\n`,
-        stderr: '',
+        stderr: "",
         exitCode: 0,
       };
     }
-    case 'term.tail_log': {
-      const unit = typeof args.unit === 'string' ? args.unit : 'sshd';
-      const n = typeof args.n === 'number' ? args.n : 10;
+    case "term.tail_log": {
+      const unit = typeof args.unit === "string" ? args.unit : "sshd";
+      const n = typeof args.n === "number" ? args.n : 10;
       return {
-        stdout: `-- Logs begin at ${new Date().toISOString()} --\n` +
+        stdout:
+          `-- Logs begin at ${new Date().toISOString()} --\n` +
           Array.from({ length: n })
             .map((_, i) => `May 12 10:0${i % 10}:00 ${name} ${unit}[${100 + i}]: ready`)
-            .join('\n'),
-        stderr: '',
+            .join("\n"),
+        stderr: "",
         exitCode: 0,
       };
     }
-    case 'term.exec_named': {
-      const command = typeof args.command === 'string' ? args.command : 'true';
+    case "term.exec_named": {
+      const command = typeof args.command === "string" ? args.command : "true";
       return {
         stdout: `__cortexos_incus_exec_mock__ ${command} (in ${name})`,
-        stderr: '',
+        stderr: "",
         exitCode: 0,
       };
     }
@@ -1531,21 +1519,16 @@ export interface ExecDispatchContext {
 
 export type ExecDispatchResult =
   | {
-      status: 'accepted';
+      status: "accepted";
       op: IncusShellOp;
       stdout: string;
       stderr: string;
       exitCode: number;
     }
   | {
-      status: 'rejected';
+      status: "rejected";
       op: IncusShellOp;
-      code:
-        | 'unknown_op'
-        | 'arg_smuggling'
-        | 'argv_bash_c'
-        | 'arg_type'
-        | 'unknown_instance';
+      code: "unknown_op" | "arg_smuggling" | "argv_bash_c" | "arg_type" | "unknown_instance";
       reason: string;
       field?: string;
     };
@@ -1573,18 +1556,18 @@ export async function dispatchExecNamed(
       actorSessionId: null,
       actorIp: ctx.ip,
       actorUserAgent: ctx.userAgent,
-      surface: 'incus',
-      action: 'incus.exec_named.reject',
+      surface: "incus",
+      action: "incus.exec_named.reject",
       target: name,
-      result: 'failure',
-      errorCode: 'unknown_instance',
+      result: "failure",
+      errorCode: "unknown_instance",
       requestId: ctx.requestId,
-      payload: { phase: 'lookup', op: input.op, name },
+      payload: { phase: "lookup", op: input.op, name },
     });
     return {
-      status: 'rejected',
+      status: "rejected",
       op: input.op,
-      code: 'unknown_instance',
+      code: "unknown_instance",
       reason: `instance '${name}' is not in the executor's snapshot`,
     };
   }
@@ -1596,18 +1579,18 @@ export async function dispatchExecNamed(
       actorSessionId: null,
       actorIp: ctx.ip,
       actorUserAgent: ctx.userAgent,
-      surface: 'incus',
-      action: 'incus.exec_named.reject',
+      surface: "incus",
+      action: "incus.exec_named.reject",
       target: name,
-      result: 'failure',
-      errorCode: 'unknown_op',
+      result: "failure",
+      errorCode: "unknown_op",
       requestId: ctx.requestId,
-      payload: { phase: 'op_allowlist', op: input.op },
+      payload: { phase: "op_allowlist", op: input.op },
     });
     return {
-      status: 'rejected',
+      status: "rejected",
       op: input.op,
-      code: 'unknown_op',
+      code: "unknown_op",
       reason: `op '${input.op}' is not on the incus exec-named allowlist`,
     };
   }
@@ -1616,26 +1599,26 @@ export async function dispatchExecNamed(
   // Re-uses the policy module's `validateShellArg` so the same
   // denylist + arg-smuggling patterns guard every privileged
   // surface.
-  const { validateShellArg } = await import('../policy');
+  const { validateShellArg } = await import("../policy");
   const argErrors: { field: string; reason: string; matched: string }[] = [];
   function walk(value: unknown, path: string): void {
-    if (typeof value === 'string') {
+    if (typeof value === "string") {
       const r = validateShellArg(value);
       if (!r.ok) argErrors.push({ field: path, reason: r.reason, matched: r.matched });
       return;
     }
-    if (value === null || typeof value === 'number' || typeof value === 'boolean') return;
+    if (value === null || typeof value === "number" || typeof value === "boolean") return;
     if (Array.isArray(value)) {
       value.forEach((v, i) => walk(v, `${path}[${i}]`));
       return;
     }
-    if (typeof value === 'object') {
+    if (typeof value === "object") {
       for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
         walk(v, path ? `${path}.${k}` : k);
       }
     }
   }
-  walk(input.args, '');
+  walk(input.args, "");
   if (argErrors.length > 0) {
     const first = argErrors[0]!;
     audit({
@@ -1643,20 +1626,20 @@ export async function dispatchExecNamed(
       actorSessionId: null,
       actorIp: ctx.ip,
       actorUserAgent: ctx.userAgent,
-      surface: 'incus',
-      action: 'incus.exec_named.reject',
+      surface: "incus",
+      action: "incus.exec_named.reject",
       target: name,
-      result: 'denied',
-      errorCode: 'arg_smuggling',
+      result: "denied",
+      errorCode: "arg_smuggling",
       requestId: ctx.requestId,
-      payload: { phase: 'arg_smuggling', hits: argErrors, op: input.op },
+      payload: { phase: "arg_smuggling", hits: argErrors, op: input.op },
     });
     return {
-      status: 'rejected',
+      status: "rejected",
       op: input.op,
-      code: 'arg_smuggling',
+      code: "arg_smuggling",
       reason: first.reason,
-      field: first.field || '_root',
+      field: first.field || "_root",
     };
   }
 
@@ -1665,10 +1648,10 @@ export async function dispatchExecNamed(
   //    name, but this catches a future caller that pre-constructs
   //    an argv from a config table.
   function argvContainsBashDashC(value: unknown): boolean {
-    if (typeof value === 'string') {
+    if (typeof value === "string") {
       return /\b(bash|sh|zsh|ksh)\s+-c\b/.test(value);
     }
-    if (value === null || typeof value !== 'object') return false;
+    if (value === null || typeof value !== "object") return false;
     if (Array.isArray(value)) return value.some(argvContainsBashDashC);
     return Object.values(value as Record<string, unknown>).some(argvContainsBashDashC);
   }
@@ -1678,19 +1661,19 @@ export async function dispatchExecNamed(
       actorSessionId: null,
       actorIp: ctx.ip,
       actorUserAgent: ctx.userAgent,
-      surface: 'incus',
-      action: 'incus.exec_named.reject',
+      surface: "incus",
+      action: "incus.exec_named.reject",
       target: name,
-      result: 'denied',
-      errorCode: 'argv_bash_c',
+      result: "denied",
+      errorCode: "argv_bash_c",
       requestId: ctx.requestId,
-      payload: { phase: 'argv_bash_c', op: input.op },
+      payload: { phase: "argv_bash_c", op: input.op },
     });
     return {
-      status: 'rejected',
+      status: "rejected",
       op: input.op,
-      code: 'argv_bash_c',
-      reason: 'args contain a literal `bash -c` pair (SR-019)',
+      code: "argv_bash_c",
+      reason: "args contain a literal `bash -c` pair (SR-019)",
     };
   }
 
@@ -1704,18 +1687,18 @@ export async function dispatchExecNamed(
       actorSessionId: null,
       actorIp: ctx.ip,
       actorUserAgent: ctx.userAgent,
-      surface: 'incus',
-      action: 'incus.exec_named.dispatch',
+      surface: "incus",
+      action: "incus.exec_named.dispatch",
       target: name,
-      result: 'failure',
-      errorCode: 'executor_error',
+      result: "failure",
+      errorCode: "executor_error",
       requestId: ctx.requestId,
       payload: { op: input.op, error: (e as Error).message },
     });
     return {
-      status: 'rejected',
+      status: "rejected",
       op: input.op,
-      code: 'arg_type',
+      code: "arg_type",
       reason: `executor error: ${(e as Error).message}`,
     };
   }
@@ -1725,17 +1708,17 @@ export async function dispatchExecNamed(
     actorSessionId: null,
     actorIp: ctx.ip,
     actorUserAgent: ctx.userAgent,
-    surface: 'incus',
-    action: 'incus.exec_named.dispatch',
+    surface: "incus",
+    action: "incus.exec_named.dispatch",
     target: name,
-    result: result.exitCode === 0 ? 'success' : 'failure',
+    result: result.exitCode === 0 ? "success" : "failure",
     errorCode: null,
     requestId: ctx.requestId,
     payload: { op: input.op, exitCode: result.exitCode },
   });
 
   return {
-    status: 'accepted',
+    status: "accepted",
     op: input.op,
     stdout: result.stdout,
     stderr: result.stderr,
@@ -1753,25 +1736,17 @@ export function listInstanceActions(): ReadonlyArray<{
   description: string;
   requiresApproval: boolean;
 }> {
-  return (
-    [
-      'start',
-      'stop',
-      'restart',
-      'delete',
-      'launch',
-      'list',
-      'exec-named',
-    ] as const
-  ).map((action) => {
-    const policyName = `incus.${action}`;
-    const entry = allowlistedCommand(policyName);
-    return {
-      action,
-      description: entry?.description ?? `incus ${action} on an allowlisted instance.`,
-      requiresApproval: entry?.requiresApproval ?? DESTRUCTIVE_ACTIONS.has(action),
-    };
-  });
+  return (["start", "stop", "restart", "delete", "launch", "list", "exec-named"] as const).map(
+    (action) => {
+      const policyName = `incus.${action}`;
+      const entry = allowlistedCommand(policyName);
+      return {
+        action,
+        description: entry?.description ?? `incus ${action} on an allowlisted instance.`,
+        requiresApproval: entry?.requiresApproval ?? DESTRUCTIVE_ACTIONS.has(action),
+      };
+    },
+  );
 }
 
 // ---------------------------------------------------------------------------

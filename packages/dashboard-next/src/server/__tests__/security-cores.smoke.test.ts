@@ -17,7 +17,12 @@ describe("WP-03 approval token core", () => {
   it("mints, verifies, and is single-use + session-bound", () => {
     resetApprovalStore();
     const sid = asSessionId("sess_smoke");
-    const tok = mintApproval({ action: "docker.rm", payload: { container: "x" }, sessionId: sid, userId: "u1" });
+    const tok = mintApproval({
+      action: "docker.rm",
+      payload: { container: "x" },
+      sessionId: sid,
+      userId: "u1",
+    });
     expect(tok.token).toMatch(/^v1\./);
     expect(verifyApproval(tok.token, sid).ok).toBe(true);
     // wrong session is rejected

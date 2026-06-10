@@ -49,8 +49,8 @@
  *   the cookie helpers below are ported verbatim.
  */
 
-import { randomBytes } from 'node:crypto';
-import { CSRF_COOKIE, SESSION_COOKIE } from '../config';
+import { randomBytes } from "node:crypto";
+import { CSRF_COOKIE, SESSION_COOKIE } from "../config";
 
 // ---------------------------------------------------------------------------
 // Public constants
@@ -63,7 +63,7 @@ export const SESSION_MAX_AGE_SEC = 30 * 24 * 60 * 60; // 30 days
 export const CSRF_MAX_AGE_SEC = 30 * 24 * 60 * 60; // 30 days
 
 /** The CSRF header the client sends on state-changing requests. */
-export const CSRF_HEADER = 'x-csrf-token';
+export const CSRF_HEADER = "x-csrf-token";
 
 // ---------------------------------------------------------------------------
 // Cookie jar interface (subset)
@@ -84,7 +84,7 @@ export interface CookieJar {
     opts: {
       path: string;
       httpOnly?: boolean;
-      sameSite?: 'lax' | 'strict' | 'none';
+      sameSite?: "lax" | "strict" | "none";
       secure?: boolean;
       maxAge?: number;
     },
@@ -99,7 +99,7 @@ export interface CookieJar {
 
 /** Generate a fresh CSRF token. 32 bytes of CSPRNG, base64url. */
 export function generateCsrfToken(): string {
-  return randomBytes(32).toString('base64url');
+  return randomBytes(32).toString("base64url");
 }
 
 // ---------------------------------------------------------------------------
@@ -118,9 +118,9 @@ export function setSessionCookie(
   opts: { maxAgeSec?: number; secure?: boolean } = {},
 ): void {
   jar.set(SESSION_COOKIE, token, {
-    path: '/',
+    path: "/",
     httpOnly: true,
-    sameSite: 'lax',
+    sameSite: "lax",
     secure: opts.secure ?? isProduction(),
     maxAge: opts.maxAgeSec ?? SESSION_MAX_AGE_SEC,
   });
@@ -128,12 +128,12 @@ export function setSessionCookie(
 
 /** Read the session cookie value. Returns `null` if missing. */
 export function getSessionCookie(jar: CookieJar): string | null {
-  return jar.get(SESSION_COOKIE, { path: '/' }) ?? null;
+  return jar.get(SESSION_COOKIE, { path: "/" }) ?? null;
 }
 
 /** Clear the session cookie. Idempotent. */
 export function clearSessionCookie(jar: CookieJar): void {
-  jar.delete(SESSION_COOKIE, { path: '/' });
+  jar.delete(SESSION_COOKIE, { path: "/" });
 }
 
 // ---------------------------------------------------------------------------
@@ -151,9 +151,9 @@ export function setCsrfCookie(
   opts: { maxAgeSec?: number; secure?: boolean } = {},
 ): void {
   jar.set(CSRF_COOKIE, token, {
-    path: '/',
+    path: "/",
     httpOnly: false,
-    sameSite: 'lax',
+    sameSite: "lax",
     secure: opts.secure ?? isProduction(),
     maxAge: opts.maxAgeSec ?? CSRF_MAX_AGE_SEC,
   });
@@ -161,12 +161,12 @@ export function setCsrfCookie(
 
 /** Read the CSRF cookie value. Returns `null` if missing. */
 export function getCsrfCookie(jar: CookieJar): string | null {
-  return jar.get(CSRF_COOKIE, { path: '/' }) ?? null;
+  return jar.get(CSRF_COOKIE, { path: "/" }) ?? null;
 }
 
 /** Clear the CSRF cookie. Idempotent. */
 export function clearCsrfCookie(jar: CookieJar): void {
-  jar.delete(CSRF_COOKIE, { path: '/' });
+  jar.delete(CSRF_COOKIE, { path: "/" });
 }
 
 // ---------------------------------------------------------------------------
@@ -194,5 +194,5 @@ export function safeCsrfEqual(a: string | null, b: string | null): boolean {
 // ---------------------------------------------------------------------------
 
 function isProduction(): boolean {
-  return process.env.NODE_ENV === 'production';
+  return process.env.NODE_ENV === "production";
 }

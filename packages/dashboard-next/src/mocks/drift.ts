@@ -4,13 +4,13 @@ import type { SystemData, ProcessInfo, NetworkData, AlertHistory, Service } from
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
-let systemState: SystemData = structuredClone(initialSystem);
+const systemState: SystemData = structuredClone(initialSystem);
 let procState: ProcessInfo[] = structuredClone(initialProcesses);
 let netState: NetworkData = structuredClone(initialNetwork);
 let serviceState: Service[] = structuredClone(SERVICES);
 let alertState: AlertHistory[] = structuredClone(ALERT_HISTORY);
 
-let cpuHistory: { t: number; cpu: number; mem: number }[] = [];
+const cpuHistory: { t: number; cpu: number; mem: number }[] = [];
 const HISTORY = 60;
 
 let started = false;
@@ -29,16 +29,23 @@ function tick() {
   };
   // Sensor drift
   if (systemState.sensors.cpuTemperature) {
-    systemState.sensors.cpuTemperature.value = clamp(systemState.sensors.cpuTemperature.value + (Math.random() - 0.5) * 4, 38, 92);
+    systemState.sensors.cpuTemperature.value = clamp(
+      systemState.sensors.cpuTemperature.value + (Math.random() - 0.5) * 4,
+      38,
+      92,
+    );
   }
   systemState.sensors.temperatures = systemState.sensors.temperatures.map((t) => ({
-    ...t, value: clamp(t.value + (Math.random() - 0.5) * 4, 32, 92),
+    ...t,
+    value: clamp(t.value + (Math.random() - 0.5) * 4, 32, 92),
   }));
   systemState.sensors.fans = systemState.sensors.fans.map((f) => ({
-    ...f, value: clamp(f.value + (Math.random() - 0.5) * 200, 600, 3200),
+    ...f,
+    value: clamp(f.value + (Math.random() - 0.5) * 200, 600, 3200),
   }));
   systemState.sensors.voltages = systemState.sensors.voltages.map((v) => ({
-    ...v, value: +(v.value + (Math.random() - 0.5) * 0.05).toFixed(2),
+    ...v,
+    value: +(v.value + (Math.random() - 0.5) * 0.05).toFixed(2),
   }));
   systemState.load = systemState.load.map((l) => clamp(l + (Math.random() - 0.5) * 0.2, 0.05, 8));
   systemState.uptime += 3;
@@ -59,7 +66,9 @@ function tick() {
       const rx = clamp(i.rxKbps + (Math.random() - 0.5) * 600, 30, 9500);
       const tx = clamp(i.txKbps + (Math.random() - 0.5) * 400, 30, 6000);
       return {
-        ...i, rxKbps: rx, txKbps: tx,
+        ...i,
+        rxKbps: rx,
+        txKbps: tx,
         rxBytesTotal: i.rxBytesTotal + rx * 128 * 3,
         txBytesTotal: i.txBytesTotal + tx * 128 * 3,
       };
@@ -71,20 +80,33 @@ function tick() {
     const idx = Math.floor(Math.random() * serviceState.length);
     const cur = serviceState[idx];
     const flipped: typeof cur.status = cur.status === "online" ? "offline" : "online";
-    serviceState = serviceState.map((s, i) => i === idx ? { ...s, status: flipped, responseTime: flipped === "online" ? 30 + Math.random() * 80 : 0 } : s);
-    alertState = [{
-      id: `live-${Date.now()}`,
-      ruleName: `${cur.name} state change`,
-      serviceName: cur.name,
-      status: (flipped === "online" ? "resolved" : "fired") as AlertHistory["status"],
-      message: flipped === "online" ? "Recovered" : "Health check failed",
-      timestamp: new Date().toISOString(),
-    } as AlertHistory, ...alertState].slice(0, 80);
+    serviceState = serviceState.map((s, i) =>
+      i === idx
+        ? {
+            ...s,
+            status: flipped,
+            responseTime: flipped === "online" ? 30 + Math.random() * 80 : 0,
+          }
+        : s,
+    );
+    alertState = [
+      {
+        id: `live-${Date.now()}`,
+        ruleName: `${cur.name} state change`,
+        serviceName: cur.name,
+        status: (flipped === "online" ? "resolved" : "fired") as AlertHistory["status"],
+        message: flipped === "online" ? "Recovered" : "Health check failed",
+        timestamp: new Date().toISOString(),
+      } as AlertHistory,
+      ...alertState,
+    ].slice(0, 80);
   } else {
     // Subtle latency drift on online services
-    serviceState = serviceState.map((s) => s.status === "online"
-      ? { ...s, responseTime: clamp(s.responseTime + (Math.random() - 0.5) * 14, 8, 480) }
-      : s);
+    serviceState = serviceState.map((s) =>
+      s.status === "online"
+        ? { ...s, responseTime: clamp(s.responseTime + (Math.random() - 0.5) * 14, 8, 480) }
+        : s,
+    );
   }
 
   if (qc) {
@@ -115,7 +137,10 @@ export function startDrift(client: QueryClient) {
 }
 
 export function stopDrift() {
-  if (timer) { clearInterval(timer); timer = null; }
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
+  }
   started = false;
 }
 
@@ -128,17 +153,22 @@ export const live = {
   alerts: () => alertState,
   /** Force-flip a service for outage simulation. */
   flipService(slug: string, status: "online" | "offline") {
-    serviceState = serviceState.map((s) => s.slug === slug ? { ...s, status, responseTime: status === "online" ? 40 : 0 } : s);
+    serviceState = serviceState.map((s) =>
+      s.slug === slug ? { ...s, status, responseTime: status === "online" ? 40 : 0 } : s,
+    );
     const svc = serviceState.find((s) => s.slug === slug);
     if (svc) {
-      alertState = [{
-        id: `sim-${Date.now()}`,
-        ruleName: `${svc.name} simulated`,
-        serviceName: svc.name,
-        status: (status === "online" ? "resolved" : "fired") as AlertHistory["status"],
-        message: status === "online" ? "Simulated recovery" : "Simulated outage",
-        timestamp: new Date().toISOString(),
-      }, ...alertState].slice(0, 80);
+      alertState = [
+        {
+          id: `sim-${Date.now()}`,
+          ruleName: `${svc.name} simulated`,
+          serviceName: svc.name,
+          status: (status === "online" ? "resolved" : "fired") as AlertHistory["status"],
+          message: status === "online" ? "Simulated recovery" : "Simulated outage",
+          timestamp: new Date().toISOString(),
+        },
+        ...alertState,
+      ].slice(0, 80);
     }
     if (qc) {
       qc.setQueryData(["services"], [...serviceState]);
@@ -159,4 +189,3 @@ export const live = {
     if (qc) qc.setQueryData(["services"], [...serviceState]);
   },
 };
-

@@ -4,10 +4,22 @@ import { Button } from "@/components/ui/button";
 
 const KEY = "cortex.tour.v1.dismissed";
 const STEPS = [
-  { title: "Welcome to CortexOS", body: "This is a fully-mocked demo build. All data is generated locally — nothing is sent anywhere." },
-  { title: "Keyboard-first", body: "Press ⌘K to open the command palette. Press ? for the full shortcut list." },
-  { title: "Customize Overview", body: "On the Overview page, hit Edit to rearrange or remove widgets. Your layout is saved locally." },
-  { title: "Try the simulate menu", body: "Sign in as admin (admin / admin) and use the flask icon in the top bar to crash, heal, or stress services." },
+  {
+    title: "Welcome to CortexOS",
+    body: "This is a fully-mocked demo build. All data is generated locally — nothing is sent anywhere.",
+  },
+  {
+    title: "Keyboard-first",
+    body: "Press ⌘K to open the command palette. Press ? for the full shortcut list.",
+  },
+  {
+    title: "Customize Overview",
+    body: "On the Overview page, hit Edit to rearrange or remove widgets. Your layout is saved locally.",
+  },
+  {
+    title: "Try the simulate menu",
+    body: "Sign in as admin (admin / admin) and use the flask icon in the top bar to crash, heal, or stress services.",
+  },
 ];
 
 export function DemoTour() {
@@ -16,7 +28,9 @@ export function DemoTour() {
   useEffect(() => {
     try {
       if (!localStorage.getItem(KEY)) setStep(0);
-    } catch { /* noop */ }
+    } catch {
+      /* noop */
+    }
   }, []);
 
   if (step === null) return null;
@@ -24,7 +38,11 @@ export function DemoTour() {
   const last = step === STEPS.length - 1;
 
   const dismiss = () => {
-    try { localStorage.setItem(KEY, "1"); } catch { /* noop */ }
+    try {
+      localStorage.setItem(KEY, "1");
+    } catch {
+      /* noop */
+    }
     setStep(null);
   };
 
@@ -43,14 +61,27 @@ export function DemoTour() {
           <h3 className="mt-1.5 text-sm font-semibold">{s.title}</h3>
           <p className="mt-1 text-sm text-muted-foreground">{s.body}</p>
         </div>
-        <button onClick={dismiss} aria-label="Close tour" className="text-muted-foreground hover:text-foreground">
+        <button
+          onClick={dismiss}
+          aria-label="Close tour"
+          className="text-muted-foreground hover:text-foreground"
+        >
           <X className="size-4" />
         </button>
       </div>
       <div className="flex items-center justify-between border-t px-4 py-2.5">
-        <button onClick={dismiss} className="text-xs text-muted-foreground hover:text-foreground">Skip</button>
+        <button onClick={dismiss} className="text-xs text-muted-foreground hover:text-foreground">
+          Skip
+        </button>
         <Button size="sm" onClick={() => (last ? dismiss() : setStep(step + 1))}>
-          {last ? "Got it" : <>Next<ArrowRight className="size-3.5 ml-1" /></>}
+          {last ? (
+            "Got it"
+          ) : (
+            <>
+              Next
+              <ArrowRight className="size-3.5 ml-1" />
+            </>
+          )}
         </Button>
       </div>
     </div>

@@ -43,19 +43,17 @@ vi.mock("@/lib/api/auth.functions", () => {
       activeSessions: 0,
     }) as unknown as ContractUser;
 
-  const login = vi.fn(
-    async (opts: { data: { username: string; password: string } }) => {
-      // Mirror the real gate's zod non-empty constraint (username + password
-      // are both `z.string().min(1).max(...)` at `auth.functions.ts:32-40`).
-      if (!opts.data.username || !opts.data.password) {
-        throw new Error("Invalid credentials");
-      }
-      return {
-        user: makeUser(opts.data.username, opts.data.username === "admin"),
-        session: { token: "fake-session-token" },
-      };
-    },
-  );
+  const login = vi.fn(async (opts: { data: { username: string; password: string } }) => {
+    // Mirror the real gate's zod non-empty constraint (username + password
+    // are both `z.string().min(1).max(...)` at `auth.functions.ts:32-40`).
+    if (!opts.data.username || !opts.data.password) {
+      throw new Error("Invalid credentials");
+    }
+    return {
+      user: makeUser(opts.data.username, opts.data.username === "admin"),
+      session: { token: "fake-session-token" },
+    };
+  });
   const logout = vi.fn(async () => ({ ok: true as const }));
   // Mount probe returns no user/session — the test "starts logged out" is
   // what this contract means: a session probe that resolves to null.

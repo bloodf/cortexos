@@ -30,8 +30,7 @@ import { asSessionId } from "../../entities";
 
 beforeAll(() => {
   // Pin a deterministic HMAC key so approval tokens work.
-  process.env.CORTEX_MASTER_KEY ??=
-    "test-master-key-0123456789abcdef0123456789abcdef";
+  process.env.CORTEX_MASTER_KEY ??= "test-master-key-0123456789abcdef0123456789abcdef";
   // Force mock executor regardless of platform.
   process.env.CORTEX_INCUS_BRIDGE_REAL = "0";
 });
@@ -166,10 +165,7 @@ describe("dispatchAction — policy allowlist", () => {
   });
 
   it("start is on the allowlist", async () => {
-    const result = await dispatchAction(
-      { action: "start", name: "hermes-canary" },
-      makeAdminCtx(),
-    );
+    const result = await dispatchAction({ action: "start", name: "hermes-canary" }, makeAdminCtx());
     // hermes-canary is 'active' in seed; start → still accepted
     expect(result.status).toBe("accepted");
   });
@@ -181,10 +177,7 @@ describe("dispatchAction — policy allowlist", () => {
 
 describe("dispatchAction — instance name regex", () => {
   it("rejects name with path traversal characters", async () => {
-    const result = await dispatchAction(
-      { action: "start", name: "../etc/passwd" },
-      makeAdminCtx(),
-    );
+    const result = await dispatchAction({ action: "start", name: "../etc/passwd" }, makeAdminCtx());
     expect(result.status).toBe("rejected");
     if (result.status === "rejected") {
       expect(result.code).toBe("instance_name_invalid");
@@ -192,10 +185,7 @@ describe("dispatchAction — instance name regex", () => {
   });
 
   it("rejects name starting with hyphen", async () => {
-    const result = await dispatchAction(
-      { action: "start", name: "-badname" },
-      makeAdminCtx(),
-    );
+    const result = await dispatchAction({ action: "start", name: "-badname" }, makeAdminCtx());
     expect(result.status).toBe("rejected");
     if (result.status === "rejected") {
       expect(result.code).toBe("instance_name_invalid");
@@ -203,10 +193,7 @@ describe("dispatchAction — instance name regex", () => {
   });
 
   it("accepts a valid instance name", async () => {
-    const result = await dispatchAction(
-      { action: "start", name: "hermes-canary" },
-      makeAdminCtx(),
-    );
+    const result = await dispatchAction({ action: "start", name: "hermes-canary" }, makeAdminCtx());
     expect(result.status).not.toBe("rejected");
   });
 });
@@ -275,10 +262,7 @@ describe("dispatchAction — delete confirmation", () => {
 
 describe("dispatchAction — approval gate", () => {
   it("returns approval_required for stop without token", async () => {
-    const result = await dispatchAction(
-      { action: "stop", name: "hermes-canary" },
-      makeAdminCtx(),
-    );
+    const result = await dispatchAction({ action: "stop", name: "hermes-canary" }, makeAdminCtx());
     expect(result.status).toBe("approval_required");
     if (result.status === "approval_required") {
       expect(typeof result.actionHash).toBe("string");
@@ -351,10 +335,7 @@ describe("dispatchAction — approval gate", () => {
 
   it("start (non-destructive) is accepted without approval token", async () => {
     // hermes-canary exists and start is non-destructive
-    const result = await dispatchAction(
-      { action: "start", name: "hermes-canary" },
-      makeAdminCtx(),
-    );
+    const result = await dispatchAction({ action: "start", name: "hermes-canary" }, makeAdminCtx());
     expect(result.status).toBe("accepted");
   });
 });
@@ -410,7 +391,14 @@ describe("dispatchExecNamed — op allowlist", () => {
   });
 
   it("EXEC_NAMED_OPS contains the required set", () => {
-    const required = ["term.ps", "term.df", "term.ls", "term.cat", "term.tail_log", "term.exec_named"];
+    const required = [
+      "term.ps",
+      "term.df",
+      "term.ls",
+      "term.cat",
+      "term.tail_log",
+      "term.exec_named",
+    ];
     for (const op of required) {
       expect(EXEC_NAMED_OPS.has(op as never)).toBe(true);
     }

@@ -54,7 +54,9 @@ if (typeof window !== "undefined") {
       observe() {}
       unobserve() {}
       disconnect() {}
-      takeRecords() { return []; }
+      takeRecords() {
+        return [];
+      }
     } as unknown as typeof IntersectionObserver;
   }
   // Element.scrollIntoView used by some shadcn primitives

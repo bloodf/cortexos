@@ -12,10 +12,10 @@
  * `defineApiRoute` wrapper maps to the typed-error envelope.
  */
 
-import type { GroupName, User } from '../entities';
-import { authError, permissionError } from '../errors/types';
-import { ApiErrorThrown } from '../errors';
-import type { RequestCtx } from '../context';
+import type { GroupName, User } from "../entities";
+import { authError, permissionError } from "../errors/types";
+import { ApiErrorThrown } from "../errors";
+import type { RequestCtx } from "../context";
 
 // ---------------------------------------------------------------------------
 // RBAC predicates — single source of truth (SR-003)
@@ -31,20 +31,22 @@ export function isAdmin(user: User): boolean {
   if (user.isAdmin === true) return true;
   if ((user as { is_admin?: boolean }).is_admin === true) return true;
   return user.groupMemberships.some((g) =>
-    typeof g === 'string' ? g === 'cortexos-admin' : g.name === 'cortexos-admin',
+    typeof g === "string" ? g === "cortexos-admin" : g.name === "cortexos-admin",
   );
 }
 
 /** Does the user hold a given group membership? */
 export function hasGroup(user: User, group: GroupName): boolean {
-  return user.groupMemberships.some((g) => (typeof g === 'string' ? g === group : g.name === group));
+  return user.groupMemberships.some((g) =>
+    typeof g === "string" ? g === group : g.name === group,
+  );
 }
 
 // ---------------------------------------------------------------------------
 // require* helpers — throw ApiErrorThrown on failure
 // ---------------------------------------------------------------------------
 
-function throwAuth(message = 'Authentication required'): never {
+function throwAuth(message = "Authentication required"): never {
   const err = authError(message);
   throw new ApiErrorThrown(401, { message: err.message, code: err.kind }, err);
 }
@@ -61,7 +63,7 @@ function throwPermission(message: string): never {
 export function requireAuth(ctx: RequestCtx): User {
   const user = ctx.user;
   if (!user) throwAuth();
-  if (!user.isActive) throwAuth('Account is inactive');
+  if (!user.isActive) throwAuth("Account is inactive");
   return user;
 }
 
@@ -72,7 +74,7 @@ export function requireAuth(ctx: RequestCtx): User {
  */
 export function requireAdmin(ctx: RequestCtx): User {
   const user = requireAuth(ctx);
-  if (!isAdmin(user)) throwPermission('Admin role required');
+  if (!isAdmin(user)) throwPermission("Admin role required");
   return user;
 }
 

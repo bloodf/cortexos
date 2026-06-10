@@ -29,16 +29,16 @@
  *   `CookieJar` adapter the caller supplies (server/context.ts WebCookieJar).
  */
 
-import { CSRF_HEADER, getCsrfCookie, safeCsrfEqual, type CookieJar } from './cookies';
-import { authError, permissionError } from '../errors/types';
-import { ApiErrorThrown } from '../errors';
+import { CSRF_HEADER, getCsrfCookie, safeCsrfEqual, type CookieJar } from "./cookies";
+import { authError, permissionError } from "../errors/types";
+import { ApiErrorThrown } from "../errors";
 
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
 /** HTTP methods that do NOT require a CSRF check. */
-const SAFE_METHODS: ReadonlySet<string> = new Set(['GET', 'HEAD', 'OPTIONS']);
+const SAFE_METHODS: ReadonlySet<string> = new Set(["GET", "HEAD", "OPTIONS"]);
 
 /**
  * The "bootstrap" CSRF token issued by the /login page on first visit. The
@@ -46,7 +46,7 @@ const SAFE_METHODS: ReadonlySet<string> = new Set(['GET', 'HEAD', 'OPTIONS']);
  * double-submit check. A real session-bound token replaces it on a
  * successful login.
  */
-export const LOGIN_BOOTSTRAP_CSRF = 'login-bootstrap';
+export const LOGIN_BOOTSTRAP_CSRF = "login-bootstrap";
 
 /** Is the method safe (does not change server state)? */
 export function csrfIsSafeMethod(method: string): boolean {
@@ -77,24 +77,24 @@ export function requireCsrf(request: Request, expected: string | null, jar: Cook
   if (csrfIsSafeMethod(request.method)) return;
 
   const headerToken = csrfHeadersFromRequest(request);
-  const cookieValue = getCsrfCookie(jar) ?? '';
+  const cookieValue = getCsrfCookie(jar) ?? "";
 
   if (!expected) {
     // No session-bound CSRF token — either unauthenticated or the session
     // is missing the field. Treat as 401 (do not reveal CSRF exists to an
     // unauthenticated caller); the route's own auth gate also produces 401.
-    throwCsrfError('missing_session_csrf');
+    throwCsrfError("missing_session_csrf");
   }
   if (!headerToken) {
-    throwCsrfError('missing_header');
+    throwCsrfError("missing_header");
   }
   if (!cookieValue) {
-    throwCsrfError('missing_cookie');
+    throwCsrfError("missing_cookie");
   }
   // Constant-time compare header vs cookie vs session-bound token. A mismatch
   // on any of the three is a fail.
   if (!safeCsrfEqual(headerToken, cookieValue) || !safeCsrfEqual(headerToken, expected)) {
-    throwCsrfError('mismatch');
+    throwCsrfError("mismatch");
   }
 }
 
@@ -106,16 +106,15 @@ function throwCsrfError(reason: string): never {
   // We do NOT log the reason in production — the audit captures the user +
   // requestId, and we don't want to leak the CSRF diagnostic to a potential
   // attacker. The reason is for unit tests to assert against.
-  if (process.env.NODE_ENV !== 'production') {
-    // eslint-disable-next-line no-console
-    console.debug('[cortexos/csrf] rejected', { reason });
+  if (process.env.NODE_ENV !== "production") {
+    console.debug("[cortexos/csrf] rejected", { reason });
   }
   // For the "missing_session_csrf" case, surface as auth (the caller is
   // unauthenticated and shouldn't be told CSRF exists).
-  if (reason === 'missing_session_csrf') {
-    const err = authError('Authentication required');
+  if (reason === "missing_session_csrf") {
+    const err = authError("Authentication required");
     throw new ApiErrorThrown(401, { message: err.message, code: err.kind }, err);
   }
-  const err = permissionError('CSRF token invalid or missing');
+  const err = permissionError("CSRF token invalid or missing");
   throw new ApiErrorThrown(403, { message: err.message, code: err.kind }, err);
 }

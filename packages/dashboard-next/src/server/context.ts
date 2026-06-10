@@ -20,16 +20,16 @@
  * during touch/role-check — the session stays valid for the current request.
  */
 
-import { randomUUID } from 'node:crypto';
-import type { Session, User } from './entities';
+import { randomUUID } from "node:crypto";
+import type { Session, User } from "./entities";
 import {
   clearSessionCookie,
   getSessionCookie,
   setSessionCookie,
   type CookieJar,
-} from './auth/cookies';
-import { DEFAULT_SESSION_TTL_MS, getSessionStore } from './auth/session-store';
-import { getPamAuthenticator } from './auth/pam';
+} from "./auth/cookies";
+import { DEFAULT_SESSION_TTL_MS, getSessionStore } from "./auth/session-store";
+import { getPamAuthenticator } from "./auth/pam";
 
 // ---------------------------------------------------------------------------
 // Security headers — applied to every response (ported from hooks.server.ts).
@@ -37,10 +37,10 @@ import { getPamAuthenticator } from './auth/pam';
 // ---------------------------------------------------------------------------
 
 export const FRAMEWORK_HEADERS: Readonly<Record<string, string>> = {
-  'X-Content-Type-Options': 'nosniff',
-  'X-Frame-Options': 'DENY',
-  'Referrer-Policy': 'strict-origin-when-cross-origin',
-  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
 };
 
 /** TTL between role re-validations. Per SR-011/012, 60s. */
@@ -53,7 +53,7 @@ const ROLE_CHECK_TTL_MS = 60_000;
 interface SetCookieOpts {
   path: string;
   httpOnly?: boolean;
-  sameSite?: 'lax' | 'strict' | 'none';
+  sameSite?: "lax" | "strict" | "none";
   secure?: boolean;
   maxAge?: number;
 }
@@ -71,7 +71,7 @@ export class WebCookieJar implements CookieJar {
   private readonly overrides = new Map<string, string | null>();
 
   constructor(request: Request) {
-    this.incoming = parseCookieHeader(request.headers.get('cookie'));
+    this.incoming = parseCookieHeader(request.headers.get("cookie"));
   }
 
   get(name: string): string | undefined {
@@ -88,10 +88,7 @@ export class WebCookieJar implements CookieJar {
 
   delete(name: string, opts?: { path?: string }): void {
     this.overrides.set(name, null);
-    this.pending.set(
-      name,
-      serializeCookie(name, '', { path: opts?.path ?? '/', maxAge: 0 }),
-    );
+    this.pending.set(name, serializeCookie(name, "", { path: opts?.path ?? "/", maxAge: 0 }));
   }
 
   /** The accumulated `Set-Cookie` header values to apply to the response. */
@@ -102,7 +99,7 @@ export class WebCookieJar implements CookieJar {
   /** Apply accumulated Set-Cookie headers + framework headers to a response. */
   applyTo(headers: Headers): void {
     for (const cookie of this.pending.values()) {
-      headers.append('set-cookie', cookie);
+      headers.append("set-cookie", cookie);
     }
   }
 }
@@ -110,8 +107,8 @@ export class WebCookieJar implements CookieJar {
 function parseCookieHeader(header: string | null): Map<string, string> {
   const out = new Map<string, string>();
   if (!header) return out;
-  for (const part of header.split(';')) {
-    const idx = part.indexOf('=');
+  for (const part of header.split(";")) {
+    const idx = part.indexOf("=");
     if (idx < 0) continue;
     const name = part.slice(0, idx).trim();
     const value = part.slice(idx + 1).trim();
@@ -124,13 +121,13 @@ function serializeCookie(name: string, value: string, opts: SetCookieOpts): stri
   const segments = [`${name}=${encodeURIComponent(value)}`];
   segments.push(`Path=${opts.path}`);
   if (opts.maxAge !== undefined) segments.push(`Max-Age=${Math.floor(opts.maxAge)}`);
-  if (opts.httpOnly) segments.push('HttpOnly');
+  if (opts.httpOnly) segments.push("HttpOnly");
   if (opts.sameSite) {
-    const v = opts.sameSite === 'lax' ? 'Lax' : opts.sameSite === 'strict' ? 'Strict' : 'None';
+    const v = opts.sameSite === "lax" ? "Lax" : opts.sameSite === "strict" ? "Strict" : "None";
     segments.push(`SameSite=${v}`);
   }
-  if (opts.secure) segments.push('Secure');
-  return segments.join('; ');
+  if (opts.secure) segments.push("Secure");
+  return segments.join("; ");
 }
 
 // ---------------------------------------------------------------------------
@@ -155,17 +152,17 @@ export interface RequestCtx {
 }
 
 function newRequestId(): string {
-  return randomUUID().replace(/-/g, '').slice(0, 16);
+  return randomUUID().replace(/-/g, "").slice(0, 16);
 }
 
 /** Best-effort client IP from forwarding headers. */
 function readClientIp(request: Request): string {
-  const xff = request.headers.get('x-forwarded-for');
+  const xff = request.headers.get("x-forwarded-for");
   if (xff) {
-    const first = xff.split(',')[0]?.trim();
+    const first = xff.split(",")[0]?.trim();
     if (first) return first;
   }
-  return request.headers.get('x-real-ip') ?? '127.0.0.1';
+  return request.headers.get("x-real-ip") ?? "127.0.0.1";
 }
 
 /**
@@ -180,7 +177,7 @@ export async function resolveContext(request: Request): Promise<RequestCtx> {
     session: null,
     requestId: newRequestId(),
     clientIp: readClientIp(request),
-    userAgent: request.headers.get('user-agent'),
+    userAgent: request.headers.get("user-agent"),
     request,
     cookies,
   };

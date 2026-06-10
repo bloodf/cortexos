@@ -34,7 +34,16 @@ import {
 import { Skeleton } from "@/components/skeletons";
 import { EmptyState } from "@/components/EmptyState";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { api, callFlagReview, callApproveReview, callBatchDecision, callListMailAccounts, callCreateMailAccount, callUpdateMailAccount, callDeleteMailAccount } from "@/lib/api/client";
+import {
+  api,
+  callFlagReview,
+  callApproveReview,
+  callBatchDecision,
+  callListMailAccounts,
+  callCreateMailAccount,
+  callUpdateMailAccount,
+  callDeleteMailAccount,
+} from "@/lib/api/client";
 import type { ServerMailAccount } from "@/lib/api/client";
 import { useT } from "@/hooks/useT";
 import { useAuth } from "@/hooks/useAuth";
@@ -135,7 +144,9 @@ function ReviewsPane() {
     setPicked(new Set());
     try {
       await callBatchDecision({ data: { ids, action }, headers: csrfHeaders() });
-      toast.success(`${ids.length} email${ids.length === 1 ? "" : "s"} ${action === "approve" ? "approved" : "flagged"}`);
+      toast.success(
+        `${ids.length} email${ids.length === 1 ? "" : "s"} ${action === "approve" ? "approved" : "flagged"}`,
+      );
       void invalidate();
     } catch {
       toast.error(`Batch ${action} failed`);
@@ -496,7 +507,9 @@ function AccountDialog({ open, onOpenChange, editing, onSaved }: AccountDialogPr
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{editing ? `Edit account "${editing.slug}"` : "Add IMAP account"}</DialogTitle>
+          <DialogTitle>
+            {editing ? `Edit account "${editing.slug}"` : "Add IMAP account"}
+          </DialogTitle>
         </DialogHeader>
         <form onSubmit={(e) => void handleSubmit(e)} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
@@ -551,7 +564,9 @@ function AccountDialog({ open, onOpenChange, editing, onSaved }: AccountDialogPr
                 checked={form.secure}
                 onCheckedChange={(v) => set("secure", v === true)}
               />
-              <Label htmlFor="acct-secure" className="text-sm cursor-pointer">TLS</Label>
+              <Label htmlFor="acct-secure" className="text-sm cursor-pointer">
+                TLS
+              </Label>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -567,7 +582,10 @@ function AccountDialog({ open, onOpenChange, editing, onSaved }: AccountDialogPr
             </div>
             <div className="space-y-1">
               <Label htmlFor="acct-password">
-                Password{editing && <span className="text-muted-foreground ml-1 text-xs">(leave blank to keep)</span>}
+                Password
+                {editing && (
+                  <span className="text-muted-foreground ml-1 text-xs">(leave blank to keep)</span>
+                )}
               </Label>
               <Input
                 id="acct-password"
@@ -598,7 +616,9 @@ function AccountDialog({ open, onOpenChange, editing, onSaved }: AccountDialogPr
             </div>
           </div>
           <div className="space-y-1">
-            <Label htmlFor="acct-trash">Trash mailbox <span className="text-muted-foreground text-xs">(optional)</span></Label>
+            <Label htmlFor="acct-trash">
+              Trash mailbox <span className="text-muted-foreground text-xs">(optional)</span>
+            </Label>
             <Input
               id="acct-trash"
               value={form.trashMailbox}
@@ -612,11 +632,15 @@ function AccountDialog({ open, onOpenChange, editing, onSaved }: AccountDialogPr
               checked={form.enabled}
               onCheckedChange={(v) => set("enabled", v === true)}
             />
-            <Label htmlFor="acct-enabled" className="cursor-pointer">Enabled</Label>
+            <Label htmlFor="acct-enabled" className="cursor-pointer">
+              Enabled
+            </Label>
           </div>
           <DialogFooter className="pt-2">
             <DialogClose asChild>
-              <Button type="button" variant="outline">Cancel</Button>
+              <Button type="button" variant="outline">
+                Cancel
+              </Button>
             </DialogClose>
             <Button type="submit" disabled={saving}>
               {saving && <Loader2 className="size-4 mr-1.5 animate-spin" />}

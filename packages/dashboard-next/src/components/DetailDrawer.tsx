@@ -1,5 +1,11 @@
 import type { ReactNode } from "react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LogViewer } from "@/components/LogViewer";
 import { KeyValueList } from "@/components/KeyValueList";
@@ -34,11 +40,17 @@ export function DetailDrawer({ open, onOpenChange, title, description, tabs, act
         </SheetHeader>
         <Tabs defaultValue={tabs[0]?.id} className="flex-1 min-h-0 flex flex-col">
           <TabsList className="mx-6 mt-3 w-fit">
-            {tabs.map((t) => <TabsTrigger key={t.id} value={t.id}>{t.label}</TabsTrigger>)}
+            {tabs.map((t) => (
+              <TabsTrigger key={t.id} value={t.id}>
+                {t.label}
+              </TabsTrigger>
+            ))}
           </TabsList>
           <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
             {tabs.map((t) => (
-              <TabsContent key={t.id} value={t.id} className="mt-0 space-y-4">{t.content}</TabsContent>
+              <TabsContent key={t.id} value={t.id} className="mt-0 space-y-4">
+                {t.content}
+              </TabsContent>
             ))}
           </div>
         </Tabs>
@@ -88,13 +100,28 @@ export function MockMetrics() {
   );
 }
 
-function MetricSparkCard({ label, data, unit, color }: { label: string; data: number[]; unit: string; color: string }) {
+function MetricSparkCard({
+  label,
+  data,
+  unit,
+  color,
+}: {
+  label: string;
+  data: number[];
+  unit: string;
+  color: string;
+}) {
   const last = data[data.length - 1];
   return (
     <Card className="p-3">
       <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className="text-xl font-semibold tabular-nums mt-1">{last.toFixed(0)}{unit}</div>
-      <div className="h-8 mt-1"><Sparkline data={data} color={color} /></div>
+      <div className="text-xl font-semibold tabular-nums mt-1">
+        {last.toFixed(0)}
+        {unit}
+      </div>
+      <div className="h-8 mt-1">
+        <Sparkline data={data} color={color} />
+      </div>
     </Card>
   );
 }

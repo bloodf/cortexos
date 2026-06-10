@@ -1,8 +1,21 @@
-interface Props { data: number[]; width?: number; height?: number; color?: string; fill?: boolean }
+interface Props {
+  data: number[];
+  width?: number;
+  height?: number;
+  color?: string;
+  fill?: boolean;
+}
 
-export function Sparkline({ data, width = 120, height = 36, color = "var(--primary)", fill = true }: Props) {
+export function Sparkline({
+  data,
+  width = 120,
+  height = 36,
+  color = "var(--primary)",
+  fill = true,
+}: Props) {
   if (!data.length) return <svg width={width} height={height} />;
-  const min = Math.min(...data), max = Math.max(...data);
+  const min = Math.min(...data),
+    max = Math.max(...data);
   const range = max - min || 1;
   const stepX = width / Math.max(1, data.length - 1);
   const pts = data.map((v, i) => [i * stepX, height - ((v - min) / range) * (height - 4) - 2]);

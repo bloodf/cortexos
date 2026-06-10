@@ -17,13 +17,13 @@
 declare const __brand: unique symbol;
 type Brand<T, B> = T & { readonly [__brand]: B };
 
-export type UserId = Brand<string, 'UserId'>;
-export type SessionId = Brand<string, 'SessionId'>;
-export type ServiceId = Brand<string, 'ServiceId'>;
-export type AlertId = Brand<string, 'AlertId'>;
-export type AuditEventId = Brand<string, 'AuditEventId'>;
-export type ApprovalTokenId = Brand<string, 'ApprovalTokenId'>;
-export type DashboardCommandAuditId = Brand<string, 'DashboardCommandAuditId'>;
+export type UserId = Brand<string, "UserId">;
+export type SessionId = Brand<string, "SessionId">;
+export type ServiceId = Brand<string, "ServiceId">;
+export type AlertId = Brand<string, "AlertId">;
+export type AuditEventId = Brand<string, "AuditEventId">;
+export type ApprovalTokenId = Brand<string, "ApprovalTokenId">;
+export type DashboardCommandAuditId = Brand<string, "DashboardCommandAuditId">;
 
 /** Smart constructors — validate at the boundary, trust internally. */
 export const asUserId = (s: string): UserId => s as UserId;
@@ -40,7 +40,7 @@ export const asDashboardCommandAuditId = (s: string): DashboardCommandAuditId =>
 // ---------------------------------------------------------------------------
 
 /** Group memberships drive RBAC decisions (THREAT_MODEL §1.2 surface 2). */
-export type GroupName = 'cortexos-admin' | 'cortexos-auditor' | 'cortexos-users';
+export type GroupName = "cortexos-admin" | "cortexos-auditor" | "cortexos-users";
 
 /** Object form of a group membership, used by the contracts User
  *  (and by `toContractsUser` in `contracts-bridge.ts`). The local
@@ -88,9 +88,9 @@ export interface Session {
 // Service registry (matches `Service` in `src/lib/sys-pilot/types.ts`)
 // ---------------------------------------------------------------------------
 
-export type ServiceStatus = 'online' | 'offline' | 'unknown' | 'checking';
-export type ServiceKind = 'app' | 'service' | 'docker' | 'process' | 'dashboard-launcher';
-export type HealthType = 'http' | 'tcp' | 'docker' | 'systemd' | 'process';
+export type ServiceStatus = "online" | "offline" | "unknown" | "checking";
+export type ServiceKind = "app" | "service" | "docker" | "process" | "dashboard-launcher";
+export type HealthType = "http" | "tcp" | "docker" | "systemd" | "process";
 
 export interface Service {
   id: ServiceId;
@@ -109,7 +109,7 @@ export interface Service {
   showInHealthcheck: boolean;
   showInWebui: boolean;
   sortOrder: number;
-  iconType?: 'auto' | 'lucide' | 'image' | 'mono' | string;
+  iconType?: "auto" | "lucide" | "image" | "mono" | string;
   iconColor?: string | null;
   iconImage?: string | null;
   createdAt: string;
@@ -127,8 +127,8 @@ export interface ServiceHealthSnapshot {
 // Alerts
 // ---------------------------------------------------------------------------
 
-export type AlertSeverity = 'info' | 'warning' | 'critical';
-export type AlertEventStatus = 'firing' | 'resolved' | 'silenced';
+export type AlertSeverity = "info" | "warning" | "critical";
+export type AlertEventStatus = "firing" | "resolved" | "silenced";
 
 export interface AlertRule {
   id: AlertId;
@@ -162,7 +162,7 @@ export interface AuditEvent {
   surface: string;
   action: string;
   target: string | null;
-  result: 'success' | 'failure' | 'denied' | 'error';
+  result: "success" | "failure" | "denied" | "error";
   errorCode: string | null;
   requestId: string;
   prevHash: string | null;
@@ -175,7 +175,7 @@ export interface AuditEvent {
 // Dashboard command audit (two-phase lifecycle, THREAT_MODEL §6.1 + SR-090)
 // ---------------------------------------------------------------------------
 
-export type CommandStatus = 'created' | 'running' | 'finished' | 'failed' | 'cancelled';
+export type CommandStatus = "created" | "running" | "finished" | "failed" | "cancelled";
 
 export interface DashboardCommandAudit {
   id: DashboardCommandAuditId;
@@ -214,7 +214,7 @@ export interface ApprovalToken {
 // Pending approval row (THREAT_MODEL §3.5 + migrations/001 pending_approvals)
 // ---------------------------------------------------------------------------
 
-export type ApprovalDecision = 'approve' | 'deny' | 'timeout';
+export type ApprovalDecision = "approve" | "deny" | "timeout";
 
 export interface PendingApproval {
   readonly id: ApprovalTokenId;
@@ -250,6 +250,6 @@ export interface PageInput {
   page: number;
   pageSize: number;
   sort?: string;
-  dir?: 'asc' | 'desc';
+  dir?: "asc" | "desc";
   filter?: Record<string, string | number | boolean | undefined>;
 }

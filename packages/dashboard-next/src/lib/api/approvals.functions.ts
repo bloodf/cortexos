@@ -37,55 +37,55 @@ import { defineServerFn, serverFnNoop } from "@/lib/api/define-server-fn";
 // ---------------------------------------------------------------------------
 
 const ApprovalListInput = z
-	.object({
-		status: z.enum(["open", "all"]).optional(),
-		page: z.coerce.number().int().min(1).optional(),
-		pageSize: z.coerce.number().int().min(1).max(500).optional(),
-	})
-	.strict();
+  .object({
+    status: z.enum(["open", "all"]).optional(),
+    page: z.coerce.number().int().min(1).optional(),
+    pageSize: z.coerce.number().int().min(1).max(500).optional(),
+  })
+  .strict();
 
 const ApprovalIdInput = z.object({ id: z.coerce.number().int().positive() }).strict();
 
 const MintInput = z
-	.object({
-		action: z.string().min(1).max(256),
-		payload: z.record(z.string(), z.unknown()).default({}),
-		ttlSec: z.number().int().min(1).max(3600).optional(),
-	})
-	.strict();
+  .object({
+    action: z.string().min(1).max(256),
+    payload: z.record(z.string(), z.unknown()).default({}),
+    ttlSec: z.number().int().min(1).max(3600).optional(),
+  })
+  .strict();
 
 const GrantInput = z
-	.object({
-		id: z.coerce.number().int().positive(),
-		/** Optional TTL override for the minted grant token. */
-		ttlSec: z.number().int().min(1).max(3600).optional(),
-	})
-	.strict();
+  .object({
+    id: z.coerce.number().int().positive(),
+    /** Optional TTL override for the minted grant token. */
+    ttlSec: z.number().int().min(1).max(3600).optional(),
+  })
+  .strict();
 
 // ---------------------------------------------------------------------------
 // listApprovals — GET, auth: any → { pending: PendingApproval[], total, page, pageSize }
 // ---------------------------------------------------------------------------
 
 const listApprovalsGate = defineServerFn({
-	method: "GET",
-	auth: "any",
-	input: ApprovalListInput,
-	surface: "approvals",
-	action: "approvals.list",
-	handler: async ({ input }) => {
-		const { getDb } = await import("@/server/db/client");
-		const { listPendingApprovals } = await import("@/server/db/repos/pending_approvals");
-		const { rows, total, page, pageSize } = await listPendingApprovals(getDb(), {
-			openOnly: input.status !== "all",
-			page: input.page,
-			pageSize: input.pageSize,
-		});
-		return { pending: rows, total, page, pageSize };
-	},
+  method: "GET",
+  auth: "any",
+  input: ApprovalListInput,
+  surface: "approvals",
+  action: "approvals.list",
+  handler: async ({ input }) => {
+    const { getDb } = await import("@/server/db/client");
+    const { listPendingApprovals } = await import("@/server/db/repos/pending_approvals");
+    const { rows, total, page, pageSize } = await listPendingApprovals(getDb(), {
+      openOnly: input.status !== "all",
+      page: input.page,
+      pageSize: input.pageSize,
+    });
+    return { pending: rows, total, page, pageSize };
+  },
 });
 export const listApprovals = createServerFn({ method: "GET" })
-	.middleware([listApprovalsGate])
-	.handler(serverFnNoop);
+  .middleware([listApprovalsGate])
+  .handler(serverFnNoop);
 
 // ---------------------------------------------------------------------------
 // mintApproval — POST, auth: admin → { token, expiresAt, issuedAt, actionHash, ttlSec }
@@ -94,43 +94,43 @@ export const listApprovals = createServerFn({ method: "GET" })
 // ---------------------------------------------------------------------------
 
 const mintApprovalGate = defineServerFn({
-	method: "POST",
-	auth: "admin",
-	input: MintInput,
-	// SR-200: stricter limit for the token-mint endpoint.
-	rateLimit: { limit: 30, windowSec: 60, bucket: "ip" },
-	surface: "approvals",
-	action: "approvals.mint",
-	target: (input) => input.action,
-	handler: async ({ user, input, ctx }) => {
-		const { mintApproval: mint } = await import("@/server/approval");
-		const { systemError } = await import("@/server/errors/types");
+  method: "POST",
+  auth: "admin",
+  input: MintInput,
+  // SR-200: stricter limit for the token-mint endpoint.
+  rateLimit: { limit: 30, windowSec: 60, bucket: "ip" },
+  surface: "approvals",
+  action: "approvals.mint",
+  target: (input) => input.action,
+  handler: async ({ user, input, ctx }) => {
+    const { mintApproval: mint } = await import("@/server/approval");
+    const { systemError } = await import("@/server/errors/types");
 
-		const sessionId = ctx.session?.id ?? null;
-		if (!sessionId || !user) {
-			// requireAdmin already ensured a session; guard defensively.
-			throw systemError("Session required for approval minting");
-		}
-		const ttl = input.ttlSec ?? (input.action.startsWith("reveal.") ? 300 : 60);
-		const token = mint({
-			action: input.action,
-			payload: input.payload,
-			sessionId,
-			userId: user.id,
-			ttlSec: ttl,
-		});
-		return {
-			token: token.token,
-			expiresAt: token.expiresAt,
-			issuedAt: token.issuedAt,
-			actionHash: token.actionHash,
-			ttlSec: token.ttlSec,
-		};
-	},
+    const sessionId = ctx.session?.id ?? null;
+    if (!sessionId || !user) {
+      // requireAdmin already ensured a session; guard defensively.
+      throw systemError("Session required for approval minting");
+    }
+    const ttl = input.ttlSec ?? (input.action.startsWith("reveal.") ? 300 : 60);
+    const token = mint({
+      action: input.action,
+      payload: input.payload,
+      sessionId,
+      userId: user.id,
+      ttlSec: ttl,
+    });
+    return {
+      token: token.token,
+      expiresAt: token.expiresAt,
+      issuedAt: token.issuedAt,
+      actionHash: token.actionHash,
+      ttlSec: token.ttlSec,
+    };
+  },
 });
 export const mintApproval = createServerFn({ method: "POST" })
-	.middleware([mintApprovalGate])
-	.handler(serverFnNoop);
+  .middleware([mintApprovalGate])
+  .handler(serverFnNoop);
 
 // ---------------------------------------------------------------------------
 // grantApproval — POST, auth: admin → { ok: true, token, expiresAt, actionHash }
@@ -140,64 +140,61 @@ export const mintApproval = createServerFn({ method: "POST" })
 // ---------------------------------------------------------------------------
 
 const grantApprovalGate = defineServerFn({
-	method: "POST",
-	auth: "admin",
-	input: GrantInput,
-	rateLimit: { limit: 30, windowSec: 60, bucket: "user" },
-	surface: "approvals",
-	action: "approvals.grant",
-	target: (input) => String(input.id),
-	handler: async ({ user, input, ctx }) => {
-		const { getDb } = await import("@/server/db/client");
-		const { getPendingApprovalById, resolvePendingApproval } = await import(
-			"@/server/db/repos/pending_approvals"
-		);
-		const { mintApproval: mint } = await import("@/server/approval");
-		const { notFoundError, validationError, systemError } = await import(
-			"@/server/errors/types"
-		);
+  method: "POST",
+  auth: "admin",
+  input: GrantInput,
+  rateLimit: { limit: 30, windowSec: 60, bucket: "user" },
+  surface: "approvals",
+  action: "approvals.grant",
+  target: (input) => String(input.id),
+  handler: async ({ user, input, ctx }) => {
+    const { getDb } = await import("@/server/db/client");
+    const { getPendingApprovalById, resolvePendingApproval } =
+      await import("@/server/db/repos/pending_approvals");
+    const { mintApproval: mint } = await import("@/server/approval");
+    const { notFoundError, validationError, systemError } = await import("@/server/errors/types");
 
-		const sessionId = ctx.session?.id ?? null;
-		if (!sessionId || !user) {
-			throw systemError("Session required for approval granting");
-		}
+    const sessionId = ctx.session?.id ?? null;
+    if (!sessionId || !user) {
+      throw systemError("Session required for approval granting");
+    }
 
-		const db = getDb();
-		const row = await getPendingApprovalById(db, input.id);
-		if (!row) throw notFoundError(`Approval ${input.id} not found`, "approval");
-		// Idempotency: a second grant on an already-resolved row is a 400.
-		if (row.decision !== null) {
-			throw validationError(
-				row.decision === "approve" ? "Approval already granted" : "Approval already resolved",
-			);
-		}
+    const db = getDb();
+    const row = await getPendingApprovalById(db, input.id);
+    if (!row) throw notFoundError(`Approval ${input.id} not found`, "approval");
+    // Idempotency: a second grant on an already-resolved row is a 400.
+    if (row.decision !== null) {
+      throw validationError(
+        row.decision === "approve" ? "Approval already granted" : "Approval already resolved",
+      );
+    }
 
-		const updated = await resolvePendingApproval(db, input.id, "approve", user.username);
-		if (!updated) throw notFoundError(`Approval ${input.id} not found`, "approval");
+    const updated = await resolvePendingApproval(db, input.id, "approve", user.username);
+    if (!updated) throw notFoundError(`Approval ${input.id} not found`, "approval");
 
-		// Mint a fresh token bound to the granting admin's session + the row's
-		// signal/run so the requesting process can consume it (single-use).
-		const ttl = input.ttlSec ?? 60;
-		const token = mint({
-			action: updated.signalName,
-			payload: { runId: updated.runId, role: updated.role ?? "", approver: user.username },
-			sessionId,
-			userId: user.id,
-			ttlSec: ttl,
-		});
+    // Mint a fresh token bound to the granting admin's session + the row's
+    // signal/run so the requesting process can consume it (single-use).
+    const ttl = input.ttlSec ?? 60;
+    const token = mint({
+      action: updated.signalName,
+      payload: { runId: updated.runId, role: updated.role ?? "", approver: user.username },
+      sessionId,
+      userId: user.id,
+      ttlSec: ttl,
+    });
 
-		return {
-			ok: true as const,
-			token: token.token,
-			expiresAt: token.expiresAt,
-			actionHash: token.actionHash,
-			ttlSec: token.ttlSec,
-		};
-	},
+    return {
+      ok: true as const,
+      token: token.token,
+      expiresAt: token.expiresAt,
+      actionHash: token.actionHash,
+      ttlSec: token.ttlSec,
+    };
+  },
 });
 export const grantApproval = createServerFn({ method: "POST" })
-	.middleware([grantApprovalGate])
-	.handler(serverFnNoop);
+  .middleware([grantApprovalGate])
+  .handler(serverFnNoop);
 
 // ---------------------------------------------------------------------------
 // revokeApproval — POST, auth: admin → { ok: true }
@@ -205,73 +202,73 @@ export const grantApproval = createServerFn({ method: "POST" })
 // ---------------------------------------------------------------------------
 
 const revokeApprovalGate = defineServerFn({
-	method: "POST",
-	auth: "admin",
-	input: ApprovalIdInput,
-	rateLimit: { limit: 30, windowSec: 60, bucket: "user" },
-	surface: "approvals",
-	action: "approvals.revoke",
-	target: (input) => String(input.id),
-	handler: async ({ user, input }) => {
-		const { getDb } = await import("@/server/db/client");
-		const { resolvePendingApproval } = await import("@/server/db/repos/pending_approvals");
-		const { notFoundError, systemError } = await import("@/server/errors/types");
-		if (!user) throw systemError("Session required for approval revocation");
-		const updated = await resolvePendingApproval(getDb(), input.id, "deny", user.username);
-		if (!updated) throw notFoundError(`Approval ${input.id} not found`, "approval");
-		return { ok: true as const };
-	},
+  method: "POST",
+  auth: "admin",
+  input: ApprovalIdInput,
+  rateLimit: { limit: 30, windowSec: 60, bucket: "user" },
+  surface: "approvals",
+  action: "approvals.revoke",
+  target: (input) => String(input.id),
+  handler: async ({ user, input }) => {
+    const { getDb } = await import("@/server/db/client");
+    const { resolvePendingApproval } = await import("@/server/db/repos/pending_approvals");
+    const { notFoundError, systemError } = await import("@/server/errors/types");
+    if (!user) throw systemError("Session required for approval revocation");
+    const updated = await resolvePendingApproval(getDb(), input.id, "deny", user.username);
+    if (!updated) throw notFoundError(`Approval ${input.id} not found`, "approval");
+    return { ok: true as const };
+  },
 });
 export const revokeApproval = createServerFn({ method: "POST" })
-	.middleware([revokeApprovalGate])
-	.handler(serverFnNoop);
+  .middleware([revokeApprovalGate])
+  .handler(serverFnNoop);
 
 // ---------------------------------------------------------------------------
 // deleteApproval — POST, auth: admin → { ok: true } | 404
 // ---------------------------------------------------------------------------
 
 const deleteApprovalGate = defineServerFn({
-	method: "POST",
-	auth: "admin",
-	input: ApprovalIdInput,
-	rateLimit: { limit: 30, windowSec: 60, bucket: "user" },
-	surface: "approvals",
-	action: "approvals.delete",
-	target: (input) => String(input.id),
-	handler: async ({ input }) => {
-		const { getDb } = await import("@/server/db/client");
-		const { deletePendingApproval } = await import("@/server/db/repos/pending_approvals");
-		const { notFoundError } = await import("@/server/errors/types");
-		const ok = await deletePendingApproval(getDb(), input.id);
-		if (!ok) throw notFoundError(`Approval ${input.id} not found`, "approval");
-		return { ok: true as const };
-	},
+  method: "POST",
+  auth: "admin",
+  input: ApprovalIdInput,
+  rateLimit: { limit: 30, windowSec: 60, bucket: "user" },
+  surface: "approvals",
+  action: "approvals.delete",
+  target: (input) => String(input.id),
+  handler: async ({ input }) => {
+    const { getDb } = await import("@/server/db/client");
+    const { deletePendingApproval } = await import("@/server/db/repos/pending_approvals");
+    const { notFoundError } = await import("@/server/errors/types");
+    const ok = await deletePendingApproval(getDb(), input.id);
+    if (!ok) throw notFoundError(`Approval ${input.id} not found`, "approval");
+    return { ok: true as const };
+  },
 });
 export const deleteApproval = createServerFn({ method: "POST" })
-	.middleware([deleteApprovalGate])
-	.handler(serverFnNoop);
+  .middleware([deleteApprovalGate])
+  .handler(serverFnNoop);
 
 // ===========================================================================
 // Audit
 // ===========================================================================
 
 const AuditListInput = z
-	.object({
-		actor: z.string().min(1).max(256).optional(),
-		surface: z.string().min(1).max(128).optional(),
-		action: z.string().min(1).max(128).optional(),
-		result: z.string().min(1).max(32).optional(),
-		since: z.string().min(1).max(64).optional(),
-		page: z.coerce.number().int().min(1).optional(),
-		pageSize: z.coerce.number().int().min(1).max(500).optional(),
-	})
-	.strict();
+  .object({
+    actor: z.string().min(1).max(256).optional(),
+    surface: z.string().min(1).max(128).optional(),
+    action: z.string().min(1).max(128).optional(),
+    result: z.string().min(1).max(32).optional(),
+    since: z.string().min(1).max(64).optional(),
+    page: z.coerce.number().int().min(1).optional(),
+    pageSize: z.coerce.number().int().min(1).max(500).optional(),
+  })
+  .strict();
 
 const AuditVerifyInput = z
-	.object({
-		from: z.string().min(1).max(64).optional(),
-	})
-	.strict();
+  .object({
+    from: z.string().min(1).max(64).optional(),
+  })
+  .strict();
 
 /**
  * Map an `audit_log` row to a flat `AuditEvent`-shaped record. The hash-chained
@@ -286,92 +283,90 @@ const AuditVerifyInput = z
 // ---------------------------------------------------------------------------
 
 const listAuditGate = defineServerFn({
-	method: "GET",
-	auth: "any",
-	input: AuditListInput,
-	surface: "audit",
-	action: "audit.list",
-	handler: async ({ input }) => {
-		const { and, asc, desc, eq, gte, sql } = await import("drizzle-orm");
-		const { getDb } = await import("@/server/db/client");
-		const { auditLog } = await import("@/server/db/schema");
-		const { validationError } = await import("@/server/errors/types");
+  method: "GET",
+  auth: "any",
+  input: AuditListInput,
+  surface: "audit",
+  action: "audit.list",
+  handler: async ({ input }) => {
+    const { and, asc, desc, eq, gte, sql } = await import("drizzle-orm");
+    const { getDb } = await import("@/server/db/client");
+    const { auditLog } = await import("@/server/db/schema");
+    const { validationError } = await import("@/server/errors/types");
 
-		const db = getDb();
-		const page = Math.max(1, input.page ?? 1);
-		const pageSize = Math.min(500, Math.max(1, input.pageSize ?? 50));
-		const offset = (page - 1) * pageSize;
+    const db = getDb();
+    const page = Math.max(1, input.page ?? 1);
+    const pageSize = Math.min(500, Math.max(1, input.pageSize ?? 50));
+    const offset = (page - 1) * pageSize;
 
-		const conds: SQL[] = [];
-		if (input.actor) conds.push(eq(auditLog.actor, input.actor));
-		// `source` is the surface column; `event_type` is the action.
-		if (input.surface) conds.push(eq(auditLog.source, input.surface));
-		if (input.action) conds.push(eq(auditLog.eventType, input.action));
-		if (input.since) {
-			const since = new Date(input.since);
-			if (Number.isNaN(since.getTime())) {
-				throw validationError("Invalid `since` date", [
-					{ field: "since", message: "must be an ISO 8601 date string" },
-				]);
-			}
-			conds.push(gte(auditLog.occurredAt, since));
-		}
-		// `result` lives in the JSONB payload; filter on it when present.
-		if (input.result) {
-			conds.push(sql`${auditLog.payload} ->> 'result' = ${input.result}`);
-		}
-		const where = conds.length > 0 ? and(...conds) : undefined;
+    const conds: SQL[] = [];
+    if (input.actor) conds.push(eq(auditLog.actor, input.actor));
+    // `source` is the surface column; `event_type` is the action.
+    if (input.surface) conds.push(eq(auditLog.source, input.surface));
+    if (input.action) conds.push(eq(auditLog.eventType, input.action));
+    if (input.since) {
+      const since = new Date(input.since);
+      if (Number.isNaN(since.getTime())) {
+        throw validationError("Invalid `since` date", [
+          { field: "since", message: "must be an ISO 8601 date string" },
+        ]);
+      }
+      conds.push(gte(auditLog.occurredAt, since));
+    }
+    // `result` lives in the JSONB payload; filter on it when present.
+    if (input.result) {
+      conds.push(sql`${auditLog.payload} ->> 'result' = ${input.result}`);
+    }
+    const where = conds.length > 0 ? and(...conds) : undefined;
 
-		const [rows, totalRow, surfaceRows, actionRows] = await Promise.all([
-			db
-				.select()
-				.from(auditLog)
-				.where(where)
-				.orderBy(desc(auditLog.occurredAt), desc(auditLog.id))
-				.limit(pageSize)
-				.offset(offset),
-			db.select({ count: sql<number>`COUNT(*)::int` }).from(auditLog).where(where),
-			db
-				.selectDistinct({ surface: auditLog.source })
-				.from(auditLog)
-				.orderBy(asc(auditLog.source)),
-			db
-				.selectDistinct({ action: auditLog.eventType })
-				.from(auditLog)
-				.orderBy(asc(auditLog.eventType)),
-		]);
+    const [rows, totalRow, surfaceRows, actionRows] = await Promise.all([
+      db
+        .select()
+        .from(auditLog)
+        .where(where)
+        .orderBy(desc(auditLog.occurredAt), desc(auditLog.id))
+        .limit(pageSize)
+        .offset(offset),
+      db
+        .select({ count: sql<number>`COUNT(*)::int` })
+        .from(auditLog)
+        .where(where),
+      db.selectDistinct({ surface: auditLog.source }).from(auditLog).orderBy(asc(auditLog.source)),
+      db
+        .selectDistinct({ action: auditLog.eventType })
+        .from(auditLog)
+        .orderBy(asc(auditLog.eventType)),
+    ]);
 
-		const events = rows.map((row) => {
-			const payload = (row.payload ?? {}) as Record<string, unknown>;
-			return {
-				id: String(row.id),
-				eventId: row.eventId,
-				occurredAt:
-					row.occurredAt instanceof Date
-						? row.occurredAt.toISOString()
-						: String(row.occurredAt),
-				surface: row.source,
-				action: row.eventType,
-				actor: row.actor,
-				subject: row.subject,
-				result: typeof payload.result === "string" ? payload.result : null,
-				payload,
-			};
-		});
+    const events = rows.map((row) => {
+      const payload = (row.payload ?? {}) as Record<string, unknown>;
+      return {
+        id: String(row.id),
+        eventId: row.eventId,
+        occurredAt:
+          row.occurredAt instanceof Date ? row.occurredAt.toISOString() : String(row.occurredAt),
+        surface: row.source,
+        action: row.eventType,
+        actor: row.actor,
+        subject: row.subject,
+        result: typeof payload.result === "string" ? payload.result : null,
+        payload,
+      };
+    });
 
-		return {
-			events,
-			surfaces: surfaceRows.map((r) => r.surface),
-			actions: actionRows.map((r) => r.action),
-			total: totalRow[0]?.count ?? 0,
-			page,
-			pageSize,
-		};
-	},
+    return {
+      events,
+      surfaces: surfaceRows.map((r) => r.surface),
+      actions: actionRows.map((r) => r.action),
+      total: totalRow[0]?.count ?? 0,
+      page,
+      pageSize,
+    };
+  },
 });
 export const listAudit = createServerFn({ method: "GET" })
-	.middleware([listAuditGate])
-	.handler(serverFnNoop);
+  .middleware([listAuditGate])
+  .handler(serverFnNoop);
 
 // ---------------------------------------------------------------------------
 // verifyAudit — GET, auth: admin → { ok, count, brokenAt? }
@@ -379,139 +374,137 @@ export const listAudit = createServerFn({ method: "GET" })
 // ---------------------------------------------------------------------------
 
 const verifyAuditGate = defineServerFn({
-	method: "GET",
-	auth: "admin",
-	input: AuditVerifyInput,
-	rateLimit: { limit: 5, windowSec: 60, bucket: "user" },
-	surface: "audit",
-	action: "audit.verify",
-	handler: async ({ input }) => {
-		const { getDb } = await import("@/server/db/client");
-		const { verifyAuditLogChain } = await import("@/server/db/repos/audit");
-		const { validationError } = await import("@/server/errors/types");
+  method: "GET",
+  auth: "admin",
+  input: AuditVerifyInput,
+  rateLimit: { limit: 5, windowSec: 60, bucket: "user" },
+  surface: "audit",
+  action: "audit.verify",
+  handler: async ({ input }) => {
+    const { getDb } = await import("@/server/db/client");
+    const { verifyAuditLogChain } = await import("@/server/db/repos/audit");
+    const { validationError } = await import("@/server/errors/types");
 
-		let fromTs: Date | undefined;
-		if (input.from) {
-			fromTs = new Date(input.from);
-			if (Number.isNaN(fromTs.getTime())) {
-				throw validationError("Invalid `from` date", [
-					{ field: "from", message: "must be an ISO 8601 date string" },
-				]);
-			}
-		}
+    let fromTs: Date | undefined;
+    if (input.from) {
+      fromTs = new Date(input.from);
+      if (Number.isNaN(fromTs.getTime())) {
+        throw validationError("Invalid `from` date", [
+          { field: "from", message: "must be an ISO 8601 date string" },
+        ]);
+      }
+    }
 
-		const result = await verifyAuditLogChain(getDb(), fromTs ? { fromTs } : {});
-		if (result.valid) {
-			return { ok: true as const, count: result.count };
-		}
-		return {
-			ok: false as const,
-			count: result.count,
-			brokenAt: {
-				id: result.brokenAt.id,
-				occurredAt:
-					result.brokenAt.occurredAt instanceof Date
-						? result.brokenAt.occurredAt.toISOString()
-						: String(result.brokenAt.occurredAt),
-				reason: result.brokenAt.reason,
-			},
-		};
-	},
+    const result = await verifyAuditLogChain(getDb(), fromTs ? { fromTs } : {});
+    if (result.valid) {
+      return { ok: true as const, count: result.count };
+    }
+    return {
+      ok: false as const,
+      count: result.count,
+      brokenAt: {
+        id: result.brokenAt.id,
+        occurredAt:
+          result.brokenAt.occurredAt instanceof Date
+            ? result.brokenAt.occurredAt.toISOString()
+            : String(result.brokenAt.occurredAt),
+        reason: result.brokenAt.reason,
+      },
+    };
+  },
 });
 export const verifyAudit = createServerFn({ method: "GET" })
-	.middleware([verifyAuditGate])
-	.handler(serverFnNoop);
+  .middleware([verifyAuditGate])
+  .handler(serverFnNoop);
 
 // ===========================================================================
 // Dashboard command audit — two-phase lifecycle (start → finish)
 // ===========================================================================
 
 const CommandListInput = z
-	.object({
-		status: z.string().min(1).max(32).optional(),
-		command: z.string().min(1).max(512).optional(),
-		since: z.string().min(1).max(64).optional(),
-		limit: z.coerce.number().int().min(1).max(1000).optional(),
-		offset: z.coerce.number().int().min(0).optional(),
-	})
-	.strict();
+  .object({
+    status: z.string().min(1).max(32).optional(),
+    command: z.string().min(1).max(512).optional(),
+    since: z.string().min(1).max(64).optional(),
+    limit: z.coerce.number().int().min(1).max(1000).optional(),
+    offset: z.coerce.number().int().min(0).optional(),
+  })
+  .strict();
 
 const CommandStartInput = z
-	.object({
-		requestId: z.string().uuid().optional(),
-		command: z.string().min(1).max(512),
-		argv: z.array(z.string()),
-		requestedBy: z.string().optional(),
-		sourceIp: z.string().nullable().optional(),
-		dashboardSessionId: z.string().nullable().optional(),
-		timeoutMs: z.number().int().positive().optional(),
-		approvedPolicy: z.string().optional(),
-		mutationClass: z.string().optional(),
-		targetScope: z.string().optional(),
-		dryRun: z.boolean().optional(),
-		metadata: z.record(z.string(), z.unknown()).optional(),
-	})
-	.strict();
+  .object({
+    requestId: z.string().uuid().optional(),
+    command: z.string().min(1).max(512),
+    argv: z.array(z.string()),
+    requestedBy: z.string().optional(),
+    sourceIp: z.string().nullable().optional(),
+    dashboardSessionId: z.string().nullable().optional(),
+    timeoutMs: z.number().int().positive().optional(),
+    approvedPolicy: z.string().optional(),
+    mutationClass: z.string().optional(),
+    targetScope: z.string().optional(),
+    dryRun: z.boolean().optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
+  })
+  .strict();
 
 const CommandFinishInput = z
-	.object({
-		requestId: z.string().uuid(),
-		status: z.string().min(1).max(32),
-		startedAt: z.string().datetime().nullable().optional(),
-		finishedAt: z.string().datetime().nullable().optional(),
-		stdoutSha256: z.string().nullable().optional(),
-		stderrSha256: z.string().nullable().optional(),
-		stdoutBytes: z.number().int().min(0).optional(),
-		stderrBytes: z.number().int().min(0).optional(),
-		exitCode: z.number().int().nullable().optional(),
-		signal: z.string().nullable().optional(),
-		error: z.string().nullable().optional(),
-		journaldCursor: z.string().nullable().optional(),
-		metadata: z.record(z.string(), z.unknown()).optional(),
-	})
-	.strict();
+  .object({
+    requestId: z.string().uuid(),
+    status: z.string().min(1).max(32),
+    startedAt: z.string().datetime().nullable().optional(),
+    finishedAt: z.string().datetime().nullable().optional(),
+    stdoutSha256: z.string().nullable().optional(),
+    stderrSha256: z.string().nullable().optional(),
+    stdoutBytes: z.number().int().min(0).optional(),
+    stderrBytes: z.number().int().min(0).optional(),
+    exitCode: z.number().int().nullable().optional(),
+    signal: z.string().nullable().optional(),
+    error: z.string().nullable().optional(),
+    journaldCursor: z.string().nullable().optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
+  })
+  .strict();
 
 // ---------------------------------------------------------------------------
 // listCommandAudit — GET, auth: admin → { items }
 // ---------------------------------------------------------------------------
 
 const listCommandAuditGate = defineServerFn({
-	method: "GET",
-	auth: "admin",
-	input: CommandListInput,
-	rateLimit: { limit: 30, windowSec: 60, bucket: "user" },
-	surface: "dashboard_command_audit",
-	action: "command_audit.list",
-	handler: async ({ input }) => {
-		const { getDb } = await import("@/server/db/client");
-		const { listDashboardCommands } = await import(
-			"@/server/db/repos/dashboard_command_audit"
-		);
-		const { validationError } = await import("@/server/errors/types");
+  method: "GET",
+  auth: "admin",
+  input: CommandListInput,
+  rateLimit: { limit: 30, windowSec: 60, bucket: "user" },
+  surface: "dashboard_command_audit",
+  action: "command_audit.list",
+  handler: async ({ input }) => {
+    const { getDb } = await import("@/server/db/client");
+    const { listDashboardCommands } = await import("@/server/db/repos/dashboard_command_audit");
+    const { validationError } = await import("@/server/errors/types");
 
-		let since: Date | undefined;
-		if (input.since) {
-			since = new Date(input.since);
-			if (Number.isNaN(since.getTime())) {
-				throw validationError("Invalid `since` date", [
-					{ field: "since", message: "must be an ISO 8601 date string" },
-				]);
-			}
-		}
+    let since: Date | undefined;
+    if (input.since) {
+      since = new Date(input.since);
+      if (Number.isNaN(since.getTime())) {
+        throw validationError("Invalid `since` date", [
+          { field: "since", message: "must be an ISO 8601 date string" },
+        ]);
+      }
+    }
 
-		const items = await listDashboardCommands(getDb(), {
-			status: input.status,
-			command: input.command,
-			since,
-			limit: input.limit,
-			offset: input.offset,
-		});
-		return { items };
-	},
+    const items = await listDashboardCommands(getDb(), {
+      status: input.status,
+      command: input.command,
+      since,
+      limit: input.limit,
+      offset: input.offset,
+    });
+    return { items };
+  },
 });
 export const listCommandAudit = createServerFn({ method: "GET" })
-	.middleware([listCommandAuditGate])
-	.handler(serverFnNoop);
+  .middleware([listCommandAuditGate])
+  .handler(serverFnNoop);
 
 // ---------------------------------------------------------------------------
 // startCommandAudit — POST, auth: admin → DashboardCommandAudit (status='created')
@@ -519,38 +512,36 @@ export const listCommandAudit = createServerFn({ method: "GET" })
 // ---------------------------------------------------------------------------
 
 const startCommandAuditGate = defineServerFn({
-	method: "POST",
-	auth: "admin",
-	input: CommandStartInput,
-	rateLimit: { limit: 30, windowSec: 60, bucket: "user" },
-	surface: "dashboard_command_audit",
-	action: "command_audit.start",
-	target: (input) => input.command,
-	handler: async ({ user, input, ctx }) => {
-		const { randomUUID } = await import("node:crypto");
-		const { getDb } = await import("@/server/db/client");
-		const { startDashboardCommand } = await import(
-			"@/server/db/repos/dashboard_command_audit"
-		);
-		return startDashboardCommand(getDb(), {
-			requestId: input.requestId ?? randomUUID(),
-			command: input.command,
-			argv: input.argv,
-			requestedBy: input.requestedBy ?? user?.username,
-			sourceIp: input.sourceIp ?? ctx.clientIp,
-			dashboardSessionId: input.dashboardSessionId ?? ctx.session?.id ?? null,
-			timeoutMs: input.timeoutMs,
-			approvedPolicy: input.approvedPolicy,
-			mutationClass: input.mutationClass,
-			targetScope: input.targetScope,
-			dryRun: input.dryRun,
-			metadata: input.metadata,
-		});
-	},
+  method: "POST",
+  auth: "admin",
+  input: CommandStartInput,
+  rateLimit: { limit: 30, windowSec: 60, bucket: "user" },
+  surface: "dashboard_command_audit",
+  action: "command_audit.start",
+  target: (input) => input.command,
+  handler: async ({ user, input, ctx }) => {
+    const { randomUUID } = await import("node:crypto");
+    const { getDb } = await import("@/server/db/client");
+    const { startDashboardCommand } = await import("@/server/db/repos/dashboard_command_audit");
+    return startDashboardCommand(getDb(), {
+      requestId: input.requestId ?? randomUUID(),
+      command: input.command,
+      argv: input.argv,
+      requestedBy: input.requestedBy ?? user?.username,
+      sourceIp: input.sourceIp ?? ctx.clientIp,
+      dashboardSessionId: input.dashboardSessionId ?? ctx.session?.id ?? null,
+      timeoutMs: input.timeoutMs,
+      approvedPolicy: input.approvedPolicy,
+      mutationClass: input.mutationClass,
+      targetScope: input.targetScope,
+      dryRun: input.dryRun,
+      metadata: input.metadata,
+    });
+  },
 });
 export const startCommandAudit = createServerFn({ method: "POST" })
-	.middleware([startCommandAuditGate])
-	.handler(serverFnNoop);
+  .middleware([startCommandAuditGate])
+  .handler(serverFnNoop);
 
 // ---------------------------------------------------------------------------
 // finishCommandAudit — POST, auth: admin → DashboardCommandAudit | 404
@@ -558,34 +549,32 @@ export const startCommandAudit = createServerFn({ method: "POST" })
 // ---------------------------------------------------------------------------
 
 const finishCommandAuditGate = defineServerFn({
-	method: "POST",
-	auth: "admin",
-	input: CommandFinishInput,
-	rateLimit: { limit: 30, windowSec: 60, bucket: "user" },
-	surface: "dashboard_command_audit",
-	action: "command_audit.finish",
-	target: (input) => input.requestId,
-	handler: async ({ input }) => {
-		const { getDb } = await import("@/server/db/client");
-		const { finishDashboardCommand } = await import(
-			"@/server/db/repos/dashboard_command_audit"
-		);
-		const { notFoundError } = await import("@/server/errors/types");
+  method: "POST",
+  auth: "admin",
+  input: CommandFinishInput,
+  rateLimit: { limit: 30, windowSec: 60, bucket: "user" },
+  surface: "dashboard_command_audit",
+  action: "command_audit.finish",
+  target: (input) => input.requestId,
+  handler: async ({ input }) => {
+    const { getDb } = await import("@/server/db/client");
+    const { finishDashboardCommand } = await import("@/server/db/repos/dashboard_command_audit");
+    const { notFoundError } = await import("@/server/errors/types");
 
-		const { requestId, startedAt, finishedAt, ...rest } = input;
-		const next = await finishDashboardCommand(getDb(), requestId, {
-			...rest,
-			...(startedAt !== undefined
-				? { startedAt: startedAt === null ? null : new Date(startedAt) }
-				: {}),
-			...(finishedAt !== undefined
-				? { finishedAt: finishedAt === null ? null : new Date(finishedAt) }
-				: {}),
-		});
-		if (!next) throw notFoundError(`Command audit ${requestId} not found`, "command_audit");
-		return next;
-	},
+    const { requestId, startedAt, finishedAt, ...rest } = input;
+    const next = await finishDashboardCommand(getDb(), requestId, {
+      ...rest,
+      ...(startedAt !== undefined
+        ? { startedAt: startedAt === null ? null : new Date(startedAt) }
+        : {}),
+      ...(finishedAt !== undefined
+        ? { finishedAt: finishedAt === null ? null : new Date(finishedAt) }
+        : {}),
+    });
+    if (!next) throw notFoundError(`Command audit ${requestId} not found`, "command_audit");
+    return next;
+  },
 });
 export const finishCommandAudit = createServerFn({ method: "POST" })
-	.middleware([finishCommandAuditGate])
-	.handler(serverFnNoop);
+  .middleware([finishCommandAuditGate])
+  .handler(serverFnNoop);

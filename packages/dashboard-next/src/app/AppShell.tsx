@@ -40,14 +40,25 @@ export function AppShell({ children }: { children: ReactNode }) {
           onOpenPalette={() => setPaletteOpen(true)}
           onOpenHelp={() => setHelpOpen(true)}
         />
-        <main id="main-content" className="flex-1 min-w-0 overflow-x-hidden pb-20 md:pb-0" tabIndex={-1}>
-          <div key={pathname} className="px-4 sm:px-6 lg:px-8 py-5 max-w-[1600px] mx-auto w-full animate-in fade-in slide-in-from-bottom-1 duration-200 motion-reduce:animate-none">
+        <main
+          id="main-content"
+          className="flex-1 min-w-0 overflow-x-hidden pb-20 md:pb-0"
+          tabIndex={-1}
+        >
+          <div
+            key={pathname}
+            className="px-4 sm:px-6 lg:px-8 py-5 max-w-[1600px] mx-auto w-full animate-in fade-in slide-in-from-bottom-1 duration-200 motion-reduce:animate-none"
+          >
             {children}
           </div>
         </main>
         <MobileTabBar />
       </div>
-      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} onOpenHelp={() => setHelpOpen(true)} />
+      <CommandPalette
+        open={paletteOpen}
+        onOpenChange={setPaletteOpen}
+        onOpenHelp={() => setHelpOpen(true)}
+      />
       <KeyboardShortcuts open={helpOpen} onOpenChange={setHelpOpen} />
       <DemoTour />
       <IncidentToaster />

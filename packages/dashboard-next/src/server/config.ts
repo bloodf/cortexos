@@ -6,13 +6,13 @@
  * vars in tests.
  */
 
-import { randomBytes } from 'node:crypto';
+import { randomBytes } from "node:crypto";
 
 /** Session cookie name (THREAT_MODEL SR-001). */
-export const SESSION_COOKIE = 'cortexos_session';
+export const SESSION_COOKIE = "cortexos_session";
 
 /** CSRF cookie name (double-submit pattern, THREAT_MODEL SR-004). */
-export const CSRF_COOKIE = 'cortexos_csrf';
+export const CSRF_COOKIE = "cortexos_csrf";
 
 /** Default approval-token TTL in seconds (THREAT_MODEL §3.5). */
 export const APPROVAL_DEFAULT_TTL_SEC = 60;
@@ -46,12 +46,12 @@ export function getServerHmacKey(): Buffer {
 
 export function setServerHmacKey(key: Buffer): void {
   if (key.length < 16) {
-    throw new Error('HMAC key must be at least 16 bytes');
+    throw new Error("HMAC key must be at least 16 bytes");
   }
   serverHmacKey = key;
 }
 
 /** Convenience for tests: derive a deterministic key from a string. */
 export function setServerHmacKeyFromString(s: string): void {
-  setServerHmacKey(Buffer.from(s, 'utf8'));
+  setServerHmacKey(Buffer.from(s, "utf8"));
 }

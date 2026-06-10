@@ -1,8 +1,16 @@
 import type { ReactNode } from "react";
 
 export function PageHeader({
-  icon, title, description, actions,
-}: { icon?: ReactNode; title: string; description?: string; actions?: ReactNode }) {
+  icon,
+  title,
+  description,
+  actions,
+}: {
+  icon?: ReactNode;
+  title: string;
+  description?: string;
+  actions?: ReactNode;
+}) {
   return (
     <header className="flex flex-col gap-3 pb-5 sm:flex-row sm:items-end sm:justify-between">
       <div className="flex items-start gap-3">
@@ -12,7 +20,9 @@ export function PageHeader({
           </div>
         )}
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">{title}</h1>
+          <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+            {title}
+          </h1>
           {description && <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>}
         </div>
       </div>

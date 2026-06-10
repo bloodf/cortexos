@@ -17,8 +17,8 @@
  *   - system             → 500
  */
 
-import type { RequestEvent, SvelteKitShim, ErrorBody } from '../types';
-import type { ApiError } from './types';
+import type { RequestEvent, SvelteKitShim, ErrorBody } from "../types";
+import type { ApiError } from "./types";
 
 // ---------------------------------------------------------------------------
 // SvelteKit shim — until the real SvelteKit package is in place, the +server.ts
@@ -44,9 +44,9 @@ function requireShim(): SvelteKitShim {
       // SvelteKit's `error()` throws and is caught by the framework.
       // We replicate that contract by throwing a tagged error.
       throw new ApiErrorThrown(status, body);
-    }) as SvelteKitShim['error'],
-    json: ((data, init) => new Response(JSON.stringify(data), init)) as SvelteKitShim['json'],
-    fail: ((status, data) => ({ status, data })) as SvelteKitShim['fail'],
+    }) as SvelteKitShim["error"],
+    json: ((data, init) => new Response(JSON.stringify(data), init)) as SvelteKitShim["json"],
+    fail: ((status, data) => ({ status, data })) as SvelteKitShim["fail"],
   };
 }
 
@@ -57,7 +57,7 @@ class ApiErrorThrown extends Error {
     public readonly apiError?: ApiError,
   ) {
     super(body.message);
-    this.name = 'ApiErrorThrown';
+    this.name = "ApiErrorThrown";
   }
 }
 
@@ -68,18 +68,18 @@ class ApiErrorThrown extends Error {
 /** Map an `ApiError` to its HTTP status code. */
 export function httpStatusFor(error: ApiError): number {
   switch (error.kind) {
-    case 'validation':
+    case "validation":
       return 400;
-    case 'auth':
+    case "auth":
       return 401;
-    case 'permission':
-    case 'approval_required':
+    case "permission":
+    case "approval_required":
       return 403;
-    case 'not_found':
+    case "not_found":
       return 404;
-    case 'rate_limit':
+    case "rate_limit":
       return 429;
-    case 'system':
+    case "system":
       return 500;
   }
 }
@@ -90,7 +90,7 @@ export function httpStatusFor(error: ApiError): number {
  */
 export interface ApiErrorBody {
   message: string;
-  code: ApiError['kind'];
+  code: ApiError["kind"];
   details?: unknown;
   /** For `approval_required`, the action hash the client should request a token for. */
   actionHash?: string;
@@ -101,9 +101,9 @@ export interface ApiErrorBody {
 export function errorBody(error: ApiError): ApiErrorBody {
   const base: ApiErrorBody = { message: error.message, code: error.kind };
   switch (error.kind) {
-    case 'validation':
+    case "validation":
       return { ...base, details: error.details };
-    case 'approval_required':
+    case "approval_required":
       return { ...base, actionHash: error.actionHash, ttlSec: error.ttlSec };
     default:
       return base;
@@ -141,18 +141,18 @@ export function jsonError(error: ApiError): Response {
   const status = httpStatusFor(error);
   const body = errorBody(error);
   const headers: Record<string, string> = {
-    'content-type': 'application/json; charset=utf-8',
+    "content-type": "application/json; charset=utf-8",
   };
-  if (error.kind === 'rate_limit') {
-    headers['retry-after'] = String(error.retryAfter);
+  if (error.kind === "rate_limit") {
+    headers["retry-after"] = String(error.retryAfter);
   }
-  if (error.kind === 'approval_required') {
+  if (error.kind === "approval_required") {
     // The `X-Cortex-Confirmation-Token` header is the required signal that
     // an approval flow is in progress. The token itself is fetched via
     // POST /api/approvals/request.
-    headers['x-cortex-confirmation-token-required'] = 'true';
-    headers['x-cortex-approval-action-hash'] = error.actionHash;
-    headers['x-cortex-approval-ttl-sec'] = String(error.ttlSec);
+    headers["x-cortex-confirmation-token-required"] = "true";
+    headers["x-cortex-approval-action-hash"] = error.actionHash;
+    headers["x-cortex-approval-ttl-sec"] = String(error.ttlSec);
   }
   return new Response(JSON.stringify(body), { status, headers });
 }

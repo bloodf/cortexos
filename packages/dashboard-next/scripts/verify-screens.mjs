@@ -19,37 +19,37 @@
  * Exit code: 0 if every route PASSes, 1 if any FAILs (or a fatal setup error).
  */
 
-import { chromium } from 'playwright';
-import pg from 'pg';
-import { randomBytes } from 'node:crypto';
-import { mkdirSync } from 'node:fs';
+import { chromium } from "playwright";
+import pg from "pg";
+import { randomBytes } from "node:crypto";
+import { mkdirSync } from "node:fs";
 
-const BASE_URL = process.env.BASE_URL ?? 'http://127.0.0.1:3080';
-const SHOT_DIR = '/tmp/pw-verify';
+const BASE_URL = process.env.BASE_URL ?? "http://127.0.0.1:3080";
+const SHOT_DIR = "/tmp/pw-verify";
 const USER_ID = 3; // 'cortexos' — an admin
 const NAV_TIMEOUT = 20_000;
 
 // The authed routes to verify, with the landmark each must render.
 // `landmark` is a Playwright locator string asserted visible after load.
 const ROUTES = [
-  { path: '/overview', landmark: 'main#main-content' },
-  { path: '/apps', landmark: 'main#main-content' },
-  { path: '/healthcheck', landmark: 'main#main-content' },
-  { path: '/docker', landmark: 'main#main-content' },
-  { path: '/incus', landmark: 'main#main-content' },
-  { path: '/systemd', landmark: 'main#main-content' },
-  { path: '/network', landmark: 'main#main-content' },
-  { path: '/storage', landmark: 'main#main-content' },
-  { path: '/processes', landmark: 'main#main-content' },
-  { path: '/mail-guardian', landmark: 'main#main-content' },
-  { path: '/approvals', landmark: 'main#main-content' },
-  { path: '/audit', landmark: 'main#main-content' },
-  { path: '/alerts', landmark: 'main#main-content' },
-  { path: '/agents', landmark: 'main#main-content' },
-  { path: '/admin/services', landmark: 'main#main-content' },
-  { path: '/admin/env-browser', landmark: 'main#main-content' },
-  { path: '/admin/account', landmark: 'main#main-content' },
-  { path: '/terminal', landmark: 'main#main-content' },
+  { path: "/overview", landmark: "main#main-content" },
+  { path: "/apps", landmark: "main#main-content" },
+  { path: "/healthcheck", landmark: "main#main-content" },
+  { path: "/docker", landmark: "main#main-content" },
+  { path: "/incus", landmark: "main#main-content" },
+  { path: "/systemd", landmark: "main#main-content" },
+  { path: "/network", landmark: "main#main-content" },
+  { path: "/storage", landmark: "main#main-content" },
+  { path: "/processes", landmark: "main#main-content" },
+  { path: "/mail-guardian", landmark: "main#main-content" },
+  { path: "/approvals", landmark: "main#main-content" },
+  { path: "/audit", landmark: "main#main-content" },
+  { path: "/alerts", landmark: "main#main-content" },
+  { path: "/agents", landmark: "main#main-content" },
+  { path: "/admin/services", landmark: "main#main-content" },
+  { path: "/admin/env-browser", landmark: "main#main-content" },
+  { path: "/admin/account", landmark: "main#main-content" },
+  { path: "/terminal", landmark: "main#main-content" },
 ];
 
 // Console-error patterns that are test-environment artifacts, not product
@@ -60,22 +60,23 @@ const ROUTES = [
 // toward the FAIL verdict. Any other console error still FAILs.
 const KNOWN_ENV_ARTIFACTS = [
   {
-    route: '/terminal',
-    pattern: /WebSocket connection to 'ws:\/\/127\.0\.0\.1:3080\/terminal\/ws' failed: Error during WebSocket handshake: Unexpected response code: 404/,
-    reason: 'direct-:3080 run bypasses Caddy /terminal/ws→:3081 (AN-001 §5; recon-d001-d003)',
+    route: "/terminal",
+    pattern:
+      /WebSocket connection to 'ws:\/\/127\.0\.0\.1:3080\/terminal\/ws' failed: Error during WebSocket handshake: Unexpected response code: 404/,
+    reason: "direct-:3080 run bypasses Caddy /terminal/ws→:3081 (AN-001 §5; recon-d001-d003)",
   },
 ];
 
 // Error-boundary signatures (root + per-route) that count as a render FAIL.
 const ERROR_SIGNATURES = [
   "This page didn't load", // __root.tsx ErrorComponent
-  'Something went wrong', // i18n error string / lib/error-page
-  'Failed to load', // common per-route errorComponent copy
-  'Unable to load',
+  "Something went wrong", // i18n error string / lib/error-page
+  "Failed to load", // common per-route errorComponent copy
+  "Unable to load",
 ];
 
 function fileFor(routePath) {
-  const slug = routePath.replace(/^\//, '').replace(/\//g, '_') || 'root';
+  const slug = routePath.replace(/^\//, "").replace(/\//g, "_") || "root";
   return `${SHOT_DIR}/${slug}.png`;
 }
 
@@ -98,33 +99,35 @@ async function main() {
   mkdirSync(SHOT_DIR, { recursive: true });
 
   const dbCfg = {
-    host: process.env.DB_HOST ?? '127.0.0.1',
+    host: process.env.DB_HOST ?? "127.0.0.1",
     port: Number(process.env.DB_PORT ?? 5432),
-    database: process.env.DB_NAME ?? 'cortex_dashboard',
-    user: process.env.DB_USER ?? 'dashboard',
+    database: process.env.DB_NAME ?? "cortex_dashboard",
+    user: process.env.DB_USER ?? "dashboard",
     password: process.env.DB_PASSWORD,
   };
   if (!dbCfg.password) {
-    console.error('FATAL: DB_PASSWORD not in env. Source /opt/cortexos/.secrets/dashboard.env first.');
+    console.error(
+      "FATAL: DB_PASSWORD not in env. Source /opt/cortexos/.secrets/dashboard.env first.",
+    );
     process.exit(1);
   }
 
   const client = new pg.Client(dbCfg);
   await client.connect();
 
-  const token = randomBytes(32).toString('base64url');
-  const csrf = randomBytes(32).toString('base64url');
+  const token = randomBytes(32).toString("base64url");
+  const csrf = randomBytes(32).toString("base64url");
 
   // Playwright cannot install its own Chromium on this OS (ubuntu26.04-x64 is
   // unsupported by the prebuilt binaries). Drive the system snap Chromium's
   // *raw* binary directly (bypassing the snap wrapper, which has mount-ns
   // confinement issues). CHROME_BIN can override.
   const executablePath =
-    process.env.CHROME_BIN ?? '/snap/chromium/current/usr/lib/chromium-browser/chrome';
+    process.env.CHROME_BIN ?? "/snap/chromium/current/usr/lib/chromium-browser/chrome";
   const browser = await chromium.launch({
     headless: true,
     executablePath,
-    args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage'],
+    args: ["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"],
   });
   const results = [];
 
@@ -136,8 +139,8 @@ async function main() {
       ignoreHTTPSErrors: true,
     });
     await context.addCookies([
-      { name: 'cortexos_session', value: token, domain: '127.0.0.1', path: '/' },
-      { name: 'cortexos_csrf', value: csrf, domain: '127.0.0.1', path: '/' },
+      { name: "cortexos_session", value: token, domain: "127.0.0.1", path: "/" },
+      { name: "cortexos_csrf", value: csrf, domain: "127.0.0.1", path: "/" },
     ]);
 
     for (const route of ROUTES) {
@@ -145,29 +148,29 @@ async function main() {
       const consoleErrors = [];
       const failedRequests = [];
 
-      page.on('console', (msg) => {
-        if (msg.type() === 'error') consoleErrors.push(msg.text());
+      page.on("console", (msg) => {
+        if (msg.type() === "error") consoleErrors.push(msg.text());
       });
-      page.on('pageerror', (err) => {
+      page.on("pageerror", (err) => {
         consoleErrors.push(`[pageerror] ${err.message}`);
       });
-      page.on('requestfailed', (req) => {
+      page.on("requestfailed", (req) => {
         const f = req.failure();
-        failedRequests.push(`${req.method()} ${req.url()} — ${f ? f.errorText : 'unknown'}`);
+        failedRequests.push(`${req.method()} ${req.url()} — ${f ? f.errorText : "unknown"}`);
       });
       const badResponses = [];
-      page.on('response', async (resp) => {
+      page.on("response", async (resp) => {
         const status = resp.status();
         const url = resp.url();
         // Flag any non-2xx/3xx response to a same-origin server-fn / data call.
         // Static assets (js/css/png/woff) are ignored — only API-ish calls.
         const isAsset = /\.(js|css|png|jpg|jpeg|svg|woff2?|ico|map)(\?|$)/.test(url);
         if (status >= 400 && !isAsset) {
-          let body = '';
+          let body = "";
           try {
             body = (await resp.text()).slice(0, 400);
           } catch {
-            body = '<unreadable>';
+            body = "<unreadable>";
           }
           badResponses.push({
             status,
@@ -182,7 +185,7 @@ async function main() {
       });
 
       const reasons = [];
-      let finalUrl = '';
+      let finalUrl = "";
       // `matchedArtifactReasons` and `realConsoleErrors` are only assigned
       // INSIDE the try block (after page.goto + all interactions) so they
       // see the fully-populated `consoleErrors`. Empty defaults are
@@ -192,7 +195,7 @@ async function main() {
       let realConsoleErrors = [];
       try {
         const resp = await page.goto(route.path, {
-          waitUntil: 'networkidle',
+          waitUntil: "networkidle",
           timeout: NAV_TIMEOUT,
         });
         // Allow late client renders / query settling.
@@ -215,13 +218,9 @@ async function main() {
         // [role="alert"], or the description <p> inside a <header>). This
         // excludes data-table cells, log lines, argv strings, etc. that may
         // echo signature text in normal product content (MP-005).
-        const errorLandmarks = page.locator(
-          'h1, h2, h3, [role="alert"], header p',
-        );
+        const errorLandmarks = page.locator('h1, h2, h3, [role="alert"], header p');
         for (const sig of ERROR_SIGNATURES) {
-          const sigCount = await errorLandmarks
-            .filter({ hasText: sig })
-            .count();
+          const sigCount = await errorLandmarks.filter({ hasText: sig }).count();
           if (sigCount > 0) {
             reasons.push(`error-boundary text present: "${sig}"`);
           }
@@ -234,7 +233,7 @@ async function main() {
           if (!visible) {
             reasons.push(`landmark not visible: ${route.landmark}`);
           } else {
-            const inner = (await landmark.innerText().catch(() => '')) || '';
+            const inner = (await landmark.innerText().catch(() => "")) || "";
             if (inner.trim().length < 2) {
               reasons.push(`landmark empty (no rendered content)`);
             }
@@ -290,7 +289,7 @@ async function main() {
     await context.close();
   } finally {
     await deleteSession(client, token).catch((e) =>
-      console.error('cleanup: failed to delete session row:', e.message),
+      console.error("cleanup: failed to delete session row:", e.message),
     );
     await browser.close().catch(() => {});
     await client.end().catch(() => {});
@@ -298,14 +297,14 @@ async function main() {
 
   // ---- Report ----
   const pad = (s, n) => String(s).padEnd(n);
-  console.log('\n=== PER-ROUTE VERDICT ===\n');
-  console.log(pad('ROUTE', 22) + pad('VERDICT', 9) + 'DETAIL');
-  console.log('-'.repeat(80));
+  console.log("\n=== PER-ROUTE VERDICT ===\n");
+  console.log(pad("ROUTE", 22) + pad("VERDICT", 9) + "DETAIL");
+  console.log("-".repeat(80));
   let failCount = 0;
   for (const r of results) {
-    const verdict = r.pass ? 'PASS' : 'FAIL';
+    const verdict = r.pass ? "PASS" : "FAIL";
     if (!r.pass) failCount++;
-    const detail = r.pass ? `(${r.finalUrl})` : r.reasons.join('; ');
+    const detail = r.pass ? `(${r.finalUrl})` : r.reasons.join("; ");
     console.log(pad(r.path, 22) + pad(verdict, 9) + detail);
   }
 
@@ -313,12 +312,10 @@ async function main() {
   // a passing route (e.g. /terminal whose only console error was the
   // direct-:3080 WS 404) does not have its artifact silently swallowed.
   // The FAIL-count and verdict logic above is unchanged.
-  console.log('\n=== KNOWN ENV ARTIFACTS ===');
-  const artifactRoutes = results.filter(
-    (r) => r.knownArtifacts && r.knownArtifacts.length,
-  );
+  console.log("\n=== KNOWN ENV ARTIFACTS ===");
+  const artifactRoutes = results.filter((r) => r.knownArtifacts && r.knownArtifacts.length);
   if (artifactRoutes.length === 0) {
-    console.log('none.');
+    console.log("none.");
   } else {
     for (const r of artifactRoutes) {
       for (const reason of r.knownArtifacts) {
@@ -327,41 +324,44 @@ async function main() {
     }
   }
 
-  console.log('\n=== FAIL DETAIL ===');
+  console.log("\n=== FAIL DETAIL ===");
   const fails = results.filter((r) => !r.pass);
   if (fails.length === 0) {
-    console.log('none — all routes rendered.');
+    console.log("none — all routes rendered.");
   } else {
     for (const r of fails) {
       console.log(`\n## ${r.path}  (final: ${r.finalUrl})`);
-      console.log(`  reasons: ${r.reasons.join('; ')}`);
+      console.log(`  reasons: ${r.reasons.join("; ")}`);
       if (r.knownArtifacts && r.knownArtifacts.length) {
         for (const reason of r.knownArtifacts) {
           console.log(`  known-artifact: ${reason}`);
         }
       }
       if (r.consoleErrors.length) {
-        console.log('  console errors:');
+        console.log("  console errors:");
         for (const e of r.consoleErrors) console.log(`    - ${e}`);
       }
       if (r.failedRequests.length) {
-        console.log('  failed/5xx requests:');
+        console.log("  failed/5xx requests:");
         for (const f of r.failedRequests) console.log(`    - ${f}`);
       }
       if (r.badResponses.length) {
-        console.log('  4xx/5xx server-fn responses:');
-        for (const b of r.badResponses) console.log(`    - ${b.status} ${b.url}\n      body: ${b.body}`);
+        console.log("  4xx/5xx server-fn responses:");
+        for (const b of r.badResponses)
+          console.log(`    - ${b.status} ${b.url}\n      body: ${b.body}`);
       }
       console.log(`  screenshot: ${r.shot}`);
     }
   }
 
-  console.log(`\n=== SUMMARY: ${results.length - failCount}/${results.length} PASS, ${failCount} FAIL ===`);
+  console.log(
+    `\n=== SUMMARY: ${results.length - failCount}/${results.length} PASS, ${failCount} FAIL ===`,
+  );
   console.log(`Screenshots: ${SHOT_DIR}/`);
   process.exit(failCount === 0 ? 0 : 1);
 }
 
 main().catch((err) => {
-  console.error('FATAL:', err);
+  console.error("FATAL:", err);
   process.exit(1);
 });

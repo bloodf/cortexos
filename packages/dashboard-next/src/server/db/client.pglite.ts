@@ -30,11 +30,9 @@ import { runSqlMigrations, type Executor } from "./migrate";
  * Pass `dataDir` to persist between test cases (rarely needed); default
  * keeps the DB entirely in memory.
  */
-export function createPgliteDb(
-	options: { dataDir?: string } = {},
-): PgliteDatabase<typeof schema> {
-	const client = new PGlite(options.dataDir);
-	return drizzle(client, { schema, logger: false });
+export function createPgliteDb(options: { dataDir?: string } = {}): PgliteDatabase<typeof schema> {
+  const client = new PGlite(options.dataDir);
+  return drizzle(client, { schema, logger: false });
 }
 
 export type PgliteDbClient = PgliteDatabase<typeof schema>;
@@ -43,17 +41,15 @@ export type PgliteDbClient = PgliteDatabase<typeof schema>;
  * Build an `Executor` adapter for a PGlite client.
  */
 function pgliteExecutor(client: PGlite): Executor {
-	return {
-		exec: async (sqlText) => {
-			await client.exec(sqlText);
-		},
-		query: async <T = Record<string, unknown>>(sqlText: string, params?: unknown[]) => {
-			const res = params
-				? await client.query<T>(sqlText, params)
-				: await client.query<T>(sqlText);
-			return res.rows as T[];
-		},
-	};
+  return {
+    exec: async (sqlText) => {
+      await client.exec(sqlText);
+    },
+    query: async <T = Record<string, unknown>>(sqlText: string, params?: unknown[]) => {
+      const res = params ? await client.query<T>(sqlText, params) : await client.query<T>(sqlText);
+      return res.rows as T[];
+    },
+  };
 }
 
 /**
@@ -73,19 +69,19 @@ function pgliteExecutor(client: PGlite): Executor {
  *   // close with `await client.close()`
  */
 export async function createMigratedPgliteDb(migrationsDir: string): Promise<{
-	db: PgliteDbClient;
-	client: PGlite;
-	ran: string[];
+  db: PgliteDbClient;
+  client: PGlite;
+  ran: string[];
 }> {
-	const client = new PGlite();
-	const db = drizzle(client, { schema, logger: false });
-	const ran = await runSqlMigrations({
-		dir: migrationsDir,
-		executor: pgliteExecutor(client),
-		ignoreUnsupportedExtensions: true,
-		ignoredExtensionPatterns: ["timescaledb"],
-	});
-	return { db, client, ran };
+  const client = new PGlite();
+  const db = drizzle(client, { schema, logger: false });
+  const ran = await runSqlMigrations({
+    dir: migrationsDir,
+    executor: pgliteExecutor(client),
+    ignoreUnsupportedExtensions: true,
+    ignoredExtensionPatterns: ["timescaledb"],
+  });
+  return { db, client, ran };
 }
 
 export { pgliteExecutor };

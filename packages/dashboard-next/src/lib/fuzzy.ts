@@ -4,10 +4,17 @@ export function fuzzyScore(query: string, target: string): number {
   const q = query.toLowerCase();
   const t = target.toLowerCase();
   if (t.includes(q)) return 100 + (q.length / t.length) * 50;
-  let qi = 0, score = 0, streak = 0;
+  let qi = 0,
+    score = 0,
+    streak = 0;
   for (let i = 0; i < t.length && qi < q.length; i++) {
-    if (t[i] === q[qi]) { qi++; streak++; score += 1 + streak; }
-    else { streak = 0; }
+    if (t[i] === q[qi]) {
+      qi++;
+      streak++;
+      score += 1 + streak;
+    } else {
+      streak = 0;
+    }
   }
   return qi === q.length ? score : 0;
 }

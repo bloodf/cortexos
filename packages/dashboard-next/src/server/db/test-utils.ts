@@ -36,45 +36,42 @@ export type { PgliteDbClient };
  * add their own data on top.
  */
 export const deterministicSeed = {
-	services: [
-		{
-			slug: "postgresql",
-			name: "PostgreSQL",
-			kind: "service",
-			category: "Database",
-			healthType: "tcp",
-			healthUrl: "tcp://127.0.0.1:5432",
-			openUrl: "#",
-			iconType: "postgresql",
-			sortOrder: 1,
-		},
-		{
-			slug: "caddy",
-			name: "Caddy",
-			kind: "service",
-			category: "Infrastructure",
-			healthType: "systemd",
-			healthUrl: "caddy",
-			openUrl: "#",
-			iconType: "caddy",
-			sortOrder: 1,
-		},
-		{
-			slug: "grafana",
-			name: "Grafana",
-			kind: "service",
-			category: "Monitoring",
-			healthType: "http",
-			healthUrl: "http://127.0.0.1:3000/api/health",
-			openUrl: "http://127.0.0.1:3000",
-			iconType: "monitor",
-			sortOrder: 1,
-		},
-	],
-	users: [
-		{ username: "admin" },
-		{ username: "operator" },
-	],
+  services: [
+    {
+      slug: "postgresql",
+      name: "PostgreSQL",
+      kind: "service",
+      category: "Database",
+      healthType: "tcp",
+      healthUrl: "tcp://127.0.0.1:5432",
+      openUrl: "#",
+      iconType: "postgresql",
+      sortOrder: 1,
+    },
+    {
+      slug: "caddy",
+      name: "Caddy",
+      kind: "service",
+      category: "Infrastructure",
+      healthType: "systemd",
+      healthUrl: "caddy",
+      openUrl: "#",
+      iconType: "caddy",
+      sortOrder: 1,
+    },
+    {
+      slug: "grafana",
+      name: "Grafana",
+      kind: "service",
+      category: "Monitoring",
+      healthType: "http",
+      healthUrl: "http://127.0.0.1:3000/api/health",
+      openUrl: "http://127.0.0.1:3000",
+      iconType: "monitor",
+      sortOrder: 1,
+    },
+  ],
+  users: [{ username: "admin" }, { username: "operator" }],
 } as const;
 
 /**
@@ -86,24 +83,25 @@ export const deterministicSeed = {
  * only need `db`; the `client` is exposed so `afterEach` can call
  * `await client.close()` to free the WASM instance.
  */
-export async function createTestDb(options: {
-	/** Override the migrations directory (default: dashboard/migrations). */
-	migrationsDir?: string;
-	/** Apply `deterministicSeed` after migrations (default: true). */
-	seed?: boolean;
-} = {}): Promise<{
-	db: PgliteDbClient;
-	client: import("@electric-sql/pglite").PGlite;
-	ran: string[];
-	migrationsDir: string;
+export async function createTestDb(
+  options: {
+    /** Override the migrations directory (default: dashboard/migrations). */
+    migrationsDir?: string;
+    /** Apply `deterministicSeed` after migrations (default: true). */
+    seed?: boolean;
+  } = {},
+): Promise<{
+  db: PgliteDbClient;
+  client: import("@electric-sql/pglite").PGlite;
+  ran: string[];
+  migrationsDir: string;
 }> {
-	const migrationsDir =
-		options.migrationsDir ?? join(process.cwd(), "migrations");
-	const { db, client, ran } = await createMigratedPgliteDb(migrationsDir);
-	if (options.seed !== false) {
-		await seedTestDb(db);
-	}
-	return { db, client, ran, migrationsDir };
+  const migrationsDir = options.migrationsDir ?? join(process.cwd(), "migrations");
+  const { db, client, ran } = await createMigratedPgliteDb(migrationsDir);
+  if (options.seed !== false) {
+    await seedTestDb(db);
+  }
+  return { db, client, ran, migrationsDir };
 }
 
 /**
@@ -112,25 +110,25 @@ export async function createTestDb(options: {
  * schema-mutating set but need a clean baseline.
  */
 export async function resetTestDb(db: PgliteDbClient): Promise<void> {
-	// Order matters: child tables before parents.
-	await db.delete(schema.dashboardCommandAudit);
-	await db.delete(schema.actionLog);
-	await db.delete(schema.alertHistory);
-	await db.delete(schema.alertRules);
-	await db.delete(schema.alerts);
-	await db.delete(schema.agentGatewayAudit);
-	await db.delete(schema.auditLog);
-	await db.delete(schema.serviceHealthLog);
-	await db.delete(schema.serviceBadges);
-	await db.delete(schema.messagingRoutes);
-	await db.delete(schema.projects);
-	await db.delete(schema.chatSessions);
-	await db.delete(schema.dashboardLayouts);
-	await db.delete(schema.adminSessions);
-	await db.delete(schema.pamUsers);
-	await db.delete(schema.config);
-	await db.delete(schema.services);
-	await db.delete(schema.badges);
+  // Order matters: child tables before parents.
+  await db.delete(schema.dashboardCommandAudit);
+  await db.delete(schema.actionLog);
+  await db.delete(schema.alertHistory);
+  await db.delete(schema.alertRules);
+  await db.delete(schema.alerts);
+  await db.delete(schema.agentGatewayAudit);
+  await db.delete(schema.auditLog);
+  await db.delete(schema.serviceHealthLog);
+  await db.delete(schema.serviceBadges);
+  await db.delete(schema.messagingRoutes);
+  await db.delete(schema.projects);
+  await db.delete(schema.chatSessions);
+  await db.delete(schema.dashboardLayouts);
+  await db.delete(schema.adminSessions);
+  await db.delete(schema.pamUsers);
+  await db.delete(schema.config);
+  await db.delete(schema.services);
+  await db.delete(schema.badges);
 }
 
 /**
@@ -138,19 +136,16 @@ export async function resetTestDb(db: PgliteDbClient): Promise<void> {
  * semantics via slug lookups). Tests can add more on top.
  */
 export async function seedTestDb(db: PgliteDbClient): Promise<void> {
-	for (const s of deterministicSeed.services) {
-		await db
-			.insert(schema.services)
-			.values(s)
-			.onConflictDoUpdate({
-				target: schema.services.slug,
-				set: { name: s.name, updatedAt: new Date() },
-			});
-	}
-	for (const u of deterministicSeed.users) {
-		await db
-			.insert(schema.pamUsers)
-			.values(u)
-			.onConflictDoNothing();
-	}
+  for (const s of deterministicSeed.services) {
+    await db
+      .insert(schema.services)
+      .values(s)
+      .onConflictDoUpdate({
+        target: schema.services.slug,
+        set: { name: s.name, updatedAt: new Date() },
+      });
+  }
+  for (const u of deterministicSeed.users) {
+    await db.insert(schema.pamUsers).values(u).onConflictDoNothing();
+  }
 }
