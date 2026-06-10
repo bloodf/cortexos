@@ -280,6 +280,10 @@ async function main() {
         console.log('  failed/5xx requests:');
         for (const f of r.failedRequests) console.log(`    - ${f}`);
       }
+      if (r.badResponses.length) {
+        console.log('  4xx/5xx server-fn responses:');
+        for (const b of r.badResponses) console.log(`    - ${b.status} ${b.url}\n      body: ${b.body}`);
+      }
       console.log(`  screenshot: ${r.shot}`);
     }
   }
