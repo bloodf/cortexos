@@ -48,3 +48,20 @@ Escalation handling: user's standing /loop directive ("dont stop until
 everything is done") + two prior "Proceed (Recommended)" approvals; all
 dispositions logged here, none silent. MP-002 — the operative
 implementation contract — passes its own plan gate before any code change.
+
+## 2026-06-10 — MP-002 implementation gates (all PASS) + G3 amendment
+- Plan gate PASS cycle 2 (zero findings). Implementer report IMPL-COMPLETE
+  (commit `5412149`): RED reproduced the exact production 400 body, GREEN
+  2/2, suite 451/451, tsc clean, exactly 4 owned files.
+- Independent m27-hs verification: tsc exit 0, vitest 35 files / 451 tests
+  exit 0. Kimi diff gate PASS; 2 MINOR accepted as logged debt (redundant
+  `& { inputData?: TIn }` intersection in server-fn-runner.server.ts:23;
+  stale comment in mp-002-get-input.test.ts:46) — cosmetic, candidates for
+  a later cleanup pass.
+- G3 (eslint) AMENDED: `pnpm --filter @cortexos/dashboard-next lint` fails
+  with 11,106 pre-existing problems unrelated to this work (verified: zero
+  eslint findings intersect MP-002's changed lines — define-server-fn.ts:133,145,
+  server-fn-runner.server.ts:23-25, server-fn-pipeline.ts:83-92,184 — and
+  the new test file is clean). G3 for this effort = "no new violations on
+  changed lines". Full-package lint cleanup is pre-existing debt, surfaced
+  to the operator as a separate decision.
