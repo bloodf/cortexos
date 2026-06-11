@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { accountFromRow, loadConfig, mergeAccounts } from './config.js';
+import { getMailGuardianEnvPath } from './env.js';
 import { TlsImapMailClient } from './imap.js';
 import { GuardianStore } from './store.js';
 import { assertTelegramReady, BotApiTelegramClient, discoverOwnerChatId } from './telegram.js';
@@ -80,9 +81,9 @@ async function runSweep(): Promise<void> {
 }
 
 async function pollTelegramReviews(deps: Awaited<ReturnType<typeof buildDeps>>): Promise<void> {
-  if (!deps.config.telegramOwnerChatId) return;
+  if (!deps.config.telegramOwnerChatId) return undefined;
   let offset: number | undefined;
-  for (;;) {
+  const loop = async (): Promise<void> => {
     try {
       const updates = await deps.telegram.getUpdates(offset);
       if (updates.length > 0) {
@@ -102,7 +103,9 @@ async function pollTelegramReviews(deps: Awaited<ReturnType<typeof buildDeps>>):
         setTimeout(resolve, 30_000);
       });
     }
-  }
+    return loop();
+  };
+  return loop();
 }
 
 async function listen(): Promise<void> {
@@ -115,8 +118,8 @@ async function listen(): Promise<void> {
     await assertTelegramReady(deps.telegram, deps.config.telegramOwnerChatId);
   }
   await runSweep();
-  const listeners = deps.config.accounts.map(async (account) => {
-    for (;;) {
+  const listeners = deps.config.accounts.map((account) => {
+    const loop = async (): Promise<void> => {
       try {
         await deps.mail.waitForNewMail(account);
         await runSweep();
@@ -128,7 +131,9 @@ async function listen(): Promise<void> {
           setTimeout(resolve, 30_000);
         });
       }
-    }
+      return loop();
+    };
+    return loop();
   });
   await Promise.all([pollTelegramReviews(deps), ...listeners]);
 }
@@ -148,11 +153,7 @@ async function telegramDiscoverOwner(): Promise<void> {
   try {
     const chatId = await discoverOwnerChatId(telegram);
     if (process.argv.includes('--write-env')) {
-      upsertEnvLine(
-        process.env.MAIL_GUARDIAN_ENV_PATH ?? '/opt/cortexos/.secrets/mail-guardian.env',
-        'MAIL_GUARDIAN_TELEGRAM_OWNER_CHAT_ID',
-        chatId,
-      );
+      upsertEnvLine(getMailGuardianEnvPath(), 'MAIL_GUARDIAN_TELEGRAM_OWNER_CHAT_ID', chatId);
     }
     process.stdout.write(`${chatId}\n`);
   } finally {
@@ -192,5 +193,5 @@ main().catch((error) => {
   process.stderr.write(
     `cortex-mail-guardian: ${error instanceof Error ? error.message : String(error)}\n`,
   );
-  process.exit(1);
+  process.exitCode = 1;
 });

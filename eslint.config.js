@@ -383,7 +383,6 @@ export default [
         projectService: {
           allowDefaultProject: [
             'packages/cortex-audit/src/index.d.ts',
-            'packages/cortex-telemetry/src/index.d.ts',
             'packages/cortex-mail-guardian/test/*.ts',
             'packages/cortex-mail-guardian/vitest.config.ts',
           ],

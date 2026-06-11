@@ -1,3 +1,5 @@
+import { getProcessEnv } from './env.js';
+
 export interface MailAccountConfig {
   slug: string;
   address: string;
@@ -101,7 +103,7 @@ function loadAccount(index: number, source: NodeJS.ProcessEnv): MailAccountConfi
   };
 }
 
-export function loadConfig(source: NodeJS.ProcessEnv = process.env): GuardianConfig {
+export function loadConfig(source: NodeJS.ProcessEnv = getProcessEnv()): GuardianConfig {
   // Accounts can come from env (MAIL_GUARDIAN_ACCOUNT_N_*) and/or the
   // mail_guardian_accounts DB table (merged later in buildDeps). When the
   // count is absent or 0 we treat env accounts as empty and rely on the DB.

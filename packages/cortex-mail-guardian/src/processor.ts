@@ -10,6 +10,7 @@ import {
 } from './model.js';
 import { redactEmail } from './redact.js';
 import { evaluateRules } from './rules.js';
+import runSequentially from './sequential.js';
 
 export interface ProcessDeps {
   config: GuardianConfig;
@@ -208,7 +209,7 @@ export async function sweep(deps: ProcessDeps): Promise<{
   let skipped = 0;
   let failed = 0;
   let actions = 0;
-  for (const action of await deps.store.claimPendingActions()) {
+  await runSequentially(await deps.store.claimPendingActions(), async (action) => {
     try {
       await applyReviewDecision(deps, action.review_id, action.decision, action.approver);
       await deps.store.completeAction(action.id);
@@ -220,8 +221,8 @@ export async function sweep(deps: ProcessDeps): Promise<{
         error instanceof Error ? error.message : String(error),
       );
     }
-  }
-  for (const account of deps.config.accounts) {
+  });
+  await runSequentially(deps.config.accounts, async (account) => {
     let accountProcessed = 0;
     let messages: MailMessage[] = [];
     try {
@@ -232,8 +233,8 @@ export async function sweep(deps: ProcessDeps): Promise<{
         `[mail-guardian] ${account.slug} list failed: ${error instanceof Error ? error.message : String(error)}\n`,
       );
     }
-    for (const message of messages) {
-      if (accountProcessed >= deps.config.maxMessagesPerSweep) break;
+    await runSequentially(messages, async (message) => {
+      if (accountProcessed >= deps.config.maxMessagesPerSweep) return;
       let action: 'review' | 'kept' | 'skipped' | 'trashed' | undefined;
       try {
         action = await processMessage(deps, account, message);
@@ -254,8 +255,8 @@ export async function sweep(deps: ProcessDeps): Promise<{
           else if (action === 'trashed') trashed += 1;
         }
       }
-    }
-  }
+    });
+  });
   return { processed, trashed, review, kept, skipped, failed, actions };
 }
 
@@ -269,7 +270,7 @@ export async function handleTelegramUpdates(
     const data = callback?.data;
     return callback && data?.startsWith('mg:');
   });
-  for (const update of relevantUpdates) {
+  await runSequentially(relevantUpdates, async (update) => {
     const callback = update.callback_query!;
     const data = callback.data!;
     const [, reviewIdRaw, decision] = data.split(':');
@@ -305,6 +306,6 @@ export async function handleTelegramUpdates(
         await deps.telegram.answerCallbackQuery(callback.id, 'Review already resolved or missing.');
       }
     }
-  }
+  });
   return handled;
 }

@@ -2,6 +2,7 @@ import tls from 'node:tls';
 import { once } from 'node:events';
 import type { MailAccountConfig } from './config.js';
 import lookupWithFallback from './dns.js';
+import runSequentially from './sequential.js';
 
 export interface MailMessage {
   uid: number;
@@ -276,12 +277,10 @@ export class TlsImapMailClient implements MailClient {
     const session = await this.session(account);
     await session.select(account.inbox);
     const uids = await session.searchAll();
-    const messages: MailMessage[] = [];
-    for (const uid of [...uids].reverse()) {
+    return runSequentially([...uids].reverse(), async (uid) => {
       const raw = await session.fetchRaw(uid);
-      messages.push({ uid, ...parseRawEmail(raw) });
-    }
-    return messages;
+      return { uid, ...parseRawEmail(raw) };
+    });
   }
 
   async moveToReview(account: MailAccountConfig, uid: number): Promise<string> {

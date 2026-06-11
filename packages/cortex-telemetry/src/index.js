@@ -7,31 +7,12 @@
 // no-op. Services that import this package must remain safe to boot in
 // dev/test environments where no observability stack is running.
 
+import { readConfig } from './env.js';
+
 let initialized = false;
 let traceloop = null;
 let langfuse = null;
 let config = null;
-
-function envFlag(name, fallback = false) {
-  const v = process.env[name];
-  if (v === undefined || v === '') return fallback;
-  return v === '1' || v.toLowerCase() === 'true';
-}
-
-function readConfig({ service, env } = {}) {
-  const host = process.env.LANGFUSE_HOST || '';
-  const publicKey = process.env.LANGFUSE_PUBLIC_KEY || '';
-  const secretKey = process.env.LANGFUSE_SECRET_KEY || '';
-  return {
-    enabled: Boolean(host && publicKey && secretKey),
-    host,
-    publicKey,
-    secretKey,
-    service: service || process.env.CORTEX_TELEMETRY_SERVICE || 'cortexos',
-    env: env || process.env.CORTEX_TELEMETRY_ENV || process.env.NODE_ENV || 'production',
-    disabledByFlag: envFlag('CORTEX_TELEMETRY_DISABLED', false),
-  };
-}
 
 function langfuseOtelHeaders(publicKey, secretKey) {
   return {

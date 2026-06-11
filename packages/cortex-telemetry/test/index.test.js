@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   instrument,
   traceLLMCall,
@@ -6,55 +6,46 @@ import {
   resetForTests,
   getConfigForTests,
 } from '../src/index.js';
+import { withEnv } from '../src/env.js';
 
-const ENV_KEYS = [
-  'LANGFUSE_HOST',
-  'LANGFUSE_PUBLIC_KEY',
-  'LANGFUSE_SECRET_KEY',
-  'CORTEX_TELEMETRY_SERVICE',
-  'CORTEX_TELEMETRY_ENV',
-  'CORTEX_TELEMETRY_DISABLED',
-  'NODE_ENV',
-];
-
-let savedEnv;
+const CLEAN_ENV = {
+  LANGFUSE_HOST: undefined,
+  LANGFUSE_PUBLIC_KEY: undefined,
+  LANGFUSE_SECRET_KEY: undefined,
+  CORTEX_TELEMETRY_SERVICE: undefined,
+  CORTEX_TELEMETRY_ENV: undefined,
+  CORTEX_TELEMETRY_DISABLED: undefined,
+  NODE_ENV: undefined,
+};
 
 beforeEach(() => {
-  savedEnv = {};
-  ENV_KEYS.forEach((k) => {
-    savedEnv[k] = process.env[k];
-    delete process.env[k];
-  });
-  resetForTests();
-});
-
-afterEach(() => {
-  ENV_KEYS.forEach((k) => {
-    if (savedEnv[k] === undefined) delete process.env[k];
-    else process.env[k] = savedEnv[k];
-  });
   resetForTests();
 });
 
 describe('instrument()', () => {
   it('no-ops when LANGFUSE_HOST is unset', () => {
-    const res = instrument({ service: 'test' });
+    const res = withEnv(CLEAN_ENV, () => instrument({ service: 'test' }));
     expect(res.enabled).toBe(false);
     expect(res.service).toBe('test');
   });
 
   it('no-ops when CORTEX_TELEMETRY_DISABLED=1 even with creds set', () => {
-    process.env.LANGFUSE_HOST = 'http://lf';
-    process.env.LANGFUSE_PUBLIC_KEY = 'pk';
-    process.env.LANGFUSE_SECRET_KEY = 'sk';
-    process.env.CORTEX_TELEMETRY_DISABLED = '1';
-    const res = instrument();
+    const res = withEnv(
+      {
+        ...CLEAN_ENV,
+        LANGFUSE_HOST: 'http://lf',
+        LANGFUSE_PUBLIC_KEY: 'pk',
+        LANGFUSE_SECRET_KEY: 'sk',
+        CORTEX_TELEMETRY_DISABLED: '1',
+      },
+      () => instrument(),
+    );
     expect(res.enabled).toBe(false);
   });
 
   it('is idempotent — second call returns same status without re-init', () => {
-    const a = instrument({ service: 'svc-a' });
-    const b = instrument({ service: 'svc-b' });
+    const a = withEnv(CLEAN_ENV, () => instrument({ service: 'svc-a' }));
+    const b = withEnv(CLEAN_ENV, () => instrument({ service: 'svc-b' }));
     expect(a.enabled).toBe(false);
     expect(b.enabled).toBe(false);
     // service from first call wins
@@ -62,14 +53,12 @@ describe('instrument()', () => {
   });
 
   it('defaults service from CORTEX_TELEMETRY_SERVICE env when no opt given', () => {
-    process.env.CORTEX_TELEMETRY_SERVICE = 'env-service';
-    const res = instrument();
-    expect(res.service).toBe('env-service');
+    withEnv({ ...CLEAN_ENV, CORTEX_TELEMETRY_SERVICE: 'env-service' }, () => instrument());
+    expect(getConfigForTests().service).toBe('env-service');
   });
 
   it('defaults env to NODE_ENV when not provided', () => {
-    process.env.NODE_ENV = 'staging';
-    instrument();
+    withEnv({ ...CLEAN_ENV, NODE_ENV: 'staging' }, () => instrument());
     expect(getConfigForTests().env).toBe('staging');
   });
 });
@@ -77,7 +66,7 @@ describe('instrument()', () => {
 describe('traceLLMCall()', () => {
   it('runs the handler when telemetry is disabled', async () => {
     const fn = vi.fn().mockResolvedValue({ text: 'hello' });
-    const result = await traceLLMCall({ name: 'test.call' }, fn);
+    const result = await withEnv(CLEAN_ENV, () => traceLLMCall({ name: 'test.call' }, fn));
     expect(fn).toHaveBeenCalledOnce();
     expect(result).toEqual({ text: 'hello' });
   });
@@ -85,33 +74,35 @@ describe('traceLLMCall()', () => {
   it('propagates handler errors when telemetry is disabled', async () => {
     const err = new Error('boom');
     await expect(
-      traceLLMCall({ name: 'x' }, async () => {
-        throw err;
-      }),
+      withEnv(CLEAN_ENV, () =>
+        traceLLMCall({ name: 'x' }, async () => {
+          throw err;
+        }),
+      ),
     ).rejects.toBe(err);
   });
 
   it('rejects non-function handlers', async () => {
-    await expect(traceLLMCall({ name: 'x' }, /** @type any */ (null))).rejects.toThrow(
-      /handler must be a function/,
-    );
+    await expect(
+      withEnv(CLEAN_ENV, () => traceLLMCall({ name: 'x' }, /** @type any */ (null))),
+    ).rejects.toThrow(/handler must be a function/);
   });
 
   it('auto-initialises on first call when instrument() not invoked', async () => {
     resetForTests();
     const fn = vi.fn().mockResolvedValue(42);
-    await traceLLMCall({ name: 'auto' }, fn);
+    await withEnv(CLEAN_ENV, () => traceLLMCall({ name: 'auto' }, fn));
     expect(getConfigForTests()).not.toBeNull();
   });
 });
 
 describe('shutdown()', () => {
   it('is safe to call when telemetry never initialised', async () => {
-    await expect(shutdown()).resolves.toBeUndefined();
+    await expect(withEnv(CLEAN_ENV, () => shutdown())).resolves.toBeUndefined();
   });
 
   it('is safe to call after a no-op instrument()', async () => {
-    instrument();
-    await expect(shutdown()).resolves.toBeUndefined();
+    withEnv(CLEAN_ENV, () => instrument());
+    await expect(withEnv(CLEAN_ENV, () => shutdown())).resolves.toBeUndefined();
   });
 });
