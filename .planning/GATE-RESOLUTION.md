@@ -935,3 +935,13 @@ rate limiter (three full screen runs within its window; journal clean) —
 ENVIRONMENTAL. Run 17 after cooldown: 18/18 PASS, exit 0. MP-021
 complete: audit 6 → 1 known-accepted unpatched low; frozen-lockfile
 restored; drizzle 0.45.2 live and verified.
+
+## 2026-06-11 — operator directives: dashboard product fixes (recorded)
+1. /apps: only show apps WITH a web UI; every web UI on tailscale-IP:port
+   (http://100.109.20.9:PORT) — no subdomains, no subfolders; REBIND ALL
+   bridge-only web UIs to the tailscale IP (AskUserQuestion: "Rebind all").
+2. /healthcheck: split the log into its own tab/page; show the apps'
+   healthchecks; (recon: incident timeline placeholder gets wired).
+3. "Other parts not working" — recon wiring table: /backups and
+   /scheduler are MOCK-wired; MP-024 wires them live.
+Plans: MP-022 (apps), MP-023 (healthcheck), MP-024 (backups/scheduler).
