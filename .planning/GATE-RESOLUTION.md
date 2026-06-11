@@ -856,3 +856,58 @@ Terminal sidecar: 3 exit sites → single fatal() helper (exitCode +
 explicit teardown of PTY sessions, WS clients/server, HTTP server,
 shutdown timer). Failure injection: throwaway process rc=1 within 10s;
 live service restarted and active. Scope rc=0. Repo 27 → 24.
+
+## 2026-06-11 — c-fixes (81ecea2) review: one BLOCKER, queued
+withEnv + STOP sentinel prescriptions implemented exactly (reviewer
+confirms). [BLOCKER] dns shim incomplete for (host, undefined, cb):
+`opts = options;` leaves opts undefined and the result handler reads
+opts.all → CONFIRMED at src/dns.ts:36-38. Fix = `opts = options ?? {};`
+— queued behind the MP-020e lane (one line, no tree edits while a
+worker may commit).
+
+## 2026-06-11 — MP-020e part 1 (00592aa) + disable inventory completion
+Dashboard-next at ZERO findings; repo at ZERO findings (uncommitted-tree
+measurement, then checkpointed after content inspection: 0 added/0
+removed disables — no cheating). Worker died mid-wave; orchestrator
+recovery fixed drift.ts the RIGHT way (typed entry constants — the
+.slice() receiver had been defeating contextual typing all along, which
+is why assertions kept reappearing; saga closed with zero assertions).
+Suite now 577 (558 + 19 golden hash tests, green pre- and post-rewrite).
+Disable inventory completed: 23 in dashboard src = 14 tracked legacy +
+9 newly inventoried (6 no-explicit-any, 2 scheduler block-disables,
+1 generated banner [exempt]). e2 continuation eliminates all but the
+generated banner + MP-020f's 2. MP-020g criterion amended (.gen.
+exemption).
+
+## 2026-06-11 — MP-020e complete (00592aa + 9b7020d) + dns one-liner (61bc3f7)
+Orchestrator-verified: repo eslint rc=0 with ZERO stdout bytes (true
+zero); package rc=0; first-party disables = exactly the 2 react-hooks
+lines (MP-020f in flight); generated banner exempt. e-wave review +
+MP-020f running.
+
+## 2026-06-11 — e-wave review PASS + one MAJOR routed
+Combined review of 00592aa/9b7020d/61bc3f7: PASS. [MAJOR] safeCsrfEqual
+lost branchless constant-time property (no-bitwise rewrite introduced a
+data-dependent branch) → CONFIRMED at cookies.ts:192; fix staged:
+crypto.timingSafeEqual on buffers (strictly better than the original
+manual XOR loop). Dispatches after MP-020f frees the lane.
+
+## 2026-06-11 — MP-020 CLOSE: TRUE ZERO achieved, release-verified
+Waves: b=089afa1 (contracts+audit, −29; review adjudicated: 1 FALSE via
+manifest proof, 1 ACCEPT discovered-class), c=57513b2 (−46) +
+c-fixes=81ecea2 + dns=61bc3f7 (review-driven: async-safe withEnv, STOP
+sentinel, opts shim), d=84f2aa4 (sidecar fatal() + failure-injection,
+review PASS), e=00592aa+9b7020d (−24 + 14 legacy disable deletions +
+9 newly-inventoried eliminated; drift.ts saga ended via typed entries;
+golden-tested imul hash rewrites; e-wave review PASS with 1 MAJOR →
+csrf-ct=85c5a4d crypto.timingSafeEqual upgrade), f=23a0f2f (honest
+effect deps via refs, review PASS zero findings),
+scripts=91ca462 (last 2 block directives, review PASS).
+PROOFS: pnpm exec eslint . → rc=0, stdout 0 bytes (TRUE ZERO).
+First-party eslint-disable count (excl. generated): 0. Config items:
+exactly 3, MP-020-commented. format:check clean; tsc 0. Suites:
+contracts 243/243, audit 12/12, telemetry 11/11, mail-guardian 25/25,
+terminal check 0, dashboard 577/577 (incl. 19 golden hash tests).
+Deploy: build green, boot 200, BOTH services restarted+active, live 200,
+screens 18/18 (run 15). The 2026-06-11 "102 adjudicated" baseline is
+superseded: the baseline is now ZERO.
