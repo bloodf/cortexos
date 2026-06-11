@@ -41,7 +41,7 @@ import {
   _resetRateLimitBuckets,
   type ApiRouteCore,
 } from "@/server/server-fn-pipeline";
-import { _resetRevealGrants } from "@/server/env-reveal";
+import { resetRevealGrants } from "@/server/env-reveal";
 
 import { readEnvGateOptions, unlockGateOptions } from "../env-browser.functions";
 
@@ -85,7 +85,7 @@ beforeEach(() => {
   pam = new FakePamAuthenticator();
   setPamAuthenticator(pam);
   _resetRateLimitBuckets();
-  _resetRevealGrants();
+  resetRevealGrants();
 });
 
 function cookieHeader(parts: Record<string, string>): string {

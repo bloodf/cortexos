@@ -60,6 +60,6 @@ export function revokeReveal(sessionId: string | null | undefined): void {
 }
 
 /** Test helper: drop every grant. */
-export function _resetRevealGrants(): void {
+export function resetRevealGrants(): void {
   grants.clear();
 }

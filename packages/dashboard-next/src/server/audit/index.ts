@@ -62,7 +62,7 @@ export function auditSize(): number {
 }
 
 /** Test helper: current running hash. */
-export function _runningHashForTests(): string {
+export function runningHashForTests(): string {
   return runningHash;
 }
 
@@ -192,7 +192,7 @@ export function verifyAuditChain(): AuditVerifyResult {
 }
 
 /** Exposed for tests — compute the expected running hash AFTER index `i`. */
-export function _expectedRunningHashAt(i: number): string {
+export function expectedRunningHashAt(i: number): string {
   if (i < 0 || i >= events.length) {
     throw new Error(`Index out of range: ${i}`);
   }

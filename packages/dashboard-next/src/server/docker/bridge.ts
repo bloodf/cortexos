@@ -533,10 +533,10 @@ export { hasSmugglingPattern };
 // ---------------------------------------------------------------------------
 
 /** Test helper: peek at the default-stub marker. */
-export const _STUB_MARKER = M2_STUB_MARKER;
+export const STUB_MARKER = M2_STUB_MARKER;
 
 /** Test helper: re-export internals for the unit test. */
-export const _internals = {
+export const internals = {
   collectArgSmugglingHits,
   argvContainsBashDashC,
   renderArgv,

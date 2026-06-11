@@ -342,7 +342,7 @@ export function listVolumes(opts: { query?: string } = {}): DockerVolume[] {
 // ---------------------------------------------------------------------------
 
 /** Reset the store to the seed. For tests only. */
-export function _resetDockerStub(): void {
+export function resetDockerStub(): void {
   containers = SEED.map((c) => ({
     ...c,
     logs: SYNTHETIC_LOGS[c.name] ?? [],

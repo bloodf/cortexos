@@ -67,9 +67,9 @@ import {
   consumeApproval,
   resetApprovalStore,
   actionHashFor,
-  _isTokenConsumed,
+  isTokenConsumed,
 } from "@/server/approval";
-import { _resetRevealGrants } from "@/server/env-reveal";
+import { resetRevealGrants } from "@/server/env-reveal";
 import { asSessionId } from "@/server/entities";
 
 import { loginGateOptions, meGateOptions } from "../auth.functions";
@@ -97,12 +97,12 @@ beforeEach(() => {
   setPamAuthenticator(pam);
   _resetRateLimitBuckets();
   resetApprovalStore();
-  _resetRevealGrants();
+  resetRevealGrants();
 });
 
 afterEach(() => {
   resetApprovalStore();
-  _resetRevealGrants();
+  resetRevealGrants();
 });
 
 // ---------------------------------------------------------------------------
@@ -540,7 +540,7 @@ describe("[5] Approval tokens (§3.5 / PB-1)", () => {
     const replay = consumeApproval(tok.token, sid);
     expect(replay.ok).toBe(false);
     if (!replay.ok) expect(replay.reason).toBe("already_used");
-    expect(_isTokenConsumed(tok.token)).toBe(true);
+    expect(isTokenConsumed(tok.token)).toBe(true);
   });
 
   it("crypto: session-bound — a token minted for session A cannot verify for session B", () => {
@@ -650,7 +650,7 @@ describe("[5] Approval tokens (§3.5 / PB-1)", () => {
     });
     expect(res.status).toBe(412);
     // And the token was NOT consumed by the failed cross-session attempt.
-    expect(_isTokenConsumed(approval.token)).toBe(false);
+    expect(isTokenConsumed(approval.token)).toBe(false);
   });
 });
 

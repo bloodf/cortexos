@@ -62,7 +62,7 @@ export function approvalStoreSize(): number {
 }
 
 /** Test helper: peek at the consumed flag for a token without consuming. */
-export function _isTokenConsumed(token: string): boolean {
+export function isTokenConsumed(token: string): boolean {
   const rec = store.get(token);
   return rec ? rec.used : false;
 }
