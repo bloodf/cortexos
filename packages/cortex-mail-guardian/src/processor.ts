@@ -277,7 +277,9 @@ export async function handleTelegramUpdates(
     if (Number.isInteger(reviewId)) {
       const reviewRecord = await deps.store.getReview(reviewId);
       if (reviewRecord) {
-        const account = deps.config.accounts.find((item) => item.slug === reviewRecord.account_slug);
+        const account = deps.config.accounts.find(
+          (item) => item.slug === reviewRecord.account_slug,
+        );
         if (account) {
           if (
             decision === 'spam' ||

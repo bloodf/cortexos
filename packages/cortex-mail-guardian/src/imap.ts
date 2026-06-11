@@ -151,7 +151,9 @@ class ImapSession {
     }
     return lines
       .map((line) => parseMailboxPath(line))
-      .find((path) => path && /^(trash|deleted items|lixeira)$/i.test(path.split(/[/.]/).pop() ?? path));
+      .find(
+        (path) => path && /^(trash|deleted items|lixeira)$/i.test(path.split(/[/.]/).pop() ?? path),
+      );
   }
 
   async ensureMailbox(mailbox: string): Promise<void> {
