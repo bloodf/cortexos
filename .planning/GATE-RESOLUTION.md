@@ -703,3 +703,16 @@ REQUIRE named Route exports) + 2 PROVEN false positives (drift.ts:97 —
 MP-014 demonstrated removing the assertion breaks tsc;
 client.test.ts:18 — D3e demonstrated arrow conversion breaks constructor
 mocking). MP-019 written: three evidence-backed scoped rule corrections.
+
+## 2026-06-11 — MP-019 plan (3 cycles, dispositions applied under /loop standing authorization)
+Artifacts: `harness/artifacts/critic-plan-MP-019-rule-misfits.md-{1,2,3}.md`.
+Cycle 1 FIXED (measured-baseline rework T/P/E/U; 14-vs-26 evidence
+reconciled; exact gate commands). Cycle 2 FIXED (route-export evidence
+with file:line + 35-route count; durable 114 capture; binary `// MP-019:`
+comment check). Cycle 3 dispositions, both FIXED:
+- [MAJOR] artifact cites lacked line anchors → anchored
+  (impl-mp-017b-report.md:130/133/135/139; recon-dn-residue-119.txt:3).
+- [MAJOR] dashboard-only evidence vs repo-wide R3 fix → fix SCOPED to
+  packages/dashboard-next/** (fair catch; the rule stays active
+  elsewhere).
+No overrules. Implementer kimi; reviewer gpt-5.5 (embedded diff).

@@ -4,9 +4,12 @@
 - MP19-R1 (TS-only rule on plain JS): `@typescript-eslint/
   explicit-module-boundary-types` is enforced at `eslint.config.js:288`
   over globs that include plain-.js packages. Wave B evidence
-  (`.planning/harness/artifacts/impl-mp-017b-report.md` escalation
-  table): ~26 occurrences across cortex-audit/cortex-telemetry tagged
-  "Plain-JS; unfixable without tsconfig/TS conversion" — the rule
+  (`.planning/harness/artifacts/impl-mp-017b-report.md:130,133,135,139`
+  — escalation-table rows): 14 occurrences in the two plain-JS packages — cortex-audit
+  src/index.js ×7, src/jcs.js ×1, src/rekor.js ×1, cortex-telemetry
+  src/index.js ×5 — each tagged "Plain-JS; unfixable without tsconfig/TS
+  conversion" (the repo-wide grep also counts occurrences elsewhere;
+  Task 1 measures the authoritative current baseline) — the rule
   requires TS return-type syntax that .js files cannot express (JSDoc
   does not satisfy it under the current parser config). Fix: a scoped
   override disabling this rule for `**/*.{js,mjs,cjs}`.
@@ -20,18 +23,26 @@
   (or disable there if the option proves insufficient — implementer
   verifies with the live files; zero new findings is the criterion).
 - MP19-R3 (framework-convention misfit): `import-x/prefer-default-export`
-  — 114 remaining findings, ALL in packages/dashboard-next (current
-  count quoted in the implementer's Task 1), where named exports are the
-  DELIBERATE convention: TanStack Router file routes REQUIRE named
-  `Route` exports; the codebase's components/server-functions follow
-  named-export style throughout (the released, verified product).
+  — 114 findings, all in packages/dashboard-next: durable capture
+  `.planning/harness/artifacts/recon-dn-residue-119.txt` (first finding
+  at :3; `grep -c prefer-default-export` → 114, orchestrator-verified
+  2026-06-11; re-measured as P in Task 1). Named exports are the
+  DELIBERATE convention: TanStack Router file routes export a named
+  `Route` const the router resolves by name — e.g.
+  `src/routes/_authenticated.admin.users.tsx:4`:
+  `export const Route = createFileRoute("/_authenticated/admin/users")({...})`
+  — across 35 route files
+  (`grep -rln 'export const Route = createFileRoute' src/routes/ | wc -l`
+  → 35); the codebase's components/server-functions follow named-export
+  style throughout (the released, verified product).
   Mass-converting 114 modules would churn hundreds of importers against
   framework requirements — the operator-accepted escalation mechanism
   (GATE-RESOLUTION "wave strategy") covers exactly this
-  fix-would-degrade case as a CLASS. Fix: disable
-  `import-x/prefer-default-export` in the root config's main rules block
-  with a comment recording the rationale (named-export convention;
-  TanStack route requirement).
+  fix-would-degrade case as a CLASS. Fix (SCOPED to the evidence): a
+  `packages/dashboard-next/**` override block disabling
+  `import-x/prefer-default-export` with the rationale comment — the rule
+  stays active everywhere else (other packages' instances were code-fixed
+  in waves A-C).
 - MP19-R4: two PROVEN false positives stay as accepted findings (no
   config change, no suppression): `src/mocks/drift.ts:97`
   no-unnecessary-type-assertion (removing the assertion broke tsc —
@@ -48,17 +59,23 @@ ALL commands run from `/opt/cortexos`.
 - Report: `/opt/cortexos/.planning/harness/artifacts/impl-mp-019-report.md`
 
 ## Tasks (append to the report after EVERY step)
-1. RED (quote): `pnpm exec eslint . 2>&1 | tail -1` (repo total);
-   `pnpm exec eslint . 2>&1 | grep -c 'prefer-default-export'` (≈114);
-   `pnpm exec eslint . 2>&1 | grep -c 'explicit-module-boundary-types'`
-   (≈26); `pnpm exec eslint . 2>&1 | grep -c 'no-useless-path-segments'`.
-2. Apply MP19-R1/R2/R3 (three edits, each with a one-line rationale
-   comment).
-3. GREEN (quote): the three rule greps → 0;
-   `node --check eslint.config.js` → 0; new repo total (expected ≈ the
-   adjudicated-escalation count + 2).
-4. Gates (quote): dashboard-next tsc exit 0 + full suite zero failures
-   (env sourced from /opt/cortexos/.secrets/dashboard.env);
+1. RED — the BINDING baseline measurement (quote each; these measured
+   values ARE the baseline, no approximations): run
+   `pnpm exec eslint . 2>&1 > /tmp/mp019-red.txt` once, then quote
+   `tail -1 /tmp/mp019-red.txt` (repo total T) and
+   `grep -c '<rule>' /tmp/mp019-red.txt` for each of
+   prefer-default-export (P), explicit-module-boundary-types (E),
+   no-useless-path-segments (U).
+2. Apply MP19-R1/R2/R3 — three edits, each carrying a one-line
+   `// MP-019: <reason>` comment (the A2 marker).
+3. GREEN (quote): prefer-default-export grep → 0 (all 114 are inside
+   the scoped override's globs); the other two rule greps → 0 EXACTLY;
+   `node --check eslint.config.js` → 0; new repo total = T − P − E − U
+   exactly (quote the arithmetic with the Task-1 measured values).
+4. Gates, exact commands (quote each with exit code):
+   - `pnpm --filter @cortexos/dashboard-next exec tsc --noEmit` → exit 0
+   - `bash -c 'set -a; source /opt/cortexos/.secrets/dashboard.env; set +a; cd packages/dashboard-next && pnpm exec vitest run'`
+     → zero failures, ≥ 558 tests;
    `pnpm --filter @cortexos/audit test` exit 0;
    `pnpm --filter @cortexos/mail-guardian test` exit 0;
    `pnpm run format:check 2>&1 | tail -1` exit 0.
@@ -68,11 +85,14 @@ ALL commands run from `/opt/cortexos`.
 6. Acceptance summary + SHA; end IMPL-COMPLETE or IMPL-BLOCKED: <reason>.
 
 ## Acceptance (binary)
-- A1: RED/GREEN counts as stated; the three rules' findings → 0.
+- A1: the Task-1 measured baseline quoted; the three rules' findings →
+  0 exactly; new total = T − P − E − U (arithmetic quoted).
 - A2: `git diff --name-only HEAD~1..HEAD` = exactly eslint.config.js; no
   inline suppressions
   (`git diff HEAD~1..HEAD | grep -cE '^\+.*(eslint-disable|prettier-ignore)'` → 0);
-  zero source files changed.
+  zero source files changed; rationale comments present —
+  `git diff HEAD~1..HEAD | grep -cE '^\+.*// MP-019:'` → 3 (each of the
+  three edits carries a `// MP-019: <reason>` comment line).
 - A3: Task-4 gates green.
 
 ## Out of scope
