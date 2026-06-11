@@ -84,8 +84,8 @@ export async function getDrives(): Promise<DriveInfo[]> {
     const data = JSON.parse(stdout) as { blockdevices?: unknown[] };
     const out: DriveInfo[] = [];
     function walk(nodes: unknown[]) {
-      for (const n of nodes) {
-        if (!n || typeof n !== "object") continue;
+      nodes.forEach((n) => {
+        if (!n || typeof n !== "object") return;
         const node = n as Record<string, unknown>;
         if (node.type === "disk") {
           out.push({
@@ -95,7 +95,7 @@ export async function getDrives(): Promise<DriveInfo[]> {
           });
         }
         if (Array.isArray(node.children)) walk(node.children);
-      }
+      });
     }
     if (Array.isArray(data.blockdevices)) walk(data.blockdevices);
     return out;
@@ -124,21 +124,19 @@ export async function getMounts(): Promise<MountInfo[]> {
       { timeout: 10_000, maxBuffer: 4 * 1024 * 1024 },
     );
     const lines = stdout.trim().split("\n");
-    const out: MountInfo[] = [];
     // With -T: Filesystem Type 1B-blocks Used Available Use% Mounted-on (7+ cols)
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i];
-      if (!line) continue;
+    const out = lines.slice(1).reduce<MountInfo[]>((acc, line) => {
+      if (!line) return acc;
       const parts = line.trim().split(/\s+/);
-      if (parts.length < 7) continue;
+      if (parts.length < 7) return acc;
       const total = Number(parts[2]);
       const used = Number(parts[3]);
       const free = Number(parts[4]);
       const percentStr = parts[5];
       const mount = parts[6];
-      if (!mount) continue;
+      if (!mount) return acc;
       const pct = Number(percentStr?.replace("%", ""));
-      out.push({
+      acc.push({
         filesystem: parts[0] ?? "",
         mount,
         total: Number.isFinite(total) ? total : 0,
@@ -146,7 +144,8 @@ export async function getMounts(): Promise<MountInfo[]> {
         free: Number.isFinite(free) ? free : 0,
         percent: Number.isFinite(pct) ? pct : 0,
       });
-    }
+      return acc;
+    }, []);
     return out;
   } catch {
     return [];
@@ -165,15 +164,15 @@ export function getSensors(): SystemData["sensors"] {
   // Thermal zones
   try {
     const zones = fs.readdirSync("/sys/class/thermal");
-    for (const z of zones) {
-      if (!z.startsWith("thermal_zone")) continue;
+    zones.forEach((z) => {
+      if (!z.startsWith("thermal_zone")) return;
       const type = readSys(`/sys/class/thermal/${z}/type`) ?? z;
       const raw = readSys(`/sys/class/thermal/${z}/temp`);
       const val = raw ? Number(raw) / 1000 : NaN;
       if (Number.isFinite(val)) {
         temperatures.push({ id: z, label: type, value: val, unit: "celsius", source: "thermal" });
       }
-    }
+    });
   } catch {
     // /sys/class/thermal may not exist on all hosts
   }
@@ -181,20 +180,20 @@ export function getSensors(): SystemData["sensors"] {
   // hwmon — temperature, fan, voltage inputs
   try {
     const hwmon = fs.readdirSync("/sys/class/hwmon");
-    for (const h of hwmon) {
+    hwmon.forEach((h) => {
       const name = readSys(`/sys/class/hwmon/${h}/name`) ?? h;
       const dir = `/sys/class/hwmon/${h}`;
       let entries: string[];
       try {
         entries = fs.readdirSync(dir);
       } catch {
-        continue;
+        return;
       }
-      for (const f of entries) {
+      entries.forEach((f) => {
         const mTemp = /^temp(\d+)_input$/.exec(f);
         if (mTemp) {
           const idx = mTemp[1];
-          if (!idx) continue;
+          if (!idx) return;
           const label = readSys(`${dir}/temp${idx}_label`) ?? `${name} temp${idx}`;
           const raw = readSys(`${dir}/temp${idx}_input`);
           const val = raw ? Number(raw) / 1000 : NaN;
@@ -211,7 +210,7 @@ export function getSensors(): SystemData["sensors"] {
         const mFan = /^fan(\d+)_input$/.exec(f);
         if (mFan) {
           const idx = mFan[1];
-          if (!idx) continue;
+          if (!idx) return;
           const label = readSys(`${dir}/fan${idx}_label`) ?? `${name} fan${idx}`;
           const raw = readSys(`${dir}/fan${idx}_input`);
           const val = raw ? Number(raw) : NaN;
@@ -222,7 +221,7 @@ export function getSensors(): SystemData["sensors"] {
         const mIn = /^in(\d+)_input$/.exec(f);
         if (mIn) {
           const idx = mIn[1];
-          if (!idx) continue;
+          if (!idx) return;
           const label = readSys(`${dir}/in${idx}_label`) ?? `${name} in${idx}`;
           const raw = readSys(`${dir}/in${idx}_input`);
           const val = raw ? Number(raw) / 1000 : NaN;
@@ -230,8 +229,8 @@ export function getSensors(): SystemData["sensors"] {
             voltages.push({ id: `${h}-${idx}`, label, value: val, unit: "volts", source: "hwmon" });
           }
         }
-      }
-    }
+      });
+    });
   } catch {
     // /sys/class/hwmon may not exist on all hosts
   }
@@ -248,7 +247,7 @@ export function getSensors(): SystemData["sensors"] {
 export async function collectSystem(): Promise<SystemData> {
   const [drives, mounts] = await Promise.all([getDrives(), getMounts()]);
   // Annotate drives with mount/used/total/percent from matching mount entries.
-  for (const m of mounts) {
+  mounts.forEach((m) => {
     const d = drives.find((d) => m.filesystem.startsWith(d.name));
     if (d) {
       d.mount = m.mount;
@@ -256,7 +255,7 @@ export async function collectSystem(): Promise<SystemData> {
       d.total = m.total;
       d.percent = m.percent;
     }
-  }
+  });
   return {
     cpu: getCpuPercent(),
     memory: getMemory(),

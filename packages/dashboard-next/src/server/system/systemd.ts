@@ -101,9 +101,9 @@ export class MockUnitExecutor {
   private readonly logsByUnit = new Map<string, SystemdLogLine[]>();
 
   seed(units: readonly SystemdUnit[]): void {
-    for (const u of units) {
+    units.forEach((u) => {
       if (!this.snapshots.has(u.name)) this.snapshots.set(u.name, { ...u });
-    }
+    });
   }
 
   snapshot(name: string): SystemdUnit | null {
@@ -254,7 +254,7 @@ const SEED_UNITS: readonly SystemdUnit[] = [
 
 function seedLogs(mock: MockUnitExecutor): void {
   const now = new Date().toISOString();
-  for (const u of SEED_UNITS) {
+  SEED_UNITS.forEach((u) => {
     mock.pushLog(u.name, {
       ts: now,
       priority: "info",
@@ -275,7 +275,7 @@ function seedLogs(mock: MockUnitExecutor): void {
         message: `Main process exited, code=exited, status=1/FAILURE.`,
       });
     }
-  }
+  });
 }
 
 function makeDefaultMock(): { mock: MockUnitExecutor; executor: UnitExecutor } {
@@ -365,11 +365,11 @@ async function getUnitFromSystemctl(name: string): Promise<SystemdUnit | null> {
       ],
       { timeout: 5_000, maxBuffer: 64 * 1024 },
     );
-    const props: Record<string, string> = {};
-    for (const line of stdout.split("\n")) {
+    const props = stdout.split("\n").reduce<Record<string, string>>((acc, line) => {
       const m = /^(\w+)=(.*)$/.exec(line);
-      if (m) props[m[1]] = m[2]!;
-    }
+      if (m) acc[m[1]] = m[2]!;
+      return acc;
+    }, {});
     if (Object.keys(props).length <= 1) return null;
     const unitFileState = props.UnitFileState ?? "";
     return {
@@ -496,9 +496,9 @@ export async function listLogs(name: string, limit: number): Promise<SystemdLogL
       { timeout: 10_000, maxBuffer: 4 * 1024 * 1024 },
     );
     const lines: SystemdLogLine[] = [];
-    for (const rawLine of stdout.split("\n")) {
+    stdout.split("\n").forEach((rawLine) => {
       const trimmed = rawLine.trim();
-      if (!trimmed) continue;
+      if (!trimmed) return;
       try {
         const entry = JSON.parse(trimmed) as Record<string, unknown>;
         const ts = entry.__REALTIME_TIMESTAMP
@@ -525,7 +525,7 @@ export async function listLogs(name: string, limit: number): Promise<SystemdLogL
       } catch {
         // skip malformed lines
       }
-    }
+    });
     return lines;
   } catch {
     return [];
@@ -543,10 +543,11 @@ export async function listHostLogs(limit: number): Promise<SystemdLogLine[]> {
     // store) so the dashboard has something to render. Same SystemdLogLine
     // shape; callers map to display text.
     const cap = Math.max(0, limit);
-    const merged: SystemdLogLine[] = [];
-    for (const u of _SEED_UNITS) {
-      merged.push(...currentMock.logsFor(u.name));
-    }
+    const mock = currentMock;
+    const merged = _SEED_UNITS.reduce<SystemdLogLine[]>((acc, u) => {
+      acc.push(...mock.logsFor(u.name));
+      return acc;
+    }, []);
     // newest last in the mock store → take the tail
     return merged.slice(-cap);
   }
@@ -558,9 +559,9 @@ export async function listHostLogs(limit: number): Promise<SystemdLogLine[]> {
       { timeout: 10_000, maxBuffer: 4 * 1024 * 1024 },
     );
     const lines: SystemdLogLine[] = [];
-    for (const rawLine of stdout.split("\n")) {
+    stdout.split("\n").forEach((rawLine) => {
       const trimmed = rawLine.trim();
-      if (!trimmed) continue;
+      if (!trimmed) return;
       try {
         const entry = JSON.parse(trimmed) as Record<string, unknown>;
         const ts = entry.__REALTIME_TIMESTAMP
@@ -587,7 +588,7 @@ export async function listHostLogs(limit: number): Promise<SystemdLogLine[]> {
       } catch {
         // skip malformed lines
       }
-    }
+    });
     return lines;
   } catch {
     return [];
@@ -660,6 +661,15 @@ const DESTRUCTIVE_ACTIONS: ReadonlySet<SystemdActionKind> = new Set<SystemdActio
 const UNIT_NAME_RE = /^[A-Za-z0-9_.@-]+$/;
 
 const APPROVAL_TTL_SEC = 60;
+
+function approvalRejectionCode(
+  reason: string,
+): "approval_expired" | "approval_already_used" | "approval_session_mismatch" | "approval_invalid" {
+  if (reason === "expired") return "approval_expired";
+  if (reason === "already_used") return "approval_already_used";
+  if (reason === "session_mismatch") return "approval_session_mismatch";
+  return "approval_invalid";
+}
 
 /**
  * Dispatch a systemd action. Checks:
@@ -792,14 +802,7 @@ export async function dispatchAction(
         status: "rejected",
         action: input.action,
         name: input.name,
-        code:
-          v.reason === "expired"
-            ? "approval_expired"
-            : v.reason === "already_used"
-              ? "approval_already_used"
-              : v.reason === "session_mismatch"
-                ? "approval_session_mismatch"
-                : "approval_invalid",
+        code: approvalRejectionCode(v.reason),
         reason,
       };
     }

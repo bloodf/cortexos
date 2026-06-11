@@ -74,19 +74,17 @@ export function readNetworkInterfaces(): NetworkInterface[] {
   try {
     const raw = fs.readFileSync("/proc/net/dev", "utf8");
     const lines = raw.split("\n");
-    const interfaces: NetworkInterface[] = [];
     // First 2 lines are headers; data starts at index 2.
-    for (let i = 2; i < lines.length; i++) {
-      const line = lines[i];
-      if (!line) continue;
+    const interfaces = lines.slice(2).reduce<NetworkInterface[]>((acc, line) => {
+      if (!line) return acc;
       const colonIdx = line.indexOf(":");
-      if (colonIdx === -1) continue;
+      if (colonIdx === -1) return acc;
       const name = line.slice(0, colonIdx).trim();
       const dataPart = line.slice(colonIdx + 1);
-      if (!name || !dataPart) continue;
-      if (!isPhysicalInterface(name)) continue;
+      if (!name || !dataPart) return acc;
+      if (!isPhysicalInterface(name)) return acc;
       const parsed = parseProcNetDevLine(name, dataPart);
-      if (!parsed) continue;
+      if (!parsed) return acc;
       const { rx, tx } = parsed;
       const now = Date.now();
       const last = prev.get(name);
@@ -98,8 +96,9 @@ export function readNetworkInterfaces(): NetworkInterface[] {
         txKbps = Math.max(0, (tx - last.tx) / 1024 / sec);
       }
       prev.set(name, { rx, tx, ts: now });
-      interfaces.push({ name, rxKbps, txKbps, rxBytesTotal: rx, txBytesTotal: tx });
-    }
+      acc.push({ name, rxKbps, txKbps, rxBytesTotal: rx, txBytesTotal: tx });
+      return acc;
+    }, []);
     return interfaces;
   } catch {
     return [];

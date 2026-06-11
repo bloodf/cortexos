@@ -216,11 +216,11 @@ export class MockIncusExecutor {
 
   /** Seed initial instances. Idempotent. */
   seed(instances: readonly MockInstanceRecord[]): void {
-    for (const inst of instances) {
+    instances.forEach((inst) => {
       if (!this.snapshots.has(inst.name)) {
         this.snapshots.set(inst.name, { ...inst });
       }
-    }
+    });
   }
 
   /** Read-only snapshot. */
@@ -351,30 +351,26 @@ function mapIncusImageType(type: string): IncusImage["type"] {
 
 /** Extract bridge from expanded devices. */
 function extractBridge(devices: Record<string, unknown>): string {
-  for (const [, dev] of Object.entries(devices)) {
-    if (dev && typeof dev === "object" && (dev as Record<string, unknown>).type === "nic") {
-      const { network } = dev as Record<string, unknown>;
-      if (typeof network === "string") return network;
-      const { parent } = dev as Record<string, unknown>;
-      if (typeof parent === "string") return parent;
-    }
+  const nic = Object.values(devices).find(
+    (dev) => dev && typeof dev === "object" && (dev as Record<string, unknown>).type === "nic",
+  ) as Record<string, unknown> | undefined;
+  if (nic) {
+    if (typeof nic.network === "string") return nic.network;
+    if (typeof nic.parent === "string") return nic.parent;
   }
   return "incusbr0";
 }
 
 /** Extract pool from expanded devices. */
 function extractPool(devices: Record<string, unknown>): string {
-  for (const [, dev] of Object.entries(devices)) {
-    if (
+  const disk = Object.values(devices).find(
+    (dev) =>
       dev &&
       typeof dev === "object" &&
       (dev as Record<string, unknown>).type === "disk" &&
-      (dev as Record<string, unknown>).path === "/"
-    ) {
-      const { pool } = dev as Record<string, unknown>;
-      if (typeof pool === "string") return pool;
-    }
-  }
+      (dev as Record<string, unknown>).path === "/",
+  ) as Record<string, unknown> | undefined;
+  if (disk && typeof disk.pool === "string") return disk.pool;
   return "default";
 }
 
@@ -397,8 +393,8 @@ function mapIncusJsonToMockRecord(item: Record<string, unknown>): MockInstanceRe
   const networks: NonNullable<MockInstanceRecord["live"]>["state"]["networks"] = {};
   const netState = state.network as Record<string, unknown> | undefined;
   if (netState && typeof netState === "object") {
-    for (const [ifName, ifData] of Object.entries(netState)) {
-      if (!ifData || typeof ifData !== "object") continue;
+    Object.entries(netState).forEach(([ifName, ifData]) => {
+      if (!ifData || typeof ifData !== "object") return;
       const iface = ifData as Record<string, unknown>;
       const addrs: {
         family: "inet" | "inet6";
@@ -406,12 +402,12 @@ function mapIncusJsonToMockRecord(item: Record<string, unknown>): MockInstanceRe
         scope?: "global" | "link" | "local";
       }[] = [];
       const addrList = Array.isArray(iface.addresses) ? iface.addresses : [];
-      for (const a of addrList) {
-        if (!a || typeof a !== "object") continue;
+      addrList.forEach((a) => {
+        if (!a || typeof a !== "object") return;
         const addr = a as Record<string, unknown>;
         const family = String(addr.family ?? "");
         const address = String(addr.address ?? "");
-        if (!address) continue;
+        if (!address) return;
         if (family === "inet" || family === "inet6") {
           addrs.push({
             family,
@@ -419,13 +415,13 @@ function mapIncusJsonToMockRecord(item: Record<string, unknown>): MockInstanceRe
             scope: String(addr.scope ?? "global") as "global" | "link" | "local",
           });
         }
-      }
+      });
       networks[ifName] = {
         addresses: addrs,
         state: typeof iface.state === "string" ? iface.state : undefined,
         type: typeof iface.type === "string" ? iface.type : undefined,
       };
-    }
+    });
   }
 
   return {
@@ -684,7 +680,7 @@ const SEED_INSTANCES: readonly MockInstanceRecord[] = [
 /** Pre-populate the log buffer so the detail page is non-empty. */
 function seedLogs(mock: MockIncusExecutor): void {
   const now = "2026-05-12T10:00:00.000Z";
-  for (const inst of SEED_INSTANCES) {
+  SEED_INSTANCES.forEach((inst) => {
     mock.pushLog(inst.name, {
       ts: now,
       priority: "info",
@@ -719,7 +715,7 @@ function seedLogs(mock: MockIncusExecutor): void {
         message: `Image unpacked; unpacking rootfs`,
       });
     }
-  }
+  });
 }
 
 /** Build a fresh default mock + wrapper. */
@@ -1091,6 +1087,15 @@ export const DELETE_CONFIRMATION_PHRASE = "delete";
  *      confirmation phrase (PB-5 UX guard).
  *   6. Run the executor.
  */
+function approvalRejectionCode(
+  reason: string,
+): "approval_expired" | "approval_already_used" | "approval_session_mismatch" | "approval_invalid" {
+  if (reason === "expired") return "approval_expired";
+  if (reason === "already_used") return "approval_already_used";
+  if (reason === "session_mismatch") return "approval_session_mismatch";
+  return "approval_invalid";
+}
+
 export async function dispatchAction(
   input: DispatchInput,
   ctx: DispatchContext,
@@ -1270,14 +1275,7 @@ export async function dispatchAction(
         status: "rejected",
         action: input.action,
         name: input.name,
-        code:
-          v.reason === "expired"
-            ? "approval_expired"
-            : v.reason === "already_used"
-              ? "approval_already_used"
-              : v.reason === "session_mismatch"
-                ? "approval_session_mismatch"
-                : "approval_invalid",
+        code: approvalRejectionCode(v.reason),
         reason,
       };
     }
@@ -1579,9 +1577,9 @@ export async function dispatchExecNamed(
       return;
     }
     if (typeof value === "object") {
-      for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      Object.entries(value as Record<string, unknown>).forEach(([k, v]) => {
         walk(v, path ? `${path}.${k}` : k);
-      }
+      });
     }
   }
   walk(input.args, "");

@@ -81,14 +81,13 @@ async function loadContainersJson(): Promise<Container[]> {
     maxBuffer: 4 * 1024 * 1024,
   });
 
-  const out: Container[] = [];
-  for (const line of stdout.trim().split("\n")) {
-    if (!line.trim()) continue;
+  const out = stdout.trim().split("\n").reduce<Container[]>((acc, line) => {
+    if (!line.trim()) return acc;
     let raw: DockerPsJson;
     try {
       raw = JSON.parse(line);
     } catch {
-      continue;
+      return acc;
     }
     const id = raw.ID || raw.Id || "";
     const names = (raw.Names || "").split(",").filter(Boolean);
@@ -107,7 +106,7 @@ async function loadContainersJson(): Promise<Container[]> {
       })
       .filter(Boolean) as Container["mounts"];
 
-    out.push({
+    acc.push({
       id: asContainerId(id),
       name,
       image: raw.Image || "",
@@ -123,7 +122,8 @@ async function loadContainersJson(): Promise<Container[]> {
       mounts,
       logs: [],
     });
-  }
+    return acc;
+  }, []);
   return out;
 }
 
@@ -295,26 +295,26 @@ async function loadImagesJson(): Promise<DockerImage[]> {
     maxBuffer: 4 * 1024 * 1024,
   });
 
-  const out: DockerImage[] = [];
   // Deduplicate by repo:tag — docker image ls can emit the same repo:tag
   // pair more than once when an image has multiple tags pointing to the
   // same digest. We keep the first occurrence (newest CreatedAt order
   // is already the default from docker image ls).
+  const out: DockerImage[] = [];
   const seen = new Set<string>();
-  for (const line of stdout.trim().split("\n")) {
-    if (!line.trim()) continue;
+  stdout.trim().split("\n").forEach((line) => {
+    if (!line.trim()) return;
     let raw: DockerImageJson;
     try {
       raw = JSON.parse(line);
     } catch {
-      continue;
+      return;
     }
     const repo = raw.Repository || "";
     const tag = raw.Tag || "";
     // Drop dangling images — these have no meaningful reference.
-    if (!repo || repo === "<none>" || !tag || tag === "<none>") continue;
+    if (!repo || repo === "<none>" || !tag || tag === "<none>") return;
     const key = `${repo}:${tag}`;
-    if (seen.has(key)) continue;
+    if (seen.has(key)) return;
     seen.add(key);
     out.push({
       id: raw.ID || "",
@@ -323,7 +323,7 @@ async function loadImagesJson(): Promise<DockerImage[]> {
       size: parseImageSize(raw.Size || "0B"),
       created: parseDockerDate(raw.CreatedAt || ""),
     });
-  }
+  });
   return out;
 }
 
@@ -367,12 +367,11 @@ interface DockerVolumeJson {
 }
 
 function parseVolumeLabels(raw: string): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const part of (raw || "").split(",")) {
+  return (raw || "").split(",").reduce<Record<string, string>>((acc, part) => {
     const [k, v] = part.split("=");
-    if (k) out[k.trim()] = (v || "").trim();
-  }
-  return out;
+    if (k) acc[k.trim()] = (v || "").trim();
+    return acc;
+  }, {});
 }
 
 async function loadVolumesJson(): Promise<DockerVolume[]> {
@@ -382,13 +381,13 @@ async function loadVolumesJson(): Promise<DockerVolume[]> {
   });
 
   const out: DockerVolume[] = [];
-  for (const line of stdout.trim().split("\n")) {
-    if (!line.trim()) continue;
+  stdout.trim().split("\n").forEach((line) => {
+    if (!line.trim()) return;
     let raw: DockerVolumeJson;
     try {
       raw = JSON.parse(line);
     } catch {
-      continue;
+      return;
     }
     const sizeRaw = raw.Size || "";
     const sizeNum = sizeRaw ? parseImageSize(sizeRaw) : null;
@@ -400,7 +399,7 @@ async function loadVolumesJson(): Promise<DockerVolume[]> {
       createdAt: raw.CreatedAt ? parseDockerDate(raw.CreatedAt) : null,
       labels: parseVolumeLabels(raw.Labels || ""),
     });
-  }
+  });
   return out;
 }
 

@@ -106,11 +106,11 @@ describe("listInstances", () => {
 
   it("each instance has required fields", async () => {
     const items = await listInstances();
-    for (const inst of items) {
+    items.forEach((inst) => {
       expect(typeof inst.name).toBe("string");
       expect(typeof inst.slug).toBe("string");
       expect(typeof inst.status).toBe("string");
-    }
+    });
   });
 });
 
@@ -398,9 +398,9 @@ describe("dispatchExecNamed — op allowlist", () => {
       "term.tail_log",
       "term.exec_named",
     ];
-    for (const op of required) {
+    required.forEach((op) => {
       expect(EXEC_NAMED_OPS.has(op as never)).toBe(true);
-    }
+    });
   });
 });
 
