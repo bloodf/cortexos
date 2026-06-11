@@ -1183,3 +1183,18 @@ cells fixed (null-aware, "—"); routeTree regenerated; tsc 0, suite
 619/619, lint rc=0/0 bytes, build green. The admin pages remain
 MOCK-WIRED (as before MP-027) — MP-028 will rewire them live. Toaster
 interval calming next.
+
+## 2026-06-11 — FABLE REVIEW CAMPAIGN CLOSE (MP-025/026/027 + fixes)
+Run 23: 18/18 PASS, exit 0 (runs 21-22 root cause = authed-read default
+rate limit 10/min — stricter than anonymous; fixed to 60/min, explicit
+per-gate limits preserved). Shipped: ebf3102+a22c809 (nine client stubs
+→ live backends; auditList server pagination; args_hash from
+payloadHash), 2471437+bb392b8+c1386f1 (de-mock: drift engine deleted,
+hero/palette live, toaster live with isFetched priming — toast-storm
+bug caught by strengthened test — 30s polling; lint-zero conformance),
+a7d4062+c8c7f44+ed96c1e (null-truthful adapters; admin over-deletion
+RESTORED with corrected evidence; toaster cadence). Suite 619/619; lint
+rc=0/0 bytes; format clean; live 200.
+KNOWN REMAINING: the restored /admin/* pages are mock-wired (pre-existing
+state; my review's CRITICAL-2 survivors) — MP-028 candidate: wire live
+or retire the parallel admin set (operator decision pending).
