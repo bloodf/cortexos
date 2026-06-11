@@ -911,3 +911,7 @@ terminal check 0, dashboard 577/577 (incl. 19 golden hash tests).
 Deploy: build green, boot 200, BOTH services restarted+active, live 200,
 screens 18/18 (run 15). The 2026-06-11 "102 adjudicated" baseline is
 superseded: the baseline is now ZERO.
+
+## 2026-06-11 — operator directive: security CVE fixes (recorded)
+AskUserQuestion: "Fix all now" — lockfile sync + all transitive bumps +
+drizzle 0.36→0.45, each gated; the unpatched low documented. MP-021.
