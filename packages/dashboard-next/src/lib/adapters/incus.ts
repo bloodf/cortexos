@@ -11,6 +11,42 @@ import type { IncusLiveInstance as ContractLiveInstance } from "@cortexos/contra
 import type { IncusInstance as MockIncusInstance } from "@/mocks/types";
 
 // ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
+type MockStatus = MockIncusInstance["status"];
+
+function mapIncusStatus(raw: string): MockStatus {
+  const s = raw.toLowerCase();
+  if (s === "running" || s === "active") return "active";
+  if (s === "stopped" || s === "inactive") return "failed";
+  if (s === "frozen") return "validated";
+  if (s === "draft") return "draft";
+  if (s === "provisioning") return "provisioning";
+  if (s === "validated") return "validated";
+  if (s === "failed" || s === "error") return "failed";
+  return "failed";
+}
+
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function extractIpv4(inst: ContractLiveInstance): string | null {
+  for (const iface of Object.values(inst.state?.networks ?? {})) {
+    for (const addr of iface.addresses ?? []) {
+      if (addr.family === "inet" && addr.scope === "global") {
+        return addr.address;
+      }
+    }
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // Live instance → mock IncusInstance
 // ---------------------------------------------------------------------------
 
@@ -47,40 +83,4 @@ export function toIncusInstanceRow(inst: ContractLiveInstance): MockIncusInstanc
     // with the mock shape which has no ip field).
     ...(ipv4 ? { _ip: ipv4 } : {}),
   };
-}
-
-// ---------------------------------------------------------------------------
-// Internal helpers
-// ---------------------------------------------------------------------------
-
-type MockStatus = MockIncusInstance["status"];
-
-function mapIncusStatus(raw: string): MockStatus {
-  const s = raw.toLowerCase();
-  if (s === "running" || s === "active") return "active";
-  if (s === "stopped" || s === "inactive") return "failed";
-  if (s === "frozen") return "validated";
-  if (s === "draft") return "draft";
-  if (s === "provisioning") return "provisioning";
-  if (s === "validated") return "validated";
-  if (s === "failed" || s === "error") return "failed";
-  return "failed";
-}
-
-function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
-function extractIpv4(inst: ContractLiveInstance): string | null {
-  for (const iface of Object.values(inst.state?.networks ?? {})) {
-    for (const addr of iface.addresses ?? []) {
-      if (addr.family === "inet" && addr.scope === "global") {
-        return addr.address;
-      }
-    }
-  }
-  return null;
 }

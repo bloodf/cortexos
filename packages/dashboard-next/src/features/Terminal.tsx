@@ -449,6 +449,191 @@ interface TabMeta {
   name: string;
 }
 
+function ConnStateBadge({ state }: { state: LiveState }) {
+  const map: Record<LiveState, { label: string; cls: string; dot: string }> = {
+    connecting: {
+      label: "connecting",
+      cls: "text-amber-600 dark:text-amber-400",
+      dot: "bg-amber-500 animate-pulse",
+    },
+    live: {
+      label: "live shell",
+      cls: "text-emerald-600 dark:text-emerald-400",
+      dot: "bg-emerald-500",
+    },
+    mock: { label: "local mock", cls: "text-muted-foreground", dot: "bg-muted-foreground/60" },
+    closed: { label: "disconnected", cls: "text-destructive", dot: "bg-destructive" },
+  };
+  const m = map[state];
+  return (
+    <span className={cn("inline-flex items-center gap-1.5 text-[11px] font-mono", m.cls)}>
+      <span className={cn("inline-block size-1.5 rounded-full", m.dot)} />
+      {m.label}
+    </span>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// NamedOpsPanel — real server-side named-op dispatch (WP-19)
+// ---------------------------------------------------------------------------
+
+interface TermOp {
+  op: string;
+  description: string;
+  requiresApproval: boolean;
+  placeholders: readonly string[];
+}
+
+interface OpResult {
+  op: string;
+  argv: readonly string[];
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+  durationMs: number;
+}
+
+// Cast helpers — same gate-middleware boundary pattern as client.ts.
+const listTerminalOpsFn = listTerminalOps as unknown as (opts: {
+  data: Record<string, never>;
+}) => Promise<{ ops: TermOp[] }>;
+const dispatchTerminalOpFn = dispatchTerminalOp as unknown as (opts: {
+  data: { op: string; args: Record<string, unknown> };
+}) => Promise<OpResult>;
+
+function NamedOpRow({ op }: { op: TermOp }) {
+  const [args, setArgs] = useState<Record<string, string>>(() =>
+    Object.fromEntries(op.placeholders.map((p) => [p, ""])),
+  );
+  const [result, setResult] = useState<OpResult | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: () => dispatchTerminalOpFn({ data: { op: op.op, args } }),
+    onSuccess: (data) => setResult(data),
+  });
+
+  const canRun = op.placeholders.every((p) => (args[p] ?? "").trim() !== "");
+
+  return (
+    <div className="rounded-md border bg-muted/10 p-3 space-y-2">
+      <div className="flex items-start gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-mono text-xs font-medium">{op.op}</span>
+            {op.requiresApproval && (
+              <Badge variant="outline" className="text-[10px] h-4 px-1">
+                approval
+              </Badge>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground mt-0.5">{op.description}</p>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 px-2 shrink-0"
+          disabled={!canRun || mutation.isPending}
+          onClick={() => mutation.mutate()}
+        >
+          {mutation.isPending ? (
+            <Loader2 className="size-3.5 animate-spin" />
+          ) : (
+            <Play className="size-3.5" />
+          )}
+        </Button>
+      </div>
+
+      {op.placeholders.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {op.placeholders.map((ph) => (
+            <div key={ph} className="flex items-center gap-1.5">
+              <span className="text-xs text-muted-foreground font-mono">{ph}:</span>
+              <Input
+                value={args[ph] ?? ""}
+                onChange={(e) => setArgs((prev) => ({ ...prev, [ph]: e.target.value }))}
+                className="h-6 text-xs font-mono w-36 px-2"
+                placeholder={`<${ph}>`}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {mutation.isError && (
+        <p className="text-xs text-destructive font-mono">{String(mutation.error)}</p>
+      )}
+
+      {result && (
+        <div className="rounded border bg-background p-2 space-y-1">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="font-mono">{result.argv.join(" ")}</span>
+            <span className="ml-auto">
+              exit {result.exitCode} · {result.durationMs}ms
+            </span>
+          </div>
+          {result.stdout && (
+            <pre className="text-xs font-mono whitespace-pre-wrap break-all max-h-40 overflow-y-auto">
+              {result.stdout}
+            </pre>
+          )}
+          {result.stderr && (
+            <pre className="text-xs font-mono whitespace-pre-wrap break-all max-h-20 overflow-y-auto text-destructive">
+              {result.stderr}
+            </pre>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function NamedOpsPanel() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["terminal", "ops"],
+    queryFn: () => listTerminalOpsFn({ data: {} }),
+  });
+
+  const ops = data?.ops ?? [];
+  const [expanded, setExpanded] = useState(true);
+
+  return (
+    <Card className="elev-1">
+      <CardHeader
+        className="pb-2 cursor-pointer select-none"
+        onClick={() => setExpanded((v) => !v)}
+      >
+        <div className="flex items-center gap-2">
+          {expanded ? (
+            <ChevronDown className="size-4 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="size-4 text-muted-foreground" />
+          )}
+          <CardTitle className="text-sm">Named Operations</CardTitle>
+          <span className="text-xs text-muted-foreground ml-1">
+            real server dispatch · allowlisted ops only
+          </span>
+          {isLoading && <Loader2 className="size-3.5 animate-spin text-muted-foreground ml-auto" />}
+          {!isLoading && (
+            <span className="text-xs text-muted-foreground ml-auto">{ops.length} ops</span>
+          )}
+        </div>
+      </CardHeader>
+      {expanded && (
+        <CardContent className="pt-0 space-y-2">
+          {ops.length === 0 && !isLoading && (
+            <p className="text-xs text-muted-foreground py-2">
+              No allowlisted terminal ops registered.
+            </p>
+          )}
+          {ops.map((op) => (
+            <NamedOpRow key={op.op} op={op} />
+          ))}
+        </CardContent>
+      )}
+    </Card>
+  );
+}
+
 export function TerminalPage() {
   const t = useT();
   const { user } = useAuth();
@@ -638,188 +823,3 @@ export function TerminalPage() {
 // ---------------------------------------------------------------------------
 // ConnStateBadge — live PTY connection indicator (WP-19)
 // ---------------------------------------------------------------------------
-
-function ConnStateBadge({ state }: { state: LiveState }) {
-  const map: Record<LiveState, { label: string; cls: string; dot: string }> = {
-    connecting: {
-      label: "connecting",
-      cls: "text-amber-600 dark:text-amber-400",
-      dot: "bg-amber-500 animate-pulse",
-    },
-    live: {
-      label: "live shell",
-      cls: "text-emerald-600 dark:text-emerald-400",
-      dot: "bg-emerald-500",
-    },
-    mock: { label: "local mock", cls: "text-muted-foreground", dot: "bg-muted-foreground/60" },
-    closed: { label: "disconnected", cls: "text-destructive", dot: "bg-destructive" },
-  };
-  const m = map[state];
-  return (
-    <span className={cn("inline-flex items-center gap-1.5 text-[11px] font-mono", m.cls)}>
-      <span className={cn("inline-block size-1.5 rounded-full", m.dot)} />
-      {m.label}
-    </span>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// NamedOpsPanel — real server-side named-op dispatch (WP-19)
-// ---------------------------------------------------------------------------
-
-interface TermOp {
-  op: string;
-  description: string;
-  requiresApproval: boolean;
-  placeholders: readonly string[];
-}
-
-interface OpResult {
-  op: string;
-  argv: readonly string[];
-  stdout: string;
-  stderr: string;
-  exitCode: number;
-  durationMs: number;
-}
-
-// Cast helpers — same gate-middleware boundary pattern as client.ts.
-const listTerminalOpsFn = listTerminalOps as unknown as (opts: {
-  data: Record<string, never>;
-}) => Promise<{ ops: TermOp[] }>;
-const dispatchTerminalOpFn = dispatchTerminalOp as unknown as (opts: {
-  data: { op: string; args: Record<string, unknown> };
-}) => Promise<OpResult>;
-
-function NamedOpsPanel() {
-  const { data, isLoading } = useQuery({
-    queryKey: ["terminal", "ops"],
-    queryFn: () => listTerminalOpsFn({ data: {} }),
-  });
-
-  const ops = data?.ops ?? [];
-  const [expanded, setExpanded] = useState(true);
-
-  return (
-    <Card className="elev-1">
-      <CardHeader
-        className="pb-2 cursor-pointer select-none"
-        onClick={() => setExpanded((v) => !v)}
-      >
-        <div className="flex items-center gap-2">
-          {expanded ? (
-            <ChevronDown className="size-4 text-muted-foreground" />
-          ) : (
-            <ChevronRight className="size-4 text-muted-foreground" />
-          )}
-          <CardTitle className="text-sm">Named Operations</CardTitle>
-          <span className="text-xs text-muted-foreground ml-1">
-            real server dispatch · allowlisted ops only
-          </span>
-          {isLoading && <Loader2 className="size-3.5 animate-spin text-muted-foreground ml-auto" />}
-          {!isLoading && (
-            <span className="text-xs text-muted-foreground ml-auto">{ops.length} ops</span>
-          )}
-        </div>
-      </CardHeader>
-      {expanded && (
-        <CardContent className="pt-0 space-y-2">
-          {ops.length === 0 && !isLoading && (
-            <p className="text-xs text-muted-foreground py-2">
-              No allowlisted terminal ops registered.
-            </p>
-          )}
-          {ops.map((op) => (
-            <NamedOpRow key={op.op} op={op} />
-          ))}
-        </CardContent>
-      )}
-    </Card>
-  );
-}
-
-function NamedOpRow({ op }: { op: TermOp }) {
-  const [args, setArgs] = useState<Record<string, string>>(() =>
-    Object.fromEntries(op.placeholders.map((p) => [p, ""])),
-  );
-  const [result, setResult] = useState<OpResult | null>(null);
-
-  const mutation = useMutation({
-    mutationFn: () => dispatchTerminalOpFn({ data: { op: op.op, args } }),
-    onSuccess: (data) => setResult(data),
-  });
-
-  const canRun = op.placeholders.every((p) => (args[p] ?? "").trim() !== "");
-
-  return (
-    <div className="rounded-md border bg-muted/10 p-3 space-y-2">
-      <div className="flex items-start gap-2">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-mono text-xs font-medium">{op.op}</span>
-            {op.requiresApproval && (
-              <Badge variant="outline" className="text-[10px] h-4 px-1">
-                approval
-              </Badge>
-            )}
-          </div>
-          <p className="text-xs text-muted-foreground mt-0.5">{op.description}</p>
-        </div>
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-7 px-2 shrink-0"
-          disabled={!canRun || mutation.isPending}
-          onClick={() => mutation.mutate()}
-        >
-          {mutation.isPending ? (
-            <Loader2 className="size-3.5 animate-spin" />
-          ) : (
-            <Play className="size-3.5" />
-          )}
-        </Button>
-      </div>
-
-      {op.placeholders.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {op.placeholders.map((ph) => (
-            <div key={ph} className="flex items-center gap-1.5">
-              <span className="text-xs text-muted-foreground font-mono">{ph}:</span>
-              <Input
-                value={args[ph] ?? ""}
-                onChange={(e) => setArgs((prev) => ({ ...prev, [ph]: e.target.value }))}
-                className="h-6 text-xs font-mono w-36 px-2"
-                placeholder={`<${ph}>`}
-              />
-            </div>
-          ))}
-        </div>
-      )}
-
-      {mutation.isError && (
-        <p className="text-xs text-destructive font-mono">{String(mutation.error)}</p>
-      )}
-
-      {result && (
-        <div className="rounded border bg-background p-2 space-y-1">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="font-mono">{result.argv.join(" ")}</span>
-            <span className="ml-auto">
-              exit {result.exitCode} · {result.durationMs}ms
-            </span>
-          </div>
-          {result.stdout && (
-            <pre className="text-xs font-mono whitespace-pre-wrap break-all max-h-40 overflow-y-auto">
-              {result.stdout}
-            </pre>
-          )}
-          {result.stderr && (
-            <pre className="text-xs font-mono whitespace-pre-wrap break-all max-h-20 overflow-y-auto text-destructive">
-              {result.stderr}
-            </pre>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}

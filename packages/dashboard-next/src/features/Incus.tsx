@@ -82,12 +82,167 @@ const statusColors: Record<string, string> = {
   error: "border-[var(--destructive)] text-[var(--destructive)]",
 };
 
+function ProvisionWizard({
+  open,
+  onOpenChange,
+  onCreated,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  onCreated: () => void;
+}) {
+  const [step, setStep] = useState(0);
+  const [name, setName] = useState("hermes-canary");
+  const [image, setImage] = useState("ubuntu/24.04");
+  const [cpu, setCpu] = useState(2);
+  const [mem, setMem] = useState(4096);
+  const [log, setLog] = useState<string[]>([]);
+  const [done, setDone] = useState(false);
+  const [launching, setLaunching] = useState(false);
+
+  const appendLog = (msg: string) => setLog((l) => [...l, msg]);
+
+  const start = async () => {
+    setStep(4);
+    setLog([]);
+    setDone(false);
+    setLaunching(true);
+
+    appendLog(`Preflight: validating name "${name}"…`);
+    appendLog(`Preflight: checking image cache for ${image}…`);
+    appendLog(`incus launch ${image} ${name}`);
+
+    try {
+      const mint = await callMintApproval({
+        data: { action: "incus.launch", payload: { action: "launch", name } },
+      });
+      appendLog("Approval token minted.");
+      await callIncusAction({
+        data: { action: "launch", name, approvalToken: mint.token },
+      });
+      appendLog(`Applying limits.cpu=${cpu}`);
+      appendLog(`Applying limits.memory=${mem}MiB`);
+      appendLog("Starting instance…");
+      appendLog("Instance started");
+      setDone(true);
+      onCreated();
+    } catch (err) {
+      appendLog(`Error: ${err instanceof Error ? err.message : "Unknown error"}`);
+    } finally {
+      setLaunching(false);
+    }
+  };
+
+  const reset = () => {
+    setStep(0);
+    setLog([]);
+    setDone(false);
+    setLaunching(false);
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        onOpenChange(o);
+        if (!o) reset();
+      }}
+    >
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Provision Incus instance</DialogTitle>
+          <DialogDescription>Step {Math.min(step + 1, 5)} of 5</DialogDescription>
+        </DialogHeader>
+
+        {step === 0 && (
+          <div className="space-y-3">
+            <Label>Name</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+        )}
+        {step === 1 && (
+          <div className="space-y-3">
+            <Label>Image</Label>
+            <Select value={image} onValueChange={setImage}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ubuntu/24.04">ubuntu/24.04</SelectItem>
+                <SelectItem value="debian/12">debian/12</SelectItem>
+                <SelectItem value="alpine/3.20">alpine/3.20</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        {step === 2 && (
+          <div className="space-y-3">
+            <Label>CPU cores</Label>
+            <Input type="number" value={cpu} onChange={(e) => setCpu(+e.target.value)} />
+          </div>
+        )}
+        {step === 3 && (
+          <div className="space-y-3">
+            <Label>Memory (MiB)</Label>
+            <Input type="number" value={mem} onChange={(e) => setMem(+e.target.value)} />
+          </div>
+        )}
+        {step === 4 && (
+          <div className="space-y-2">
+            <div className="rounded-md border bg-[oklch(0.14_0.01_260)] text-[oklch(0.92_0.01_260)] p-3 font-mono text-xs h-48 overflow-auto">
+              {log.map((l, i) => (
+                <div key={i} className="flex gap-2">
+                  {launching && i === log.length - 1 ? (
+                    <Loader2 className="size-3 animate-spin text-primary mt-0.5" />
+                  ) : (
+                    <span className="text-muted-foreground">›</span>
+                  )}
+                  {l}
+                </div>
+              ))}
+              {done && (
+                <div className="flex items-center gap-2 text-[var(--success)] mt-2">
+                  <CheckCircle2 className="size-4" /> Provisioning complete
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <DialogFooter>
+          {step > 0 && step < 4 && (
+            <Button variant="outline" onClick={() => setStep(step - 1)}>
+              Back
+            </Button>
+          )}
+          {step < 3 && <Button onClick={() => setStep(step + 1)}>Next</Button>}
+          {step === 3 && (
+            <Button onClick={start} disabled={!name.trim()}>
+              Provision
+            </Button>
+          )}
+          {step === 4 && done && (
+            <Button
+              onClick={() => {
+                onOpenChange(false);
+                reset();
+              }}
+            >
+              Done
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
 export function IncusPage() {
   const t = useT();
   const qc = useQueryClient();
   const { user } = useAuth();
   const {
-    data: instances = [],
     isLoading,
     isError,
   } = useQuery({
@@ -423,158 +578,3 @@ export function IncusPage() {
 // ---------------------------------------------------------------------------
 // Provision wizard — wired to incusAction(launch) via mintApproval
 // ---------------------------------------------------------------------------
-
-function ProvisionWizard({
-  open,
-  onOpenChange,
-  onCreated,
-}: {
-  open: boolean;
-  onOpenChange: (o: boolean) => void;
-  onCreated: () => void;
-}) {
-  const [step, setStep] = useState(0);
-  const [name, setName] = useState("hermes-canary");
-  const [image, setImage] = useState("ubuntu/24.04");
-  const [cpu, setCpu] = useState(2);
-  const [mem, setMem] = useState(4096);
-  const [log, setLog] = useState<string[]>([]);
-  const [done, setDone] = useState(false);
-  const [launching, setLaunching] = useState(false);
-
-  const appendLog = (msg: string) => setLog((l) => [...l, msg]);
-
-  const start = async () => {
-    setStep(4);
-    setLog([]);
-    setDone(false);
-    setLaunching(true);
-
-    appendLog(`Preflight: validating name "${name}"…`);
-    appendLog(`Preflight: checking image cache for ${image}…`);
-    appendLog(`incus launch ${image} ${name}`);
-
-    try {
-      const mint = await callMintApproval({
-        data: { action: "incus.launch", payload: { action: "launch", name } },
-      });
-      appendLog("Approval token minted.");
-      await callIncusAction({
-        data: { action: "launch", name, approvalToken: mint.token },
-      });
-      appendLog(`Applying limits.cpu=${cpu}`);
-      appendLog(`Applying limits.memory=${mem}MiB`);
-      appendLog("Starting instance…");
-      appendLog("Instance started");
-      setDone(true);
-      onCreated();
-    } catch (err) {
-      appendLog(`Error: ${err instanceof Error ? err.message : "Unknown error"}`);
-    } finally {
-      setLaunching(false);
-    }
-  };
-
-  const reset = () => {
-    setStep(0);
-    setLog([]);
-    setDone(false);
-    setLaunching(false);
-  };
-
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={(o) => {
-        onOpenChange(o);
-        if (!o) reset();
-      }}
-    >
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Provision Incus instance</DialogTitle>
-          <DialogDescription>Step {Math.min(step + 1, 5)} of 5</DialogDescription>
-        </DialogHeader>
-
-        {step === 0 && (
-          <div className="space-y-3">
-            <Label>Name</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-        )}
-        {step === 1 && (
-          <div className="space-y-3">
-            <Label>Image</Label>
-            <Select value={image} onValueChange={setImage}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ubuntu/24.04">ubuntu/24.04</SelectItem>
-                <SelectItem value="debian/12">debian/12</SelectItem>
-                <SelectItem value="alpine/3.20">alpine/3.20</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-        {step === 2 && (
-          <div className="space-y-3">
-            <Label>CPU cores</Label>
-            <Input type="number" value={cpu} onChange={(e) => setCpu(+e.target.value)} />
-          </div>
-        )}
-        {step === 3 && (
-          <div className="space-y-3">
-            <Label>Memory (MiB)</Label>
-            <Input type="number" value={mem} onChange={(e) => setMem(+e.target.value)} />
-          </div>
-        )}
-        {step === 4 && (
-          <div className="space-y-2">
-            <div className="rounded-md border bg-[oklch(0.14_0.01_260)] text-[oklch(0.92_0.01_260)] p-3 font-mono text-xs h-48 overflow-auto">
-              {log.map((l, i) => (
-                <div key={i} className="flex gap-2">
-                  {launching && i === log.length - 1 ? (
-                    <Loader2 className="size-3 animate-spin text-primary mt-0.5" />
-                  ) : (
-                    <span className="text-muted-foreground">›</span>
-                  )}
-                  {l}
-                </div>
-              ))}
-              {done && (
-                <div className="flex items-center gap-2 text-[var(--success)] mt-2">
-                  <CheckCircle2 className="size-4" /> Provisioning complete
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        <DialogFooter>
-          {step > 0 && step < 4 && (
-            <Button variant="outline" onClick={() => setStep(step - 1)}>
-              Back
-            </Button>
-          )}
-          {step < 3 && <Button onClick={() => setStep(step + 1)}>Next</Button>}
-          {step === 3 && (
-            <Button onClick={start} disabled={!name.trim()}>
-              Provision
-            </Button>
-          )}
-          {step === 4 && done && (
-            <Button
-              onClick={() => {
-                onOpenChange(false);
-                reset();
-              }}
-            >
-              Done
-            </Button>
-          )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}

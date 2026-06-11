@@ -14,7 +14,7 @@ import {
   dispatchAction,
   applyAction,
 } from "@/server/system/systemd";
-import { mintApproval, resetApprovalStore, actionHashFor } from "@/server/approval";
+import { mintApproval, resetApprovalStore } from "@/server/approval";
 import { asSessionId, asUserId } from "@/server/entities";
 import type { User } from "@/server/entities";
 

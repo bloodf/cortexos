@@ -10,6 +10,14 @@ import type {
 import type { AlertRule as MockAlertRule, AlertHistory as MockAlertHistory } from "@/mocks/types";
 
 // ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
+function hashId(uuid: string): number {
+  return parseInt(uuid.replace(/-/g, "").slice(0, 8), 16) >>> 0;
+}
+
+// ---------------------------------------------------------------------------
 // AlertRule
 // ---------------------------------------------------------------------------
 
@@ -46,12 +54,4 @@ export function toAlertHistoryRow(e: ContractAlertEvent): MockAlertHistory {
     message: e.message,
     timestamp: e.firedAt,
   };
-}
-
-// ---------------------------------------------------------------------------
-// Internal helpers
-// ---------------------------------------------------------------------------
-
-function hashId(uuid: string): number {
-  return parseInt(uuid.replace(/-/g, "").slice(0, 8), 16) >>> 0;
 }

@@ -60,17 +60,6 @@ export function DetailDrawer({ open, onOpenChange, title, description, tabs, act
 }
 
 /** Helper: generate mock log lines for a target. */
-export function MockLogs({ name, lines = 60 }: { name: string; lines?: number }) {
-  const out: string[] = [];
-  const now = Date.now();
-  for (let i = lines; i > 0; i--) {
-    const ts = new Date(now - i * 1500).toISOString().slice(11, 23);
-    const lvl = Math.random() < 0.05 ? "ERROR" : Math.random() < 0.15 ? "WARN" : "INFO";
-    out.push(`${ts} ${lvl.padEnd(5)} ${name}: ${randMsg()}`);
-  }
-  return <LogViewer lines={out} />;
-}
-
 function randMsg() {
   const msgs = [
     "request handled in 12ms",
@@ -87,17 +76,15 @@ function randMsg() {
   return msgs[Math.floor(Math.random() * msgs.length)];
 }
 
-export function MockMetrics() {
-  const cpu = Array.from({ length: 30 }, () => 20 + Math.random() * 60);
-  const mem = Array.from({ length: 30 }, () => 30 + Math.random() * 40);
-  const lat = Array.from({ length: 30 }, () => 20 + Math.random() * 120);
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-      <MetricSparkCard label="CPU" data={cpu} unit="%" color="var(--chart-1)" />
-      <MetricSparkCard label="Memory" data={mem} unit="%" color="var(--chart-2)" />
-      <MetricSparkCard label="Latency p95" data={lat} unit="ms" color="var(--chart-3)" />
-    </div>
-  );
+export function MockLogs({ name, lines = 60 }: { name: string; lines?: number }) {
+  const out: string[] = [];
+  const now = Date.now();
+  for (let i = lines; i > 0; i--) {
+    const ts = new Date(now - i * 1500).toISOString().slice(11, 23);
+    const lvl = Math.random() < 0.05 ? "ERROR" : Math.random() < 0.15 ? "WARN" : "INFO";
+    out.push(`${ts} ${lvl.padEnd(5)} ${name}: ${randMsg()}`);
+  }
+  return <LogViewer lines={out} />;
 }
 
 function MetricSparkCard({
@@ -123,6 +110,19 @@ function MetricSparkCard({
         <Sparkline data={data} color={color} />
       </div>
     </Card>
+  );
+}
+
+export function MockMetrics() {
+  const cpu = Array.from({ length: 30 }, () => 20 + Math.random() * 60);
+  const mem = Array.from({ length: 30 }, () => 30 + Math.random() * 40);
+  const lat = Array.from({ length: 30 }, () => 20 + Math.random() * 120);
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <MetricSparkCard label="CPU" data={cpu} unit="%" color="var(--chart-1)" />
+      <MetricSparkCard label="Memory" data={mem} unit="%" color="var(--chart-2)" />
+      <MetricSparkCard label="Latency p95" data={lat} unit="ms" color="var(--chart-3)" />
+    </div>
   );
 }
 

@@ -8,6 +8,86 @@ import { cn } from "@/lib/utils";
  * Auto-spaces interface leaves so they don't overlap the Host node,
  * and animates a packet along the active path tinted by throughput.
  */
+function Node({
+  x,
+  y,
+  label,
+  sub,
+  highlighted,
+}: {
+  x: number;
+  y: number;
+  label: string;
+  sub?: string;
+  highlighted?: boolean;
+}) {
+  return (
+    <g>
+      <rect
+        x={x - 42}
+        y={y - 22}
+        width={84}
+        height={44}
+        rx={8}
+        fill={highlighted ? "var(--primary)" : "var(--card)"}
+        stroke={highlighted ? "var(--primary)" : "var(--border)"}
+        strokeWidth="1.4"
+      />
+      <text
+        x={x}
+        y={y - 2}
+        textAnchor="middle"
+        fontSize="12"
+        fontWeight="600"
+        fill={highlighted ? "var(--primary-foreground)" : "currentColor"}
+      >
+        {label}
+      </text>
+      {sub && (
+        <text
+          x={x}
+          y={y + 12}
+          textAnchor="middle"
+          fontSize="9"
+          fill={highlighted ? "var(--primary-foreground)" : "var(--muted-foreground)"}
+        >
+          {sub}
+        </text>
+      )}
+    </g>
+  );
+}
+
+function Link({
+  x1,
+  y1,
+  x2,
+  y2,
+  primary,
+}: {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  primary?: boolean;
+}) {
+  return (
+    <>
+      <line
+        x1={x1}
+        y1={y1}
+        x2={x2}
+        y2={y2}
+        stroke={primary ? "url(#netLink)" : "var(--border)"}
+        strokeWidth="2"
+      />
+      <circle cx={x1} cy={y1} r="3" fill="var(--primary)">
+        <animate attributeName="cx" from={x1} to={x2} dur="2.5s" repeatCount="indefinite" />
+      </circle>
+    </>
+  );
+}
+
 export function NetworkTopology({ className }: { className?: string }) {
   const { data: net } = useQuery({
     queryKey: ["network"],
@@ -107,85 +187,5 @@ export function NetworkTopology({ className }: { className?: string }) {
         })}
       </svg>
     </div>
-  );
-}
-
-function Node({
-  x,
-  y,
-  label,
-  sub,
-  highlighted,
-}: {
-  x: number;
-  y: number;
-  label: string;
-  sub?: string;
-  highlighted?: boolean;
-}) {
-  return (
-    <g>
-      <rect
-        x={x - 42}
-        y={y - 22}
-        width={84}
-        height={44}
-        rx={8}
-        fill={highlighted ? "var(--primary)" : "var(--card)"}
-        stroke={highlighted ? "var(--primary)" : "var(--border)"}
-        strokeWidth="1.4"
-      />
-      <text
-        x={x}
-        y={y - 2}
-        textAnchor="middle"
-        fontSize="12"
-        fontWeight="600"
-        fill={highlighted ? "var(--primary-foreground)" : "currentColor"}
-      >
-        {label}
-      </text>
-      {sub && (
-        <text
-          x={x}
-          y={y + 12}
-          textAnchor="middle"
-          fontSize="9"
-          fill={highlighted ? "var(--primary-foreground)" : "var(--muted-foreground)"}
-        >
-          {sub}
-        </text>
-      )}
-    </g>
-  );
-}
-
-function Link({
-  x1,
-  y1,
-  x2,
-  y2,
-  primary,
-}: {
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
-  primary?: boolean;
-}) {
-  return (
-    <>
-      <line
-        x1={x1}
-        y1={y1}
-        x2={x2}
-        y2={y2}
-        stroke={primary ? "url(#netLink)" : "var(--border)"}
-        strokeWidth="2"
-      />
-      <circle cx={x1} cy={y1} r="3" fill="var(--primary)">
-        <animate attributeName="cx" from={x1} to={x2} dur="2.5s" repeatCount="indefinite" />
-      </circle>
-    </>
   );
 }

@@ -27,6 +27,21 @@ export interface ContractApprovalRequest {
   expiresAt: string;
 }
 
+function mapApprovalStatus(s: ContractApprovalRequest["status"]): MockApprovalRequest["status"] {
+  switch (s) {
+    case "approved":
+    case "consumed":
+      return "approved";
+    case "denied":
+    case "expired":
+    case "cancelled":
+      return "denied";
+    case "pending":
+    default:
+      return "pending";
+  }
+}
+
 /**
  * Map a contract ApprovalRequest to the mock ApprovalRequest shape that
  * sys-pilot components consume.
@@ -42,19 +57,4 @@ export function toApprovalRequestRow(a: ContractApprovalRequest): MockApprovalRe
     status: mapApprovalStatus(a.status),
     reason: a.reason ?? undefined,
   };
-}
-
-function mapApprovalStatus(s: ContractApprovalRequest["status"]): MockApprovalRequest["status"] {
-  switch (s) {
-    case "approved":
-    case "consumed":
-      return "approved";
-    case "denied":
-    case "expired":
-    case "cancelled":
-      return "denied";
-    case "pending":
-    default:
-      return "pending";
-  }
 }

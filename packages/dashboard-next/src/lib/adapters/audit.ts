@@ -23,6 +23,11 @@ export interface ContractAuditEvent {
   chainHash?: string;
 }
 
+function mapDecision(result: string): "allow" | "deny" {
+  if (result === "deny" || result === "error") return "deny";
+  return "allow";
+}
+
 /**
  * Map a contract AuditEvent to the mock AuditEntry shape that sys-pilot
  * components consume.
@@ -43,9 +48,4 @@ export function toAuditEntryRow(e: ContractAuditEvent): MockAuditEntry {
     result: e.result,
     created_at: e.createdAt,
   };
-}
-
-function mapDecision(result: string): "allow" | "deny" {
-  if (result === "deny" || result === "error") return "deny";
-  return "allow";
 }

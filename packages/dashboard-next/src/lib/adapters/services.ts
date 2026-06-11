@@ -32,6 +32,35 @@ export function toBadgeRef(b: ContractBadgeRef): MockBadgeRef {
 }
 
 // ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
+type MockStatus = MockService["status"];
+
+function mapServiceStatus(status: ContractService["status"]): MockStatus {
+  switch (status) {
+    case "online":
+      return "online";
+    case "offline":
+      return "offline";
+    case "checking": // mock has no "checking" — treat as unknown while probe runs
+    case "degraded":
+    case "unknown":
+    default:
+      return "unknown";
+  }
+}
+
+/**
+ * Convert a UUID to a stable integer id that sys-pilot numeric `id` fields
+ * expect. Uses the first 8 hex chars of the UUID as a base-16 number.
+ * Collisions are theoretically possible but irrelevant for display purposes.
+ */
+function hashId(uuid: string): number {
+  return parseInt(uuid.replace(/-/g, "").slice(0, 8), 16) >>> 0;
+}
+
+// ---------------------------------------------------------------------------
 // Service (full row used by Apps / Healthcheck pages)
 // ---------------------------------------------------------------------------
 
@@ -107,33 +136,4 @@ export function toHealthSnapshotRow(snap: ContractHealthSnapshot): HealthSnapsho
     checkedAt: snap.checkedAt,
     note: snap.note ?? null,
   };
-}
-
-// ---------------------------------------------------------------------------
-// Internal helpers
-// ---------------------------------------------------------------------------
-
-type MockStatus = MockService["status"];
-
-function mapServiceStatus(status: ContractService["status"]): MockStatus {
-  switch (status) {
-    case "online":
-      return "online";
-    case "offline":
-      return "offline";
-    case "checking": // mock has no "checking" — treat as unknown while probe runs
-    case "degraded":
-    case "unknown":
-    default:
-      return "unknown";
-  }
-}
-
-/**
- * Convert a UUID to a stable integer id that sys-pilot numeric `id` fields
- * expect. Uses the first 8 hex chars of the UUID as a base-16 number.
- * Collisions are theoretically possible but irrelevant for display purposes.
- */
-function hashId(uuid: string): number {
-  return parseInt(uuid.replace(/-/g, "").slice(0, 8), 16) >>> 0;
 }

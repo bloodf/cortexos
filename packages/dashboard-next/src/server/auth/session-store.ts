@@ -125,38 +125,6 @@ export interface SessionStore {
 }
 
 // ---------------------------------------------------------------------------
-// Singleton
-// ---------------------------------------------------------------------------
-
-let cached: SessionStore | null = null;
-
-/** Process-wide session store. Lazy. */
-export function getSessionStore(): SessionStore {
-  if (!cached) cached = pickDefault();
-  return cached;
-}
-
-/** Test helper: install a custom session store. */
-export function setSessionStore(s: SessionStore): void {
-  cached = s;
-}
-
-/** Test helper: clear the singleton. */
-export function resetSessionStore(): void {
-  cached = null;
-}
-
-function pickDefault(): SessionStore {
-  // In unit tests the DB env is absent and getDb() would throw. Fall back to
-  // the in-memory store so the unit suite runs without a DB; production sets
-  // DB_PASSWORD and gets the Drizzle-backed persistent store.
-  if (!process.env.DB_PASSWORD) {
-    return new InMemorySessionStore();
-  }
-  return new DrizzleSessionStore(getDb());
-}
-
-// ---------------------------------------------------------------------------
 // Token generation
 // ---------------------------------------------------------------------------
 
@@ -170,6 +138,94 @@ export function generateSessionToken(): string {
 
 /** Default session TTL: 30 days. */
 export const DEFAULT_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+// ---------------------------------------------------------------------------
+// Row → entity mappers
+// ---------------------------------------------------------------------------
+
+function toSessionEntity(row: MemSessionRow): Session {
+  return {
+    id: asSessionId(String(row.id)),
+    userId: asUserId(String(row.userId)),
+    csrfToken: row.csrfToken,
+    expiresAt: row.expiresAt,
+    ua: row.userAgent,
+    ip: row.ip,
+    lastRoleCheckAt: row.lastRoleCheckAt,
+  };
+}
+
+function toUserEntity(row: MemUserRow, _id: number, isAdminOverride?: boolean): User {
+  // The optional `isAdminOverride` lets the session's re-validated isAdmin
+  // take precedence over the user-row's stored groups. This matters when the
+  // role has been revalidated since the user was upserted (e.g. demotion).
+  const isAdmin =
+    isAdminOverride !== undefined
+      ? isAdminOverride
+      : row.groupMemberships.some((g) => g.name === "cortexos-admin");
+  const groupMemberships: readonly GroupMembershipEntry[] = isAdmin
+    ? [
+        { name: "cortexos-admin", isAdmin: true },
+        { name: "cortexos-users", isAdmin: false },
+      ]
+    : row.groupMemberships.filter((g) => g.name !== "cortexos-admin");
+  return {
+    id: asUserId(String(row.id)),
+    username: row.username,
+    is_admin: isAdmin,
+    isAdmin,
+    isActive: row.isActive,
+    groupMemberships,
+  };
+}
+
+function rowToSession(row: typeof adminSessions.$inferSelect, now: number): Session {
+  return {
+    id: asSessionId(String(row.id)),
+    userId: asUserId(String(row.userId)),
+    csrfToken: row.csrfToken ?? "",
+    expiresAt: row.expiresAt.getTime(),
+    ua: row.userAgent,
+    ip: row.ip,
+    lastRoleCheckAt: Number(row.lastRoleCheckAt) || now,
+  };
+}
+
+function rowToUser(row: typeof pamUsers.$inferSelect, isAdminCached: boolean): User {
+  const groups: readonly GroupName[] = isAdminCached
+    ? ["cortexos-admin", "cortexos-users"]
+    : ["cortexos-users"];
+  return {
+    id: asUserId(String(row.id)),
+    username: row.username,
+    is_admin: isAdminCached,
+    isAdmin: isAdminCached,
+    isActive: true,
+    groupMemberships: groups,
+  };
+}
+
+function rowToSessionFromJoin(row: {
+  sessionId: number;
+  userId: number;
+  csrfToken: string | null;
+  ip: string | null;
+  userAgent: string | null;
+  isAdmin: boolean;
+  lastRoleCheckAt: number | null;
+  createdAt: Date;
+  expiresAt: Date;
+}): Session {
+  return {
+    id: asSessionId(String(row.sessionId)),
+    userId: asUserId(String(row.userId)),
+    csrfToken: row.csrfToken ?? "",
+    expiresAt: row.expiresAt.getTime(),
+    ua: row.userAgent,
+    ip: row.ip,
+    lastRoleCheckAt: Number(row.lastRoleCheckAt) || row.createdAt.getTime(),
+  };
+}
 
 // ---------------------------------------------------------------------------
 // In-memory implementation (tests / dev)
@@ -529,89 +585,34 @@ export class DrizzleSessionStore implements SessionStore {
 }
 
 // ---------------------------------------------------------------------------
-// Row → entity mappers
+// Singleton
 // ---------------------------------------------------------------------------
 
-function toSessionEntity(row: MemSessionRow): Session {
-  return {
-    id: asSessionId(String(row.id)),
-    userId: asUserId(String(row.userId)),
-    csrfToken: row.csrfToken,
-    expiresAt: row.expiresAt,
-    ua: row.userAgent,
-    ip: row.ip,
-    lastRoleCheckAt: row.lastRoleCheckAt,
-  };
+function pickDefault(): SessionStore {
+  // In unit tests the DB env is absent and getDb() would throw. Fall back to
+  // the in-memory store so the unit suite runs without a DB; production sets
+  // DB_PASSWORD and gets the Drizzle-backed persistent store.
+  if (!process.env.DB_PASSWORD) {
+    return new InMemorySessionStore();
+  }
+  return new DrizzleSessionStore(getDb());
 }
 
-function toUserEntity(row: MemUserRow, _id: number, isAdminOverride?: boolean): User {
-  // The optional `isAdminOverride` lets the session's re-validated isAdmin
-  // take precedence over the user-row's stored groups. This matters when the
-  // role has been revalidated since the user was upserted (e.g. demotion).
-  const isAdmin =
-    isAdminOverride !== undefined
-      ? isAdminOverride
-      : row.groupMemberships.some((g) => g.name === "cortexos-admin");
-  const groupMemberships: readonly GroupMembershipEntry[] = isAdmin
-    ? [
-        { name: "cortexos-admin", isAdmin: true },
-        { name: "cortexos-users", isAdmin: false },
-      ]
-    : row.groupMemberships.filter((g) => g.name !== "cortexos-admin");
-  return {
-    id: asUserId(String(row.id)),
-    username: row.username,
-    is_admin: isAdmin,
-    isAdmin,
-    isActive: row.isActive,
-    groupMemberships,
-  };
+let cached: SessionStore | null = null;
+
+/** Process-wide session store. Lazy. */
+export function getSessionStore(): SessionStore {
+  if (!cached) cached = pickDefault();
+  return cached;
 }
 
-function rowToSession(row: typeof adminSessions.$inferSelect, now: number): Session {
-  return {
-    id: asSessionId(String(row.id)),
-    userId: asUserId(String(row.userId)),
-    csrfToken: row.csrfToken ?? "",
-    expiresAt: row.expiresAt.getTime(),
-    ua: row.userAgent,
-    ip: row.ip,
-    lastRoleCheckAt: Number(row.lastRoleCheckAt) || now,
-  };
+/** Test helper: install a custom session store. */
+export function setSessionStore(s: SessionStore): void {
+  cached = s;
 }
 
-function rowToUser(row: typeof pamUsers.$inferSelect, isAdminCached: boolean): User {
-  const groups: readonly GroupName[] = isAdminCached
-    ? ["cortexos-admin", "cortexos-users"]
-    : ["cortexos-users"];
-  return {
-    id: asUserId(String(row.id)),
-    username: row.username,
-    is_admin: isAdminCached,
-    isAdmin: isAdminCached,
-    isActive: true,
-    groupMemberships: groups,
-  };
+/** Test helper: clear the singleton. */
+export function resetSessionStore(): void {
+  cached = null;
 }
 
-function rowToSessionFromJoin(row: {
-  sessionId: number;
-  userId: number;
-  csrfToken: string | null;
-  ip: string | null;
-  userAgent: string | null;
-  isAdmin: boolean;
-  lastRoleCheckAt: number | null;
-  createdAt: Date;
-  expiresAt: Date;
-}): Session {
-  return {
-    id: asSessionId(String(row.sessionId)),
-    userId: asUserId(String(row.userId)),
-    csrfToken: row.csrfToken ?? "",
-    expiresAt: row.expiresAt.getTime(),
-    ua: row.userAgent,
-    ip: row.ip,
-    lastRoleCheckAt: Number(row.lastRoleCheckAt) || row.createdAt.getTime(),
-  };
-}

@@ -96,6 +96,54 @@ interface MigrationRow {
   name: string;
 }
 
+function errorMessage(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (typeof e === "string") return e;
+  try {
+    return JSON.stringify(e);
+  } catch {
+    return String(e);
+  }
+}
+
+function isIgnoredExtensionError(e: unknown, patterns?: string[]): boolean {
+  const msg = errorMessage(e).toLowerCase();
+  const all = (patterns ?? ["timescaledb"]).map((p) => p.toLowerCase());
+  return all.some((p) => msg.includes(p));
+}
+
+/**
+ * Drop statements that reference ignored extensions. Used to make
+ * TimescaleDB-tinged migrations runnable against PGlite (which doesn't
+ * ship the extension). Conservative: matches lines that contain
+ * `CREATE EXTENSION ... <pattern>` or `create_hypertable(` and
+ * replaces them with empty strings. Comment lines are also removed
+ * to keep the resulting SQL clean.
+ */
+function filterExtensionStatements(sql: string, patterns?: string[]): string {
+  const all = (patterns ?? ["timescaledb"]).map((p) => p.toLowerCase());
+  let out = sql;
+  for (const p of all) {
+    const pEsc = p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // Remove `CREATE EXTENSION [IF NOT EXISTS] <name>` lines.
+    out = out.replace(
+      new RegExp(
+        `^\\s*CREATE\\s+EXTENSION(\\s+IF\\s+NOT\\s+EXISTS)?\\s+["']?${pEsc}["']?\\s*;?\\s*$`,
+        "gim",
+      ),
+      "",
+    );
+    // Remove `SELECT create_hypertable(...)` statements. Match any
+    // line containing `create_hypertable(`, regardless of where
+    // the `;` lands (single-line statements only — multi-line
+    // `create_hypertable` is not used in the current migrations).
+    out = out.replace(new RegExp(`^[^\\n]*create_hypertable\\s*\\([^\\n]*;?\\s*$`, "gim"), "");
+  }
+  // Collapse runs of blank lines left behind.
+  out = out.replace(/\n{3,}/g, "\n\n");
+  return out;
+}
+
 /**
  * Run all un-applied migrations in `dir` against the supplied `executor`.
  *
@@ -181,54 +229,6 @@ export async function runSqlMigrations(opts: RunMigrationsOptions): Promise<stri
   }
 
   return run;
-}
-
-function isIgnoredExtensionError(e: unknown, patterns?: string[]): boolean {
-  const msg = errorMessage(e).toLowerCase();
-  const all = (patterns ?? ["timescaledb"]).map((p) => p.toLowerCase());
-  return all.some((p) => msg.includes(p));
-}
-
-/**
- * Drop statements that reference ignored extensions. Used to make
- * TimescaleDB-tinged migrations runnable against PGlite (which doesn't
- * ship the extension). Conservative: matches lines that contain
- * `CREATE EXTENSION ... <pattern>` or `create_hypertable(` and
- * replaces them with empty strings. Comment lines are also removed
- * to keep the resulting SQL clean.
- */
-function filterExtensionStatements(sql: string, patterns?: string[]): string {
-  const all = (patterns ?? ["timescaledb"]).map((p) => p.toLowerCase());
-  let out = sql;
-  for (const p of all) {
-    const pEsc = p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    // Remove `CREATE EXTENSION [IF NOT EXISTS] <name>` lines.
-    out = out.replace(
-      new RegExp(
-        `^\\s*CREATE\\s+EXTENSION(\\s+IF\\s+NOT\\s+EXISTS)?\\s+["']?${pEsc}["']?\\s*;?\\s*$`,
-        "gim",
-      ),
-      "",
-    );
-    // Remove `SELECT create_hypertable(...)` statements. Match any
-    // line containing `create_hypertable(`, regardless of where
-    // the `;` lands (single-line statements only — multi-line
-    // `create_hypertable` is not used in the current migrations).
-    out = out.replace(new RegExp(`^[^\\n]*create_hypertable\\s*\\([^\\n]*;?\\s*$`, "gim"), "");
-  }
-  // Collapse runs of blank lines left behind.
-  out = out.replace(/\n{3,}/g, "\n\n");
-  return out;
-}
-
-function errorMessage(e: unknown): string {
-  if (e instanceof Error) return e.message;
-  if (typeof e === "string") return e;
-  try {
-    return JSON.stringify(e);
-  } catch {
-    return String(e);
-  }
 }
 
 /**

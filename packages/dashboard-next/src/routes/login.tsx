@@ -1,4 +1,4 @@
-import { createFileRoute, Link, redirect, useRouter, useSearch } from "@tanstack/react-router";
+import { createFileRoute, redirect, useRouter, useSearch } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import brandLogo from "@/assets/cortexos-logo.svg";
@@ -14,13 +14,6 @@ import { LOCALES, LOCALE_LABEL, type Locale } from "@/i18n";
 interface LoginSearch {
   redirect?: string;
 }
-
-export const Route = createFileRoute("/login")({
-  validateSearch: (s: Record<string, unknown>): LoginSearch => ({
-    redirect: typeof s.redirect === "string" ? s.redirect : undefined,
-  }),
-  component: LoginPage,
-});
 
 function LoginPage() {
   const { login, user } = useAuth();
@@ -144,3 +137,10 @@ function LoginPage() {
     </div>
   );
 }
+
+export const Route = createFileRoute("/login")({
+  validateSearch: (s: Record<string, unknown>): LoginSearch => ({
+    redirect: typeof s.redirect === "string" ? s.redirect : undefined,
+  }),
+  component: LoginPage,
+});

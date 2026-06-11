@@ -33,6 +33,17 @@ export function setKitShim(s: SvelteKitShim): void {
   shim = s;
 }
 
+class ApiErrorThrown extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly body: { message: string; code?: string; details?: unknown },
+    public readonly apiError?: ApiError,
+  ) {
+    super(body.message);
+    this.name = "ApiErrorThrown";
+  }
+}
+
 /** Used by the `+server.ts` shim below — `apiError` calls into this. */
 function requireShim(): SvelteKitShim {
   if (shim) return shim;
@@ -48,17 +59,6 @@ function requireShim(): SvelteKitShim {
     json: (data, init) => new Response(JSON.stringify(data), init),
     fail: (status, data) => ({ status, data }),
   };
-}
-
-class ApiErrorThrown extends Error {
-  constructor(
-    public readonly status: number,
-    public readonly body: { message: string; code?: string; details?: unknown },
-    public readonly apiError?: ApiError,
-  ) {
-    super(body.message);
-    this.name = "ApiErrorThrown";
-  }
 }
 
 // ---------------------------------------------------------------------------

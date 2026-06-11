@@ -33,7 +33,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useT } from "@/hooks/useT";
 import { api } from "@/mocks/api";
 import { NAV } from "./NavConfig";
-import { LOCALES, LOCALE_LABEL, type Locale } from "@/i18n";
+import { LOCALES, LOCALE_LABEL } from "@/i18n";
 import { relativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +43,21 @@ interface Props {
   onOpenMobile: () => void;
   onOpenPalette: () => void;
   onOpenHelp?: () => void;
+}
+
+function breadcrumbs(path: string, t: ReturnType<typeof useT>): { label: string; to?: string }[] {
+  const parts = path.split("/").filter(Boolean);
+  if (parts.length === 0) return [{ label: t.nav.overview }];
+  // try to find matching nav label
+  const all = NAV.flatMap((g) => g.items);
+  const out: { label: string; to?: string }[] = [];
+  for (let i = 0; i < parts.length; i++) {
+    const p = `/${parts.slice(0, i + 1).join("/")}`;
+    const nav = all.find((n) => n.to === p);
+    if (nav) out.push({ label: t.nav[nav.key], to: i < parts.length - 1 ? p : undefined });
+    else out.push({ label: parts[i].replace(/-/g, " ").replace(/^./, (c) => c.toUpperCase()) });
+  }
+  return out;
 }
 
 export function TopBar({
@@ -276,19 +291,4 @@ export function TopBar({
       </DropdownMenu>
     </header>
   );
-}
-
-function breadcrumbs(path: string, t: ReturnType<typeof useT>): { label: string; to?: string }[] {
-  const parts = path.split("/").filter(Boolean);
-  if (parts.length === 0) return [{ label: t.nav.overview }];
-  // try to find matching nav label
-  const all = NAV.flatMap((g) => g.items);
-  const out: { label: string; to?: string }[] = [];
-  for (let i = 0; i < parts.length; i++) {
-    const p = `/${parts.slice(0, i + 1).join("/")}`;
-    const nav = all.find((n) => n.to === p);
-    if (nav) out.push({ label: t.nav[nav.key], to: i < parts.length - 1 ? p : undefined });
-    else out.push({ label: parts[i].replace(/-/g, " ").replace(/^./, (c) => c.toUpperCase()) });
-  }
-  return out;
 }

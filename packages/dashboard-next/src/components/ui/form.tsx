@@ -37,6 +37,12 @@ const FormField = <
   );
 };
 
+interface FormItemContextValue {
+  id: string;
+}
+
+const FormItemContext = React.createContext<FormItemContextValue | null>(null);
+
 const useFormField = () => {
   const fieldContext = React.useContext(FormFieldContext);
   const itemContext = React.useContext(FormItemContext);
@@ -63,12 +69,6 @@ const useFormField = () => {
     ...fieldState,
   };
 };
-
-interface FormItemContextValue {
-  id: string;
-}
-
-const FormItemContext = React.createContext<FormItemContextValue | null>(null);
 
 const FormItem = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => {

@@ -21,7 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { MetricCard } from "@/components/MetricCard";
 import { WidgetShell } from "@/components/WidgetShell";
-import { GaugeRadial } from "@/components/GaugeRadial";
+
 import { Sparkline } from "@/components/Sparkline";
 import { AreaTrend } from "@/components/AreaTrend";
 import { api } from "@/lib/api/client";

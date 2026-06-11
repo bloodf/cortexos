@@ -103,6 +103,14 @@ export function generateCsrfToken(): string {
 }
 
 // ---------------------------------------------------------------------------
+// Internals
+// ---------------------------------------------------------------------------
+
+function isProduction(): boolean {
+  return process.env.NODE_ENV === "production";
+}
+
+// ---------------------------------------------------------------------------
 // Session cookie
 // ---------------------------------------------------------------------------
 
@@ -187,12 +195,4 @@ export function safeCsrfEqual(a: string | null, b: string | null): boolean {
     diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
   }
   return diff === 0;
-}
-
-// ---------------------------------------------------------------------------
-// Internals
-// ---------------------------------------------------------------------------
-
-function isProduction(): boolean {
-  return process.env.NODE_ENV === "production";
 }

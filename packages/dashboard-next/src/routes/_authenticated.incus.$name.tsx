@@ -36,27 +36,6 @@ async function dispatchIncusAction(
   });
 }
 
-// ---------------------------------------------------------------------------
-// Route
-// ---------------------------------------------------------------------------
-
-export const Route = createFileRoute("/_authenticated/incus/$name")({
-  loader: async ({ params }) => {
-    const all = await api.incus();
-    const found = all.find((i) => i.name === params.name || i.slug === params.name);
-    if (!found) throw notFound();
-    return { instance: found };
-  },
-  errorComponent: ({ error, reset }) => (
-    <div className="p-6 space-y-4">
-      <PageHeader title="Instance error" description={error?.message ?? "Failed to load"} />
-      <Button onClick={reset}>Retry</Button>
-    </div>
-  ),
-  notFoundComponent: NotFoundComponent,
-  component: IncusDetail,
-});
-
 function NotFoundComponent() {
   const { name } = useParams({ from: "/_authenticated/incus/$name" });
   return (
@@ -377,3 +356,20 @@ function IncusDetail() {
     </div>
   );
 }
+
+export const Route = createFileRoute("/_authenticated/incus/$name")({
+  loader: async ({ params }) => {
+    const all = await api.incus();
+    const found = all.find((i) => i.name === params.name || i.slug === params.name);
+    if (!found) throw notFound();
+    return { instance: found };
+  },
+  errorComponent: ({ error, reset }) => (
+    <div className="p-6 space-y-4">
+      <PageHeader title="Instance error" description={error?.message ?? "Failed to load"} />
+      <Button onClick={reset}>Retry</Button>
+    </div>
+  ),
+  notFoundComponent: NotFoundComponent,
+  component: IncusDetail,
+});

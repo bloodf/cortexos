@@ -4,7 +4,7 @@
  * Reads from the `audit_log` hash-chained table and maps rows to the
  * `AuditEvent` entity shape used by the UI.
  */
-import { and, asc, desc, eq, gte, lte, like, sql, type SQL } from "drizzle-orm";
+import { and, desc, eq, gte, lte, like, sql, type SQL } from "drizzle-orm";
 import type { DbClient } from "../client";
 import { auditLog } from "../schema";
 import type { AuditLogEntry } from "../schema";

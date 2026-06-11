@@ -61,6 +61,27 @@ export function csrfHeadersFromRequest(request: Request): string | null {
   return request.headers.get(CSRF_HEADER);
 }
 
+// ---------------------------------------------------------------------------
+// Internals
+// ---------------------------------------------------------------------------
+
+function throwCsrfError(reason: string): never {
+  // We do NOT log the reason in production — the audit captures the user +
+  // requestId, and we don't want to leak the CSRF diagnostic to a potential
+  // attacker. The reason is for unit tests to assert against.
+  if (process.env.NODE_ENV !== "production") {
+    console.debug("[cortexos/csrf] rejected", { reason });
+  }
+  // For the "missing_session_csrf" case, surface as auth (the caller is
+  // unauthenticated and shouldn't be told CSRF exists).
+  if (reason === "missing_session_csrf") {
+    const err = authError("Authentication required");
+    throw new ApiErrorThrown(401, { message: err.message, code: err.kind }, err);
+  }
+  const err = permissionError("CSRF token invalid or missing");
+  throw new ApiErrorThrown(403, { message: err.message, code: err.kind }, err);
+}
+
 /**
  * Enforce the CSRF check. On state-changing methods, the request MUST carry:
  *   - a non-empty x-csrf-token header
@@ -96,25 +117,4 @@ export function requireCsrf(request: Request, expected: string | null, jar: Cook
   if (!safeCsrfEqual(headerToken, cookieValue) || !safeCsrfEqual(headerToken, expected)) {
     throwCsrfError("mismatch");
   }
-}
-
-// ---------------------------------------------------------------------------
-// Internals
-// ---------------------------------------------------------------------------
-
-function throwCsrfError(reason: string): never {
-  // We do NOT log the reason in production — the audit captures the user +
-  // requestId, and we don't want to leak the CSRF diagnostic to a potential
-  // attacker. The reason is for unit tests to assert against.
-  if (process.env.NODE_ENV !== "production") {
-    console.debug("[cortexos/csrf] rejected", { reason });
-  }
-  // For the "missing_session_csrf" case, surface as auth (the caller is
-  // unauthenticated and shouldn't be told CSRF exists).
-  if (reason === "missing_session_csrf") {
-    const err = authError("Authentication required");
-    throw new ApiErrorThrown(401, { message: err.message, code: err.kind }, err);
-  }
-  const err = permissionError("CSRF token invalid or missing");
-  throw new ApiErrorThrown(403, { message: err.message, code: err.kind }, err);
 }

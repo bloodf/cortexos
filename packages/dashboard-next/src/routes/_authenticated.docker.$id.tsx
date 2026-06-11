@@ -15,7 +15,7 @@ import { DetailSkeleton } from "@/components/skeletons";
 import { EmptyState } from "@/components/EmptyState";
 import { api, callDockerAction, callMintApproval, callContainerLogs } from "@/lib/api/client";
 import { useAuth } from "@/hooks/useAuth";
-import { bytes, relativeTime } from "@/lib/format";
+import { relativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
@@ -31,27 +31,6 @@ async function dispatchDockerAction(op: string, args: Record<string, unknown>): 
   });
 }
 
-// ---------------------------------------------------------------------------
-// Route
-// ---------------------------------------------------------------------------
-
-export const Route = createFileRoute("/_authenticated/docker/$id")({
-  loader: async ({ params }) => {
-    const containers = await api.docker.containers();
-    const found = containers.find((c) => c.id === params.id || c.name === params.id);
-    if (!found) throw notFound();
-    return { container: found };
-  },
-  errorComponent: ({ error, reset }) => (
-    <div className="p-6 space-y-4">
-      <PageHeader title="Container error" description={error?.message ?? "Failed to load"} />
-      <Button onClick={reset}>Retry</Button>
-    </div>
-  ),
-  notFoundComponent: NotFoundComponent,
-  component: ContainerDetail,
-});
-
 function NotFoundComponent() {
   const { id } = useParams({ from: "/_authenticated/docker/$id" });
   return (
@@ -63,6 +42,15 @@ function NotFoundComponent() {
           Back to Docker
         </Link>
       </Button>
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="rounded-lg border bg-card px-4 py-3">
+      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="mt-1 text-sm font-medium">{value}</div>
     </div>
   );
 }
@@ -307,11 +295,19 @@ function ContainerDetail() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="rounded-lg border bg-card px-4 py-3">
-      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className="mt-1 text-sm font-medium">{value}</div>
+export const Route = createFileRoute("/_authenticated/docker/$id")({
+  loader: async ({ params }) => {
+    const containers = await api.docker.containers();
+    const found = containers.find((c) => c.id === params.id || c.name === params.id);
+    if (!found) throw notFound();
+    return { container: found };
+  },
+  errorComponent: ({ error, reset }) => (
+    <div className="p-6 space-y-4">
+      <PageHeader title="Container error" description={error?.message ?? "Failed to load"} />
+      <Button onClick={reset}>Retry</Button>
     </div>
-  );
-}
+  ),
+  notFoundComponent: NotFoundComponent,
+  component: ContainerDetail,
+});

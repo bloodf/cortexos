@@ -24,6 +24,54 @@ const GROUP_ICONS: Record<GroupId, LucideIcon> = {
 
 const STORAGE_KEY = "cortex.nav.openGroups";
 
+function NavLink({
+  to,
+  icon,
+  label,
+  active,
+  collapsed,
+  onClick,
+}: {
+  to: string;
+  icon: React.ReactNode;
+  label: string;
+  active: boolean;
+  collapsed: boolean;
+  onClick: () => void;
+}) {
+  const link = (
+    <Link
+      to={to}
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors",
+        active
+          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+          : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+        collapsed && "md:justify-center md:px-2",
+      )}
+    >
+      <span className="shrink-0">{icon}</span>
+      <span className={cn("truncate", collapsed && "md:hidden")}>{label}</span>
+    </Link>
+  );
+
+  if (collapsed) {
+    return (
+      <li>
+        <Tooltip delayDuration={200}>
+          <TooltipTrigger asChild>{link}</TooltipTrigger>
+          <TooltipContent side="right" sideOffset={8}>
+            {label}
+          </TooltipContent>
+        </Tooltip>
+      </li>
+    );
+  }
+
+  return <li>{link}</li>;
+}
+
 export function Sidebar({ collapsed, mobileOpen, onClose }: Props) {
   const t = useT();
   const { user } = useAuth();
@@ -209,52 +257,4 @@ export function Sidebar({ collapsed, mobileOpen, onClose }: Props) {
       </aside>
     </>
   );
-}
-
-function NavLink({
-  to,
-  icon,
-  label,
-  active,
-  collapsed,
-  onClick,
-}: {
-  to: string;
-  icon: React.ReactNode;
-  label: string;
-  active: boolean;
-  collapsed: boolean;
-  onClick: () => void;
-}) {
-  const link = (
-    <Link
-      to={to}
-      onClick={onClick}
-      className={cn(
-        "flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors",
-        active
-          ? "bg-sidebar-accent text-sidebar-accent-foreground"
-          : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
-        collapsed && "md:justify-center md:px-2",
-      )}
-    >
-      <span className="shrink-0">{icon}</span>
-      <span className={cn("truncate", collapsed && "md:hidden")}>{label}</span>
-    </Link>
-  );
-
-  if (collapsed) {
-    return (
-      <li>
-        <Tooltip delayDuration={200}>
-          <TooltipTrigger asChild>{link}</TooltipTrigger>
-          <TooltipContent side="right" sideOffset={8}>
-            {label}
-          </TooltipContent>
-        </Tooltip>
-      </li>
-    );
-  }
-
-  return <li>{link}</li>;
 }

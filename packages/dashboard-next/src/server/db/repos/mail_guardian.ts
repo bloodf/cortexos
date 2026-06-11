@@ -179,14 +179,6 @@ export async function batchUpdateMailReviewDecisions(
   approver: string,
 ): Promise<number> {
   if (ids.length === 0) return 0;
-  const res = await db
-    .update(mailGuardianReviews)
-    .set({
-      ownerDecision: decision,
-      approver,
-      resolvedAt: new Date(),
-    })
-    .where(eq(mailGuardianReviews.id, ids[0]));
   // Note: drizzle-orm's `inArray` may not be available on this version,
   // so we issue one UPDATE per id for batch safety.
   let updated = 0;

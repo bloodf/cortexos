@@ -5,6 +5,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouteContext,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -64,6 +65,48 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
+function DriftBoot() {
+  const { queryClient } = useRouteContext({ from: "__root__" });
+  useEffect(() => {
+    startDrift(queryClient);
+  }, [queryClient]);
+  return null;
+}
+
+function ToasterMount() {
+  const { effective } = useUI();
+  return <Toaster theme={effective} richColors closeButton position="bottom-right" />;
+}
+
+function RootComponent() {
+  const { queryClient } = useRouteContext({ from: "__root__" });
+  return (
+    <QueryClientProvider client={queryClient}>
+      <UIProvider>
+        <AuthProvider>
+          <DriftBoot />
+          <Outlet />
+          <ToasterMount />
+        </AuthProvider>
+      </UIProvider>
+    </QueryClientProvider>
+  );
+}
+
+function RootShell({ children }: { children: ReactNode }) {
+  return (
+    <html lang="en" className="dark" style={{ colorScheme: "dark" }} data-accent="cortex">
+      <head>
+        <HeadContent />
+      </head>
+      <body>
+        {children}
+        <Scripts />
+      </body>
+    </html>
+  );
+}
+
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
     meta: [
@@ -82,45 +125,3 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   notFoundComponent: NotFoundComponent,
   errorComponent: ErrorComponent,
 });
-
-function RootShell({ children }: { children: ReactNode }) {
-  return (
-    <html lang="en" className="dark" style={{ colorScheme: "dark" }} data-accent="cortex">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  );
-}
-
-function DriftBoot() {
-  const { queryClient } = Route.useRouteContext();
-  useEffect(() => {
-    startDrift(queryClient);
-  }, [queryClient]);
-  return null;
-}
-
-function ToasterMount() {
-  const { effective } = useUI();
-  return <Toaster theme={effective} richColors closeButton position="bottom-right" />;
-}
-
-function RootComponent() {
-  const { queryClient } = Route.useRouteContext();
-  return (
-    <QueryClientProvider client={queryClient}>
-      <UIProvider>
-        <AuthProvider>
-          <DriftBoot />
-          <Outlet />
-          <ToasterMount />
-        </AuthProvider>
-      </UIProvider>
-    </QueryClientProvider>
-  );
-}

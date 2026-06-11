@@ -174,134 +174,6 @@ function defaultRateLimit(auth: RouteOptions<unknown, unknown>["auth"]): {
 }
 
 // ---------------------------------------------------------------------------
-// Wrapper
-// ---------------------------------------------------------------------------
-
-export function defineApiRoute<TIn, TOut>(opts: RouteOptions<TIn, TOut>): ApiRouteCore {
-  return async (request: Request): Promise<Response> => {
-    const ctx = await resolveContext(request);
-    const method = request.method.toUpperCase() as HttpMethod;
-
-    // --- method match → 405 ---
-    if (!opts.methods.includes(method)) {
-      const res = new Response("Method not allowed", {
-        status: 405,
-        headers: { allow: opts.methods.join(", ") },
-      });
-      return finalize(res, ctx);
-    }
-
-    // --- 1. input parse + validate → 400 ---
-    let input: TIn;
-    if (opts.input) {
-      const raw = opts.inputData !== undefined ? opts.inputData : await readRequestInput(request);
-      const parsed = opts.input.safeParse(raw);
-      if (!parsed.success) {
-        const details = parsed.error.issues.map((i) => ({
-          field: i.path.join(".") || "_root",
-          message: i.message,
-        }));
-        const e: ApiError = { kind: "validation", message: "Validation failed", details };
-        safeAudit(ctx, opts, null, e, null);
-        return finalize(jsonError(e), ctx);
-      }
-      input = parsed.data;
-    } else {
-      input = {} as TIn;
-    }
-
-    // --- 2. auth / RBAC → 401 / 403 ---
-    let user: User | null = null;
-    if (opts.auth !== "public") {
-      try {
-        if (opts.auth === "admin") user = requireAdmin(ctx);
-        else if (opts.auth === "any") user = requireAuth(ctx);
-        else user = requireGroup(ctx, opts.auth);
-      } catch (e) {
-        const apiErr = extractApiError(e);
-        if (apiErr) {
-          safeAudit(ctx, opts, ctx.user, apiErr, input);
-          return finalize(serializeError(apiErr), ctx);
-        }
-        throw e;
-      }
-    }
-
-    // --- 3. CSRF on non-GET (double-submit + session-bound) ---
-    // Public routes are pre-session (e.g. login): there is no session-bound
-    // CSRF token to double-submit against, so the check is skipped for them
-    // (WP-20: login is `auth:'public'`, CSRF skipped pre-session). This does
-    // NOT weaken `any`/`admin`/group routes — every authenticated mutation
-    // still enforces the full double-submit + session-bound CSRF below.
-    if (opts.auth !== "public" && !["GET", "HEAD", "OPTIONS"].includes(method)) {
-      try {
-        requireCsrf(request, ctx.session?.csrfToken ?? null, ctx.cookies);
-      } catch (e) {
-        const apiErr = extractApiError(e);
-        if (apiErr) {
-          safeAudit(ctx, opts, user, apiErr, input);
-          return finalize(serializeError(apiErr), ctx);
-        }
-        throw e;
-      }
-    }
-
-    // --- 4. rate limit → 429 + Retry-After ---
-    {
-      const cfg = opts.rateLimit ?? defaultRateLimit(opts.auth);
-      const route = new URL(request.url).pathname;
-      const key =
-        cfg.bucket === "ip" || !user ? `ip:${ctx.clientIp}:${route}` : `user:${user.id}:${route}`;
-      const rl = checkRateLimit(key, cfg.limit, cfg.windowSec);
-      if (!rl.allowed) {
-        const e: ApiError = {
-          kind: "rate_limit",
-          message: "Too many requests",
-          retryAfter: rl.retryAfterSec,
-        };
-        safeAudit(ctx, opts, user, e, input);
-        return finalize(serializeError(e), ctx);
-      }
-    }
-
-    // --- 5. approval consume (single-use, session + action bound) → 412 ---
-    if (opts.approval) {
-      const actionHash = actionHashFor(opts.action, input ?? {});
-      const token = request.headers.get(APPROVAL_HEADER);
-      const sessionId = ctx.session?.id ?? null;
-      const result = token && sessionId ? consumeApproval(token, sessionId) : null;
-      if (!result || !result.ok || result.claims.actionHash !== actionHash) {
-        const e: ApiError = {
-          kind: "approval_required",
-          message: "This action requires a valid approval token",
-          actionHash,
-          ttlSec: 60,
-        };
-        safeAudit(ctx, opts, user, e, input);
-        return finalize(serializeError(e), ctx);
-      }
-    }
-
-    // --- 6. handler → audit → success / typed error ---
-    try {
-      const data = await opts.handler({ user, input, ctx });
-      safeAudit(ctx, opts, user, null, input, data);
-      const status = method === "POST" ? 201 : 200;
-      const res = new Response(JSON.stringify(data ?? null), {
-        status,
-        headers: { "content-type": "application/json; charset=utf-8" },
-      });
-      return finalize(res, ctx);
-    } catch (e) {
-      const apiErr = extractApiError(e);
-      const finalErr: ApiError = apiErr ?? { kind: "system", message: "Internal error" };
-      safeAudit(ctx, opts, user, finalErr, input);
-      return finalize(serializeError(finalErr), ctx);
-    }
-  };
-}
-
-// ---------------------------------------------------------------------------
 // Error serialization
 // ---------------------------------------------------------------------------
 
@@ -448,6 +320,134 @@ function safeAudit<TIn>(
   } catch {
     // Never let audit failures break the request.
   }
+}
+
+// ---------------------------------------------------------------------------
+// Wrapper
+// ---------------------------------------------------------------------------
+
+export function defineApiRoute<TIn, TOut>(opts: RouteOptions<TIn, TOut>): ApiRouteCore {
+  return async (request: Request): Promise<Response> => {
+    const ctx = await resolveContext(request);
+    const method = request.method.toUpperCase() as HttpMethod;
+
+    // --- method match → 405 ---
+    if (!opts.methods.includes(method)) {
+      const res = new Response("Method not allowed", {
+        status: 405,
+        headers: { allow: opts.methods.join(", ") },
+      });
+      return finalize(res, ctx);
+    }
+
+    // --- 1. input parse + validate → 400 ---
+    let input: TIn;
+    if (opts.input) {
+      const raw = opts.inputData !== undefined ? opts.inputData : await readRequestInput(request);
+      const parsed = opts.input.safeParse(raw);
+      if (!parsed.success) {
+        const details = parsed.error.issues.map((i) => ({
+          field: i.path.join(".") || "_root",
+          message: i.message,
+        }));
+        const e: ApiError = { kind: "validation", message: "Validation failed", details };
+        safeAudit(ctx, opts, null, e, null);
+        return finalize(jsonError(e), ctx);
+      }
+      input = parsed.data;
+    } else {
+      input = {} as TIn;
+    }
+
+    // --- 2. auth / RBAC → 401 / 403 ---
+    let user: User | null = null;
+    if (opts.auth !== "public") {
+      try {
+        if (opts.auth === "admin") user = requireAdmin(ctx);
+        else if (opts.auth === "any") user = requireAuth(ctx);
+        else user = requireGroup(ctx, opts.auth);
+      } catch (e) {
+        const apiErr = extractApiError(e);
+        if (apiErr) {
+          safeAudit(ctx, opts, ctx.user, apiErr, input);
+          return finalize(serializeError(apiErr), ctx);
+        }
+        throw e;
+      }
+    }
+
+    // --- 3. CSRF on non-GET (double-submit + session-bound) ---
+    // Public routes are pre-session (e.g. login): there is no session-bound
+    // CSRF token to double-submit against, so the check is skipped for them
+    // (WP-20: login is `auth:'public'`, CSRF skipped pre-session). This does
+    // NOT weaken `any`/`admin`/group routes — every authenticated mutation
+    // still enforces the full double-submit + session-bound CSRF below.
+    if (opts.auth !== "public" && !["GET", "HEAD", "OPTIONS"].includes(method)) {
+      try {
+        requireCsrf(request, ctx.session?.csrfToken ?? null, ctx.cookies);
+      } catch (e) {
+        const apiErr = extractApiError(e);
+        if (apiErr) {
+          safeAudit(ctx, opts, user, apiErr, input);
+          return finalize(serializeError(apiErr), ctx);
+        }
+        throw e;
+      }
+    }
+
+    // --- 4. rate limit → 429 + Retry-After ---
+    {
+      const cfg = opts.rateLimit ?? defaultRateLimit(opts.auth);
+      const route = new URL(request.url).pathname;
+      const key =
+        cfg.bucket === "ip" || !user ? `ip:${ctx.clientIp}:${route}` : `user:${user.id}:${route}`;
+      const rl = checkRateLimit(key, cfg.limit, cfg.windowSec);
+      if (!rl.allowed) {
+        const e: ApiError = {
+          kind: "rate_limit",
+          message: "Too many requests",
+          retryAfter: rl.retryAfterSec,
+        };
+        safeAudit(ctx, opts, user, e, input);
+        return finalize(serializeError(e), ctx);
+      }
+    }
+
+    // --- 5. approval consume (single-use, session + action bound) → 412 ---
+    if (opts.approval) {
+      const actionHash = actionHashFor(opts.action, input ?? {});
+      const token = request.headers.get(APPROVAL_HEADER);
+      const sessionId = ctx.session?.id ?? null;
+      const result = token && sessionId ? consumeApproval(token, sessionId) : null;
+      if (!result || !result.ok || result.claims.actionHash !== actionHash) {
+        const e: ApiError = {
+          kind: "approval_required",
+          message: "This action requires a valid approval token",
+          actionHash,
+          ttlSec: 60,
+        };
+        safeAudit(ctx, opts, user, e, input);
+        return finalize(serializeError(e), ctx);
+      }
+    }
+
+    // --- 6. handler → audit → success / typed error ---
+    try {
+      const data = await opts.handler({ user, input, ctx });
+      safeAudit(ctx, opts, user, null, input, data);
+      const status = method === "POST" ? 201 : 200;
+      const res = new Response(JSON.stringify(data ?? null), {
+        status,
+        headers: { "content-type": "application/json; charset=utf-8" },
+      });
+      return finalize(res, ctx);
+    } catch (e) {
+      const apiErr = extractApiError(e);
+      const finalErr: ApiError = apiErr ?? { kind: "system", message: "Internal error" };
+      safeAudit(ctx, opts, user, finalErr, input);
+      return finalize(serializeError(finalErr), ctx);
+    }
+  };
 }
 
 // Re-export for symmetry with the legacy route-helper.

@@ -31,7 +31,7 @@ import { ACCENTS } from "@/hooks/accents";
 import { api } from "@/mocks/api";
 import { live } from "@/mocks/drift";
 import { NAV, PINNED } from "./NavConfig";
-import { LOCALES, LOCALE_LABEL, type Locale } from "@/i18n";
+import { LOCALES, LOCALE_LABEL } from "@/i18n";
 
 interface Props {
   open: boolean;

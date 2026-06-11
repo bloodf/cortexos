@@ -18,7 +18,7 @@ import { join } from "node:path";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { PGlite } from "@electric-sql/pglite";
-import { runSqlMigrations, pgExecutor, defaultMigrationsDir, getLanIp } from "../migrate";
+import { runSqlMigrations, pgExecutor, defaultMigrationsDir } from "../migrate";
 import { pgliteExecutor } from "../client.pglite";
 
 let client: PGlite;

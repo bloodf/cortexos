@@ -163,6 +163,49 @@ interface MockInstanceRecord extends IncusInstance {
 }
 
 /**
+ * Apply an Incus action to a mock record. Pure function: same input
+ * → same output. The mock executor calls this to derive the next
+ * state. The set of states mirrors the real `incus` lifecycle
+ * (draft → validated → provisioning → active/failed).
+ */
+export function applyAction(rec: MockInstanceRecord, action: IncusActionKind): MockInstanceRecord {
+  switch (action) {
+    case "start":
+      return { ...rec, status: "active" };
+    case "stop":
+      return { ...rec, status: "stopped" };
+    case "restart":
+      return { ...rec, status: "active" };
+    case "delete":
+      return { ...rec, status: "failed" };
+    case "launch":
+      return { ...rec, status: "provisioning" };
+    case "list":
+    case "exec-named":
+      return { ...rec };
+  }
+}
+
+/** Project a MockInstanceRecord into the contracts IncusInstance shape. */
+function projectMockRecord(rec: MockInstanceRecord): IncusInstance {
+  return {
+    name: rec.name,
+    slug: rec.slug,
+    status: rec.status,
+    type: rec.type,
+    image: rec.image,
+    cpu: rec.cpu ?? null,
+    memory: rec.memory ?? null,
+    config: rec.config,
+    devices: rec.devices,
+    lastValidation: rec.lastValidation ?? null,
+    createdBy: rec.createdBy,
+    createdAt: rec.createdAt,
+    updatedAt: rec.updatedAt,
+  };
+}
+
+/**
  * The M2 mock executor. Keeps an in-memory `Map<name, MockInstanceRecord>`
  * and mutates `status` on dispatch. The exec-named executor is a
  * separate in-process helper (`MockExecNamedExecutor`) that uses
@@ -233,89 +276,6 @@ export class MockIncusExecutor {
     return projectMockRecord(rec);
   }
 }
-
-/**
- * Apply an Incus action to a mock record. Pure function: same input
- * → same output. The mock executor calls this to derive the next
- * state. The set of states mirrors the real `incus` lifecycle
- * (draft → validated → provisioning → active/failed).
- */
-export function applyAction(rec: MockInstanceRecord, action: IncusActionKind): MockInstanceRecord {
-  switch (action) {
-    case "start":
-      return { ...rec, status: "active" };
-    case "stop":
-      return { ...rec, status: "stopped" };
-    case "restart":
-      return { ...rec, status: "active" };
-    case "delete":
-      return { ...rec, status: "failed" };
-    case "launch":
-      return { ...rec, status: "provisioning" };
-    case "list":
-    case "exec-named":
-      return { ...rec };
-  }
-}
-
-/** Project a MockInstanceRecord into the contracts IncusInstance shape. */
-function projectMockRecord(rec: MockInstanceRecord): IncusInstance {
-  return {
-    name: rec.name,
-    slug: rec.slug,
-    status: rec.status,
-    type: rec.type,
-    image: rec.image,
-    cpu: rec.cpu ?? null,
-    memory: rec.memory ?? null,
-    config: rec.config,
-    devices: rec.devices,
-    lastValidation: rec.lastValidation ?? null,
-    createdBy: rec.createdBy,
-    createdAt: rec.createdAt,
-    updatedAt: rec.updatedAt,
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Real executor (Linux only). Calls `incus` via execFile — no shell,
-// no string interpolation. The instance name is already validated by
-// the bridge before this runs.
-// ---------------------------------------------------------------------------
-
-const realIncusExecutor: IncusExecutor = async (ctx) => {
-  const args: Record<IncusActionKind, string[]> = {
-    start: ["start", ctx.instance.name],
-    stop: ["stop", ctx.instance.name],
-    restart: ["restart", ctx.instance.name],
-    delete: ["delete", ctx.instance.name, "--force"],
-    launch: ["launch", ctx.instance.image, ctx.instance.name],
-    list: ["list", ctx.instance.name, "--format", "json"],
-    "exec-named": ["list", ctx.instance.name, "--format", "json"],
-  };
-
-  try {
-    const { stdout, stderr } = await execFileAsync("incus", args[ctx.action], {
-      timeout: 60_000,
-      maxBuffer: 4 * 1024 * 1024,
-    });
-    const updated = await getMockRecord(ctx.instance.name);
-    return {
-      stdout: stdout ?? "",
-      stderr: stderr ?? "",
-      exitCode: 0,
-      instance: updated ? projectMockRecord(updated) : ctx.instance,
-    };
-  } catch (err) {
-    const e = err as { code?: number | string; stdout?: string; stderr?: string; message?: string };
-    return {
-      stdout: e.stdout ?? "",
-      stderr: e.stderr ?? e.message ?? "incus exec failed",
-      exitCode: typeof e.code === "number" ? e.code : 1,
-      instance: ctx.instance,
-    };
-  }
-};
 
 // ---------------------------------------------------------------------------
 // Real data mapping helpers.
@@ -779,17 +739,6 @@ let executor: IncusExecutor = (_p) => {
   throw new Error("incus bridge: executor used before init");
 };
 
-(function init() {
-  const useReal = process.platform === "linux" && process.env.CORTEX_INCUS_BRIDGE_REAL !== "0";
-  if (useReal) {
-    executor = realIncusExecutor;
-    return;
-  }
-  const { mock, executor: e } = makeDefaultMock();
-  currentMock = mock;
-  executor = e;
-})();
-
 /** Test helper: swap the executor. Pass `null` to reset to the default mock. */
 export function setExecutorForTests(fn: IncusExecutor | null): void {
   if (fn) {
@@ -898,6 +847,57 @@ export async function listImages(): Promise<IncusImage[]> {
   }
   return listImagesFromIncus();
 }
+
+// ---------------------------------------------------------------------------
+// Real executor (Linux only). Calls `incus` via execFile — no shell,
+// no string interpolation. The instance name is already validated by
+// the bridge before this runs.
+// ---------------------------------------------------------------------------
+
+const realIncusExecutor: IncusExecutor = async (ctx) => {
+  const args: Record<IncusActionKind, string[]> = {
+    start: ["start", ctx.instance.name],
+    stop: ["stop", ctx.instance.name],
+    restart: ["restart", ctx.instance.name],
+    delete: ["delete", ctx.instance.name, "--force"],
+    launch: ["launch", ctx.instance.image, ctx.instance.name],
+    list: ["list", ctx.instance.name, "--format", "json"],
+    "exec-named": ["list", ctx.instance.name, "--format", "json"],
+  };
+
+  try {
+    const { stdout, stderr } = await execFileAsync("incus", args[ctx.action], {
+      timeout: 60_000,
+      maxBuffer: 4 * 1024 * 1024,
+    });
+    const updated = await getMockRecord(ctx.instance.name);
+    return {
+      stdout: stdout ?? "",
+      stderr: stderr ?? "",
+      exitCode: 0,
+      instance: updated ? projectMockRecord(updated) : ctx.instance,
+    };
+  } catch (err) {
+    const e = err as { code?: number | string; stdout?: string; stderr?: string; message?: string };
+    return {
+      stdout: e.stdout ?? "",
+      stderr: e.stderr ?? e.message ?? "incus exec failed",
+      exitCode: typeof e.code === "number" ? e.code : 1,
+      instance: ctx.instance,
+    };
+  }
+};
+
+(function init() {
+  const useReal = process.platform === "linux" && process.env.CORTEX_INCUS_BRIDGE_REAL !== "0";
+  if (useReal) {
+    executor = realIncusExecutor;
+    return;
+  }
+  const { mock, executor: e } = makeDefaultMock();
+  currentMock = mock;
+  executor = e;
+})();
 
 // ---------------------------------------------------------------------------
 // Preflight (M2 deterministic stub)

@@ -36,21 +36,6 @@ async function dispatchSystemdAction(
   });
 }
 
-// ---------------------------------------------------------------------------
-// Route
-// ---------------------------------------------------------------------------
-
-export const Route = createFileRoute("/_authenticated/systemd/$unit")({
-  loader: async ({ params }) => {
-    const all = await api.systemd();
-    const found = all.find((u) => u.name === params.unit);
-    if (!found) throw notFound();
-    return { unit: found };
-  },
-  notFoundComponent: NotFoundComponent,
-  component: SystemdDetail,
-});
-
 function NotFoundComponent() {
   const { unit } = useParams({ from: "/_authenticated/systemd/$unit" });
   return (
@@ -283,3 +268,14 @@ function SystemdDetail() {
     </div>
   );
 }
+
+export const Route = createFileRoute("/_authenticated/systemd/$unit")({
+  loader: async ({ params }) => {
+    const all = await api.systemd();
+    const found = all.find((u) => u.name === params.unit);
+    if (!found) throw notFound();
+    return { unit: found };
+  },
+  notFoundComponent: NotFoundComponent,
+  component: SystemdDetail,
+});

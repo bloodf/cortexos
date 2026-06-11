@@ -8,6 +8,19 @@ interface Props {
   className?: string;
 }
 
+function mix(hex: string): string {
+  if (!hex.startsWith("#") || hex.length !== 7) return hex;
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const f = 0.7;
+  const m = (v: number) =>
+    Math.max(0, Math.min(255, Math.round(v * f)))
+      .toString(16)
+      .padStart(2, "0");
+  return `#${m(r)}${m(g)}${m(b)}`;
+}
+
 export function TechIcon({ slug, name, size = 32, className }: Props) {
   const color = BRAND_COLORS[slug] ?? "oklch(0.55 0.18 277)";
   const monogram = name.slice(0, 2).toUpperCase();
@@ -31,17 +44,4 @@ export function TechIcon({ slug, name, size = 32, className }: Props) {
       {monogram}
     </div>
   );
-}
-
-function mix(hex: string): string {
-  if (!hex.startsWith("#") || hex.length !== 7) return hex;
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  const f = 0.7;
-  const m = (v: number) =>
-    Math.max(0, Math.min(255, Math.round(v * f)))
-      .toString(16)
-      .padStart(2, "0");
-  return `#${m(r)}${m(g)}${m(b)}`;
 }

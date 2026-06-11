@@ -72,6 +72,30 @@ export type UnitExecutor = (ctx: UnitExecutorContext) => Promise<UnitExecutorRes
 // Mock executor (M2) — in-memory, deterministic, no shell.
 // ---------------------------------------------------------------------------
 
+/**
+ * Apply a systemd action to a unit snapshot. Pure function. The mock executor
+ * calls this to derive the next state; mirrors common-case systemctl semantics.
+ */
+export function applyAction(unit: SystemdUnit, action: SystemdActionKind): SystemdUnit {
+  switch (action) {
+    case "start":
+      return { ...unit, active: "active", sub: "running" };
+    case "stop":
+      return { ...unit, active: "inactive", sub: "dead" };
+    case "restart":
+      return { ...unit, active: "active", sub: "running" };
+    case "reload":
+      return { ...unit, active: "active", sub: "running" };
+    case "enable":
+      return { ...unit, enabled: true };
+    case "disable":
+      return { ...unit, enabled: false };
+    case "status":
+    case "list-units":
+      return { ...unit };
+  }
+}
+
 export class MockUnitExecutor {
   private readonly snapshots = new Map<string, SystemdUnit>();
   private readonly logsByUnit = new Map<string, SystemdLogLine[]>();
@@ -123,30 +147,6 @@ export class MockUnitExecutor {
       unit: next,
     };
   };
-}
-
-/**
- * Apply a systemd action to a unit snapshot. Pure function. The mock executor
- * calls this to derive the next state; mirrors common-case systemctl semantics.
- */
-export function applyAction(unit: SystemdUnit, action: SystemdActionKind): SystemdUnit {
-  switch (action) {
-    case "start":
-      return { ...unit, active: "active", sub: "running" };
-    case "stop":
-      return { ...unit, active: "inactive", sub: "dead" };
-    case "restart":
-      return { ...unit, active: "active", sub: "running" };
-    case "reload":
-      return { ...unit, active: "active", sub: "running" };
-    case "enable":
-      return { ...unit, enabled: true };
-    case "disable":
-      return { ...unit, enabled: false };
-    case "status":
-    case "list-units":
-      return { ...unit };
-  }
 }
 
 // ---------------------------------------------------------------------------

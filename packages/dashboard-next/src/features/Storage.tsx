@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 
 export function StoragePage() {
   const t = useT();
-  const { data: sys, isLoading } = useQuery({
+  const { data: sys } = useQuery({
     queryKey: ["system"],
     queryFn: api.system,
     refetchInterval: 5000,

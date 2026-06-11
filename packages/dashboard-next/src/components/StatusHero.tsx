@@ -7,6 +7,15 @@ import { cn } from "@/lib/utils";
  * Top-of-page system health banner. Aggregates services + CPU + memory into
  * one calm sentence ("All systems operational", "1 service degraded", ...).
  */
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="text-right">
+      <div className="text-[10px] uppercase tracking-wide opacity-60">{label}</div>
+      <div className="font-mono font-medium">{value}</div>
+    </div>
+  );
+}
+
 export function StatusHero({ className }: { className?: string }) {
   const { data: services = [] } = useQuery({ queryKey: ["services"], queryFn: api.services });
   const { data: system } = useQuery({ queryKey: ["system"], queryFn: api.system });
@@ -51,15 +60,6 @@ export function StatusHero({ className }: { className?: string }) {
           <Stat label="Memory" value={`${Math.round(mem)}%`} />
         </div>
       </div>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="text-right">
-      <div className="text-[10px] uppercase tracking-wide opacity-60">{label}</div>
-      <div className="font-mono font-medium">{value}</div>
     </div>
   );
 }

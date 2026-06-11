@@ -58,6 +58,32 @@ interface SetCookieOpts {
   maxAge?: number;
 }
 
+function parseCookieHeader(header: string | null): Map<string, string> {
+  const out = new Map<string, string>();
+  if (!header) return out;
+  for (const part of header.split(";")) {
+    const idx = part.indexOf("=");
+    if (idx < 0) continue;
+    const name = part.slice(0, idx).trim();
+    const value = part.slice(idx + 1).trim();
+    if (name) out.set(name, decodeURIComponent(value));
+  }
+  return out;
+}
+
+function serializeCookie(name: string, value: string, opts: SetCookieOpts): string {
+  const segments = [`${name}=${encodeURIComponent(value)}`];
+  segments.push(`Path=${opts.path}`);
+  if (opts.maxAge !== undefined) segments.push(`Max-Age=${Math.floor(opts.maxAge)}`);
+  if (opts.httpOnly) segments.push("HttpOnly");
+  if (opts.sameSite) {
+    const v = opts.sameSite === "lax" ? "Lax" : opts.sameSite === "strict" ? "Strict" : "None";
+    segments.push(`SameSite=${v}`);
+  }
+  if (opts.secure) segments.push("Secure");
+  return segments.join("; ");
+}
+
 /**
  * Reads cookies from the request `Cookie` header and serializes mutations into
  * `Set-Cookie` header strings. `delete` emits a `Max-Age=0` expiry. Pending
@@ -102,32 +128,6 @@ export class WebCookieJar implements CookieJar {
       headers.append("set-cookie", cookie);
     }
   }
-}
-
-function parseCookieHeader(header: string | null): Map<string, string> {
-  const out = new Map<string, string>();
-  if (!header) return out;
-  for (const part of header.split(";")) {
-    const idx = part.indexOf("=");
-    if (idx < 0) continue;
-    const name = part.slice(0, idx).trim();
-    const value = part.slice(idx + 1).trim();
-    if (name) out.set(name, decodeURIComponent(value));
-  }
-  return out;
-}
-
-function serializeCookie(name: string, value: string, opts: SetCookieOpts): string {
-  const segments = [`${name}=${encodeURIComponent(value)}`];
-  segments.push(`Path=${opts.path}`);
-  if (opts.maxAge !== undefined) segments.push(`Max-Age=${Math.floor(opts.maxAge)}`);
-  if (opts.httpOnly) segments.push("HttpOnly");
-  if (opts.sameSite) {
-    const v = opts.sameSite === "lax" ? "Lax" : opts.sameSite === "strict" ? "Strict" : "None";
-    segments.push(`SameSite=${v}`);
-  }
-  if (opts.secure) segments.push("Secure");
-  return segments.join("; ");
 }
 
 // ---------------------------------------------------------------------------

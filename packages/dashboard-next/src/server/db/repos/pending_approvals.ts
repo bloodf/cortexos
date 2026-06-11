@@ -4,7 +4,7 @@
  * Read-mostly surface; writes happen via approval actions. Supports
  * listing, filtering by status, and resolving.
  */
-import { and, asc, desc, eq, isNull, not, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, sql, type SQL } from "drizzle-orm";
 import type { DbClient } from "../client";
 import { pendingApprovals } from "../schema";
 import type { PendingApproval, NewPendingApproval } from "../schema";

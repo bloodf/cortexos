@@ -12,13 +12,11 @@ import { relativeTime } from "@/lib/format";
 import { api } from "@/mocks/api";
 import type { SchedulerJob } from "@/mocks/types";
 
-export const Route = createFileRoute("/_authenticated/scheduler")({ component: SchedulerPage });
-
 function SchedulerPage() {
   const { user } = useAuth();
   const isAdmin = !!user?.is_admin;
   const qc = useQueryClient();
-  const { data: jobs = [], isLoading } = useQuery({
+  useQuery({
     queryKey: ["scheduler"],
     queryFn: api.scheduler,
   });
@@ -137,3 +135,5 @@ function SchedulerPage() {
     </div>
   );
 }
+
+export const Route = createFileRoute("/_authenticated/scheduler")({ component: SchedulerPage });

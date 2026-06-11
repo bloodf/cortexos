@@ -206,6 +206,20 @@ export async function tailLogs(id: string, n: number): Promise<string[]> {
   }
 }
 
+let imageCache: DockerImage[] | null = null;
+let imageCacheAt = 0;
+let volumeCache: DockerVolume[] | null = null;
+let volumeCacheAt = 0;
+
+export function invalidateCache(): void {
+  cache = null;
+  cacheAt = 0;
+  imageCache = null;
+  imageCacheAt = 0;
+  volumeCache = null;
+  volumeCacheAt = 0;
+}
+
 // ---------------------------------------------------------------------------
 // Actions — wrappers around docker CLI, each calls invalidateCache()
 // ---------------------------------------------------------------------------
@@ -313,9 +327,6 @@ async function loadImagesJson(): Promise<DockerImage[]> {
   return out;
 }
 
-let imageCache: DockerImage[] | null = null;
-let imageCacheAt = 0;
-
 async function getImages(): Promise<DockerImage[]> {
   if (imageCache && Date.now() - imageCacheAt < CACHE_MS) return imageCache;
   try {
@@ -393,9 +404,6 @@ async function loadVolumesJson(): Promise<DockerVolume[]> {
   return out;
 }
 
-let volumeCache: DockerVolume[] | null = null;
-let volumeCacheAt = 0;
-
 async function getVolumes(): Promise<DockerVolume[]> {
   if (volumeCache && Date.now() - volumeCacheAt < CACHE_MS) return volumeCache;
   try {
@@ -420,15 +428,6 @@ export async function listVolumes(opts: { query?: string } = {}): Promise<Docker
     );
   }
   return rows;
-}
-
-export function invalidateCache(): void {
-  cache = null;
-  cacheAt = 0;
-  imageCache = null;
-  imageCacheAt = 0;
-  volumeCache = null;
-  volumeCacheAt = 0;
 }
 
 // Re-export types for consumers

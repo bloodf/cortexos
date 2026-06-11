@@ -153,7 +153,7 @@ describe("listInstanceLogs", () => {
 
 describe("dispatchAction — policy allowlist", () => {
   it("rejects an op not on the allowlist", async () => {
-    const result = await dispatchAction(
+    const _result = await dispatchAction(
       { action: "exec-named", name: "hermes-canary" },
       makeAdminCtx(),
     );

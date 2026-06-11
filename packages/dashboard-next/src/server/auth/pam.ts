@@ -81,47 +81,138 @@ export interface PamAuthenticator {
 }
 
 // ---------------------------------------------------------------------------
-// Singleton
+// Internal helpers
 // ---------------------------------------------------------------------------
 
-let cached: PamAuthenticator | null = null;
+/** Dashboard-understood group allowlist (THREAT_MODEL SR-003). */
+const DASHBOARD_GROUPS: ReadonlySet<GroupName> = new Set([
+  "cortexos-admin",
+  "cortexos-auditor",
+  "cortexos-users",
+]);
 
-function pickDefault(): PamAuthenticator {
-  // Explicit dev / test override.
-  if (process.env.CORTEX_AUTH_FAKE_PAM === "1") {
-    return new FakePamAuthenticator();
+function isDashboardGroup(g: string): g is GroupName {
+  return DASHBOARD_GROUPS.has(g as GroupName);
+}
+
+/**
+ * Eagerly resolve and cache the real `authenticate-pam` module so the
+ * dynamic-import path doesn't add startup latency to the first login.
+ *
+ * Side effect: sets `pamModule` on success.
+ */
+let pamModule:
+  | {
+      authenticate: (
+        user: string,
+        password: string,
+        cb: (err: unknown) => void,
+        options?: { serviceName?: string; remoteHost?: string },
+      ) => void;
+    }
+  | null
+  | undefined; // undefined = not yet attempted; null = attempted, failed
+
+let pamLoadPromise: Promise<void> | null = null;
+
+async function loadAuthenticatePam(): Promise<typeof pamModule> {
+  if (pamModule !== undefined) return pamModule;
+  if (!pamLoadPromise) {
+    pamLoadPromise = (async () => {
+      try {
+        // The package is `optionalDependencies` (native binding; only
+        // builds on Linux). On macOS / Windows the import fails —
+        // we swallow that and degrade gracefully.
+        //
+        // The native binding is a `.node` addon — these are loaded by
+        // the CommonJS loader, not the ESM loader. A bare
+        // `await import('authenticate-pam')` from an ESM context
+        // produces ERR_UNKNOWN_FILE_EXTENSION (Node 20+). We use
+        // `createRequire` so the CJS loader handles the `.node`
+        // resolution. The package's own main is CJS anyway.
+        const { createRequire } = await import("node:module");
+        const requireFromHere = createRequire(import.meta.url);
+        const mod = requireFromHere("authenticate-pam") as {
+          authenticate: (
+            u: string,
+            p: string,
+            cb: (err: unknown) => void,
+            options?: { serviceName?: string; remoteHost?: string },
+          ) => void;
+        };
+        pamModule = mod;
+      } catch (err) {
+        console.error(
+          "[cortexos/auth] failed to load authenticate-pam native binding:",
+          (err as Error).message,
+        );
+        pamModule = null;
+      }
+    })();
   }
-  // On Linux, the production path. On other platforms, fall back to
-  // the fake and log a warning so a deploy on macOS / Windows is loud.
-  if (process.platform === "linux") {
-    return new LinuxPamAuthenticator();
+  await pamLoadPromise;
+  return pamModule;
+}
+
+// Kick the load at module init. This is fire-and-forget; the first
+// authenticate() call awaits the cached promise.
+void loadAuthenticatePam();
+
+/** Best-effort `id -u <user>` lookup. */
+function safeUserExists(username: string): boolean {
+  if (process.platform === "win32") return true; // dev on Windows; never trust
+  try {
+    const out = execFileSync("id", ["-u", username], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    return /^\d+$/.test(out.trim());
+  } catch {
+    // `id` exits non-zero when the user doesn't exist. Treat as "no".
+    return false;
   }
-  // Non-Linux: warn loudly. The fake backend accepts any credentials
-  // and treats every user as admin — this is acceptable for local
-  // dev / CI but MUST never run in production (a Linux host will
-  // never hit this branch).
-
-  console.warn(
-    "[cortexos/auth] authenticate-pam is Linux-only; using FakePamAuthenticator. " +
-      "Set CORTEX_AUTH_FAKE_PAM=1 to silence this warning, or deploy on Linux.",
-  );
-  return new FakePamAuthenticator();
 }
 
-/** Return the process-wide authenticator (lazy). */
-export function getPamAuthenticator(): PamAuthenticator {
-  if (!cached) cached = pickDefault();
-  return cached;
+/** Best-effort `id -Gn <user>` call. Returns `[]` on any failure. */
+function readPosixGroups(username: string): readonly string[] {
+  if (process.platform === "win32") return [];
+  try {
+    const out = execFileSync("id", ["-Gn", username], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    return out
+      .split(/\s+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
 }
 
-/** Test helper: install a custom authenticator. */
-export function setPamAuthenticator(a: PamAuthenticator): void {
-  cached = a;
+/** Classify an `authenticate-pam` error into a `PamAuthFailureReason`. */
+function classifyPamError(err: unknown): PamAuthFailureReason {
+  const msg = err instanceof Error ? err.message : String(err);
+  if (/auth/i.test(msg) && /fail/i.test(msg)) return "invalid_credentials";
+  if (/disabled|inactive|expired/i.test(msg)) return "account_disabled";
+  if (/no such|unknown|not found/i.test(msg)) return "unknown_user";
+  return "system_error";
 }
 
-/** Test helper: clear the singleton. Next call re-runs pickDefault(). */
-export function resetPamAuthenticator(): void {
-  cached = null;
+/** Run a short hash round-trip to keep timing close to real PAM. */
+function fakeAuthRoundTrip(password: string): void {
+  // A few rounds of sha256 over the password + a small nonce is a
+  // reasonable proxy for the work PAM does (lookup + crypt). 4
+  // rounds is typically enough to push the latency to the same
+  // order of magnitude (~1-3ms) on a modern CPU without dominating
+  // a test.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { createHash } = require("node:crypto") as typeof import("node:crypto");
+  for (let i = 0; i < 4; i++) {
+    createHash("sha256")
+      .update(password + i)
+      .digest("hex");
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -291,136 +382,47 @@ export class FakePamAuthenticator implements PamAuthenticator {
 }
 
 // ---------------------------------------------------------------------------
-// Internal helpers
+// Singleton
 // ---------------------------------------------------------------------------
 
-/** Dashboard-understood group allowlist (THREAT_MODEL SR-003). */
-const DASHBOARD_GROUPS: ReadonlySet<GroupName> = new Set([
-  "cortexos-admin",
-  "cortexos-auditor",
-  "cortexos-users",
-]);
+let cached: PamAuthenticator | null = null;
 
-function isDashboardGroup(g: string): g is GroupName {
-  return DASHBOARD_GROUPS.has(g as GroupName);
-}
-
-/**
- * Eagerly resolve and cache the real `authenticate-pam` module so the
- * dynamic-import path doesn't add startup latency to the first login.
- *
- * Side effect: sets `pamModule` on success.
- */
-let pamModule:
-  | {
-      authenticate: (
-        user: string,
-        password: string,
-        cb: (err: unknown) => void,
-        options?: { serviceName?: string; remoteHost?: string },
-      ) => void;
-    }
-  | null
-  | undefined; // undefined = not yet attempted; null = attempted, failed
-
-let pamLoadPromise: Promise<void> | null = null;
-
-async function loadAuthenticatePam(): Promise<typeof pamModule> {
-  if (pamModule !== undefined) return pamModule;
-  if (!pamLoadPromise) {
-    pamLoadPromise = (async () => {
-      try {
-        // The package is `optionalDependencies` (native binding; only
-        // builds on Linux). On macOS / Windows the import fails —
-        // we swallow that and degrade gracefully.
-        //
-        // The native binding is a `.node` addon — these are loaded by
-        // the CommonJS loader, not the ESM loader. A bare
-        // `await import('authenticate-pam')` from an ESM context
-        // produces ERR_UNKNOWN_FILE_EXTENSION (Node 20+). We use
-        // `createRequire` so the CJS loader handles the `.node`
-        // resolution. The package's own main is CJS anyway.
-        const { createRequire } = await import("node:module");
-        const requireFromHere = createRequire(import.meta.url);
-        const mod = requireFromHere("authenticate-pam") as {
-          authenticate: (
-            u: string,
-            p: string,
-            cb: (err: unknown) => void,
-            options?: { serviceName?: string; remoteHost?: string },
-          ) => void;
-        };
-        pamModule = mod;
-      } catch (err) {
-        console.error(
-          "[cortexos/auth] failed to load authenticate-pam native binding:",
-          (err as Error).message,
-        );
-        pamModule = null;
-      }
-    })();
+function pickDefault(): PamAuthenticator {
+  // Explicit dev / test override.
+  if (process.env.CORTEX_AUTH_FAKE_PAM === "1") {
+    return new FakePamAuthenticator();
   }
-  await pamLoadPromise;
-  return pamModule;
-}
-
-// Kick the load at module init. This is fire-and-forget; the first
-// authenticate() call awaits the cached promise.
-void loadAuthenticatePam();
-
-/** Best-effort `id -u <user>` lookup. */
-function safeUserExists(username: string): boolean {
-  if (process.platform === "win32") return true; // dev on Windows; never trust
-  try {
-    const out = execFileSync("id", ["-u", username], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-    });
-    return /^\d+$/.test(out.trim());
-  } catch {
-    // `id` exits non-zero when the user doesn't exist. Treat as "no".
-    return false;
+  // On Linux, the production path. On other platforms, fall back to
+  // the fake and log a warning so a deploy on macOS / Windows is loud.
+  if (process.platform === "linux") {
+    return new LinuxPamAuthenticator();
   }
+  // Non-Linux: warn loudly. The fake backend accepts any credentials
+  // and treats every user as admin — this is acceptable for local
+  // dev / CI but MUST never run in production (a Linux host will
+  // never hit this branch).
+
+  console.warn(
+    "[cortexos/auth] authenticate-pam is Linux-only; using FakePamAuthenticator. " +
+      "Set CORTEX_AUTH_FAKE_PAM=1 to silence this warning, or deploy on Linux.",
+  );
+  return new FakePamAuthenticator();
 }
 
-/** Best-effort `id -Gn <user>` call. Returns `[]` on any failure. */
-function readPosixGroups(username: string): readonly string[] {
-  if (process.platform === "win32") return [];
-  try {
-    const out = execFileSync("id", ["-Gn", username], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-    });
-    return out
-      .split(/\s+/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-  } catch {
-    return [];
-  }
+/** Return the process-wide authenticator (lazy). */
+export function getPamAuthenticator(): PamAuthenticator {
+  if (!cached) cached = pickDefault();
+  return cached;
 }
 
-/** Classify an `authenticate-pam` error into a `PamAuthFailureReason`. */
-function classifyPamError(err: unknown): PamAuthFailureReason {
-  const msg = err instanceof Error ? err.message : String(err);
-  if (/auth/i.test(msg) && /fail/i.test(msg)) return "invalid_credentials";
-  if (/disabled|inactive|expired/i.test(msg)) return "account_disabled";
-  if (/no such|unknown|not found/i.test(msg)) return "unknown_user";
-  return "system_error";
+/** Test helper: install a custom authenticator. */
+export function setPamAuthenticator(a: PamAuthenticator): void {
+  cached = a;
 }
 
-/** Run a short hash round-trip to keep timing close to real PAM. */
-function fakeAuthRoundTrip(password: string): void {
-  // A few rounds of sha256 over the password + a small nonce is a
-  // reasonable proxy for the work PAM does (lookup + crypt). 4
-  // rounds is typically enough to push the latency to the same
-  // order of magnitude (~1-3ms) on a modern CPU without dominating
-  // a test.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { createHash } = require("node:crypto") as typeof import("node:crypto");
-  for (let i = 0; i < 4; i++) {
-    createHash("sha256")
-      .update(password + i)
-      .digest("hex");
-  }
+/** Test helper: clear the singleton. Next call re-runs pickDefault(). */
+export function resetPamAuthenticator(): void {
+  cached = null;
 }
+
+

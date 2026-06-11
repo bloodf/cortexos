@@ -75,6 +75,25 @@ export const deterministicSeed = {
 } as const;
 
 /**
+ * Insert the canonical seed rows. Idempotent (uses ON CONFLICT DO NOTHING
+ * semantics via slug lookups). Tests can add more on top.
+ */
+export async function seedTestDb(db: PgliteDbClient): Promise<void> {
+  for (const s of deterministicSeed.services) {
+    await db
+      .insert(schema.services)
+      .values(s)
+      .onConflictDoUpdate({
+        target: schema.services.slug,
+        set: { name: s.name, updatedAt: new Date() },
+      });
+  }
+  for (const u of deterministicSeed.users) {
+    await db.insert(schema.pamUsers).values(u).onConflictDoNothing();
+  }
+}
+
+/**
  * Build a fresh in-memory PGlite, run all SQL migrations against it,
  * apply `deterministicSeed`, and return the Drizzle client + the
  * PGlite instance + the migration names that were applied.
@@ -129,23 +148,4 @@ export async function resetTestDb(db: PgliteDbClient): Promise<void> {
   await db.delete(schema.config);
   await db.delete(schema.services);
   await db.delete(schema.badges);
-}
-
-/**
- * Insert the canonical seed rows. Idempotent (uses ON CONFLICT DO NOTHING
- * semantics via slug lookups). Tests can add more on top.
- */
-export async function seedTestDb(db: PgliteDbClient): Promise<void> {
-  for (const s of deterministicSeed.services) {
-    await db
-      .insert(schema.services)
-      .values(s)
-      .onConflictDoUpdate({
-        target: schema.services.slug,
-        set: { name: s.name, updatedAt: new Date() },
-      });
-  }
-  for (const u of deterministicSeed.users) {
-    await db.insert(schema.pamUsers).values(u).onConflictDoNothing();
-  }
 }

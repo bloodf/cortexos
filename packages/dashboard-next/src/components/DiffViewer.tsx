@@ -21,6 +21,43 @@ interface Row {
  * Minimal line-based diff viewer. No external deps; uses LCS for change
  * detection. Renders side-by-side with +/- gutter coloring.
  */
+/** Tiny LCS diff. O(n*m) — fine for config files. */
+function diff(a: string[], b: string[]): Row[] {
+  const n = a.length;
+  const m = b.length;
+  const dp: number[][] = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = m - 1; j >= 0; j--) {
+      dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+  }
+  const rows: Row[] = [];
+  let i = 0;
+  let j = 0;
+  let la = 1;
+  let lb = 1;
+  while (i < n && j < m) {
+    if (a[i] === b[j]) {
+      rows.push({ type: "same", text: a[i], lineA: la++, lineB: lb++ });
+      i++;
+      j++;
+    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+      rows.push({ type: "del", text: a[i], lineA: la++ });
+      i++;
+    } else {
+      rows.push({ type: "add", text: b[j], lineB: lb++ });
+      j++;
+    }
+  }
+  while (i < n) {
+    rows.push({ type: "del", text: a[i++], lineA: la++ });
+  }
+  while (j < m) {
+    rows.push({ type: "add", text: b[j++], lineB: lb++ });
+  }
+  return rows;
+}
+
 export function DiffViewer({
   before,
   after,
@@ -73,41 +110,4 @@ export function DiffViewer({
       </div>
     </div>
   );
-}
-
-/** Tiny LCS diff. O(n*m) — fine for config files. */
-function diff(a: string[], b: string[]): Row[] {
-  const n = a.length;
-  const m = b.length;
-  const dp: number[][] = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
-  for (let i = n - 1; i >= 0; i--) {
-    for (let j = m - 1; j >= 0; j--) {
-      dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
-    }
-  }
-  const rows: Row[] = [];
-  let i = 0;
-  let j = 0;
-  let la = 1;
-  let lb = 1;
-  while (i < n && j < m) {
-    if (a[i] === b[j]) {
-      rows.push({ type: "same", text: a[i], lineA: la++, lineB: lb++ });
-      i++;
-      j++;
-    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
-      rows.push({ type: "del", text: a[i], lineA: la++ });
-      i++;
-    } else {
-      rows.push({ type: "add", text: b[j], lineB: lb++ });
-      j++;
-    }
-  }
-  while (i < n) {
-    rows.push({ type: "del", text: a[i++], lineA: la++ });
-  }
-  while (j < m) {
-    rows.push({ type: "add", text: b[j++], lineB: lb++ });
-  }
-  return rows;
 }

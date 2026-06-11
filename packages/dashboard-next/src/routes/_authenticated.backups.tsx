@@ -11,13 +11,25 @@ import { bytes, relativeTime } from "@/lib/format";
 import { api } from "@/mocks/api";
 import type { BackupSnapshot } from "@/mocks/types";
 
-export const Route = createFileRoute("/_authenticated/backups")({ component: BackupsPage });
+function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="rounded-lg border bg-card px-4 py-3 flex items-center gap-3">
+      <div className="size-9 rounded-md bg-primary/10 text-primary grid place-items-center">
+        {icon}
+      </div>
+      <div>
+        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
+        <div className="text-sm font-medium font-mono">{value}</div>
+      </div>
+    </div>
+  );
+}
 
 function BackupsPage() {
   const { user } = useAuth();
   const isAdmin = !!user?.is_admin;
   const qc = useQueryClient();
-  const { data: snaps = [], isLoading } = useQuery({ queryKey: ["backups"], queryFn: api.backups });
+  const { data: snaps = [] } = useQuery({ queryKey: ["backups"], queryFn: api.backups });
 
   const totalBytes = snaps.reduce((s, x) => s + x.sizeBytes, 0);
   const ok = snaps.filter((x) => x.status === "ok").length;
@@ -166,16 +178,4 @@ function BackupsPage() {
   );
 }
 
-function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div className="rounded-lg border bg-card px-4 py-3 flex items-center gap-3">
-      <div className="size-9 rounded-md bg-primary/10 text-primary grid place-items-center">
-        {icon}
-      </div>
-      <div>
-        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
-        <div className="text-sm font-medium font-mono">{value}</div>
-      </div>
-    </div>
-  );
-}
+export const Route = createFileRoute("/_authenticated/backups")({ component: BackupsPage });

@@ -20,6 +20,43 @@ import { getRequest, setCookie, setResponseHeader } from "@tanstack/react-start/
 
 import { defineApiRoute, type RouteOptions } from "@/server/server-fn-pipeline";
 
+function applySetCookie(serialized: string): void {
+  const parts = serialized.split(";").map((p) => p.trim());
+  const first = parts.shift();
+  if (!first) return;
+  const eq = first.indexOf("=");
+  if (eq < 0) return;
+  const name = first.slice(0, eq);
+  const value = decodeURIComponent(first.slice(eq + 1));
+
+  const options: Record<string, unknown> = {};
+  for (const attr of parts) {
+    const [rawKey, rawVal] = attr.split("=");
+    const key = (rawKey ?? "").toLowerCase();
+    switch (key) {
+      case "path":
+        options.path = rawVal ?? "/";
+        break;
+      case "max-age":
+        options.maxAge = Number(rawVal);
+        break;
+      case "httponly":
+        options.httpOnly = true;
+        break;
+      case "secure":
+        options.secure = true;
+        break;
+      case "samesite":
+        options.sameSite = (rawVal ?? "lax").toLowerCase();
+        break;
+      default:
+        break;
+    }
+  }
+  setCookie(name, value, options);
+}
+
+
 export async function runServerFnGate<TIn, TOut>(opts: RouteOptions<TIn, TOut>): Promise<TOut> {
   const request = getRequest();
 
@@ -57,38 +94,3 @@ export async function runServerFnGate<TIn, TOut>(opts: RouteOptions<TIn, TOut>):
  * helper so the framework owns the response's cookie state. Parses the subset
  * of attributes the pipeline emits (Path, Max-Age, HttpOnly, SameSite, Secure).
  */
-function applySetCookie(serialized: string): void {
-  const parts = serialized.split(";").map((p) => p.trim());
-  const first = parts.shift();
-  if (!first) return;
-  const eq = first.indexOf("=");
-  if (eq < 0) return;
-  const name = first.slice(0, eq);
-  const value = decodeURIComponent(first.slice(eq + 1));
-
-  const options: Record<string, unknown> = {};
-  for (const attr of parts) {
-    const [rawKey, rawVal] = attr.split("=");
-    const key = (rawKey ?? "").toLowerCase();
-    switch (key) {
-      case "path":
-        options.path = rawVal ?? "/";
-        break;
-      case "max-age":
-        options.maxAge = Number(rawVal);
-        break;
-      case "httponly":
-        options.httpOnly = true;
-        break;
-      case "secure":
-        options.secure = true;
-        break;
-      case "samesite":
-        options.sameSite = (rawVal ?? "lax").toLowerCase();
-        break;
-      default:
-        break;
-    }
-  }
-  setCookie(name, value, options);
-}
