@@ -206,7 +206,9 @@ const main = async () => {
       skipped.join(', '),
     );
   }
-  console.log(`✓ Wrote ${written} JSON-Schema files to ${OUT_DIR} (index: ${indexFile})`);
+  process.stdout.write(
+    `✓ Wrote ${written} JSON-Schema files to ${OUT_DIR} (index: ${indexFile})\n`,
+  );
 };
 
 main().catch((err) => {

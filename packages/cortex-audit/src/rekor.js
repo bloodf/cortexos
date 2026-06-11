@@ -17,8 +17,9 @@
  */
 import { generateKeyPairSync, sign as cryptoSign } from 'node:crypto';
 import { request } from 'undici';
+import { rekorUrl } from './env.js';
 
-const REKOR_URL = (process.env.CORTEX_REKOR_URL || 'https://rekor.sigstore.dev').replace(/\/$/, '');
+const REKOR_URL = (rekorUrl() || 'https://rekor.sigstore.dev').replace(/\/$/, '');
 
 /**
  * Anchor a chain head digest to Rekor.

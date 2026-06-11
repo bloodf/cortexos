@@ -359,6 +359,22 @@ export default [
     },
   },
 
+  // MP-020: build scripts consume devDependencies by design
+  {
+    files: ['packages/*/scripts/**'],
+    rules: {
+      'import-x/no-extraneous-dependencies': ['error', { devDependencies: true }],
+    },
+  },
+
+  // MP-020: env reads live ONLY in designated env modules
+  {
+    files: ['packages/*/src/env.{js,ts}'],
+    rules: {
+      'n/no-process-env': 'off',
+    },
+  },
+
   // 7f) Parser coverage — packages without their own tsconfig.json
   {
     files: ['**/*.ts', '**/*.cts', '**/*.mts', '**/*.tsx', '**/*.d.ts'],

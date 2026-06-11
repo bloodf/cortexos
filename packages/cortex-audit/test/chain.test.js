@@ -70,27 +70,27 @@ function makeShim() {
 
     if (matchInsert(text)) {
       const [
-        event_id,
-        event_type,
+        eventId,
+        eventType,
         source,
         subject,
         actor,
-        payload_hash,
-        prev_hash,
-        chain_hash,
+        payloadHash,
+        prevHash,
+        chainHash,
         payload,
       ] = params;
       const row = {
         id: nextId,
         occurred_at: new Date(),
-        event_id,
-        event_type,
+        event_id: eventId,
+        event_type: eventType,
         source,
         subject,
         actor,
-        payload_hash,
-        prev_hash,
-        chain_hash,
+        payload_hash: payloadHash,
+        prev_hash: prevHash,
+        chain_hash: chainHash,
         rekor_log_index: null,
         payload,
       };
@@ -138,8 +138,8 @@ function makeShim() {
     }
 
     if (matchUpdateRekor(text)) {
-      const [logIndex, occurred_at, id] = params;
-      const r = rows.find((x) => x.id === id && x.occurred_at === occurred_at);
+      const [logIndex, occurredAt, id] = params;
+      const r = rows.find((x) => x.id === id && x.occurred_at === occurredAt);
       if (r) r.rekor_log_index = logIndex;
       return { rows: [] };
     }

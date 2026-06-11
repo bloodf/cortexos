@@ -18,7 +18,6 @@
  * Exit code: 0 if every route PASSes, 1 if any FAILs (or a fatal setup error).
  */
 
-// eslint-disable-next-line import-x/no-extraneous-dependencies
 import { chromium } from "playwright";
 import pg from "pg";
 import { randomBytes } from "node:crypto";

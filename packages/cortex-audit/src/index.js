@@ -24,6 +24,8 @@ import { v4 as uuidv4 } from 'uuid';
 import pg from 'pg';
 import jcs from './jcs.js';
 import anchorDigest from './rekor.js';
+import { dbPassword, dbHost, dbPort, dbName, dbUser } from './env.js';
+import runSequentially from './sequential.js';
 
 const GENESIS_PREV_HASH = '0'.repeat(64);
 
@@ -40,15 +42,16 @@ export function setPool(pool) {
 
 /** Lazy default pool — env-driven, mirrors dashboard/src/lib/db/client.ts. */
 function defaultPool() {
-  if (!process.env.DB_PASSWORD) {
+  const password = dbPassword();
+  if (!password) {
     throw new Error('DB_PASSWORD environment variable is required');
   }
   return new pg.Pool({
-    host: process.env.DB_HOST || '127.0.0.1',
-    port: parseInt(process.env.DB_PORT || '5432', 10),
-    database: process.env.DB_NAME || 'cortex_dashboard',
-    user: process.env.DB_USER || 'dashboard',
-    password: process.env.DB_PASSWORD,
+    host: dbHost() || '127.0.0.1',
+    port: parseInt(dbPort() || '5432', 10),
+    database: dbName() || 'cortex_dashboard',
+    user: dbUser() || 'dashboard',
+    password,
   });
 }
 
@@ -219,32 +222,39 @@ export async function verifyChain(fromTs, toTs, opts = {}) {
     expectedPrev = GENESIS_PREV_HASH;
   }
 
-  for (const row of rows) {
-    if (row.prev_hash !== expectedPrev) {
-      return {
-        valid: false,
-        count: rows.length,
-        brokenAt: { id: row.id, occurred_at: row.occurred_at, reason: 'prev_hash_mismatch' },
-      };
-    }
-    const recomputedPayload = payloadHashOf(row.payload);
-    if (recomputedPayload !== row.payload_hash) {
-      return {
-        valid: false,
-        count: rows.length,
-        brokenAt: { id: row.id, occurred_at: row.occurred_at, reason: 'payload_hash_mismatch' },
-      };
-    }
-    const recomputedChain = chainHashOf(row.prev_hash, row.payload_hash);
-    if (recomputedChain !== row.chain_hash) {
-      return {
-        valid: false,
-        count: rows.length,
-        brokenAt: { id: row.id, occurred_at: row.occurred_at, reason: 'chain_hash_mismatch' },
-      };
-    }
-    expectedPrev = row.chain_hash;
-  }
+  const verification = await runSequentially(
+    rows,
+    (acc, row) => {
+      if (!acc.valid) return acc;
+      if (row.prev_hash !== acc.expectedPrev) {
+        return {
+          valid: false,
+          count: rows.length,
+          brokenAt: { id: row.id, occurred_at: row.occurred_at, reason: 'prev_hash_mismatch' },
+        };
+      }
+      const recomputedPayload = payloadHashOf(row.payload);
+      if (recomputedPayload !== row.payload_hash) {
+        return {
+          valid: false,
+          count: rows.length,
+          brokenAt: { id: row.id, occurred_at: row.occurred_at, reason: 'payload_hash_mismatch' },
+        };
+      }
+      const recomputedChain = chainHashOf(row.prev_hash, row.payload_hash);
+      if (recomputedChain !== row.chain_hash) {
+        return {
+          valid: false,
+          count: rows.length,
+          brokenAt: { id: row.id, occurred_at: row.occurred_at, reason: 'chain_hash_mismatch' },
+        };
+      }
+      return { ...acc, expectedPrev: row.chain_hash };
+    },
+    { valid: true, expectedPrev },
+  );
+
+  if (!verification.valid) return verification;
 
   return {
     valid: true,

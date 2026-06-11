@@ -43,7 +43,8 @@ async function main() {
 
   if (!cmd || flags.help) {
     usage();
-    process.exit(cmd ? 0 : 64);
+    process.exitCode = cmd ? 0 : 64;
+    return;
   }
 
   if (cmd === 'verify') {
@@ -52,7 +53,8 @@ async function main() {
       flags.to ? new Date(flags.to) : undefined,
     );
     process.stdout.write(`${JSON.stringify(result)}\n`);
-    process.exit(result.valid ? 0 : 1);
+    process.exitCode = result.valid ? 0 : 1;
+    return;
   }
 
   if (cmd === 'anchor') {
@@ -60,23 +62,26 @@ async function main() {
     const v = await verifyChain(since);
     if (!v.valid) {
       process.stderr.write(`audit chain broken: ${JSON.stringify(v)}\n`);
-      process.exit(2);
+      process.exitCode = 2;
+      return;
     }
     try {
       const result = await anchorToRekor(since);
       process.stdout.write(`${JSON.stringify(result)}\n`);
-      process.exit(0);
+      process.exitCode = 0;
+      return;
     } catch (e) {
       process.stderr.write(`anchor failed: ${e.message}\n`);
-      process.exit(3);
+      process.exitCode = 3;
+      return;
     }
   }
 
   usage();
-  process.exit(64);
+  process.exitCode = 64;
 }
 
 main().catch((e) => {
   process.stderr.write(`cortex-audit: ${e.stack || e.message}\n`);
-  process.exit(1);
+  process.exitCode = 1;
 });
