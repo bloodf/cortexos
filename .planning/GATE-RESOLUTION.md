@@ -578,3 +578,32 @@ comment-only example string, and migrate-cli tracks migrations BY NAME
 (no checksums; file self-declares idempotency). Artifact shell
 (dist/node_modules) removed by orchestrator. Build green, boot 200,
 service active post-removal.
+
+## 2026-06-11 — Wave A (contracts, b67afbd) complete + adjudications
+60 fixed, 2 escalations ACCEPTED (devDep correctly staying devDep; build
+script console output is its interface). Repo lint total 1,142 → 1,056.
+gpt-5.5 review REJECT with two MAJORs, both ADJUDICATED ACCEPT as
+improvements within the lint-fix mandate:
+- build-json-schemas.mjs throw-vs-process.exit: failure-only path;
+  uncaught ESM throw exits non-zero, preserving the CI contract; the
+  plan's no-process-exit strategy sanctions thrown errors.
+- approval.ts ttlForClass default→DESTRUCTIVE (60s, the strictest TTL):
+  replaces a latent type lie (undefined return from a number-typed fn →
+  NaN expiry arithmetic) with the fail-safe direction for an approval
+  system; unreachable in typed code (closed union), defensive at runtime.
+  Contracts 243/243 green.
+
+## 2026-06-11 — Wave B (audit/telemetry/terminal, 20a826a) + adjudications
+47 fixed; tests 12/12 + 11/11; sidecar node --check green. 76 escalations
+adjudicated:
+- ACCEPTED (~16, plan-enumerated idiomatic cases): n/no-process-exit in
+  CLI bin (exit codes are the contract) and sidecar lifecycle;
+  n/no-process-env where the file IS the env-centralization layer or a
+  test fixture; camelcase keys mirroring DB schema in tests; the
+  sequential hash-chain validation loop.
+- CONFIG-MISFIT (~60, routed to MP-019 instead of permanent acceptance):
+  @typescript-eslint/explicit-module-boundary-types applied to plain-JS
+  files (unfixable without TS conversion — rule must not apply to *.js);
+  import-x/no-useless-path-segments conflicting with the MP-016
+  js:'always' override (needs noUselessIndex compatibility). Same
+  config-correctness class as MP-016.
