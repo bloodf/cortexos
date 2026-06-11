@@ -565,3 +565,16 @@ rule added). Cycle 3 dispositions, all FIXED:
   tagged [discovered:] paths.
 - [MAJOR] directive cite → heading-anchored cite + Task-1 grep -n quote.
 No overrules. Implementer kimi; reviewer gpt-5.5 (embedded diff).
+
+## 2026-06-11 — MP-018 complete (71ac118) + review disposition
+Paperclip fully removed: package (14 files) + release workflow deleted,
+eslint refs dropped, dashboard stub/fixture retargeted (incus scope green
+pre-deletion), lockfile updated, tracked-tree git-grep sweep EMPTY. The
+gpt-5.5 review's BLOCKER (untagged migration-file edit) → FALSE: the edit
+is tagged `[discovered:...migrations/006_indexes_for_rbac_audit.sql]` at
+impl-mp-018-report.md:66 and :80 with rationale — the review context
+(plan+diff) cannot see reports; windowing class. Materially safe:
+comment-only example string, and migrate-cli tracks migrations BY NAME
+(no checksums; file self-declares idempotency). Artifact shell
+(dist/node_modules) removed by orchestrator. Build green, boot 200,
+service active post-removal.
