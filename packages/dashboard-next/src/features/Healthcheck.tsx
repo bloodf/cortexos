@@ -1,13 +1,16 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
+import { useLocation, useNavigate } from "@tanstack/react-router";
 import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { TechIcon } from "@/components/TechIcon";
 import { DataTable, type Column } from "@/components/DataTable";
+import { IncidentTimeline } from "@/components/IncidentTimeline";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LogStream } from "@/components/LogStream";
 import { api, callHostLogs } from "@/lib/api/client";
 import type { Service } from "@/lib/api/client";
@@ -18,7 +21,25 @@ import { ms } from "@/lib/format";
 export function HealthcheckPage() {
   const t = useT();
   const qc = useQueryClient();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [period, setPeriod] = useState<"1h" | "24h" | "7d">("24h");
+
+  const search = location.search as { tab?: string };
+  const activeTab = search.tab === "logs" ? "logs" : "health";
+
+  const { data: history = [], isLoading: historyLoading } = useQuery({
+    queryKey: ["alerts", "history"],
+    queryFn: api.alerts.history,
+    refetchInterval: 3_000,
+  });
+
+  const setTab = useCallback(
+    (value: string) => {
+      navigate({ search: { tab: value } } as never);
+    },
+    [navigate],
+  );
 
   // MP-009: live host-journal line fetcher. `callHostLogs` is admin-only,
   // so non-admin users see an empty stream. Errors PROPAGATE so
@@ -119,29 +140,48 @@ export function HealthcheckPage() {
         }
       />
 
-      <DataTable
-        columns={cols}
-        initialSort="status"
-        server={{ queryKey: ["healthcheck"], fetch: api.healthcheckList, refetchInterval: 3000 }}
-      />
+      <Tabs value={activeTab} onValueChange={setTab}>
+        <TabsList>
+          <TabsTrigger value="health">Health</TabsTrigger>
+          <TabsTrigger value="logs">Logs</TabsTrigger>
+        </TabsList>
 
-      <Card className="elev-1">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Incident timeline</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-xs text-muted-foreground">Alert history not yet wired (WP-17).</p>
-        </CardContent>
-      </Card>
+        <TabsContent value="health" className="mt-4 space-y-5">
+          <DataTable
+            columns={cols}
+            initialSort="status"
+            server={{
+              queryKey: ["healthcheck"],
+              fetch: api.healthcheckList,
+              refetchInterval: 3000,
+            }}
+          />
 
-      <Card className="elev-1">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Live log stream</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <LogStream height={360} fetcher={fetchHostLogs} refetchIntervalMs={3000} />
-        </CardContent>
-      </Card>
+          <Card className="elev-1">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Incident timeline</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {historyLoading ? (
+                <p className="text-xs text-muted-foreground">Loading alert history…</p>
+              ) : (
+                <IncidentTimeline items={history.slice(0, 20)} />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="logs" className="mt-4">
+          <Card className="elev-1">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Live log stream</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <LogStream height={360} fetcher={fetchHostLogs} refetchIntervalMs={3000} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
