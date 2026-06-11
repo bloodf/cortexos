@@ -1053,3 +1053,21 @@ findings:
   the plan's own UI-binary requirement; planner omission noted.
 - .gitignore anchoring (backups/ → /backups/) reaffirmed REQUIRED:
   the unanchored pattern would ignore the new source directory.
+
+## 2026-06-11 — PRODUCT CAMPAIGN CLOSE (MP-022/023/024): all three operator-reported dashboard issues resolved
+1. /apps (MP-022): only web UIs show (has_webui filter, TDD); every URL
+   is the uniform https://cortexos.tailfd052e.ts.net:PORT (tailscale
+   serve, tailnet-wide TLS) — curl battery green; obot hidden (no UI);
+   host architecture corrected (containers on 127.0.0.1, serve fronting;
+   three new serve entries 18787/8200/6333).
+2. /healthcheck (MP-023): Health|Logs tabs (deep-linkable ?tab=logs);
+   incident timeline wired to live alert history (latest 20); apps'
+   health visibility psql-proven.
+3. Mock-wired pages (MP-024): /scheduler live from systemd timers
+   (execFile fixed-argv domain, 024a=eb9c3e9); /backups live from
+   cortex-backup archive state mapped into a fixed row contract
+   (024b=e4897d6 + truthfulness fix 3652ba5 — null sizes render "—",
+   full status vocabulary). Mock imports gone from both routes.
+Final state: suite 596/596; build green; boot 200; both services active;
+live 200; screens 18/18 (run 20). Every wave gpt-5.5-reviewed; all
+findings fixed-forward or adjudicated with evidence above.

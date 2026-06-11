@@ -455,3 +455,4 @@ Residual operator items: 45 lint problems (rule-id table in impl-mp-010-report.m
 | FIXFWD | post-push checkpoint reviews + fix-forward (suppression purge, hashId, react-hooks reg) | done | f9f40cc…ee54700 | final: 102 adjudicated findings; 0 suppressions added |
 | FINAL | release gates (run 14) | **18/18 PASS, exit 0** | f6bb933 | lint 102 (all adjudicated); format clean; tsc 0; 558/558; live 200 |
 | MP-020 | zero-lint campaign — all 102 adjudicated findings code-fixed (3 architectural config items); all 23 disable comments eliminated | done | 089afa1…91ca462 | eslint rc=0/0 bytes; suites green (dashboard 577/577 incl. golden hash tests); screens 18/18 (run 15) |
+| MP-022/023/024 | product fixes — /apps webui-only + uniform ts.net:PORT URLs; healthcheck Health|Logs tabs + wired timeline; /scheduler + /backups live (mocks gone) | done | e18ddac…3652ba5 | suite 596/596; URL battery green; screens 18/18 (run 20) |
