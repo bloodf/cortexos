@@ -1004,3 +1004,14 @@ named). Cycle 3 dispositions, all FIXED:
   orchestrator-verified by direct grep (supersedes the recon gap).
 - [MAJOR] format:check command spelled out.
 No overrules. Implementer kimi; gpt-5.5 diff review before push.
+
+## 2026-06-11 — MP-023 complete (ce36a60) + review adjudications
+Healthcheck tabs live: TDD checkpoints played exactly as planned
+((a)(b)(d) → (c) after timeline wiring; 4/4; suite 582/582); deploy
+green (build, boot 200, live 200). Review REJECT, two findings:
+- [BLOCKER] "TDD/Task-3 evidence absent" → FALSE/windowing: evidence
+  lives in impl-mp-023-report.md (reviews see plan+diff by design);
+  orchestrator verified the checkpoint progression and the Task-3 psql
+  proof ("no row excluded, no repo change") directly.
+- [MAJOR] client.ts outside ownership → ACCEPT: the hunk is a prettier
+  line-wrap of 022b's hasWebui line — zero semantic change (quoted).
