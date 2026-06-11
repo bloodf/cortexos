@@ -78,6 +78,7 @@ async function main() {
     const lanIp = getLanIp();
     let ran = 0;
 
+    /* eslint-disable no-restricted-syntax, no-await-in-loop */
     for (const file of files) {
       const name = file.replace(/\.sql$/, "");
       if (!appliedSet.has(name)) {
@@ -93,16 +94,17 @@ async function main() {
             "INSERT INTO migrations (name) VALUES ($1) ON CONFLICT (name) DO NOTHING",
             [name],
           );
-          console.log(`  ✓ ${name}`);
+          console.info(`  ✓ ${name}`);
           ran += 1;
         }
       }
     }
+    /* eslint-enable no-restricted-syntax, no-await-in-loop */
 
     if (ran === 0) {
-      console.log("  (no new migrations)");
+      console.info("  (no new migrations)");
     } else {
-      console.log(`  Applied ${ran} migration(s).`);
+      console.info(`  Applied ${ran} migration(s).`);
     }
   } finally {
     await client.end();
@@ -111,5 +113,5 @@ async function main() {
 
 main().catch((e) => {
   console.error("Migration failed:", e.message);
-  process.exit(1);
+  throw e;
 });

@@ -18,6 +18,7 @@
  * Exit code: 0 if every route PASSes, 1 if any FAILs (or a fatal setup error).
  */
 
+// eslint-disable-next-line import-x/no-extraneous-dependencies
 import { chromium } from "playwright";
 import pg from "pg";
 import { randomBytes } from "node:crypto";
@@ -105,10 +106,9 @@ async function main() {
     password: process.env.DB_PASSWORD,
   };
   if (!dbCfg.password) {
-    console.error(
+    throw new Error(
       "FATAL: DB_PASSWORD not in env. Source /opt/cortexos/.secrets/dashboard.env first.",
     );
-    process.exit(1);
   }
 
   const client = new pg.Client(dbCfg);
@@ -142,6 +142,7 @@ async function main() {
       { name: "cortexos_csrf", value: csrf, domain: "127.0.0.1", path: "/" },
     ]);
 
+    /* eslint-disable no-restricted-syntax, no-await-in-loop */
     for (const route of ROUTES) {
       const page = await context.newPage();
       const consoleErrors = [];
@@ -285,6 +286,7 @@ async function main() {
 
       await page.close();
     }
+    /* eslint-enable no-restricted-syntax, no-await-in-loop */
 
     await context.close();
   } finally {
@@ -297,72 +299,74 @@ async function main() {
 
   // ---- Report ----
   const pad = (s, n) => String(s).padEnd(n);
-  console.log("\n=== PER-ROUTE VERDICT ===\n");
-  console.log(`${pad("ROUTE", 22) + pad("VERDICT", 9)}DETAIL`);
-  console.log("-".repeat(80));
+  console.info("\n=== PER-ROUTE VERDICT ===\n");
+  console.info(`${pad("ROUTE", 22) + pad("VERDICT", 9)}DETAIL`);
+  console.info("-".repeat(80));
   let failCount = 0;
   results.forEach((r) => {
     const verdict = r.pass ? "PASS" : "FAIL";
     if (!r.pass) failCount += 1;
     const detail = r.pass ? `(${r.finalUrl})` : r.reasons.join("; ");
-    console.log(pad(r.path, 22) + pad(verdict, 9) + detail);
+    console.info(pad(r.path, 22) + pad(verdict, 9) + detail);
   });
 
   // Surface known-env-artifact matches for ALL routes (PASS and FAIL) so
   // a passing route (e.g. /terminal whose only console error was the
   // direct-:3080 WS 404) does not have its artifact silently swallowed.
   // The FAIL-count and verdict logic above is unchanged.
-  console.log("\n=== KNOWN ENV ARTIFACTS ===");
+  console.info("\n=== KNOWN ENV ARTIFACTS ===");
   const artifactRoutes = results.filter((r) => r.knownArtifacts && r.knownArtifacts.length);
   if (artifactRoutes.length === 0) {
-    console.log("none.");
+    console.info("none.");
   } else {
     artifactRoutes.forEach((r) => {
       r.knownArtifacts.forEach((reason) => {
-        console.log(`  known-artifact: ${r.path}: ${reason}`);
+        console.info(`  known-artifact: ${r.path}: ${reason}`);
       });
     });
   }
 
-  console.log("\n=== FAIL DETAIL ===");
+  console.info("\n=== FAIL DETAIL ===");
   const fails = results.filter((r) => !r.pass);
   if (fails.length === 0) {
-    console.log("none — all routes rendered.");
+    console.info("none — all routes rendered.");
   } else {
     fails.forEach((r) => {
-      console.log(`\n## ${r.path}  (final: ${r.finalUrl})`);
-      console.log(`  reasons: ${r.reasons.join("; ")}`);
+      console.info(`\n## ${r.path}  (final: ${r.finalUrl})`);
+      console.info(`  reasons: ${r.reasons.join("; ")}`);
       if (r.knownArtifacts && r.knownArtifacts.length) {
         r.knownArtifacts.forEach((reason) => {
-          console.log(`  known-artifact: ${reason}`);
+          console.info(`  known-artifact: ${reason}`);
         });
       }
       if (r.consoleErrors.length) {
-        console.log("  console errors:");
-        r.consoleErrors.forEach((e) => console.log(`    - ${e}`));
+        console.info("  console errors:");
+        r.consoleErrors.forEach((e) => console.info(`    - ${e}`));
       }
       if (r.failedRequests.length) {
-        console.log("  failed/5xx requests:");
-        r.failedRequests.forEach((f) => console.log(`    - ${f}`));
+        console.info("  failed/5xx requests:");
+        r.failedRequests.forEach((f) => console.info(`    - ${f}`));
       }
       if (r.badResponses.length) {
-        console.log("  4xx/5xx server-fn responses:");
+        console.info("  4xx/5xx server-fn responses:");
         r.badResponses.forEach((b) =>
-          console.log(`    - ${b.status} ${b.url}\n      body: ${b.body}`),
+          console.info(`    - ${b.status} ${b.url}\n      body: ${b.body}`),
         );
       }
-      console.log(`  screenshot: ${r.shot}`);
+      console.info(`  screenshot: ${r.shot}`);
     });
   }
 
-  console.log(
+  console.info(
     `\n=== SUMMARY: ${results.length - failCount}/${results.length} PASS, ${failCount} FAIL ===`,
   );
-  console.log(`Screenshots: ${SHOT_DIR}/`);
-  process.exit(failCount === 0 ? 0 : 1);
+  console.info(`Screenshots: ${SHOT_DIR}/`);
+  if (failCount > 0) {
+    throw new Error(`${failCount} route(s) failed`);
+  }
 }
 
 main().catch((err) => {
   console.error("FATAL:", err);
-  process.exit(1);
+  throw err;
 });

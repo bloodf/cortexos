@@ -70,6 +70,7 @@ export default async function runServerFnGate<TIn, TOut>(
   // body + headers preserved) — the runtime-correct way to deliver the HTTP
   // status + error body to the RPC client.
   if (response.status >= 400) {
+    // eslint-disable-next-line @typescript-eslint/only-throw-error
     throw response;
   }
 

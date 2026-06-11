@@ -5,9 +5,9 @@
 import { describe, it, expect, beforeEach, beforeAll } from "vitest";
 
 import {
-  _resetSystemdBridgeForTests,
-  _getMockExecutorForTests,
-  _SEED_UNITS,
+  resetSystemdBridgeForTests,
+  getMockExecutorForTests,
+  SEED_UNITS,
   listUnits,
   getUnit,
   listLogs,
@@ -24,7 +24,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-  _resetSystemdBridgeForTests();
+  resetSystemdBridgeForTests();
   resetApprovalStore();
 });
 
@@ -51,27 +51,27 @@ const baseCtx = {
 
 describe("applyAction", () => {
   it("start → active/running", () => {
-    const unit = _SEED_UNITS.find((u) => u.name === "redis-server.service")!;
+    const unit = SEED_UNITS.find((u) => u.name === "redis-server.service")!;
     const next = applyAction(unit, "start");
     expect(next.active).toBe("active");
     expect(next.sub).toBe("running");
   });
 
   it("stop → inactive/dead", () => {
-    const unit = _SEED_UNITS.find((u) => u.name === "caddy.service")!;
+    const unit = SEED_UNITS.find((u) => u.name === "caddy.service")!;
     const next = applyAction(unit, "stop");
     expect(next.active).toBe("inactive");
     expect(next.sub).toBe("dead");
   });
 
   it("enable → enabled: true", () => {
-    const unit = _SEED_UNITS.find((u) => u.name === "unattended-upgrades.service")!;
+    const unit = SEED_UNITS.find((u) => u.name === "unattended-upgrades.service")!;
     const next = applyAction(unit, "enable");
     expect(next.enabled).toBe(true);
   });
 
   it("disable → enabled: false", () => {
-    const unit = _SEED_UNITS.find((u) => u.name === "caddy.service")!;
+    const unit = SEED_UNITS.find((u) => u.name === "caddy.service")!;
     const next = applyAction(unit, "disable");
     expect(next.enabled).toBe(false);
   });
@@ -124,7 +124,7 @@ describe("listLogs", () => {
   });
 
   it("respects the limit", async () => {
-    const mock = _getMockExecutorForTests();
+    const mock = getMockExecutorForTests();
     const now = new Date().toISOString();
     for (let i = 0; i < 10; i++) {
       mock.pushLog("caddy.service", {
@@ -272,7 +272,7 @@ describe("dispatchAction — destructive (stop, restart, disable)", () => {
     const first = await dispatchAction({ action: "stop", name: "caddy.service" }, ctx);
     expect(first.status).toBe("accepted");
 
-    _resetSystemdBridgeForTests(); // reset so unit is active again
+    resetSystemdBridgeForTests(); // reset so unit is active again
     const second = await dispatchAction({ action: "stop", name: "caddy.service" }, ctx);
     expect(second.status).toBe("rejected");
     if (second.status === "rejected") {

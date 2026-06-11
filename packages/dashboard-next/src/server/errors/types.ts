@@ -76,43 +76,31 @@ export function isApiError(e: unknown): e is ApiError {
   );
 }
 
-/** Helper constructors — return typed `ApiError` values. */
+/** Helper constructors — return typed `ApiError` values (Error instances so
+ *  they satisfy `@typescript-eslint/only-throw-error`). */
 export const validationError = (
   message: string,
   details: readonly { field: string; message: string }[] = [],
-): ValidationError => ({ kind: "validation", message, details });
+): ValidationError & Error => Object.assign(new Error(message), { kind: "validation" as const, details });
 
-export const authError = (message = "Authentication required"): AuthError => ({
-  kind: "auth",
-  message,
-});
+export const authError = (message = "Authentication required"): AuthError & Error =>
+  Object.assign(new Error(message), { kind: "auth" as const });
 
-export const permissionError = (message = "Insufficient permissions"): PermissionError => ({
-  kind: "permission",
-  message,
-});
+export const permissionError = (message = "Insufficient permissions"): PermissionError & Error =>
+  Object.assign(new Error(message), { kind: "permission" as const });
 
-export const notFoundError = (message = "Not found", resource?: string): NotFoundError => ({
-  kind: "not_found",
-  message,
-  ...(resource ? { resource } : {}),
-});
+export const notFoundError = (message = "Not found", resource?: string): NotFoundError & Error =>
+  Object.assign(new Error(message), { kind: "not_found" as const, ...(resource ? { resource } : {}) });
 
-export const rateLimitError = (retryAfter: number): RateLimitError => ({
-  kind: "rate_limit",
-  message: "Too many requests",
-  retryAfter,
-});
+export const rateLimitError = (retryAfter: number): RateLimitError & Error =>
+  Object.assign(new Error("Too many requests"), { kind: "rate_limit" as const, retryAfter });
 
-export const approvalRequiredError = (actionHash: string, ttlSec = 60): ApprovalRequiredError => ({
-  kind: "approval_required",
-  message: "This action requires an approval token",
-  actionHash,
-  ttlSec,
-});
+export const approvalRequiredError = (actionHash: string, ttlSec = 60): ApprovalRequiredError & Error =>
+  Object.assign(new Error("This action requires an approval token"), {
+    kind: "approval_required" as const,
+    actionHash,
+    ttlSec,
+  });
 
-export const systemError = (message: string, cause?: unknown): SystemError => ({
-  kind: "system",
-  message,
-  ...(cause !== undefined ? { cause } : {}),
-});
+export const systemError = (message: string, cause?: unknown): SystemError & Error =>
+  Object.assign(new Error(message), { kind: "system" as const, ...(cause !== undefined ? { cause } : {}) });

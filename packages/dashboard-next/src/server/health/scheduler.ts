@@ -112,6 +112,7 @@ function probeTcp(host: string, port: number): Promise<ProbeResult> {
 
 async function probeSystemd(slug: string): Promise<ProbeResult> {
   const units = [slug, `cortex-${slug}`, `${slug}.service`];
+  /* eslint-disable no-await-in-loop */
   for (let i = 0; i < units.length; i += 1) {
     const unit = units[i];
     try {
@@ -123,11 +124,13 @@ async function probeSystemd(slug: string): Promise<ProbeResult> {
       // is-active exits non-zero when not active; try the next name.
     }
   }
+  /* eslint-enable no-await-in-loop */
   return { status: "offline", responseMs: null };
 }
 
 async function probeDocker(slug: string): Promise<ProbeResult> {
   const names = [slug, `cortex-${slug}`];
+  /* eslint-disable no-await-in-loop */
   for (let i = 0; i < names.length; i += 1) {
     const name = names[i];
     try {
@@ -142,6 +145,7 @@ async function probeDocker(slug: string): Promise<ProbeResult> {
       // no such container under this name; try the next.
     }
   }
+  /* eslint-enable no-await-in-loop */
   return { status: "offline", responseMs: null };
 }
 

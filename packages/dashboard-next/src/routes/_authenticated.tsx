@@ -24,6 +24,7 @@ export const Route = createFileRoute("/_authenticated")({
       user = null;
     }
     if (!user) {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw redirect({ to: "/login", search: { redirect: location.href } });
     }
   },

@@ -299,7 +299,10 @@ export const Route = createFileRoute("/_authenticated/docker/$id")({
   loader: async ({ params }) => {
     const containers = await api.docker.containers();
     const found = containers.find((c) => c.id === params.id || c.name === params.id);
-    if (!found) throw notFound();
+    if (!found) {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
+      throw notFound();
+    }
     return { container: found };
   },
   errorComponent: ({ error, reset }) => (

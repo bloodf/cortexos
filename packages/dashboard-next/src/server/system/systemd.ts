@@ -23,8 +23,8 @@
  *   - listLogs(name, limit)             → SystemdLogLine[]
  *   - dispatchAction(input, ctx)        → DispatchResult (never throws)
  *   - setExecutorForTests(fn | null)    → test helper
- *   - _resetSystemdBridgeForTests()     → test helper
- *   - _getMockExecutorForTests()        → test helper
+ *   - resetSystemdBridgeForTests()      → test helper
+ *   - getMockExecutorForTests()         → test helper
  */
 
 import { execFile } from "node:child_process";
@@ -398,16 +398,18 @@ async function listUnitsFromSystemctl(): Promise<SystemdUnit[]> {
       ["list-units", "--type=service", "--all", "--no-pager", "--no-legend", "--plain"],
       { timeout: 5_000, maxBuffer: 256 * 1024 },
     );
-    const out: SystemdUnit[] = [];
-    for (const line of stdout.split("\n")) {
-      const m = /^(\S+)\s+(\S+)\s+(\S+)\s+(\S+)/.exec(line.trim());
-      if (!m) continue;
-      const [, name] = m;
-      if (!name || !name.endsWith(".service")) continue;
-      const unit = await getUnitFromSystemctl(name);
-      if (unit) out.push(unit);
-    }
-    return out.sort((a, b) => a.name.localeCompare(b.name));
+    const names = stdout
+      .split("\n")
+      .map((line) => {
+        const m = /^(\S+)\s+(\S+)\s+(\S+)\s+(\S+)/.exec(line.trim());
+        if (!m) return null;
+        const [, name] = m;
+        if (!name || !name.endsWith(".service")) return null;
+        return name;
+      })
+      .filter((name): name is string => name !== null);
+    const units = await Promise.all(names.map((name) => getUnitFromSystemctl(name)));
+    return units.filter((unit): unit is SystemdUnit => unit !== null).sort((a, b) => a.name.localeCompare(b.name));
   } catch {
     return [];
   }
@@ -445,7 +447,7 @@ export function setExecutorForTests(fn: UnitExecutor | null): void {
 }
 
 /** Test helper: peek at the underlying mock. */
-export function _getMockExecutorForTests(): MockUnitExecutor {
+export function getMockExecutorForTests(): MockUnitExecutor {
   if (!currentMock) {
     const { mock, executor: e } = makeDefaultMock();
     currentMock = mock;
@@ -455,14 +457,14 @@ export function _getMockExecutorForTests(): MockUnitExecutor {
 }
 
 /** Reset the in-memory store + re-seed with the default units. */
-export function _resetSystemdBridgeForTests(): void {
+export function resetSystemdBridgeForTests(): void {
   const { mock, executor: e } = makeDefaultMock();
   currentMock = mock;
   executor = e;
 }
 
 /** The default seed — exposed so tests can assert against a known set. */
-export const _SEED_UNITS: readonly SystemdUnit[] = SEED_UNITS;
+export { SEED_UNITS };
 
 // ---------------------------------------------------------------------------
 // Loaders — used by server functions.
@@ -503,9 +505,9 @@ export async function listLogs(name: string, limit: number): Promise<SystemdLogL
       if (!trimmed) return;
       try {
         const entry = JSON.parse(trimmed) as Record<string, unknown>;
-        const ts = entry.__REALTIME_TIMESTAMP
-          ? new Date(Number(entry.__REALTIME_TIMESTAMP) / 1000).toISOString()
-          : new Date().toISOString();
+        // eslint-disable-next-line no-underscore-dangle
+        const rt = entry.__REALTIME_TIMESTAMP;
+        const ts = rt ? new Date(Number(rt) / 1000).toISOString() : new Date().toISOString();
         const priorityNum = Number(entry.PRIORITY ?? 6);
         const priorityMap: Record<number, SystemdLogLine["priority"]> = {
           0: "emerg",
@@ -521,6 +523,7 @@ export async function listLogs(name: string, limit: number): Promise<SystemdLogL
         lines.push({
           ts,
           priority,
+          // eslint-disable-next-line no-underscore-dangle
           unit: String(entry._SYSTEMD_UNIT ?? name),
           message: String(entry.MESSAGE ?? ""),
         });
@@ -546,7 +549,7 @@ export async function listHostLogs(limit: number): Promise<SystemdLogLine[]> {
     // shape; callers map to display text.
     const cap = Math.max(0, limit);
     const mock = currentMock;
-    const merged = _SEED_UNITS.reduce<SystemdLogLine[]>((acc, u) => {
+    const merged = SEED_UNITS.reduce<SystemdLogLine[]>((acc, u) => {
       acc.push(...mock.logsFor(u.name));
       return acc;
     }, []);
@@ -566,9 +569,9 @@ export async function listHostLogs(limit: number): Promise<SystemdLogLine[]> {
       if (!trimmed) return;
       try {
         const entry = JSON.parse(trimmed) as Record<string, unknown>;
-        const ts = entry.__REALTIME_TIMESTAMP
-          ? new Date(Number(entry.__REALTIME_TIMESTAMP) / 1000).toISOString()
-          : new Date().toISOString();
+        // eslint-disable-next-line no-underscore-dangle
+        const rt = entry.__REALTIME_TIMESTAMP;
+        const ts = rt ? new Date(Number(rt) / 1000).toISOString() : new Date().toISOString();
         const priorityNum = Number(entry.PRIORITY ?? 6);
         const priorityMap: Record<number, SystemdLogLine["priority"]> = {
           0: "emerg",
@@ -584,6 +587,7 @@ export async function listHostLogs(limit: number): Promise<SystemdLogLine[]> {
         lines.push({
           ts,
           priority,
+          // eslint-disable-next-line no-underscore-dangle
           unit: String(entry._SYSTEMD_UNIT ?? "host"),
           message: String(entry.MESSAGE ?? ""),
         });
