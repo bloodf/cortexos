@@ -550,3 +550,18 @@ release workflow, three eslint.config.js references, the stub/fixture.
 MP-018 executes the removal; MP-017 Wave A amended to contracts-only
 (paperclip's 15 lint findings leave with the package). Wave A's first
 dispatch was stopped before any tree change (verified clean).
+
+## 2026-06-11 — MP-018 plan (3 cycles, dispositions applied under /loop standing authorization)
+Artifacts: `harness/artifacts/critic-plan-MP-018-paperclip-removal.md-{1,2,3}.md`.
+Cycle 1 FIXED (impossible grep expectation split; broader sweep; affected
+test scope runs immediately after the data edit with a stated
+no-classic-RED rationale). Cycle 2 FIXED (measured-baseline binary lint
+criterion T−P; A1/exclude contradiction; discovered-reference ownership
+rule added). Cycle 3 dispositions, all FIXED:
+- [BLOCKER] sweep excluded tracked first-party dirs → replaced with
+  `git grep` over ALL tracked content (the project = tracked tree),
+  excluding only docs/.planning.
+- [MAJOR] discovered-rule vs fixed A2 file list → A2 extended to include
+  tagged [discovered:] paths.
+- [MAJOR] directive cite → heading-anchored cite + Task-1 grep -n quote.
+No overrules. Implementer kimi; reviewer gpt-5.5 (embedded diff).
