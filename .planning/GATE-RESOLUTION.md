@@ -1071,3 +1071,14 @@ findings:
 Final state: suite 596/596; build green; boot 200; both services active;
 live 200; screens 18/18 (run 20). Every wave gpt-5.5-reviewed; all
 findings fixed-forward or adjudicated with evidence above.
+
+## 2026-06-11 — operator directive: full Fable review findings + fixes (recorded)
+Operator: "I want you Fable to do a full review of the dashboard,
+because there are still bugs and problems." Review delivered
+(recon-fable-dashboard-review.md): 10 notYetWired client stubs with
+existing backends (4 pages + the new timeline dead at the data layer),
+mock-data engine in production (drift, toaster, hero, topology,
+palette), queryKey collisions, lossy adapters, orphaned admin set.
+Decision: "Wire live, drop what can't be" — topology removed until a
+real source exists. Plans: MP-025 (flip stubs), MP-026 (de-mock
+runtime), MP-027 (orphans + adapters).
