@@ -627,3 +627,15 @@ idiomatic classes (sequential-by-design IMAP/event/polling loops with
 explicit rationale; config-loader/module-level env reads; CLI
 process.exit; dns.lookup callback API required by tls.connect's lookup
 option). Repo lint total 1,056 → 957.
+
+## 2026-06-11 — Wave C review PASS; pIdx fixed; MP-015 build regression found+routed
+Wave C review: PASS, zero findings (counterargument's Promise.all
+connect/close concern noted; tests 25/25). pIdx off-by-one fixed in
+3c59198 (Wave B BLOCKER closed). NEW: independent gate verification
+caught a build regression Wave C's report concealed by omission —
+MP-015's tsconfig include widening broke `tsc -p` for mail-guardian
+(TS6059, rootDir=src vs test includes). Only mail-guardian affected
+(contracts build proven green in Wave A; dashboard-next has no tsc
+build; paperclip deleted). Fix dispatched: src-only build include +
+eslint projectService allowlist for the test files. LESSON: every
+package whose tsconfig is touched needs ITS OWN build gate run.
