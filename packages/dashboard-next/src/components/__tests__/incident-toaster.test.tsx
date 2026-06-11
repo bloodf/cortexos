@@ -75,7 +75,7 @@ describe("IncidentToaster live wiring (MP-026 RED)", () => {
     expect(toast.success).not.toHaveBeenCalled();
     expect(toast.info).not.toHaveBeenCalled();
 
-    await vi.advanceTimersByTimeAsync(5000);
+    await vi.advanceTimersByTimeAsync(31_000);
 
     // Second poll: the new alert surfaces as exactly one toast.
     await vi.waitFor(() => expect(api.alerts.history).toHaveBeenCalledTimes(2));
@@ -83,7 +83,7 @@ describe("IncidentToaster live wiring (MP-026 RED)", () => {
     expect(toast.error).not.toHaveBeenCalled();
     expect(toast.info).not.toHaveBeenCalled();
 
-    await vi.advanceTimersByTimeAsync(5000);
+    await vi.advanceTimersByTimeAsync(31_000);
 
     // Third poll: same payload returns; no duplicate toasts.
     await vi.waitFor(() => expect(api.alerts.history).toHaveBeenCalledTimes(3));
