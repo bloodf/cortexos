@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   Lock,
   Moon,
@@ -8,8 +8,6 @@ import {
   Palette,
   Globe,
   UserCog,
-  AlertTriangle,
-  Heart,
   Keyboard,
   LogOut,
   type LucideIcon,
@@ -28,8 +26,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useT } from "@/hooks/useT";
 import { useUI } from "@/hooks/useUI";
 import { ACCENTS } from "@/hooks/accents";
-import { api } from "@/mocks/api";
-import { live } from "@/mocks/drift";
+import { api } from "@/lib/api/client";
 import { NAV, PINNED } from "./NavConfig";
 import { LOCALES, LOCALE_LABEL } from "@/i18n";
 
@@ -52,7 +49,6 @@ export function CommandPalette({ open, onOpenChange, onOpenHelp }: Props) {
   const { user, logout } = useAuth();
   const { theme, setTheme, accent, setAccent, locale, setLocale } = useUI();
   const navigate = useNavigate();
-  const qc = useQueryClient();
   const { data: services = [] } = useQuery({ queryKey: ["services"], queryFn: api.services });
   const { data: containers = [] } = useQuery({
     queryKey: ["docker", "containers"],
@@ -105,28 +101,6 @@ export function CommandPalette({ open, onOpenChange, onOpenHelp }: Props) {
       },
     },
     { id: "act-help", label: "Show keyboard shortcuts", icon: Keyboard, run: () => onOpenHelp?.() },
-    {
-      id: "act-crash",
-      label: "Simulate: crash random service",
-      icon: AlertTriangle,
-      admin: true,
-      run: () => {
-        const target = live.crashRandom();
-        qc.invalidateQueries({ queryKey: ["services"] });
-        toast.error(target ? `Simulated outage: ${target.name}` : "Nothing online to crash");
-      },
-    },
-    {
-      id: "act-heal",
-      label: "Simulate: heal all services",
-      icon: Heart,
-      admin: true,
-      run: () => {
-        live.healAll();
-        qc.invalidateQueries({ queryKey: ["services"] });
-        toast.success("All services back online");
-      },
-    },
     {
       id: "act-restart-caddy",
       label: "Restart caddy.service",

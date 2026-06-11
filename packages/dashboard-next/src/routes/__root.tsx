@@ -17,7 +17,6 @@ import reportLovableError from "../lib/lovable-error-reporting";
 import { UIProvider } from "../hooks/ui-provider";
 import { useUI } from "../hooks/useUI";
 import { AuthProvider } from "../hooks/auth-provider";
-import { startDrift } from "../mocks/drift";
 
 function NotFoundComponent() {
   return (
@@ -65,14 +64,6 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
-function DriftBoot() {
-  const { queryClient } = useRouteContext({ from: "__root__" });
-  useEffect(() => {
-    startDrift(queryClient);
-  }, [queryClient]);
-  return null;
-}
-
 function ToasterMount() {
   const { effective } = useUI();
   return <Toaster theme={effective} richColors closeButton position="bottom-right" />;
@@ -84,7 +75,6 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <UIProvider>
         <AuthProvider>
-          <DriftBoot />
           <Outlet />
           <ToasterMount />
         </AuthProvider>

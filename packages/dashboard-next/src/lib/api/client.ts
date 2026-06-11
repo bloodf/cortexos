@@ -687,8 +687,9 @@ function toAlertHistoryRow(h: AlertHistoryOutput["history"][number]): AlertHisto
 
 /** Map a server pending_approvals row to the mock ApprovalRequest shape. */
 function toApprovalRequestRow(a: ListApprovalsOutput["pending"][number]): ApprovalRequest {
-  const status: ApprovalRequest["status"] =
-    a.decision === null ? "pending" : a.decision === "approve" ? "approved" : "denied";
+  const resolvedDecision: ApprovalRequest["status"] =
+    a.decision === "approve" ? "approved" : "denied";
+  const status: ApprovalRequest["status"] = a.decision === null ? "pending" : resolvedDecision;
   const requestedAt =
     a.requestedAt instanceof Date ? a.requestedAt.toISOString() : String(a.requestedAt);
   return {
@@ -730,8 +731,9 @@ function inferModelProvider(model: string): string {
   const lower = model.toLowerCase();
   if (lower.startsWith("claude-")) return "anthropic";
   if (lower.startsWith("gpt-")) return "openai";
-  if (lower.startsWith("llama") || lower.startsWith("qwen") || lower.startsWith("mistral"))
+  if (lower.startsWith("llama") || lower.startsWith("qwen") || lower.startsWith("mistral")) {
     return "ollama";
+  }
   const slash = model.indexOf("/");
   if (slash > 0) return model.slice(0, slash);
   return "unknown";

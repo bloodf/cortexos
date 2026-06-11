@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, AlertTriangle, XCircle, type LucideIcon } from "lucide-react";
-import { api } from "@/mocks/api";
+import { api } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
 
 /**

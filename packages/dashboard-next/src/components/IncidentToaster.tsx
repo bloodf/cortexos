@@ -1,10 +1,10 @@
 import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { api } from "@/mocks/api";
+import { api } from "@/lib/api/client";
 
 /**
- * Surfaces newly-created alerts from the drift simulator as sonner toasts.
+ * Surfaces newly-created alerts from the live alert-history API as sonner toasts.
  * Mounted once at the app shell level.
  */
 export function IncidentToaster() {

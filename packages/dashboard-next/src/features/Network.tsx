@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Network as NetIcon, ArrowDown, ArrowUp } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { MetricCard } from "@/components/MetricCard";
-import { NetworkTopology } from "@/components/NetworkTopology";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api/client";
 import { useT } from "@/hooks/useT";
@@ -41,7 +40,6 @@ export function NetworkPage() {
           value={bytes(interfaces.reduce((a, i) => a + i.txBytesTotal, 0))}
         />
       </div>
-      <NetworkTopology />
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         {interfaces.map((i) => (
           <Card key={i.name} className="elev-1">
