@@ -201,7 +201,6 @@ export async function runSqlMigrations(opts: RunMigrationsOptions): Promise<stri
         // transaction per call). SQL bodies that need their own
         // transaction (`BEGIN; ... COMMIT;`) declare it explicitly.
         try {
-          // eslint-disable-next-line no-await-in-loop
           await opts.executor.exec(finalSql);
         } catch (e) {
           if (
@@ -221,7 +220,6 @@ export async function runSqlMigrations(opts: RunMigrationsOptions): Promise<stri
 
         // Record the applied migration. Parameterised; safe regardless
         // of filename contents.
-        // eslint-disable-next-line no-await-in-loop
         await opts.executor.query(
           "INSERT INTO migrations (name) VALUES ($1) ON CONFLICT (name) DO NOTHING",
           [name],

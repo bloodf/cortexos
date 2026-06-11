@@ -19,7 +19,6 @@
  * `client.ts` against a `pg-mem` or `testcontainers` Postgres.
  */
 
-// eslint-disable-next-line import-x/no-extraneous-dependencies
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle, type PgliteDatabase } from "drizzle-orm/pglite";
 import * as schema from "./schema";

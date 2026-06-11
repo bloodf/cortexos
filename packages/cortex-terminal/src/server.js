@@ -186,9 +186,7 @@ function abortHandshake(socket, status) {
   const text =
     { 401: 'Unauthorized', 403: 'Forbidden', 500: 'Internal Server Error' }[status] || 'Error';
   try {
-    socket.write(
-      `HTTP/1.1 ${status} ${text}\r\nconnection: close\r\ncontent-length: 0\r\n\r\n`,
-    );
+    socket.write(`HTTP/1.1 ${status} ${text}\r\nconnection: close\r\ncontent-length: 0\r\n\r\n`);
   } catch {
     /* socket already gone */
   }

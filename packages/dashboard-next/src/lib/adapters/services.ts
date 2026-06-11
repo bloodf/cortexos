@@ -57,7 +57,8 @@ function mapServiceStatus(status: ContractService["status"]): MockStatus {
  * Collisions are theoretically possible but irrelevant for display purposes.
  */
 function hashId(uuid: string): number {
-  return Math.abs(parseInt(uuid.replace(/-/g, "").slice(0, 8), 16));
+  const n = parseInt(uuid.replace(/-/g, "").slice(0, 8), 16);
+  return Number.isNaN(n) ? 0 : n;
 }
 
 // ---------------------------------------------------------------------------

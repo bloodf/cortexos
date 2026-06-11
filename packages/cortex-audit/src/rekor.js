@@ -15,10 +15,7 @@
  * `logIndex` plus the digest are enough to later prove inclusion by
  * querying Rekor.
  */
-import {
-  generateKeyPairSync,
-  sign as cryptoSign,
-} from 'node:crypto';
+import { generateKeyPairSync, sign as cryptoSign } from 'node:crypto';
 import { request } from 'undici';
 
 const REKOR_URL = (process.env.CORTEX_REKOR_URL || 'https://rekor.sigstore.dev').replace(/\/$/, '');

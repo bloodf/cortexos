@@ -148,7 +148,6 @@ describe("audit repo — audit_log hash chain", () => {
 
   it("appendAuditLog + verifyAuditLogChain — multiple rows chain correctly", async () => {
     for (let i = 0; i < 5; i += 1) {
-      // eslint-disable-next-line no-await-in-loop
       await appendAuditLog(db, {
         eventType: `test.event.${i}`,
         source: "test",

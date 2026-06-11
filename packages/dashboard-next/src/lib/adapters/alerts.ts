@@ -14,7 +14,8 @@ import type { AlertRule as MockAlertRule, AlertHistory as MockAlertHistory } fro
 // ---------------------------------------------------------------------------
 
 function hashId(uuid: string): number {
-  return Math.abs(parseInt(uuid.replace(/-/g, "").slice(0, 8), 16));
+  const n = parseInt(uuid.replace(/-/g, "").slice(0, 8), 16);
+  return Number.isNaN(n) ? 0 : n;
 }
 
 // ---------------------------------------------------------------------------

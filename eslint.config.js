@@ -346,6 +346,14 @@ export default [
     },
   },
 
+  // MP-019: test files consume devDependencies by design
+  {
+    files: ['**/*.test.{ts,tsx,js}', '**/__tests__/**', '**/test/**', '**/src/test/**'],
+    rules: {
+      'import-x/no-extraneous-dependencies': ['error', { devDependencies: true }],
+    },
+  },
+
   // 7f) Parser coverage — packages without their own tsconfig.json
   {
     files: ['**/*.ts', '**/*.cts', '**/*.mts', '**/*.tsx', '**/*.d.ts'],

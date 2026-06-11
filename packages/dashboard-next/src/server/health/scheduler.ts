@@ -231,7 +231,6 @@ async function pool<T>(
     while (i < items.length) {
       const item = items[i];
       i += 1;
-      // eslint-disable-next-line no-await-in-loop
       await worker(item);
     }
   });

@@ -10,13 +10,9 @@
 // the four MP-008 owned files AND the rest of the jsdom suite can GREEN.
 // Documented as a deviation in `.planning/harness/artifacts/impl-mp-008-report.md`
 // (and in the GATE-RESOLUTION entry for MP-008 follow-up).
-// eslint-disable-next-line import-x/no-extraneous-dependencies
 import { expect, afterEach, vi } from "vitest";
-// eslint-disable-next-line import-x/no-extraneous-dependencies
 import * as matchers from "@testing-library/jest-dom/matchers";
-// eslint-disable-next-line import-x/no-extraneous-dependencies
 import "@testing-library/jest-dom/vitest";
-// eslint-disable-next-line import-x/no-extraneous-dependencies
 import { cleanup } from "@testing-library/react";
 
 expect.extend(matchers);

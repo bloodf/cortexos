@@ -1200,7 +1200,6 @@ export const APPROVALS: ApprovalRequest[] = [
 function fakeHash(prev: string, payload: string): string {
   let h = 5381;
   const s = `${prev}|${payload}`;
-  // eslint-disable-next-line no-bitwise
   for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
   return `${`00000000${h.toString(16)}`.slice(-8)}…`;
 }

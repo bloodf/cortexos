@@ -8,11 +8,7 @@
  * @module
  */
 import { z } from 'zod';
-import {
-  zUuidV4,
-  zIsoTimestamp,
-  zSlug,
-} from '../primitives.js';
+import { zUuidV4, zIsoTimestamp, zSlug } from '../primitives.js';
 
 // ---------------------------------------------------------------------------
 // Service kind (entity classification)

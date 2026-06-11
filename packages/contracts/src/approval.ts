@@ -39,13 +39,7 @@
  */
 import { createHmac, timingSafeEqual, randomBytes } from 'node:crypto';
 import { z } from 'zod';
-import {
-  zSha256,
-  zUuidV4,
-  type SessionId,
-  type UserId,
-  type AuditId,
-} from './primitives.js';
+import { zSha256, zUuidV4, type SessionId, type UserId, type AuditId } from './primitives.js';
 import { canonicalJson } from './audit.js';
 
 // ---------------------------------------------------------------------------
