@@ -1094,3 +1094,29 @@ packages/dashboard-next/; binary mapping contract (declared return
 types unchanged + field-by-field sample assertion; helpers private to
 client.ts); notYetWired gate pinned to 0 exactly (helper deleted).
 No overrules. Implementer kimi; gpt-5.5 diff review before push.
+
+## 2026-06-11 — MP-025 (ebf3102) review adjudications
+Nine stubs flipped; notYetWired count 0; ground truth quoted
+(alert_history 1, audit_log 4). Review REJECT, two findings:
+- [BLOCKER] auditList drops server pagination (listAudit defaults
+  pageSize 50; client-side total lies) → CONFIRMED via
+  approvals.functions.ts handler; fix-forward dispatched (forward
+  page/pageSize, server totals; api.audit requests the 500 cap
+  explicitly).
+- [MAJOR] audit mapping semantics → PARTIAL: decision "allow" default is
+  FACTUALLY CORRECT for audit_log (it records post-gate EXECUTED
+  actions; deny/error results map to deny); actor ?? "" harmless
+  (NOT NULL column). REAL sub-item: args_hash fabricated as "" while the
+  repo exposes payloadHash (audit_events.ts:39) → in the same
+  fix-forward.
+
+## 2026-06-11 — MP-026 plan (3 cycles, dispositions applied under /loop standing authorization)
+Artifacts: `harness/artifacts/critic-plan-MP-026-demock-runtime.md-{1,2,3}.md`.
+Cycle 1 FIXED (five GREEN checkpoints; exact test paths; executable
+gates). Cycle 2 FIXED (api.system liveness cited client.ts:896-900,
+ADDENDUM 2; binary NetworkTopology deletion check; numbering). Cycle 3
+dispositions, all FIXED: root drift check = grep gate only (no owned
+test file); gate paths rooted/cwd-pinned; queryKey audit replaced with
+two exact binary commands (network-key single consumer; shared-key
+consumers proven mock-free — one fetcher per key makes sharing
+harmless). No overrules. Implementer kimi; gpt-5.5 diff review.
