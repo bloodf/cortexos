@@ -49,7 +49,7 @@
  *   the cookie helpers below are ported verbatim.
  */
 
-import { randomBytes } from "node:crypto";
+import { randomBytes, timingSafeEqual } from "node:crypto";
 import { CSRF_COOKIE, SESSION_COOKIE } from "../config";
 
 // ---------------------------------------------------------------------------
@@ -192,12 +192,9 @@ export function clearCsrfCookie(jar: CookieJar): void {
 export function safeCsrfEqual(a: string | null, b: string | null): boolean {
   if (a === null || b === null) return false;
   if (a.length !== b.length) return false;
-  // XOR every byte; result is non-zero iff any byte differs.
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) {
-    if (a.charCodeAt(i) !== b.charCodeAt(i)) {
-      diff = 1;
-    }
-  }
-  return diff === 0;
+  // Constant-time comparison via crypto.timingSafeEqual.
+  const ba = Buffer.from(a);
+  const bb = Buffer.from(b);
+  if (ba.length !== bb.length) return false;
+  return timingSafeEqual(ba, bb);
 }
