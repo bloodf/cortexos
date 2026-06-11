@@ -1028,3 +1028,28 @@ backup row contract pinned in-plan). Cycle 3 dispositions, all FIXED:
 - [MAJOR] screen-run 4xx/5xx claim → evidenced: verify-screens.mjs
   :150-184 + run 16's D-001 (429 flagged FAIL) as empirical proof.
 No overrules. Implementer kimi; gpt-5.5 diff review per unit.
+
+## 2026-06-11 — 024a (eb9c3e9) review adjudications
+Review REJECT, two findings:
+- [MAJOR] features/Scheduler.tsx + features/__tests__/scheduler.test.tsx
+  outside ownership → ACCEPT: the plan's own UI-binary requirement needs
+  a component + test home, and the repo convention is thin routes over
+  src/features/ components (every other page); ownership list should
+  have named them (planner omission, noted).
+- [MAJOR] TDD/gate evidence not in diff → FALSE/windowing: evidence
+  lives in impl-mp-024-report.md (reviews see plan+diff by design);
+  orchestrator verified the RED entries and gate quotes directly.
+
+## 2026-06-11 — 024b (e4897d6) review adjudications
+Deploy green (build, boot 200, live 200); suite 593. Review REJECT, two
+findings:
+- [BLOCKER] contract→mock-shape adapter loses truth (sizeBytes ?? 0
+  renders unknown as 0 B; status vocabulary collapsed) → CONFIRMED REAL
+  for the UI layer (server domain honors the contract per the reviewer's
+  own counterargument); fix-forward dispatched (RED-first: null→"—",
+  full status vocabulary).
+- [MAJOR] features/Backups.tsx + test outside ownership → ACCEPT: same
+  class as 024a — repo convention (thin routes over src/features/) and
+  the plan's own UI-binary requirement; planner omission noted.
+- .gitignore anchoring (backups/ → /backups/) reaffirmed REQUIRED:
+  the unanchored pattern would ignore the new source directory.

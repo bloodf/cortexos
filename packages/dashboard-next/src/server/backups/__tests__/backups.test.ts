@@ -50,7 +50,10 @@ describe("listBackupRuns", () => {
     writeFileSync(path.join(root, "README.txt"), "ignore me");
 
     setBackupExecutorForTests(
-      mockExecutor(`Environment=BACKUP_ROOT=${root}`, "failed\nfailed\nThu 2026-06-11 12:09:31 UTC"),
+      mockExecutor(
+        `Environment=BACKUP_ROOT=${root}`,
+        "failed\nfailed\nThu 2026-06-11 12:09:31 UTC",
+      ),
     );
 
     const rows = await listBackupRuns();
@@ -79,9 +82,7 @@ describe("listBackupRuns", () => {
     writeFileSync(path.join(root, "2026-06-09_1200.tar.gz.age"), "encrypted-archive-data");
     mkdirSync(path.join(root, "2026-06-10_1200"));
 
-    setBackupExecutorForTests(
-      mockExecutor(`Environment=BACKUP_ROOT=${root}`, "active\nrunning\n"),
-    );
+    setBackupExecutorForTests(mockExecutor(`Environment=BACKUP_ROOT=${root}`, "active\nrunning\n"));
 
     const rows = await listBackupRuns();
     const current = rows.find((r) => r.id === "2026-06-10_1200")!;
