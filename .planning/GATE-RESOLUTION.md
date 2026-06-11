@@ -716,3 +716,27 @@ comment check). Cycle 3 dispositions, both FIXED:
   packages/dashboard-next/** (fair catch; the rule stays active
   elsewhere).
 No overrules. Implementer kimi; reviewer gpt-5.5 (embedded diff).
+
+## 2026-06-11 — CAMPAIGN CLOSE: full cleanup complete, release-verified
+MP-019 landed (f7839dc, review PASS zero findings) + mail-guardian
+newline autofix (bbd6075, orchestrator-committed after verified green —
+worker died at finish line). FINAL repo lint: ✖ 80 problems (79 errors,
+1 warning) — every one individually adjudicated:
+- cortex-audit 27 + cortex-telemetry 18 + cortex-terminal 3 = Wave B
+  accepted escalations (CLI/sidecar process-exit, env-layer reads,
+  DB-schema camelcase fixtures, sequential hash-chain loop).
+- cortex-mail-guardian 28 = Wave C accepted escalations (sequential-by-
+  design IMAP/polling loops, dns callback API, config-loader env reads,
+  CLI exit).
+- contracts 2 = Wave A accepted (devDep + build-script console).
+- dashboard-next 2 = proven false positives (drift.ts:97 assertion tsc
+  needs; client.test.ts:18 constructor-mock function expression).
+Campaign arc: 155k phantom findings → artifact ignores (MP-013) →
+autofix 930 (MP-014) → first-party scoping + parser coverage (MP-015) →
+extensions rule correctness 783 (MP-016) → manual waves A/B/C/D1-D3
+~700 hand-fixed across 7 dashboard checkpoints + reviews with 6 real
+defects caught and fixed (pIdx off-by-one, mjs type-guard syntax,
+extractBridge/extractPool semantics, hash-chain Promise.all, importer
+splits) → rule-misfit corrections (MP-019). format:check exit 0
+repo-wide. Final deploy verification: build green, boot 200, service
+active, screens 18/18 (run 13).
