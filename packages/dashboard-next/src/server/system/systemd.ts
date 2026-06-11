@@ -409,7 +409,9 @@ async function listUnitsFromSystemctl(): Promise<SystemdUnit[]> {
       })
       .filter((name): name is string => name !== null);
     const units = await Promise.all(names.map((name) => getUnitFromSystemctl(name)));
-    return units.filter((unit): unit is SystemdUnit => unit !== null).sort((a, b) => a.name.localeCompare(b.name));
+    return units
+      .filter((unit): unit is SystemdUnit => unit !== null)
+      .sort((a, b) => a.name.localeCompare(b.name));
   } catch {
     return [];
   }
@@ -505,7 +507,7 @@ export async function listLogs(name: string, limit: number): Promise<SystemdLogL
       if (!trimmed) return;
       try {
         const entry = JSON.parse(trimmed) as Record<string, unknown>;
-        // eslint-disable-next-line no-underscore-dangle
+
         const rt = entry.__REALTIME_TIMESTAMP;
         const ts = rt ? new Date(Number(rt) / 1000).toISOString() : new Date().toISOString();
         const priorityNum = Number(entry.PRIORITY ?? 6);
@@ -523,7 +525,7 @@ export async function listLogs(name: string, limit: number): Promise<SystemdLogL
         lines.push({
           ts,
           priority,
-          // eslint-disable-next-line no-underscore-dangle
+
           unit: String(entry._SYSTEMD_UNIT ?? name),
           message: String(entry.MESSAGE ?? ""),
         });
@@ -569,7 +571,7 @@ export async function listHostLogs(limit: number): Promise<SystemdLogLine[]> {
       if (!trimmed) return;
       try {
         const entry = JSON.parse(trimmed) as Record<string, unknown>;
-        // eslint-disable-next-line no-underscore-dangle
+
         const rt = entry.__REALTIME_TIMESTAMP;
         const ts = rt ? new Date(Number(rt) / 1000).toISOString() : new Date().toISOString();
         const priorityNum = Number(entry.PRIORITY ?? 6);
@@ -587,7 +589,7 @@ export async function listHostLogs(limit: number): Promise<SystemdLogLine[]> {
         lines.push({
           ts,
           priority,
-          // eslint-disable-next-line no-underscore-dangle
+
           unit: String(entry._SYSTEMD_UNIT ?? "host"),
           message: String(entry.MESSAGE ?? ""),
         });

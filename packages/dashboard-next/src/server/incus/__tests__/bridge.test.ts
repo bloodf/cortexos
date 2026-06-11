@@ -153,10 +153,7 @@ describe("listInstanceLogs", () => {
 
 describe("dispatchAction — policy allowlist", () => {
   it("rejects an op not on the allowlist", async () => {
-    await dispatchAction(
-      { action: "exec-named", name: "hermes-canary" },
-      makeAdminCtx(),
-    );
+    await dispatchAction({ action: "exec-named", name: "hermes-canary" }, makeAdminCtx());
     // exec-named goes through dispatchExecNamed, not dispatchAction; the
     // allowlist entry 'incus.exec-named' exists but as a separate dispatch path.
     // This tests that a completely unknown action returns 'unknown_op'.

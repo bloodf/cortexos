@@ -313,12 +313,12 @@ describe("[1] PAM login — auth + user-enumeration resistance (T-101)", () => {
 
     let badPwTotal = 0;
     let unknownTotal = 0;
-    /* eslint-disable no-await-in-loop */
+
     for (let i = 0; i < N; i++) {
       badPwTotal += await time(() => loginRequest({ username: "alice", password: "wrong" }));
       unknownTotal += await time(() => loginRequest({ username: "ghost_user", password: "x" }));
     }
-    /* eslint-enable no-await-in-loop */
+
     const badPwAvg = badPwTotal / N;
     const unknownAvg = unknownTotal / N;
     // The two code paths both run a fake hash round-trip on failure, so the
@@ -786,7 +786,7 @@ describe("[7] Rate limits — per bucket (SR-200)", () => {
     const codes: number[] = [];
     let retryAfter: number | null = null;
     let code: string | undefined;
-    /* eslint-disable no-await-in-loop */
+
     for (let i = 0; i < 6; i++) {
       const res = await loginCore(loginRequest({ username: "alice", password: "wrong" }));
       codes.push(res.status);
@@ -797,7 +797,7 @@ describe("[7] Rate limits — per bucket (SR-200)", () => {
         code = (await res.json()).code;
       }
     }
-    /* eslint-enable no-await-in-loop */
+
     expect(codes.slice(0, 5).every((c) => c === 401)).toBe(true);
     expect(codes[5]).toBe(429);
     expect(code).toBe("rate_limit");
@@ -820,9 +820,9 @@ describe("[7] Rate limits — per bucket (SR-200)", () => {
         body: JSON.stringify({ password: "wrong" }),
       });
     const codes: number[] = [];
-    /* eslint-disable no-await-in-loop */
+
     for (let i = 0; i < 6; i++) codes.push((await unlockCore(mk())).status);
-    /* eslint-enable no-await-in-loop */
+
     expect(codes.slice(0, 5).every((c) => c === 401)).toBe(true);
     expect(codes[5]).toBe(429);
   });
@@ -833,9 +833,9 @@ describe("[7] Rate limits — per bucket (SR-200)", () => {
     const a = await makeSession({ isAdmin: true, username: "admin" });
     const b = await makeSession({ isAdmin: true, username: "admin2" });
     // adminGetCore default rate limit for admin is 30/60s/user. Drive A to 30.
-    /* eslint-disable no-await-in-loop */
+
     for (let i = 0; i < 30; i++) await get(adminGetCore, "/_serverFn/probe", a.token);
-    /* eslint-enable no-await-in-loop */
+
     const aOver = await get(adminGetCore, "/_serverFn/probe", a.token);
     expect(aOver.status).toBe(429);
     // B has its own bucket — still allowed.
@@ -883,7 +883,6 @@ describe("[8] Audit HMAC chain — tamper detection (§6.4)", () => {
     const { sql } = await import("drizzle-orm");
     const { db, client } = await createTestDb({ seed: true });
     try {
-      /* eslint-disable no-await-in-loop */
       for (let i = 0; i < 3; i++) {
         await appendAuditLog(db, {
           eventType: "system.event",
@@ -891,7 +890,7 @@ describe("[8] Audit HMAC chain — tamper detection (§6.4)", () => {
           payload: { i },
         });
       }
-      /* eslint-enable no-await-in-loop */
+
       const ok = await verifyAuditLogChain(db);
       expect(ok.valid).toBe(true);
       if (ok.valid) expect(ok.count).toBe(3);
