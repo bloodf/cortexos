@@ -11,7 +11,9 @@ export function IncidentToaster() {
   const { data: alerts = [], isFetched } = useQuery({
     queryKey: ["alerts", "history"],
     queryFn: api.alerts.history,
-    refetchInterval: 4000,
+    // 30s: incident toasts don't need 4s latency, and the global mount on
+    // every page must not pressure the server-fn rate limiter.
+    refetchInterval: 30_000,
   });
   const seen = useRef<Set<string>>(new Set());
   const primed = useRef(false);

@@ -43,3 +43,25 @@ Today's units live: /apps, healthcheck table+tabs, /scheduler, /backups.
 ## Operator decision (recorded): "Wire live, drop what can't be" —
 StatusHero/CommandPalette/IncidentToaster rewired to real data;
 NetworkTopology REMOVED until a real source exists; drift deleted.
+
+## ADDENDUM — exact backend map for the nine stubs (orchestrator grep)
+- alerts.rules / alerts.rulesList → listAlerts (alerts.functions.ts:91)
+- alerts.history / alerts.historyList → alertHistory (alerts.functions.ts:215)
+- approvals → listApprovals (approvals.functions.ts:86)
+- audit / auditList → listAudit (approvals.functions.ts:367; gate :285)
+- agents → listAgents (agents.functions.ts:72)
+- envFiles → readEnv (env-browser.functions.ts:175)
+
+## ADDENDUM 2 — live system-metrics source for StatusHero (orchestrator grep)
+client.ts:896-900: api.system is WIRED (WP-14) — "Returns live host
+metrics: CPU %, memory, drives, mounts, load, uptime, sensors. Calls
+getSystem RPC → server/system/readers.collectSystem()." StatusHero's
+live rewiring uses api.services (live, WP-10) + api.system (live, WP-14)
+from "@/lib/api/client".
+
+## ADDENDUM 3 — adapter consumer cells (orchestrator grep)
+Incus.tsx:354 `cell: (r) => `${r.cpu}`` (and the adjacent memory cell)
+render the adapter's cpu/memory; Docker.tsx:291 and :328
+`cell: (r) => bytes(r.size)` render volume/image size. These are the
+exact cells that must render "—" for null after the adapters stop
+defaulting to 0 (client.ts:448-449, :555).
