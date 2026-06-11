@@ -39,6 +39,30 @@ describe("services repo", () => {
     expect(result.rows.find((s) => s.slug === "postgresql")).toBeDefined();
   });
 
+  it("listServices filters by hasWebui=true", async () => {
+    await createService(db, {
+      slug: "no-webui-svc",
+      name: "No Web UI",
+      kind: "service",
+      category: "Test",
+      healthUrl: "#",
+      healthType: "http",
+      openUrl: "#",
+      iconType: "auto",
+      iconColor: null,
+      iconImage: null,
+      sortOrder: 99,
+      isActive: true,
+      hasWebui: false,
+      showInHealthcheck: false,
+      showInWebui: false,
+    });
+    const result = await listServices(db, { hasWebui: true, activeOnly: false });
+    expect(result.rows.every((s) => s.hasWebui === true)).toBe(true);
+    expect(result.rows.find((s) => s.slug === "no-webui-svc")).toBeUndefined();
+    expect(result.rows.find((s) => s.slug === "grafana")).toBeDefined();
+  });
+
   it("listServices excludes inactive services by default", async () => {
     await createService(db, {
       slug: "hidden",

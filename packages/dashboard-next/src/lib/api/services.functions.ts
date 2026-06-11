@@ -33,6 +33,7 @@ const ServiceListInput = z
     kind: z.enum(["app", "service", "docker", "process", "dashboard-launcher"]).optional(),
     status: z.string().min(1).max(16).optional(),
     activeOnly: z.coerce.boolean().optional(),
+    hasWebui: z.coerce.boolean().optional(),
     page: z.coerce.number().int().min(1).optional(),
     pageSize: z.coerce.number().int().min(1).max(500).optional(),
   })
@@ -112,6 +113,7 @@ const listGate = defineServerFn({
       kind: input.kind,
       status: input.status,
       activeOnly: input.activeOnly ?? false,
+      hasWebui: input.hasWebui,
       page: input.page,
       pageSize: input.pageSize,
     });

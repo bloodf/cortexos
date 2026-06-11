@@ -212,6 +212,7 @@ interface ListServicesInput {
   kind?: "app" | "service" | "docker" | "process" | "dashboard-launcher";
   status?: string;
   activeOnly?: boolean;
+  hasWebui?: boolean;
   page?: number;
   pageSize?: number;
 }
@@ -687,7 +688,7 @@ export const api = {
    * Calls listServices RPC → maps contract rows → mock Service shape.
    */
   services: async (): Promise<Service[]> => {
-    const { rows } = await listServicesFn({ data: { activeOnly: true, pageSize: 500 } });
+    const { rows } = await listServicesFn({ data: { activeOnly: true, hasWebui: true, pageSize: 500 } });
     return rows.map(toServiceRow);
   },
 

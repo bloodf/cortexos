@@ -49,6 +49,8 @@ export interface ListServicesOptions {
   kind?: ServiceKind;
   /** Filter by health status. */
   status?: string;
+  /** Filter to services that have a web UI. */
+  hasWebui?: boolean;
   /** Sort column. Default: 'sort_order'. */
   sortBy?: "slug" | "name" | "category" | "sort_order" | "status" | "updated_at";
   /** Sort direction. Default: 'asc'. */
@@ -79,6 +81,7 @@ export async function listServices(
   if (opts.category) conds.push(eq(services.category, opts.category));
   if (opts.kind) conds.push(eq(services.kind, opts.kind));
   if (opts.status) conds.push(eq(services.status, opts.status));
+  if (opts.hasWebui) conds.push(eq(services.hasWebui, true));
   if (opts.search) {
     const likeTerm = `%${opts.search}%`;
     conds.push(
