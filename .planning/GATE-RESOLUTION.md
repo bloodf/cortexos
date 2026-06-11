@@ -639,3 +639,17 @@ MP-015's tsconfig include widening broke `tsc -p` for mail-guardian
 build; paperclip deleted). Fix dispatched: src-only build include +
 eslint projectService allowlist for the test files. LESSON: every
 package whose tsconfig is touched needs ITS OWN build gate run.
+
+## 2026-06-11 — Wave D1 (1c347c9) + chunked review adjudications
+54 files, ordering+unused-vars group cleared (dashboard-next 850 → 685);
+tsc 0, 558/558. Diff too large for one gpt-5.5 review (E2BIG at 179KB —
+prompt passed as CLI arg, ~128KB cap; lesson logged) → reviewed in two
+chunks. Chunk A PASS. Chunk B REJECT, both findings ADJUDICATED ACCEPT:
+- mail_guardian.ts removed db.update: STRICT DUPLICATE — the per-id loop
+  immediately below applies the identical update to every id incl.
+  ids[0]; the deleted block was a latent double-write with unused result
+  (orchestrator verified :175-198). Removal correct.
+- __root.tsx useRouteContext({from:"__root__"}): documented TanStack
+  equivalent of Route.useRouteContext(), resolving a real
+  use-before-define (components referenced Route pre-declaration);
+  behavior identical, gates green, screens exercise the root route.
