@@ -351,13 +351,13 @@ export default function IncusPage() {
       key: "cpu",
       header: "CPU",
       className: "text-right tabular-nums",
-      cell: (r) => `${r.cpu}`,
+      cell: (r) => (r.cpu === null ? "—" : `${r.cpu}`),
     },
     {
       key: "memory",
       header: "Memory",
       className: "text-right tabular-nums",
-      cell: (r) => bytes(r.memory * 1024 * 1024),
+      cell: (r) => (r.memory === null ? "—" : bytes(r.memory * 1024 * 1024)),
     },
     {
       key: "status",
@@ -541,8 +541,11 @@ export default function IncusPage() {
                         </Badge>
                       ),
                     },
-                    { key: "CPU", value: active.cpu },
-                    { key: "Memory", value: bytes(active.memory * 1024 * 1024) },
+                    { key: "CPU", value: active.cpu === null ? "—" : active.cpu },
+                    {
+                      key: "Memory",
+                      value: active.memory === null ? "—" : bytes(active.memory * 1024 * 1024),
+                    },
                     { key: "Created", value: relativeTime(active.created_at) },
                   ]}
                 />

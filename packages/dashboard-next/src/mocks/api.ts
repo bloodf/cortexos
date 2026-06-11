@@ -145,7 +145,7 @@ export const api = {
         sort: {
           repo: (r) => r.repo,
           tag: (r) => r.tag,
-          size: (r) => r.size,
+          size: (r) => r.size ?? -1,
           created: (r) => r.created,
         },
         defaultSort: { key: "repo" },
@@ -156,7 +156,7 @@ export const api = {
           lower(r.name).includes(q) ||
           lower(r.driver).includes(q) ||
           lower(r.mountpoint).includes(q),
-        sort: { name: (r) => r.name, size: (r) => r.size },
+        sort: { name: (r) => r.name, size: (r) => r.size ?? -1 },
         defaultSort: { key: "name" },
       }),
   },

@@ -109,14 +109,14 @@ export interface DockerImage {
   id: string;
   repo: string;
   tag: string;
-  size: number;
+  size: number | null;
   created: string;
 }
 export interface DockerVolume {
   name: string;
   driver: string;
   mountpoint: string;
-  size: number;
+  size: number | null;
 }
 
 export interface IncusInstance {
@@ -125,8 +125,8 @@ export interface IncusInstance {
   status: "draft" | "validated" | "provisioning" | "active" | "failed";
   type: "container" | "vm";
   image: string;
-  cpu: number;
-  memory: number;
+  cpu: number | null;
+  memory: number | null;
   config: Record<string, string>;
   devices: Record<string, Record<string, string>>;
   last_validation: { ok: boolean; ran_at: string; notes: string } | null;

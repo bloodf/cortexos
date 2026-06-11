@@ -16,15 +16,9 @@ const mockListApprovals = vi.fn();
 const mockListAudit = vi.fn();
 const mockListAgents = vi.fn();
 const mockReadEnv = vi.fn();
-
-beforeEach(() => {
-  mockListAlerts.mockReset();
-  mockAlertHistory.mockReset();
-  mockListApprovals.mockReset();
-  mockListAudit.mockReset();
-  mockListAgents.mockReset();
-  mockReadEnv.mockReset();
-});
+const mockListInstances = vi.fn();
+const mockListImages = vi.fn();
+const mockListVolumes = vi.fn();
 
 vi.mock("@/lib/api/alerts.functions", () => ({
   listAlerts: (...args: unknown[]) => mockListAlerts(...args),
@@ -53,6 +47,32 @@ vi.mock("@/lib/api/env-browser.functions", () => ({
   readEnv: (...args: unknown[]) => mockReadEnv(...args),
   unlock: vi.fn(),
 }));
+
+vi.mock("@/lib/api/incus.functions", () => ({
+  listInstances: (...args: unknown[]) => mockListInstances(...args),
+  incusAction: vi.fn(),
+  instanceLogs: vi.fn(),
+}));
+
+vi.mock("@/lib/api/docker.functions", () => ({
+  listContainers: vi.fn(),
+  listImages: (...args: unknown[]) => mockListImages(...args),
+  listVolumes: (...args: unknown[]) => mockListVolumes(...args),
+  dockerAction: vi.fn(),
+  containerLogs: vi.fn(),
+}));
+
+beforeEach(() => {
+  mockListAlerts.mockReset();
+  mockAlertHistory.mockReset();
+  mockListApprovals.mockReset();
+  mockListAudit.mockReset();
+  mockListAgents.mockReset();
+  mockReadEnv.mockReset();
+  mockListInstances.mockReset();
+  mockListImages.mockReset();
+  mockListVolumes.mockReset();
+});
 
 const iso = "2026-06-11T20:00:00.000Z";
 
@@ -359,5 +379,81 @@ describe("MP-025 live client surface", () => {
         keys: ["OPENAI_API_KEY", "BUDGET_USD"],
       },
     ]);
+  });
+
+  it("api.incus carries null cpu/memory instead of defaulting to 0", async () => {
+    mockListInstances.mockResolvedValue({
+      items: [
+        {
+          name: "null-spec",
+          slug: "null-spec",
+          status: "active",
+          type: "container",
+          image: "ubuntu/24.04",
+          cpu: null,
+          memory: null,
+          config: {
+            target: {
+              slug: "null-spec",
+              description: "test project",
+              repoUrl: "",
+              branch: "main",
+            },
+          },
+          devices: {},
+          lastValidation: null,
+          createdAt: iso,
+          updatedAt: iso,
+        },
+      ],
+    });
+
+    const result = await api.incus();
+
+    expect(mockListInstances).toHaveBeenCalledTimes(1);
+    expect(result).toHaveLength(1);
+    expect(result[0].cpu).toBeNull();
+    expect(result[0].memory).toBeNull();
+  });
+
+  it("api.docker.images carries null size instead of defaulting to 0", async () => {
+    mockListImages.mockResolvedValue({
+      items: [
+        {
+          id: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          repo: "null-size",
+          tag: "latest",
+          size: null,
+          created: iso,
+        },
+      ],
+    });
+
+    const result = await api.docker.images();
+
+    expect(mockListImages).toHaveBeenCalledTimes(1);
+    expect(result).toHaveLength(1);
+    expect(result[0].size).toBeNull();
+  });
+
+  it("api.docker.volumes carries null size instead of defaulting to 0", async () => {
+    mockListVolumes.mockResolvedValue({
+      items: [
+        {
+          name: "null-size-vol",
+          driver: "local",
+          mountpoint: "/var/lib/docker/volumes/null-size-vol/_data",
+          size: null,
+          createdAt: iso,
+          labels: {},
+        },
+      ],
+    });
+
+    const result = await api.docker.volumes();
+
+    expect(mockListVolumes).toHaveBeenCalledTimes(1);
+    expect(result).toHaveLength(1);
+    expect(result[0].size).toBeNull();
   });
 });

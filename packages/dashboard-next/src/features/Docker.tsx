@@ -286,9 +286,9 @@ export function DockerPage() {
     {
       key: "size",
       header: "Size",
-      sort: (r) => r.size,
+      sort: (r) => r.size ?? -1,
       className: "text-right tabular-nums",
-      cell: (r) => bytes(r.size),
+      cell: (r) => (r.size === null ? "—" : bytes(r.size)),
     },
     {
       key: "created",
@@ -323,9 +323,9 @@ export function DockerPage() {
     {
       key: "size",
       header: "Size",
-      sort: (r) => r.size,
+      sort: (r) => r.size ?? -1,
       className: "text-right tabular-nums",
-      cell: (r) => bytes(r.size),
+      cell: (r) => (r.size === null ? "—" : bytes(r.size)),
     },
   ];
 

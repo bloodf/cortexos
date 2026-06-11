@@ -12,7 +12,7 @@ import { LogViewer } from "@/components/LogViewer";
 import { DetailSkeleton } from "@/components/skeletons";
 import { EmptyState } from "@/components/EmptyState";
 import { api, callSystemdAction, callMintApproval, callUnitLogs } from "@/lib/api/client";
-import { csrfHeaders } from "@/features/admin/csrf";
+import { csrfHeaders } from "@/lib/csrf";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 

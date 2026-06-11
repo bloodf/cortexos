@@ -33,16 +33,6 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.
 import { Route as AuthenticatedSystemdUnitRouteImport } from './routes/_authenticated.systemd.$unit'
 import { Route as AuthenticatedIncusNameRouteImport } from './routes/_authenticated.incus.$name'
 import { Route as AuthenticatedDockerIdRouteImport } from './routes/_authenticated.docker.$id'
-import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated.admin.users'
-import { Route as AuthenticatedAdminSystemdRouteImport } from './routes/_authenticated.admin.systemd'
-import { Route as AuthenticatedAdminServicesRouteImport } from './routes/_authenticated.admin.services'
-import { Route as AuthenticatedAdminProjectsRouteImport } from './routes/_authenticated.admin.projects'
-import { Route as AuthenticatedAdminIncusRouteImport } from './routes/_authenticated.admin.incus'
-import { Route as AuthenticatedAdminEnvBrowserRouteImport } from './routes/_authenticated.admin.env-browser'
-import { Route as AuthenticatedAdminDockerRouteImport } from './routes/_authenticated.admin.docker'
-import { Route as AuthenticatedAdminBadgesRouteImport } from './routes/_authenticated.admin.badges'
-import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated.admin.audit'
-import { Route as AuthenticatedAdminAlertsRouteImport } from './routes/_authenticated.admin.alerts'
 import { Route as AuthenticatedAdminAccountRouteImport } from './routes/_authenticated.admin.account'
 
 const LoginRoute = LoginRouteImport.update({
@@ -167,63 +157,6 @@ const AuthenticatedDockerIdRoute = AuthenticatedDockerIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AuthenticatedDockerRoute,
 } as any)
-const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
-  id: '/users',
-  path: '/users',
-  getParentRoute: () => AuthenticatedAdminRoute,
-} as any)
-const AuthenticatedAdminSystemdRoute =
-  AuthenticatedAdminSystemdRouteImport.update({
-    id: '/systemd',
-    path: '/systemd',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminServicesRoute =
-  AuthenticatedAdminServicesRouteImport.update({
-    id: '/services',
-    path: '/services',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminProjectsRoute =
-  AuthenticatedAdminProjectsRouteImport.update({
-    id: '/projects',
-    path: '/projects',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminIncusRoute = AuthenticatedAdminIncusRouteImport.update({
-  id: '/incus',
-  path: '/incus',
-  getParentRoute: () => AuthenticatedAdminRoute,
-} as any)
-const AuthenticatedAdminEnvBrowserRoute =
-  AuthenticatedAdminEnvBrowserRouteImport.update({
-    id: '/env-browser',
-    path: '/env-browser',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminDockerRoute =
-  AuthenticatedAdminDockerRouteImport.update({
-    id: '/docker',
-    path: '/docker',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminBadgesRoute =
-  AuthenticatedAdminBadgesRouteImport.update({
-    id: '/badges',
-    path: '/badges',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminAuditRoute = AuthenticatedAdminAuditRouteImport.update({
-  id: '/audit',
-  path: '/audit',
-  getParentRoute: () => AuthenticatedAdminRoute,
-} as any)
-const AuthenticatedAdminAlertsRoute =
-  AuthenticatedAdminAlertsRouteImport.update({
-    id: '/alerts',
-    path: '/alerts',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
 const AuthenticatedAdminAccountRoute =
   AuthenticatedAdminAccountRouteImport.update({
     id: '/account',
@@ -253,16 +186,6 @@ export interface FileRoutesByFullPath {
   '/systemd': typeof AuthenticatedSystemdRouteWithChildren
   '/terminal': typeof AuthenticatedTerminalRoute
   '/admin/account': typeof AuthenticatedAdminAccountRoute
-  '/admin/alerts': typeof AuthenticatedAdminAlertsRoute
-  '/admin/audit': typeof AuthenticatedAdminAuditRoute
-  '/admin/badges': typeof AuthenticatedAdminBadgesRoute
-  '/admin/docker': typeof AuthenticatedAdminDockerRoute
-  '/admin/env-browser': typeof AuthenticatedAdminEnvBrowserRoute
-  '/admin/incus': typeof AuthenticatedAdminIncusRoute
-  '/admin/projects': typeof AuthenticatedAdminProjectsRoute
-  '/admin/services': typeof AuthenticatedAdminServicesRoute
-  '/admin/systemd': typeof AuthenticatedAdminSystemdRoute
-  '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/docker/$id': typeof AuthenticatedDockerIdRoute
   '/incus/$name': typeof AuthenticatedIncusNameRoute
   '/systemd/$unit': typeof AuthenticatedSystemdUnitRoute
@@ -289,16 +212,6 @@ export interface FileRoutesByTo {
   '/systemd': typeof AuthenticatedSystemdRouteWithChildren
   '/terminal': typeof AuthenticatedTerminalRoute
   '/admin/account': typeof AuthenticatedAdminAccountRoute
-  '/admin/alerts': typeof AuthenticatedAdminAlertsRoute
-  '/admin/audit': typeof AuthenticatedAdminAuditRoute
-  '/admin/badges': typeof AuthenticatedAdminBadgesRoute
-  '/admin/docker': typeof AuthenticatedAdminDockerRoute
-  '/admin/env-browser': typeof AuthenticatedAdminEnvBrowserRoute
-  '/admin/incus': typeof AuthenticatedAdminIncusRoute
-  '/admin/projects': typeof AuthenticatedAdminProjectsRoute
-  '/admin/services': typeof AuthenticatedAdminServicesRoute
-  '/admin/systemd': typeof AuthenticatedAdminSystemdRoute
-  '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/docker/$id': typeof AuthenticatedDockerIdRoute
   '/incus/$name': typeof AuthenticatedIncusNameRoute
   '/systemd/$unit': typeof AuthenticatedSystemdUnitRoute
@@ -327,16 +240,6 @@ export interface FileRoutesById {
   '/_authenticated/systemd': typeof AuthenticatedSystemdRouteWithChildren
   '/_authenticated/terminal': typeof AuthenticatedTerminalRoute
   '/_authenticated/admin/account': typeof AuthenticatedAdminAccountRoute
-  '/_authenticated/admin/alerts': typeof AuthenticatedAdminAlertsRoute
-  '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
-  '/_authenticated/admin/badges': typeof AuthenticatedAdminBadgesRoute
-  '/_authenticated/admin/docker': typeof AuthenticatedAdminDockerRoute
-  '/_authenticated/admin/env-browser': typeof AuthenticatedAdminEnvBrowserRoute
-  '/_authenticated/admin/incus': typeof AuthenticatedAdminIncusRoute
-  '/_authenticated/admin/projects': typeof AuthenticatedAdminProjectsRoute
-  '/_authenticated/admin/services': typeof AuthenticatedAdminServicesRoute
-  '/_authenticated/admin/systemd': typeof AuthenticatedAdminSystemdRoute
-  '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/docker/$id': typeof AuthenticatedDockerIdRoute
   '/_authenticated/incus/$name': typeof AuthenticatedIncusNameRoute
   '/_authenticated/systemd/$unit': typeof AuthenticatedSystemdUnitRoute
@@ -365,16 +268,6 @@ export interface FileRouteTypes {
     | '/systemd'
     | '/terminal'
     | '/admin/account'
-    | '/admin/alerts'
-    | '/admin/audit'
-    | '/admin/badges'
-    | '/admin/docker'
-    | '/admin/env-browser'
-    | '/admin/incus'
-    | '/admin/projects'
-    | '/admin/services'
-    | '/admin/systemd'
-    | '/admin/users'
     | '/docker/$id'
     | '/incus/$name'
     | '/systemd/$unit'
@@ -401,16 +294,6 @@ export interface FileRouteTypes {
     | '/systemd'
     | '/terminal'
     | '/admin/account'
-    | '/admin/alerts'
-    | '/admin/audit'
-    | '/admin/badges'
-    | '/admin/docker'
-    | '/admin/env-browser'
-    | '/admin/incus'
-    | '/admin/projects'
-    | '/admin/services'
-    | '/admin/systemd'
-    | '/admin/users'
     | '/docker/$id'
     | '/incus/$name'
     | '/systemd/$unit'
@@ -438,16 +321,6 @@ export interface FileRouteTypes {
     | '/_authenticated/systemd'
     | '/_authenticated/terminal'
     | '/_authenticated/admin/account'
-    | '/_authenticated/admin/alerts'
-    | '/_authenticated/admin/audit'
-    | '/_authenticated/admin/badges'
-    | '/_authenticated/admin/docker'
-    | '/_authenticated/admin/env-browser'
-    | '/_authenticated/admin/incus'
-    | '/_authenticated/admin/projects'
-    | '/_authenticated/admin/services'
-    | '/_authenticated/admin/systemd'
-    | '/_authenticated/admin/users'
     | '/_authenticated/docker/$id'
     | '/_authenticated/incus/$name'
     | '/_authenticated/systemd/$unit'
@@ -629,76 +502,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDockerIdRouteImport
       parentRoute: typeof AuthenticatedDockerRoute
     }
-    '/_authenticated/admin/users': {
-      id: '/_authenticated/admin/users'
-      path: '/users'
-      fullPath: '/admin/users'
-      preLoaderRoute: typeof AuthenticatedAdminUsersRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/systemd': {
-      id: '/_authenticated/admin/systemd'
-      path: '/systemd'
-      fullPath: '/admin/systemd'
-      preLoaderRoute: typeof AuthenticatedAdminSystemdRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/services': {
-      id: '/_authenticated/admin/services'
-      path: '/services'
-      fullPath: '/admin/services'
-      preLoaderRoute: typeof AuthenticatedAdminServicesRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/projects': {
-      id: '/_authenticated/admin/projects'
-      path: '/projects'
-      fullPath: '/admin/projects'
-      preLoaderRoute: typeof AuthenticatedAdminProjectsRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/incus': {
-      id: '/_authenticated/admin/incus'
-      path: '/incus'
-      fullPath: '/admin/incus'
-      preLoaderRoute: typeof AuthenticatedAdminIncusRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/env-browser': {
-      id: '/_authenticated/admin/env-browser'
-      path: '/env-browser'
-      fullPath: '/admin/env-browser'
-      preLoaderRoute: typeof AuthenticatedAdminEnvBrowserRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/docker': {
-      id: '/_authenticated/admin/docker'
-      path: '/docker'
-      fullPath: '/admin/docker'
-      preLoaderRoute: typeof AuthenticatedAdminDockerRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/badges': {
-      id: '/_authenticated/admin/badges'
-      path: '/badges'
-      fullPath: '/admin/badges'
-      preLoaderRoute: typeof AuthenticatedAdminBadgesRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/audit': {
-      id: '/_authenticated/admin/audit'
-      path: '/audit'
-      fullPath: '/admin/audit'
-      preLoaderRoute: typeof AuthenticatedAdminAuditRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/alerts': {
-      id: '/_authenticated/admin/alerts'
-      path: '/alerts'
-      fullPath: '/admin/alerts'
-      preLoaderRoute: typeof AuthenticatedAdminAlertsRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
     '/_authenticated/admin/account': {
       id: '/_authenticated/admin/account'
       path: '/account'
@@ -711,30 +514,10 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAccountRoute: typeof AuthenticatedAdminAccountRoute
-  AuthenticatedAdminAlertsRoute: typeof AuthenticatedAdminAlertsRoute
-  AuthenticatedAdminAuditRoute: typeof AuthenticatedAdminAuditRoute
-  AuthenticatedAdminBadgesRoute: typeof AuthenticatedAdminBadgesRoute
-  AuthenticatedAdminDockerRoute: typeof AuthenticatedAdminDockerRoute
-  AuthenticatedAdminEnvBrowserRoute: typeof AuthenticatedAdminEnvBrowserRoute
-  AuthenticatedAdminIncusRoute: typeof AuthenticatedAdminIncusRoute
-  AuthenticatedAdminProjectsRoute: typeof AuthenticatedAdminProjectsRoute
-  AuthenticatedAdminServicesRoute: typeof AuthenticatedAdminServicesRoute
-  AuthenticatedAdminSystemdRoute: typeof AuthenticatedAdminSystemdRoute
-  AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAccountRoute: AuthenticatedAdminAccountRoute,
-  AuthenticatedAdminAlertsRoute: AuthenticatedAdminAlertsRoute,
-  AuthenticatedAdminAuditRoute: AuthenticatedAdminAuditRoute,
-  AuthenticatedAdminBadgesRoute: AuthenticatedAdminBadgesRoute,
-  AuthenticatedAdminDockerRoute: AuthenticatedAdminDockerRoute,
-  AuthenticatedAdminEnvBrowserRoute: AuthenticatedAdminEnvBrowserRoute,
-  AuthenticatedAdminIncusRoute: AuthenticatedAdminIncusRoute,
-  AuthenticatedAdminProjectsRoute: AuthenticatedAdminProjectsRoute,
-  AuthenticatedAdminServicesRoute: AuthenticatedAdminServicesRoute,
-  AuthenticatedAdminSystemdRoute: AuthenticatedAdminSystemdRoute,
-  AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
 }
 
 const AuthenticatedAdminRouteWithChildren =

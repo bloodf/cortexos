@@ -198,7 +198,7 @@ function IncusDetail() {
 
   const beforeCfg = devicesCfg || "# no device config";
   const afterCfg = `${beforeCfg
-    .replace(/limits\.cpu: \d+/, `limits.cpu: ${inst.cpu + 1}`)
+    .replace(/limits\.cpu: \d+/, `limits.cpu: ${(inst.cpu ?? 0) + 1}`)
     .trim()}\nsecurity.nesting: true`;
 
   const logLines = logsData?.lines ?? [];
@@ -290,8 +290,11 @@ function IncusDetail() {
             items={[
               { key: "Type", value: inst.type },
               { key: "Image", value: inst.image },
-              { key: "CPU", value: inst.cpu },
-              { key: "Memory", value: bytes(inst.memory * 1024 * 1024) },
+              { key: "CPU", value: inst.cpu === null ? "—" : inst.cpu },
+              {
+                key: "Memory",
+                value: inst.memory === null ? "—" : bytes(inst.memory * 1024 * 1024),
+              },
               { key: "Created", value: relativeTime(inst.created_at) },
               {
                 key: "Validation",

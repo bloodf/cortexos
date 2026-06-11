@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { TableSkeleton } from "@/components/skeletons";
 import { EmptyState } from "@/components/EmptyState";
 import { api, callSystemdAction, callMintApproval } from "@/lib/api/client";
-import { csrfHeaders } from "@/features/admin/csrf";
+import { csrfHeaders } from "@/lib/csrf";
 import { useT } from "@/hooks/useT";
 import { useAuth } from "@/hooks/useAuth";
 import type { SystemdUnit } from "@/mocks/types";

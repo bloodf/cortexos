@@ -1,4 +1,5 @@
-export function bytes(n: number): string {
+export function bytes(n: number | null | undefined): string {
+  if (n === null || n === undefined) return "—";
   if (!Number.isFinite(n) || n <= 0) return "0 B";
   const u = ["B", "KB", "MB", "GB", "TB", "PB"];
   const i = Math.min(u.length - 1, Math.floor(Math.log(n) / Math.log(1024)));

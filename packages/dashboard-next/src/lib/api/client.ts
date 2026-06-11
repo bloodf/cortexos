@@ -458,8 +458,8 @@ function toIncusInstance(inst: ContractIncusInstance): IncusInstance {
     status: inst.status as IncusInstance["status"],
     type: inst.type,
     image: inst.image,
-    cpu: inst.cpu ?? 0,
-    memory: inst.memory ?? 0,
+    cpu: inst.cpu ?? null,
+    memory: inst.memory ?? null,
     config: {},
     devices: inst.devices as Record<string, Record<string, string>>,
     last_validation: lv
@@ -560,12 +560,12 @@ function toDockerContainer(c: StubContainer): DockerContainer {
 
 /** Map a server DockerImage to the mock DockerImage shape. */
 function toDockerImage(i: StubDockerImage): DockerImage {
-  return { id: i.id, repo: i.repo, tag: i.tag, size: i.size, created: i.created };
+  return { id: i.id, repo: i.repo, tag: i.tag, size: i.size ?? null, created: i.created };
 }
 
 /** Map a server DockerVolume to the mock DockerVolume shape. */
 function toDockerVolume(v: StubDockerVolume): DockerVolume {
-  return { name: v.name, driver: v.driver, mountpoint: v.mountpoint, size: v.size ?? 0 };
+  return { name: v.name, driver: v.driver, mountpoint: v.mountpoint, size: v.size ?? null };
 }
 
 // MP-025 gate-middleware boundary casts — same pattern as other domains.

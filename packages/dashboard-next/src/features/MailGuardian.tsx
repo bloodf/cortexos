@@ -48,7 +48,7 @@ import {
 import type { ServerMailAccount } from "@/lib/api/client";
 import { useT } from "@/hooks/useT";
 import { useAuth } from "@/hooks/useAuth";
-import { csrfHeaders } from "@/features/admin/csrf";
+import { csrfHeaders } from "@/lib/csrf";
 import type { MailReview } from "@/mocks/types";
 import { relativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
