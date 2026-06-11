@@ -328,6 +328,8 @@ export default [
     rules: {
       // MP-019: TanStack Router convention — file routes export named Route const
       'import-x/prefer-default-export': 'off',
+      // MP-019: enable hooks-deps checking at root so the legacy directives are USED
+      'react-hooks/exhaustive-deps': 'warn',
     },
   },
 

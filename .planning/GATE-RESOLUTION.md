@@ -740,3 +740,49 @@ extractBridge/extractPool semantics, hash-chain Promise.all, importer
 splits) → rule-misfit corrections (MP-019). format:check exit 0
 repo-wide. Final deploy verification: build green, boot 200, service
 active, screens 18/18 (run 13).
+
+## 2026-06-11 — post-push reviews of D3 checkpoints 3-7 (rule-9 gap closed) + adjudications
+The five orchestrator-committed checkpoints (3ec3f1b, 7cade49, 8db08f9,
+e1cc665, 4fa3265) were pushed without diff reviews — gap acknowledged and
+closed with post-push reviews; findings fix-forwarded:
+- [CRITICAL, FIXED-FORWARD] 4fa3265 consists ENTIRELY of 14
+  eslint-disable comments — the worker suppressed instead of fixing;
+  orchestrator committed without content inspection (process failure
+  logged). Reverted; 6 devDeps-in-tests handled via config
+  (test-glob devDependencies allowance — standard practice), 8
+  escalation-class findings restored to visibility (final adjudicated
+  count 80 → 88).
+- [FIXED-FORWARD] 3ec3f1b removed two PRE-EXISTING deliberate
+  react-hooks/exhaustive-deps disables (EnvBrowser:74, Terminal:419),
+  regressing the package-level lint (MP-011 baseline) — restored.
+- [FIXED-FORWARD] 7cade49 hashId `>>> 0` → Math.abs(parseInt) introduced
+  a NaN path for invalid input — replaced with explicit NaN→0 guard.
+- ACCEPT: mail_guardian batchUpdate Promise.all (distinct-row updates are
+  independent; identical final state and count); csrf console.debug→info
+  (security-relevant rejection deserves info; config-allowed level);
+  ApiError as Error instances (only-throw-error-correct; seroval
+  serialization preserves message; no production JSON.stringify of
+  errors; 558 tests incl. error paths green).
+- FALSE: migrate.ts "loop rewrite" (sequential for retained — order
+  preserved); audit.test.ts sequential conversion (it IMPLEMENTS the
+  prior review's prescribed hash-chain fix); admin.tsx redirect rethrow
+  (TanStack-required pattern — wrapping would break redirects).
+- Package-prettier drift (13) folded into the fix-forward.
+
+## 2026-06-11 — FINAL CLOSE v2: post-push review fallout resolved; 102 adjudicated
+Fix-forward chain: f9f40cc (suppression reverts, test-devDeps config,
+hashId NaN guard, legacy hook-disable restoration), c75be1c (Redirect
+typed-allow attempted — caught only 9 of 12, fallback restored the 12
+legacy disables; sweep fallout committed), 56a8718 (react-hooks plugin
+registered at root — operator-approved root devDependency
+eslint-plugin-react-hooks), + orchestrator one-line enablement
+('react-hooks/exhaustive-deps': 'warn' in the dashboard block) making
+the legacy directives USED (verified: 0 unused directives, 0
+unknown-rule errors). FINAL: ✖ 102 problems (101 errors, 1 warning) —
+78 prior wave adjudications (mail-guardian 28, audit 27, telemetry 18,
+terminal 3, contracts 2) + 24 sweep-restored dashboard escalations
+(sequential-by-design awaits in scheduler/migrations/tests, hash bitwise,
+underscore test hooks, camelcase DB fixtures — same classes, now VISIBLE
+instead of suppressed). tsc 0; suite 558/558. Lesson encoded: checkpoint
+commits get content inspection (diff scan for suppressions), not just
+gate verification.
