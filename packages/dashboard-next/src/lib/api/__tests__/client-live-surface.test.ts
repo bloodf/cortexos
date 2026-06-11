@@ -8,6 +8,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { api } from "@/lib/api/client";
 
 const mockListAlerts = vi.fn();
 const mockAlertHistory = vi.fn();
@@ -52,8 +53,6 @@ vi.mock("@/lib/api/env-browser.functions", () => ({
   readEnv: (...args: unknown[]) => mockReadEnv(...args),
   unlock: vi.fn(),
 }));
-
-import { api } from "@/lib/api/client";
 
 const iso = "2026-06-11T20:00:00.000Z";
 

@@ -18,6 +18,8 @@ import path from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
+import { runSequentially } from "@/lib/sequential";
+
 const execFileAsync = promisify(execFile);
 
 // ---------------------------------------------------------------------------
@@ -128,16 +130,22 @@ function parseStamp(stamp: string): string | null {
 
 function parseEnvironment(stdout: string): Record<string, string> {
   const env: Record<string, string> = {};
-  for (const line of stdout.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed.startsWith("Environment=")) continue;
-    const assignments = trimmed.slice("Environment=".length).trim();
-    for (const pair of assignments.split(/\s+/)) {
-      const idx = pair.indexOf("=");
-      if (idx === -1) continue;
-      env[pair.slice(0, idx)] = pair.slice(idx + 1);
-    }
-  }
+  stdout
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((trimmed) => trimmed.startsWith("Environment="))
+    .forEach((trimmed) => {
+      trimmed
+        .slice("Environment=".length)
+        .trim()
+        .split(/\s+/)
+        .forEach((pair) => {
+          const idx = pair.indexOf("=");
+          if (idx !== -1) {
+            env[pair.slice(0, idx)] = pair.slice(idx + 1);
+          }
+        });
+    });
   return env;
 }
 
@@ -184,8 +192,6 @@ interface RunEntry {
 }
 
 async function scanRuns(root: string): Promise<RunEntry[]> {
-  const runs = new Map<string, RunEntry>();
-
   let entries: string[] = [];
   try {
     entries = await readdir(root);
@@ -193,39 +199,44 @@ async function scanRuns(root: string): Promise<RunEntry[]> {
     return [];
   }
 
-  for (const name of entries) {
+  const scanned = await runSequentially(entries, async (name): Promise<RunEntry | null> => {
     const filePath = path.join(root, name);
     const st = await stat(filePath).catch(() => null);
-    if (!st) continue;
+    if (!st) return null;
 
     const archiveMatch = ARCHIVE_RE.exec(name);
     if (archiveMatch) {
-      const stamp = archiveMatch[1]!;
+      const stamp = archiveMatch[1];
       const timestamp = parseStamp(stamp);
-      if (!timestamp) continue;
-      runs.set(stamp, {
+      if (!timestamp) return null;
+      return {
         stamp,
         timestamp,
         filePath,
         isFile: true,
         sizeBytes: st.size,
-      });
-      continue;
+      };
     }
 
     const timestamp = parseStamp(name);
-    if (!timestamp || !st.isDirectory()) continue;
+    if (!timestamp || !st.isDirectory()) return null;
+    return {
+      stamp: name,
+      timestamp,
+      filePath,
+      isFile: false,
+      sizeBytes: null,
+    };
+  });
 
-    if (!runs.has(name)) {
-      runs.set(name, {
-        stamp: name,
-        timestamp,
-        filePath,
-        isFile: false,
-        sizeBytes: null,
-      });
-    }
-  }
+  const runs = new Map<string, RunEntry>();
+  scanned
+    .filter((entry): entry is RunEntry => entry !== null)
+    .forEach((entry) => {
+      if (entry.isFile || !runs.has(entry.stamp)) {
+        runs.set(entry.stamp, entry);
+      }
+    });
 
   return Array.from(runs.values()).sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 }

@@ -104,18 +104,18 @@ describe("SchedulerPage (MP-024a)", () => {
   it("renders all 3 scheduler job rows", async () => {
     renderScheduler();
     await waitFor(() => {
-      for (const job of mockJobs) {
+      mockJobs.forEach((job) => {
         expect(screen.getByText(job.name)).toBeInTheDocument();
-      }
+      });
     });
   });
 
   it("renders the scheduler target for each row", async () => {
     renderScheduler();
     await waitFor(() => {
-      for (const job of mockJobs) {
+      mockJobs.forEach((job) => {
         expect(screen.getByText(job.target)).toBeInTheDocument();
-      }
+      });
     });
   });
 });

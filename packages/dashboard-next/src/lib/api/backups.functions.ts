@@ -24,7 +24,7 @@ const listBackupRunsGate = defineServerFn({
   action: "backups.list",
   handler: async () => {
     const { listBackupRuns: listBackupRunsBridge } = await import("@/server/backups");
-    const rows = (await listBackupRunsBridge()) as BackupRunRow[];
+    const rows = await listBackupRunsBridge();
     return { backups: rows };
   },
 });

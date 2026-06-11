@@ -44,7 +44,7 @@ const listSchedulerJobsGate = defineServerFn({
   action: "scheduler.list",
   handler: async () => {
     const { listTimers } = await import("@/server/scheduler");
-    const timers = (await listTimers()) as TimerRow[];
+    const timers = await listTimers();
     const jobs = timers.map(toSchedulerJob);
     return { jobs };
   },

@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { IncidentToaster } from "@/components/IncidentToaster";
 import { api } from "@/lib/api/client";
-import { toast } from "sonner";
 import type { AlertHistory } from "@/mocks/types";
 import source from "@/components/IncidentToaster.tsx?raw";
 

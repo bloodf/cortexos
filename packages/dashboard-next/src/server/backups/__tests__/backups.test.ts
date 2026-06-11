@@ -14,7 +14,6 @@ import {
   setBackupsRootForTests,
   resetBackupsForTests,
   type BackupExecutor,
-  type BackupExecutorResult,
 } from "@/server/backups";
 
 beforeEach(() => {

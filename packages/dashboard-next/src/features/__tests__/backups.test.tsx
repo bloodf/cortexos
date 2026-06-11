@@ -94,24 +94,24 @@ describe("BackupsPage (MP-024b)", () => {
   it("renders all 3 backup rows", async () => {
     renderBackups();
     await waitFor(() => {
-      for (const backup of mockBackups) {
+      mockBackups.forEach((backup) => {
         expect(screen.getByText(backup.target)).toBeInTheDocument();
-      }
+      });
     });
   });
 
   it("renders a status badge for every row", async () => {
     renderBackups();
     await waitFor(() => {
-      for (const backup of mockBackups) {
+      mockBackups.forEach((backup) => {
         expect(screen.getAllByText(backup.status).length).toBeGreaterThanOrEqual(1);
-      }
+      });
     });
   });
 
   it("renders null sizeBytes as an em dash, not 0 B", async () => {
     renderBackups();
-    const target = mockBackups.find((b) => b.sizeBytes === null)!.target;
+    const { target } = mockBackups.find((b) => b.sizeBytes === null)!;
     await waitFor(() => {
       expect(screen.getByText(target)).toBeInTheDocument();
     });

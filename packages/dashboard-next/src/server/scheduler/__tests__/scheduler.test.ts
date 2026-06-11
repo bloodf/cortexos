@@ -66,7 +66,8 @@ describe("listTimers", () => {
       "logrotate.timer",
     ]);
 
-    const backup = rows[0]!;
+    const backup = rows[0];
+    if (!backup) throw new Error("Expected backup row at index 0");
     expect(backup.schedule).toBe("*-*-* 00,12:00:00");
     expect(backup.nextRun).toBe("2026-06-12T00:00:00.000Z");
     expect(backup.lastRun).toBe("2026-06-11T12:00:00.108Z");
@@ -74,7 +75,8 @@ describe("listTimers", () => {
     expect(backup.enabled).toBe(true);
     expect(backup.target).toBe("cortex-backup.service");
 
-    const disabled = rows[2]!;
+    const disabled = rows[2];
+    if (!disabled) throw new Error("Expected disabled row at index 2");
     expect(disabled.nextRun).toBeNull();
     expect(disabled.enabled).toBe(false);
     expect(disabled.state).toBe("inactive");
