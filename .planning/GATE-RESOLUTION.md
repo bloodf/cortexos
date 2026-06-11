@@ -1015,3 +1015,16 @@ green (build, boot 200, live 200). Review REJECT, two findings:
   proof ("no row excluded, no repo change") directly.
 - [MAJOR] client.ts outside ownership → ACCEPT: the hunk is a prettier
   line-wrap of 022b's hasWebui line — zero semantic change (quoted).
+
+## 2026-06-11 — MP-024 plan (3 cycles, dispositions applied under /loop standing authorization)
+Artifacts: `harness/artifacts/critic-plan-MP-024-live-backups-scheduler.md-{1,2,3}.md`.
+Cycle 1 FIXED (binary gates/ownership/out-of-scope/TDD; host-exec
+precedent cited systemd.ts:30/:291/:15). Cycle 2 FIXED (server-fn gate
+precedent cited services.functions.ts:99-107; UI row-render binaries;
+backup row contract pinned in-plan). Cycle 3 dispositions, all FIXED:
+- [BLOCKER] cross-unit mock greps → scoped per unit.
+- [MAJOR] UI RED ordering → both assertions in RED with split green
+  checkpoints (the MP-023 pattern).
+- [MAJOR] screen-run 4xx/5xx claim → evidenced: verify-screens.mjs
+  :150-184 + run 16's D-001 (429 flagged FAIL) as empirical proof.
+No overrules. Implementer kimi; gpt-5.5 diff review per unit.
