@@ -79,7 +79,7 @@ export const db = new Proxy({} as NodePgDatabase<typeof schema>, {
  * For tests: reset the cached client so a new env can take effect.
  * Not exported from the package barrel.
  */
-export function _resetDbForTests() {
+export function resetDbForTests() {
   cachedDb = null;
 }
 

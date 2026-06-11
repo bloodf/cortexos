@@ -154,8 +154,9 @@ export default function AppsPage() {
           s.slug.includes(ql) ||
           s.description?.toLowerCase().includes(ql)
         )
-      )
+      ) {
         return false;
+      }
       return true;
     });
   }, [services, q, cat, statusFilter]);

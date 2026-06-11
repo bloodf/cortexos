@@ -137,7 +137,7 @@ function filterExtensionStatements(sql: string, patterns?: string[]): string {
     // line containing `create_hypertable(`, regardless of where
     // the `;` lands (single-line statements only — multi-line
     // `create_hypertable` is not used in the current migrations).
-    out = out.replace(new RegExp(`^[^\\n]*create_hypertable\\s*\\([^\\n]*;?\\s*$`, "gim"), "");
+    out = out.replace(/^[^\n]*create_hypertable\s*\([^\n]*;?\s*$/gim, "");
   });
   // Collapse runs of blank lines left behind.
   out = out.replace(/\n{3,}/g, "\n\n");

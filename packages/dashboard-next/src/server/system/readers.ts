@@ -248,7 +248,7 @@ export async function collectSystem(): Promise<SystemData> {
   const [drives, mounts] = await Promise.all([getDrives(), getMounts()]);
   // Annotate drives with mount/used/total/percent from matching mount entries.
   mounts.forEach((m) => {
-    const d = drives.find((d) => m.filesystem.startsWith(d.name));
+    const d = drives.find((drive) => m.filesystem.startsWith(drive.name));
     if (d) {
       d.mount = m.mount;
       d.used = m.used;

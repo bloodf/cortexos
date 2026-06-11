@@ -23,8 +23,9 @@ function req(opts: { method?: string; csrfCookie?: string; csrfHeader?: string }
   jar: WebCookieJar;
 } {
   const headers: Record<string, string> = {};
-  if (opts.csrfCookie !== undefined)
+  if (opts.csrfCookie !== undefined) {
     headers.cookie = `${CSRF_COOKIE}=${encodeURIComponent(opts.csrfCookie)}`;
+  }
   if (opts.csrfHeader !== undefined) headers["x-csrf-token"] = opts.csrfHeader;
   const request = new Request("http://localhost/api/x", { method: opts.method ?? "POST", headers });
   return { request, jar: new WebCookieJar(request) };

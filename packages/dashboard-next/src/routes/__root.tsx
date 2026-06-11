@@ -13,7 +13,7 @@ import { useEffect, type ReactNode } from "react";
 import { Toaster } from "sonner";
 import appCss from "../styles.css?url";
 import brandMark from "@/assets/cortexos-mark.svg";
-import { reportLovableError } from "../lib/lovable-error-reporting";
+import reportLovableError from "../lib/lovable-error-reporting";
 import { UIProvider } from "../hooks/ui-provider";
 import { useUI } from "../hooks/useUI";
 import { AuthProvider } from "../hooks/auth-provider";

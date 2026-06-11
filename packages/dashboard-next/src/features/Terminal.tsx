@@ -419,7 +419,6 @@ function TerminalTab({ id, active, username, dark, onReady, onState }: TerminalT
       termRef.current = null;
       fitRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // Refit when becoming active

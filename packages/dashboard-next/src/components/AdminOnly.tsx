@@ -16,7 +16,7 @@ interface Props {
  * - Admin user → renders children unchanged.
  * - Standard user → renders the child disabled with a "Requires admin" tooltip.
  */
-export function AdminOnly({
+export default function AdminOnly({
   children,
   fallback,
   showTooltip = true,

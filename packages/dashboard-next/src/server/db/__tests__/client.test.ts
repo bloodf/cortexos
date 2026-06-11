@@ -1,6 +1,6 @@
 /**
  * client.test.ts — direct coverage of the lazy Drizzle Postgres client
- * factory (`readDbEnv`, `getDb`, `_resetDbForTests`, `db` proxy).
+ * factory (`readDbEnv`, `getDb`, `resetDbForTests`, `db` proxy).
  *
  * The function under test is env-gated and depends on the `pg` and
  * `drizzle-orm` packages. We mock the `pg` Pool so no real connection
@@ -41,24 +41,24 @@ afterEach(() => {
 describe("db/client", () => {
   it("getDb() throws when DB_PASSWORD is missing", async () => {
     delete process.env.DB_PASSWORD;
-    const { _resetDbForTests, getDb } = await import("../client");
-    _resetDbForTests();
+    const { resetDbForTests, getDb } = await import("../client");
+    resetDbForTests();
     expect(() => getDb()).toThrow(/DB_PASSWORD/);
   });
 
   it("getDb() returns a cached Drizzle client on second call", async () => {
-    const { getDb, _resetDbForTests } = await import("../client");
-    _resetDbForTests();
+    const { getDb, resetDbForTests } = await import("../client");
+    resetDbForTests();
     const a = getDb();
     const b = getDb();
     expect(a).toBe(b); // same singleton
   });
 
-  it("_resetDbForTests() forces a new Pool on the next getDb()", async () => {
-    const { getDb, _resetDbForTests } = await import("../client");
-    _resetDbForTests();
+  it("resetDbForTests() forces a new Pool on the next getDb()", async () => {
+    const { getDb, resetDbForTests } = await import("../client");
+    resetDbForTests();
     const a = getDb();
-    _resetDbForTests();
+    resetDbForTests();
     const b = getDb();
     // Different cache slot — but the same underlying mockPool
     // means a and b point at the same mock.
@@ -67,8 +67,8 @@ describe("db/client", () => {
   });
 
   it("db proxy delegates property access to the cached client", async () => {
-    const { getDb, _resetDbForTests, db } = await import("../client");
-    _resetDbForTests();
+    const { getDb, resetDbForTests, db } = await import("../client");
+    resetDbForTests();
     const client = getDb();
     // The proxy should return the same value as direct access.
     expect((db as { select: unknown }).select).toBe(client.select);

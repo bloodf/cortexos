@@ -25,7 +25,9 @@ import {
 } from "./seed";
 import { live } from "./drift";
 
-const wait = (n = 120) => new Promise<void>((r) => setTimeout(r, n));
+const wait = (n = 120) => new Promise<void>((r) => {
+  setTimeout(r, n);
+});
 
 // ---------- Server pagination/search helpers ----------
 

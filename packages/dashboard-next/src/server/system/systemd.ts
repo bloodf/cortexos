@@ -93,6 +93,8 @@ export function applyAction(unit: SystemdUnit, action: SystemdActionKind): Syste
     case "status":
     case "list-units":
       return { ...unit };
+    default:
+      return { ...unit };
   }
 }
 

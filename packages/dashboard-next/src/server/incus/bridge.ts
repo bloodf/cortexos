@@ -183,6 +183,8 @@ export function applyAction(rec: MockInstanceRecord, action: IncusActionKind): M
     case "list":
     case "exec-named":
       return { ...rec };
+    default:
+      return { ...rec };
   }
 }
 
@@ -1466,6 +1468,8 @@ let execNamedExecutor: MockExecNamedExecutor = async (op, args, name) => {
         exitCode: 0,
       };
     }
+    default:
+      return { stdout: "", stderr: "Unknown op", exitCode: 1 };
   }
 };
 

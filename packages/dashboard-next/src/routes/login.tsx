@@ -38,9 +38,9 @@ function LoginPage() {
     try {
       await login(u, p);
       router.navigate({ to: search.redirect || "/overview" });
-    } catch (e: unknown) {
-      const err = e as { message?: string };
-      setErr(err.message || t.auth.invalid);
+    } catch (caught: unknown) {
+      const caughtErr = caught as { message?: string };
+      setErr(caughtErr.message || t.auth.invalid);
     } finally {
       setBusy(false);
     }

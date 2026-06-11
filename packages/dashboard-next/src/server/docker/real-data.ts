@@ -59,7 +59,7 @@ interface DockerPsJson {
 function parseDockerDate(raw: string): string {
   try {
     const d = new Date(raw);
-    return isNaN(d.getTime()) ? raw : d.toISOString();
+    return Number.isNaN(d.getTime()) ? raw : d.toISOString();
   } catch {
     return raw;
   }

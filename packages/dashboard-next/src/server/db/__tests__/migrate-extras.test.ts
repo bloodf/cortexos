@@ -179,7 +179,7 @@ describe("migrate — errorMessage (private) via runSqlMigrations", () => {
           exec: async () => {
             execCalls += 1;
             if (execCalls === 1) return; // bootstrap
-            throw "syntax error at line 1";
+            throw new Error("syntax error at line 1");
           },
           query: async () => [],
         },

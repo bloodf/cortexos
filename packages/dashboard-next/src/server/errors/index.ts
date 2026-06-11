@@ -34,13 +34,15 @@ export function setKitShim(s: SvelteKitShim): void {
 }
 
 class ApiErrorThrown extends Error {
+  public readonly apiError?: ApiError;
   constructor(
     public readonly status: number,
     public readonly body: { message: string; code?: string; details?: unknown },
-    public readonly apiError?: ApiError,
+    originalError?: ApiError,
   ) {
     super(body.message);
     this.name = "ApiErrorThrown";
+    this.apiError = originalError;
   }
 }
 
@@ -80,6 +82,8 @@ export function httpStatusFor(error: ApiError): number {
     case "rate_limit":
       return 429;
     case "system":
+      return 500;
+    default:
       return 500;
   }
 }

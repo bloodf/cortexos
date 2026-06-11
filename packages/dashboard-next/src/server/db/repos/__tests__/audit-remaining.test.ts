@@ -74,9 +74,13 @@ describe("appendAuditLog — additional cases", () => {
 describe("verifyAuditLogChain — windowed queries", () => {
   it("returns a chain spanning the inserted rows in chronological order", async () => {
     await appendAuditLog(db, { eventType: "a", source: "s", payload: { a: 1 } });
-    await new Promise((r) => setTimeout(r, 5));
+    await new Promise<void>((r) => {
+  setTimeout(r, 5);
+});
     await appendAuditLog(db, { eventType: "b", source: "s", payload: { b: 2 } });
-    await new Promise((r) => setTimeout(r, 5));
+    await new Promise<void>((r) => {
+  setTimeout(r, 5);
+});
     await appendAuditLog(db, { eventType: "c", source: "s", payload: { c: 3 } });
 
     // Limit by toTs to a window that contains only the first 2 rows.

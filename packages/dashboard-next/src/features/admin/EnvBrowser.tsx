@@ -74,7 +74,6 @@ export function AdminEnvPage() {
     if (revealed && remainingSeconds(data?.revealExpiresAt ?? null) === 0) {
       query.refetch().catch(() => {});
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [now]);
 
   // Recomputed every render — the per-second `setNow` tick keeps it current.

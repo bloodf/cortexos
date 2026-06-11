@@ -10,7 +10,7 @@ interface Props {
   className?: string;
 }
 
-export function GaugeRadial({
+export default function GaugeRadial({
   value,
   max = 100,
   size = 120,
