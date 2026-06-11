@@ -62,7 +62,7 @@ const EXEC_TIMEOUT_MS = 30_000;
 const MAX_BUFFER = 4 * 1024 * 1024;
 
 /** Shells the interactive PTY is permitted to spawn (WP-19 §3). */
-const ALLOWED_SHELLS = ["/bin/bash", "/bin/sh", "/usr/bin/bash", "/usr/bin/zsh"] as const;
+const ALLOWED_SHELLS_LIST = ["/bin/bash", "/bin/sh", "/usr/bin/bash", "/usr/bin/zsh"] as const;
 const DEFAULT_SHELL = "/bin/bash";
 
 // ---------------------------------------------------------------------------
@@ -499,7 +499,7 @@ export async function spawnPty(
   cols = 80,
   rows = 24,
 ): Promise<PtyHandle> {
-  if (!ALLOWED_SHELLS.includes(shell as (typeof ALLOWED_SHELLS)[number])) {
+  if (!ALLOWED_SHELLS_LIST.includes(shell as (typeof ALLOWED_SHELLS_LIST)[number])) {
     throw new Error(`shell_not_allowed: ${shell}`);
   }
 
@@ -527,10 +527,10 @@ export async function spawnPty(
 }
 
 /** The allowlisted interactive shells — exposed for tests + the gate. */
-export const _ALLOWED_SHELLS = ALLOWED_SHELLS;
+export const ALLOWED_SHELLS = ALLOWED_SHELLS_LIST;
 
 /** Internal surfaces for the unit test. */
-export const _internals = {
+export const internals = {
   collectArgSmugglingHits,
   argvContainsBashDashC,
   renderArgv,

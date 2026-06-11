@@ -58,7 +58,7 @@ import {
 import { SESSION_COOKIE, CSRF_COOKIE, setServerHmacKeyFromString } from "@/server/config";
 import {
   defineApiRoute,
-  _resetRateLimitBuckets,
+  resetRateLimitBuckets,
   type ApiRouteCore,
 } from "@/server/server-fn-pipeline";
 import {
@@ -95,7 +95,7 @@ beforeEach(() => {
   resetPamAuthenticator();
   pam = new FakePamAuthenticator();
   setPamAuthenticator(pam);
-  _resetRateLimitBuckets();
+  resetRateLimitBuckets();
   resetApprovalStore();
   resetRevealGrants();
 });

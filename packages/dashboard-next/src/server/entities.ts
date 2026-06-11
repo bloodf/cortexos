@@ -14,8 +14,8 @@
 // Branded ID primitives — prevent ID confusion at the type level.
 // ---------------------------------------------------------------------------
 
-declare const __brand: unique symbol;
-type Brand<T, B> = T & { readonly [__brand]: B };
+declare const brand: unique symbol;
+type Brand<T, B> = T & { readonly [brand]: B };
 
 export type UserId = Brand<string, "UserId">;
 export type SessionId = Brand<string, "SessionId">;

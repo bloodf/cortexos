@@ -17,7 +17,7 @@ import {
   validateAllArgs,
   setExecutorForTests,
   spawnPty,
-  _ALLOWED_SHELLS,
+  ALLOWED_SHELLS,
   type DispatchContext,
   type Executor,
 } from "../pty-bridge";
@@ -199,6 +199,6 @@ describe("spawnPty", () => {
   });
 
   it("exposes a fixed shell allowlist", () => {
-    expect([..._ALLOWED_SHELLS]).toEqual(["/bin/bash", "/bin/sh", "/usr/bin/bash", "/usr/bin/zsh"]);
+    expect([...ALLOWED_SHELLS]).toEqual(["/bin/bash", "/bin/sh", "/usr/bin/bash", "/usr/bin/zsh"]);
   });
 });

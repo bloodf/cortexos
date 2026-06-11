@@ -16,9 +16,9 @@ import {
   listInstanceLogs,
   dispatchAction,
   dispatchExecNamed,
-  _resetIncusBridgeForTests,
-  _SEED_INSTANCES,
-  _DESTRUCTIVE_ACTIONS,
+  resetIncusBridgeForTests,
+  SEED_INSTANCES,
+  DESTRUCTIVE_ACTIONS,
   DELETE_CONFIRMATION_PHRASE,
   EXEC_NAMED_OPS,
   type DispatchContext,
@@ -35,7 +35,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-  _resetIncusBridgeForTests();
+  resetIncusBridgeForTests();
   resetApprovalStore();
 });
 
@@ -86,7 +86,7 @@ describe("node-env gate", () => {
   it("uses mock executor when CORTEX_INCUS_BRIDGE_REAL=0", async () => {
     const instances = await listInstances();
     // Mock seeds 4 instances.
-    expect(instances.length).toBe(_SEED_INSTANCES.length);
+    expect(instances.length).toBe(SEED_INSTANCES.length);
   });
 });
 
@@ -153,7 +153,7 @@ describe("listInstanceLogs", () => {
 
 describe("dispatchAction — policy allowlist", () => {
   it("rejects an op not on the allowlist", async () => {
-    const _result = await dispatchAction(
+    await dispatchAction(
       { action: "exec-named", name: "hermes-canary" },
       makeAdminCtx(),
     );
@@ -343,13 +343,13 @@ describe("dispatchAction — approval gate", () => {
 // dispatchAction — destructive-action set matches policy
 // ---------------------------------------------------------------------------
 
-describe("_DESTRUCTIVE_ACTIONS", () => {
+describe("DESTRUCTIVE_ACTIONS", () => {
   it("contains stop, restart, delete", () => {
-    expect(_DESTRUCTIVE_ACTIONS.has("stop")).toBe(true);
-    expect(_DESTRUCTIVE_ACTIONS.has("restart")).toBe(true);
-    expect(_DESTRUCTIVE_ACTIONS.has("delete")).toBe(true);
-    expect(_DESTRUCTIVE_ACTIONS.has("start")).toBe(false);
-    expect(_DESTRUCTIVE_ACTIONS.has("launch")).toBe(false);
+    expect(DESTRUCTIVE_ACTIONS.has("stop")).toBe(true);
+    expect(DESTRUCTIVE_ACTIONS.has("restart")).toBe(true);
+    expect(DESTRUCTIVE_ACTIONS.has("delete")).toBe(true);
+    expect(DESTRUCTIVE_ACTIONS.has("start")).toBe(false);
+    expect(DESTRUCTIVE_ACTIONS.has("launch")).toBe(false);
   });
 });
 

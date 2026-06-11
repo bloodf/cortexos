@@ -35,7 +35,7 @@ import {
 import { SESSION_COOKIE } from "@/server/config";
 import {
   defineApiRoute,
-  _resetRateLimitBuckets,
+  resetRateLimitBuckets,
   type ApiRouteCore,
 } from "@/server/server-fn-pipeline";
 
@@ -45,7 +45,7 @@ beforeEach(() => {
   resetSessionStore();
   store = new InMemorySessionStore();
   setSessionStore(store);
-  _resetRateLimitBuckets();
+  resetRateLimitBuckets();
 });
 
 function cookieHeader(parts: Record<string, string>): string {

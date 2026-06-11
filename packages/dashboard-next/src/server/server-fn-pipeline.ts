@@ -122,7 +122,7 @@ interface RateLimitResult {
 const rateLimitBuckets = new Map<string, number[]>();
 
 /** Test helper: clear all rate-limit buckets. */
-export function _resetRateLimitBuckets(): void {
+export function resetRateLimitBuckets(): void {
   rateLimitBuckets.clear();
 }
 

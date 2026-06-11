@@ -70,7 +70,7 @@ function throwCsrfError(reason: string): never {
   // requestId, and we don't want to leak the CSRF diagnostic to a potential
   // attacker. The reason is for unit tests to assert against.
   if (process.env.NODE_ENV !== "production") {
-    console.debug("[cortexos/csrf] rejected", { reason });
+    console.info("[cortexos/csrf] rejected", { reason });
   }
   // For the "missing_session_csrf" case, surface as auth (the caller is
   // unauthenticated and shouldn't be told CSRF exists).

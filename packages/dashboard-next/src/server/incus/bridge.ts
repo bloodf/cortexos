@@ -580,7 +580,7 @@ async function listImagesFromIncus(): Promise<IncusImage[]> {
 // Seed instances — representative set for the M2 mock.
 // ---------------------------------------------------------------------------
 
-const SEED_INSTANCES: readonly MockInstanceRecord[] = [
+const SEED_INSTANCES_INTERNAL: readonly MockInstanceRecord[] = [
   {
     name: "hermes-canary",
     slug: "hermes-canary",
@@ -687,7 +687,7 @@ const SEED_INSTANCES: readonly MockInstanceRecord[] = [
 /** Pre-populate the log buffer so the detail page is non-empty. */
 function seedLogs(mock: MockIncusExecutor): void {
   const now = "2026-05-12T10:00:00.000Z";
-  SEED_INSTANCES.forEach((inst) => {
+  SEED_INSTANCES_INTERNAL.forEach((inst) => {
     mock.pushLog(inst.name, {
       ts: now,
       priority: "info",
@@ -728,7 +728,7 @@ function seedLogs(mock: MockIncusExecutor): void {
 /** Build a fresh default mock + wrapper. */
 function makeDefaultMock(): { mock: MockIncusExecutor; executor: IncusExecutor } {
   const mock = new MockIncusExecutor();
-  mock.seed(SEED_INSTANCES);
+  mock.seed(SEED_INSTANCES_INTERNAL);
   seedLogs(mock);
   return { mock, executor: (ctx) => mock.run(ctx) };
 }
@@ -754,7 +754,7 @@ export function setExecutorForTests(fn: IncusExecutor | null): void {
 }
 
 /** Test helper: peek at the underlying mock. */
-export function _getMockExecutorForTests(): MockIncusExecutor {
+export function getMockExecutorForTests(): MockIncusExecutor {
   if (!currentMock) {
     const { mock, executor: e } = makeDefaultMock();
     currentMock = mock;
@@ -764,7 +764,7 @@ export function _getMockExecutorForTests(): MockIncusExecutor {
 }
 
 /** Reset the in-memory store + re-seed with the default instances. */
-export function _resetIncusBridgeForTests(): void {
+export function resetIncusBridgeForTests(): void {
   const { mock, executor: e } = makeDefaultMock();
   currentMock = mock;
   executor = e;
@@ -918,7 +918,7 @@ export async function runPreflightReport(
   const name = config.target.slug;
 
   // 1. Name availability.
-  const existingInstances = currentMock ? SEED_INSTANCES : await listInstances();
+  const existingInstances = currentMock ? SEED_INSTANCES_INTERNAL : await listInstances();
   const knownNames = new Set(existingInstances.map((i) => i.name));
   checks.push({
     id: "name",
@@ -1066,7 +1066,7 @@ export type DispatchResult =
     };
 
 /** The set of actions that the policy allowlist marks as destructive. */
-const DESTRUCTIVE_ACTIONS: ReadonlySet<IncusActionKind> = new Set<IncusActionKind>([
+const DESTRUCTIVE_ACTIONS_INTERNAL: ReadonlySet<IncusActionKind> = new Set<IncusActionKind>([
   "stop",
   "restart",
   "delete",
@@ -1233,7 +1233,7 @@ export async function dispatchAction(
   }
 
   // 4. Destructive action → approval gate.
-  if (DESTRUCTIVE_ACTIONS.has(input.action)) {
+  if (DESTRUCTIVE_ACTIONS_INTERNAL.has(input.action)) {
     const actionHash = actionHashFor(policyName, { name: input.name });
     if (!ctx.approvalToken) {
       audit({
@@ -1716,7 +1716,7 @@ export function listInstanceActions(): readonly {
       return {
         action,
         description: entry?.description ?? `incus ${action} on an allowlisted instance.`,
-        requiresApproval: entry?.requiresApproval ?? DESTRUCTIVE_ACTIONS.has(action),
+        requiresApproval: entry?.requiresApproval ?? DESTRUCTIVE_ACTIONS_INTERNAL.has(action),
       };
     },
   );
@@ -1727,7 +1727,7 @@ export function listInstanceActions(): readonly {
 // ---------------------------------------------------------------------------
 
 /** The default seed. Exposed so tests can assert against a known set. */
-export const _SEED_INSTANCES: readonly MockInstanceRecord[] = SEED_INSTANCES;
+export const SEED_INSTANCES: readonly MockInstanceRecord[] = SEED_INSTANCES_INTERNAL;
 
 /** Re-export the destructive-action set for tests. */
-export const _DESTRUCTIVE_ACTIONS: ReadonlySet<IncusActionKind> = DESTRUCTIVE_ACTIONS;
+export const DESTRUCTIVE_ACTIONS: ReadonlySet<IncusActionKind> = DESTRUCTIVE_ACTIONS_INTERNAL;

@@ -38,7 +38,7 @@ import {
 import { SESSION_COOKIE, CSRF_COOKIE } from "@/server/config";
 import {
   defineApiRoute,
-  _resetRateLimitBuckets,
+  resetRateLimitBuckets,
   type ApiRouteCore,
 } from "@/server/server-fn-pipeline";
 import { resetRevealGrants } from "@/server/env-reveal";
@@ -84,7 +84,7 @@ beforeEach(() => {
   resetPamAuthenticator();
   pam = new FakePamAuthenticator();
   setPamAuthenticator(pam);
-  _resetRateLimitBuckets();
+  resetRateLimitBuckets();
   resetRevealGrants();
 });
 
