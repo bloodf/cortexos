@@ -25,6 +25,7 @@ import { join } from "node:path";
 
 import { describe, it, expect, beforeEach, afterAll } from "vitest";
 
+import { runSequentially } from "@/lib/sequential";
 import {
   InMemorySessionStore,
   setSessionStore,
@@ -293,11 +294,10 @@ describe("env-browser.unlock (auth: admin, mutation)", () => {
   it("rate-limited after 5 unlock attempts in the window (6th → 429)", async () => {
     pam.setFakeUser({ username: "admin", password: "correct-horse", groups: ["cortexos-admin"] });
     const { token, csrf } = await makeAdminSession("admin");
-    const codes: number[] = [];
-    for (let i = 0; i < 6; i++) {
-      const res = await unlockCore(unlockRequest(token, csrf, { password: "wrong" }));
-      codes.push(res.status);
-    }
+    const ress = await runSequentially(Array.from({ length: 6 }), async () =>
+      unlockCore(unlockRequest(token, csrf, { password: "wrong" })),
+    );
+    const codes = ress.map((res) => res.status);
     // First 5 are processed (401 bad password); the 6th is rate-limited.
     expect(codes.slice(0, 5).every((c) => c === 401)).toBe(true);
     expect(codes[5]).toBe(429);

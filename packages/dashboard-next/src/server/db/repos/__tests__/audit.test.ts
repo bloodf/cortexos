@@ -11,6 +11,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import type { PGlite } from "@electric-sql/pglite";
+import { runSequentially } from "@/lib/sequential";
 import { createTestDb, type PgliteDbClient } from "../../test-utils";
 import {
   insertAgentGatewayAudit,
@@ -147,13 +148,13 @@ describe("audit repo — audit_log hash chain", () => {
   });
 
   it("appendAuditLog + verifyAuditLogChain — multiple rows chain correctly", async () => {
-    for (let i = 0; i < 5; i += 1) {
-      await appendAuditLog(db, {
+    await runSequentially([0, 1, 2, 3, 4], async (i) =>
+      appendAuditLog(db, {
         eventType: `test.event.${i}`,
         source: "test",
         payload: { i },
-      });
-    }
+      }),
+    );
     const res = await verifyAuditLogChain(db);
     expect(res.valid).toBe(true);
     expect(res.count).toBe(5);

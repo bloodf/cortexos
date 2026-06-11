@@ -192,7 +192,9 @@ export function safeCsrfEqual(a: string | null, b: string | null): boolean {
   // XOR every byte; result is non-zero iff any byte differs.
   let diff = 0;
   for (let i = 0; i < a.length; i++) {
-    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+    if (a.charCodeAt(i) !== b.charCodeAt(i)) {
+      diff = 1;
+    }
   }
   return diff === 0;
 }

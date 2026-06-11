@@ -508,7 +508,7 @@ export async function listLogs(name: string, limit: number): Promise<SystemdLogL
       try {
         const entry = JSON.parse(trimmed) as Record<string, unknown>;
 
-        const rt = entry.__REALTIME_TIMESTAMP;
+        const rt = entry["__REALTIME_TIMESTAMP"];
         const ts = rt ? new Date(Number(rt) / 1000).toISOString() : new Date().toISOString();
         const priorityNum = Number(entry.PRIORITY ?? 6);
         const priorityMap: Record<number, SystemdLogLine["priority"]> = {
@@ -526,7 +526,7 @@ export async function listLogs(name: string, limit: number): Promise<SystemdLogL
           ts,
           priority,
 
-          unit: String(entry._SYSTEMD_UNIT ?? name),
+          unit: String(entry["_SYSTEMD_UNIT"] ?? name),
           message: String(entry.MESSAGE ?? ""),
         });
       } catch {
@@ -572,7 +572,7 @@ export async function listHostLogs(limit: number): Promise<SystemdLogLine[]> {
       try {
         const entry = JSON.parse(trimmed) as Record<string, unknown>;
 
-        const rt = entry.__REALTIME_TIMESTAMP;
+        const rt = entry["__REALTIME_TIMESTAMP"];
         const ts = rt ? new Date(Number(rt) / 1000).toISOString() : new Date().toISOString();
         const priorityNum = Number(entry.PRIORITY ?? 6);
         const priorityMap: Record<number, SystemdLogLine["priority"]> = {
@@ -590,7 +590,7 @@ export async function listHostLogs(limit: number): Promise<SystemdLogLine[]> {
           ts,
           priority,
 
-          unit: String(entry._SYSTEMD_UNIT ?? "host"),
+          unit: String(entry["_SYSTEMD_UNIT"] ?? "host"),
           message: String(entry.MESSAGE ?? ""),
         });
       } catch {

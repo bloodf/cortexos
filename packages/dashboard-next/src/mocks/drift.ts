@@ -89,17 +89,15 @@ function tick() {
           }
         : s,
     );
-    alertState = [
-      {
-        id: `live-${Date.now()}`,
-        ruleName: `${cur.name} state change`,
-        serviceName: cur.name,
-        status: (flipped === "online" ? "resolved" : "fired") as "resolved" | "fired",
-        message: flipped === "online" ? "Recovered" : "Health check failed",
-        timestamp: new Date().toISOString(),
-      },
-      ...alertState,
-    ].slice(0, 80);
+    const liveEntry: AlertHistory = {
+      id: `live-${Date.now()}`,
+      ruleName: `${cur.name} state change`,
+      serviceName: cur.name,
+      status: flipped === "online" ? "resolved" : "fired",
+      message: flipped === "online" ? "Recovered" : "Health check failed",
+      timestamp: new Date().toISOString(),
+    };
+    alertState = [liveEntry, ...alertState].slice(0, 80);
   } else {
     // Subtle latency drift on online services
     serviceState = serviceState.map((s) =>
@@ -158,17 +156,15 @@ export const live = {
     );
     const svc = serviceState.find((s) => s.slug === slug);
     if (svc) {
-      alertState = [
-        {
-          id: `sim-${Date.now()}`,
-          ruleName: `${svc.name} simulated`,
-          serviceName: svc.name,
-          status: (status === "online" ? "resolved" : "fired") as AlertHistory["status"],
-          message: status === "online" ? "Simulated recovery" : "Simulated outage",
-          timestamp: new Date().toISOString(),
-        },
-        ...alertState,
-      ].slice(0, 80);
+      const simEntry: AlertHistory = {
+        id: `sim-${Date.now()}`,
+        ruleName: `${svc.name} simulated`,
+        serviceName: svc.name,
+        status: status === "online" ? "resolved" : "fired",
+        message: status === "online" ? "Simulated recovery" : "Simulated outage",
+        timestamp: new Date().toISOString(),
+      };
+      alertState = [simEntry, ...alertState].slice(0, 80);
     }
     if (qc) {
       qc.setQueryData(["services"], [...serviceState]);

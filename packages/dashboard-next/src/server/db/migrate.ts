@@ -22,6 +22,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import os from "node:os";
+import { runSequentially } from "@/lib/sequential";
 
 const SAFE_FILENAME_RE = /^[a-zA-Z0-9_-]+\.sql$/;
 
@@ -172,62 +173,61 @@ export async function runSqlMigrations(opts: RunMigrationsOptions): Promise<stri
 
   const run: string[] = [];
 
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    const name = file.replace(/\.sql$/, "");
-    if (!appliedSet.has(name)) {
-      const filePath = join(opts.dir, file);
-      // Defence-in-depth: ensure the resolved path is still inside `dir`.
-      if (filePath.startsWith(opts.dir)) {
-        const sqlText = readFileSync(filePath, "utf-8");
-        const ip = opts.lanIp ?? getLanIp();
-        let finalSql = ip ? replaceVpsLanIp(sqlText, ip) : sqlText;
+  const pending = files
+    .map((file) => ({ file, name: file.replace(/\.sql$/, "") }))
+    .filter(({ name }) => !appliedSet.has(name));
 
-        // When running against a driver that doesn't ship the prod
-        // extensions (e.g. PGlite without TimescaleDB), pre-filter the
-        // SQL to drop the extension-only statements. Without this,
-        // PGlite's `exec` rolls back the entire batch when the first
-        // `CREATE EXTENSION` fails — meaning no tables get created.
-        //
-        // The pre-filter is conservative: it removes lines that match
-        // the ignored patterns (CREATE EXTENSION, create_hypertable
-        // for TimescaleDB). It does NOT touch the rest of the schema.
-        if (opts.ignoreUnsupportedExtensions) {
-          finalSql = filterExtensionStatements(finalSql, opts.ignoredExtensionPatterns);
-        }
+  await runSequentially(pending, async ({ file, name }) => {
+    const filePath = join(opts.dir, file);
+    // Defence-in-depth: ensure the resolved path is still inside `dir`.
+    if (!filePath.startsWith(opts.dir)) return;
+    const sqlText = readFileSync(filePath, "utf-8");
+    const ip = opts.lanIp ?? getLanIp();
+    let finalSql = ip ? replaceVpsLanIp(sqlText, ip) : sqlText;
 
-        // Apply the migration. The `executor.exec` is allowed to wrap
-        // in a transaction (pg's Pool.query is a single implicit
-        // transaction per call). SQL bodies that need their own
-        // transaction (`BEGIN; ... COMMIT;`) declare it explicitly.
-        try {
-          await opts.executor.exec(finalSql);
-        } catch (e) {
-          if (
-            opts.ignoreUnsupportedExtensions &&
-            isIgnoredExtensionError(e, opts.ignoredExtensionPatterns)
-          ) {
-            // The migration file references an extension that the
-            // test driver doesn't ship (e.g. TimescaleDB on PGlite).
-            // The migration runner records the file as "applied" so
-            // subsequent runs treat the rest of the schema as
-            // already established. This matches what a real
-            // prod-without-TimescaleDB would experience.
-          } else {
-            throw e;
-          }
-        }
+    // When running against a driver that doesn't ship the prod
+    // extensions (e.g. PGlite without TimescaleDB), pre-filter the
+    // SQL to drop the extension-only statements. Without this,
+    // PGlite's `exec` rolls back the entire batch when the first
+    // `CREATE EXTENSION` fails — meaning no tables get created.
+    //
+    // The pre-filter is conservative: it removes lines that match
+    // the ignored patterns (CREATE EXTENSION, create_hypertable
+    // for TimescaleDB). It does NOT touch the rest of the schema.
+    if (opts.ignoreUnsupportedExtensions) {
+      finalSql = filterExtensionStatements(finalSql, opts.ignoredExtensionPatterns);
+    }
 
-        // Record the applied migration. Parameterised; safe regardless
-        // of filename contents.
-        await opts.executor.query(
-          "INSERT INTO migrations (name) VALUES ($1) ON CONFLICT (name) DO NOTHING",
-          [name],
-        );
-        run.push(name);
+    // Apply the migration. The `executor.exec` is allowed to wrap
+    // in a transaction (pg's Pool.query is a single implicit
+    // transaction per call). SQL bodies that need their own
+    // transaction (`BEGIN; ... COMMIT;`) declare it explicitly.
+    try {
+      await opts.executor.exec(finalSql);
+    } catch (e) {
+      if (
+        opts.ignoreUnsupportedExtensions &&
+        isIgnoredExtensionError(e, opts.ignoredExtensionPatterns)
+      ) {
+        // The migration file references an extension that the
+        // test driver doesn't ship (e.g. TimescaleDB on PGlite).
+        // The migration runner records the file as "applied" so
+        // subsequent runs treat the rest of the schema as
+        // already established. This matches what a real
+        // prod-without-TimescaleDB would experience.
+      } else {
+        throw e;
       }
     }
-  }
+
+    // Record the applied migration. Parameterised; safe regardless
+    // of filename contents.
+    await opts.executor.query(
+      "INSERT INTO migrations (name) VALUES ($1) ON CONFLICT (name) DO NOTHING",
+      [name],
+    );
+    run.push(name);
+  });
 
   return run;
 }

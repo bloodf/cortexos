@@ -227,14 +227,18 @@ async function pool<T>(
   worker: (item: T) => Promise<void>,
 ): Promise<void> {
   let i = 0;
-  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
-    while (i < items.length) {
-      const item = items[i];
-      i += 1;
-      await worker(item);
+  async function runNext(): Promise<void> {
+    if (i >= items.length) {
+      return;
     }
-  });
-  await Promise.all(runners);
+    const item = items[i];
+    i += 1;
+    await worker(item);
+    await runNext();
+  }
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, () => runNext()),
+  );
 }
 
 let sweeping = false;

@@ -1,26 +1,9 @@
-interface LovableErrorOptions {
-  mechanism?: "manual" | "onerror" | "unhandledrejection" | "react_error_boundary";
-  handled?: boolean;
-  severity?: "error" | "warning" | "info";
-}
-
-interface LovableEvents {
-  captureException?: (
-    error: unknown,
-    context?: Record<string, unknown>,
-    options?: LovableErrorOptions,
-  ) => void;
-}
-
-declare global {
-  interface Window {
-    __lovableEvents?: LovableEvents;
-  }
-}
-
 export default function reportLovableError(error: unknown, context: Record<string, unknown> = {}) {
   if (typeof window === "undefined") return;
-  window.__lovableEvents?.captureException?.(
+  const events = (window as unknown as Record<string, unknown>)["__lovableEvents"] as
+    | { captureException?: (...args: unknown[]) => void }
+    | undefined;
+  events?.captureException?.(
     error,
     {
       source: "react_error_boundary",

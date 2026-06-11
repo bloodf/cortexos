@@ -43,6 +43,7 @@ import { createHash } from "node:crypto";
 import { describe, it, expect, beforeEach, beforeAll, afterEach, afterAll } from "vitest";
 
 import { z } from "zod";
+import { runSequentially } from "@/lib/sequential";
 import {
   InMemorySessionStore,
   setSessionStore,
@@ -311,14 +312,13 @@ describe("[1] PAM login — auth + user-enumeration resistance (T-101)", () => {
     await time(() => loginRequest({ username: "alice", password: "wrong" }));
     await time(() => loginRequest({ username: "ghost_user", password: "x" }));
 
-    let badPwTotal = 0;
-    let unknownTotal = 0;
-
-    for (let i = 0; i < N; i++) {
-      badPwTotal += await time(() => loginRequest({ username: "alice", password: "wrong" }));
-      unknownTotal += await time(() => loginRequest({ username: "ghost_user", password: "x" }));
-    }
-
+    const pairs = await runSequentially(Array.from({ length: N }), async () => {
+      const bad = await time(() => loginRequest({ username: "alice", password: "wrong" }));
+      const unknown = await time(() => loginRequest({ username: "ghost_user", password: "x" }));
+      return { bad, unknown };
+    });
+    const badPwTotal = pairs.reduce((s, p) => s + p.bad, 0);
+    const unknownTotal = pairs.reduce((s, p) => s + p.unknown, 0);
     const badPwAvg = badPwTotal / N;
     const unknownAvg = unknownTotal / N;
     // The two code paths both run a fake hash round-trip on failure, so the
@@ -787,16 +787,20 @@ describe("[7] Rate limits — per bucket (SR-200)", () => {
     let retryAfter: number | null = null;
     let code: string | undefined;
 
-    for (let i = 0; i < 6; i++) {
+    const ress = await runSequentially(Array.from({ length: 6 }), async () => {
       const res = await loginCore(loginRequest({ username: "alice", password: "wrong" }));
+      const json = res.status === 429 ? await res.json() : undefined;
+      return { res, json };
+    });
+    ress.forEach(({ res, json }) => {
       codes.push(res.status);
       if (res.status === 429) {
         // The retryAfter is delivered via the standard `Retry-After` HTTP
         // header (the contract surface); the body carries `code:rate_limit`.
         retryAfter = Number(res.headers.get("retry-after"));
-        code = (await res.json()).code;
+        code = json?.code;
       }
-    }
+    });
 
     expect(codes.slice(0, 5).every((c) => c === 401)).toBe(true);
     expect(codes[5]).toBe(429);
@@ -819,9 +823,8 @@ describe("[7] Rate limits — per bucket (SR-200)", () => {
         },
         body: JSON.stringify({ password: "wrong" }),
       });
-    const codes: number[] = [];
-
-    for (let i = 0; i < 6; i++) codes.push((await unlockCore(mk())).status);
+    const ress = await runSequentially(Array.from({ length: 6 }), async () => unlockCore(mk()));
+    const codes = ress.map((res) => res.status);
 
     expect(codes.slice(0, 5).every((c) => c === 401)).toBe(true);
     expect(codes[5]).toBe(429);
@@ -834,7 +837,9 @@ describe("[7] Rate limits — per bucket (SR-200)", () => {
     const b = await makeSession({ isAdmin: true, username: "admin2" });
     // adminGetCore default rate limit for admin is 30/60s/user. Drive A to 30.
 
-    for (let i = 0; i < 30; i++) await get(adminGetCore, "/_serverFn/probe", a.token);
+    await runSequentially(Array.from({ length: 30 }), async () =>
+      get(adminGetCore, "/_serverFn/probe", a.token),
+    );
 
     const aOver = await get(adminGetCore, "/_serverFn/probe", a.token);
     expect(aOver.status).toBe(429);
@@ -883,13 +888,13 @@ describe("[8] Audit HMAC chain — tamper detection (§6.4)", () => {
     const { sql } = await import("drizzle-orm");
     const { db, client } = await createTestDb({ seed: true });
     try {
-      for (let i = 0; i < 3; i++) {
-        await appendAuditLog(db, {
+      await runSequentially([0, 1, 2], async (i) =>
+        appendAuditLog(db, {
           eventType: "system.event",
           source: "system",
           payload: { i },
-        });
-      }
+        }),
+      );
 
       const ok = await verifyAuditLogChain(db);
       expect(ok.valid).toBe(true);

@@ -11,13 +11,16 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 // Mock the `pg` package before importing the client. The mock is
 // re-applied per test so env changes take effect.
 const mockPool = { query: vi.fn() };
+
+function MockPool() {
+  return mockPool;
+}
+
 vi.mock("pg", () => ({
   // `Pool` is called as `new Pool(...)`, so the mock must be a
   // constructor that returns our shared mockPool. vi.fn()
   // doubles as a constructor when called with `new`.
-  Pool: vi.fn().mockImplementation(function Pool() {
-    return mockPool;
-  }),
+  Pool: vi.fn().mockImplementation(MockPool),
 }));
 
 beforeEach(() => {

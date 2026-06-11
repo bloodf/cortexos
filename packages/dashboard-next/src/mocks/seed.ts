@@ -1197,10 +1197,13 @@ export const APPROVALS: ApprovalRequest[] = [
 ];
 
 // Hash-chain seed
-function fakeHash(prev: string, payload: string): string {
+export function fakeHash(prev: string, payload: string): string {
   let h = 5381;
   const s = `${prev}|${payload}`;
-  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
+  for (let i = 0; i < s.length; i++) {
+    const v = Math.imul(h, 32) + h + s.charCodeAt(i);
+    h = (v % 0x100000000 + 0x100000000) % 0x100000000;
+  }
   return `${`00000000${h.toString(16)}`.slice(-8)}…`;
 }
 let chainPrev = "genesis…";
