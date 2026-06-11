@@ -81,7 +81,7 @@ function makeShim() {
         payload,
       ] = params;
       const row = {
-        id: nextId++,
+        id: nextId,
         occurred_at: new Date(),
         event_id,
         event_type,
@@ -95,6 +95,7 @@ function makeShim() {
         payload,
       };
       rows.push(row);
+      nextId += 1;
       return { rows: [row] };
     }
 
@@ -115,11 +116,11 @@ function makeShim() {
       let result = rows.slice();
       let pIdx = 0;
       if (text.includes('occurred_at >= $')) {
-        const ts = params[pIdx++];
+        const ts = params[(pIdx += 1)];
         result = result.filter((r) => r.occurred_at >= ts);
       }
       if (text.includes('occurred_at <  $')) {
-        const ts = params[pIdx++];
+        const ts = params[(pIdx += 1)];
         result = result.filter((r) => r.occurred_at < ts);
       }
       return {
@@ -155,7 +156,9 @@ function makeShim() {
       // Serialise to mimic FOR UPDATE locking across appends.
       let release;
       const prior = txMutex;
-      txMutex = new Promise((r) => (release = r));
+      txMutex = new Promise((r) => {
+        release = r;
+      });
       await prior;
       const wrapped = { ...client, release: () => release() };
       return wrapped;

@@ -16,8 +16,6 @@
  * querying Rekor.
  */
 import {
-  createPrivateKey,
-  createPublicKey,
   generateKeyPairSync,
   sign as cryptoSign,
 } from 'node:crypto';
@@ -31,7 +29,7 @@ const REKOR_URL = (process.env.CORTEX_REKOR_URL || 'https://rekor.sigstore.dev')
  * @param {string} chainHashHex 64-char hex SHA-256 of the chain head.
  * @returns {Promise<{logIndex: number, uuid: string}>}
  */
-export async function anchorDigest(chainHashHex) {
+export default async function anchorDigest(chainHashHex) {
   if (!/^[0-9a-f]{64}$/i.test(chainHashHex)) {
     throw new Error('anchorDigest: chainHashHex must be 64 hex chars');
   }
@@ -76,10 +74,6 @@ export async function anchorDigest(chainHashHex) {
   if (!uuid) throw new Error('rekor_upload_no_uuid');
   const logIndex = body[uuid]?.logIndex;
   if (typeof logIndex !== 'number') throw new Error('rekor_upload_no_log_index');
-
-  // Sanity: silence unused-key lint by referencing the imported helpers.
-  void createPrivateKey;
-  void createPublicKey;
 
   return { logIndex, uuid };
 }

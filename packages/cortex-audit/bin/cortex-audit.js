@@ -17,11 +17,11 @@ import { verifyChain, anchorToRekor } from '../src/index.js';
 
 function parseFlags(argv) {
   const out = {};
-  for (let i = 0; i < argv.length; i++) {
+  for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
-    if (a === '--from') out.from = argv[++i];
-    else if (a === '--to') out.to = argv[++i];
-    else if (a === '--since') out.since = argv[++i];
+    if (a === '--from') out.from = argv[(i += 1)];
+    else if (a === '--to') out.to = argv[(i += 1)];
+    else if (a === '--since') out.since = argv[(i += 1)];
     else if (a === '--help' || a === '-h') out.help = true;
   }
   return out;

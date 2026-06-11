@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { instrument, traceLLMCall, shutdown, __resetForTests, __getConfigForTests } from '../src/index.js';
+import { instrument, traceLLMCall, shutdown, resetForTests, getConfigForTests } from '../src/index.js';
 
 const ENV_KEYS = [
   'LANGFUSE_HOST',
@@ -15,19 +15,19 @@ let savedEnv;
 
 beforeEach(() => {
   savedEnv = {};
-  for (const k of ENV_KEYS) {
+  ENV_KEYS.forEach((k) => {
     savedEnv[k] = process.env[k];
     delete process.env[k];
-  }
-  __resetForTests();
+  });
+  resetForTests();
 });
 
 afterEach(() => {
-  for (const k of ENV_KEYS) {
+  ENV_KEYS.forEach((k) => {
     if (savedEnv[k] === undefined) delete process.env[k];
     else process.env[k] = savedEnv[k];
-  }
-  __resetForTests();
+  });
+  resetForTests();
 });
 
 describe('instrument()', () => {
@@ -52,7 +52,7 @@ describe('instrument()', () => {
     expect(a.enabled).toBe(false);
     expect(b.enabled).toBe(false);
     // service from first call wins
-    expect(__getConfigForTests().service).toBe('svc-a');
+    expect(getConfigForTests().service).toBe('svc-a');
   });
 
   it('defaults service from CORTEX_TELEMETRY_SERVICE env when no opt given', () => {
@@ -64,7 +64,7 @@ describe('instrument()', () => {
   it('defaults env to NODE_ENV when not provided', () => {
     process.env.NODE_ENV = 'staging';
     instrument();
-    expect(__getConfigForTests().env).toBe('staging');
+    expect(getConfigForTests().env).toBe('staging');
   });
 });
 
@@ -92,10 +92,10 @@ describe('traceLLMCall()', () => {
   });
 
   it('auto-initialises on first call when instrument() not invoked', async () => {
-    __resetForTests();
+    resetForTests();
     const fn = vi.fn().mockResolvedValue(42);
     await traceLLMCall({ name: 'auto' }, fn);
-    expect(__getConfigForTests()).not.toBeNull();
+    expect(getConfigForTests()).not.toBeNull();
   });
 });
 

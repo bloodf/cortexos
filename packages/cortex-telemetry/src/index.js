@@ -7,12 +7,10 @@
 // no-op. Services that import this package must remain safe to boot in
 // dev/test environments where no observability stack is running.
 
-import process from 'node:process';
-
-let __initialized = false;
-let __traceloop = null;
-let __langfuse = null;
-let __config = null;
+let initialized = false;
+let traceloop = null;
+let langfuse = null;
+let config = null;
 
 function envFlag(name, fallback = false) {
   const v = process.env[name];
@@ -42,72 +40,7 @@ function langfuseOtelHeaders(publicKey, secretKey) {
   };
 }
 
-/**
- * Initialise OpenLLMetry + Langfuse. Idempotent. Safe to call from every
- * service boot path — second and subsequent calls are no-ops. When
- * `LANGFUSE_HOST` is unset or `CORTEX_TELEMETRY_DISABLED=1`, the function
- * returns without loading any SDK.
- *
- * @param {{ service?: string, env?: string }} [opts]
- * @returns {{ enabled: boolean, service: string, env: string }}
- */
-export function instrument(opts = {}) {
-  if (__initialized) {
-    return { enabled: Boolean(__config?.enabled), service: __config?.service, env: __config?.env };
-  }
-  const cfg = readConfig(opts);
-  __config = cfg;
-  __initialized = true;
-  if (cfg.disabledByFlag || !cfg.enabled) {
-    return { enabled: false, service: cfg.service, env: cfg.env };
-  }
-  try {
-    // Lazy-load so the dependency cost is paid only when telemetry is on.
-
-    const traceloopMod = requireOptional('@traceloop/node-server-sdk');
-    const langfuseMod = requireOptional('langfuse');
-    if (!traceloopMod || !langfuseMod) {
-      __config = { ...cfg, enabled: false };
-      return { enabled: false, service: cfg.service, env: cfg.env };
-    }
-    traceloopMod.initialize({
-      appName: cfg.service,
-      apiKey: cfg.secretKey,
-      baseUrl: `${cfg.host.replace(/\/$/, '')}/api/public/otel`,
-      headers: langfuseOtelHeaders(cfg.publicKey, cfg.secretKey),
-      disableBatch: cfg.env !== 'production',
-    });
-    const LangfuseCtor =
-      langfuseMod.Langfuse || langfuseMod.default?.Langfuse || langfuseMod.default;
-    __langfuse = new LangfuseCtor({
-      publicKey: cfg.publicKey,
-      secretKey: cfg.secretKey,
-      baseUrl: cfg.host,
-      flushAt: 1,
-    });
-    __traceloop = traceloopMod;
-    return { enabled: true, service: cfg.service, env: cfg.env };
-  } catch (err) {
-    process.stderr.write(`[telemetry] init failed: ${err.message}\n`);
-    __config = { ...cfg, enabled: false };
-    return { enabled: false, service: cfg.service, env: cfg.env };
-  }
-}
-
-function requireOptional(name) {
-  try {
-    // Use createRequire so the package stays ESM-pure while still allowing
-    // optional dependency loading.
-
-    const { createRequire } = globalThis.__cortexTelemetryRequire || _loadCreateRequire();
-    const req = createRequire(import.meta.url);
-    return req(name);
-  } catch {
-    return null;
-  }
-}
-
-function _loadCreateRequire() {
+function loadCreateRequire() {
   // Hoist to avoid repeated dynamic import cost. Stored on globalThis so the
   // test suite can swap it for a stub.
 
@@ -121,8 +54,93 @@ function _loadCreateRequire() {
   } catch {
     /* fall through */
   }
-  globalThis.__cortexTelemetryRequire = mod;
+  globalThis.cortexTelemetryRequire = mod;
   return mod;
+}
+
+function requireOptional(name) {
+  try {
+    // Use createRequire so the package stays ESM-pure while still allowing
+    // optional dependency loading.
+
+    const { createRequire } = globalThis.cortexTelemetryRequire || loadCreateRequire();
+    const req = createRequire(import.meta.url);
+    return req(name);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Initialise OpenLLMetry + Langfuse. Idempotent. Safe to call from every
+ * service boot path — second and subsequent calls are no-ops. When
+ * `LANGFUSE_HOST` is unset or `CORTEX_TELEMETRY_DISABLED=1`, the function
+ * returns without loading any SDK.
+ *
+ * @param {{ service?: string, env?: string }} [opts]
+ * @returns {{ enabled: boolean, service: string, env: string }}
+ */
+export function instrument(opts = {}) {
+  if (initialized) {
+    return { enabled: Boolean(config?.enabled), service: config?.service, env: config?.env };
+  }
+  const cfg = readConfig(opts);
+  config = cfg;
+  initialized = true;
+  if (cfg.disabledByFlag || !cfg.enabled) {
+    return { enabled: false, service: cfg.service, env: cfg.env };
+  }
+  try {
+    // Lazy-load so the dependency cost is paid only when telemetry is on.
+
+    const traceloopMod = requireOptional('@traceloop/node-server-sdk');
+    const langfuseMod = requireOptional('langfuse');
+    if (!traceloopMod || !langfuseMod) {
+      config = { ...cfg, enabled: false };
+      return { enabled: false, service: cfg.service, env: cfg.env };
+    }
+    traceloopMod.initialize({
+      appName: cfg.service,
+      apiKey: cfg.secretKey,
+      baseUrl: `${cfg.host.replace(/\/$/, '')}/api/public/otel`,
+      headers: langfuseOtelHeaders(cfg.publicKey, cfg.secretKey),
+      disableBatch: cfg.env !== 'production',
+    });
+    const LangfuseCtor =
+      langfuseMod.Langfuse || langfuseMod.default?.Langfuse || langfuseMod.default;
+    langfuse = new LangfuseCtor({
+      publicKey: cfg.publicKey,
+      secretKey: cfg.secretKey,
+      baseUrl: cfg.host,
+      flushAt: 1,
+    });
+    traceloop = traceloopMod;
+    return { enabled: true, service: cfg.service, env: cfg.env };
+  } catch (err) {
+    process.stderr.write(`[telemetry] init failed: ${err.message}\n`);
+    config = { ...cfg, enabled: false };
+    return { enabled: false, service: cfg.service, env: cfg.env };
+  }
+}
+
+function extractOutput(result) {
+  if (!result || typeof result !== 'object') return result;
+  if ('output' in result) return result.output;
+  if ('text' in result) return result.text;
+  if ('content' in result) return result.content;
+  return result;
+}
+
+function extractUsage(result) {
+  if (!result || typeof result !== 'object') return undefined;
+  const u = result.usage || result.token_usage || result.tokenUsage;
+  if (!u || typeof u !== 'object') return undefined;
+  return {
+    input: u.input ?? u.prompt_tokens ?? u.inputTokens,
+    output: u.output ?? u.completion_tokens ?? u.outputTokens,
+    total: u.total ?? u.total_tokens ?? u.totalTokens,
+    unit: u.unit || 'TOKENS',
+  };
 }
 
 /**
@@ -147,17 +165,17 @@ export async function traceLLMCall(spec, handler) {
   if (typeof handler !== 'function') {
     throw new TypeError('traceLLMCall: handler must be a function');
   }
-  if (!__initialized) instrument();
-  if (!__config?.enabled || !__langfuse) {
+  if (!initialized) instrument();
+  if (!config?.enabled || !langfuse) {
     return handler();
   }
   const startedAt = new Date();
-  const trace = __langfuse.trace({
+  const trace = langfuse.trace({
     name: spec.name,
     userId: spec.userId,
     sessionId: spec.sessionId,
     tags: spec.tags,
-    metadata: { ...(spec.metadata || {}), service: __config.service, env: __config.env },
+    metadata: { ...(spec.metadata || {}), service: config.service, env: config.env },
   });
   const generation = trace.generation({
     name: spec.name,
@@ -185,53 +203,40 @@ export async function traceLLMCall(spec, handler) {
   }
 }
 
-function extractOutput(result) {
-  if (!result || typeof result !== 'object') return result;
-  if ('output' in result) return result.output;
-  if ('text' in result) return result.text;
-  if ('content' in result) return result.content;
-  return result;
-}
-
-function extractUsage(result) {
-  if (!result || typeof result !== 'object') return undefined;
-  const u = result.usage || result.token_usage || result.tokenUsage;
-  if (!u || typeof u !== 'object') return undefined;
-  return {
-    input: u.input ?? u.prompt_tokens ?? u.inputTokens,
-    output: u.output ?? u.completion_tokens ?? u.outputTokens,
-    total: u.total ?? u.total_tokens ?? u.totalTokens,
-    unit: u.unit || 'TOKENS',
-  };
-}
-
 /**
  * Force-flush buffered telemetry. Call from graceful-shutdown handlers so
  * in-flight spans land before the process exits.
+ * @returns {Promise<void>}
  */
 export async function shutdown() {
-  if (!__initialized || !__config?.enabled) return;
+  if (!initialized || !config?.enabled) return;
   try {
-    if (__langfuse?.shutdownAsync) await __langfuse.shutdownAsync();
+    if (langfuse?.shutdownAsync) await langfuse.shutdownAsync();
   } catch {
     /* best effort */
   }
   try {
-    if (__traceloop?.forceFlush) await __traceloop.forceFlush();
+    if (traceloop?.forceFlush) await traceloop.forceFlush();
   } catch {
     /* best effort */
   }
 }
 
-/** Internal: test reset hook. */
-export function __resetForTests() {
-  __initialized = false;
-  __traceloop = null;
-  __langfuse = null;
-  __config = null;
+/**
+ * Internal: test reset hook.
+ * @returns {void}
+ */
+export function resetForTests() {
+  initialized = false;
+  traceloop = null;
+  langfuse = null;
+  config = null;
 }
 
-/** Internal: peek at the resolved configuration. */
-export function __getConfigForTests() {
-  return __config;
+/**
+ * Internal: peek at the resolved configuration.
+ * @returns {Record<string, unknown>|null}
+ */
+export function getConfigForTests() {
+  return config;
 }

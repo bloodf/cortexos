@@ -35,7 +35,6 @@
  */
 
 import { createServer } from 'node:http';
-import process from 'node:process';
 
 import { WebSocketServer } from 'ws';
 import pkg from 'pg';
@@ -107,13 +106,13 @@ function parseCookies(header) {
   /** @type {Record<string, string>} */
   const out = {};
   if (!header) return out;
-  for (const part of header.split(';')) {
+  header.split(';').forEach((part) => {
     const idx = part.indexOf('=');
-    if (idx === -1) continue;
+    if (idx === -1) return;
     const k = part.slice(0, idx).trim();
     const v = part.slice(idx + 1).trim();
     if (k) out[k] = decodeURIComponent(v);
-  }
+  });
   return out;
 }
 
@@ -178,78 +177,6 @@ const httpServer = createServer((req, res) => {
 // noServer: we own the upgrade so we can authenticate BEFORE accepting the WS.
 const wss = new WebSocketServer({ noServer: true });
 
-httpServer.on('upgrade', (req, socket, head) => {
-  // Wrap everything so a malformed upgrade can never crash the process.
-  (async () => {
-    const ip = clientIp(req);
-
-    // 1. Origin / CSRF check — reject cross-site WS hijacking. Browsers send
-    // cookies on cross-site WS too, so the cookie alone is not enough.
-    //   - ALLOWED_ORIGIN set to a concrete origin → require exact match.
-    //   - ALLOWED_ORIGIN unset or "same-origin" → require the Origin's host to
-    //     equal the Host being connected to (correct behind Caddy :80/Tailscale
-    //     where there is no single fixed public origin). No Origin → reject.
-    const { origin } = req.headers;
-    const sameOriginMode = !ALLOWED_ORIGIN || ALLOWED_ORIGIN === 'same-origin';
-    if (!sameOriginMode) {
-      if (origin !== ALLOWED_ORIGIN) {
-        log('rejected: origin mismatch', { ip, origin: origin || null });
-        return abortHandshake(socket, 403);
-      }
-    } else {
-      let originHost = null;
-      try {
-        originHost = origin ? new URL(origin).host : null;
-      } catch {
-        originHost = null;
-      }
-      if (!originHost || originHost !== req.headers.host) {
-        log('rejected: cross-origin WS (same-origin enforced)', {
-          ip,
-          origin: origin || null,
-          host: req.headers.host || null,
-        });
-        return abortHandshake(socket, 403);
-      }
-    }
-
-    // 2. Cookie → session token.
-    const cookies = parseCookies(req.headers.cookie);
-    const token = cookies[SESSION_COOKIE];
-    if (!token) {
-      log('rejected: no session cookie', { ip });
-      return abortHandshake(socket, 401);
-    }
-
-    // 3. Validate session + admin.
-    const session = await validateSession(token);
-    if (!session) {
-      // Accept the WS only to send a clean close code the UI can read.
-      acceptThenClose(req, socket, head, 4401, 'unauthorized', ip);
-      return;
-    }
-    if (!session.isAdmin) {
-      log('rejected: not admin', { ip, user: session.username });
-      acceptThenClose(req, socket, head, 4403, 'forbidden', ip);
-      return;
-    }
-
-    // 4. Authenticated — accept the WS and spawn the PTY.
-    wss.handleUpgrade(req, socket, head, (ws) => {
-      handleSession(ws, session.username, ip);
-    });
-  })().catch((err) => {
-    log('upgrade handler error', {
-      error: err instanceof Error ? err.message : String(err),
-    });
-    try {
-      abortHandshake(socket, 500);
-    } catch {
-      /* socket already gone */
-    }
-  });
-});
-
 /**
  * Reject a raw upgrade socket with an HTTP status before the WS is established.
  * @param {import('node:stream').Duplex} socket
@@ -260,7 +187,7 @@ function abortHandshake(socket, status) {
     { 401: 'Unauthorized', 403: 'Forbidden', 500: 'Internal Server Error' }[status] || 'Error';
   try {
     socket.write(
-      `HTTP/1.1 ${status} ${text}\r\n` + 'connection: close\r\n' + 'content-length: 0\r\n' + '\r\n',
+      `HTTP/1.1 ${status} ${text}\r\nconnection: close\r\ncontent-length: 0\r\n\r\n`,
     );
   } catch {
     /* socket already gone */
@@ -304,21 +231,6 @@ function handleSession(ws, user, ip) {
   /** @type {NodeJS.Timeout | null} */
   let idleTimer = null;
 
-  const resetIdle = () => {
-    if (idleTimer) clearTimeout(idleTimer);
-    if (IDLE_SEC > 0) {
-      idleTimer = setTimeout(() => {
-        log('idle timeout — killing pty', { user, ip, idleSec: IDLE_SEC });
-        cleanup();
-        try {
-          ws.close(4408, 'idle timeout');
-        } catch {
-          ws.terminate();
-        }
-      }, IDLE_SEC * 1000);
-    }
-  };
-
   const cleanup = () => {
     if (idleTimer) {
       clearTimeout(idleTimer);
@@ -332,6 +244,21 @@ function handleSession(ws, user, ip) {
       } catch {
         /* already dead */
       }
+    }
+  };
+
+  const resetIdle = () => {
+    if (idleTimer) clearTimeout(idleTimer);
+    if (IDLE_SEC > 0) {
+      idleTimer = setTimeout(() => {
+        log('idle timeout — killing pty', { user, ip, idleSec: IDLE_SEC });
+        cleanup();
+        try {
+          ws.close(4408, 'idle timeout');
+        } catch {
+          ws.terminate();
+        }
+      }, IDLE_SEC * 1000);
     }
   };
 
@@ -441,6 +368,81 @@ function handleSession(ws, user, ip) {
   });
 }
 
+httpServer.on('upgrade', (req, socket, head) => {
+  // Wrap everything so a malformed upgrade can never crash the process.
+  (async () => {
+    const ip = clientIp(req);
+
+    // 1. Origin / CSRF check — reject cross-site WS hijacking. Browsers send
+    // cookies on cross-site WS too, so the cookie alone is not enough.
+    //   - ALLOWED_ORIGIN set to a concrete origin → require exact match.
+    //   - ALLOWED_ORIGIN unset or "same-origin" → require the Origin's host to
+    //     equal the Host being connected to (correct behind Caddy :80/Tailscale
+    //     where there is no single fixed public origin). No Origin → reject.
+    const { origin } = req.headers;
+    const sameOriginMode = !ALLOWED_ORIGIN || ALLOWED_ORIGIN === 'same-origin';
+    if (!sameOriginMode) {
+      if (origin !== ALLOWED_ORIGIN) {
+        log('rejected: origin mismatch', { ip, origin: origin || null });
+        abortHandshake(socket, 403);
+        return;
+      }
+    } else {
+      let originHost = null;
+      try {
+        originHost = origin ? new URL(origin).host : null;
+      } catch {
+        originHost = null;
+      }
+      if (!originHost || originHost !== req.headers.host) {
+        log('rejected: cross-origin WS (same-origin enforced)', {
+          ip,
+          origin: origin || null,
+          host: req.headers.host || null,
+        });
+        abortHandshake(socket, 403);
+        return;
+      }
+    }
+
+    // 2. Cookie → session token.
+    const cookies = parseCookies(req.headers.cookie);
+    const token = cookies[SESSION_COOKIE];
+    if (!token) {
+      log('rejected: no session cookie', { ip });
+      abortHandshake(socket, 401);
+      return;
+    }
+
+    // 3. Validate session + admin.
+    const session = await validateSession(token);
+    if (!session) {
+      // Accept the WS only to send a clean close code the UI can read.
+      acceptThenClose(req, socket, head, 4401, 'unauthorized', ip);
+      return;
+    }
+    if (!session.isAdmin) {
+      log('rejected: not admin', { ip, user: session.username });
+      acceptThenClose(req, socket, head, 4403, 'forbidden', ip);
+      return;
+    }
+
+    // 4. Authenticated — accept the WS and spawn the PTY.
+    wss.handleUpgrade(req, socket, head, (ws) => {
+      handleSession(ws, session.username, ip);
+    });
+  })().catch((err) => {
+    log('upgrade handler error', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    try {
+      abortHandshake(socket, 500);
+    } catch {
+      /* socket already gone */
+    }
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Startup banner / config sanity (reads dashboard.env values from env)
 // ---------------------------------------------------------------------------
@@ -469,13 +471,13 @@ function shutdown(signal) {
   if (shuttingDown) return;
   shuttingDown = true;
   log('shutdown', { signal });
-  for (const client of wss.clients) {
+  wss.clients.forEach((client) => {
     try {
       client.close(1012, 'server restarting');
     } catch {
       client.terminate();
     }
-  }
+  });
   wss.close(() => {
     httpServer.close(() => process.exit(0));
   });

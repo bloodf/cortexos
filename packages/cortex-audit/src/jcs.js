@@ -10,8 +10,11 @@
  * number serialisation — payloads going through this layer originate from
  * CloudEvents envelopes which never carry NaN / +Inf / -Inf values, so
  * `JSON.stringify` is safe for primitive serialization here.
+ *
+ * @param {unknown} value
+ * @returns {string}
  */
-export function jcs(value) {
+export default function jcs(value) {
   if (value === null || typeof value !== 'object') return JSON.stringify(value);
   if (Array.isArray(value)) return `[${value.map(jcs).join(',')}]`;
   const keys = Object.keys(value).sort();

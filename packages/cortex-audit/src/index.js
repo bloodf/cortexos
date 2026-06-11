@@ -22,14 +22,18 @@
 import { createHash } from 'node:crypto';
 import { v4 as uuidv4 } from 'uuid';
 import pg from 'pg';
-import { jcs } from './jcs.js';
-import { anchorDigest } from './rekor.js';
+import jcs from './jcs.js';
+import anchorDigest from './rekor.js';
 
 const GENESIS_PREV_HASH = '0'.repeat(64);
 
 let injectedPool = null;
 
-/** Inject a pg.Pool (used by the dashboard so we share its pool). */
+/**
+ * Inject a pg.Pool (used by the dashboard so we share its pool).
+ * @param {pg.Pool} pool
+ * @returns {void}
+ */
 export function setPool(pool) {
   injectedPool = pool;
 }
@@ -49,6 +53,9 @@ function defaultPool() {
 }
 
 let lazyPool = null;
+/**
+ * @returns {pg.Pool}
+ */
 export function getPool() {
   if (injectedPool) return injectedPool;
   if (!lazyPool) lazyPool = defaultPool();
@@ -59,12 +66,21 @@ function sha256Hex(input) {
   return createHash('sha256').update(input).digest('hex');
 }
 
-/** Compute the canonical payload hash (SHA-256 over JCS-canonical JSON). */
+/**
+ * Compute the canonical payload hash (SHA-256 over JCS-canonical JSON).
+ * @param {unknown} payload
+ * @returns {string}
+ */
 export function payloadHashOf(payload) {
   return sha256Hex(jcs(payload));
 }
 
-/** Compute the chain hash from prev_hash + payload_hash (both hex). */
+/**
+ * Compute the chain hash from prev_hash + payload_hash (both hex).
+ * @param {string} prevHashHex
+ * @param {string} payloadHashHex
+ * @returns {string}
+ */
 export function chainHashOf(prevHashHex, payloadHashHex) {
   return sha256Hex(
     Buffer.concat([Buffer.from(prevHashHex, 'hex'), Buffer.from(payloadHashHex, 'hex')]),
@@ -83,6 +99,7 @@ export function chainHashOf(prevHashHex, payloadHashHex) {
  * @param {string} [event.event_id]   optional UUID (auto-generated otherwise)
  * @param {object} [opts]
  * @param {pg.Pool|pg.Client} [opts.pool]
+ * @returns {Promise<Record<string, unknown>>}
  */
 export async function append(event, opts = {}) {
   if (!event || typeof event !== 'object') throw new Error('append: event required');
@@ -155,6 +172,10 @@ export async function append(event, opts = {}) {
  *
  * If `fromTs` is omitted, verifies from genesis.
  * If the window is empty, returns { valid: true, count: 0 }.
+ * @param {Date|undefined} fromTs
+ * @param {Date|undefined} toTs
+ * @param {{pool?: pg.Pool|pg.Client}} [opts]
+ * @returns {Promise<Record<string, unknown>>}
  */
 export async function verifyChain(fromTs, toTs, opts = {}) {
   const pool = opts.pool || getPool();
@@ -243,6 +264,9 @@ export async function verifyChain(fromTs, toTs, opts = {}) {
  * `batchSinceTs` is informational — it constrains which rows count as
  * "needing anchor" for the no-op short-circuit, but the actual anchor is
  * always against the latest tip.
+ * @param {Date|undefined} batchSinceTs
+ * @param {{pool?: pg.Pool|pg.Client, anchorFn?: (hash: string) => Promise<{logIndex: number, uuid: string}>}} [opts]
+ * @returns {Promise<Record<string, unknown>>}
  */
 export async function anchorToRekor(batchSinceTs, opts = {}) {
   const pool = opts.pool || getPool();
