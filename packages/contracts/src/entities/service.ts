@@ -12,10 +12,6 @@ import {
   zUuidV4,
   zIsoTimestamp,
   zSlug,
-  type ServiceId,
-  type ServiceSlug,
-  type HealthSnapshotId,
-  type BadgeSlug,
 } from '../primitives.js';
 
 // ---------------------------------------------------------------------------

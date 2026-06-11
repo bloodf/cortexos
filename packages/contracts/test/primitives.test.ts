@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import { z } from 'zod';
 import {
   zId,
   zUuidV4,
@@ -60,7 +59,6 @@ describe('primitives — branded types', () => {
   it('userId / serviceId / auditId are nominal — not interchangeable', () => {
     const u = userId('usr_alice');
     const s = serviceId('svc_postgres');
-    const a = auditId('aud_123');
     // Runtime values are still strings.
     expect(String(u)).toBe('usr_alice');
     expect(String(s)).toBe('svc_postgres');
@@ -111,9 +109,9 @@ describe('primitives — branded types', () => {
       aiResponseId('ars'),
       policyClassId('pc'),
     ];
-    for (const id of ids) {
+    ids.forEach((id) => {
       expect(typeof id).toBe('string');
-    }
+    });
   });
   it('time primitive factories', () => {
     const iso = makeIsoTimestamp('2026-01-01T00:00:00Z');

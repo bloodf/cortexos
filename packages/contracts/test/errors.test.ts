@@ -18,7 +18,7 @@ import {
   httpStatusFor,
 } from '../src/errors.js';
 
-const CASES: Array<{
+const CASES: {
   name: string;
   schema:
     | typeof ValidationErrorSchema
@@ -27,7 +27,7 @@ const CASES: Array<{
   expectedCode: string;
   expectedStatus: number;
   payload: Record<string, unknown>;
-}> = [
+}[] = [
   {
     name: 'validation_error',
     schema: ValidationErrorSchema,
@@ -119,7 +119,7 @@ const CASES: Array<{
 ];
 
 describe('errors — CortexErrorSchema (discriminated union)', () => {
-  for (const c of CASES) {
+  CASES.forEach((c) => {
     it(`parses a valid ${c.name}`, () => {
       const result = CortexErrorSchema.safeParse({
         code: c.expectedCode,
@@ -138,7 +138,7 @@ describe('errors — CortexErrorSchema (discriminated union)', () => {
       const err = c.schema.parse({ code: c.expectedCode, ...c.payload });
       expect(httpStatusFor(err)).toBe(c.expectedStatus);
     });
-  }
+  });
 
   it('rejects a payload missing the code field', () => {
     expect(() => CortexErrorSchema.parse({ message: 'no code' })).toThrow();
@@ -168,9 +168,9 @@ describe('errors — ErrorCodeSchema', () => {
       'dependency_failed',
       'system_error',
     ];
-    for (const c of codes) {
+    codes.forEach((c) => {
       expect(ErrorCodeSchema.parse(c)).toBe(c);
-    }
+    });
   });
 });
 
@@ -205,11 +205,11 @@ describe('errors — httpStatusFor', () => {
       'dependency_failed',
       'system_error',
     ];
-    for (const code of codes) {
+    codes.forEach((code) => {
       const err = CortexErrorSchema.parse({ code, message: 'x' });
       const status = httpStatusFor(err);
       expect(status).toBeGreaterThanOrEqual(400);
       expect(status).toBeLessThan(600);
-    }
+    });
   });
 });

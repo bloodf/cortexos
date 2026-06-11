@@ -93,7 +93,7 @@ export type Filter = z.infer<typeof FilterSchema>;
  * The page envelope returned by every list endpoint. The `data` field is
  * generic so each route can supply its own element type.
  */
-export const PageSchema = <T extends z.ZodTypeAny>(item: T) =>
+export const PageSchema = <T extends z.ZodTypeAny>(item: T): z.ZodType<Page<z.infer<T>>> =>
   z.object({
     data: z.array(item),
     /** Total count of items matching the filter, ignoring limit/offset. */
@@ -168,6 +168,16 @@ export const nextOffset = (page: {
  * stable across small reorderings (cursor consumers should fall back to
  * offset on cursor-not-found).
  */
+const encodeCursor = (state: { offset: number }): string => {
+  // Base64-URL-encode a tiny JSON. Stable, no new dep.
+  const json = JSON.stringify(state);
+  const b64 =
+    typeof Buffer !== 'undefined'
+      ? Buffer.from(json, 'utf8').toString('base64url')
+      : btoa(json).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
+  return b64;
+};
+
 export const buildPage = <T>(
   data: T[],
   total: number,
@@ -186,16 +196,6 @@ export const buildPage = <T>(
     nextCursor,
     timestamp: nowIso,
   };
-};
-
-const encodeCursor = (state: { offset: number }): string => {
-  // Base64-URL-encode a tiny JSON. Stable, no new dep.
-  const json = JSON.stringify(state);
-  const b64 =
-    typeof Buffer !== 'undefined'
-      ? Buffer.from(json, 'utf8').toString('base64url')
-      : btoa(json).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
-  return b64;
 };
 
 /** Decode a cursor produced by `encodeCursor`. Returns `null` on parse fail. */

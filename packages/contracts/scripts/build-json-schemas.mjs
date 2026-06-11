@@ -22,8 +22,8 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 
-const __filename = fileURLToPath(import.meta.url);
-const ROOT = resolve(dirname(__filename), '..');
+const scriptPath = fileURLToPath(import.meta.url);
+const ROOT = resolve(dirname(scriptPath), '..');
 const DIST = join(ROOT, 'dist');
 const OUT_DIR = join(DIST, 'schemas-json');
 const SCHEMAS_INDEX_JS = join(DIST, 'schemas', 'index.js');
@@ -157,38 +157,39 @@ const SCHEMAS = [
 
 const main = async () => {
   if (!existsSync(DIST)) {
-    console.error(`✖ dist/ not found at ${DIST}. Run \`pnpm run build\` first (tsc).`);
-    process.exit(1);
+    throw new Error(`✖ dist/ not found at ${DIST}. Run \`pnpm run build\` first (tsc).`);
   }
   if (!existsSync(SCHEMAS_INDEX_JS)) {
-    console.error(`✖ compiled schemas barrel not found at ${SCHEMAS_INDEX_JS}.`);
-    process.exit(1);
+    throw new Error(`✖ compiled schemas barrel not found at ${SCHEMAS_INDEX_JS}.`);
   }
   await mkdir(OUT_DIR, { recursive: true });
 
   const mod = await import(pathToFileURL(SCHEMAS_INDEX_JS).href);
-  let written = 0;
-  const skipped = [];
-  for (const name of SCHEMAS) {
-    const schema = mod[name];
-    if (!schema || typeof schema !== 'object' || !('_def' in schema)) {
-      skipped.push(name);
-      continue;
-    }
-    const jsonSchema = zodToJsonSchema(schema, {
-      // No `name`: a named Zod schema would generate a self-referencing
-      // $ref to an empty `definitions.X` block, which is wrong.
-      // Without `name`, the schema is fully inlined and self-contained.
-      $refStrategy: 'none',
-      target: 'jsonSchema7',
-      definitions: {},
-      errorMessages: false,
-      markdownDescription: false,
-    });
-    const outFile = join(OUT_DIR, `${name}.json`);
-    await writeFile(outFile, `${JSON.stringify(jsonSchema, null, 2)}\n`, 'utf8');
-    written += 1;
-  }
+
+  const results = await Promise.all(
+    SCHEMAS.map(async (name) => {
+      const schema = mod[name];
+      if (!schema || typeof schema !== 'object' || !('_def' in schema)) {
+        return { name, ok: false };
+      }
+      const jsonSchema = zodToJsonSchema(schema, {
+        // No `name`: a named Zod schema would generate a self-referencing
+        // $ref to an empty `definitions.X` block, which is wrong.
+        // Without `name`, the schema is fully inlined and self-contained.
+        $refStrategy: 'none',
+        target: 'jsonSchema7',
+        definitions: {},
+        errorMessages: false,
+        markdownDescription: false,
+      });
+      const outFile = join(OUT_DIR, `${name}.json`);
+      await writeFile(outFile, `${JSON.stringify(jsonSchema, null, 2)}\n`, 'utf8');
+      return { name, ok: true };
+    }),
+  );
+
+  const skipped = results.filter((r) => !r.ok).map((r) => r.name);
+  const written = results.filter((r) => r.ok).length;
 
   // Emit an index.json for consumers that want to enumerate everything.
   const indexFile = join(OUT_DIR, 'index.json');
@@ -210,5 +211,5 @@ const main = async () => {
 
 main().catch((err) => {
   console.error('✖ build-json-schemas failed:', err);
-  process.exit(1);
+  throw err;
 });

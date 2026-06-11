@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { createHash } from 'node:crypto';
 import {
   hashRow,
   nextChainHash,
@@ -12,9 +13,7 @@ import {
   AuditSurfaceSchema,
   AuditResultSchema,
   AuditDecisionSchema,
-  AuditSeveritySchema,
 } from '../src/audit.js';
-import { createHash } from 'node:crypto';
 
 describe('audit — canonicalJson', () => {
   it('sorts object keys', () => {
@@ -202,19 +201,19 @@ describe('audit — schemas', () => {
       'rate_limit',
       'approval',
     ];
-    for (const s of surfaces) {
+    surfaces.forEach((s) => {
       expect(AuditSurfaceSchema.parse(s)).toBe(s);
-    }
+    });
   });
   it('AuditResultSchema accepts the documented values', () => {
-    for (const r of ['success', 'failure', 'denied', 'error', 'pending']) {
+    ['success', 'failure', 'denied', 'error', 'pending'].forEach((r) => {
       expect(AuditResultSchema.parse(r)).toBe(r);
-    }
+    });
   });
   it('AuditDecisionSchema accepts the documented values', () => {
-    for (const d of ['allow', 'prompt', 'deny', 'timeout']) {
+    ['allow', 'prompt', 'deny', 'timeout'].forEach((d) => {
       expect(AuditDecisionSchema.parse(d)).toBe(d);
-    }
+    });
   });
   it('AuditSeveritySchema defaults to info', () => {
     const parsed = AuditEventSchema.parse({

@@ -9,7 +9,7 @@
  * @module
  */
 import { z } from 'zod';
-import { zUuidV4, zIsoTimestamp } from '../primitives.js';
+import { zIsoTimestamp } from '../primitives.js';
 
 // ---------------------------------------------------------------------------
 // System data (CPU, memory, drives, mounts, load, sensors)

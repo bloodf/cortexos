@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { z } from 'zod';
 import {
   PageInputSchema,
   PageSchema,
@@ -9,7 +10,6 @@ import {
   decodeCursor,
   DEFAULT_PAGE_INPUT,
 } from '../src/query.js';
-import { z } from 'zod';
 
 const ItemSchema = z.object({ id: z.string(), name: z.string() });
 const PageOfItems = PageSchema(ItemSchema);

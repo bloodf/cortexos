@@ -20,10 +20,6 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import {
-  type IsoTimestamp,
-  type RequestId,
-  type UserId,
-  type SessionId,
   zHmacSha256,
   zSha256,
   zUuidV4,
@@ -31,7 +27,6 @@ import {
   zUserAgent,
   zIsoTimestamp,
   zEpochMicros,
-  type AuditId,
 } from './primitives.js';
 
 // ---------------------------------------------------------------------------
@@ -198,28 +193,16 @@ export const nextChainHash = (params: {
 export const verifyChain = (rows: AuditEvent[]): number | null => {
   for (let i = 0; i < rows.length; i += 1) {
     const row = rows[i];
-    if (row === undefined) continue;
-    if (i === 0) {
-      if (row.prevHash !== null) return 0;
-    } else {
-      const prev = rows[i - 1];
-      if (prev === undefined) continue;
-      if (row.prevHash !== prev.currHash) return i;
+    if (row !== undefined) {
+      if (i === 0) {
+        if (row.prevHash !== null) return 0;
+      } else {
+        const prev = rows[i - 1];
+        if (prev !== undefined && row.prevHash !== prev.currHash) return i;
+      }
     }
   }
   return null;
-};
-
-/**
- * Hash the `payload` of an audit row. SHA-256 over a JCS-style canonical
- * JSON (sorted keys, no whitespace). This is what `payloadHash` stores.
- *
- * NOTE: This is a stable digest for audit integrity. It is NOT a secret.
- * For HMACs (e.g. approval tokens), see `../approval.ts`.
- */
-export const payloadHashOf = (payload: unknown): string => {
-  const canonical = canonicalJson(payload);
-  return createHash('sha256').update(canonical, 'utf8').digest('hex');
 };
 
 /**
@@ -240,12 +223,26 @@ export const canonicalJson = (value: unknown): string => {
     return `[${value.map((v) => canonicalJson(v)).join(',')}]`;
   }
   if (typeof value === 'object') {
-    const entries = Object.entries(value as Record<string, unknown>).sort(([a], [b]) =>
-      a < b ? -1 : a > b ? 1 : 0,
-    );
+    const entries = Object.entries(value as Record<string, unknown>).sort(([a], [b]) => {
+      if (a < b) return -1;
+      if (a > b) return 1;
+      return 0;
+    });
     return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonicalJson(v)}`).join(',')}}`;
   }
   throw new Error(`cannot canonicalize value of type ${typeof value}`);
+};
+
+/**
+ * Hash the `payload` of an audit row. SHA-256 over a JCS-style canonical
+ * JSON (sorted keys, no whitespace). This is what `payloadHash` stores.
+ *
+ * NOTE: This is a stable digest for audit integrity. It is NOT a secret.
+ * For HMACs (e.g. approval tokens), see `../approval.ts`.
+ */
+export const payloadHashOf = (payload: unknown): string => {
+  const canonical = canonicalJson(payload);
+  return createHash('sha256').update(canonical, 'utf8').digest('hex');
 };
 
 /**

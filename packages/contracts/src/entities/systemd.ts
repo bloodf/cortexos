@@ -8,7 +8,7 @@
  * @module
  */
 import { z } from 'zod';
-import { zUuidV4, zIsoTimestamp } from '../primitives.js';
+import { zIsoTimestamp } from '../primitives.js';
 
 // ---------------------------------------------------------------------------
 // Unit state

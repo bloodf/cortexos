@@ -9,7 +9,7 @@
  * @module
  */
 import { z } from 'zod';
-import { zUuidV4, zIsoTimestamp, type UserId, type SessionId } from '../primitives.js';
+import { zUuidV4, zIsoTimestamp } from '../primitives.js';
 
 // ---------------------------------------------------------------------------
 // Group membership

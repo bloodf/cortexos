@@ -20,17 +20,6 @@ const FIXED_DATE = new Date('2026-06-03T13:08:43Z');
 const TEST_USER_ID = '550e8400-e29b-41d4-a716-446655440000';
 const TEST_SESSION_ID = 'sess_abc123def';
 
-const baseClaims = (overrides: Record<string, unknown> = {}) => ({
-  actionHash: actionHashOf({ tool: 'test', args: { x: 1 } }),
-  sessionId: makeSessionId(TEST_SESSION_ID),
-  userId: makeUserId(TEST_USER_ID),
-  iat: Math.floor(FIXED_DATE.getTime() / 1000),
-  exp: Math.floor(FIXED_DATE.getTime() / 1000) + 60,
-  nonce: '1234567890abcdef1234567890abcdef',
-  class: 'destructive' as const,
-  ...overrides,
-});
-
 describe('approval — actionHashOf', () => {
   it('produces a 64-char hex', () => {
     const h = actionHashOf('systemd.restart:cortex-dashboard');
@@ -186,7 +175,7 @@ describe('approval — verify (failure cases)', () => {
 
   it('rejects a malformed token', () => {
     const result = verifyApprovalToken({
-      token: 'not-a-token' as unknown as ReturnType<typeof issueApprovalToken>['token'],
+      token: 'not-a-token',
       expectedActionHash: actionHashOf('docker.action:start'),
       expectedSessionId: makeSessionId('sess_1'),
       secret: SECRET,
@@ -199,7 +188,7 @@ describe('approval — verify (failure cases)', () => {
 
   it('rejects a token with no dot separator', () => {
     const result = verifyApprovalToken({
-      token: 'nodothere' as unknown as ReturnType<typeof issueApprovalToken>['token'],
+      token: 'nodothere',
       expectedActionHash: actionHashOf('docker.action:start'),
       expectedSessionId: makeSessionId('sess_1'),
       secret: SECRET,
@@ -213,9 +202,9 @@ describe('approval — verify (failure cases)', () => {
 
 describe('approval — schemas', () => {
   it('ApprovalClassSchema accepts the documented set', () => {
-    for (const c of ['destructive', 'privileged', 'reveal', 'write']) {
+    ['destructive', 'privileged', 'reveal', 'write'].forEach((c) => {
       expect(ApprovalClassSchema.parse(c)).toBe(c);
-    }
+    });
   });
   it('ApprovalClassSchema rejects unknown classes', () => {
     expect(() => ApprovalClassSchema.parse('mystery')).toThrow();

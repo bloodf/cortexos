@@ -9,7 +9,7 @@
  * @module
  */
 import { z } from 'zod';
-import { zUuidV4, zIsoTimestamp, zSha256, zHmacSha256, type ApprovalId } from '../primitives.js';
+import { zUuidV4, zIsoTimestamp, zSha256, zHmacSha256 } from '../primitives.js';
 import { ApprovalClassSchema } from '../approval.js';
 
 // ---------------------------------------------------------------------------

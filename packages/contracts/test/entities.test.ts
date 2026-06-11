@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import type { z } from 'zod';
 import {
   // User
   UserSchema,
@@ -92,7 +93,6 @@ import {
   AgentFileSchema,
   AgentFileContentSchema,
 } from '../src/entities/index.js';
-import { z } from 'zod';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -107,7 +107,6 @@ const roundTrip = <T extends z.ZodTypeAny>(schema: T, value: unknown): unknown =
 
 const ISO = '2026-06-03T13:08:43-03:00';
 const UUID = '550e8400-e29b-41d4-a716-446655440000';
-const UUID2 = '550e8400-e29b-41d4-a716-446655440001';
 
 // ---------------------------------------------------------------------------
 // User + Session
@@ -606,9 +605,9 @@ describe('entities — Incus', () => {
     expect(() => IncusShellInputSchema.parse({ args: {} })).toThrow();
   });
   it('IncusShellInputSchema accepts each documented op', () => {
-    for (const op of ['term.ps', 'term.df', 'term.ls', 'term.cat', 'term.tail_log']) {
+    ['term.ps', 'term.df', 'term.ls', 'term.cat', 'term.tail_log'].forEach((op) => {
       expect(IncusShellInputSchema.parse({ op, args: {} }).op).toBe(op);
-    }
+    });
   });
   it('IncusShellResultSchema round-trips', () => {
     const v = { stdout: 'ok', stderr: '', exitCode: 0 };
@@ -823,9 +822,9 @@ describe('entities — Terminal + env-browser', () => {
     expect(roundTrip(TerminalSessionSchema, v)).toMatchObject(v);
   });
   it('TerminalActionSchema accepts each action', () => {
-    for (const action of ['connect', 'exec', 'disconnect', 'resize']) {
+    ['connect', 'exec', 'disconnect', 'resize'].forEach((action) => {
       expect(TerminalActionSchema.parse({ action, sessionId: UUID }).action).toBe(action);
-    }
+    });
   });
   it('TerminalCommandSchema round-trips', () => {
     const v = {
@@ -1067,7 +1066,7 @@ describe('entities — Personalization + AI', () => {
 describe('sanity — exhaustive parse coverage', () => {
   it('all major entities are importable and parseable', () => {
     // A simple smoke test: confirm a representative subset parses valid input.
-    const samples: Array<[string, z.ZodTypeAny, unknown]> = [
+    const samples: [string, z.ZodTypeAny, unknown][] = [
       [
         'ServiceSchema',
         ServiceSchema,
@@ -1147,9 +1146,9 @@ describe('sanity — exhaustive parse coverage', () => {
         },
       ],
     ];
-    for (const [name, schema, value] of samples) {
+    samples.forEach(([name, schema, value]) => {
       const result = schema.safeParse(value);
       expect(result.success, `${name} failed: ${JSON.stringify(result)}`).toBe(true);
-    }
+    });
   });
 });

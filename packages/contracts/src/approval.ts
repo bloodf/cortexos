@@ -40,7 +40,6 @@
 import { createHmac, timingSafeEqual, randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import {
-  zHmacSha256,
   zSha256,
   zUuidV4,
   type SessionId,
@@ -88,6 +87,8 @@ export const ttlForClass = (cls: ApprovalClass): number => {
       return APPROVAL_TTL_REVEAL_SEC;
     case 'write':
       return APPROVAL_TTL_WRITE_SEC;
+    default:
+      return APPROVAL_TTL_DESTRUCTIVE_SEC;
   }
 };
 
@@ -202,6 +203,60 @@ export interface IssuedApproval {
 }
 
 // ---------------------------------------------------------------------------
+// Internals — token sign/parse
+// ---------------------------------------------------------------------------
+
+/** Base64-URL-encode a Buffer. Pure helper, no padding. */
+const base64UrlEncode = (buf: Buffer): string => buf.toString('base64url');
+
+/**
+ * Build the wire token from claims + secret. The signature is HMAC-SHA256
+ * of the b64url-encoded claims string.
+ */
+const signToken = (claims: ApprovalClaims, secret: string): ApprovalTokenWire => {
+  const claimsJson = canonicalJson(claims);
+  const claimsB64 = base64UrlEncode(Buffer.from(claimsJson, 'utf8'));
+  const sig = createHmac('sha256', secret).update(claimsB64, 'utf8').digest('base64url');
+  return `${claimsB64}.${sig}`;
+};
+
+/**
+ * Parse and verify a token. Returns the claims on success, `null` on
+ * malformed or bad-signature. Does NOT check action binding, expiry, or
+ * consumed-state — those are checked by `verifyApprovalToken`.
+ */
+const parseToken = (token: ApprovalTokenWire, secret: string): ApprovalClaims | null => {
+  const dot = token.indexOf('.');
+  if (dot < 0) return null;
+  const claimsB64 = token.slice(0, dot);
+  const sigB64 = token.slice(dot + 1);
+  const expectedSig = createHmac('sha256', secret).update(claimsB64, 'utf8').digest();
+  let actualSig: Buffer;
+  try {
+    actualSig = Buffer.from(sigB64, 'base64url');
+  } catch {
+    return null;
+  }
+  if (actualSig.length !== expectedSig.length) return null;
+  if (!timingSafeEqual(actualSig, expectedSig)) return null;
+  let claimsJson: string;
+  try {
+    claimsJson = Buffer.from(claimsB64, 'base64url').toString('utf8');
+  } catch {
+    return null;
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(claimsJson);
+  } catch {
+    return null;
+  }
+  const result = ApprovalClaimsSchema.safeParse(parsed);
+  if (!result.success) return null;
+  return result.data;
+};
+
+// ---------------------------------------------------------------------------
 // Mint + verify
 // ---------------------------------------------------------------------------
 
@@ -275,57 +330,3 @@ export const verifyApprovalToken = (params: {
   params.markConsumed(claims.nonce);
   return claims;
 };
-
-// ---------------------------------------------------------------------------
-// Internals — token sign/parse
-// ---------------------------------------------------------------------------
-
-/**
- * Build the wire token from claims + secret. The signature is HMAC-SHA256
- * of the b64url-encoded claims string.
- */
-const signToken = (claims: ApprovalClaims, secret: string): ApprovalTokenWire => {
-  const claimsJson = canonicalJson(claims);
-  const claimsB64 = base64UrlEncode(Buffer.from(claimsJson, 'utf8'));
-  const sig = createHmac('sha256', secret).update(claimsB64, 'utf8').digest('base64url');
-  return `${claimsB64}.${sig}`;
-};
-
-/**
- * Parse and verify a token. Returns the claims on success, `null` on
- * malformed or bad-signature. Does NOT check action binding, expiry, or
- * consumed-state — those are checked by `verifyApprovalToken`.
- */
-const parseToken = (token: ApprovalTokenWire, secret: string): ApprovalClaims | null => {
-  const dot = token.indexOf('.');
-  if (dot < 0) return null;
-  const claimsB64 = token.slice(0, dot);
-  const sigB64 = token.slice(dot + 1);
-  const expectedSig = createHmac('sha256', secret).update(claimsB64, 'utf8').digest();
-  let actualSig: Buffer;
-  try {
-    actualSig = Buffer.from(sigB64, 'base64url');
-  } catch {
-    return null;
-  }
-  if (actualSig.length !== expectedSig.length) return null;
-  if (!timingSafeEqual(actualSig, expectedSig)) return null;
-  let claimsJson: string;
-  try {
-    claimsJson = Buffer.from(claimsB64, 'base64url').toString('utf8');
-  } catch {
-    return null;
-  }
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(claimsJson);
-  } catch {
-    return null;
-  }
-  const result = ApprovalClaimsSchema.safeParse(parsed);
-  if (!result.success) return null;
-  return result.data;
-};
-
-/** Base64-URL-encode a Buffer. Pure helper, no padding. */
-const base64UrlEncode = (buf: Buffer): string => buf.toString('base64url');

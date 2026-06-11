@@ -232,5 +232,7 @@ export const httpStatusFor = (e: CortexError): number => {
       return 410;
     case 'system_error':
       return 500;
+    default:
+      return 500;
   }
 };
