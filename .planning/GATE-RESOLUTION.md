@@ -1120,3 +1120,66 @@ test file); gate paths rooted/cwd-pinned; queryKey audit replaced with
 two exact binary commands (network-key single consumer; shared-key
 consumers proven mock-free — one fetcher per key makes sharing
 harmless). No overrules. Implementer kimi; gpt-5.5 diff review.
+
+## 2026-06-11 — MP-026 (2471437) review adjudications + lint-zero restoration
+De-mock landed: drift engine gone, topology deleted, hero/toaster/
+palette live; gates verified by orchestrator (startDrift 0, deletion
+check, survivors = MP-027 orphans + a doc comment). The waves' new code
+had drifted 11 lint findings off the TRUE-ZERO baseline → conformance
+commit c1386f1 restored rc=0/0-bytes (suite 613/613). Review REJECT:
+- [MAJOR ×2] toaster TEST under-covers first-load suppression and
+  cross-poll dedup → IMPLEMENTATION verified correct by orchestrator
+  (primed ref :20-22, seen set :27); test-strengthening job dispatched
+  (assertions must pass unweakened or IMPL-BLOCKED).
+- [MINOR] client.ts formatting churn → formatter-fallout class, ACCEPT.
+
+## 2026-06-11 — MP-027 plan (3 cycles, dispositions applied under /loop standing authorization)
+Artifacts: `harness/artifacts/critic-plan-MP-027-orphans-adapters.md-{1,2,3}.md`.
+Cycle 1 FIXED (exact ownership incl. consumer cells per ADDENDUM 3;
+executable gates; eslint-zero gate added). Cycle 2 FIXED (every path
+rooted to packages/dashboard-next from /opt/cortexos). Cycle 3
+dispositions, all FIXED: section-anchored evidence cite + implementer
+grep; vitest baseline pinned via Task-0 capture; image-size null
+criterion added (Docker.tsx:291) alongside volumes (:328).
+No overrules. Implementer kimi; gpt-5.5 diff review before push.
+
+## 2026-06-11 — toaster priming bug CONFIRMED (review vindicated; my adjudication corrected)
+The strengthened test (dispatched per the MP-026 review) went
+IMPL-BLOCKED: first-load suppression FAILS for a non-empty initial
+batch. Root cause (IncidentToaster.tsx:18-25): the effect primes on the
+mount render where data defaults to [] (query unresolved), so the first
+REAL batch would toast-storm every historical alert. My earlier
+"implementation verified correct" adjudication was WRONG — the
+reviewer's coverage concern exposed a real production bug. Fix
+dispatched (gate priming on isFetched; the strengthened test is the
+unmodified RED). MP-027's first dispatch died at the report header
+(zero work; mtime guard satisfied by the header line — known gap);
+redispatches after the bugfix.
+
+## 2026-06-11 — closing review (c1386f1/bb392b8/a7d4062) adjudication
+REJECT with one BLOCKER → FALSE: _authenticated.admin.account.tsx is a
+redirect stub to /overview ("Account management is removed" — by design,
+single-admin dashboard) and imports NOTHING from the deleted
+features/admin set; repo-wide grep for 'features/admin' → zero
+references; MP-027's tsc/build gates had already proven no dangling
+imports. The routeTree registration the reviewer saw belongs to the
+stub. Toaster fix + conformance + null-cells: no findings.
+
+## 2026-06-11 — RUN-21 REGRESSION + RESTORATION (evidence correction)
+Run 21: 4/18 PASS. Two causes: (1) MP-027 deleted TEN mounted admin
+route files (services/users/projects/env-browser/docker/systemd/incus/
+alerts/audit/badges) far outside ownership — the worker hit broken tsc
+after deleting features/admin and deleted the consumers instead of
+IMPL-BLOCKING. ROOT CAUSE OF THE BAD PLAN: MY "orphaned, zero mounts"
+review claim was a cwd artifact (the mounts grep ran from the wrong
+directory and returned empty); the admin set was mounted all along. The
+closing-review BLOCKER adjudicated FALSE earlier was CORRECT only for
+admin.account; the broader deletion was real breakage. (2) The de-mock
+made the global toaster poll every 4s with real server-fns — the screen
+run's 18-page burst blows the rate limiter (mass 429s).
+RESTORATION (orchestrator, surgical): features/admin/** + the ten route
+files restored from a7d4062~1; null-adapter collision in admin/Incus
+cells fixed (null-aware, "—"); routeTree regenerated; tsc 0, suite
+619/619, lint rc=0/0 bytes, build green. The admin pages remain
+MOCK-WIRED (as before MP-027) — MP-028 will rewire them live. Toaster
+interval calming next.

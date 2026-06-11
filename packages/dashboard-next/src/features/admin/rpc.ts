@@ -1,0 +1,148 @@
+/**
+ * Admin RPC adapter (WP-40).
+ *
+ * Calls the WP-10 services + WP-18 env-browser + WP-20 auth server functions
+ * DIRECTLY (typed createServerFn RPC, NOT fetch — ADR-001). The gate-middleware
+ * pattern (`defineServerFn` + `serverFnNoop`) means TypeScript infers the outer
+ * createServerFn return as `undefined`; the real payload is carried by the gate
+ * at runtime. We recover the typed shapes with a single `unknown` cast at this
+ * boundary (same technique as `src/lib/api/client.ts`), so every admin call
+ * site stays fully typed.
+ *
+ * Mutations (POST fns) attach the session-bound CSRF header via `csrfHeaders()`.
+ */
+
+import type { Service as ContractService, User } from "@cortexos/contracts/entities";
+import {
+  listServices as _listServices,
+  createService as _createService,
+  patchService as _patchService,
+  deleteService as _deleteService,
+} from "@/lib/api/services.functions";
+import { readEnv as _readEnv, unlock as _unlock } from "@/lib/api/env-browser.functions";
+import { me as _me } from "@/lib/api/auth.functions";
+
+import { toServiceRow } from "@/lib/adapters/services";
+import type { Service as MockService } from "@/mocks/types";
+
+import { csrfHeaders } from "./csrf";
+
+// ---------------------------------------------------------------------------
+// Typed boundaries (recover payloads erased by the gate-middleware pattern)
+// ---------------------------------------------------------------------------
+
+interface ServiceCreateData {
+  slug: string;
+  name: string;
+  description?: string | null;
+  healthUrl?: string | null;
+  healthType?: "http" | "tcp" | "docker" | "systemd" | "process";
+  category: string;
+  openUrl?: string | null;
+  kind?: "app" | "service" | "docker" | "process" | "dashboard-launcher";
+}
+
+type ServicePatchData = Partial<ServiceCreateData> & {
+  id: number;
+  isActive?: boolean;
+  sortOrder?: number;
+  showInHealthcheck?: boolean;
+  showInWebui?: boolean;
+};
+
+const listServicesFn = _listServices as unknown as (opts: {
+  data: { activeOnly?: boolean; page?: number; pageSize?: number };
+}) => Promise<{ rows: ContractService[]; total: number }>;
+
+const createServiceFn = _createService as unknown as (opts: {
+  data: ServiceCreateData;
+  headers?: Record<string, string>;
+}) => Promise<ContractService>;
+
+const patchServiceFn = _patchService as unknown as (opts: {
+  data: ServicePatchData;
+  headers?: Record<string, string>;
+}) => Promise<ContractService>;
+
+const deleteServiceFn = _deleteService as unknown as (opts: {
+  data: { id: number };
+  headers?: Record<string, string>;
+}) => Promise<{ ok: true }>;
+
+interface EnvEntry {
+  key: string;
+  value: string;
+  masked: string;
+}
+interface ReadEnvResult {
+  path: string;
+  revealed: boolean;
+  revealExpiresAt: number | null;
+  entries: EnvEntry[];
+}
+const readEnvFn = _readEnv as unknown as (opts: {
+  data: { path: string };
+}) => Promise<ReadEnvResult>;
+
+const unlockFn = _unlock as unknown as (opts: {
+  data: { password: string };
+  headers?: Record<string, string>;
+}) => Promise<{ ok: true; expiresAt: number; ttlSec: number }>;
+
+const meFn = _me as unknown as (opts: {
+  data?: Record<string, never>;
+}) => Promise<{ user: User | null; session: unknown | null }>;
+
+// ---------------------------------------------------------------------------
+// Services
+// ---------------------------------------------------------------------------
+
+/** All services (admin sees everything — no `activeOnly` filter). */
+export async function listAdminServices(): Promise<MockService[]> {
+  const { rows } = await listServicesFn({ data: { pageSize: 500 } });
+  return rows.map(toServiceRow);
+}
+
+export function createAdminService(data: ServiceCreateData): Promise<ContractService> {
+  return createServiceFn({ data, headers: csrfHeaders() });
+}
+
+export function patchAdminService(data: ServicePatchData): Promise<ContractService> {
+  return patchServiceFn({ data, headers: csrfHeaders() });
+}
+
+export function deleteAdminService(id: number): Promise<{ ok: true }> {
+  return deleteServiceFn({ data: { id }, headers: csrfHeaders() });
+}
+
+export type { ServiceCreateData, ServicePatchData };
+
+// ---------------------------------------------------------------------------
+// Env browser
+// ---------------------------------------------------------------------------
+
+export type { EnvEntry, ReadEnvResult };
+
+/** Read an allowlisted env file. Values are masked unless a reveal grant is live. */
+export function readAdminEnv(path: string): Promise<ReadEnvResult> {
+  return readEnvFn({ data: { path } });
+}
+
+/**
+ * PAM step-up: re-prove the operator's password to open a 10-minute reveal
+ * window bound to this session. The password is sent once and never stored.
+ */
+export function unlockAdminEnv(
+  password: string,
+): Promise<{ ok: true; expiresAt: number; ttlSec: number }> {
+  return unlockFn({ data: { password }, headers: csrfHeaders() });
+}
+
+// ---------------------------------------------------------------------------
+// Account
+// ---------------------------------------------------------------------------
+
+/** Current user + session. `auth: public` — returns `{ user: null }` when unauthenticated. */
+export function getMe(): Promise<{ user: User | null; session: unknown | null }> {
+  return meFn({ data: {} });
+}
