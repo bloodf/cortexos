@@ -36,6 +36,7 @@ import { configs as airbnbExtConfigs } from 'eslint-config-airbnb-extended';
 import importX from 'eslint-plugin-import-x';
 import stylistic from '@stylistic/eslint-plugin';
 import n from 'eslint-plugin-n';
+import reactHooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
 
 const SRC_GLOBS = ['**/*.{js,jsx,mjs,cjs,ts,tsx,svelte}'];
@@ -322,6 +323,8 @@ export default [
   // Scoped override: TanStack Router uses named exports by design
   {
     files: ['packages/dashboard-next/**'],
+    // MP-019: register react-hooks so legacy disable directives resolve
+    plugins: { 'react-hooks': reactHooks },
     rules: {
       // MP-019: TanStack Router convention — file routes export named Route const
       'import-x/prefer-default-export': 'off',
