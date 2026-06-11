@@ -352,11 +352,15 @@ function mapIncusImageType(type: string): IncusImage["type"] {
 /** Extract bridge from expanded devices. */
 function extractBridge(devices: Record<string, unknown>): string {
   const nic = Object.values(devices).find(
-    (dev) => dev && typeof dev === "object" && (dev as Record<string, unknown>).type === "nic",
+    (dev) =>
+      dev &&
+      typeof dev === "object" &&
+      (dev as Record<string, unknown>).type === "nic" &&
+      (typeof (dev as Record<string, unknown>).network === "string" ||
+        typeof (dev as Record<string, unknown>).parent === "string"),
   ) as Record<string, unknown> | undefined;
   if (nic) {
-    if (typeof nic.network === "string") return nic.network;
-    if (typeof nic.parent === "string") return nic.parent;
+    return ((nic.network as string | undefined) ?? (nic.parent as string | undefined)) as string;
   }
   return "incusbr0";
 }
@@ -368,9 +372,10 @@ function extractPool(devices: Record<string, unknown>): string {
       dev &&
       typeof dev === "object" &&
       (dev as Record<string, unknown>).type === "disk" &&
-      (dev as Record<string, unknown>).path === "/",
+      (dev as Record<string, unknown>).path === "/" &&
+      typeof (dev as Record<string, unknown>).pool === "string",
   ) as Record<string, unknown> | undefined;
-  if (disk && typeof disk.pool === "string") return disk.pool;
+  if (disk) return disk.pool as string;
   return "default";
 }
 

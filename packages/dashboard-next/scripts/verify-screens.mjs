@@ -224,7 +224,7 @@ async function main() {
             return sigCount > 0 ? `error-boundary text present: "${sig}"` : null;
           }),
         );
-        reasons.push(...sigReasons.filter((r): r is string => r !== null));
+        reasons.push(...sigReasons.filter((r) => r !== null));
 
         // 4. Landmark renders with real content (only meaningful if not redirected).
         if (!/\/login(\?|$)/.test(finalUrl)) {
