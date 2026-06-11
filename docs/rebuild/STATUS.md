@@ -445,3 +445,12 @@ Residual operator items: 45 lint problems (rule-id table in impl-mp-010-report.m
 | — | root-helper units | disabled | host-side | ORPHANED-LEGACY per recon; stopped + disabled, files kept |
 | G5 | release gate (run 10) | **18/18 PASS, exit 0** | — | screen-defects-10.md |
 | RELEASE | merge fix/dashboard-deslop → main | done | (merge commit below) | operator-approved |
+| MP-013 | root gates unblocked (artifact ignores; 155k phantom findings) | done | 1197942 + 879dc4c | true inventory: lint 3,273 / format 69 |
+| MP-014 | repo-wide autofix wave (prettier + eslint --fix) | done | ee62e98 | format:check exit 0 repo-wide; −930 lint; 2 unsafe autofixes reverted |
+| MP-015 | first-party lint scope + parser coverage | done | 37b0229 | non-packages residue = untracked vendored content; allowDefaultProject 0 |
+| MP-016 | import-x/extensions rule correctness | done | 6bc5b7d + 7e872f5 | 783 findings were config misfit; → 0 |
+| MP-018 | paperclip removed (operator directive) | done | 71ac118 | package+workflow deleted; tracked-tree sweep empty; screens 18/18 |
+| MP-017 | manual lint waves A/B/C/D1–D3 (~700 hand-fixed) | done | b67afbd…4fa3265 | per-rule strategies; reviews caught 6 real defects, all fixed |
+| MP-019 | rule-misfit corrections (TS-only off JS; extensions conflict; named-export convention) | done | f7839dc | review PASS; arithmetic exact |
+| FIXFWD | post-push checkpoint reviews + fix-forward (suppression purge, hashId, react-hooks reg) | done | f9f40cc…ee54700 | final: 102 adjudicated findings; 0 suppressions added |
+| FINAL | release gates (run 14) | **18/18 PASS, exit 0** | f6bb933 | lint 102 (all adjudicated); format clean; tsc 0; 558/558; live 200 |
