@@ -177,6 +177,62 @@ const httpServer = createServer((req, res) => {
 // noServer: we own the upgrade so we can authenticate BEFORE accepting the WS.
 const wss = new WebSocketServer({ noServer: true });
 
+// Active PTY session cleanup functions (for global fatal teardown).
+/** @type {Set<() => void>} */
+const sessions = new Set();
+
+let fatalTeardownDone = false;
+let shutdownTimer = null;
+
+/**
+ * Single fatal teardown path. Sets exitCode and closes every handle so the
+ * event loop can drain and the process exits naturally. Idempotent.
+ * @param {string} reason
+ * @param {number} [exitCode]
+ */
+function fatal(reason, exitCode = 1) {
+  if (fatalTeardownDone) return;
+  fatalTeardownDone = true;
+  log(reason ? `fatal: ${reason}` : 'fatal', { exitCode });
+
+  if (shutdownTimer) {
+    clearTimeout(shutdownTimer);
+    shutdownTimer = null;
+  }
+
+  Array.from(sessions).forEach((cleanupFn) => {
+    try {
+      cleanupFn();
+    } catch {
+      /* ignore */
+    }
+  });
+
+  wss.clients.forEach((client) => {
+    try {
+      client.terminate();
+    } catch {
+      /* ignore */
+    }
+  });
+
+  try {
+    wss.close();
+  } catch {
+    /* ignore */
+  }
+
+  if (httpServer.listening) {
+    try {
+      httpServer.close();
+    } catch {
+      /* ignore */
+    }
+  }
+
+  process.exitCode = exitCode;
+}
+
 /**
  * Reject a raw upgrade socket with an HTTP status before the WS is established.
  * @param {import('node:stream').Duplex} socket
@@ -230,6 +286,7 @@ function handleSession(ws, user, ip) {
   let idleTimer = null;
 
   const cleanup = () => {
+    sessions.delete(cleanup);
     if (idleTimer) {
       clearTimeout(idleTimer);
       idleTimer = null;
@@ -244,6 +301,7 @@ function handleSession(ws, user, ip) {
       }
     }
   };
+  sessions.add(cleanup);
 
   const resetIdle = () => {
     if (idleTimer) clearTimeout(idleTimer);
@@ -279,6 +337,7 @@ function handleSession(ws, user, ip) {
     } catch {
       ws.terminate();
     }
+    cleanup();
     return;
   }
 
@@ -453,11 +512,13 @@ function startupCheck() {
     log('FATAL: db config invalid', {
       error: err instanceof Error ? err.message : String(err),
     });
-    process.exit(1);
+    fatal('db config invalid', 1);
+    return false;
   }
   if (!ALLOWED_ORIGIN) {
     log('WARNING: ALLOWED_ORIGIN is not set; cross-site WS protection disabled');
   }
+  return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -476,11 +537,10 @@ function shutdown(signal) {
       client.terminate();
     }
   });
+  shutdownTimer = setTimeout(() => fatal('shutdown timeout', 0), 5000).unref();
   wss.close(() => {
-    httpServer.close(() => process.exit(0));
+    httpServer.close(() => fatal('graceful shutdown complete', 0));
   });
-  // Hard exit if anything hangs.
-  setTimeout(() => process.exit(0), 5000).unref();
 }
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));
@@ -493,13 +553,14 @@ process.on('unhandledRejection', (reason) => {
   log('unhandledRejection', { reason: String(reason) });
 });
 
-startupCheck();
-httpServer.listen(PORT, HOST, () => {
-  log('listening', {
-    host: HOST,
-    port: PORT,
-    shell: SHELL,
-    idleSec: IDLE_SEC,
-    originEnforced: Boolean(ALLOWED_ORIGIN),
+if (startupCheck()) {
+  httpServer.listen(PORT, HOST, () => {
+    log('listening', {
+      host: HOST,
+      port: PORT,
+      shell: SHELL,
+      idleSec: IDLE_SEC,
+      originEnforced: Boolean(ALLOWED_ORIGIN),
+    });
   });
-});
+}
