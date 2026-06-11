@@ -29,7 +29,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@traceloop/node-server-sdk": "^0.13.0",
+    "@traceloop/node-server-sdk": "^0.27.0",
     "langfuse": "^3.37.0"
   },
   "devDependencies": {
