@@ -168,6 +168,18 @@ function TerminalTab({ id, active, username, dark, onReady, onState }: TerminalT
   const wsRef = useRef<WebSocket | null>(null);
   const stateRef = useRef({ buffer: "", history: [] as string[], hIdx: -1 });
 
+  // Latest-ref pattern: this tab's terminal/WebSocket lifecycle is keyed only
+  // on `id`. Props/callbacks that may change during a tab's lifetime are read
+  // through refs so the mount effect does not retrigger.
+  const usernameRef = useRef(username);
+  const darkRef = useRef(dark);
+  const onReadyRef = useRef(onReady);
+  const onStateRef = useRef(onState);
+  usernameRef.current = username;
+  darkRef.current = dark;
+  onReadyRef.current = onReady;
+  onStateRef.current = onState;
+
   // Mount xterm once per tab
   useEffect(() => {
     if (!containerRef.current) {
@@ -178,7 +190,7 @@ function TerminalTab({ id, active, username, dark, onReady, onState }: TerminalT
       fontSize: 13,
       cursorBlink: true,
       convertEol: true,
-      theme: dark
+      theme: darkRef.current
         ? { background: "#0b0f17", foreground: "#e6edf3", cursor: "#7c3aed" }
         : { background: "#fafafa", foreground: "#1a1a1a", cursor: "#7c3aed" },
     });
@@ -200,7 +212,7 @@ function TerminalTab({ id, active, username, dark, onReady, onState }: TerminalT
     let disposed = false;
 
     const setState = (s: LiveState) => {
-      if (!disposed) onState?.(id, s);
+      if (!disposed) onStateRef.current?.(id, s);
     };
 
     // Push xterm dimensions to the PTY so it matches the visible viewport.
@@ -222,10 +234,10 @@ function TerminalTab({ id, active, username, dark, onReady, onState }: TerminalT
       if (line.trim() === "clear") {
         term.clear();
       } else {
-        run(line, username).forEach((l) => term.writeln(l));
+        run(line, usernameRef.current).forEach((l) => term.writeln(l));
       }
       s.buffer = "";
-      term.write(PROMPT(username));
+      term.write(PROMPT(usernameRef.current));
     };
 
     // Attach the local mock key handler + banner. Used when the live PTY
@@ -233,7 +245,7 @@ function TerminalTab({ id, active, username, dark, onReady, onState }: TerminalT
     const attachMock = () => {
       setState("mock");
       BANNER.forEach((l) => term.writeln(l));
-      term.write(PROMPT(username));
+      term.write(PROMPT(usernameRef.current));
       mockKeyDisposable = term.onKey(({ key, domEvent }) => {
         const ev = domEvent;
         const s = stateRef.current;
@@ -248,27 +260,33 @@ function TerminalTab({ id, active, username, dark, onReady, onState }: TerminalT
         } else if (ev.key === "ArrowUp") {
           if (s.hIdx + 1 < s.history.length) {
             s.hIdx += 1;
-            term.write(`\r${PROMPT(username)}${" ".repeat(s.buffer.length)}\r${PROMPT(username)}`);
+            term.write(
+              `\r${PROMPT(usernameRef.current)}${" ".repeat(s.buffer.length)}\r${PROMPT(usernameRef.current)}`,
+            );
             s.buffer = s.history[s.hIdx];
             term.write(s.buffer);
           }
         } else if (ev.key === "ArrowDown") {
           if (s.hIdx > 0) {
             s.hIdx -= 1;
-            term.write(`\r${PROMPT(username)}${" ".repeat(s.buffer.length)}\r${PROMPT(username)}`);
+            term.write(
+              `\r${PROMPT(usernameRef.current)}${" ".repeat(s.buffer.length)}\r${PROMPT(usernameRef.current)}`,
+            );
             s.buffer = s.history[s.hIdx];
             term.write(s.buffer);
           } else if (s.hIdx === 0) {
             s.hIdx = -1;
-            term.write(`\r${PROMPT(username)}${" ".repeat(s.buffer.length)}\r${PROMPT(username)}`);
+            term.write(
+              `\r${PROMPT(usernameRef.current)}${" ".repeat(s.buffer.length)}\r${PROMPT(usernameRef.current)}`,
+            );
             s.buffer = "";
           }
         } else if (ev.ctrlKey && ev.key === "c") {
-          term.write(`^C\r\n${PROMPT(username)}`);
+          term.write(`^C\r\n${PROMPT(usernameRef.current)}`);
           s.buffer = "";
         } else if (ev.ctrlKey && ev.key === "l") {
           term.clear();
-          term.write(PROMPT(username) + s.buffer);
+          term.write(PROMPT(usernameRef.current) + s.buffer);
         } else if (key.length === 1 && key.charCodeAt(0) >= 32) {
           s.buffer += key;
           term.write(key);
@@ -379,7 +397,9 @@ function TerminalTab({ id, active, username, dark, onReady, onState }: TerminalT
         // Mock mode: overwrite current buffer with cmd, echo, and submit.
         const s = stateRef.current;
         if (s.buffer.length) {
-          term.write(`\r${PROMPT(username)}${" ".repeat(s.buffer.length)}\r${PROMPT(username)}`);
+          term.write(
+            `\r${PROMPT(usernameRef.current)}${" ".repeat(s.buffer.length)}\r${PROMPT(usernameRef.current)}`,
+          );
         }
         s.buffer = cmd;
         term.write(`${cmd}\r\n`);
@@ -387,7 +407,7 @@ function TerminalTab({ id, active, username, dark, onReady, onState }: TerminalT
       },
       focus: () => term.focus(),
     };
-    onReady(id, handle);
+    onReadyRef.current(id, handle);
 
     const onResize = () => {
       try {
@@ -419,7 +439,6 @@ function TerminalTab({ id, active, username, dark, onReady, onState }: TerminalT
       termRef.current = null;
       fitRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // Refit when becoming active

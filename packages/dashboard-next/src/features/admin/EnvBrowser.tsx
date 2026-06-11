@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FileCode, Lock, Unlock, Copy, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
@@ -60,6 +60,15 @@ export function AdminEnvPage() {
   const { data } = query;
   const revealed = !!data?.revealed && remainingSeconds(data.revealExpiresAt) > 0;
 
+  // Latest-ref pattern: the per-second timer below must retrigger only on
+  // `now`, but it needs the current revealed state, expiry, and refetch fn.
+  const revealedRef = useRef(revealed);
+  const expiresAtRef = useRef(data?.revealExpiresAt ?? null);
+  const refetchRef = useRef(query.refetch);
+  revealedRef.current = revealed;
+  expiresAtRef.current = data?.revealExpiresAt ?? null;
+  refetchRef.current = query.refetch;
+
   // Tick the countdown each second while a grant is live; refetch when it lapses
   // so cleartext is cleared from the client view.
   useEffect(() => {
@@ -71,10 +80,9 @@ export function AdminEnvPage() {
   }, [revealed]);
 
   useEffect(() => {
-    if (revealed && remainingSeconds(data?.revealExpiresAt ?? null) === 0) {
-      query.refetch().catch(() => {});
+    if (revealedRef.current && remainingSeconds(expiresAtRef.current) === 0) {
+      refetchRef.current().catch(() => {});
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [now]);
 
   // Recomputed every render — the per-second `setNow` tick keeps it current.
