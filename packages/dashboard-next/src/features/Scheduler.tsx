@@ -1,0 +1,136 @@
+import { useQueryClient } from "@tanstack/react-query";
+import { Clock, Play, Plus } from "lucide-react";
+import { toast } from "sonner";
+import { PageHeader } from "@/components/PageHeader";
+import { DataTable, type Column } from "@/components/DataTable";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { useAuth } from "@/hooks/useAuth";
+import { useT } from "@/hooks/useT";
+import { relativeTime } from "@/lib/format";
+import { api } from "@/lib/api/client";
+import type { SchedulerJob } from "@/lib/api/client";
+
+function formatTime(iso: string): string {
+  if (!iso) return "—";
+  return relativeTime(iso);
+}
+
+export function SchedulerPage() {
+  const { user } = useAuth();
+  const isAdmin = !!user?.is_admin;
+  const qc = useQueryClient();
+  const t = useT();
+
+  const toggle = (id: string) => {
+    qc.setQueryData<SchedulerJob[]>(["scheduler"], (p) =>
+      p?.map((j) =>
+        j.id === id ? { ...j, enabled: !j.enabled, status: !j.enabled ? "ok" : "paused" } : j,
+      ),
+    );
+    toast.success("Job updated");
+  };
+
+  const runNow = (j: SchedulerJob) => {
+    qc.setQueryData<SchedulerJob[]>(["scheduler"], (p) =>
+      p?.map((x) =>
+        x.id === j.id ? { ...x, lastRun: new Date().toISOString(), status: "ok" } : x,
+      ),
+    );
+    toast.success(`Triggered ${j.name}`, { description: "Simulated run queued." });
+  };
+
+  const cols: Column<SchedulerJob>[] = [
+    {
+      key: "name",
+      header: "Name",
+      sort: (r) => r.name,
+      cell: (r) => <span className="font-medium">{r.name}</span>,
+    },
+    { key: "cron", header: "Schedule", cell: (r) => <code className="text-xs">{r.cron}</code> },
+    {
+      key: "target",
+      header: "Target",
+      cell: (r) => (
+        <code className="text-xs text-muted-foreground truncate max-w-[280px] inline-block">
+          {r.target}
+        </code>
+      ),
+    },
+    {
+      key: "lastRun",
+      header: "Last run",
+      sort: (r) => r.lastRun,
+      cell: (r) => <span className="text-xs text-muted-foreground">{formatTime(r.lastRun)}</span>,
+    },
+    {
+      key: "nextRun",
+      header: "Next run",
+      sort: (r) => r.nextRun,
+      cell: (r) => (
+        <span className="text-xs text-muted-foreground">
+          {r.enabled ? formatTime(r.nextRun) : "—"}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      sort: (r) => r.status,
+      cell: (r) => {
+        let statusClass = "border-muted-foreground text-muted-foreground";
+        if (r.status === "ok") statusClass = "border-[var(--success)] text-[var(--success)]";
+        else if (r.status === "failing") statusClass = "border-destructive text-destructive";
+        return (
+          <Badge variant="outline" className={statusClass}>
+            {r.status}
+          </Badge>
+        );
+      },
+    },
+    {
+      key: "actions",
+      header: "",
+      cell: (r) => (
+        <div className="flex items-center gap-2 justify-end">
+          {isAdmin && r.enabled && (
+            <Button size="sm" variant="ghost" onClick={() => runNow(r)}>
+              <Play className="size-3.5" />
+            </Button>
+          )}
+          {isAdmin && (
+            <Switch
+              checked={r.enabled}
+              onCheckedChange={() => toggle(r.id)}
+              aria-label={`Enable ${r.name}`}
+            />
+          )}
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <div className="space-y-5">
+      <PageHeader
+        icon={<Clock className="size-5" />}
+        title={t.nav.scheduler}
+        description="Cron jobs and scheduled tasks across systemd timers and Docker."
+        actions={
+          isAdmin && (
+            <Button size="sm" onClick={() => toast.success("New job form (simulated)")}>
+              <Plus className="size-4 mr-1" />
+              New job
+            </Button>
+          )
+        }
+      />
+      <DataTable
+        columns={cols}
+        initialSort="nextRun"
+        server={{ queryKey: ["scheduler"], fetch: api.schedulerList }}
+      />
+    </div>
+  );
+}

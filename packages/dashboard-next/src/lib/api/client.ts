@@ -21,7 +21,7 @@
  *
  * TODO domains (server fns not yet implemented — throws "not yet wired"):
  *   alerts, approvals, audit, agents, mail, notifications,
- *   envFiles, backups, scheduler
+ *   envFiles, backups
  *
  * See docs/rebuild/ADR-001-server-transport.md for the RPC transport decision.
  * See src/lib/api/README.md for the full swap guide.
@@ -103,6 +103,11 @@ import {
   incusAction as _incusAction,
   instanceLogs as _instanceLogs,
 } from "./incus.functions";
+
+// ---------------------------------------------------------------------------
+// Wired server-function imports (MP-024a — scheduler domain)
+// ---------------------------------------------------------------------------
+import { listSchedulerJobs as _listSchedulerJobs } from "./scheduler.functions";
 
 // ---------------------------------------------------------------------------
 // Wired server-function imports (WP-11 — docker domain)
@@ -394,6 +399,15 @@ interface InstanceLogsOutput {
 const listInstancesFn = _listInstances as unknown as (opts: {
   data: Record<string, never>;
 }) => Promise<ListInstancesOutput>;
+
+// MP-024a gate-middleware boundary cast — same pattern as other domains.
+interface ListSchedulerJobsOutput {
+  jobs: SchedulerJob[];
+}
+
+const listSchedulerJobsFn = _listSchedulerJobs as unknown as (opts: {
+  data: Record<string, never>;
+}) => Promise<ListSchedulerJobsOutput>;
 
 /** Call incusAction RPC directly — requires a pre-minted approval token for destructive ops. */
 export const callIncusAction = _incusAction as unknown as (opts: {
@@ -919,11 +933,54 @@ export const api = {
   backupsList: (p?: ListParams): Promise<ListResult<BackupSnapshot>> =>
     Promise.resolve(emptyList<BackupSnapshot>(p)),
 
-  // ── Scheduler ──────────────────────────────────────────────────────────
-  scheduler: (): Promise<SchedulerJob[]> => Promise.resolve([]),
+  // ── Scheduler (WIRED — MP-024a) ───────────────────────────────────────
+  /**
+   * Returns all systemd timer jobs mapped to the mock SchedulerJob shape.
+   * Calls listSchedulerJobs RPC → server/scheduler.listTimers().
+   */
+  scheduler: async (): Promise<SchedulerJob[]> => {
+    const { jobs } = await listSchedulerJobsFn({ data: {} });
+    return jobs;
+  },
 
-  schedulerList: (p?: ListParams): Promise<ListResult<SchedulerJob>> =>
-    Promise.resolve(emptyList<SchedulerJob>(p)),
+  /**
+   * Paginated scheduler jobs list (WIRED — MP-024a).
+   */
+  schedulerList: async (p?: ListParams): Promise<ListResult<SchedulerJob>> => {
+    const { jobs } = await listSchedulerJobsFn({ data: {} });
+    const q = (p?.q ?? "").trim().toLowerCase();
+    let filtered = q
+      ? jobs.filter(
+          (j) =>
+            j.name.toLowerCase().includes(q) ||
+            j.cron.toLowerCase().includes(q) ||
+            j.target.toLowerCase().includes(q),
+        )
+      : jobs;
+
+    const sortKey = p?.sortKey;
+    const sortDir = p?.sortDir ?? "asc";
+    const getSortValue: Record<string, (j: SchedulerJob) => string | number> = {
+      name: (j) => j.name,
+      cron: (j) => j.cron,
+      target: (j) => j.target,
+      lastRun: (j) => j.lastRun,
+      nextRun: (j) => j.nextRun,
+      status: (j) => j.status,
+    };
+    const accessor = sortKey ? getSortValue[sortKey] : undefined;
+    if (accessor) {
+      filtered = [...filtered].sort((a, b) => {
+        const av = accessor(a);
+        const bv = accessor(b);
+        if (av === bv) return 0;
+        const d = av > bv ? 1 : -1;
+        return sortDir === "desc" ? -d : d;
+      });
+    }
+
+    return clientSideList<SchedulerJob>(filtered, p);
+  },
 
   // ── Drives (from storage server fn — WIRED WP-14) ─────────────────────
   drivesList: async (p?: ListParams): Promise<ListResult<DriveInfo>> => {
