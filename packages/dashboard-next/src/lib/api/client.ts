@@ -110,6 +110,11 @@ import {
 import { listSchedulerJobs as _listSchedulerJobs } from "./scheduler.functions";
 
 // ---------------------------------------------------------------------------
+// Wired server-function imports (MP-024b — backups domain)
+// ---------------------------------------------------------------------------
+import { listBackupRuns as _listBackupRuns } from "./backups.functions";
+
+// ---------------------------------------------------------------------------
 // Wired server-function imports (WP-11 — docker domain)
 // ---------------------------------------------------------------------------
 import {
@@ -408,6 +413,15 @@ interface ListSchedulerJobsOutput {
 const listSchedulerJobsFn = _listSchedulerJobs as unknown as (opts: {
   data: Record<string, never>;
 }) => Promise<ListSchedulerJobsOutput>;
+
+// MP-024b gate-middleware boundary cast — same pattern as other domains.
+interface ListBackupRunsOutput {
+  backups: BackupSnapshot[];
+}
+
+const listBackupRunsFn = _listBackupRuns as unknown as (opts: {
+  data: Record<string, never>;
+}) => Promise<ListBackupRunsOutput>;
 
 /** Call incusAction RPC directly — requires a pre-minted approval token for destructive ops. */
 export const callIncusAction = _incusAction as unknown as (opts: {
@@ -927,11 +941,53 @@ export const api = {
   badgesList: (p?: ListParams): Promise<ListResult<unknown>> =>
     Promise.resolve(emptyList<unknown>(p)),
 
-  // ── Backups ────────────────────────────────────────────────────────────
-  backups: (): Promise<BackupSnapshot[]> => Promise.resolve([]),
+  // ── Backups (WIRED — MP-024b) ──────────────────────────────────────────
+  /**
+   * Returns all backup runs mapped to the mock BackupSnapshot shape.
+   * Calls listBackupRuns RPC → server/backups.listBackupRuns().
+   */
+  backups: async (): Promise<BackupSnapshot[]> => {
+    const { backups } = await listBackupRunsFn({ data: {} });
+    return backups;
+  },
 
-  backupsList: (p?: ListParams): Promise<ListResult<BackupSnapshot>> =>
-    Promise.resolve(emptyList<BackupSnapshot>(p)),
+  /**
+   * Paginated backup runs list (WIRED — MP-024b).
+   */
+  backupsList: async (p?: ListParams): Promise<ListResult<BackupSnapshot>> => {
+    const { backups } = await listBackupRunsFn({ data: {} });
+    const q = (p?.q ?? "").trim().toLowerCase();
+    const filtered = q
+      ? backups.filter(
+          (b) =>
+            b.target.toLowerCase().includes(q) ||
+            b.kind.toLowerCase().includes(q) ||
+            b.status.toLowerCase().includes(q),
+        )
+      : backups;
+
+    const sortKey = p?.sortKey;
+    const sortDir = p?.sortDir ?? "asc";
+    const getSortValue: Record<string, (b: BackupSnapshot) => string | number> = {
+      createdAt: (b) => b.createdAt,
+      target: (b) => b.target,
+      sizeBytes: (b) => b.sizeBytes,
+      status: (b) => b.status,
+    };
+    const accessor = sortKey ? getSortValue[sortKey] : undefined;
+    if (accessor) {
+      const sorted = [...filtered].sort((a, b) => {
+        const av = accessor(a);
+        const bv = accessor(b);
+        if (av === bv) return 0;
+        const d = av > bv ? 1 : -1;
+        return sortDir === "desc" ? -d : d;
+      });
+      return clientSideList<BackupSnapshot>(sorted, p);
+    }
+
+    return clientSideList<BackupSnapshot>(filtered, p);
+  },
 
   // ── Scheduler (WIRED — MP-024a) ───────────────────────────────────────
   /**

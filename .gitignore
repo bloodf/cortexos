@@ -169,7 +169,9 @@ stacks/cortex-sandbox-runner/app/node_modules/
 # Backups & Dumps
 # ============================================
 *.dump
-backups/
+# Anchored to repo root so it does NOT ignore source directories such as
+# packages/dashboard-next/src/server/backups/ (MP-024b).
+/backups/
 
 # ============================================
 # Runtime / Generated / Non-essential
