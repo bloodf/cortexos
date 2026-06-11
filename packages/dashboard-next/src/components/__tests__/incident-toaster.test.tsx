@@ -23,18 +23,23 @@ vi.mock("sonner", () => ({
   },
 }));
 
-const seedAlerts: AlertHistory[] = [];
+const preExistingAlert: AlertHistory = {
+  id: "ah-1",
+  ruleName: "CPU threshold",
+  serviceName: "node",
+  status: "fired",
+  message: "overload",
+  timestamp: new Date().toISOString(),
+};
 
-const newAlerts: AlertHistory[] = [
-  {
-    id: "ah-2",
-    ruleName: "Database connection",
-    serviceName: "postgresql",
-    status: "resolved",
-    message: "connection restored",
-    timestamp: new Date().toISOString(),
-  },
-];
+const newAlert: AlertHistory = {
+  id: "ah-2",
+  ruleName: "Database connection",
+  serviceName: "postgresql",
+  status: "resolved",
+  message: "connection restored",
+  timestamp: new Date().toISOString(),
+};
 
 function renderToaster() {
   const queryClient = new QueryClient({
@@ -56,23 +61,33 @@ describe("IncidentToaster live wiring (MP-026 RED)", () => {
     vi.useRealTimers();
   });
 
-  it("fires a toast once for a new alert after mount and skips pre-existing entries", async () => {
+  it("suppresses pre-existing alerts on first load, toasts each new alert once, and dedups across polls", async () => {
     vi.mocked(api.alerts.history)
-      .mockResolvedValueOnce(seedAlerts)
-      .mockResolvedValueOnce(newAlerts);
+      .mockResolvedValueOnce([preExistingAlert])
+      .mockResolvedValueOnce([preExistingAlert, newAlert])
+      .mockResolvedValueOnce([preExistingAlert, newAlert]);
 
     renderToaster();
 
+    // First poll: the batch is treated as seed data; no toasts fire.
     await vi.waitFor(() => expect(api.alerts.history).toHaveBeenCalledTimes(1));
+    expect(toast.error).not.toHaveBeenCalled();
     expect(toast.success).not.toHaveBeenCalled();
+    expect(toast.info).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(5000);
+
+    // Second poll: the new alert surfaces as exactly one toast.
+    await vi.waitFor(() => expect(api.alerts.history).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() => expect(toast.success).toHaveBeenCalledTimes(1));
     expect(toast.error).not.toHaveBeenCalled();
     expect(toast.info).not.toHaveBeenCalled();
 
     await vi.advanceTimersByTimeAsync(5000);
 
-    await vi.waitFor(() => expect(api.alerts.history).toHaveBeenCalledTimes(2));
-    await vi.waitFor(() => expect(toast.success).toHaveBeenCalledTimes(1));
-
+    // Third poll: same payload returns; no duplicate toasts.
+    await vi.waitFor(() => expect(api.alerts.history).toHaveBeenCalledTimes(3));
+    expect(toast.success).toHaveBeenCalledTimes(1);
     expect(toast.error).not.toHaveBeenCalled();
     expect(toast.info).not.toHaveBeenCalled();
   });

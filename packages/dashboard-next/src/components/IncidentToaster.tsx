@@ -8,7 +8,7 @@ import { api } from "@/lib/api/client";
  * Mounted once at the app shell level.
  */
 export function IncidentToaster() {
-  const { data: alerts = [] } = useQuery({
+  const { data: alerts = [], isFetched } = useQuery({
     queryKey: ["alerts", "history"],
     queryFn: api.alerts.history,
     refetchInterval: 4000,
@@ -17,6 +17,7 @@ export function IncidentToaster() {
   const primed = useRef(false);
 
   useEffect(() => {
+    if (!isFetched) return;
     // Skip the very first batch — they're seed data, not "new".
     if (!primed.current) {
       alerts.forEach((a) => seen.current.add(a.id));
@@ -31,7 +32,7 @@ export function IncidentToaster() {
       else if (a.status === "resolved") toast.success(title, { description: a.ruleName });
       else toast.info(title, { description: a.ruleName });
     });
-  }, [alerts]);
+  }, [alerts, isFetched]);
 
   return null;
 }
