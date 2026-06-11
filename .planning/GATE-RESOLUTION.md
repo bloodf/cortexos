@@ -945,3 +945,23 @@ restored; drizzle 0.45.2 live and verified.
 3. "Other parts not working" — recon wiring table: /backups and
    /scheduler are MOCK-wired; MP-024 wires them live.
 Plans: MP-022 (apps), MP-023 (healthcheck), MP-024 (backups/scheduler).
+
+## 2026-06-11 — MP-022 plan (3 cycles, dispositions applied under /loop standing authorization)
+Artifacts: `harness/artifacts/critic-plan-MP-022-apps-cleanup.md-{1,2,3}.md`.
+Cycle 1 FIXED (compose-map recon completed + embedded; ownership added;
+TDD RED step; binary screens/URL battery; Hermes=18787 resolved). Cycle 2
+FIXED (port map made binding; dashboard exception documented; screens
+command named). Cycle 3 dispositions:
+- [BLOCKER] ownership missed services.functions.ts (hasWebui must flow
+  through the server-fn zod input) → FIXED: added to ownership. Real
+  catch.
+- [BLOCKER] dashboard-row exception vs literal directive → OVERRULED:
+  the directive's intent is per-app XYZ names (the user's complaint);
+  the dashboard row is the host's own MagicDNS root (no per-app
+  subdomain), works tailnet-wide today, and the service binds
+  127.0.0.1:3080 behind Caddy TLS — an IP:3080 URL would BREAK it.
+  Interpretation recorded in-plan.
+- [MAJOR] anchors absent → FIXED for real (prior python replace silently
+  no-op'd; Edit-tool applied; grep-verifiable anchors present).
+No further cycles. Implementer kimi; 022a host-level (no commit), 022b
+repo (gpt-5.5 diff review before push).
