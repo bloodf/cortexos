@@ -103,12 +103,13 @@ describe("migration roundtrip", () => {
     //   010_memory_os_seed                            — Memory OS launcher seed (F-3)
     //   011_mail_guardian                             — Mail Guardian tables (reviews/actions/processed/rules/accounts)
     //   012_apps_webui_urls                           — MP-022 webui URL map + show_in_webui alignment
+    //   013_obot_no_webui                             — MP-022 022b review: Obot has no reachable web UI
     // Filenames 004 / 005 are intentionally not used in this branch —
     // the 002_seed/003_incus/004_reconcile/005_dashboard_command_audit
     // four-file expectation was authored against a pre-M1.5 state that
     // has since been superseded by 002_session_columns_for_auth +
     // 006_indexes_for_rbac_audit + 008_dashboard_command_audit.
-    expect(ran.length).toBe(11);
+    expect(ran.length).toBe(12);
     expect(ran).toEqual([
       "001_schema",
       "002_session_columns_for_auth",
@@ -121,6 +122,7 @@ describe("migration roundtrip", () => {
       "010_memory_os_seed",
       "011_mail_guardian",
       "012_apps_webui_urls",
+      "013_obot_no_webui",
     ]);
   });
 
@@ -137,6 +139,7 @@ describe("migration roundtrip", () => {
       "009_hermes_webui_boxbox_seed",
       "010_memory_os_seed",
       "012_apps_webui_urls",
+      "013_obot_no_webui",
     ].forEach((expected) => {
       expect(applied).toContain(expected);
     });
