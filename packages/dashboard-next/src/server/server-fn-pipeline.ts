@@ -52,7 +52,7 @@ import { requireAdmin, requireAuth, requireGroup } from "./auth/rbac";
 import { requireCsrf } from "./auth/csrf";
 import {
   RATE_LIMIT_DEFAULT_WINDOW_SEC,
-  RATE_LIMIT_AUTH_PRIVILEGED_PER_60S,
+  RATE_LIMIT_AUTHED_DEFAULT_PER_60S,
   RATE_LIMIT_TOKEN_MINT_PER_60S,
 } from "./config";
 
@@ -151,7 +151,8 @@ function defaultRateLimit(auth: RouteOptions<unknown, unknown>["auth"]): {
   windowSec: number;
   bucket: "ip" | "user";
 } {
-  // unauth strict 30/min · authed 10/min · admin 30/min.
+  // unauth strict 30/min · authed reads 60/min · admin 30/min.
+  // Privileged/expensive ops declare explicit per-gate limits (e.g. 10/min).
   if (auth === "public") {
     return {
       limit: RATE_LIMIT_TOKEN_MINT_PER_60S,
@@ -167,7 +168,7 @@ function defaultRateLimit(auth: RouteOptions<unknown, unknown>["auth"]): {
     };
   }
   return {
-    limit: RATE_LIMIT_AUTH_PRIVILEGED_PER_60S,
+    limit: RATE_LIMIT_AUTHED_DEFAULT_PER_60S,
     windowSec: RATE_LIMIT_DEFAULT_WINDOW_SEC,
     bucket: "user",
   };

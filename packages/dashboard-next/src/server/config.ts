@@ -33,6 +33,15 @@ export const RATE_LIMIT_UNAUTH_PER_60S = 100;
 export const RATE_LIMIT_AUTH_PRIVILEGED_PER_60S = 10;
 
 /**
+ * Default for ordinary authenticated reads (auth: "any" gates with no
+ * explicit rateLimit). The dashboard's own chrome (command palette,
+ * status hero, incident polling) issues several list GETs per page boot;
+ * 10/min broke normal multi-page navigation (screen runs 21-22, mass
+ * 429s). Expensive/privileged ops keep their explicit per-gate limits.
+ */
+export const RATE_LIMIT_AUTHED_DEFAULT_PER_60S = 60;
+
+/**
  * HMAC key used to sign audit-chain hashes and approval tokens.
  *
  * Generated at process start. In M3 this is loaded from `.secrets/`.

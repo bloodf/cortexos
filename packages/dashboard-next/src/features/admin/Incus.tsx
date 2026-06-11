@@ -86,7 +86,9 @@ export function AdminIncusPage() {
       key: "memory",
       header: "RAM",
       sort: (r) => r.memory ?? -1,
-      cell: (r) => <span className="tabular-nums">{r.memory === null ? "—" : `${r.memory} MiB`}</span>,
+      cell: (r) => (
+        <span className="tabular-nums">{r.memory === null ? "—" : `${r.memory} MiB`}</span>
+      ),
     },
     {
       key: "status",
