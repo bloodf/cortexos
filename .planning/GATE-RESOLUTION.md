@@ -693,3 +693,13 @@ MP-014). New binding rules for continuations: export renames land
 ATOMICALLY with their test pair before touching anything else;
 twice-burned files (drift.ts, client.test.ts) are HANDS-OFF — their
 findings escalate.
+
+## 2026-06-11 — D3 effectively complete (parts 1-7); residue classified
+Checkpoints e07e99e/4ebc053/3ec3f1b/7cade49/8db08f9/e1cc665/4fa3265 —
+each committed only after orchestrator-verified green (tsc + 558/558).
+Dashboard-next residue after part 7: 114× prefer-default-export
+(class-routed to MP-019 — named-export convention; TanStack routes
+REQUIRE named Route exports) + 2 PROVEN false positives (drift.ts:97 —
+MP-014 demonstrated removing the assertion breaks tsc;
+client.test.ts:18 — D3e demonstrated arrow conversion breaks constructor
+mocking). MP-019 written: three evidence-backed scoped rule corrections.
