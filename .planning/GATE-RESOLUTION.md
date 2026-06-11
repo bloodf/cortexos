@@ -915,3 +915,23 @@ superseded: the baseline is now ZERO.
 ## 2026-06-11 — operator directive: security CVE fixes (recorded)
 AskUserQuestion: "Fix all now" — lockfile sync + all transitive bumps +
 drizzle 0.36→0.45, each gated; the unpatched low documented. MP-021.
+
+## 2026-06-11 — MP-021 security deps complete + review adjudication + accepted risk
+021a lockfile sync (frozen-install restored); 021b transitive bumps
+(108d850); 021c drizzle-orm 0.45.2 (1256718; zero API adaptations; 577/577).
+pnpm audit --prod: 6 → 1. Review REJECT (2 findings) → BOTH FALSE/embed
+artifact: my review embed filtered out pnpm-workspace.yaml; the +4 hunk
+is exactly the prompt-authorized documented overrides
+(@opentelemetry/sdk-node>=0.217.0, uuid>=11.1.1) in pnpm v10's correct
+overrides location. Orchestrator verified the hunk directly.
+ACCEPTED RISK (documented): @ai-sdk/provider-utils LOW (uncontrolled
+resource consumption, GHSA advisory) has NO patched release — transitive
+of mail-guardian's ai SDK; revisit when upstream patches.
+Deploy: drizzle-0.45 build green, boot 200, service active, live 200.
+
+## 2026-06-11 — MP-021 CLOSE
+Run 16's single /apps FAIL was HTTP 429 from the security pipeline's own
+rate limiter (three full screen runs within its window; journal clean) —
+ENVIRONMENTAL. Run 17 after cooldown: 18/18 PASS, exit 0. MP-021
+complete: audit 6 → 1 known-accepted unpatched low; frozen-lockfile
+restored; drizzle 0.45.2 live and verified.
