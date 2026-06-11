@@ -73,8 +73,9 @@ Acceptance everywhere uses this same count: ≤ 3 config items, each
 
 ## Campaign acceptance (MP-020g)
 - TRUE ZERO, exit-code form (eslint success is SILENT — ledger lesson):
-  `pnpm exec eslint . > /tmp/z.txt 2>&1; echo rc=$?` → rc=0 AND
-  `wc -c < /tmp/z.txt` → 0 (no output at all).
+  `pnpm exec eslint . > /tmp/z.txt 2>/dev/null; echo rc=$?` → rc=0 AND
+  `wc -c < /tmp/z.txt` → 0 (stdout only — stderr carries an unrelated
+  Node module-type advisory).
 - `git diff <campaign-start>..HEAD | grep -cE '^\+.*eslint-disable'` → 0;
   the 14 legacy disable comments REMOVED — baseline evidence:
   `.planning/harness/artifacts/recon-legacy-disables.txt` (grep capture,

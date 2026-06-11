@@ -825,3 +825,17 @@ dispositions, all FIXED:
   out of scope.
 - [MINOR] phantom table reference → dropped.
 No overrules. W0 recon manifest RECON-COMPLETE; implementation begins.
+
+## 2026-06-11 — MP-020b (089afa1) review adjudications
+Repo 102 → 73 (−29 exact); scope rc=0 (stderr = Node module-type
+advisory only — MP-020g's zero-check amended to stdout-only). Review
+REJECT, two findings:
+- [MAJOR] "fixture keys not quoted" → FALSE: the manifest rows prove the
+  camelcase findings were bare VARIABLE bindings (event_id etc.), not
+  property keys; kimi's renames were the correct fix; the plan's
+  quoted-keys prescription mis-modeled the sites. DB-mirror keys remain
+  snake_case with explicit key:value mapping — mirror intact, lint 0.
+- [MAJOR] out-of-scope edit (verify-screens.mjs disable removal) →
+  ADJUDICATED ACCEPT as [discovered]-class required fallout: the scripts
+  devDeps scope made that disable an UNUSED directive (itself a lint
+  warning); removing it completes the config change.
