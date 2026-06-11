@@ -116,11 +116,13 @@ function makeShim() {
       let result = rows.slice();
       let pIdx = 0;
       if (text.includes('occurred_at >= $')) {
-        const ts = params[(pIdx += 1)];
+        const ts = params[pIdx];
+        pIdx += 1;
         result = result.filter((r) => r.occurred_at >= ts);
       }
       if (text.includes('occurred_at <  $')) {
-        const ts = params[(pIdx += 1)];
+        const ts = params[pIdx];
+        pIdx += 1;
         result = result.filter((r) => r.occurred_at < ts);
       }
       return {
