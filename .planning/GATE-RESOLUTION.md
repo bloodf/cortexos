@@ -839,3 +839,20 @@ REJECT, two findings:
   ADJUDICATED ACCEPT as [discovered]-class required fallout: the scripts
   devDeps scope made that disable an UNUSED directive (itself a lint
   warning); removing it completes the config change.
+
+## 2026-06-11 — MP-020c (57513b2) review adjudications
+Repo 73 → 27 (−46 exact); tests 11/11 + 25/25. Review REJECT, three
+findings, all CONFIRMED by orchestrator inspection and routed to a
+staged fix job (dispatches after MP-020d frees the lane):
+- withEnv restores env before async callbacks settle → promise-aware
+  restore (sync path stays sync).
+- dns adapter misses the opts-optional lookup signature → typeof shim.
+- break→return in the sweep-cap loop: at THIS site the guard-first shape
+  makes it iteration waste rather than corruption, but break semantics
+  get restored properly via a STOP sentinel in runSequentially.
+
+## 2026-06-11 — MP-020d (84f2aa4) review PASS
+Terminal sidecar: 3 exit sites → single fatal() helper (exitCode +
+explicit teardown of PTY sessions, WS clients/server, HTTP server,
+shutdown timer). Failure injection: throwaway process rc=1 within 10s;
+live service restarted and active. Scope rc=0. Repo 27 → 24.
