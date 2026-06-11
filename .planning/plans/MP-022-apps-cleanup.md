@@ -83,3 +83,19 @@ PASS 18 / FAIL 0 (orchestrator executes post-deploy).
 Commit: feat(dashboard-next): /apps shows only web UIs with working tailscale:port URLs (MP-022)
 
 ## Out of scope: deleting service rows; /services page; Caddy config.
+
+## Amendment (post-022a, evidence-driven — logged in GATE-RESOLUTION)
+022a discovery: `tailscale serve` already fronts most web-UI ports as
+`https://cortexos.tailfd052e.ts.net:PORT` (tailnet-wide TLS, proxy →
+localhost). Docker binds on the tailscale IP SHADOW serve (plain-HTTP
+collision → TLS "wrong version number"). Corrected architecture (now
+live, orchestrator-verified): containers bind 127.0.0.1; serve proxies
+every web-UI port; probe matrix green (3000:301, 9090:302, 8081, 5050,
+3100, 3420:200, 8123:200, 8096:302, 5540:200, 8082:200, 8083:401-auth,
+11434:307, 9119:200, 18787:200, 8200:200, 6333:200; 8090:404-root —
+022b adjudicates Obot's real UI path).
+022b URL map SUPERSEDED: every webui row's open_url =
+`https://cortexos.tailfd052e.ts.net:PORT/` (uniform; the dashboard row
+stays the bare host root). NexusGate rows: http://100.68.46.47:PORT
+(separate node, unchanged plan). The URL battery (curl every open_url →
+2xx/3xx/401) remains the binding gate.

@@ -965,3 +965,14 @@ command named). Cycle 3 dispositions:
   no-op'd; Edit-tool applied; grep-verifiable anchors present).
 No further cycles. Implementer kimi; 022a host-level (no commit), 022b
 repo (gpt-5.5 diff review before push).
+
+## 2026-06-11 — MP-022a complete (corrected architecture) + amendment
+Worker hit the real constraint: tailscale serve held the "blocked" ports
+— meaning those UIs were ALREADY tailnet-reachable; the broken URLs were
+direct-bound services with https-scheme rows and the three unserved
+bridge UIs. Orchestrator completed 022a: reverted the three tailscale-IP
+docker binds to 127.0.0.1 (shadowing collision — TLS wrong-version
+diagnosed), added serve entries 18787/8200/6333 → localhost, verified
+ts:PORT 200 for all three + full probe matrix. Uniform scheme:
+https://cortexos.tailfd052e.ts.net:PORT for every web UI. MP-022 plan
+amended (URL map superseded); 022b dispatched with the corrected map.
