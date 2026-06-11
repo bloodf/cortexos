@@ -28,7 +28,6 @@ function LoginPage() {
   const [busy, setBusy] = useState(false);
 
   if (user) {
-    // eslint-disable-next-line @typescript-eslint/only-throw-error
     throw redirect({ to: search.redirect || "/overview" });
   }
 

@@ -51,6 +51,7 @@ import { audit } from "../audit";
 import { actionHashFor } from "../approval";
 import { allowlistedCommand, type AllowlistEntry } from "../policy";
 import type { User } from "../entities";
+import { asSessionId } from "../entities";
 
 /**
  * Local log-line shape. The contracts package does not export an
@@ -1261,8 +1262,7 @@ export async function dispatchAction(
     // Verify the token. The approval is bound to the caller's
     // `SessionId` (THREAT_MODEL §3.4, PB-1).
     const { verifyApproval } = await import("../approval");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const v = verifyApproval(ctx.approvalToken, ctx.sessionId as any);
+    const v = verifyApproval(ctx.approvalToken, asSessionId(ctx.sessionId));
     if (!v.ok) {
       const reason = `approval token ${v.reason}`;
       audit({

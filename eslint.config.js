@@ -322,14 +322,26 @@ export default [
 
   // Scoped override: TanStack Router uses named exports by design
   {
-    files: ['packages/dashboard-next/**'],
+    files: ['packages/dashboard-next/**/*.{ts,tsx}'],
     // MP-019: register react-hooks so legacy disable directives resolve
-    plugins: { 'react-hooks': reactHooks },
+    plugins: { 'react-hooks': reactHooks, '@typescript-eslint': ts.plugin },
     rules: {
       // MP-019: TanStack Router convention — file routes export named Route const
       'import-x/prefer-default-export': 'off',
       // MP-019: enable hooks-deps checking at root so the legacy directives are USED
       'react-hooks/exhaustive-deps': 'warn',
+      // MP-020: TanStack Router uses thrown redirect/notFound objects and the
+      // server-fn runner throws a Response for typed RPC error envelopes.
+      '@typescript-eslint/only-throw-error': [
+        'error',
+        {
+          allow: [
+            { from: 'package', name: 'Redirect', package: '@tanstack/react-router' },
+            { from: 'package', name: 'NotFoundError', package: '@tanstack/router-core' },
+            { from: 'lib', name: 'Response' },
+          ],
+        },
+      ],
     },
   },
 

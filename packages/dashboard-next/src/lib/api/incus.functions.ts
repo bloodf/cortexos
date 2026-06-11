@@ -17,6 +17,7 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import type { IncusShellOp } from "@cortexos/contracts";
 
 import { defineServerFn, serverFnNoop } from "@/lib/api/define-server-fn";
 
@@ -174,8 +175,7 @@ const execNamedGate = defineServerFn({
     const result = await dispatchExecNamed(
       input.name,
       {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        op: input.op as any,
+        op: input.op as IncusShellOp,
         args: input.args,
       },
       {

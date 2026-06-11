@@ -75,9 +75,13 @@ export const CSRF_HEADER = "x-csrf-token";
  * accumulates `Set-Cookie` headers on the response. `get` returns the raw
  * value (matches the legacy SvelteKit `Cookies`).
  */
+/** Minimal cookie options the jar helpers actually read. */
+export interface CookieOpts {
+  path?: string;
+}
+
 export interface CookieJar {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  get(name: string, opts?: any): string | undefined;
+  get(name: string, opts?: CookieOpts): string | undefined;
   set(
     name: string,
     value: string,
@@ -89,8 +93,7 @@ export interface CookieJar {
       maxAge?: number;
     },
   ): void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  delete(name: string, opts?: any): void;
+  delete(name: string, opts?: CookieOpts): void;
 }
 
 // ---------------------------------------------------------------------------

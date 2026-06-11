@@ -6,7 +6,6 @@ export const Route = createFileRoute("/_authenticated/admin")({
     try {
       const u = JSON.parse(localStorage.getItem("cortex.auth") || "null");
       if (!u?.is_admin) {
-        // eslint-disable-next-line @typescript-eslint/only-throw-error
         throw redirect({ to: "/overview" });
       }
     } catch (e: unknown) {
@@ -14,7 +13,6 @@ export const Route = createFileRoute("/_authenticated/admin")({
       if (err.isRedirect) {
         throw e;
       }
-      // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw redirect({ to: "/login" });
     }
   },

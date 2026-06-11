@@ -364,7 +364,6 @@ export const Route = createFileRoute("/_authenticated/incus/$name")({
     const all = await api.incus();
     const found = all.find((i) => i.name === params.name || i.slug === params.name);
     if (!found) {
-      // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw notFound();
     }
     return { instance: found };

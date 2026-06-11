@@ -31,6 +31,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { connect } from "node:net";
+import { runSequentiallyUntil } from "@/lib/sequential";
 import { getDb } from "../db/client";
 import { listServices, updateService } from "../db/repos/services";
 import { serviceHealthLog } from "../db/schema";
@@ -112,41 +113,45 @@ function probeTcp(host: string, port: number): Promise<ProbeResult> {
 
 async function probeSystemd(slug: string): Promise<ProbeResult> {
   const units = [slug, `cortex-${slug}`, `${slug}.service`];
-  /* eslint-disable no-await-in-loop */
-  for (let i = 0; i < units.length; i += 1) {
-    const unit = units[i];
-    try {
-      const { stdout } = await execFileAsync("systemctl", ["is-active", unit], {
-        timeout: PROBE_TIMEOUT_MS,
-      });
-      if (stdout.trim() === "active") return { status: "online", responseMs: null };
-    } catch {
-      // is-active exits non-zero when not active; try the next name.
-    }
-  }
-  /* eslint-enable no-await-in-loop */
-  return { status: "offline", responseMs: null };
+  const found = await runSequentiallyUntil(
+    units,
+    async (unit): Promise<ProbeResult | undefined> => {
+      try {
+        const { stdout } = await execFileAsync("systemctl", ["is-active", unit], {
+          timeout: PROBE_TIMEOUT_MS,
+        });
+        if (stdout.trim() === "active") return { status: "online", responseMs: null };
+      } catch {
+        // is-active exits non-zero when not active; try the next name.
+      }
+      return undefined;
+    },
+    (r): r is ProbeResult => r !== undefined,
+  );
+  return found ?? { status: "offline", responseMs: null };
 }
 
 async function probeDocker(slug: string): Promise<ProbeResult> {
   const names = [slug, `cortex-${slug}`];
-  /* eslint-disable no-await-in-loop */
-  for (let i = 0; i < names.length; i += 1) {
-    const name = names[i];
-    try {
-      const { stdout } = await execFileAsync(
-        "docker",
-        ["inspect", "-f", "{{.State.Running}}", name],
-        { timeout: PROBE_TIMEOUT_MS },
-      );
-      if (stdout.trim() === "true") return { status: "online", responseMs: null };
-      if (stdout.trim() === "false") return { status: "offline", responseMs: null };
-    } catch {
-      // no such container under this name; try the next.
-    }
-  }
-  /* eslint-enable no-await-in-loop */
-  return { status: "offline", responseMs: null };
+  const found = await runSequentiallyUntil(
+    names,
+    async (name): Promise<ProbeResult | undefined> => {
+      try {
+        const { stdout } = await execFileAsync(
+          "docker",
+          ["inspect", "-f", "{{.State.Running}}", name],
+          { timeout: PROBE_TIMEOUT_MS },
+        );
+        if (stdout.trim() === "true") return { status: "online", responseMs: null };
+        if (stdout.trim() === "false") return { status: "offline", responseMs: null };
+      } catch {
+        // no such container under this name; try the next.
+      }
+      return undefined;
+    },
+    (r): r is ProbeResult => r !== undefined,
+  );
+  return found ?? { status: "offline", responseMs: null };
 }
 
 async function probeProcess(slug: string): Promise<ProbeResult> {
@@ -236,9 +241,7 @@ async function pool<T>(
     await worker(item);
     await runNext();
   }
-  await Promise.all(
-    Array.from({ length: Math.min(limit, items.length) }, () => runNext()),
-  );
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, () => runNext()));
 }
 
 let sweeping = false;

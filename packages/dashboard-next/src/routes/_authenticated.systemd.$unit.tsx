@@ -303,7 +303,6 @@ export const Route = createFileRoute("/_authenticated/systemd/$unit")({
     const all = await api.systemd();
     const found = all.find((u) => u.name === params.unit);
     if (!found) {
-      // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw notFound();
     }
     return { unit: found };

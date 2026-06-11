@@ -1202,7 +1202,7 @@ export function fakeHash(prev: string, payload: string): string {
   const s = `${prev}|${payload}`;
   for (let i = 0; i < s.length; i++) {
     const v = Math.imul(h, 32) + h + s.charCodeAt(i);
-    h = (v % 0x100000000 + 0x100000000) % 0x100000000;
+    h = ((v % 0x100000000) + 0x100000000) % 0x100000000;
   }
   return `${`00000000${h.toString(16)}`.slice(-8)}…`;
 }

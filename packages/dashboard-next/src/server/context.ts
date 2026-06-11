@@ -106,7 +106,7 @@ export class WebCookieJar implements CookieJar {
     this.incoming = parseCookieHeader(request.headers.get("cookie"));
   }
 
-  get(name: string): string | undefined {
+  get(name: string, _opts?: { path?: string }): string | undefined {
     if (this.overrides.has(name)) {
       return this.overrides.get(name) ?? undefined;
     }

@@ -34,6 +34,19 @@ export default tseslint.config(
       ],
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
+      "@typescript-eslint/only-throw-error": [
+        "error",
+        {
+          allow: [
+            // MP-020: TanStack Router redirect Response
+            { from: "package", name: "Redirect", package: "@tanstack/react-router" },
+            // MP-020: TanStack Router not-found error
+            { from: "package", name: "NotFoundError", package: "@tanstack/router-core" },
+            // MP-020: native Response (server-function gate)
+            { from: "lib", name: "Response" },
+          ],
+        },
+      ],
     },
   },
   eslintPluginPrettier,
