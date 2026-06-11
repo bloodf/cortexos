@@ -976,3 +976,18 @@ diagnosed), added serve entries 18787/8200/6333 → localhost, verified
 ts:PORT 200 for all three + full probe matrix. Uniform scheme:
 https://cortexos.tailfd052e.ts.net:PORT for every web UI. MP-022 plan
 amended (URL map superseded); 022b dispatched with the corrected map.
+
+## 2026-06-11 — 022b (e18ddac) review adjudications
+Deploy green (build, boot 200, live 200); 578/578. Review REJECT, three
+findings:
+- [BLOCKER] obot still matches the /apps filter (only show_in_webui was
+  set false; /apps filters has_webui) → CONFIRMED via psql (t|f) — REAL;
+  fix-forward dispatched (migration 013: has_webui=false; it factually
+  has no UI).
+- [BLOCKER] "migration misses grafana/prometheus/pgadmin/redisinsight/
+  phpmyadmin/9router/hermes-dashboard" → FALSE: psql shows all seven
+  ALREADY carry the exact uniform URL — conformant rows were rightly
+  skipped; reviewer cannot see DB state.
+- [MAJOR] migrate.test.ts outside ownership → ACCEPT as required
+  fallout: the test pins the migration list; adding 012 forces the
+  update (ownership should have listed it; noted).
