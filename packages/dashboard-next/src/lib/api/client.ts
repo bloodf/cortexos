@@ -18,10 +18,17 @@
  *   docker    — WP-11 (listContainers, listImages, listVolumes, dockerAction)
  *   incus     — WP-12 (listInstances, incusAction, instanceLogs)
  *   systemd   — WP-13 (listUnits, getUnit, systemdAction, unitLogs)
+ *   alerts    — MP-025 (listAlerts, alertHistory)
+ *   approvals — MP-025 (listApprovals)
+ *   audit     — MP-025 (listAudit)
+ *   agents    — MP-025 (listAgents)
+ *   envFiles  — MP-025 (readEnv)
+ *   mail      — WP-37 (listReviews)
+ *   backups   — MP-024b (listBackupRuns)
+ *   scheduler — MP-024a (listSchedulerJobs)
  *
- * TODO domains (server fns not yet implemented — throws "not yet wired"):
- *   alerts, approvals, audit, agents, mail, notifications,
- *   envFiles, backups
+ * TODO domains (server fns not yet implemented — returns empty / placeholder):
+ *   notifications, users, projects, badges
  *
  * See docs/rebuild/ADR-001-server-transport.md for the RPC transport decision.
  * See src/lib/api/README.md for the full swap guide.
@@ -129,6 +136,8 @@ import {
   verifyAudit as _verifyAudit,
   grantApproval as _grantApproval,
   revokeApproval as _revokeApproval,
+  listApprovals as _listApprovals,
+  listAudit as _listAudit,
 } from "./approvals.functions";
 
 // ---------------------------------------------------------------------------
@@ -157,8 +166,12 @@ import {
   createAlert as _createAlert,
   patchAlert as _patchAlert,
   deleteAlert as _deleteAlert,
+  listAlerts as _listAlerts,
+  alertHistory as _alertHistory,
 } from "./alerts.functions";
-import { uploadAgentFile as _uploadAgentFile } from "./agents.functions";
+import { uploadAgentFile as _uploadAgentFile, listAgents as _listAgents } from "./agents.functions";
+import { readEnv as _readEnv } from "./env-browser.functions";
+import type { HermesProfile } from "@/server/agents/registry";
 
 export * as auth from "./auth";
 
@@ -555,6 +568,200 @@ function toDockerVolume(v: StubDockerVolume): DockerVolume {
   return { name: v.name, driver: v.driver, mountpoint: v.mountpoint, size: v.size ?? 0 };
 }
 
+// MP-025 gate-middleware boundary casts — same pattern as other domains.
+interface ListAlertsOutput {
+  rules: {
+    id: number;
+    serviceId: number;
+    name: string;
+    condition: string;
+    thresholdMs: number | null;
+    enabled: boolean;
+    createdAt: Date | string;
+    updatedAt: Date | string;
+  }[];
+}
+interface AlertHistoryOutput {
+  history: {
+    id: number;
+    ruleName: string;
+    serviceName: string;
+    status: string;
+    message: string;
+    timestamp: string;
+  }[];
+}
+interface ListApprovalsOutput {
+  pending: {
+    id: number;
+    runId: string;
+    signalName: string;
+    role: string | null;
+    issueId: string | null;
+    reason: string | null;
+    requestedAt: Date | string;
+    timeoutAt: Date | string | null;
+    resolvedAt: Date | string | null;
+    decision: string | null;
+    approver: string | null;
+  }[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+interface ListAuditOutput {
+  events: {
+    id: string;
+    eventId: string;
+    occurredAt: string;
+    surface: string;
+    action: string;
+    actor: string | null;
+    subject: string | null;
+    result: string | null;
+    payload: Record<string, unknown>;
+  }[];
+  surfaces: string[];
+  actions: string[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+interface ListAgentsOutput {
+  agents: HermesProfile[];
+}
+interface ReadEnvOutput {
+  path: string;
+  revealed: boolean;
+  revealExpiresAt: number | null;
+  entries: { key: string; value: string; masked: string }[];
+}
+
+const listAlertsFn = _listAlerts as unknown as (opts: {
+  data: Record<string, never>;
+}) => Promise<ListAlertsOutput>;
+const alertHistoryFn = _alertHistory as unknown as (opts: {
+  data: Record<string, never>;
+}) => Promise<AlertHistoryOutput>;
+const listApprovalsFn = _listApprovals as unknown as (opts: {
+  data: Record<string, never>;
+}) => Promise<ListApprovalsOutput>;
+const listAuditFn = _listAudit as unknown as (opts: {
+  data: Record<string, never>;
+}) => Promise<ListAuditOutput>;
+const listAgentsFn = _listAgents as unknown as (opts: {
+  data: Record<string, never>;
+}) => Promise<ListAgentsOutput>;
+const readEnvFn = _readEnv as unknown as (opts: {
+  data: { path: string };
+}) => Promise<ReadEnvOutput>;
+
+/** Map a server alert_rules row to the mock AlertRule shape. */
+function toAlertRuleRow(r: ListAlertsOutput["rules"][number]): AlertRule {
+  return {
+    id: String(r.id),
+    name: r.name,
+    service_id: r.serviceId,
+    condition: r.condition as AlertRule["condition"],
+    threshold_ms: r.thresholdMs ?? null,
+    enabled: r.enabled,
+  };
+}
+
+/** Map a server alert-history item to the mock AlertHistory shape. */
+function toAlertHistoryRow(h: AlertHistoryOutput["history"][number]): AlertHistory {
+  return {
+    id: String(h.id),
+    ruleName: h.ruleName,
+    serviceName: h.serviceName,
+    status: h.status as AlertHistory["status"],
+    message: h.message,
+    timestamp: h.timestamp,
+  };
+}
+
+/** Map a server pending_approvals row to the mock ApprovalRequest shape. */
+function toApprovalRequestRow(a: ListApprovalsOutput["pending"][number]): ApprovalRequest {
+  const status: ApprovalRequest["status"] =
+    a.decision === null ? "pending" : a.decision === "approve" ? "approved" : "denied";
+  const requestedAt =
+    a.requestedAt instanceof Date ? a.requestedAt.toISOString() : String(a.requestedAt);
+  return {
+    id: String(a.id),
+    actor: a.runId,
+    tool: a.signalName,
+    summary: a.signalName,
+    args_preview: JSON.stringify({
+      runId: a.runId,
+      role: a.role ?? undefined,
+      issueId: a.issueId ?? undefined,
+    }),
+    requested_at: requestedAt,
+    status,
+    reason: a.reason ?? undefined,
+  };
+}
+
+/** Map a server audit_log event to the mock AuditEntry shape. */
+function toAuditEntryRow(e: ListAuditOutput["events"][number]): AuditEntry {
+  const payload = e.payload ?? {};
+  const result = e.result ?? (typeof payload.result === "string" ? payload.result : "");
+  const detail = typeof payload.detail === "string" ? payload.detail : result;
+  return {
+    id: e.id,
+    actor: e.actor ?? "",
+    tool: e.action,
+    tool_class: e.surface,
+    args_hash: "",
+    decision: result === "deny" || result === "error" ? "deny" : "allow",
+    decision_reason: detail,
+    result,
+    created_at: e.occurredAt,
+  };
+}
+
+/** Infer a display provider name from a model identifier. */
+function inferModelProvider(model: string): string {
+  const lower = model.toLowerCase();
+  if (lower.startsWith("claude-")) return "anthropic";
+  if (lower.startsWith("gpt-")) return "openai";
+  if (lower.startsWith("llama") || lower.startsWith("qwen") || lower.startsWith("mistral"))
+    return "ollama";
+  const slash = model.indexOf("/");
+  if (slash > 0) return model.slice(0, slash);
+  return "unknown";
+}
+
+/** Map a server HermesProfile to the mock Agent shape with safe defaults. */
+function toAgentRow(p: HermesProfile): Agent {
+  const slug = p.profile;
+  const hermesUrl = p.apiPort ? `http://localhost:${p.apiPort}` : "http://localhost";
+  const modelProvider = inferModelProvider(p.model ?? "");
+  return {
+    slug,
+    name: slug,
+    description: `Hermes profile: ${slug}`,
+    state: "idle",
+    model: p.model ?? "unknown",
+    modelProvider,
+    health: "healthy",
+    hermesUrl,
+    version: "0.0.0",
+    uptimeSec: 0,
+    queueDepth: 0,
+    requestsPerMin: 0,
+    errorRatePct: 0,
+    p95LatencyMs: 0,
+    lastActivity: new Date().toISOString(),
+    files: [],
+  };
+}
+
+/** Map a readEnv result to the legacy { path, keys } summary shape. */
+function toEnvFileRow(r: ReadEnvOutput): unknown {
+  return { path: r.path, keys: r.entries.map((e) => e.key) };
+}
+
 // WP-37 gate-middleware boundary casts — same pattern as other domains.
 interface ListReviewsInput {
   accountSlug?: string;
@@ -664,11 +871,6 @@ export type { ServerMailAccount };
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
-
-/** Typed stub for domains whose server fns are not yet implemented (Wave-1). */
-function notYetWired(domain: string): never {
-  throw new Error(`[WP-04 TODO] api.${domain} — server function not yet wired (Wave-1 WP pending)`);
-}
 
 /** Return a typed empty ListResult for domains without a backend yet. */
 function emptyList<T>(p: ListParams = {}): ListResult<T> {
@@ -870,24 +1072,138 @@ export const api = {
     return clientSideList<SystemdUnit>(filtered, p);
   },
 
-  // ── Alerts ────────────────────────────────────────────────────────────
+  // ── Alerts (WIRED — MP-025) ───────────────────────────────────────────
   alerts: {
-    rules: (): Promise<AlertRule[]> => Promise.reject(notYetWired("alerts.rules")),
-    history: (): Promise<AlertHistory[]> => Promise.reject(notYetWired("alerts.history")),
-    rulesList: (_p?: ListParams): Promise<ListResult<AlertRule>> =>
-      Promise.reject(notYetWired("alerts.rulesList")),
-    historyList: (_p?: ListParams): Promise<ListResult<AlertHistory>> =>
-      Promise.reject(notYetWired("alerts.historyList")),
+    /**
+     * Returns all alert rules mapped to the mock AlertRule shape.
+     * Calls listAlerts RPC → server/db/repos/alerts.listAlertRules().
+     */
+    rules: async (): Promise<AlertRule[]> => {
+      const { rules } = await listAlertsFn({ data: {} });
+      return rules.map(toAlertRuleRow);
+    },
+
+    /**
+     * Returns alert history (rule firings) mapped to the mock AlertHistory shape.
+     * Calls alertHistory RPC → server/db/repos/alerts.listAlertHistoryWithNames().
+     */
+    history: async (): Promise<AlertHistory[]> => {
+      const { history } = await alertHistoryFn({ data: {} });
+      return history.map(toAlertHistoryRow);
+    },
+
+    /**
+     * Paginated alert rules list (WIRED — MP-025).
+     */
+    rulesList: async (p?: ListParams): Promise<ListResult<AlertRule>> => {
+      const { rules } = await listAlertsFn({ data: {} });
+      const mapped = rules.map(toAlertRuleRow);
+      const q = (p?.q ?? "").trim().toLowerCase();
+      const filtered = q
+        ? mapped.filter(
+            (r) => r.name.toLowerCase().includes(q) || r.condition.toLowerCase().includes(q),
+          )
+        : mapped;
+      return clientSideList<AlertRule>(filtered, p);
+    },
+
+    /**
+     * Paginated alert history list (WIRED — MP-025).
+     */
+    historyList: async (p?: ListParams): Promise<ListResult<AlertHistory>> => {
+      const { history } = await alertHistoryFn({ data: {} });
+      const mapped = history.map(toAlertHistoryRow);
+      const q = (p?.q ?? "").trim().toLowerCase();
+      const filtered = q
+        ? mapped.filter(
+            (h) =>
+              h.ruleName.toLowerCase().includes(q) ||
+              h.serviceName.toLowerCase().includes(q) ||
+              h.status.toLowerCase().includes(q),
+          )
+        : mapped;
+
+      const sortKey = p?.sortKey;
+      const sortDir = p?.sortDir ?? "desc";
+      const getSortValue: Record<string, (h: AlertHistory) => string | number> = {
+        timestamp: (h) => h.timestamp,
+        ruleName: (h) => h.ruleName,
+        status: (h) => h.status,
+      };
+      const accessor = sortKey ? getSortValue[sortKey] : undefined;
+      if (accessor) {
+        const sorted = [...filtered].sort((a, b) => {
+          const av = accessor(a);
+          const bv = accessor(b);
+          if (av === bv) return 0;
+          const d = av > bv ? 1 : -1;
+          return sortDir === "desc" ? -d : d;
+        });
+        return clientSideList<AlertHistory>(sorted, p);
+      }
+
+      return clientSideList<AlertHistory>(filtered, p);
+    },
   },
 
-  // ── Approvals ──────────────────────────────────────────────────────────
-  approvals: (): Promise<ApprovalRequest[]> => Promise.reject(notYetWired("approvals")),
+  // ── Approvals (WIRED — MP-025) ─────────────────────────────────────────
+  /**
+   * Returns pending approvals mapped to the mock ApprovalRequest shape.
+   * Calls listApprovals RPC → server/db/repos/pending_approvals.listPendingApprovals().
+   */
+  approvals: async (): Promise<ApprovalRequest[]> => {
+    const { pending } = await listApprovalsFn({ data: {} });
+    return pending.map(toApprovalRequestRow);
+  },
 
-  // ── Audit ──────────────────────────────────────────────────────────────
-  audit: (): Promise<AuditEntry[]> => Promise.reject(notYetWired("audit")),
+  // ── Audit (WIRED — MP-025) ─────────────────────────────────────────────
+  /**
+   * Returns audit events mapped to the mock AuditEntry shape.
+   * Calls listAudit RPC → server/db/repos/audit (via approvals.functions.ts).
+   */
+  audit: async (): Promise<AuditEntry[]> => {
+    const { events } = await listAuditFn({ data: {} });
+    return events.map(toAuditEntryRow);
+  },
 
-  auditList: (_p?: ListParams): Promise<ListResult<AuditEntry>> =>
-    Promise.reject(notYetWired("auditList")),
+  /**
+   * Paginated audit events list (WIRED — MP-025).
+   */
+  auditList: async (p?: ListParams): Promise<ListResult<AuditEntry>> => {
+    const { events } = await listAuditFn({ data: {} });
+    const mapped = events.map(toAuditEntryRow);
+    const q = (p?.q ?? "").trim().toLowerCase();
+    const filtered = q
+      ? mapped.filter(
+          (e) =>
+            e.actor.toLowerCase().includes(q) ||
+            e.tool.toLowerCase().includes(q) ||
+            e.decision_reason.toLowerCase().includes(q),
+        )
+      : mapped;
+
+    const sortKey = p?.sortKey;
+    const sortDir = p?.sortDir ?? "desc";
+    const getSortValue: Record<string, (e: AuditEntry) => string | number> = {
+      created_at: (e) => e.created_at,
+      actor: (e) => e.actor,
+      tool: (e) => e.tool,
+      decision: (e) => e.decision,
+    };
+    const accessor = sortKey ? getSortValue[sortKey] : undefined;
+    if (accessor) {
+      const sorted = [...filtered].sort((a, b) => {
+        const av = accessor(a);
+        const bv = accessor(b);
+        if (av === bv) return 0;
+        const d = av > bv ? 1 : -1;
+        return sortDir === "desc" ? -d : d;
+      });
+      return clientSideList<AuditEntry>(sorted, p);
+    }
+
+    return clientSideList<AuditEntry>(filtered, p);
+  },
 
   // ── Users ──────────────────────────────────────────────────────────────
   users: (): Promise<PamUser[]> => Promise.resolve([]),
@@ -901,8 +1217,15 @@ export const api = {
   projectsList: (p?: ListParams): Promise<ListResult<Project>> =>
     Promise.resolve(emptyList<Project>(p)),
 
-  // ── Agents ────────────────────────────────────────────────────────────
-  agents: (): Promise<Agent[]> => Promise.reject(notYetWired("agents")),
+  // ── Agents (WIRED — MP-025) ───────────────────────────────────────────
+  /**
+   * Returns Hermes agent profiles mapped to the mock Agent shape.
+   * Calls listAgents RPC → server/agents/registry.readRegistry().
+   */
+  agents: async (): Promise<Agent[]> => {
+    const { agents } = await listAgentsFn({ data: {} });
+    return agents.map(toAgentRow);
+  },
 
   // ── Mail-Guardian (WIRED — WP-37) ────────────────────────────────────
   /**
@@ -932,8 +1255,15 @@ export const api = {
   // ── Notifications ──────────────────────────────────────────────────────
   notifications: (): Promise<unknown[]> => Promise.resolve([]),
 
-  // ── Env browser ────────────────────────────────────────────────────────
-  envFiles: (): Promise<unknown[]> => Promise.reject(notYetWired("envFiles")),
+  // ── Env browser (WIRED — MP-025) ───────────────────────────────────────
+  /**
+   * Returns an env file summary mapped to the legacy { path, keys } shape.
+   * Calls readEnv RPC → server/env-browser.readEnvFile().
+   */
+  envFiles: async (): Promise<unknown[]> => {
+    const result = await readEnvFn({ data: { path: "/opt/cortexos/.secrets/dashboard.env" } });
+    return [toEnvFileRow(result)];
+  },
 
   // ── Badges ────────────────────────────────────────────────────────────
   badges: (): Promise<unknown[]> => Promise.resolve([]),
