@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { bytes, relativeTime } from "@/lib/format";
 import { api } from "@/lib/api/client";
-import type { BackupSnapshot } from "@/lib/api/client";
+import type { BackupRunRow } from "@/lib/api/client";
 
 function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
@@ -30,39 +30,37 @@ export function BackupsPage() {
   const qc = useQueryClient();
   const { data: snaps = [] } = useQuery({ queryKey: ["backups"], queryFn: api.backups });
 
-  const totalBytes = snaps.reduce((s, x) => s + x.sizeBytes, 0);
-  const ok = snaps.filter((x) => x.status === "ok").length;
+  const totalBytes = snaps.reduce((s, x) => s + (x.sizeBytes ?? 0), 0);
+  const ok = snaps.filter((x) => x.status === "success").length;
   const newest = snaps.length
     ? snaps
-        .map((s) => s.createdAt)
+        .map((s) => s.timestamp)
         .sort()
         .reverse()[0]
     : null;
 
-  const restore = (s: BackupSnapshot) =>
+  const restore = (s: BackupRunRow) =>
     toast.success(`Restore queued for ${s.target}`, { description: "Simulated restore." });
-  const download = (s: BackupSnapshot) =>
+  const download = (s: BackupRunRow) =>
     toast.success("Download started", { description: s.target });
   const createSnap = () => {
-    const fresh: BackupSnapshot = {
+    const fresh: BackupRunRow = {
       id: `s${Date.now()}`,
       target: "tank/manual",
-      kind: "zfs",
-      createdAt: new Date().toISOString(),
+      timestamp: new Date().toISOString(),
       sizeBytes: Math.round(1_000_000_000 + Math.random() * 4_000_000_000),
-      retained: 14,
       status: "running",
     };
-    qc.setQueryData<BackupSnapshot[]>(["backups"], (p) => [fresh, ...(p ?? [])]);
+    qc.setQueryData<BackupRunRow[]>(["backups"], (p) => [fresh, ...(p ?? [])]);
     toast.success("Snapshot started", { description: fresh.target });
     setTimeout(() => {
-      qc.setQueryData<BackupSnapshot[]>(["backups"], (p) =>
-        p?.map((x) => (x.id === fresh.id ? { ...x, status: "ok" } : x)),
+      qc.setQueryData<BackupRunRow[]>(["backups"], (p) =>
+        p?.map((x) => (x.id === fresh.id ? { ...x, status: "success" } : x)),
       );
     }, 1500);
   };
 
-  const cols: Column<BackupSnapshot>[] = [
+  const cols: Column<BackupRunRow>[] = [
     {
       key: "target",
       header: "Target",
@@ -70,39 +68,28 @@ export function BackupsPage() {
       cell: (r) => <span className="font-medium">{r.target}</span>,
     },
     {
-      key: "kind",
-      header: "Kind",
-      cell: (r) => (
-        <Badge variant="outline" className="font-mono text-[10px]">
-          {r.kind}
-        </Badge>
-      ),
-    },
-    {
       key: "sizeBytes",
       header: "Size",
-      sort: (r) => r.sizeBytes,
-      cell: (r) => <span className="font-mono text-xs">{bytes(r.sizeBytes)}</span>,
-    },
-    {
-      key: "createdAt",
-      header: "Created",
-      sort: (r) => r.createdAt,
+      sort: (r) => r.sizeBytes ?? -1,
       cell: (r) => (
-        <span className="text-xs text-muted-foreground">{relativeTime(r.createdAt)}</span>
+        <span className="font-mono text-xs">{r.sizeBytes === null ? "—" : bytes(r.sizeBytes)}</span>
       ),
     },
     {
-      key: "retained",
-      header: "Retained",
-      cell: (r) => <span className="text-xs">{r.retained} kept</span>,
+      key: "timestamp",
+      header: "Created",
+      sort: (r) => r.timestamp,
+      cell: (r) => (
+        <span className="text-xs text-muted-foreground">{relativeTime(r.timestamp)}</span>
+      ),
     },
     {
       key: "status",
       header: "Status",
       cell: (r) => {
-        let statusClass = "border-destructive text-destructive";
-        if (r.status === "ok") statusClass = "border-[var(--success)] text-[var(--success)]";
+        let statusClass = "border-muted-foreground text-muted-foreground";
+        if (r.status === "success") statusClass = "border-[var(--success)] text-[var(--success)]";
+        else if (r.status === "failed") statusClass = "border-destructive text-destructive";
         else if (r.status === "running") statusClass = "border-primary text-primary";
         return (
           <Badge variant="outline" className={statusClass}>
@@ -165,7 +152,7 @@ export function BackupsPage() {
 
       <DataTable
         columns={cols}
-        initialSort="createdAt"
+        initialSort="timestamp"
         initialSortDir="desc"
         server={{ queryKey: ["backups"], fetch: api.backupsList }}
       />

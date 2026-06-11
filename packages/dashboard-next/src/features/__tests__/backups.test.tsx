@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   createMemoryHistory,
@@ -12,7 +12,7 @@ import {
 import { UIProvider } from "@/hooks/ui-provider";
 import { BackupsPage } from "@/features/Backups";
 import { api } from "@/lib/api/client";
-import type { BackupSnapshot } from "@/mocks/types";
+import type { BackupRunRow } from "@/lib/api/client";
 
 vi.mock("@/lib/api/client", () => ({
   api: {
@@ -25,33 +25,27 @@ vi.mock("@/hooks/useAuth", () => ({
   useAuth: () => ({ user: { username: "admin", is_admin: true } }),
 }));
 
-const mockBackups: BackupSnapshot[] = [
+const mockBackups: BackupRunRow[] = [
   {
     id: "2026-06-11_1200",
     target: "/mnt/nas/Work/cortex-backups-512/daily/2026-06-11_1200.tar.gz.age",
-    kind: "zfs",
-    createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+    timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
     sizeBytes: 3_179_539_601,
-    retained: 0,
-    status: "ok",
+    status: "success",
   },
   {
     id: "2026-06-11_0000",
     target: "/mnt/nas/Work/cortex-backups-512/daily/2026-06-11_0000.tar.gz.age",
-    kind: "zfs",
-    createdAt: new Date(Date.now() - 16 * 60 * 60 * 1000).toISOString(),
-    sizeBytes: 3_179_539_602,
-    retained: 0,
-    status: "ok",
+    timestamp: new Date(Date.now() - 16 * 60 * 60 * 1000).toISOString(),
+    sizeBytes: null,
+    status: "running",
   },
   {
     id: "2026-06-10_1200",
     target: "/mnt/nas/Work/cortex-backups-512/daily/2026-06-10_1200",
-    kind: "zfs",
-    createdAt: new Date(Date.now() - 28 * 60 * 60 * 1000).toISOString(),
-    sizeBytes: 0,
-    retained: 0,
-    status: "failed",
+    timestamp: new Date(Date.now() - 28 * 60 * 60 * 1000).toISOString(),
+    sizeBytes: null,
+    status: "unknown",
   },
 ];
 
@@ -112,6 +106,31 @@ describe("BackupsPage (MP-024b)", () => {
       for (const backup of mockBackups) {
         expect(screen.getAllByText(backup.status).length).toBeGreaterThanOrEqual(1);
       }
+    });
+  });
+
+  it("renders null sizeBytes as an em dash, not 0 B", async () => {
+    renderBackups();
+    const target = mockBackups.find((b) => b.sizeBytes === null)!.target;
+    await waitFor(() => {
+      expect(screen.getByText(target)).toBeInTheDocument();
+    });
+    const row = screen.getByText(target).closest("tr")!;
+    expect(within(row).getByText("—")).toBeInTheDocument();
+    expect(within(row).queryByText("0 B")).not.toBeInTheDocument();
+  });
+
+  it("renders a running indicator for running backups", async () => {
+    renderBackups();
+    await waitFor(() => {
+      expect(screen.getByText("running")).toBeInTheDocument();
+    });
+  });
+
+  it("renders an unknown status badge for unknown backups", async () => {
+    renderBackups();
+    await waitFor(() => {
+      expect(screen.getByText("unknown")).toBeInTheDocument();
     });
   });
 });

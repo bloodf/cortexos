@@ -52,11 +52,11 @@ import type {
   Project,
   Agent,
   MailReview,
-  BackupSnapshot,
   SchedulerJob,
   DriveInfo,
   MountInfo,
 } from "@/mocks/types";
+import type { BackupRunRow } from "./backups.functions";
 import type {
   Container as StubContainer,
   DockerImage as StubDockerImage,
@@ -206,7 +206,7 @@ export type {
   Project,
   Agent,
   MailReview,
-  BackupSnapshot,
+  BackupRunRow,
   SchedulerJob,
   DriveInfo,
   MountInfo,
@@ -416,7 +416,7 @@ const listSchedulerJobsFn = _listSchedulerJobs as unknown as (opts: {
 
 // MP-024b gate-middleware boundary cast — same pattern as other domains.
 interface ListBackupRunsOutput {
-  backups: BackupSnapshot[];
+  backups: BackupRunRow[];
 }
 
 const listBackupRunsFn = _listBackupRuns as unknown as (opts: {
@@ -943,10 +943,10 @@ export const api = {
 
   // ── Backups (WIRED — MP-024b) ──────────────────────────────────────────
   /**
-   * Returns all backup runs mapped to the mock BackupSnapshot shape.
+   * Returns all backup runs as fixed-row contract objects.
    * Calls listBackupRuns RPC → server/backups.listBackupRuns().
    */
-  backups: async (): Promise<BackupSnapshot[]> => {
+  backups: async (): Promise<BackupRunRow[]> => {
     const { backups } = await listBackupRunsFn({ data: {} });
     return backups;
   },
@@ -954,22 +954,19 @@ export const api = {
   /**
    * Paginated backup runs list (WIRED — MP-024b).
    */
-  backupsList: async (p?: ListParams): Promise<ListResult<BackupSnapshot>> => {
+  backupsList: async (p?: ListParams): Promise<ListResult<BackupRunRow>> => {
     const { backups } = await listBackupRunsFn({ data: {} });
     const q = (p?.q ?? "").trim().toLowerCase();
     const filtered = q
       ? backups.filter(
-          (b) =>
-            b.target.toLowerCase().includes(q) ||
-            b.kind.toLowerCase().includes(q) ||
-            b.status.toLowerCase().includes(q),
+          (b) => b.target.toLowerCase().includes(q) || b.status.toLowerCase().includes(q),
         )
       : backups;
 
     const sortKey = p?.sortKey;
     const sortDir = p?.sortDir ?? "asc";
-    const getSortValue: Record<string, (b: BackupSnapshot) => string | number> = {
-      createdAt: (b) => b.createdAt,
+    const getSortValue: Record<string, (b: BackupRunRow) => string | number | null> = {
+      timestamp: (b) => b.timestamp,
       target: (b) => b.target,
       sizeBytes: (b) => b.sizeBytes,
       status: (b) => b.status,
@@ -980,13 +977,15 @@ export const api = {
         const av = accessor(a);
         const bv = accessor(b);
         if (av === bv) return 0;
+        if (av === null) return sortDir === "desc" ? 1 : -1;
+        if (bv === null) return sortDir === "desc" ? -1 : 1;
         const d = av > bv ? 1 : -1;
         return sortDir === "desc" ? -d : d;
       });
-      return clientSideList<BackupSnapshot>(sorted, p);
+      return clientSideList<BackupRunRow>(sorted, p);
     }
 
-    return clientSideList<BackupSnapshot>(filtered, p);
+    return clientSideList<BackupRunRow>(filtered, p);
   },
 
   // ── Scheduler (WIRED — MP-024a) ───────────────────────────────────────
