@@ -607,3 +607,23 @@ adjudicated:
   import-x/no-useless-path-segments conflicting with the MP-016
   js:'always' override (needs noUselessIndex compatibility). Same
   config-correctness class as MP-016.
+
+## 2026-06-11 — Wave B review adjudications
+gpt-5.5 REJECT, two findings:
+- [BLOCKER] chain.test.js pIdx off-by-one (params[pIdx++] →
+  params[(pIdx += 1)] skips params[0]) → CONFIRMED REAL by orchestrator
+  inspection (:117-124; the 12/12 pass means the branch is uncovered,
+  not correct). FIX queued behind Wave C (serialized worker lane);
+  correct transform: read at pIdx, then pIdx += 1.
+- [MAJOR] telemetry test hooks renamed (__resetForTests → resetForTests)
+  instead of escalated → ADJUDICATED ACCEPT: zero consumers outside
+  cortex-telemetry (orchestrator grep), package tests updated and green
+  11/11; strategy violation noted to the implementer pattern, outcome
+  safe.
+
+## 2026-06-11 — Wave C (mail-guardian, 2c860e5) + adjudications
+66 fixed, 28 escalations ADJUDICATED ACCEPT — all plan-enumerated
+idiomatic classes (sequential-by-design IMAP/event/polling loops with
+explicit rationale; config-loader/module-level env reads; CLI
+process.exit; dns.lookup callback API required by tls.connect's lookup
+option). Repo lint total 1,056 → 957.
