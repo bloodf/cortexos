@@ -509,7 +509,7 @@ describe("actionHashFor", () => {
 
   it("produces different hashes for different instances", () => {
     const h1 = actionHashFor("incus.stop", { name: "hermes-canary" });
-    const h2 = actionHashFor("incus.stop", { name: "paperclip-relay" });
+    const h2 = actionHashFor("incus.stop", { name: "archive-cold" });
     expect(h1).not.toBe(h2);
   });
 });

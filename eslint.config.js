@@ -24,7 +24,6 @@
 //   packages/cortex-audit/**        → strict, node + base
 //   packages/cortex-mail-guardian/**→ strict, node + base
 //   packages/cortex-telemetry/**    → strict, node + base
-//   packages/paperclip-adapter/**   → strict, node + base
 //   packages/contracts/**           → strictest (zero-tolerance, no console)
 //   packages/design-tokens/**       → strictest
 //   packages/dashboard-next/**      → react-aware (React 19 + TanStack Start)
@@ -267,7 +266,7 @@ export default [
 
   // 7) Per-package overrides — stricter for libs, looser for tests/migrations
   // 7a) Workspace-internal libs (contracts, design-tokens, audit, mail-guardian,
-  //     telemetry, paperclip-adapter): zero-tolerance, no console, no any, no process.exit
+  //     telemetry): zero-tolerance, no console, no any, no process.exit
   {
     files: [
       'packages/contracts/**/*.{js,ts}',
@@ -275,7 +274,6 @@ export default [
       'packages/cortex-audit/**/*.{js,ts}',
       'packages/cortex-mail-guardian/**/*.{js,ts}',
       'packages/cortex-telemetry/**/*.{js,ts}',
-      'packages/paperclip-adapter/**/*.{js,ts}',
     ],
     languageOptions: {
       sourceType: 'module',

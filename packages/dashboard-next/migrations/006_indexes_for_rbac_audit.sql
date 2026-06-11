@@ -35,7 +35,7 @@
 --
 --   4. idx_audit_log_source
 --      On (audit_log.source, occurred_at DESC)
---      Supports "show me everything from source=paperclip" style
+--      Supports "show me everything from source=gateway" style
 --      queries in the audit viewer.
 --
 -- Idempotency: every CREATE uses IF NOT EXISTS; safe to re-apply.
