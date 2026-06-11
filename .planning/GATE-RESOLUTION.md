@@ -991,3 +991,16 @@ findings:
 - [MAJOR] migrate.test.ts outside ownership → ACCEPT as required
   fallout: the test pins the migration list; adding 012 forces the
   update (ownership should have listed it; noted).
+
+## 2026-06-11 — MP-023 plan (3 cycles, dispositions applied under /loop standing authorization)
+Artifacts: `harness/artifacts/critic-plan-MP-023-healthcheck-split.md-{1,2,3}.md`.
+Cycle 1 FIXED (binary gates w/ exact commands; ownership; out-of-scope;
+TDD RED-first; scope aligned to apps subset). Cycle 2 FIXED (deep-link
+binary assertion; conditional repo change TDD'd; exact repo/test files
+named). Cycle 3 dispositions, all FIXED:
+- [BLOCKER] RED-test pass-point impossible before timeline wiring →
+  split green checkpoints: (a)(b)(d) pass after Task 1, (c) after Task 2.
+- [MAJOR] client.ts:725-727 vs recon's "not yet found" → cite corrected:
+  orchestrator-verified by direct grep (supersedes the recon gap).
+- [MAJOR] format:check command spelled out.
+No overrules. Implementer kimi; gpt-5.5 diff review before push.
