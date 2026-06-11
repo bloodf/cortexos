@@ -165,7 +165,9 @@ export function SystemdPage() {
                 size="sm"
                 variant="ghost"
                 disabled={!isAdmin || isActing}
-                onClick={() => { handleAction("start", r).catch(() => {}); }}
+                onClick={() => {
+                  handleAction("start", r).catch(() => {});
+                }}
                 title="Start"
               >
                 {pendingAction === startKey ? (
@@ -179,7 +181,9 @@ export function SystemdPage() {
                 size="sm"
                 variant="ghost"
                 disabled={!isAdmin || isActing}
-                onClick={() => { handleAction("stop", r).catch(() => {}); }}
+                onClick={() => {
+                  handleAction("stop", r).catch(() => {});
+                }}
                 title="Stop"
               >
                 {pendingAction === stopKey ? (
@@ -193,7 +197,9 @@ export function SystemdPage() {
               size="sm"
               variant="ghost"
               disabled={!isAdmin || isActing}
-              onClick={() => { handleAction("restart", r).catch(() => {}); }}
+              onClick={() => {
+                handleAction("restart", r).catch(() => {});
+              }}
               title="Restart"
             >
               {pendingAction === restartKey ? (

@@ -289,7 +289,7 @@ export class InMemorySessionStore implements SessionStore {
         return { id: u.id, username: u.username };
       }
     }
-    const {nextUserId} = this;
+    const { nextUserId } = this;
     this.nextUserId += 1;
     const u: MemUserRow = {
       id: nextUserId,
@@ -311,7 +311,7 @@ export class InMemorySessionStore implements SessionStore {
     const now = Date.now();
     const ttl = input.ttlMs ?? DEFAULT_SESSION_TTL_MS;
     const token = generateSessionToken();
-    const {nextSessionId} = this;
+    const { nextSessionId } = this;
     this.nextSessionId += 1;
     const row: MemSessionRow = {
       id: nextSessionId,

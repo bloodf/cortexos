@@ -249,24 +249,17 @@ export function installDefaultAllowlist(): void {
   });
 
   // systemd (§4.4.2)
-  [
-    "start",
-    "stop",
-    "restart",
-    "reload",
-    "status",
-    "enable",
-    "disable",
-    "list-units",
-  ].forEach((action) => {
-    addAllowlisted({
-      name: `systemd.${action}`,
-      surface: "systemd",
-      argv: ["/usr/bin/systemctl", action, "<unit>"],
-      requiresApproval: ["restart", "stop"].includes(action),
-      description: `systemd ${action} on an allowlisted unit.`,
-    });
-  });
+  ["start", "stop", "restart", "reload", "status", "enable", "disable", "list-units"].forEach(
+    (action) => {
+      addAllowlisted({
+        name: `systemd.${action}`,
+        surface: "systemd",
+        argv: ["/usr/bin/systemctl", action, "<unit>"],
+        requiresApproval: ["restart", "stop"].includes(action),
+        description: `systemd ${action} on an allowlisted unit.`,
+      });
+    },
+  );
 
   // Docker (§4.4.3)
   ["start", "stop", "restart", "rm", "logs", "inspect", "list"].forEach((action) => {

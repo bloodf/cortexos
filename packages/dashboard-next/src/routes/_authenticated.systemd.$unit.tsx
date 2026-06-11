@@ -160,7 +160,13 @@ function SystemdDetail() {
         title="Failed to load logs"
         description="Could not read journal for this unit."
         action={
-          <Button size="sm" variant="outline" onClick={() => { refetchLogs().catch(() => {}); }}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              refetchLogs().catch(() => {});
+            }}
+          >
             Retry
           </Button>
         }
@@ -173,7 +179,13 @@ function SystemdDetail() {
           <span className="text-xs text-muted-foreground tabular-nums">
             {logsData?.count ?? 0} lines
           </span>
-          <Button size="sm" variant="outline" onClick={() => { refetchLogs().catch(() => {}); }}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              refetchLogs().catch(() => {});
+            }}
+          >
             Refresh
           </Button>
         </div>
@@ -211,7 +223,9 @@ function SystemdDetail() {
                 size="sm"
                 variant="outline"
                 disabled={acting}
-                onClick={() => { handleAction("start").catch(() => {}); }}
+                onClick={() => {
+                  handleAction("start").catch(() => {});
+                }}
               >
                 {pendingAction === "start" ? (
                   <Loader2 className="size-3.5 mr-1 animate-spin" />
@@ -226,7 +240,9 @@ function SystemdDetail() {
                 size="sm"
                 variant="outline"
                 disabled={acting}
-                onClick={() => { handleAction("stop").catch(() => {}); }}
+                onClick={() => {
+                  handleAction("stop").catch(() => {});
+                }}
               >
                 {pendingAction === "stop" ? (
                   <Loader2 className="size-3.5 mr-1 animate-spin" />
@@ -241,7 +257,9 @@ function SystemdDetail() {
                 size="sm"
                 variant="outline"
                 disabled={acting}
-                onClick={() => { handleAction("restart").catch(() => {}); }}
+                onClick={() => {
+                  handleAction("restart").catch(() => {});
+                }}
               >
                 {pendingAction === "restart" ? (
                   <Loader2 className="size-3.5 mr-1 animate-spin" />

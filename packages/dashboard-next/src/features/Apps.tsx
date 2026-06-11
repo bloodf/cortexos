@@ -154,7 +154,8 @@ export default function AppsPage() {
           s.slug.includes(ql) ||
           s.description?.toLowerCase().includes(ql)
         )
-      ) return false;
+      )
+        return false;
       return true;
     });
   }, [services, q, cat, statusFilter]);
@@ -241,29 +242,27 @@ export default function AppsPage() {
           );
         }
         if (filtered.length === 0) {
-          return (
-            <EmptyState title="No apps match" description="Try clearing filters." />
-          );
+          return <EmptyState title="No apps match" description="Try clearing filters." />;
         }
         return (
-        <div className="space-y-6">
-          {favs.length > 0 && (
-            <section>
-              <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
-                Favorites
-              </p>
-              <ServiceList items={favs} view={view} isFavorite={isFavorite} onToggle={toggle} />
-            </section>
-          )}
-          <section>
+          <div className="space-y-6">
             {favs.length > 0 && (
-              <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
-                All apps
-              </p>
+              <section>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
+                  Favorites
+                </p>
+                <ServiceList items={favs} view={view} isFavorite={isFavorite} onToggle={toggle} />
+              </section>
             )}
-            <ServiceList items={rest} view={view} isFavorite={isFavorite} onToggle={toggle} />
-          </section>
-        </div>
+            <section>
+              {favs.length > 0 && (
+                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
+                  All apps
+                </p>
+              )}
+              <ServiceList items={rest} view={view} isFavorite={isFavorite} onToggle={toggle} />
+            </section>
+          </div>
         );
       })()}
     </div>

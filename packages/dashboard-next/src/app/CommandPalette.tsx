@@ -159,9 +159,11 @@ export function CommandPalette({ open, onOpenChange, onOpenHelp }: Props) {
       label: "Sign out",
       icon: LogOut,
       run: () => {
-        logout().finally(() => {
-          window.location.href = "/login";
-        }).catch(() => {});
+        logout()
+          .finally(() => {
+            window.location.href = "/login";
+          })
+          .catch(() => {});
       },
     },
   ];

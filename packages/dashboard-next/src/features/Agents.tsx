@@ -320,178 +320,182 @@ export default function AgentsPage() {
                 icon={<Bot className="size-8" />}
                 title="No agents match"
                 description={
-              agents.length === 0
-                ? "No Hermes agents are registered yet."
-                : "Try clearing your filters."
-            }
-            action={
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setQ("");
-                  setStateFilter("all");
-                }}
-              >
-                Clear filters
-              </Button>
-            }
-          />
-        </Card>
-        ); }
+                  agents.length === 0
+                    ? "No Hermes agents are registered yet."
+                    : "Try clearing your filters."
+                }
+                action={
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setQ("");
+                      setStateFilter("all");
+                    }}
+                  >
+                    Clear filters
+                  </Button>
+                }
+              />
+            </Card>
+          );
+        }
         return (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((a) => (
-            <Card
-              key={a.slug}
-              className="elev-1 p-4 flex flex-col gap-3 group hover:border-primary/40 transition-colors"
-            >
-              <div className="flex items-start gap-3">
-                <div className="relative shrink-0">
-                  <div className="size-10 rounded-md bg-primary/10 text-primary grid place-items-center">
-                    <Bot className="size-5" />
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {filtered.map((a) => (
+              <Card
+                key={a.slug}
+                className="elev-1 p-4 flex flex-col gap-3 group hover:border-primary/40 transition-colors"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="relative shrink-0">
+                    <div className="size-10 rounded-md bg-primary/10 text-primary grid place-items-center">
+                      <Bot className="size-5" />
+                    </div>
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "absolute -bottom-0.5 -right-0.5 size-3 rounded-full ring-2 ring-background",
+                        STATE_TONE[a.state],
+                        a.state === "running" && "animate-pulse motion-reduce:animate-none",
+                      )}
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold truncate">{a.name}</h3>
+                      <span className="text-[10px] text-muted-foreground font-mono truncate">
+                        {a.slug}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                      {a.description}
+                    </p>
                   </div>
                   <span
-                    aria-hidden
                     className={cn(
-                      "absolute -bottom-0.5 -right-0.5 size-3 rounded-full ring-2 ring-background",
-                      STATE_TONE[a.state],
-                      a.state === "running" && "animate-pulse motion-reduce:animate-none",
+                      "text-[10px] uppercase tracking-wide rounded-full border px-2 py-0.5 shrink-0",
+                      HEALTH_TONE[a.health],
                     )}
-                  />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-semibold truncate">{a.name}</h3>
-                    <span className="text-[10px] text-muted-foreground font-mono truncate">
-                      {a.slug}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
-                    {a.description}
-                  </p>
-                </div>
-                <span
-                  className={cn(
-                    "text-[10px] uppercase tracking-wide rounded-full border px-2 py-0.5 shrink-0",
-                    HEALTH_TONE[a.health],
-                  )}
-                >
-                  {HEALTH_LABEL[a.health]}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <Cell
-                  label="Model"
-                  value={
-                    <span className="font-mono truncate block" title={a.model}>
-                      {a.model}
-                    </span>
-                  }
-                />
-                <Cell
-                  label="Provider"
-                  value={<span className="capitalize">{a.modelProvider}</span>}
-                />
-                <Cell label="Uptime" value={formatUptime(a.uptimeSec)} />
-                <Cell label="Queue" value={<span className="tabular-nums">{a.queueDepth}</span>} />
-                <Cell
-                  label="Req/min"
-                  value={<span className="tabular-nums">{a.requestsPerMin}</span>}
-                />
-                <Cell
-                  label="Error rate"
-                  value={
-                    <span className={cn("tabular-nums", errorRateClass(a.errorRatePct))}>
-                      {a.errorRatePct.toFixed(1)}%
-                    </span>
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
-                <span className="flex items-center gap-1.5">
-                  <Activity className="size-3" /> p95 {a.p95LatencyMs}ms
-                </span>
-                <span>
-                  v{a.version} · {relativeTime(a.lastActivity)}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-1 pt-1 border-t -mx-4 -mb-4 px-3 py-2 bg-muted/20 rounded-b-lg">
-                <Button asChild size="sm" variant="ghost" className="h-7 text-xs">
-                  <a href={a.hermesUrl} target="_blank" rel="noreferrer">
-                    <ExternalLink className="size-3.5 mr-1" /> Hermes UI
-                  </a>
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 text-xs"
-                  onClick={() => setInspect(a)}
-                >
-                  <FileText className="size-3.5 mr-1" /> Inspect
-                </Button>
-                <div className="flex-1" />
-                {a.state === "running" || a.state === "idle" ? (
-                  <>
-                    <Button
-                      size="icon"
-                      variant="outline-warning"
-                      className="size-7"
-                      title="Restart"
-                      onClick={() => handleAction("Restart", a)}
-                    >
-                      <RotateCw className="size-3.5" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      className="size-7"
-                      title="Pause"
-                      onClick={() => handleAction("Pause", a)}
-                    >
-                      <Pause className="size-3.5" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="outline-destructive"
-                      className="size-7"
-                      title="Stop"
-                      onClick={() => handleAction("Stop", a)}
-                    >
-                      <Power className="size-3.5" />
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    size="icon"
-                    variant="outline-success"
-                    className="size-7"
-                    title="Start"
-                    onClick={() => handleAction("Start", a)}
                   >
-                    <PlayCircle className="size-3.5" />
-                  </Button>
-                )}
-              </div>
-
-              {a.state === "error" && (
-                <div className="flex items-start gap-2 rounded-md border border-[var(--destructive)]/30 bg-[var(--destructive)]/5 px-2.5 py-1.5 text-[11px] text-[var(--destructive)]">
-                  <AlertTriangle className="size-3.5 mt-0.5 shrink-0" />
-                  <span>
-                    Agent crashed — check{" "}
-                    <Link to="/audit" className="underline">
-                      audit log
-                    </Link>{" "}
-                    for details.
+                    {HEALTH_LABEL[a.health]}
                   </span>
                 </div>
-              )}
-            </Card>
-          ))}
-        </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <Cell
+                    label="Model"
+                    value={
+                      <span className="font-mono truncate block" title={a.model}>
+                        {a.model}
+                      </span>
+                    }
+                  />
+                  <Cell
+                    label="Provider"
+                    value={<span className="capitalize">{a.modelProvider}</span>}
+                  />
+                  <Cell label="Uptime" value={formatUptime(a.uptimeSec)} />
+                  <Cell
+                    label="Queue"
+                    value={<span className="tabular-nums">{a.queueDepth}</span>}
+                  />
+                  <Cell
+                    label="Req/min"
+                    value={<span className="tabular-nums">{a.requestsPerMin}</span>}
+                  />
+                  <Cell
+                    label="Error rate"
+                    value={
+                      <span className={cn("tabular-nums", errorRateClass(a.errorRatePct))}>
+                        {a.errorRatePct.toFixed(1)}%
+                      </span>
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <Activity className="size-3" /> p95 {a.p95LatencyMs}ms
+                  </span>
+                  <span>
+                    v{a.version} · {relativeTime(a.lastActivity)}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1 pt-1 border-t -mx-4 -mb-4 px-3 py-2 bg-muted/20 rounded-b-lg">
+                  <Button asChild size="sm" variant="ghost" className="h-7 text-xs">
+                    <a href={a.hermesUrl} target="_blank" rel="noreferrer">
+                      <ExternalLink className="size-3.5 mr-1" /> Hermes UI
+                    </a>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-xs"
+                    onClick={() => setInspect(a)}
+                  >
+                    <FileText className="size-3.5 mr-1" /> Inspect
+                  </Button>
+                  <div className="flex-1" />
+                  {a.state === "running" || a.state === "idle" ? (
+                    <>
+                      <Button
+                        size="icon"
+                        variant="outline-warning"
+                        className="size-7"
+                        title="Restart"
+                        onClick={() => handleAction("Restart", a)}
+                      >
+                        <RotateCw className="size-3.5" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="size-7"
+                        title="Pause"
+                        onClick={() => handleAction("Pause", a)}
+                      >
+                        <Pause className="size-3.5" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="outline-destructive"
+                        className="size-7"
+                        title="Stop"
+                        onClick={() => handleAction("Stop", a)}
+                      >
+                        <Power className="size-3.5" />
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      size="icon"
+                      variant="outline-success"
+                      className="size-7"
+                      title="Start"
+                      onClick={() => handleAction("Start", a)}
+                    >
+                      <PlayCircle className="size-3.5" />
+                    </Button>
+                  )}
+                </div>
+
+                {a.state === "error" && (
+                  <div className="flex items-start gap-2 rounded-md border border-[var(--destructive)]/30 bg-[var(--destructive)]/5 px-2.5 py-1.5 text-[11px] text-[var(--destructive)]">
+                    <AlertTriangle className="size-3.5 mt-0.5 shrink-0" />
+                    <span>
+                      Agent crashed — check{" "}
+                      <Link to="/audit" className="underline">
+                        audit log
+                      </Link>{" "}
+                      for details.
+                    </span>
+                  </div>
+                )}
+              </Card>
+            ))}
+          </div>
         );
       })()}
 

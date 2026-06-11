@@ -241,10 +241,7 @@ export default function IncusPage() {
   const t = useT();
   const qc = useQueryClient();
   const { user } = useAuth();
-  const {
-    isLoading,
-    isError,
-  } = useQuery({
+  const { isLoading, isError } = useQuery({
     queryKey: ["incus"],
     queryFn: api.incus,
     refetchInterval: 15_000,

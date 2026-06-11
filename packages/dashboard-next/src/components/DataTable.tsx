@@ -237,10 +237,7 @@ export function DataTable<T>({
           else if (ci === columns.length - 1) widthClass = "w-1/3";
           else widthClass = "w-2/3";
           return (
-            <td
-              key={c.key}
-              className={cn("px-3", density === "compact" ? "py-2" : "py-3")}
-            >
+            <td key={c.key} className={cn("px-3", density === "compact" ? "py-2" : "py-3")}>
               <div
                 className={cn(
                   "h-3 rounded bg-muted/70 animate-pulse motion-reduce:animate-none",
@@ -270,10 +267,7 @@ export function DataTable<T>({
       return (
         <tr
           key={id}
-          className={cn(
-            "border-b last:border-0 hover:bg-muted/30",
-            isSel && "bg-primary/5",
-          )}
+          className={cn("border-b last:border-0 hover:bg-muted/30", isSel && "bg-primary/5")}
           onContextMenu={onRowContextMenu ? (e) => onRowContextMenu(row, e) : undefined}
         >
           {selectable && (
@@ -288,11 +282,7 @@ export function DataTable<T>({
           {columns.map((c) => (
             <td
               key={c.key}
-              className={cn(
-                "px-3",
-                density === "compact" ? "py-1.5" : "py-2.5",
-                c.className,
-              )}
+              className={cn("px-3", density === "compact" ? "py-1.5" : "py-2.5", c.className)}
             >
               {c.cell(row)}
             </td>

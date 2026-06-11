@@ -373,7 +373,9 @@ function ReviewsPane() {
               <Button
                 variant="success"
                 disabled={!isAdmin || acting === `approve-${active.id}`}
-                onClick={() => { handleApprove(active.id).catch(() => {}); }}
+                onClick={() => {
+                  handleApprove(active.id).catch(() => {});
+                }}
               >
                 {acting === `approve-${active.id}` ? (
                   <Loader2 className="size-4 mr-1.5 animate-spin" />
@@ -385,7 +387,9 @@ function ReviewsPane() {
               <Button
                 variant="destructive"
                 disabled={!isAdmin || acting === `flag-${active.id}`}
-                onClick={() => { handleFlag(active.id).catch(() => {}); }}
+                onClick={() => {
+                  handleFlag(active.id).catch(() => {});
+                }}
               >
                 {acting === `flag-${active.id}` ? (
                   <Loader2 className="size-4 mr-1.5 animate-spin" />
@@ -518,7 +522,12 @@ function AccountDialog({ open, onOpenChange, editing, onSaved }: AccountDialogPr
             {editing ? `Edit account "${editing.slug}"` : "Add IMAP account"}
           </DialogTitle>
         </DialogHeader>
-        <form onSubmit={(e) => { handleSubmit(e).catch(() => {}); }} className="space-y-3">
+        <form
+          onSubmit={(e) => {
+            handleSubmit(e).catch(() => {});
+          }}
+          className="space-y-3"
+        >
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label htmlFor="acct-slug">Slug</Label>
@@ -733,7 +742,9 @@ function AccountsPane() {
           if (!o) setEditing(null);
         }}
         editing={editing}
-        onSaved={() => { invalidate().catch(() => {}); }}
+        onSaved={() => {
+          invalidate().catch(() => {});
+        }}
       />
 
       <div className="space-y-3">
@@ -829,7 +840,9 @@ function AccountsPane() {
                       destructive
                       requireText={a.slug}
                       confirmLabel="Delete"
-                      onConfirm={() => { handleDelete(a.slug).catch(() => {}); }}
+                      onConfirm={() => {
+                        handleDelete(a.slug).catch(() => {});
+                      }}
                     />
                   </div>
                 )}

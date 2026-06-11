@@ -280,9 +280,11 @@ export function TopBar({
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() => {
-              logout().finally(() => {
-                window.location.href = "/login";
-              }).catch(() => {});
+              logout()
+                .finally(() => {
+                  window.location.href = "/login";
+                })
+                .catch(() => {});
             }}
             className="gap-2 text-destructive focus:text-destructive"
           >

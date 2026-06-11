@@ -276,17 +276,20 @@ export function AlertsW() {
           if (a.status === "fired") variant = "destructive";
           else if (a.status === "resolved") variant = "default";
           return (
-            <div key={a.id} className="flex items-start gap-2 border-b last:border-0 pb-2 last:pb-0">
+            <div
+              key={a.id}
+              className="flex items-start gap-2 border-b last:border-0 pb-2 last:pb-0"
+            >
               <Badge variant={variant} className="text-[10px] uppercase">
                 {a.status}
               </Badge>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-medium">{a.ruleName}</p>
-              <p className="text-[10px] text-muted-foreground">{relativeTime(a.timestamp)}</p>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-medium">{a.ruleName}</p>
+                <p className="text-[10px] text-muted-foreground">{relativeTime(a.timestamp)}</p>
+              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
       </div>
     </WidgetShell>
   );

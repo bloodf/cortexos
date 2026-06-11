@@ -122,10 +122,7 @@ export function AdminEnvPage() {
         </div>
         <div className="space-y-2">
           {data.entries.map((entry) => (
-            <div
-              key={entry.key}
-              className="grid grid-cols-[200px_1fr_auto] gap-2 items-center"
-            >
+            <div key={entry.key} className="grid grid-cols-[200px_1fr_auto] gap-2 items-center">
               <code className="text-xs font-semibold">{entry.key}</code>
               <Input value={entry.value} readOnly className="h-8 font-mono text-xs" />
               <div className="flex gap-1">
@@ -234,7 +231,13 @@ export function AdminEnvPage() {
             >
               Cancel
             </Button>
-            <Button size="sm" onClick={() => { doUnlock().catch(() => {}); }} disabled={!password || unlocking}>
+            <Button
+              size="sm"
+              onClick={() => {
+                doUnlock().catch(() => {});
+              }}
+              disabled={!password || unlocking}
+            >
               {unlocking ? "Verifying…" : "Unlock"}
             </Button>
           </DialogFooter>

@@ -81,49 +81,52 @@ async function loadContainersJson(): Promise<Container[]> {
     maxBuffer: 4 * 1024 * 1024,
   });
 
-  const out = stdout.trim().split("\n").reduce<Container[]>((acc, line) => {
-    if (!line.trim()) return acc;
-    let raw: DockerPsJson;
-    try {
-      raw = JSON.parse(line);
-    } catch {
-      return acc;
-    }
-    const id = raw.ID || raw.Id || "";
-    const names = (raw.Names || "").split(",").filter(Boolean);
-    const name = names[0] || id.slice(0, 12) || "unknown";
-    const networks = (raw.Networks || "").split(",").filter(Boolean);
-    const mounts: Container["mounts"] = (raw.Mounts || "")
-      .split(",")
-      .map((m) => {
-        const parts = m.split(":");
-        if (parts.length < 2) return null;
-        return {
-          source: parts[0],
-          destination: parts[1],
-          mode: parts[2] || "rw",
-        };
-      })
-      .filter(Boolean) as Container["mounts"];
+  const out = stdout
+    .trim()
+    .split("\n")
+    .reduce<Container[]>((acc, line) => {
+      if (!line.trim()) return acc;
+      let raw: DockerPsJson;
+      try {
+        raw = JSON.parse(line);
+      } catch {
+        return acc;
+      }
+      const id = raw.ID || raw.Id || "";
+      const names = (raw.Names || "").split(",").filter(Boolean);
+      const name = names[0] || id.slice(0, 12) || "unknown";
+      const networks = (raw.Networks || "").split(",").filter(Boolean);
+      const mounts: Container["mounts"] = (raw.Mounts || "")
+        .split(",")
+        .map((m) => {
+          const parts = m.split(":");
+          if (parts.length < 2) return null;
+          return {
+            source: parts[0],
+            destination: parts[1],
+            mode: parts[2] || "rw",
+          };
+        })
+        .filter(Boolean) as Container["mounts"];
 
-    acc.push({
-      id: asContainerId(id),
-      name,
-      image: raw.Image || "",
-      state: mapState(raw.State || ""),
-      status: raw.Status || raw.State || "",
-      ports: (raw.Ports || "")
-        .split(", ")
-        .map((p) => p.trim())
-        .filter(Boolean),
-      created: parseDockerDate(raw.CreatedAt || ""),
-      privileged: false,
-      networks,
-      mounts,
-      logs: [],
-    });
-    return acc;
-  }, []);
+      acc.push({
+        id: asContainerId(id),
+        name,
+        image: raw.Image || "",
+        state: mapState(raw.State || ""),
+        status: raw.Status || raw.State || "",
+        ports: (raw.Ports || "")
+          .split(", ")
+          .map((p) => p.trim())
+          .filter(Boolean),
+        created: parseDockerDate(raw.CreatedAt || ""),
+        privileged: false,
+        networks,
+        mounts,
+        logs: [],
+      });
+      return acc;
+    }, []);
   return out;
 }
 
@@ -301,29 +304,32 @@ async function loadImagesJson(): Promise<DockerImage[]> {
   // is already the default from docker image ls).
   const out: DockerImage[] = [];
   const seen = new Set<string>();
-  stdout.trim().split("\n").forEach((line) => {
-    if (!line.trim()) return;
-    let raw: DockerImageJson;
-    try {
-      raw = JSON.parse(line);
-    } catch {
-      return;
-    }
-    const repo = raw.Repository || "";
-    const tag = raw.Tag || "";
-    // Drop dangling images — these have no meaningful reference.
-    if (!repo || repo === "<none>" || !tag || tag === "<none>") return;
-    const key = `${repo}:${tag}`;
-    if (seen.has(key)) return;
-    seen.add(key);
-    out.push({
-      id: raw.ID || "",
-      repo,
-      tag,
-      size: parseImageSize(raw.Size || "0B"),
-      created: parseDockerDate(raw.CreatedAt || ""),
+  stdout
+    .trim()
+    .split("\n")
+    .forEach((line) => {
+      if (!line.trim()) return;
+      let raw: DockerImageJson;
+      try {
+        raw = JSON.parse(line);
+      } catch {
+        return;
+      }
+      const repo = raw.Repository || "";
+      const tag = raw.Tag || "";
+      // Drop dangling images — these have no meaningful reference.
+      if (!repo || repo === "<none>" || !tag || tag === "<none>") return;
+      const key = `${repo}:${tag}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push({
+        id: raw.ID || "",
+        repo,
+        tag,
+        size: parseImageSize(raw.Size || "0B"),
+        created: parseDockerDate(raw.CreatedAt || ""),
+      });
     });
-  });
   return out;
 }
 
@@ -381,25 +387,28 @@ async function loadVolumesJson(): Promise<DockerVolume[]> {
   });
 
   const out: DockerVolume[] = [];
-  stdout.trim().split("\n").forEach((line) => {
-    if (!line.trim()) return;
-    let raw: DockerVolumeJson;
-    try {
-      raw = JSON.parse(line);
-    } catch {
-      return;
-    }
-    const sizeRaw = raw.Size || "";
-    const sizeNum = sizeRaw ? parseImageSize(sizeRaw) : null;
-    out.push({
-      name: raw.Name || "",
-      driver: raw.Driver || "local",
-      mountpoint: raw.Mountpoint || "",
-      size: sizeNum,
-      createdAt: raw.CreatedAt ? parseDockerDate(raw.CreatedAt) : null,
-      labels: parseVolumeLabels(raw.Labels || ""),
+  stdout
+    .trim()
+    .split("\n")
+    .forEach((line) => {
+      if (!line.trim()) return;
+      let raw: DockerVolumeJson;
+      try {
+        raw = JSON.parse(line);
+      } catch {
+        return;
+      }
+      const sizeRaw = raw.Size || "";
+      const sizeNum = sizeRaw ? parseImageSize(sizeRaw) : null;
+      out.push({
+        name: raw.Name || "",
+        driver: raw.Driver || "local",
+        mountpoint: raw.Mountpoint || "",
+        size: sizeNum,
+        createdAt: raw.CreatedAt ? parseDockerDate(raw.CreatedAt) : null,
+        labels: parseVolumeLabels(raw.Labels || ""),
+      });
     });
-  });
   return out;
 }
 

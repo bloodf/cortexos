@@ -57,7 +57,9 @@ function applySetCookie(serialized: string): void {
   setCookie(name, value, options);
 }
 
-export default async function runServerFnGate<TIn, TOut>(opts: RouteOptions<TIn, TOut>): Promise<TOut> {
+export default async function runServerFnGate<TIn, TOut>(
+  opts: RouteOptions<TIn, TOut>,
+): Promise<TOut> {
   const request = getRequest();
 
   const core = defineApiRoute<TIn, TOut>(opts);
