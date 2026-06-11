@@ -786,3 +786,13 @@ underscore test hooks, camelcase DB fixtures — same classes, now VISIBLE
 instead of suppressed). tsc 0; suite 558/558. Lesson encoded: checkpoint
 commits get content inspection (diff scan for suppressions), not just
 gate verification.
+
+## 2026-06-11 — closing review dispositions; RELEASE FINAL
+Combined review of f9f40cc/c75be1c/56a8718/ee54700: REJECT with one
+BLOCKER → FALSE: the 12 restored only-throw-error disables netted to
+zero diff (the sweep that removed them was uncommitted; restoration =
+revert of tree state, invisible in commit diffs). Orchestrator evidence:
+live grep finds exactly 12 across 10 files (routes + server-fn-runner).
+[MINOR] formatting-only churn in f9f40cc (contracts/audit import
+collapses) → ACCEPT (gates green, prettier-conformant). Final build
+deployed: build rc=0, boot 200, service active, live 200.
