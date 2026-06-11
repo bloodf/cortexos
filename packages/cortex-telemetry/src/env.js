@@ -46,12 +46,21 @@ export function withEnv(overrides, fn) {
     if (v === undefined) delete process.env[k];
     else process.env[k] = v;
   });
-  try {
-    return fn();
-  } finally {
+  const restore = () => {
     keys.forEach((k) => {
       if (saved[k] === undefined) delete process.env[k];
       else process.env[k] = saved[k];
     });
+  };
+  try {
+    const result = fn();
+    if (result && typeof result.then === 'function') {
+      return result.finally(restore);
+    }
+    restore();
+    return result;
+  } catch (err) {
+    restore();
+    throw err;
   }
 }

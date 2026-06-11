@@ -9,40 +9,59 @@ const configuredServers = getMailGuardianDnsServers()
   .filter(Boolean);
 if (configuredServers.length > 0) resolver.setServers(configuredServers);
 
-const lookupWithFallback: LookupFunction = (
+const lookupWithFallback = ((
   hostname: string,
-  options: dns.LookupOptions,
+  options:
+    | dns.LookupOptions
+    | ((
+        err: NodeJS.ErrnoException | null,
+        address: string | dns.LookupAddress[],
+        family?: number,
+      ) => void),
   callback: (
     err: NodeJS.ErrnoException | null,
     address: string | dns.LookupAddress[],
     family?: number,
   ) => void,
 ): void => {
+  let opts: dns.LookupOptions;
+  let cb: (
+    err: NodeJS.ErrnoException | null,
+    address: string | dns.LookupAddress[],
+    family?: number,
+  ) => void;
+  if (typeof options === 'function') {
+    cb = options;
+    opts = {};
+  } else {
+    opts = options;
+    cb = callback;
+  }
   dns.promises
-    .lookup(hostname, options)
+    .lookup(hostname, opts)
     .then((result) => {
       if (Array.isArray(result)) {
-        callback(null, result);
+        cb(null, result);
       } else {
-        callback(null, result.address, result.family);
+        cb(null, result.address, result.family);
       }
     })
     .catch(async (err) => {
       try {
         const addresses = await resolver.resolve4(hostname);
         if (!addresses[0]) throw err;
-        if (options.all) {
-          callback(
+        if (opts.all) {
+          cb(
             null,
             addresses.map((item) => ({ address: item, family: 4 })),
           );
         } else {
-          callback(null, addresses[0], 4);
+          cb(null, addresses[0], 4);
         }
       } catch {
-        callback(err, '', 0);
+        cb(err, '', 0);
       }
     });
-};
+}) as LookupFunction;
 
 export default lookupWithFallback;

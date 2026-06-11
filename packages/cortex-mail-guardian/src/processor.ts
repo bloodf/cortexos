@@ -10,7 +10,7 @@ import {
 } from './model.js';
 import { redactEmail } from './redact.js';
 import { evaluateRules } from './rules.js';
-import runSequentially from './sequential.js';
+import runSequentially, { STOP } from './sequential.js';
 
 export interface ProcessDeps {
   config: GuardianConfig;
@@ -234,7 +234,7 @@ export async function sweep(deps: ProcessDeps): Promise<{
       );
     }
     await runSequentially(messages, async (message) => {
-      if (accountProcessed >= deps.config.maxMessagesPerSweep) return;
+      if (accountProcessed >= deps.config.maxMessagesPerSweep) return STOP;
       let action: 'review' | 'kept' | 'skipped' | 'trashed' | undefined;
       try {
         action = await processMessage(deps, account, message);
@@ -255,6 +255,7 @@ export async function sweep(deps: ProcessDeps): Promise<{
           else if (action === 'trashed') trashed += 1;
         }
       }
+      return undefined;
     });
   });
   return { processed, trashed, review, kept, skipped, failed, actions };
