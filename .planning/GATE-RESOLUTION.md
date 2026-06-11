@@ -796,3 +796,15 @@ live grep finds exactly 12 across 10 files (routes + server-fn-runner).
 [MINOR] formatting-only churn in f9f40cc (contracts/audit import
 collapses) → ACCEPT (gates green, prettier-conformant). Final build
 deployed: build rc=0, boot 200, service active, live 200.
+
+## 2026-06-11 — operator directive: MP-020 zero-lint campaign (recorded verbatim)
+"I want all the items fixed, with a plan with micro plans to fix all the
+issues." Supersedes the accepted-escalation baseline (102): everything
+code-fixed; only architecturally-irreducible scopes remain (env-module
+glob, scripts devDependencies, only-throw-error Redirect allow), each
+MP-020-commented. Master + 7 micro-plans authored (MP-020, MP-020a..g).
+Key unlocks vs the prior adjudications: quoted property keys exempt from
+camelcase (DB-mirror fixtures fix cleanly); golden-value tests make the
+no-bitwise hash rewrites provably output-identical; process.exitCode
+pattern replaces process.exit; dns.promises callback-adapter satisfies
+prefer-promises/dns inside tls.connect.
