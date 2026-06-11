@@ -63,7 +63,9 @@ export function AdminEnvPage() {
   // Tick the countdown each second while a grant is live; refetch when it lapses
   // so cleartext is cleared from the client view.
   useEffect(() => {
-    if (!revealed) return;
+    if (!revealed) {
+      return () => {};
+    }
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, [revealed]);

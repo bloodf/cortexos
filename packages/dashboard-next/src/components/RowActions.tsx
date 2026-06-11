@@ -53,7 +53,9 @@ export function RowActions({
 
   useEffect(() => {
     const el = wrapRef.current;
-    if (!el) return;
+    if (!el) {
+      return () => {};
+    }
     const required = actions.length * BUTTON_SLOT;
     const check = () => {
       const available = el.clientWidth;

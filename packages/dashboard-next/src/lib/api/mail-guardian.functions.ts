@@ -327,14 +327,16 @@ const batchGate = defineServerFn({
     const db = getDb();
     const decision = input.action === "approve" ? "keep" : "spam";
     const updated = await batchUpdateMailReviewDecisions(db, input.ids, decision, "dashboard");
-    for (const id of input.ids) {
-      await createMailGuardianAction(db, {
-        reviewId: id,
-        decision,
-        approver: "dashboard",
-        status: "pending",
-      });
-    }
+    await Promise.all(
+      input.ids.map((id) =>
+        createMailGuardianAction(db, {
+          reviewId: id,
+          decision,
+          approver: "dashboard",
+          status: "pending",
+        }),
+      ),
+    );
     return { updated, action: input.action };
   },
 });

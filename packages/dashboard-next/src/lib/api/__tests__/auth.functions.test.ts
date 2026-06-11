@@ -108,7 +108,8 @@ describe("auth.login (auth: public)", () => {
     // No session was created, no cookies set.
     expect(parseSetCookies(res).has(SESSION_COOKIE)).toBe(false);
     // Audited as a denied login.
-    const ev = listAudit().at(-1)!;
+    const auditEvents = listAudit();
+    const ev = auditEvents[auditEvents.length - 1];
     expect(ev.action).toBe("auth.login");
     expect(ev.result).toBe("denied");
   });

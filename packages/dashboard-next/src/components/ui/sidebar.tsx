@@ -52,15 +52,15 @@ const SidebarProvider = React.forwardRef<
 
     // This is the internal state of the sidebar.
     // We use openProp and setOpenProp for control from outside the component.
-    const [_open, _setOpen] = React.useState(defaultOpen);
-    const open = openProp ?? _open;
+    const [internalOpen, setInternalOpen] = React.useState(defaultOpen);
+    const open = openProp ?? internalOpen;
     const setOpen = React.useCallback(
       (value: boolean | ((value: boolean) => boolean)) => {
         const openState = typeof value === "function" ? value(open) : value;
         if (setOpenProp) {
           setOpenProp(openState);
         } else {
-          _setOpen(openState);
+          setInternalOpen(openState);
         }
 
         // This sets the cookie to keep the sidebar state.
@@ -71,7 +71,7 @@ const SidebarProvider = React.forwardRef<
 
     // Helper to toggle the sidebar.
     const toggleSidebar = React.useCallback(() => {
-      return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open);
+      return isMobile ? setOpenMobile((prevOpen) => !prevOpen) : setOpen((prevOpen) => !prevOpen);
     }, [isMobile, setOpen, setOpenMobile]);
 
     // Adds a keyboard shortcut to toggle the sidebar.
@@ -519,9 +519,10 @@ const SidebarMenuButton = React.forwardRef<
       return button;
     }
 
-    if (typeof tooltip === "string") {
-      tooltip = {
-        children: tooltip,
+    let tooltipProps = tooltip;
+    if (typeof tooltipProps === "string") {
+      tooltipProps = {
+        children: tooltipProps,
       };
     }
 
@@ -532,7 +533,7 @@ const SidebarMenuButton = React.forwardRef<
           side="right"
           align="center"
           hidden={state !== "collapsed" || isMobile}
-          {...tooltip}
+          {...tooltipProps}
         />
       </Tooltip>
     );

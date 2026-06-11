@@ -36,6 +36,7 @@
  */
 
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -206,8 +207,6 @@ function fakeAuthRoundTrip(password: string): void {
   // rounds is typically enough to push the latency to the same
   // order of magnitude (~1-3ms) on a modern CPU without dominating
   // a test.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { createHash } = require("node:crypto") as typeof import("node:crypto");
   for (let i = 0; i < 4; i++) {
     createHash("sha256")
       .update(password + i)
@@ -352,7 +351,9 @@ export class FakePamAuthenticator implements PamAuthenticator {
       // Run a fake round-trip to roughly match the timing of the
       // real auth path (so the test asserting "unknown user returns
       // fast" is fair to the real backend in production).
-      await new Promise((r) => setTimeout(r, 1));
+      await new Promise<void>((r) => {
+        setTimeout(r, 1);
+      });
       return { ok: false, reason: "invalid_credentials" };
     }
     if (u.disabled) {
@@ -424,5 +425,3 @@ export function setPamAuthenticator(a: PamAuthenticator): void {
 export function resetPamAuthenticator(): void {
   cached = null;
 }
-
-

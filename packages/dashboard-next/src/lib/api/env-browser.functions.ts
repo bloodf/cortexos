@@ -41,10 +41,8 @@ import { defineServerFn, serverFnNoop, type ServerFnOptions } from "@/lib/api/de
 
 const ALLOWED_PREFIXES: readonly string[] = ["/opt/cortexos/.secrets/", "/opt/cortexos/stacks/"];
 
-const SECRET_KEY_RE = new RegExp(
-  "(password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|client[_-]?secret|session[_-]?id|cookie|authorization|bearer)",
-  "i",
-);
+const SECRET_KEY_RE =
+  /(password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|client[_-]?secret|session[_-]?id|cookie|authorization|bearer)/i;
 
 function maskValue(key: string, value: string): string {
   if (SECRET_KEY_RE.test(key)) {

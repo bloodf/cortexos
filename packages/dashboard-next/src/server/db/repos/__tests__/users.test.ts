@@ -9,6 +9,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import type { PGlite } from "@electric-sql/pglite";
 import { createTestDb, type PgliteDbClient } from "../../test-utils";
 import {
   upsertPamUser,
@@ -26,7 +27,7 @@ import {
 } from "../users";
 
 let db: PgliteDbClient;
-let client: import("@electric-sql/pglite").PGlite;
+let client: PGlite;
 
 beforeEach(async () => {
   const r = await createTestDb();

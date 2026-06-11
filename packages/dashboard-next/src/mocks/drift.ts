@@ -94,10 +94,10 @@ function tick() {
         id: `live-${Date.now()}`,
         ruleName: `${cur.name} state change`,
         serviceName: cur.name,
-        status: (flipped === "online" ? "resolved" : "fired") as AlertHistory["status"],
+        status: (flipped === "online" ? "resolved" : "fired") as "resolved" | "fired",
         message: flipped === "online" ? "Recovered" : "Health check failed",
         timestamp: new Date().toISOString(),
-      } as AlertHistory,
+      },
       ...alertState,
     ].slice(0, 80);
   } else {

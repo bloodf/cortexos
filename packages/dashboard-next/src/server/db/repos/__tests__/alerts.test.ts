@@ -7,6 +7,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import type { PGlite } from "@electric-sql/pglite";
 import { createTestDb, type PgliteDbClient } from "../../test-utils";
 import {
   listAlertRules,
@@ -25,7 +26,7 @@ import {
 } from "../alerts";
 
 let db: PgliteDbClient;
-let client: import("@electric-sql/pglite").PGlite;
+let client: PGlite;
 let serviceId: number;
 
 beforeEach(async () => {

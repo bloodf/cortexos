@@ -25,6 +25,7 @@
  */
 
 import { join } from "node:path";
+import type { PGlite } from "@electric-sql/pglite";
 import { createMigratedPgliteDb, type PgliteDbClient } from "./client.pglite";
 import * as schema from "./schema";
 
@@ -79,20 +80,20 @@ export const deterministicSeed = {
  * semantics via slug lookups). Tests can add more on top.
  */
 export async function seedTestDb(db: PgliteDbClient): Promise<void> {
-  for (let i = 0; i < deterministicSeed.services.length; i += 1) {
-    const s = deterministicSeed.services[i];
-    await db
-      .insert(schema.services)
-      .values(s)
-      .onConflictDoUpdate({
-        target: schema.services.slug,
-        set: { name: s.name, updatedAt: new Date() },
-      });
-  }
-  for (let i = 0; i < deterministicSeed.users.length; i += 1) {
-    const u = deterministicSeed.users[i];
-    await db.insert(schema.pamUsers).values(u).onConflictDoNothing();
-  }
+  await Promise.all(
+    deterministicSeed.services.map((s) =>
+      db
+        .insert(schema.services)
+        .values(s)
+        .onConflictDoUpdate({
+          target: schema.services.slug,
+          set: { name: s.name, updatedAt: new Date() },
+        }),
+    ),
+  );
+  await Promise.all(
+    deterministicSeed.users.map((u) => db.insert(schema.pamUsers).values(u).onConflictDoNothing()),
+  );
 }
 
 /**
@@ -113,7 +114,7 @@ export async function createTestDb(
   } = {},
 ): Promise<{
   db: PgliteDbClient;
-  client: import("@electric-sql/pglite").PGlite;
+  client: PGlite;
   ran: string[];
   migrationsDir: string;
 }> {

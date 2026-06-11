@@ -16,6 +16,7 @@
  * configure the mock per-test via the captured `execFileMock` reference
  * (via vi.hoisted to dodge the hoisting rule).
  */
+import type * as childProcess from "node:child_process";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { tailLogs } from "@/server/docker/real-data";
@@ -23,7 +24,7 @@ import { tailLogs } from "@/server/docker/real-data";
 const { execFileMock } = vi.hoisted(() => ({ execFileMock: vi.fn() }));
 
 vi.mock("node:child_process", async () => {
-  const actual = await vi.importActual<typeof import("node:child_process")>("node:child_process");
+  const actual = await vi.importActual<typeof childProcess>("node:child_process");
   return {
     ...actual,
     execFile: execFileMock,

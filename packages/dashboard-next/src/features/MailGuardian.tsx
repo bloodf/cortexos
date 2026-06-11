@@ -99,7 +99,7 @@ function ReviewsPane() {
 
   const handleFlag = async (id: string) => {
     const numId = parseInt(id, 10);
-    if (isNaN(numId)) return;
+    if (Number.isNaN(numId)) return;
     setActing(`flag-${id}`);
     optimisticStatus(id, "flagged");
     try {
@@ -116,7 +116,7 @@ function ReviewsPane() {
 
   const handleApprove = async (id: string) => {
     const numId = parseInt(id, 10);
-    if (isNaN(numId)) return;
+    if (Number.isNaN(numId)) return;
     setActing(`approve-${id}`);
     optimisticStatus(id, "approved");
     try {
@@ -134,7 +134,7 @@ function ReviewsPane() {
   const handleBatch = async (action: "approve" | "flag") => {
     const ids = Array.from(picked)
       .map((id) => parseInt(id, 10))
-      .filter((n) => !isNaN(n));
+      .filter((n) => !Number.isNaN(n));
     if (!ids.length) return;
     const status: MailReview["status"] = action === "approve" ? "approved" : "flagged";
     // Optimistic batch update
@@ -481,7 +481,7 @@ function AccountDialog({ open, onOpenChange, editing, onSaved }: AccountDialogPr
       slug: form.slug,
       address: form.address,
       host: form.host,
-      port: isNaN(port) ? 993 : port,
+      port: Number.isNaN(port) ? 993 : port,
       secure: form.secure,
       username: form.username,
       inbox: form.inbox,

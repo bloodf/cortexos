@@ -11,7 +11,7 @@ import { getServerConfig } from "../config.server";
 // them in a .server.ts file. Use this pattern instead of Supabase Edge
 // Functions for server logic.
 
-export const getGreeting = createServerFn({ method: "POST" })
+const getGreeting = createServerFn({ method: "POST" })
   .inputValidator(z.object({ name: z.string().min(1) }))
   .handler(async ({ data }) => {
     const config = getServerConfig();
@@ -20,3 +20,5 @@ export const getGreeting = createServerFn({ method: "POST" })
       mode: config.nodeEnv ?? "unknown",
     };
   });
+
+export default getGreeting;

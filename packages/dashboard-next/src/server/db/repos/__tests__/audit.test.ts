@@ -10,6 +10,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import type { PGlite } from "@electric-sql/pglite";
 import { createTestDb, type PgliteDbClient } from "../../test-utils";
 import {
   insertAgentGatewayAudit,
@@ -21,7 +22,7 @@ import {
 } from "../audit";
 
 let db: PgliteDbClient;
-let client: import("@electric-sql/pglite").PGlite;
+let client: PGlite;
 
 beforeEach(async () => {
   const r = await createTestDb({ seed: true });
@@ -107,14 +108,16 @@ describe("audit repo — agent_gateway_audit (append-only)", () => {
   });
 
   it("countAgentGatewayAudit returns the count", async () => {
-    for (let i = 0; i < 3; i++) {
-      await insertAgentGatewayAudit(db, {
-        toolClass: "safe",
-        argsHash: `h${i}`,
-        decision: "allow",
-        result: "ok",
-      });
-    }
+    await Promise.all(
+      Array.from({ length: 3 }, (_, i) =>
+        insertAgentGatewayAudit(db, {
+          toolClass: "safe",
+          argsHash: `h${i}`,
+          decision: "allow",
+          result: "ok",
+        }),
+      ),
+    );
     expect(await countAgentGatewayAudit(db)).toBe(3);
   });
 });
@@ -144,13 +147,15 @@ describe("audit repo — audit_log hash chain", () => {
   });
 
   it("appendAuditLog + verifyAuditLogChain — multiple rows chain correctly", async () => {
-    for (let i = 0; i < 5; i++) {
-      await appendAuditLog(db, {
-        eventType: `test.event.${i}`,
-        source: "test",
-        payload: { i },
-      });
-    }
+    await Promise.all(
+      Array.from({ length: 5 }, (_, i) =>
+        appendAuditLog(db, {
+          eventType: `test.event.${i}`,
+          source: "test",
+          payload: { i },
+        }),
+      ),
+    );
     const res = await verifyAuditLogChain(db);
     expect(res.valid).toBe(true);
     expect(res.count).toBe(5);

@@ -124,8 +124,7 @@ function ServiceList({
   );
 }
 
-
-export function AppsPage() {
+export default function AppsPage() {
   const t = useT();
   const { data: services = [], isLoading } = useQuery({
     queryKey: ["services"],
@@ -155,8 +154,7 @@ export function AppsPage() {
           s.slug.includes(ql) ||
           s.description?.toLowerCase().includes(ql)
         )
-      )
-        return false;
+      ) return false;
       return true;
     });
   }, [services, q, cat, statusFilter]);
@@ -233,16 +231,20 @@ export function AppsPage() {
       </div>
 
       {(() => {
-        if (isLoading) return (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <Card key={i} className="h-32 animate-pulse bg-muted/40 border-dashed" />
-          ))}
-        </div>
-        );
-        if (filtered.length === 0) return (
-        <EmptyState title="No apps match" description="Try clearing filters." />
-        );
+        if (isLoading) {
+          return (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <Card key={i} className="h-32 animate-pulse bg-muted/40 border-dashed" />
+              ))}
+            </div>
+          );
+        }
+        if (filtered.length === 0) {
+          return (
+            <EmptyState title="No apps match" description="Try clearing filters." />
+          );
+        }
         return (
         <div className="space-y-6">
           {favs.length > 0 && (

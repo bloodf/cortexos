@@ -32,6 +32,8 @@
 // Import mock row types so adapters can use them and client can type correctly.
 // We import type-only — no runtime dependency on the mock data.
 // ---------------------------------------------------------------------------
+import type { Service as ContractService } from "@cortexos/contracts/entities";
+import type { IncusInstance as ContractIncusInstance } from "@cortexos/contracts";
 import type {
   Service,
   SystemData,
@@ -55,6 +57,11 @@ import type {
   DriveInfo,
   MountInfo,
 } from "@/mocks/types";
+import type {
+  Container as StubContainer,
+  DockerImage as StubDockerImage,
+  DockerVolume as StubDockerVolume,
+} from "@/server/docker/stub-data";
 
 // ---------------------------------------------------------------------------
 // Wired server-function imports (WP-10 — services domain)
@@ -107,7 +114,12 @@ import {
   dockerAction as _dockerAction,
   containerLogs as _containerLogs,
 } from "./docker.functions";
-import { mintApproval as _mintApproval, verifyAudit as _verifyAudit } from "./approvals.functions";
+import {
+  mintApproval as _mintApproval,
+  verifyAudit as _verifyAudit,
+  grantApproval as _grantApproval,
+  revokeApproval as _revokeApproval,
+} from "./approvals.functions";
 
 // ---------------------------------------------------------------------------
 // Wired server-function imports (WP-37 — mail-guardian domain)
@@ -131,10 +143,6 @@ import type { ServerMailReview, ServerMailAccount } from "@/lib/adapters/mail";
 // this facade dropped (WP-38 approvals/audit, WP-39 alerts, WP-41 agents).
 // Same `as unknown as` boundary-cast pattern as the helpers above.
 // ---------------------------------------------------------------------------
-import {
-  grantApproval as _grantApproval,
-  revokeApproval as _revokeApproval,
-} from "./approvals.functions";
 import {
   createAlert as _createAlert,
   patchAlert as _patchAlert,
@@ -208,7 +216,7 @@ interface ListServicesInput {
   pageSize?: number;
 }
 interface ListServicesOutput {
-  rows: import("@cortexos/contracts/entities").Service[];
+  rows: ContractService[];
   total: number;
 }
 interface ServiceHealthInput {
@@ -349,7 +357,7 @@ export const hostLogs = _hostLogs;
 
 // WP-12 gate-middleware boundary casts — same pattern as other domains.
 interface ListInstancesOutput {
-  items: import("@cortexos/contracts").IncusInstance[];
+  items: ContractIncusInstance[];
 }
 interface IncusActionInputType {
   action: "start" | "stop" | "restart" | "delete" | "launch" | "list";
@@ -364,7 +372,7 @@ interface IncusActionOutput {
     stdout: string;
     stderr: string;
     exitCode: number;
-    instance: import("@cortexos/contracts").IncusInstance;
+    instance: ContractIncusInstance;
     durationMs: number;
   };
 }
@@ -396,7 +404,7 @@ export const callInstanceLogs = _instanceLogs as unknown as (opts: {
 }) => Promise<InstanceLogsOutput>;
 
 /** Map a contracts IncusInstance to the mock IncusInstance shape used by the UI. */
-function toIncusInstance(inst: import("@cortexos/contracts").IncusInstance): IncusInstance {
+function toIncusInstance(inst: ContractIncusInstance): IncusInstance {
   const cfg = inst.config;
   const lv = inst.lastValidation as
     | { ok?: boolean; ranAt?: string; notes?: string }
@@ -427,13 +435,13 @@ function toIncusInstance(inst: import("@cortexos/contracts").IncusInstance): Inc
 
 // WP-11 gate-middleware boundary casts — same pattern as other domains.
 interface ListContainersOutput {
-  items: import("@/server/docker/stub-data").Container[];
+  items: StubContainer[];
 }
 interface ListImagesOutput {
-  items: import("@/server/docker/stub-data").DockerImage[];
+  items: StubDockerImage[];
 }
 interface ListVolumesOutput {
-  items: import("@/server/docker/stub-data").DockerVolume[];
+  items: StubDockerVolume[];
 }
 interface DockerActionInputType {
   op: string;
@@ -496,7 +504,7 @@ export const callMintApproval = _mintApproval as unknown as (opts: {
 export const callContainerLogs = containerLogsFn;
 
 /** Map a server Container to the mock DockerContainer shape. */
-function toDockerContainer(c: import("@/server/docker/stub-data").Container): DockerContainer {
+function toDockerContainer(c: StubContainer): DockerContainer {
   return {
     id: c.id,
     name: c.name,
@@ -509,12 +517,12 @@ function toDockerContainer(c: import("@/server/docker/stub-data").Container): Do
 }
 
 /** Map a server DockerImage to the mock DockerImage shape. */
-function toDockerImage(i: import("@/server/docker/stub-data").DockerImage): DockerImage {
+function toDockerImage(i: StubDockerImage): DockerImage {
   return { id: i.id, repo: i.repo, tag: i.tag, size: i.size, created: i.created };
 }
 
 /** Map a server DockerVolume to the mock DockerVolume shape. */
-function toDockerVolume(v: import("@/server/docker/stub-data").DockerVolume): DockerVolume {
+function toDockerVolume(v: StubDockerVolume): DockerVolume {
   return { name: v.name, driver: v.driver, mountpoint: v.mountpoint, size: v.size ?? 0 };
 }
 

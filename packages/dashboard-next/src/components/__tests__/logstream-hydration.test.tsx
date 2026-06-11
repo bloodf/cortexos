@@ -69,7 +69,9 @@ describe("LogStream — fetcher + refetchIntervalMs props (MP-009)", () => {
     // Advance by the CUSTOM interval value (250ms — the test custom value
     // is honored; the test is specifically about a non-default interval).
     await act(async () => {
-      await new Promise((r) => setTimeout(r, 300));
+      await new Promise((r) => {
+        setTimeout(r, 300);
+      });
     });
     await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2));
 
@@ -89,7 +91,9 @@ describe("LogStream — fetcher + refetchIntervalMs props (MP-009)", () => {
 
     // Wait ~120ms — expect ~5 fetcher calls (one initial + 5 polls).
     await act(async () => {
-      await new Promise((r) => setTimeout(r, 120));
+      await new Promise((r) => {
+        setTimeout(r, 120);
+      });
     });
     const calls = fetcher.mock.calls.length;
     expect(calls).toBeGreaterThanOrEqual(3);

@@ -33,7 +33,7 @@ export function TableSkeleton({ rows = 8, cols = 5 }: { rows?: number; cols?: nu
             className="grid border-b last:border-b-0 px-4 py-3 gap-3 items-center"
             style={{ gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))` }}
           >
-            {Array.from({ length: cols }).map((_, c) => {
+            {Array.from({ length: cols }).map((_c, c) => {
               let widthClass: string;
               if (c === 0) widthClass = "w-3/4";
               else if (c === cols - 1) widthClass = "w-1/3";

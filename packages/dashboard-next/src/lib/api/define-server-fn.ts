@@ -131,7 +131,7 @@ export const serverFnNoop = (): undefined => undefined;
  */
 export function defineServerFn<TIn = unknown, TOut = unknown>(opts: ServerFnOptions<TIn, TOut>) {
   return createMiddleware({ type: "function" }).server(async ({ data, next }) => {
-    const { runServerFnGate } = await import("./server-fn-runner.server");
+    const runServerFnGate = (await import("./server-fn-runner.server")).default;
     const result = await runServerFnGate<TIn, TOut>({
       methods: [opts.method],
       auth: opts.auth,

@@ -236,8 +236,8 @@ export function ProcessesPage() {
           columns={cols}
           loading={isLoading}
           initialSort="cpu"
-          filterFn={(r, q) =>
-            r.command.toLowerCase().includes(q) || r.user.includes(q) || String(r.pid).includes(q)
+          filterFn={(r, query) =>
+            r.command.toLowerCase().includes(query) || r.user.includes(query) || String(r.pid).includes(query)
           }
           paginate={false}
         />

@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -216,7 +216,7 @@ function InspectorBody({ agent, isAdmin }: { agent: Agent; isAdmin: boolean }) {
   );
 }
 
-export function AgentsPage() {
+export default function AgentsPage() {
   const t = useT();
   const { user } = useAuth();
   const {
@@ -293,28 +293,33 @@ export function AgentsPage() {
       </div>
 
       {(() => {
-        if (isLoading) return (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <CardSkeleton key={i} lines={4} />
-          ))}
-        </div>
-        );
-        if (isError) return (
-        <Card className="elev-1">
-          <EmptyState
-            icon={<AlertTriangle className="size-8 text-[var(--destructive)]" />}
-            title="Failed to load agents"
-            description="Could not read the Hermes profiles registry. Check that the registry file exists and is readable."
-          />
-        </Card>
-        );
-        if (filtered.length === 0) return (
-        <Card className="elev-1">
-          <EmptyState
-            icon={<Bot className="size-8" />}
-            title="No agents match"
-            description={
+        if (isLoading) {
+          return (
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <CardSkeleton key={i} lines={4} />
+              ))}
+            </div>
+          );
+        }
+        if (isError) {
+          return (
+            <Card className="elev-1">
+              <EmptyState
+                icon={<AlertTriangle className="size-8 text-[var(--destructive)]" />}
+                title="Failed to load agents"
+                description="Could not read the Hermes profiles registry. Check that the registry file exists and is readable."
+              />
+            </Card>
+          );
+        }
+        if (filtered.length === 0) {
+          return (
+            <Card className="elev-1">
+              <EmptyState
+                icon={<Bot className="size-8" />}
+                title="No agents match"
+                description={
               agents.length === 0
                 ? "No Hermes agents are registered yet."
                 : "Try clearing your filters."
@@ -333,7 +338,7 @@ export function AgentsPage() {
             }
           />
         </Card>
-        );
+        ); }
         return (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((a) => (

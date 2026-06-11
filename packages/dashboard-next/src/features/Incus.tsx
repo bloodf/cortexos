@@ -237,8 +237,7 @@ function ProvisionWizard({
   );
 }
 
-
-export function IncusPage() {
+export default function IncusPage() {
   const t = useT();
   const qc = useQueryClient();
   const { user } = useAuth();

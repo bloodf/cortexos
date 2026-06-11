@@ -170,7 +170,9 @@ function TerminalTab({ id, active, username, dark, onReady, onState }: TerminalT
 
   // Mount xterm once per tab
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current) {
+      return () => {};
+    }
     const term = new XTerm({
       fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
       fontSize: 13,

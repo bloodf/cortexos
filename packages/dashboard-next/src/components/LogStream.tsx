@@ -69,7 +69,9 @@ export function LogStream({
   // state update, nothing logged — so a transient failure does not
   // blank the log view.
   useEffect(() => {
-    if (!fetcher) return;
+    if (!fetcher) {
+      return () => {};
+    }
     let cancelled = false;
     const tick = async () => {
       try {
@@ -106,13 +108,15 @@ export function LogStream({
   // Only the no-fetcher fallback path: when a fetcher is wired, the server
   // drives the first lines and we must not seed the mock 40-line burst.
   useEffect(() => {
-    if (fetcher) return;
-    setLines(Array.from({ length: 40 }, makeLine));
+    if (!fetcher) {
+      setLines(Array.from({ length: 40 }, makeLine));
+    }
   }, [fetcher]);
 
   useEffect(() => {
-    if (fetcher) return; // fetcher path is driven by its own polling effect
-    if (paused) return;
+    if (fetcher || paused) {
+      return () => {};
+    }
     timer.current = setInterval(() => {
       setLines((prev) => {
         const next = [...prev, makeLine()];

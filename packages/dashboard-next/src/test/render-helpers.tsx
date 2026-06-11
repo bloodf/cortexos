@@ -1,10 +1,11 @@
 import type { ReactElement } from "react";
 import { render, type RenderOptions } from "@testing-library/react";
-import { TestProviders } from "./utils";
+import type { QueryClient } from "@tanstack/react-query";
+import TestProviders from "./utils";
 
-export function renderWithProviders(
+export default function renderWithProviders(
   ui: ReactElement,
-  options: RenderOptions & { client?: import("@tanstack/react-query").QueryClient } = {},
+  options: RenderOptions & { client?: QueryClient } = {},
 ) {
   const { client, ...rest } = options;
   return render(ui, {
