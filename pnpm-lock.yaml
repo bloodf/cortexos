@@ -153,6 +153,9 @@ importers:
       '@cortexos/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@electric-sql/pglite':
+        specifier: ^0.2.0
+        version: 0.2.17
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.4.0(react-hook-form@7.78.0(react@19.2.7))
@@ -331,9 +334,6 @@ importers:
         specifier: ^3.24.2
         version: 3.25.76
     devDependencies:
-      '@electric-sql/pglite':
-        specifier: ^0.2.0
-        version: 0.2.17
       '@eslint/js':
         specifier: ^9.32.0
         version: 9.39.4
