@@ -216,7 +216,7 @@ describe("MP-025 live client surface", () => {
     });
   });
 
-  it("api.audit calls listAudit and returns mapped AuditEntry rows", async () => {
+  it("api.audit calls listAudit with pageSize 500 and returns mapped AuditEntry rows", async () => {
     mockListAudit.mockResolvedValue({
       events: [
         {
@@ -228,6 +228,7 @@ describe("MP-025 live client surface", () => {
           actor: "admin",
           subject: "container-x",
           result: "ok",
+          payloadHash: "ph-100",
           payload: { result: "ok", detail: "stopped cleanly" },
         },
       ],
@@ -241,13 +242,14 @@ describe("MP-025 live client surface", () => {
     const result = await api.audit();
 
     expect(mockListAudit).toHaveBeenCalledTimes(1);
+    expect(mockListAudit).toHaveBeenCalledWith({ data: { pageSize: 500 } });
     expect(result).toHaveLength(1);
     expect(result[0]).toEqual({
       id: "100",
       actor: "admin",
       tool: "stop",
       tool_class: "docker",
-      args_hash: "",
+      args_hash: "ph-100",
       decision: "allow",
       decision_reason: "stopped cleanly",
       result: "ok",
@@ -255,7 +257,7 @@ describe("MP-025 live client surface", () => {
     });
   });
 
-  it("api.auditList calls listAudit and returns a paginated ListResult<AuditEntry>", async () => {
+  it("api.auditList calls listAudit, forwards page/pageSize, and returns server pagination totals", async () => {
     mockListAudit.mockResolvedValue({
       events: [
         {
@@ -267,33 +269,35 @@ describe("MP-025 live client surface", () => {
           actor: "operator",
           subject: "nginx",
           result: "deny",
+          payloadHash: "ph-101",
           payload: { result: "deny", detail: "policy rejected" },
         },
       ],
       surfaces: ["systemd"],
       actions: ["restart"],
-      total: 1,
-      page: 2,
-      pageSize: 25,
+      total: 120,
+      page: 1,
+      pageSize: 50,
     });
 
-    const result = await api.auditList({ page: 0, pageSize: 25 });
+    const result = await api.auditList({ page: 0, pageSize: 50 });
 
     expect(mockListAudit).toHaveBeenCalledTimes(1);
+    expect(mockListAudit).toHaveBeenCalledWith({ data: { page: 1, pageSize: 50 } });
     expect(result.rows[0]).toEqual({
       id: "101",
       actor: "operator",
       tool: "restart",
       tool_class: "systemd",
-      args_hash: "",
+      args_hash: "ph-101",
       decision: "deny",
       decision_reason: "policy rejected",
       result: "deny",
       created_at: iso,
     });
-    expect(result.total).toBe(1);
-    expect(result.page).toBe(0);
-    expect(result.pageSize).toBe(25);
+    expect(result.total).toBe(120);
+    expect(result.page).toBe(1);
+    expect(result.pageSize).toBe(50);
   });
 
   it("api.agents calls listAgents and returns mapped Agent rows", async () => {

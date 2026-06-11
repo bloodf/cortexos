@@ -350,6 +350,7 @@ const listAuditGate = defineServerFn({
         actor: row.actor,
         subject: row.subject,
         result: typeof payload.result === "string" ? payload.result : null,
+        payloadHash: row.payloadHash,
         payload,
       };
     });

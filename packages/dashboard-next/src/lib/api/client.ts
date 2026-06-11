@@ -619,6 +619,7 @@ interface ListAuditOutput {
     actor: string | null;
     subject: string | null;
     result: string | null;
+    payloadHash: string;
     payload: Record<string, unknown>;
   }[];
   surfaces: string[];
@@ -647,7 +648,11 @@ const listApprovalsFn = _listApprovals as unknown as (opts: {
   data: Record<string, never>;
 }) => Promise<ListApprovalsOutput>;
 const listAuditFn = _listAudit as unknown as (opts: {
-  data: Record<string, never>;
+  data: {
+    actor?: string;
+    page?: number;
+    pageSize?: number;
+  };
 }) => Promise<ListAuditOutput>;
 const listAgentsFn = _listAgents as unknown as (opts: {
   data: Record<string, never>;
@@ -712,7 +717,7 @@ function toAuditEntryRow(e: ListAuditOutput["events"][number]): AuditEntry {
     actor: e.actor ?? "",
     tool: e.action,
     tool_class: e.surface,
-    args_hash: "",
+    args_hash: e.payloadHash,
     decision: result === "deny" || result === "error" ? "deny" : "allow",
     decision_reason: detail,
     result,
@@ -1160,49 +1165,36 @@ export const api = {
   /**
    * Returns audit events mapped to the mock AuditEntry shape.
    * Calls listAudit RPC → server/db/repos/audit (via approvals.functions.ts).
+   * Requests pageSize 500 (the server-enforced maximum) so the flat view
+   * returns the broadest available window in a single round-trip.
    */
   audit: async (): Promise<AuditEntry[]> => {
-    const { events } = await listAuditFn({ data: {} });
+    const { events } = await listAuditFn({ data: { pageSize: 500 } });
     return events.map(toAuditEntryRow);
   },
 
   /**
    * Paginated audit events list (WIRED — MP-025).
+   * Forwards page/pageSize to the server-side paginated listAudit RPC and
+   * returns the server's rows/total/page/pageSize directly.
    */
   auditList: async (p?: ListParams): Promise<ListResult<AuditEntry>> => {
-    const { events } = await listAuditFn({ data: {} });
-    const mapped = events.map(toAuditEntryRow);
-    const q = (p?.q ?? "").trim().toLowerCase();
-    const filtered = q
-      ? mapped.filter(
-          (e) =>
-            e.actor.toLowerCase().includes(q) ||
-            e.tool.toLowerCase().includes(q) ||
-            e.decision_reason.toLowerCase().includes(q),
-        )
-      : mapped;
-
-    const sortKey = p?.sortKey;
-    const sortDir = p?.sortDir ?? "desc";
-    const getSortValue: Record<string, (e: AuditEntry) => string | number> = {
-      created_at: (e) => e.created_at,
-      actor: (e) => e.actor,
-      tool: (e) => e.tool,
-      decision: (e) => e.decision,
+    const page = (p?.page ?? 0) + 1; // server contract is 1-based, UI is 0-based
+    const pageSize = p?.pageSize ?? 25;
+    const q = (p?.q ?? "").trim();
+    const result = await listAuditFn({
+      data: {
+        page,
+        pageSize,
+        ...(q ? { actor: q } : {}),
+      },
+    });
+    return {
+      rows: result.events.map(toAuditEntryRow),
+      total: result.total,
+      page: result.page,
+      pageSize: result.pageSize,
     };
-    const accessor = sortKey ? getSortValue[sortKey] : undefined;
-    if (accessor) {
-      const sorted = [...filtered].sort((a, b) => {
-        const av = accessor(a);
-        const bv = accessor(b);
-        if (av === bv) return 0;
-        const d = av > bv ? 1 : -1;
-        return sortDir === "desc" ? -d : d;
-      });
-      return clientSideList<AuditEntry>(sorted, p);
-    }
-
-    return clientSideList<AuditEntry>(filtered, p);
   },
 
   // ── Users ──────────────────────────────────────────────────────────────
