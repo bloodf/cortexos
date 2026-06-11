@@ -296,6 +296,15 @@ export default [
     },
   },
 
+  // Scoped override: TS-only rule cannot be satisfied in plain JS
+  {
+    files: ['**/*.{js,mjs,cjs}'],
+    rules: {
+      // MP-019: TS-only rule — plain JS cannot express return-type syntax
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+    },
+  },
+
   // 7d) Plain-JS Node packages — Node ESM requires extensions on relative imports
   {
     files: [
@@ -305,6 +314,17 @@ export default [
     ],
     rules: {
       'import-x/extensions': ['error', 'ignorePackages', { js: 'always', mjs: 'always' }],
+      // MP-019: allow index.js with extensions:always in Node ESM
+      'import-x/no-useless-path-segments': ['error', { noUselessIndex: false }],
+    },
+  },
+
+  // Scoped override: TanStack Router uses named exports by design
+  {
+    files: ['packages/dashboard-next/**'],
+    rules: {
+      // MP-019: TanStack Router convention — file routes export named Route const
+      'import-x/prefer-default-export': 'off',
     },
   },
 
