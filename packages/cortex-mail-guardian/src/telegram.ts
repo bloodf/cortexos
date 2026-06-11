@@ -1,6 +1,5 @@
 import https from 'node:https';
-import { Buffer } from 'node:buffer';
-import { lookupWithFallback } from './dns.js';
+import lookupWithFallback from './dns.js';
 
 export interface TelegramClient {
   getMe(): Promise<{ id: number; username?: string; first_name?: string }>;
@@ -28,6 +27,48 @@ interface TelegramResponse<T> {
   result?: T;
   description?: string;
   error_code?: number;
+}
+
+function telegramRequest<T>(
+  token: string,
+  method: string,
+  body?: Record<string, unknown>,
+): Promise<TelegramResponse<T>> {
+  const encoded = body ? JSON.stringify(body) : undefined;
+  return new Promise((resolve, reject) => {
+    const req = https.request(
+      {
+        hostname: 'api.telegram.org',
+        path: `/bot${token}/${method}`,
+        method: body ? 'POST' : 'GET',
+        lookup: lookupWithFallback,
+        headers: encoded
+          ? {
+              'content-type': 'application/json',
+              'content-length': Buffer.byteLength(encoded),
+            }
+          : undefined,
+        timeout: 20_000,
+      },
+      (res) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk: Buffer) => chunks.push(chunk));
+        res.on('end', () => {
+          try {
+            resolve(JSON.parse(Buffer.concat(chunks).toString('utf8')) as TelegramResponse<T>);
+          } catch (error) {
+            reject(error);
+          }
+        });
+      },
+    );
+    req.on('error', reject);
+    req.on('timeout', () => {
+      req.destroy(new Error(`Telegram ${method} timed out`));
+    });
+    if (encoded) req.write(encoded);
+    req.end();
+  });
 }
 
 export class BotApiTelegramClient implements TelegramClient {
@@ -75,48 +116,6 @@ export class BotApiTelegramClient implements TelegramClient {
       ...(text ? { text } : {}),
     });
   }
-}
-
-function telegramRequest<T>(
-  token: string,
-  method: string,
-  body?: Record<string, unknown>,
-): Promise<TelegramResponse<T>> {
-  const encoded = body ? JSON.stringify(body) : undefined;
-  return new Promise((resolve, reject) => {
-    const req = https.request(
-      {
-        hostname: 'api.telegram.org',
-        path: `/bot${token}/${method}`,
-        method: body ? 'POST' : 'GET',
-        lookup: lookupWithFallback,
-        headers: encoded
-          ? {
-              'content-type': 'application/json',
-              'content-length': Buffer.byteLength(encoded),
-            }
-          : undefined,
-        timeout: 20_000,
-      },
-      (res) => {
-        const chunks: Buffer[] = [];
-        res.on('data', (chunk: Buffer) => chunks.push(chunk));
-        res.on('end', () => {
-          try {
-            resolve(JSON.parse(Buffer.concat(chunks).toString('utf8')) as TelegramResponse<T>);
-          } catch (error) {
-            reject(error);
-          }
-        });
-      },
-    );
-    req.on('error', reject);
-    req.on('timeout', () => {
-      req.destroy(new Error(`Telegram ${method} timed out`));
-    });
-    if (encoded) req.write(encoded);
-    req.end();
-  });
 }
 
 export async function discoverOwnerChatId(client: TelegramClient): Promise<string> {

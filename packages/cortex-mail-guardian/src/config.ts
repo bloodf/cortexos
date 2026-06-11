@@ -1,5 +1,3 @@
-import { Buffer } from 'node:buffer';
-
 export interface MailAccountConfig {
   slug: string;
   address: string;
@@ -55,8 +53,9 @@ function parseIntEnv(name: string, source: NodeJS.ProcessEnv, fallback?: number)
     throw new Error(`${name} is required`);
   }
   const parsed = Number(raw);
-  if (!Number.isInteger(parsed) || parsed <= 0)
+  if (!Number.isInteger(parsed) || parsed <= 0) {
     throw new Error(`${name} must be a positive integer`);
+  }
   return parsed;
 }
 
@@ -65,6 +64,11 @@ function parseBool(raw: string | undefined, fallback: boolean): boolean {
   if (/^(1|true|yes)$/i.test(raw)) return true;
   if (/^(0|false|no)$/i.test(raw)) return false;
   throw new Error(`invalid boolean value: ${raw}`);
+}
+
+function normalizeOpenAiBaseUrl(value: string): string {
+  const trimmed = value.replace(/\/+$/, '');
+  return trimmed.endsWith('/v1') ? trimmed : `${trimmed}/v1`;
 }
 
 export function decodeBase64Secret(name: string, value: string): string {
@@ -140,11 +144,6 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): GuardianCon
   };
 }
 
-function normalizeOpenAiBaseUrl(value: string): string {
-  const trimmed = value.replace(/\/+$/, '');
-  return trimmed.endsWith('/v1') ? trimmed : `${trimmed}/v1`;
-}
-
 /** Shape of a DB-backed account row (subset used to build MailAccountConfig). */
 export interface AccountRowInput {
   slug: string;
@@ -185,7 +184,7 @@ export function mergeAccounts(
   dbAccounts: MailAccountConfig[],
 ): MailAccountConfig[] {
   const bySlug = new Map<string, MailAccountConfig>();
-  for (const account of envAccounts) bySlug.set(account.slug, account);
-  for (const account of dbAccounts) bySlug.set(account.slug, account);
+  envAccounts.forEach((account) => bySlug.set(account.slug, account));
+  dbAccounts.forEach((account) => bySlug.set(account.slug, account));
   return [...bySlug.values()];
 }

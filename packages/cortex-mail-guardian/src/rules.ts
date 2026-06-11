@@ -31,6 +31,16 @@ export interface RuleLookup {
   findRules(fromHash: string, domainHash: string): Promise<RuleMatch[]>;
 }
 
+export function pickRule(matches: RuleMatch[]): RuleMatch | null {
+  if (matches.length === 0) return null;
+  const order = (m: RuleMatch): number => {
+    const typeRank = m.ruleType === 'block' ? 0 : 1;
+    const scopeRank = m.scope === 'sender' ? 0 : 1;
+    return typeRank * 2 + scopeRank;
+  };
+  return [...matches].sort((a, b) => order(a) - order(b))[0] ?? null;
+}
+
 /**
  * Evaluate the deterministic rule layer for a redacted message.
  *
@@ -47,14 +57,4 @@ export async function evaluateRules(
   const matches = await lookup.findRules(redacted.fromHash, redacted.domainHash);
   if (matches.length === 0) return null;
   return pickRule(matches);
-}
-
-export function pickRule(matches: RuleMatch[]): RuleMatch | null {
-  if (matches.length === 0) return null;
-  const order = (m: RuleMatch): number => {
-    const typeRank = m.ruleType === 'block' ? 0 : 1;
-    const scopeRank = m.scope === 'sender' ? 0 : 1;
-    return typeRank * 2 + scopeRank;
-  };
-  return [...matches].sort((a, b) => order(a) - order(b))[0] ?? null;
 }

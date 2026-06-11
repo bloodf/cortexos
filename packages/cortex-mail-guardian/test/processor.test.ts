@@ -78,8 +78,8 @@ describe('mail guardian sweep', () => {
 
 describe('mail guardian rule pre-filter', () => {
   it('trashes a message matched by a block rule without calling the model', async () => {
-    const moved: Array<{ slug: string; uid: number }> = [];
-    const processed: Array<{ slug: string; uid: number; action: string }> = [];
+    const moved: { slug: string; uid: number }[] = [];
+    const processed: { slug: string; uid: number; action: string }[] = [];
     const deps = {
       config: { accounts: [account('one')], dryRun: false, maxMessagesPerSweep: 10 },
       store: {
@@ -131,9 +131,9 @@ describe('mail guardian Telegram review message', () => {
 
 describe('mail guardian review decisions', () => {
   it('blocks the sender when a message is marked as spam', async () => {
-    const rules: Array<{ ruleType: string; scope: string; valueHash: string }> = [];
-    const moved: Array<{ slug: string; uid: number }> = [];
-    const processed: Array<{ slug: string; uid: number; action: string }> = [];
+    const rules: { ruleType: string; scope: string; valueHash: string }[] = [];
+    const moved: { slug: string; uid: number }[] = [];
+    const processed: { slug: string; uid: number; action: string }[] = [];
     const deps = {
       config: {
         accounts: [account('one')],

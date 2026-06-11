@@ -5,6 +5,20 @@ import { GuardianStore } from './store.js';
 import { assertTelegramReady, BotApiTelegramClient, discoverOwnerChatId } from './telegram.js';
 import { applyReviewDecision, handleTelegramUpdates, sweep } from './processor.js';
 
+function disabledTelegramClient() {
+  return {
+    getMe: async () => {
+      throw new Error('TELEGRAM_BOT_TOKEN is not configured');
+    },
+    getChat: async () => {
+      throw new Error('TELEGRAM_BOT_TOKEN is not configured');
+    },
+    sendMessage: async () => undefined,
+    getUpdates: async () => [],
+    answerCallbackQuery: async () => undefined,
+  };
+}
+
 async function buildDeps() {
   const config = loadConfig();
   const mail = new TlsImapMailClient();
@@ -26,25 +40,12 @@ async function buildDeps() {
   return { config, mail, store, telegram };
 }
 
-function disabledTelegramClient() {
-  return {
-    getMe: async () => {
-      throw new Error('TELEGRAM_BOT_TOKEN is not configured');
-    },
-    getChat: async () => {
-      throw new Error('TELEGRAM_BOT_TOKEN is not configured');
-    },
-    sendMessage: async () => undefined,
-    getUpdates: async () => [],
-    answerCallbackQuery: async () => undefined,
-  };
-}
-
 async function smoke(): Promise<void> {
   const { config, telegram, store } = await buildDeps();
   try {
-    if (!config.telegramOwnerChatId)
+    if (!config.telegramOwnerChatId) {
       throw new Error('MAIL_GUARDIAN_TELEGRAM_OWNER_CHAT_ID is required for smoke');
+    }
     await assertTelegramReady(telegram, config.telegramOwnerChatId);
     const modelsRes = await fetch(`${config.nineRouterBaseUrl.replace(/\/+$/, '')}/models`, {
       headers: { authorization: `Bearer ${config.nineRouterApiKey}` },
@@ -78,32 +79,6 @@ async function runSweep(): Promise<void> {
   }
 }
 
-async function listen(): Promise<void> {
-  const deps = await buildDeps();
-  if (!deps.config.telegramOwnerChatId) {
-    process.stderr.write(
-      '[mail-guardian] Telegram owner chat missing; Telegram polling disabled.\n',
-    );
-  } else {
-    await assertTelegramReady(deps.telegram, deps.config.telegramOwnerChatId);
-  }
-  await runSweep();
-  const listeners = deps.config.accounts.map(async (account) => {
-    for (;;) {
-      try {
-        await deps.mail.waitForNewMail(account);
-        await runSweep();
-      } catch (error) {
-        process.stderr.write(
-          `[mail-guardian] ${account.slug} listener error: ${error instanceof Error ? error.message : String(error)}\n`,
-        );
-        await new Promise((resolve) => setTimeout(resolve, 30_000));
-      }
-    }
-  });
-  await Promise.all([pollTelegramReviews(deps), ...listeners]);
-}
-
 async function pollTelegramReviews(deps: Awaited<ReturnType<typeof buildDeps>>): Promise<void> {
   if (!deps.config.telegramOwnerChatId) return;
   let offset: number | undefined;
@@ -123,9 +98,49 @@ async function pollTelegramReviews(deps: Awaited<ReturnType<typeof buildDeps>>):
       process.stderr.write(
         `[mail-guardian] telegram polling error: ${error instanceof Error ? error.message : String(error)}\n`,
       );
-      await new Promise((resolve) => setTimeout(resolve, 30_000));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 30_000);
+      });
     }
   }
+}
+
+async function listen(): Promise<void> {
+  const deps = await buildDeps();
+  if (!deps.config.telegramOwnerChatId) {
+    process.stderr.write(
+      '[mail-guardian] Telegram owner chat missing; Telegram polling disabled.\n',
+    );
+  } else {
+    await assertTelegramReady(deps.telegram, deps.config.telegramOwnerChatId);
+  }
+  await runSweep();
+  const listeners = deps.config.accounts.map(async (account) => {
+    for (;;) {
+      try {
+        await deps.mail.waitForNewMail(account);
+        await runSweep();
+      } catch (error) {
+        process.stderr.write(
+          `[mail-guardian] ${account.slug} listener error: ${error instanceof Error ? error.message : String(error)}\n`,
+        );
+        await new Promise((resolve) => {
+          setTimeout(resolve, 30_000);
+        });
+      }
+    }
+  });
+  await Promise.all([pollTelegramReviews(deps), ...listeners]);
+}
+
+function upsertEnvLine(path: string, key: string, value: string): void {
+  const raw = readFileSync(path, 'utf8');
+  const line = `${key}=${value}`;
+  const pattern = new RegExp(`^#?\\s*${key}=.*$`, 'm');
+  const next = pattern.test(raw)
+    ? raw.replace(pattern, line)
+    : `${raw.replace(/\n?$/, '\n')}${line}\n`;
+  writeFileSync(path, next, { mode: 0o600 });
 }
 
 async function telegramDiscoverOwner(): Promise<void> {
@@ -161,16 +176,6 @@ async function decide(): Promise<void> {
     await deps.mail.close();
     await deps.store.close();
   }
-}
-
-function upsertEnvLine(path: string, key: string, value: string): void {
-  const raw = readFileSync(path, 'utf8');
-  const line = `${key}=${value}`;
-  const pattern = new RegExp(`^#?\\s*${key}=.*$`, 'm');
-  const next = pattern.test(raw)
-    ? raw.replace(pattern, line)
-    : `${raw.replace(/\n?$/, '\n')}${line}\n`;
-  writeFileSync(path, next, { mode: 0o600 });
 }
 
 async function main(): Promise<void> {

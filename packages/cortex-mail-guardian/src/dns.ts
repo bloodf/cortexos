@@ -7,7 +7,7 @@ const configuredServers = (process.env.MAIL_GUARDIAN_DNS_SERVERS ?? '1.1.1.1,8.8
   .filter(Boolean);
 if (configuredServers.length > 0) resolver.setServers(configuredServers);
 
-export const lookupWithFallback = (
+const lookupWithFallback = (
   hostname: string,
   options: dns.LookupOptions,
   callback: (
@@ -35,3 +35,5 @@ export const lookupWithFallback = (
     }
   });
 };
+
+export default lookupWithFallback;

@@ -154,116 +154,6 @@ export async function processMessage(
   return 'review';
 }
 
-export async function sweep(deps: ProcessDeps): Promise<{
-  processed: number;
-  trashed: number;
-  review: number;
-  kept: number;
-  skipped: number;
-  failed: number;
-  actions: number;
-}> {
-  let processed = 0;
-  let trashed = 0;
-  let review = 0;
-  let kept = 0;
-  let skipped = 0;
-  let failed = 0;
-  let actions = 0;
-  for (const action of await deps.store.claimPendingActions()) {
-    try {
-      await applyReviewDecision(deps, action.review_id, action.decision, action.approver);
-      await deps.store.completeAction(action.id);
-      actions += 1;
-    } catch (error) {
-      failed += 1;
-      await deps.store.failAction(
-        action.id,
-        error instanceof Error ? error.message : String(error),
-      );
-    }
-  }
-  for (const account of deps.config.accounts) {
-    let accountProcessed = 0;
-    let messages: MailMessage[];
-    try {
-      messages = await deps.mail.listInbox(account);
-    } catch (error) {
-      failed += 1;
-      process.stderr.write(
-        `[mail-guardian] ${account.slug} list failed: ${error instanceof Error ? error.message : String(error)}\n`,
-      );
-      continue;
-    }
-    for (const message of messages) {
-      if (accountProcessed >= deps.config.maxMessagesPerSweep) break;
-      let action: 'review' | 'kept' | 'skipped' | 'trashed';
-      try {
-        action = await processMessage(deps, account, message);
-      } catch (error) {
-        failed += 1;
-        process.stderr.write(
-          `[mail-guardian] ${account.slug}:${message.uid} failed: ${error instanceof Error ? error.message : String(error)}\n`,
-        );
-        continue;
-      }
-      processed += 1;
-      if (action === 'skipped') {
-        skipped += 1;
-        continue;
-      }
-      accountProcessed += 1;
-      if (action === 'review') review += 1;
-      else if (action === 'kept') kept += 1;
-      else if (action === 'trashed') trashed += 1;
-    }
-  }
-  return { processed, trashed, review, kept, skipped, failed, actions };
-}
-
-export async function handleTelegramUpdates(
-  deps: ProcessDeps,
-  updates: TelegramUpdate[],
-): Promise<number> {
-  let handled = 0;
-  for (const update of updates) {
-    const callback = update.callback_query;
-    const data = callback?.data;
-    if (!callback || !data?.startsWith('mg:')) continue;
-    const [, reviewIdRaw, decision] = data.split(':');
-    const reviewId = Number(reviewIdRaw);
-    if (!Number.isInteger(reviewId)) continue;
-    const review = await deps.store.getReview(reviewId);
-    if (!review) {
-      await deps.telegram.answerCallbackQuery(callback.id, 'Review already resolved or missing.');
-      continue;
-    }
-    const account = deps.config.accounts.find((item) => item.slug === review.account_slug);
-    if (!account) {
-      await deps.telegram.answerCallbackQuery(callback.id, 'Account missing.');
-      continue;
-    }
-    if (
-      decision !== 'spam' &&
-      decision !== 'keep' &&
-      decision !== 'block_sender' &&
-      decision !== 'allow_sender'
-    ) {
-      await deps.telegram.answerCallbackQuery(callback.id, 'Unknown decision.');
-      continue;
-    }
-    await applyReviewDecision(
-      deps,
-      reviewId,
-      decision,
-      String(callback.message?.chat?.id ?? 'telegram'),
-    );
-    await deps.telegram.answerCallbackQuery(callback.id, 'Recorded.');
-    handled += 1;
-  }
-  return handled;
-}
-
 export async function applyReviewDecision(
   deps: ProcessDeps,
   reviewId: number,
@@ -300,4 +190,119 @@ export async function applyReviewDecision(
     throw new Error(`unknown decision: ${decision}`);
   }
   await deps.store.resolveReview(reviewId, decision, approver);
+}
+
+export async function sweep(deps: ProcessDeps): Promise<{
+  processed: number;
+  trashed: number;
+  review: number;
+  kept: number;
+  skipped: number;
+  failed: number;
+  actions: number;
+}> {
+  let processed = 0;
+  let trashed = 0;
+  let review = 0;
+  let kept = 0;
+  let skipped = 0;
+  let failed = 0;
+  let actions = 0;
+  for (const action of await deps.store.claimPendingActions()) {
+    try {
+      await applyReviewDecision(deps, action.review_id, action.decision, action.approver);
+      await deps.store.completeAction(action.id);
+      actions += 1;
+    } catch (error) {
+      failed += 1;
+      await deps.store.failAction(
+        action.id,
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+  }
+  for (const account of deps.config.accounts) {
+    let accountProcessed = 0;
+    let messages: MailMessage[] = [];
+    try {
+      messages = await deps.mail.listInbox(account);
+    } catch (error) {
+      failed += 1;
+      process.stderr.write(
+        `[mail-guardian] ${account.slug} list failed: ${error instanceof Error ? error.message : String(error)}\n`,
+      );
+    }
+    for (const message of messages) {
+      if (accountProcessed >= deps.config.maxMessagesPerSweep) break;
+      let action: 'review' | 'kept' | 'skipped' | 'trashed' | undefined;
+      try {
+        action = await processMessage(deps, account, message);
+      } catch (error) {
+        failed += 1;
+        process.stderr.write(
+          `[mail-guardian] ${account.slug}:${message.uid} failed: ${error instanceof Error ? error.message : String(error)}\n`,
+        );
+      }
+      if (action) {
+        processed += 1;
+        if (action === 'skipped') {
+          skipped += 1;
+        } else {
+          accountProcessed += 1;
+          if (action === 'review') review += 1;
+          else if (action === 'kept') kept += 1;
+          else if (action === 'trashed') trashed += 1;
+        }
+      }
+    }
+  }
+  return { processed, trashed, review, kept, skipped, failed, actions };
+}
+
+export async function handleTelegramUpdates(
+  deps: ProcessDeps,
+  updates: TelegramUpdate[],
+): Promise<number> {
+  let handled = 0;
+  const relevantUpdates = updates.filter((update) => {
+    const callback = update.callback_query;
+    const data = callback?.data;
+    return callback && data?.startsWith('mg:');
+  });
+  for (const update of relevantUpdates) {
+    const callback = update.callback_query!;
+    const data = callback.data!;
+    const [, reviewIdRaw, decision] = data.split(':');
+    const reviewId = Number(reviewIdRaw);
+    if (Number.isInteger(reviewId)) {
+      const reviewRecord = await deps.store.getReview(reviewId);
+      if (reviewRecord) {
+        const account = deps.config.accounts.find((item) => item.slug === reviewRecord.account_slug);
+        if (account) {
+          if (
+            decision === 'spam' ||
+            decision === 'keep' ||
+            decision === 'block_sender' ||
+            decision === 'allow_sender'
+          ) {
+            await applyReviewDecision(
+              deps,
+              reviewId,
+              decision,
+              String(callback.message?.chat?.id ?? 'telegram'),
+            );
+            await deps.telegram.answerCallbackQuery(callback.id, 'Recorded.');
+            handled += 1;
+          } else {
+            await deps.telegram.answerCallbackQuery(callback.id, 'Unknown decision.');
+          }
+        } else {
+          await deps.telegram.answerCallbackQuery(callback.id, 'Account missing.');
+        }
+      } else {
+        await deps.telegram.answerCallbackQuery(callback.id, 'Review already resolved or missing.');
+      }
+    }
+  }
+  return handled;
 }
