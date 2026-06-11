@@ -12,9 +12,9 @@ gpt-5.5 diff review. No worker edits in this unit.
 2. Suppression audit over the campaign range:
    `git diff <MP-020 start SHA>..HEAD | grep -cE '^\+.*eslint-disable'`
    → 0, AND repo-wide
-   `grep -rn 'eslint-disable' packages/*/src packages/*/bin packages/*/scripts | wc -l`
-   → 0 (the legacy 14 are gone; none remain anywhere in first-party
-   source).
+   `grep -rn 'eslint-disable' packages/*/src packages/*/bin packages/*/scripts | grep -v '\.gen\.' | wc -l`
+   → 0 (the legacy 14 + the 9 later-inventoried ones are gone; the sole
+   exemption is generated code — routeTree.gen.ts's codegen banner).
 3. Config-scope audit: `grep -n 'MP-020' eslint.config.js` — exactly the
    approved scopes (env-modules glob, scripts devDependencies, the
    only-throw-error allow extension), each commented.
