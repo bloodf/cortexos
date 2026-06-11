@@ -49,7 +49,7 @@ describe("LogStream — fetcher + refetchIntervalMs props (MP-009)", () => {
   it("renders the fetcher's lines after mount and re-polls on the custom interval", async () => {
     let callCount = 0;
     const fetcher = vi.fn<() => Promise<string[]>>().mockImplementation(async () => {
-      callCount++;
+      callCount += 1;
       if (callCount === 1) return ["from-fetcher-1", "from-fetcher-2"];
       if (callCount === 2) return ["from-fetcher-poll-2"];
       return ["steady-state-line"]; // any further polls return valid data

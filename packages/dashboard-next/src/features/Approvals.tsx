@@ -35,7 +35,9 @@ export function ApprovalsPage() {
   const [reason, setReason] = useState("");
   const [pending, setPending] = useState<string | null>(null);
 
-  const invalidate = () => void qc.invalidateQueries({ queryKey: ["approvals"] });
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["approvals"] }).catch(() => {});
+  };
 
   const handleGrant = async (a: ApprovalRequest) => {
     setPending(`grant-${a.id}`);
@@ -202,7 +204,7 @@ export function ApprovalsPage() {
               disabled={!!pending}
               onClick={() => {
                 const target = items.find((i) => i.id === denyFor);
-                if (target) void handleRevoke(target, reason);
+                if (target) handleRevoke(target, reason).catch(() => {});
               }}
             >
               {pending?.startsWith("deny-") ? (

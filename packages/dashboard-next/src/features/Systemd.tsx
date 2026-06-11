@@ -63,7 +63,9 @@ export function SystemdPage() {
   const isAdmin = !!user?.is_admin;
   const [pendingAction, setPendingAction] = useState<string | null>(null);
 
-  const invalidate = () => void qc.invalidateQueries({ queryKey: ["systemd", "units"] });
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["systemd", "units"] }).catch(() => {});
+  };
 
   const handleAction = async (
     action: "start" | "stop" | "restart" | "reload" | "enable" | "disable",
@@ -140,7 +142,7 @@ export function SystemdPage() {
             checked={r.enabled}
             disabled={!isAdmin || isActing}
             onCheckedChange={(v) => {
-              void handleAction(v ? "enable" : "disable", r);
+              handleAction(v ? "enable" : "disable", r).catch(() => {});
             }}
           />
         );
@@ -163,7 +165,7 @@ export function SystemdPage() {
                 size="sm"
                 variant="ghost"
                 disabled={!isAdmin || isActing}
-                onClick={() => void handleAction("start", r)}
+                onClick={() => { handleAction("start", r).catch(() => {}); }}
                 title="Start"
               >
                 {pendingAction === startKey ? (
@@ -177,7 +179,7 @@ export function SystemdPage() {
                 size="sm"
                 variant="ghost"
                 disabled={!isAdmin || isActing}
-                onClick={() => void handleAction("stop", r)}
+                onClick={() => { handleAction("stop", r).catch(() => {}); }}
                 title="Stop"
               >
                 {pendingAction === stopKey ? (
@@ -191,7 +193,7 @@ export function SystemdPage() {
               size="sm"
               variant="ghost"
               disabled={!isAdmin || isActing}
-              onClick={() => void handleAction("restart", r)}
+              onClick={() => { handleAction("restart", r).catch(() => {}); }}
               title="Restart"
             >
               {pendingAction === restartKey ? (
@@ -206,6 +208,35 @@ export function SystemdPage() {
     },
   ];
 
+  let tablePanel;
+  if (isLoading) {
+    tablePanel = <TableSkeleton rows={8} cols={7} />;
+  } else if (isError) {
+    tablePanel = (
+      <EmptyState
+        title="Failed to load units"
+        description="Could not read systemd unit list. Check that systemd is available on the host."
+        action={
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => qc.invalidateQueries({ queryKey: ["systemd", "units"] })}
+          >
+            Retry
+          </Button>
+        }
+      />
+    );
+  } else {
+    tablePanel = (
+      <DataTable
+        columns={cols}
+        initialSort="name"
+        server={{ queryKey: ["systemd", "units"], fetch: api.systemdList }}
+      />
+    );
+  }
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -214,29 +245,7 @@ export function SystemdPage() {
         description={`${units.length} units · ${units.filter((u) => u.active === "active").length} active`}
       />
 
-      {isLoading ? (
-        <TableSkeleton rows={8} cols={7} />
-      ) : isError ? (
-        <EmptyState
-          title="Failed to load units"
-          description="Could not read systemd unit list. Check that systemd is available on the host."
-          action={
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => qc.invalidateQueries({ queryKey: ["systemd", "units"] })}
-            >
-              Retry
-            </Button>
-          }
-        />
-      ) : (
-        <DataTable
-          columns={cols}
-          initialSort="name"
-          server={{ queryKey: ["systemd", "units"], fetch: api.systemdList }}
-        />
-      )}
+      {tablePanel}
     </div>
   );
 }

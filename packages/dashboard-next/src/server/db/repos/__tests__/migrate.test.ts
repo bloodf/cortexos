@@ -125,7 +125,7 @@ describe("migration roundtrip", () => {
   it("records every applied migration in the migrations table", async () => {
     const rows = await client.query<{ name: string }>("SELECT name FROM migrations ORDER BY name");
     const applied = rows.rows.map((r) => r.name);
-    for (const expected of [
+    [
       "001_schema",
       "002_session_columns_for_auth",
       "003_incus_instances",
@@ -134,9 +134,9 @@ describe("migration roundtrip", () => {
       "008_dashboard_command_audit",
       "009_hermes_webui_boxbox_seed",
       "010_memory_os_seed",
-    ]) {
+    ].forEach((expected) => {
       expect(applied).toContain(expected);
-    }
+    });
   });
 
   it("creates every domain table", async () => {
@@ -145,9 +145,9 @@ describe("migration roundtrip", () => {
 			 WHERE table_schema = 'public' ORDER BY table_name`,
     );
     const present = new Set(rows.rows.map((r) => r.table_name));
-    for (const t of EXPECTED_TABLES) {
+    EXPECTED_TABLES.forEach((t) => {
       expect(present.has(t), `missing table: ${t}`).toBe(true);
-    }
+    });
   });
 
   it("creates every critical RBAC + audit index", async () => {
@@ -155,9 +155,9 @@ describe("migration roundtrip", () => {
       `SELECT indexname FROM pg_indexes WHERE schemaname = 'public'`,
     );
     const present = new Set(rows.rows.map((r) => r.indexname));
-    for (const idx of CRITICAL_INDEXES) {
+    CRITICAL_INDEXES.forEach((idx) => {
       expect(present.has(idx), `missing index: ${idx}`).toBe(true);
-    }
+    });
   });
 
   it("installs the dashboard_command_audit updated_at trigger", async () => {

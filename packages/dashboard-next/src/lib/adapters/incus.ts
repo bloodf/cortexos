@@ -36,8 +36,12 @@ function slugify(name: string): string {
 }
 
 function extractIpv4(inst: ContractLiveInstance): string | null {
-  for (const iface of Object.values(inst.state?.networks ?? {})) {
-    for (const addr of iface.addresses ?? []) {
+  const ifaces = Object.values(inst.state?.networks ?? {});
+  for (let i = 0; i < ifaces.length; i += 1) {
+    const iface = ifaces[i];
+    const addresses = iface.addresses ?? [];
+    for (let j = 0; j < addresses.length; j += 1) {
+      const addr = addresses[j];
       if (addr.family === "inet" && addr.scope === "global") {
         return addr.address;
       }

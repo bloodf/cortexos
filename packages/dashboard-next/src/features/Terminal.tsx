@@ -245,14 +245,14 @@ function TerminalTab({ id, active, username, dark, onReady, onState }: TerminalT
           }
         } else if (ev.key === "ArrowUp") {
           if (s.hIdx + 1 < s.history.length) {
-            s.hIdx++;
+            s.hIdx += 1;
             term.write(`\r${PROMPT(username)}${" ".repeat(s.buffer.length)}\r${PROMPT(username)}`);
             s.buffer = s.history[s.hIdx];
             term.write(s.buffer);
           }
         } else if (ev.key === "ArrowDown") {
           if (s.hIdx > 0) {
-            s.hIdx--;
+            s.hIdx -= 1;
             term.write(`\r${PROMPT(username)}${" ".repeat(s.buffer.length)}\r${PROMPT(username)}`);
             s.buffer = s.history[s.hIdx];
             term.write(s.buffer);

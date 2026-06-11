@@ -24,12 +24,10 @@ export function GaugeRadial({
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const off = c - (pct / 100) * c;
-  const color =
-    pct >= thresholds[1]
-      ? "var(--destructive)"
-      : pct >= thresholds[0]
-        ? "var(--warning)"
-        : "var(--primary)";
+  let color: string;
+  if (pct >= thresholds[1]) color = "var(--destructive)";
+  else if (pct >= thresholds[0]) color = "var(--warning)";
+  else color = "var(--primary)";
   return (
     <div
       className={cn("relative inline-flex items-center justify-center", className)}

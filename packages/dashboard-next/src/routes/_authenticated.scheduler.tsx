@@ -75,20 +75,16 @@ function SchedulerPage() {
       key: "status",
       header: "Status",
       sort: (r) => r.status,
-      cell: (r) => (
-        <Badge
-          variant="outline"
-          className={
-            r.status === "ok"
-              ? "border-[var(--success)] text-[var(--success)]"
-              : r.status === "failing"
-                ? "border-destructive text-destructive"
-                : "border-muted-foreground text-muted-foreground"
-          }
-        >
-          {r.status}
-        </Badge>
-      ),
+      cell: (r) => {
+        let statusClass = "border-muted-foreground text-muted-foreground";
+        if (r.status === "ok") statusClass = "border-[var(--success)] text-[var(--success)]";
+        else if (r.status === "failing") statusClass = "border-destructive text-destructive";
+        return (
+          <Badge variant="outline" className={statusClass}>
+            {r.status}
+          </Badge>
+        );
+      },
     },
     {
       key: "actions",

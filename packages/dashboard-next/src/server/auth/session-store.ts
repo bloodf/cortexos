@@ -280,15 +280,19 @@ export class InMemorySessionStore implements SessionStore {
       name,
       isAdmin: name === "cortexos-admin",
     }));
-    for (const u of this.users.values()) {
+    const users = Array.from(this.users.values());
+    for (let i = 0; i < users.length; i += 1) {
+      const u = users[i];
       if (u.username === input.username) {
         u.groupMemberships = entries;
         u.isActive = input.isActive ?? true;
         return { id: u.id, username: u.username };
       }
     }
+    const nextUserId = this.nextUserId;
+    this.nextUserId += 1;
     const u: MemUserRow = {
-      id: this.nextUserId++,
+      id: nextUserId,
       username: input.username,
       groupMemberships: entries,
       isActive: input.isActive ?? true,
@@ -307,8 +311,10 @@ export class InMemorySessionStore implements SessionStore {
     const now = Date.now();
     const ttl = input.ttlMs ?? DEFAULT_SESSION_TTL_MS;
     const token = generateSessionToken();
+    const nextSessionId = this.nextSessionId;
+    this.nextSessionId += 1;
     const row: MemSessionRow = {
-      id: this.nextSessionId++,
+      id: nextSessionId,
       userId: user.id,
       token,
       csrfToken: input.csrfToken,
@@ -377,12 +383,12 @@ export class InMemorySessionStore implements SessionStore {
   async sweepExpired(): Promise<number> {
     const now = Date.now();
     let removed = 0;
-    for (const [token, row] of this.sessions) {
+    Array.from(this.sessions.entries()).forEach(([token, row]) => {
       if (row.expiresAt <= now) {
         this.sessions.delete(token);
-        removed++;
+        removed += 1;
       }
-    }
+    });
     return removed;
   }
 
@@ -397,12 +403,12 @@ export class InMemorySessionStore implements SessionStore {
     const ranAt = Date.now();
     const now = ranAt;
     let deleted = 0;
-    for (const [token, row] of this.sessions.entries()) {
+    Array.from(this.sessions.entries()).forEach(([token, row]) => {
       if (row.expiresAt <= now) {
         this.sessions.delete(token);
-        deleted++;
+        deleted += 1;
       }
-    }
+    });
     return { deleted, ranAt };
   }
 }

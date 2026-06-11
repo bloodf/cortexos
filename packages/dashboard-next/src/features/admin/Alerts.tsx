@@ -211,6 +211,37 @@ export function AdminAlertsPage() {
     },
   ];
 
+  let tablePanel;
+  if (isLoading) {
+    tablePanel = <TableSkeleton rows={6} cols={5} />;
+  } else if (isError) {
+    tablePanel = (
+      <EmptyState
+        title="Failed to load alert rules"
+        description="Could not reach the alerts service."
+        action={
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => qc.invalidateQueries({ queryKey: ["alerts", "rules"] })}
+          >
+            Retry
+          </Button>
+        }
+      />
+    );
+  } else {
+    tablePanel = (
+      <DataTable
+        rows={data}
+        columns={columns}
+        loading={isLoading}
+        initialSort="name"
+        filterFn={(r, q) => r.name.toLowerCase().includes(q)}
+      />
+    );
+  }
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -224,31 +255,7 @@ export function AdminAlertsPage() {
         }
       />
 
-      {isLoading ? (
-        <TableSkeleton rows={6} cols={5} />
-      ) : isError ? (
-        <EmptyState
-          title="Failed to load alert rules"
-          description="Could not reach the alerts service."
-          action={
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => qc.invalidateQueries({ queryKey: ["alerts", "rules"] })}
-            >
-              Retry
-            </Button>
-          }
-        />
-      ) : (
-        <DataTable
-          rows={data}
-          columns={columns}
-          loading={isLoading}
-          initialSort="name"
-          filterFn={(r, q) => r.name.toLowerCase().includes(q)}
-        />
-      )}
+      {tablePanel}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>

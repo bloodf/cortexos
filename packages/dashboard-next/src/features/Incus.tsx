@@ -256,7 +256,9 @@ export function IncusPage() {
 
   const isAdmin = !!user?.is_admin;
 
-  const invalidate = () => void qc.invalidateQueries({ queryKey: ["incus"] });
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["incus"] }).catch(() => {});
+  };
 
   const handleStart = async (inst: IncusInstance) => {
     const key = `start-${inst.name}`;
@@ -455,6 +457,35 @@ export function IncusPage() {
     },
   ];
 
+  let tablePanel;
+  if (isLoading) {
+    tablePanel = <TableSkeleton rows={6} cols={7} />;
+  } else if (isError) {
+    tablePanel = (
+      <EmptyState
+        title="Failed to load instances"
+        description="Could not reach the Incus bridge. Check that the Incus daemon is running."
+        action={
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => qc.invalidateQueries({ queryKey: ["incus"] })}
+          >
+            Retry
+          </Button>
+        }
+      />
+    );
+  } else {
+    tablePanel = (
+      <DataTable
+        columns={cols}
+        initialSort="project"
+        server={{ queryKey: ["incus"], fetch: api.incusList }}
+      />
+    );
+  }
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -471,29 +502,7 @@ export function IncusPage() {
         }
       />
 
-      {isLoading ? (
-        <TableSkeleton rows={6} cols={7} />
-      ) : isError ? (
-        <EmptyState
-          title="Failed to load instances"
-          description="Could not reach the Incus bridge. Check that the Incus daemon is running."
-          action={
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => qc.invalidateQueries({ queryKey: ["incus"] })}
-            >
-              Retry
-            </Button>
-          }
-        />
-      ) : (
-        <DataTable
-          columns={cols}
-          initialSort="project"
-          server={{ queryKey: ["incus"], fetch: api.incusList }}
-        />
-      )}
+      {tablePanel}
 
       <Sheet open={!!active} onOpenChange={(o) => !o && setActive(null)}>
         <SheetContent className="w-full sm:max-w-xl overflow-y-auto">

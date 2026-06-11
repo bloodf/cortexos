@@ -40,13 +40,13 @@ export function TimeRangeAreaTrend({
     const last = data[data.length - 1] ?? {};
     return Array.from({ length: points }, (_, i) => {
       const row: Record<string, number | string> = { t: i };
-      for (const s of series) {
+      series.forEach((s) => {
         const base = Number(last[s.key] ?? 50);
         // Deterministic-ish wave so it doesn't shuffle on every render
         const wave = Math.sin((i / points) * Math.PI * (range === "24h" ? 4 : 7));
         const jitter = ((i * 9301 + 49297) % 233280) / 233280 - 0.5;
         row[s.key] = Math.max(2, Math.min(98, base + wave * 18 + jitter * 8));
-      }
+      });
       return row;
     });
   }, [data, range, series]);

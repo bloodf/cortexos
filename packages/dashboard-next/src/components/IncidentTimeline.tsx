@@ -25,13 +25,11 @@ export function IncidentTimeline({ items }: { items: AlertHistory[] }) {
                 !fired && !resolved && "bg-muted text-muted-foreground",
               )}
             >
-              {fired ? (
-                <AlertTriangle className="size-3.5" />
-              ) : resolved ? (
-                <CheckCircle2 className="size-3.5" />
-              ) : (
-                <Circle className="size-3.5" />
-              )}
+              {(() => {
+                if (fired) return <AlertTriangle className="size-3.5" />;
+                if (resolved) return <CheckCircle2 className="size-3.5" />;
+                return <Circle className="size-3.5" />;
+              })()}
             </span>
             <div className="flex items-baseline justify-between gap-3 flex-wrap">
               <h4 className="font-medium text-sm">{it.ruleName}</h4>

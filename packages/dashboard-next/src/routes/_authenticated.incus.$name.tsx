@@ -89,7 +89,9 @@ function IncusDetail() {
   const isAdmin = !!user?.is_admin;
   const acting = pendingAction !== null;
 
-  const invalidate = () => void qc.invalidateQueries({ queryKey: ["incus"] });
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["incus"] }).catch(() => {});
+  };
 
   const handleStart = async () => {
     if (!inst) return;
@@ -139,7 +141,7 @@ function IncusDetail() {
     try {
       await dispatchIncusAction("delete", inst.name, "delete");
       toast.success(`Deleted ${inst.name}`);
-      void qc.invalidateQueries({ queryKey: ["incus"] });
+      qc.invalidateQueries({ queryKey: ["incus"] }).catch(() => {});
     } catch {
       toast.error(`Failed to delete ${inst.name}`);
     } finally {

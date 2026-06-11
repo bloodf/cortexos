@@ -218,12 +218,13 @@ async function main() {
         // excludes data-table cells, log lines, argv strings, etc. that may
         // echo signature text in normal product content (MP-005).
         const errorLandmarks = page.locator('h1, h2, h3, [role="alert"], header p');
-        for (const sig of ERROR_SIGNATURES) {
-          const sigCount = await errorLandmarks.filter({ hasText: sig }).count();
-          if (sigCount > 0) {
-            reasons.push(`error-boundary text present: "${sig}"`);
-          }
-        }
+        const sigReasons = await Promise.all(
+          ERROR_SIGNATURES.map(async (sig) => {
+            const sigCount = await errorLandmarks.filter({ hasText: sig }).count();
+            return sigCount > 0 ? `error-boundary text present: "${sig}"` : null;
+          }),
+        );
+        reasons.push(...sigReasons.filter((r): r is string => r !== null));
 
         // 4. Landmark renders with real content (only meaningful if not redirected).
         if (!/\/login(\?|$)/.test(finalUrl)) {
@@ -300,12 +301,12 @@ async function main() {
   console.log(`${pad("ROUTE", 22) + pad("VERDICT", 9)}DETAIL`);
   console.log("-".repeat(80));
   let failCount = 0;
-  for (const r of results) {
+  results.forEach((r) => {
     const verdict = r.pass ? "PASS" : "FAIL";
-    if (!r.pass) failCount++;
+    if (!r.pass) failCount += 1;
     const detail = r.pass ? `(${r.finalUrl})` : r.reasons.join("; ");
     console.log(pad(r.path, 22) + pad(verdict, 9) + detail);
-  }
+  });
 
   // Surface known-env-artifact matches for ALL routes (PASS and FAIL) so
   // a passing route (e.g. /terminal whose only console error was the
@@ -316,11 +317,11 @@ async function main() {
   if (artifactRoutes.length === 0) {
     console.log("none.");
   } else {
-    for (const r of artifactRoutes) {
-      for (const reason of r.knownArtifacts) {
+    artifactRoutes.forEach((r) => {
+      r.knownArtifacts.forEach((reason) => {
         console.log(`  known-artifact: ${r.path}: ${reason}`);
-      }
-    }
+      });
+    });
   }
 
   console.log("\n=== FAIL DETAIL ===");
@@ -328,29 +329,30 @@ async function main() {
   if (fails.length === 0) {
     console.log("none — all routes rendered.");
   } else {
-    for (const r of fails) {
+    fails.forEach((r) => {
       console.log(`\n## ${r.path}  (final: ${r.finalUrl})`);
       console.log(`  reasons: ${r.reasons.join("; ")}`);
       if (r.knownArtifacts && r.knownArtifacts.length) {
-        for (const reason of r.knownArtifacts) {
+        r.knownArtifacts.forEach((reason) => {
           console.log(`  known-artifact: ${reason}`);
-        }
+        });
       }
       if (r.consoleErrors.length) {
         console.log("  console errors:");
-        for (const e of r.consoleErrors) console.log(`    - ${e}`);
+        r.consoleErrors.forEach((e) => console.log(`    - ${e}`));
       }
       if (r.failedRequests.length) {
         console.log("  failed/5xx requests:");
-        for (const f of r.failedRequests) console.log(`    - ${f}`);
+        r.failedRequests.forEach((f) => console.log(`    - ${f}`));
       }
       if (r.badResponses.length) {
         console.log("  4xx/5xx server-fn responses:");
-        for (const b of r.badResponses)
-          console.log(`    - ${b.status} ${b.url}\n      body: ${b.body}`);
+        r.badResponses.forEach((b) =>
+          console.log(`    - ${b.status} ${b.url}\n      body: ${b.body}`),
+        );
       }
       console.log(`  screenshot: ${r.shot}`);
-    }
+    });
   }
 
   console.log(

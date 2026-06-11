@@ -98,9 +98,9 @@ export function Sidebar({ collapsed, mobileOpen, onClose }: Props) {
     // Auto-expand the group containing the active route
     setOpenGroups((prev) => {
       const next = { ...prev };
-      for (const g of NAV) {
+      NAV.forEach((g) => {
         if (g.items.some((it) => path.startsWith(it.to))) next[g.id] = true;
-      }
+      });
       return next;
     });
   }, [path]);

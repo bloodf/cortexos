@@ -89,7 +89,7 @@ export function DockerPage() {
   const isAdmin = !!user?.is_admin;
 
   const invalidateContainers = () => {
-    void qc.invalidateQueries({ queryKey: ["docker", "containers"] });
+    qc.invalidateQueries({ queryKey: ["docker", "containers"] }).catch(() => {});
   };
 
   const handleStart = async (c: DockerContainer) => {
@@ -329,6 +329,75 @@ export function DockerPage() {
     },
   ];
 
+  let containersPanel;
+  if (lc) {
+    containersPanel = <TableSkeleton rows={6} cols={5} />;
+  } else if (ec) {
+    containersPanel = (
+      <EmptyState
+        title="Failed to load containers"
+        description="Could not reach Docker. Check that the Docker daemon is running."
+        action={
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => qc.invalidateQueries({ queryKey: ["docker", "containers"] })}
+          >
+            Retry
+          </Button>
+        }
+      />
+    );
+  } else {
+    containersPanel = (
+      <DataTable
+        columns={containerCols}
+        initialSort="name"
+        server={{ queryKey: ["docker", "containers"], fetch: api.docker.containersList }}
+      />
+    );
+  }
+
+  let imagesPanel;
+  if (li) {
+    imagesPanel = <TableSkeleton rows={6} cols={5} />;
+  } else if (ei) {
+    imagesPanel = (
+      <EmptyState
+        title="Failed to load images"
+        description="Could not reach Docker. Check that the Docker daemon is running."
+      />
+    );
+  } else {
+    imagesPanel = (
+      <DataTable
+        columns={imageCols}
+        initialSort="repo"
+        server={{ queryKey: ["docker", "images"], fetch: api.docker.imagesList }}
+      />
+    );
+  }
+
+  let volumesPanel;
+  if (lv) {
+    volumesPanel = <TableSkeleton rows={4} cols={4} />;
+  } else if (ev) {
+    volumesPanel = (
+      <EmptyState
+        title="Failed to load volumes"
+        description="Could not reach Docker. Check that the Docker daemon is running."
+      />
+    );
+  } else {
+    volumesPanel = (
+      <DataTable
+        columns={volumeCols}
+        initialSort="name"
+        server={{ queryKey: ["docker", "volumes"], fetch: api.docker.volumesList }}
+      />
+    );
+  }
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -351,65 +420,11 @@ export function DockerPage() {
           <TabsTrigger value="volumes">Volumes ({volumes.length})</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="containers">
-          {lc ? (
-            <TableSkeleton rows={6} cols={5} />
-          ) : ec ? (
-            <EmptyState
-              title="Failed to load containers"
-              description="Could not reach Docker. Check that the Docker daemon is running."
-              action={
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => qc.invalidateQueries({ queryKey: ["docker", "containers"] })}
-                >
-                  Retry
-                </Button>
-              }
-            />
-          ) : (
-            <DataTable
-              columns={containerCols}
-              initialSort="name"
-              server={{ queryKey: ["docker", "containers"], fetch: api.docker.containersList }}
-            />
-          )}
-        </TabsContent>
+        <TabsContent value="containers">{containersPanel}</TabsContent>
 
-        <TabsContent value="images">
-          {li ? (
-            <TableSkeleton rows={6} cols={5} />
-          ) : ei ? (
-            <EmptyState
-              title="Failed to load images"
-              description="Could not reach Docker. Check that the Docker daemon is running."
-            />
-          ) : (
-            <DataTable
-              columns={imageCols}
-              initialSort="repo"
-              server={{ queryKey: ["docker", "images"], fetch: api.docker.imagesList }}
-            />
-          )}
-        </TabsContent>
+        <TabsContent value="images">{imagesPanel}</TabsContent>
 
-        <TabsContent value="volumes">
-          {lv ? (
-            <TableSkeleton rows={4} cols={4} />
-          ) : ev ? (
-            <EmptyState
-              title="Failed to load volumes"
-              description="Could not reach Docker. Check that the Docker daemon is running."
-            />
-          ) : (
-            <DataTable
-              columns={volumeCols}
-              initialSort="name"
-              server={{ queryKey: ["docker", "volumes"], fetch: api.docker.volumesList }}
-            />
-          )}
-        </TabsContent>
+        <TabsContent value="volumes">{volumesPanel}</TabsContent>
       </Tabs>
 
       <DetailDrawer

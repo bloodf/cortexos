@@ -926,8 +926,8 @@ export const api = {
 
 // Suppress unused-variable warnings for typed boundary casts used only
 // in cast expressions above.
-void (listServiceHealthFn satisfies typeof listServiceHealthFn);
-void (getUnitFn satisfies typeof getUnitFn);
+listServiceHealthFn satisfies typeof listServiceHealthFn;
+getUnitFn satisfies typeof getUnitFn;
 
 // ---------------------------------------------------------------------------
 // Wired server-function re-exports (WP-19 — terminal named ops)

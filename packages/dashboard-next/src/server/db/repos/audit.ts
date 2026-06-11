@@ -298,7 +298,8 @@ export async function verifyAuditLogChain(
     expectedPrev = GENESIS_PREV_HASH;
   }
 
-  for (const row of rows) {
+  for (let i = 0; i < rows.length; i += 1) {
+    const row = rows[i];
     if (row.prevHash !== expectedPrev) {
       return {
         valid: false,

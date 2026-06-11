@@ -92,18 +92,20 @@ async function readEnvFile(path: string): Promise<EnvEntry[]> {
   const text = await readFile(path, "utf-8");
   const lines = text.split("\n");
   const entries: EnvEntry[] = [];
-  for (const line of lines) {
+  lines.forEach((line) => {
     const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const eq = trimmed.indexOf("=");
-    if (eq === -1) continue;
-    const key = trimmed.slice(0, eq).trim();
-    const value = trimmed
-      .slice(eq + 1)
-      .trim()
-      .replace(/^["']|["']$/g, "");
-    entries.push({ key, value, masked: maskValue(key, value) });
-  }
+    if (trimmed && !trimmed.startsWith("#")) {
+      const eq = trimmed.indexOf("=");
+      if (eq !== -1) {
+        const key = trimmed.slice(0, eq).trim();
+        const value = trimmed
+          .slice(eq + 1)
+          .trim()
+          .replace(/^["']|["']$/g, "");
+        entries.push({ key, value, masked: maskValue(key, value) });
+      }
+    }
+  });
   return entries;
 }
 

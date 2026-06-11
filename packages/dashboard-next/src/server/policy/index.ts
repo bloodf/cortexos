@@ -71,9 +71,9 @@ export function isCommandAllowed(name: string): boolean {
 /** List all allowlisted operations on a given surface. */
 export function listAllowlistedBySurface(surface: Surface): AllowlistEntry[] {
   const out: AllowlistEntry[] = [];
-  for (const entry of allowlist.values()) {
+  Array.from(allowlist.values()).forEach((entry) => {
     if (entry.surface === surface) out.push(entry);
-  }
+  });
   return out;
 }
 
@@ -122,7 +122,8 @@ const SMUGGLING_PATTERNS: readonly { pattern: RegExp; reason: string }[] = [
 
 /** Returns the first denylist hit in a string, or null. */
 export function violatesDenylist(value: string): DenyHit | null {
-  for (const { pattern, reason } of DENY_PATTERNS) {
+  for (let i = 0; i < DENY_PATTERNS.length; i += 1) {
+    const { pattern, reason } = DENY_PATTERNS[i];
     const m = value.match(pattern);
     if (m) {
       return { pattern: pattern.source, matched: m[0], reason };
@@ -133,7 +134,8 @@ export function violatesDenylist(value: string): DenyHit | null {
 
 /** Returns the first smuggling-pattern hit in a value, or null. */
 export function hasSmugglingPattern(value: string): DenyHit | null {
-  for (const { pattern, reason } of SMUGGLING_PATTERNS) {
+  for (let i = 0; i < SMUGGLING_PATTERNS.length; i += 1) {
+    const { pattern, reason } = SMUGGLING_PATTERNS[i];
     const m = value.match(pattern);
     if (m) {
       return { pattern: pattern.source, matched: m[0], reason };
@@ -247,7 +249,7 @@ export function installDefaultAllowlist(): void {
   });
 
   // systemd (§4.4.2)
-  for (const action of [
+  [
     "start",
     "stop",
     "restart",
@@ -256,7 +258,7 @@ export function installDefaultAllowlist(): void {
     "enable",
     "disable",
     "list-units",
-  ]) {
+  ].forEach((action) => {
     addAllowlisted({
       name: `systemd.${action}`,
       surface: "systemd",
@@ -264,10 +266,10 @@ export function installDefaultAllowlist(): void {
       requiresApproval: ["restart", "stop"].includes(action),
       description: `systemd ${action} on an allowlisted unit.`,
     });
-  }
+  });
 
   // Docker (§4.4.3)
-  for (const action of ["start", "stop", "restart", "rm", "logs", "inspect", "list"]) {
+  ["start", "stop", "restart", "rm", "logs", "inspect", "list"].forEach((action) => {
     addAllowlisted({
       name: `docker.${action}`,
       surface: "docker",
@@ -275,7 +277,7 @@ export function installDefaultAllowlist(): void {
       requiresApproval: ["rm", "restart", "stop"].includes(action),
       description: `docker ${action} on an allowlisted container.`,
     });
-  }
+  });
   addAllowlisted({
     name: "docker.privileged",
     surface: "docker",
@@ -292,7 +294,7 @@ export function installDefaultAllowlist(): void {
   });
 
   // Incus (§4.4.4)
-  for (const action of ["start", "stop", "restart", "delete", "launch", "list"]) {
+  ["start", "stop", "restart", "delete", "launch", "list"].forEach((action) => {
     addAllowlisted({
       name: `incus.${action}`,
       surface: "incus",
@@ -300,7 +302,7 @@ export function installDefaultAllowlist(): void {
       requiresApproval: ["delete", "restart", "stop"].includes(action),
       description: `incus ${action} on an allowlisted instance.`,
     });
-  }
+  });
   addAllowlisted({
     name: "incus.exec-named",
     surface: "incus",

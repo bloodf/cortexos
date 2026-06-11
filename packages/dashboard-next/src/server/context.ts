@@ -61,14 +61,21 @@ interface SetCookieOpts {
 function parseCookieHeader(header: string | null): Map<string, string> {
   const out = new Map<string, string>();
   if (!header) return out;
-  for (const part of header.split(";")) {
+  header.split(";").forEach((part) => {
     const idx = part.indexOf("=");
-    if (idx < 0) continue;
-    const name = part.slice(0, idx).trim();
-    const value = part.slice(idx + 1).trim();
-    if (name) out.set(name, decodeURIComponent(value));
-  }
+    if (idx >= 0) {
+      const name = part.slice(0, idx).trim();
+      const value = part.slice(idx + 1).trim();
+      if (name) out.set(name, decodeURIComponent(value));
+    }
+  });
   return out;
+}
+
+function serializeSameSite(value: "lax" | "strict" | "none"): string {
+  if (value === "lax") return "Lax";
+  if (value === "strict") return "Strict";
+  return "None";
 }
 
 function serializeCookie(name: string, value: string, opts: SetCookieOpts): string {
@@ -77,8 +84,7 @@ function serializeCookie(name: string, value: string, opts: SetCookieOpts): stri
   if (opts.maxAge !== undefined) segments.push(`Max-Age=${Math.floor(opts.maxAge)}`);
   if (opts.httpOnly) segments.push("HttpOnly");
   if (opts.sameSite) {
-    const v = opts.sameSite === "lax" ? "Lax" : opts.sameSite === "strict" ? "Strict" : "None";
-    segments.push(`SameSite=${v}`);
+    segments.push(`SameSite=${serializeSameSite(opts.sameSite)}`);
   }
   if (opts.secure) segments.push("Secure");
   return segments.join("; ");
@@ -124,9 +130,9 @@ export class WebCookieJar implements CookieJar {
 
   /** Apply accumulated Set-Cookie headers + framework headers to a response. */
   applyTo(headers: Headers): void {
-    for (const cookie of this.pending.values()) {
+    Array.from(this.pending.values()).forEach((cookie) => {
       headers.append("set-cookie", cookie);
-    }
+    });
   }
 }
 

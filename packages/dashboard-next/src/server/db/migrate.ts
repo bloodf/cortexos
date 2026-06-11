@@ -67,14 +67,14 @@ export function getLanIp(): string | undefined {
   const ifaces = os.networkInterfaces();
   const candidates: { ip: string; source: string }[] = [];
 
-  for (const [name, addrs] of Object.entries(ifaces)) {
-    if (!addrs) continue;
-    for (const addr of addrs) {
-      if (addr.internal) continue;
-      if (addr.family !== "IPv4") continue;
+  Object.entries(ifaces).forEach(([name, addrs]) => {
+    if (!addrs) return;
+    addrs.forEach((addr) => {
+      if (addr.internal) return;
+      if (addr.family !== "IPv4") return;
       candidates.push({ ip: addr.address, source: name });
-    }
-  }
+    });
+  });
 
   const score = (source: string): number => {
     const s = source.toLowerCase();
@@ -123,7 +123,7 @@ function isIgnoredExtensionError(e: unknown, patterns?: string[]): boolean {
 function filterExtensionStatements(sql: string, patterns?: string[]): string {
   const all = (patterns ?? ["timescaledb"]).map((p) => p.toLowerCase());
   let out = sql;
-  for (const p of all) {
+  all.forEach((p) => {
     const pEsc = p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     // Remove `CREATE EXTENSION [IF NOT EXISTS] <name>` lines.
     out = out.replace(
@@ -138,7 +138,7 @@ function filterExtensionStatements(sql: string, patterns?: string[]): string {
     // the `;` lands (single-line statements only — multi-line
     // `create_hypertable` is not used in the current migrations).
     out = out.replace(new RegExp(`^[^\\n]*create_hypertable\\s*\\([^\\n]*;?\\s*$`, "gim"), "");
-  }
+  });
   // Collapse runs of blank lines left behind.
   out = out.replace(/\n{3,}/g, "\n\n");
   return out;

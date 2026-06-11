@@ -143,11 +143,11 @@ export async function finishDashboardCommand(
   if (!completion.status) {
     throw new Error("finishDashboardCommand: status is required");
   }
-  for (const k of Object.keys(completion)) {
+  Object.keys(completion).forEach((k) => {
     if (!ALLOWED_FINISH_KEYS.has(k)) {
       throw new Error(`finishDashboardCommand: unexpected key ${k}`);
     }
-  }
+  });
 
   // Step 1: typed UPDATE for the scalar fields. Drizzle parameterises
   // every value; the requestId is bound via `eq()`.

@@ -236,11 +236,11 @@ function extractApiError(e: unknown): ApiError | null {
 
 function finalize(res: Response, ctx: RequestCtx): Response {
   ctx.cookies.applyTo(res.headers);
-  for (const [name, value] of Object.entries(FRAMEWORK_HEADERS)) {
+  Object.entries(FRAMEWORK_HEADERS).forEach(([name, value]) => {
     if (!res.headers.has(name)) res.headers.set(name, value);
-  }
+  });
   // Probabilistic session GC (best-effort; fire-and-forget).
-  void maybeGcExpiredSessions();
+  maybeGcExpiredSessions().catch(() => {});
   return res;
 }
 
@@ -252,7 +252,9 @@ async function readRequestInput(request: Request): Promise<unknown> {
   const method = request.method.toUpperCase();
   if (method === "GET" || method === "DELETE") {
     const obj: Record<string, unknown> = {};
-    for (const [k, v] of new URL(request.url).searchParams.entries()) obj[k] = v;
+    Array.from(new URL(request.url).searchParams.entries()).forEach(([k, v]) => {
+      obj[k] = v;
+    });
     return obj;
   }
   const ct = request.headers.get("content-type") ?? "";
@@ -266,10 +268,11 @@ async function readRequestInput(request: Request): Promise<unknown> {
   try {
     const fd = await request.formData();
     const out: Record<string, unknown> = {};
-    for (const [k, v] of fd.entries()) {
-      if (typeof v !== "string") continue;
-      out[k] = v;
-    }
+    Array.from(fd.entries()).forEach(([k, v]) => {
+      if (typeof v === "string") {
+        out[k] = v;
+      }
+    });
     return out;
   } catch {
     return null;
@@ -290,11 +293,12 @@ function safeAudit<TIn>(
 ): void {
   try {
     const target = opts.target ? opts.target(input as TIn, ctx) : null;
-    const result: AuditInput["result"] = err
-      ? err.kind === "permission" || err.kind === "auth"
-        ? "denied"
-        : "failure"
-      : "success";
+    let result: AuditInput["result"];
+    if (err) {
+      result = err.kind === "permission" || err.kind === "auth" ? "denied" : "failure";
+    } else {
+      result = "success";
+    }
     const url = new URL(ctx.request.url);
     const basePayload: Record<string, unknown> = {
       method: ctx.request.method,
@@ -333,9 +337,10 @@ export function defineApiRoute<TIn, TOut>(opts: RouteOptions<TIn, TOut>): ApiRou
 
     // --- method match → 405 ---
     if (!opts.methods.includes(method)) {
+      const allowMethods = opts.methods.join(", ");
       const res = new Response("Method not allowed", {
         status: 405,
-        headers: { allow: opts.methods.join(", ") },
+        headers: { allow: allowMethods },
       });
       return finalize(res, ctx);
     }

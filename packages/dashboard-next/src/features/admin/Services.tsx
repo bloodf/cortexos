@@ -232,6 +232,15 @@ export function AdminServicesPage() {
     },
   ];
 
+  let confirmLabel: string;
+  if (saving) {
+    confirmLabel = "Saving…";
+  } else if (editing) {
+    confirmLabel = "Save changes";
+  } else {
+    confirmLabel = "Create";
+  }
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -362,7 +371,7 @@ export function AdminServicesPage() {
               Cancel
             </Button>
             <Button size="sm" onClick={submit} disabled={!canSave || saving}>
-              {saving ? "Saving…" : editing ? "Save changes" : "Create"}
+              {confirmLabel}
             </Button>
           </DialogFooter>
         </DialogContent>

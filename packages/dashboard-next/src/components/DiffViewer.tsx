@@ -38,22 +38,30 @@ function diff(a: string[], b: string[]): Row[] {
   let lb = 1;
   while (i < n && j < m) {
     if (a[i] === b[j]) {
-      rows.push({ type: "same", text: a[i], lineA: la++, lineB: lb++ });
-      i++;
-      j++;
+      rows.push({ type: "same", text: a[i], lineA: la, lineB: lb });
+      la += 1;
+      lb += 1;
+      i += 1;
+      j += 1;
     } else if (dp[i + 1][j] >= dp[i][j + 1]) {
-      rows.push({ type: "del", text: a[i], lineA: la++ });
-      i++;
+      rows.push({ type: "del", text: a[i], lineA: la });
+      la += 1;
+      i += 1;
     } else {
-      rows.push({ type: "add", text: b[j], lineB: lb++ });
-      j++;
+      rows.push({ type: "add", text: b[j], lineB: lb });
+      lb += 1;
+      j += 1;
     }
   }
   while (i < n) {
-    rows.push({ type: "del", text: a[i++], lineA: la++ });
+    rows.push({ type: "del", text: a[i], lineA: la });
+    i += 1;
+    la += 1;
   }
   while (j < m) {
-    rows.push({ type: "add", text: b[j++], lineB: lb++ });
+    rows.push({ type: "add", text: b[j], lineB: lb });
+    j += 1;
+    lb += 1;
   }
   return rows;
 }

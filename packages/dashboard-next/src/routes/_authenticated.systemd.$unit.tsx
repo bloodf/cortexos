@@ -90,7 +90,9 @@ function SystemdDetail() {
   const isAdmin = !!user?.is_admin;
   const acting = pendingAction !== null;
 
-  const invalidate = () => void qc.invalidateQueries({ queryKey: ["systemd", "units"] });
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["systemd", "units"] }).catch(() => {});
+  };
 
   const handleAction = async (
     action: "start" | "stop" | "restart" | "reload" | "enable" | "disable",
@@ -101,7 +103,7 @@ function SystemdDetail() {
       toast.success(`${unitName}: ${action} dispatched`);
       invalidate();
       // Also refresh logs after an action.
-      void refetchLogs();
+      refetchLogs().catch(() => {});
     } catch {
       toast.error(`Failed to ${action} ${unitName}`);
     } finally {
@@ -145,6 +147,41 @@ function SystemdDetail() {
 
   if (!u) return null;
 
+  let logsPanel;
+  if (logsLoading) {
+    logsPanel = (
+      <div className="rounded-md border bg-muted/30 h-64 flex items-center justify-center text-sm text-muted-foreground">
+        Loading journal…
+      </div>
+    );
+  } else if (logsError) {
+    logsPanel = (
+      <EmptyState
+        title="Failed to load logs"
+        description="Could not read journal for this unit."
+        action={
+          <Button size="sm" variant="outline" onClick={() => { refetchLogs().catch(() => {}); }}>
+            Retry
+          </Button>
+        }
+      />
+    );
+  } else {
+    logsPanel = (
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground tabular-nums">
+            {logsData?.count ?? 0} lines
+          </span>
+          <Button size="sm" variant="outline" onClick={() => { refetchLogs().catch(() => {}); }}>
+            Refresh
+          </Button>
+        </div>
+        <LogViewer lines={logsData?.lines ?? []} height={420} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       <Button asChild variant="ghost" size="sm" className="-ml-2">
@@ -174,7 +211,7 @@ function SystemdDetail() {
                 size="sm"
                 variant="outline"
                 disabled={acting}
-                onClick={() => void handleAction("start")}
+                onClick={() => { handleAction("start").catch(() => {}); }}
               >
                 {pendingAction === "start" ? (
                   <Loader2 className="size-3.5 mr-1 animate-spin" />
@@ -189,7 +226,7 @@ function SystemdDetail() {
                 size="sm"
                 variant="outline"
                 disabled={acting}
-                onClick={() => void handleAction("stop")}
+                onClick={() => { handleAction("stop").catch(() => {}); }}
               >
                 {pendingAction === "stop" ? (
                   <Loader2 className="size-3.5 mr-1 animate-spin" />
@@ -204,7 +241,7 @@ function SystemdDetail() {
                 size="sm"
                 variant="outline"
                 disabled={acting}
-                onClick={() => void handleAction("restart")}
+                onClick={() => { handleAction("restart").catch(() => {}); }}
               >
                 {pendingAction === "restart" ? (
                   <Loader2 className="size-3.5 mr-1 animate-spin" />
@@ -236,33 +273,7 @@ function SystemdDetail() {
         </TabsContent>
 
         <TabsContent value="logs" className="pt-4">
-          {logsLoading ? (
-            <div className="rounded-md border bg-muted/30 h-64 flex items-center justify-center text-sm text-muted-foreground">
-              Loading journal…
-            </div>
-          ) : logsError ? (
-            <EmptyState
-              title="Failed to load logs"
-              description="Could not read journal for this unit."
-              action={
-                <Button size="sm" variant="outline" onClick={() => void refetchLogs()}>
-                  Retry
-                </Button>
-              }
-            />
-          ) : (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground tabular-nums">
-                  {logsData?.count ?? 0} lines
-                </span>
-                <Button size="sm" variant="outline" onClick={() => void refetchLogs()}>
-                  Refresh
-                </Button>
-              </div>
-              <LogViewer lines={logsData?.lines ?? []} height={420} />
-            </div>
-          )}
+          {logsPanel}
         </TabsContent>
       </Tabs>
     </div>

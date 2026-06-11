@@ -183,11 +183,11 @@ export async function updateService(
   patch: Partial<Omit<Service, "id" | "createdAt" | "updatedAt">>,
 ): Promise<Service | null> {
   const update: Record<string, unknown> = { updatedAt: new Date() };
-  for (const key of UPDATABLE_COLUMNS) {
+  UPDATABLE_COLUMNS.forEach((key) => {
     if (key in patch && (patch as Record<string, unknown>)[key] !== undefined) {
       update[key] = (patch as Record<string, unknown>)[key];
     }
-  }
+  });
   if (Object.keys(update).length === 1) {
     // Only updatedAt — caller passed no real fields. Return current row.
     return getServiceById(db, id);

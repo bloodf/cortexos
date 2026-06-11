@@ -105,10 +105,10 @@ function ReviewsPane() {
     try {
       await callFlagReview({ data: { id: numId }, headers: csrfHeaders() });
       toast.success("Email flagged");
-      void invalidate();
+      invalidate().catch(() => {});
     } catch {
       toast.error("Failed to flag email");
-      void invalidate(); // revert optimistic update
+      invalidate().catch(() => {}); // revert optimistic update
     } finally {
       setActing(null);
     }
@@ -122,10 +122,10 @@ function ReviewsPane() {
     try {
       await callApproveReview({ data: { id: numId }, headers: csrfHeaders() });
       toast.success("Email approved");
-      void invalidate();
+      invalidate().catch(() => {});
     } catch {
       toast.error("Failed to approve email");
-      void invalidate();
+      invalidate().catch(() => {});
     } finally {
       setActing(null);
     }
@@ -147,10 +147,10 @@ function ReviewsPane() {
       toast.success(
         `${ids.length} email${ids.length === 1 ? "" : "s"} ${action === "approve" ? "approved" : "flagged"}`,
       );
-      void invalidate();
+      invalidate().catch(() => {});
     } catch {
       toast.error(`Batch ${action} failed`);
-      void invalidate();
+      invalidate().catch(() => {});
     }
   };
 
@@ -209,6 +209,13 @@ function ReviewsPane() {
     );
   }
 
+  let selectAllChecked: boolean | "indeterminate" = false;
+  if (allChecked) {
+    selectAllChecked = true;
+  } else if (someChecked) {
+    selectAllChecked = "indeterminate";
+  }
+
   return (
     <div className="grid gap-3 lg:grid-cols-[420px_1fr]">
       {/* Left pane — list */}
@@ -216,7 +223,7 @@ function ReviewsPane() {
         {/* Batch toolbar */}
         <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/20">
           <Checkbox
-            checked={allChecked ? true : someChecked ? "indeterminate" : false}
+            checked={selectAllChecked}
             onCheckedChange={(v) => toggleAll(v === true)}
             aria-label="Select all"
           />
@@ -309,7 +316,7 @@ function ReviewsPane() {
                     disabled={!isAdmin || isApproving || isFlagging}
                     onClick={(e) => {
                       e.stopPropagation();
-                      void handleApprove(m.id);
+                      handleApprove(m.id).catch(() => {});
                     }}
                   >
                     {isApproving ? (
@@ -326,7 +333,7 @@ function ReviewsPane() {
                     disabled={!isAdmin || isApproving || isFlagging}
                     onClick={(e) => {
                       e.stopPropagation();
-                      void handleFlag(m.id);
+                      handleFlag(m.id).catch(() => {});
                     }}
                   >
                     {isFlagging ? (
@@ -366,7 +373,7 @@ function ReviewsPane() {
               <Button
                 variant="success"
                 disabled={!isAdmin || acting === `approve-${active.id}`}
-                onClick={() => void handleApprove(active.id)}
+                onClick={() => { handleApprove(active.id).catch(() => {}); }}
               >
                 {acting === `approve-${active.id}` ? (
                   <Loader2 className="size-4 mr-1.5 animate-spin" />
@@ -378,7 +385,7 @@ function ReviewsPane() {
               <Button
                 variant="destructive"
                 disabled={!isAdmin || acting === `flag-${active.id}`}
-                onClick={() => void handleFlag(active.id)}
+                onClick={() => { handleFlag(active.id).catch(() => {}); }}
               >
                 {acting === `flag-${active.id}` ? (
                   <Loader2 className="size-4 mr-1.5 animate-spin" />
@@ -511,7 +518,7 @@ function AccountDialog({ open, onOpenChange, editing, onSaved }: AccountDialogPr
             {editing ? `Edit account "${editing.slug}"` : "Add IMAP account"}
           </DialogTitle>
         </DialogHeader>
-        <form onSubmit={(e) => void handleSubmit(e)} className="space-y-3">
+        <form onSubmit={(e) => { handleSubmit(e).catch(() => {}); }} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label htmlFor="acct-slug">Slug</Label>
@@ -684,7 +691,7 @@ function AccountsPane() {
     try {
       await callDeleteMailAccount({ data: { slug }, headers: csrfHeaders() });
       toast.success(`Account "${slug}" deleted`);
-      void invalidate();
+      invalidate().catch(() => {});
     } catch {
       toast.error(`Failed to delete account "${slug}"`);
     } finally {
@@ -726,7 +733,7 @@ function AccountsPane() {
           if (!o) setEditing(null);
         }}
         editing={editing}
-        onSaved={() => void invalidate()}
+        onSaved={() => { invalidate().catch(() => {}); }}
       />
 
       <div className="space-y-3">
@@ -822,7 +829,7 @@ function AccountsPane() {
                       destructive
                       requireText={a.slug}
                       confirmLabel="Delete"
-                      onConfirm={() => void handleDelete(a.slug)}
+                      onConfirm={() => { handleDelete(a.slug).catch(() => {}); }}
                     />
                   </div>
                 )}

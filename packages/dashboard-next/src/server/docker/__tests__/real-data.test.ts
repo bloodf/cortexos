@@ -51,21 +51,22 @@ describe("tailLogs — stderr merge (MP-009)", () => {
         const args = _args ?? [];
         const isPs = args[0] === "ps" && args[1] === "-a";
         const isLogs = args[0] === "logs";
-        const stdout = isPs
-          ? JSON.stringify({
-              ID: "a".repeat(64),
-              Names: "fake-1",
-              Image: "fake:latest",
-              State: "running",
-              Status: "Up",
-              Ports: "",
-              CreatedAt: "2026-06-10T00:00:00Z",
-              Networks: "bridge",
-              Mounts: "",
-            })
-          : isLogs
-            ? "stdout-line-1\nstdout-line-2\n"
-            : "";
+        let stdout = "";
+        if (isPs) {
+          stdout = JSON.stringify({
+            ID: "a".repeat(64),
+            Names: "fake-1",
+            Image: "fake:latest",
+            State: "running",
+            Status: "Up",
+            Ports: "",
+            CreatedAt: "2026-06-10T00:00:00Z",
+            Networks: "bridge",
+            Mounts: "",
+          });
+        } else if (isLogs) {
+          stdout = "stdout-line-1\nstdout-line-2\n";
+        }
         const stderr = isLogs ? "stderr-line-1\nstderr-line-2\n" : "";
         const result = { stdout, stderr };
         if (typeof cb === "function") {

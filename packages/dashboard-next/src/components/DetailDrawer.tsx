@@ -81,7 +81,11 @@ export function MockLogs({ name, lines = 60 }: { name: string; lines?: number })
   const now = Date.now();
   for (let i = lines; i > 0; i--) {
     const ts = new Date(now - i * 1500).toISOString().slice(11, 23);
-    const lvl = Math.random() < 0.05 ? "ERROR" : Math.random() < 0.15 ? "WARN" : "INFO";
+    const r = Math.random();
+    let lvl: string;
+    if (r < 0.05) lvl = "ERROR";
+    else if (r < 0.15) lvl = "WARN";
+    else lvl = "INFO";
     out.push(`${ts} ${lvl.padEnd(5)} ${name}: ${randMsg()}`);
   }
   return <LogViewer lines={out} />;

@@ -19,13 +19,9 @@ const CSRF_HEADER = "x-csrf-token";
 /** Read the JS-readable CSRF cookie. Returns `null` if missing (SSR or no session). */
 export function readCsrfToken(): string | null {
   if (typeof document === "undefined") return null;
-  for (const part of document.cookie.split(";")) {
-    const [rawKey, ...rest] = part.trim().split("=");
-    if (rawKey === CSRF_COOKIE) {
-      return decodeURIComponent(rest.join("="));
-    }
-  }
-  return null;
+  const part = document.cookie.split(";").find((p) => p.trim().startsWith(`${CSRF_COOKIE}=`));
+  if (!part) return null;
+  return decodeURIComponent(part.trim().slice(CSRF_COOKIE.length + 1));
 }
 
 /**

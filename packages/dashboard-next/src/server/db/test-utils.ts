@@ -79,7 +79,8 @@ export const deterministicSeed = {
  * semantics via slug lookups). Tests can add more on top.
  */
 export async function seedTestDb(db: PgliteDbClient): Promise<void> {
-  for (const s of deterministicSeed.services) {
+  for (let i = 0; i < deterministicSeed.services.length; i += 1) {
+    const s = deterministicSeed.services[i];
     await db
       .insert(schema.services)
       .values(s)
@@ -88,7 +89,8 @@ export async function seedTestDb(db: PgliteDbClient): Promise<void> {
         set: { name: s.name, updatedAt: new Date() },
       });
   }
-  for (const u of deterministicSeed.users) {
+  for (let i = 0; i < deterministicSeed.users.length; i += 1) {
+    const u = deterministicSeed.users[i];
     await db.insert(schema.pamUsers).values(u).onConflictDoNothing();
   }
 }

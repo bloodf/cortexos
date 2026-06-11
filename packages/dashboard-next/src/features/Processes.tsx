@@ -83,7 +83,7 @@ function TreeView({
   const groups = useMemo(() => {
     const needle = q.trim().toLowerCase();
     const map = new Map<string, ProcessInfo[]>();
-    for (const p of procs) {
+    procs.forEach((p) => {
       if (
         needle &&
         !(
@@ -91,12 +91,13 @@ function TreeView({
           p.user.includes(needle) ||
           String(p.pid).includes(needle)
         )
-      )
-        continue;
+      ) {
+        return;
+      }
       const arr = map.get(p.user) ?? [];
       arr.push(p);
       map.set(p.user, arr);
-    }
+    });
     return [...map.entries()]
       .map(([user, items]) => ({
         user,

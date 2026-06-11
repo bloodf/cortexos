@@ -38,16 +38,16 @@ export function AdminSystemdPage() {
       key: "active",
       header: "Active",
       sort: (r) => r.active,
-      cell: (r) => (
-        <Badge
-          variant={
-            r.active === "active" ? "default" : r.active === "failed" ? "destructive" : "secondary"
-          }
-          className="text-[10px]"
-        >
-          {r.active}
-        </Badge>
-      ),
+      cell: (r) => {
+        let variant: "default" | "destructive" | "secondary" = "secondary";
+        if (r.active === "active") variant = "default";
+        else if (r.active === "failed") variant = "destructive";
+        return (
+          <Badge variant={variant} className="text-[10px]">
+            {r.active}
+          </Badge>
+        );
+      },
     },
     {
       key: "sub",

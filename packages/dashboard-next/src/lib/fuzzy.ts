@@ -7,10 +7,10 @@ export function fuzzyScore(query: string, target: string): number {
   let qi = 0;
   let score = 0;
   let streak = 0;
-  for (let i = 0; i < t.length && qi < q.length; i++) {
+  for (let i = 0; i < t.length && qi < q.length; i += 1) {
     if (t[i] === q[qi]) {
-      qi++;
-      streak++;
+      qi += 1;
+      streak += 1;
       score += 1 + streak;
     } else {
       streak = 0;

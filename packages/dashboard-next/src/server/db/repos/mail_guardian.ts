@@ -182,7 +182,8 @@ export async function batchUpdateMailReviewDecisions(
   // Note: drizzle-orm's `inArray` may not be available on this version,
   // so we issue one UPDATE per id for batch safety.
   let updated = 0;
-  for (const id of ids) {
+  for (let i = 0; i < ids.length; i += 1) {
+    const id = ids[i];
     const r = await db
       .update(mailGuardianReviews)
       .set({

@@ -114,11 +114,10 @@ export function AuditPage() {
     );
   };
 
-  const description = isLoading
-    ? "Loading…"
-    : isError
-      ? "Error loading audit log"
-      : `${items.length} entries · hash-chained`;
+  let description: string;
+  if (isLoading) description = "Loading…";
+  else if (isError) description = "Error loading audit log";
+  else description = `${items.length} entries · hash-chained`;
 
   return (
     <div className="space-y-5">

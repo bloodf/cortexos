@@ -232,7 +232,7 @@ describe("network: physical-only filter contract", () => {
     // on any Linux host running this test suite (loopback + well-known virtuals).
     // On non-Linux hosts (CI, macOS) the check also returns false (ENOENT).
     const virtualIfaces = ["lo", "docker0", "veth_test_fake", "br-deadbeef", "incusbr0"];
-    for (const iface of virtualIfaces) {
+    virtualIfaces.forEach((iface) => {
       // We don't assert false here because on the test host these may not exist at all,
       // which also returns false. What we assert: the function never throws.
       expect(() => isPhysicalInterface(iface)).not.toThrow();
@@ -240,7 +240,7 @@ describe("network: physical-only filter contract", () => {
       if (iface === "lo") {
         expect(isPhysicalInterface("lo")).toBe(false);
       }
-    }
+    });
   });
 });
 
@@ -255,20 +255,20 @@ describe("storage: getDrives physical-only filter — lsblk walk logic", () => {
     const { getDrives } = await import("@/server/system/readers");
     const drives = await getDrives();
     expect(Array.isArray(drives)).toBe(true);
-    for (const d of drives) {
+    drives.forEach((d) => {
       expect(d.name).toMatch(/^\/dev\//);
       expect(typeof d.model).toBe("string");
       expect(typeof d.size).toBe("number");
-    }
+    });
   });
 
   it("no loop/part/lvm entries appear in getDrives output", async () => {
     const { getDrives } = await import("@/server/system/readers");
     const drives = await getDrives();
     // loop devices are named /dev/loopN — must not appear (lsblk type=disk only)
-    for (const d of drives) {
+    drives.forEach((d) => {
       expect(d.name).not.toMatch(/^\/dev\/loop/);
-    }
+    });
   });
 });
 
@@ -282,12 +282,12 @@ describe("storage: getMounts virtual-fs exclusion", () => {
     const { getMounts } = await import("@/server/system/readers");
     const mounts = await getMounts();
     expect(Array.isArray(mounts)).toBe(true);
-    for (const m of mounts) {
+    mounts.forEach((m) => {
       // filesystem column must not be a virtual-fs source
       expect(m.filesystem).not.toMatch(/^(tmpfs|devtmpfs|overlay|squashfs)$/);
       expect(typeof m.mount).toBe("string");
       expect(typeof m.total).toBe("number");
-    }
+    });
   });
 });
 
@@ -301,12 +301,12 @@ describe("network: readNetworkInterfaces physical-only contract", () => {
     const { readNetworkInterfaces } = await import("@/server/system/network");
     const ifaces = readNetworkInterfaces();
     expect(Array.isArray(ifaces)).toBe(true);
-    for (const iface of ifaces) {
+    ifaces.forEach((iface) => {
       // Must not contain known virtual prefixes
       expect(iface.name).not.toMatch(/^(lo|docker|veth|br-|incus|tailscale|wg)\d*/);
       expect(typeof iface.rxBytesTotal).toBe("number");
       expect(typeof iface.txBytesTotal).toBe("number");
-    }
+    });
   });
 });
 
@@ -315,13 +315,13 @@ describe("processes: readProcesses empty-state and shape contract", () => {
     const { readProcesses } = await import("@/server/system/processes");
     const procs = await readProcesses();
     expect(Array.isArray(procs)).toBe(true);
-    for (const p of procs) {
+    procs.forEach((p) => {
       expect(typeof p.pid).toBe("number");
       expect(Number.isInteger(p.pid)).toBe(true);
       expect(typeof p.user).toBe("string");
       expect(typeof p.command).toBe("string");
       expect(typeof p.cpu).toBe("number");
       expect(typeof p.mem).toBe("number");
-    }
+    });
   });
 });

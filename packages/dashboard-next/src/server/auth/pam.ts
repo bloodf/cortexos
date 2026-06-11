@@ -156,7 +156,7 @@ async function loadAuthenticatePam(): Promise<typeof pamModule> {
 
 // Kick the load at module init. This is fire-and-forget; the first
 // authenticate() call awaits the cached promise.
-void loadAuthenticatePam();
+loadAuthenticatePam().catch(() => {});
 
 /** Best-effort `id -u <user>` lookup. */
 function safeUserExists(username: string): boolean {

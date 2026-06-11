@@ -37,16 +37,16 @@ export function AdminDockerPage() {
       key: "state",
       header: "State",
       sort: (r) => r.state,
-      cell: (r) => (
-        <Badge
-          variant={
-            r.state === "running" ? "default" : r.state === "exited" ? "destructive" : "secondary"
-          }
-          className="text-[10px]"
-        >
-          {r.state}
-        </Badge>
-      ),
+      cell: (r) => {
+        let variant: "default" | "destructive" | "secondary" = "secondary";
+        if (r.state === "running") variant = "default";
+        else if (r.state === "exited") variant = "destructive";
+        return (
+          <Badge variant={variant} className="text-[10px]">
+            {r.state}
+          </Badge>
+        );
+      },
     },
     {
       key: "ports",

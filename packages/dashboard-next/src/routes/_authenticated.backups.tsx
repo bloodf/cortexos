@@ -101,20 +101,16 @@ function BackupsPage() {
     {
       key: "status",
       header: "Status",
-      cell: (r) => (
-        <Badge
-          variant="outline"
-          className={
-            r.status === "ok"
-              ? "border-[var(--success)] text-[var(--success)]"
-              : r.status === "running"
-                ? "border-primary text-primary"
-                : "border-destructive text-destructive"
-          }
-        >
-          {r.status}
-        </Badge>
-      ),
+      cell: (r) => {
+        let statusClass = "border-destructive text-destructive";
+        if (r.status === "ok") statusClass = "border-[var(--success)] text-[var(--success)]";
+        else if (r.status === "running") statusClass = "border-primary text-primary";
+        return (
+          <Badge variant="outline" className={statusClass}>
+            {r.status}
+          </Badge>
+        );
+      },
     },
     {
       key: "actions",

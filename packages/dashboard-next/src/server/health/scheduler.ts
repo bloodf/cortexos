@@ -111,7 +111,9 @@ function probeTcp(host: string, port: number): Promise<ProbeResult> {
 }
 
 async function probeSystemd(slug: string): Promise<ProbeResult> {
-  for (const unit of [slug, `cortex-${slug}`, `${slug}.service`]) {
+  const units = [slug, `cortex-${slug}`, `${slug}.service`];
+  for (let i = 0; i < units.length; i += 1) {
+    const unit = units[i];
     try {
       const { stdout } = await execFileAsync("systemctl", ["is-active", unit], {
         timeout: PROBE_TIMEOUT_MS,
@@ -125,7 +127,9 @@ async function probeSystemd(slug: string): Promise<ProbeResult> {
 }
 
 async function probeDocker(slug: string): Promise<ProbeResult> {
-  for (const name of [slug, `cortex-${slug}`]) {
+  const names = [slug, `cortex-${slug}`];
+  for (let i = 0; i < names.length; i += 1) {
+    const name = names[i];
     try {
       const { stdout } = await execFileAsync(
         "docker",
@@ -221,7 +225,8 @@ async function pool<T>(
   let i = 0;
   const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
     while (i < items.length) {
-      const item = items[i++];
+      const item = items[i];
+      i += 1;
       await worker(item);
     }
   });
@@ -265,9 +270,9 @@ export function startHealthScheduler(): void {
   // Kick an immediate sweep so statuses populate within seconds of boot,
   // then settle into the interval. Errors are swallowed — the scheduler
   // must never crash the server.
-  void sweepOnce().catch(() => {});
+  sweepOnce().catch(() => {});
   const timer = setInterval(() => {
-    void sweepOnce().catch(() => {});
+    sweepOnce().catch(() => {});
   }, INTERVAL_MS);
   // Don't keep the event loop alive solely for the timer.
   if (typeof timer.unref === "function") timer.unref();

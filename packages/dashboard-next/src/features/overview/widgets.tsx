@@ -271,26 +271,22 @@ export function AlertsW() {
   return (
     <WidgetShell title="Recent alerts" icon={<AlertTriangle className="size-4" />} scroll>
       <div className="space-y-2 text-sm">
-        {alerts.slice(0, 6).map((a) => (
-          <div key={a.id} className="flex items-start gap-2 border-b last:border-0 pb-2 last:pb-0">
-            <Badge
-              variant={
-                a.status === "fired"
-                  ? "destructive"
-                  : a.status === "resolved"
-                    ? "default"
-                    : "secondary"
-              }
-              className="text-[10px] uppercase"
-            >
-              {a.status}
-            </Badge>
+        {alerts.slice(0, 6).map((a) => {
+          let variant: "destructive" | "default" | "secondary" = "secondary";
+          if (a.status === "fired") variant = "destructive";
+          else if (a.status === "resolved") variant = "default";
+          return (
+            <div key={a.id} className="flex items-start gap-2 border-b last:border-0 pb-2 last:pb-0">
+              <Badge variant={variant} className="text-[10px] uppercase">
+                {a.status}
+              </Badge>
             <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-medium">{a.ruleName}</p>
               <p className="text-[10px] text-muted-foreground">{relativeTime(a.timestamp)}</p>
             </div>
           </div>
-        ))}
+        );
+      })}
       </div>
     </WidgetShell>
   );
@@ -391,20 +387,14 @@ export function DrivesW() {
       <div className="space-y-2">
         {sys?.drives.map((d) => {
           const pct = d.percent ?? (d.total && d.used ? (d.used / d.total) * 100 : 0);
+          let pctClass = "text-muted-foreground";
+          if (pct >= 90) pctClass = "text-destructive";
+          else if (pct >= 75) pctClass = "text-[var(--warning)]";
           return (
             <div key={d.name} className="space-y-1">
               <div className="flex items-center justify-between gap-2 text-xs">
                 <span className="font-mono truncate min-w-0">{d.name}</span>
-                <span
-                  className={cn(
-                    "tabular-nums shrink-0",
-                    pct >= 90
-                      ? "text-destructive"
-                      : pct >= 75
-                        ? "text-[var(--warning)]"
-                        : "text-muted-foreground",
-                  )}
-                >
+                <span className={cn("tabular-nums shrink-0", pctClass)}>
                   {bytes(d.used ?? 0)} / {bytes(d.total ?? d.size)} · {pct.toFixed(0)}%
                 </span>
               </div>

@@ -54,6 +54,19 @@ export interface ServerSource<T> {
   refetchInterval?: number;
 }
 
+function SortIcon({
+  sortKey,
+  columnKey,
+  sortDir,
+}: {
+  sortKey: string | null;
+  columnKey: string;
+  sortDir: "asc" | "desc";
+}) {
+  if (sortKey !== columnKey) return <ArrowUpDown className="size-3 opacity-50" />;
+  return sortDir === "asc" ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />;
+}
+
 interface Props<T> {
   rows?: T[];
   columns: Column<T>[];
@@ -165,15 +178,11 @@ export function DataTable<T>({
   const total = server ? serverTotal : sortedLocal.length;
   const pages = Math.max(1, Math.ceil(total / pageSize));
   const safePage = Math.min(page, pages - 1);
-  const view = useMemo<T[]>(
-    () =>
-      server
-        ? (serverRows ?? [])
-        : paginate
-          ? sortedLocal.slice(safePage * pageSize, (safePage + 1) * pageSize)
-          : sortedLocal,
-    [server, serverRows, paginate, sortedLocal, safePage, pageSize],
-  );
+  const view = useMemo<T[]>(() => {
+    if (server) return serverRows ?? [];
+    if (paginate) return sortedLocal.slice(safePage * pageSize, (safePage + 1) * pageSize);
+    return sortedLocal;
+  }, [server, serverRows, paginate, sortedLocal, safePage, pageSize]);
 
   const isSortable = (c: Column<T>) => (server ? (c.serverSortable ?? !!c.sort) : !!c.sort);
   const toggleSort = (k: string) => {
@@ -212,6 +221,86 @@ export function DataTable<T>({
 
   const showSelectionBar = selectable && selectedRows.length > 0 && selectionToolbar;
   const showSearch = !!server || !!filterFn;
+
+  let tbodyContent: ReactNode;
+  if (loading) {
+    tbodyContent = Array.from({ length: 6 }).map((_, i) => (
+      <tr key={i} className="border-b last:border-0" aria-hidden>
+        {selectable && (
+          <td className="px-3 py-2">
+            <div className="size-4 rounded bg-muted/70 animate-pulse motion-reduce:animate-none" />
+          </td>
+        )}
+        {columns.map((c, ci) => {
+          let widthClass: string;
+          if (ci === 0) widthClass = "w-3/4";
+          else if (ci === columns.length - 1) widthClass = "w-1/3";
+          else widthClass = "w-2/3";
+          return (
+            <td
+              key={c.key}
+              className={cn("px-3", density === "compact" ? "py-2" : "py-3")}
+            >
+              <div
+                className={cn(
+                  "h-3 rounded bg-muted/70 animate-pulse motion-reduce:animate-none",
+                  widthClass,
+                )}
+              />
+            </td>
+          );
+        })}
+      </tr>
+    ));
+  } else if (view.length === 0) {
+    tbodyContent = (
+      <tr>
+        <td
+          colSpan={columns.length + (selectable ? 1 : 0)}
+          className="px-3 py-10 text-center text-muted-foreground text-sm"
+        >
+          {empty ?? "No results"}
+        </td>
+      </tr>
+    );
+  } else {
+    tbodyContent = view.map((row, i) => {
+      const id = rowKey ? rowKey(row) : String(i);
+      const isSel = selectable && rowKey ? selected.has(id) : false;
+      return (
+        <tr
+          key={id}
+          className={cn(
+            "border-b last:border-0 hover:bg-muted/30",
+            isSel && "bg-primary/5",
+          )}
+          onContextMenu={onRowContextMenu ? (e) => onRowContextMenu(row, e) : undefined}
+        >
+          {selectable && (
+            <td className="px-3 py-2">
+              <Checkbox
+                checked={isSel}
+                onCheckedChange={() => rowKey && toggleRow(rowKey(row))}
+                aria-label="Select row"
+              />
+            </td>
+          )}
+          {columns.map((c) => (
+            <td
+              key={c.key}
+              className={cn(
+                "px-3",
+                density === "compact" ? "py-1.5" : "py-2.5",
+                c.className,
+              )}
+            >
+              {c.cell(row)}
+            </td>
+          ))}
+        </tr>
+      );
+    });
+  }
 
   return (
     <div className="space-y-3">
@@ -277,15 +366,7 @@ export function DataTable<T>({
                         className="inline-flex items-center gap-1 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
                       >
                         {c.header}
-                        {sortKey === c.key ? (
-                          sortDir === "asc" ? (
-                            <ArrowUp className="size-3" />
-                          ) : (
-                            <ArrowDown className="size-3" />
-                          )
-                        ) : (
-                          <ArrowUpDown className="size-3 opacity-50" />
-                        )}
+                        <SortIcon sortKey={sortKey} columnKey={c.key} sortDir={sortDir} />
                       </button>
                     ) : (
                       c.header
@@ -294,78 +375,7 @@ export function DataTable<T>({
                 ))}
               </tr>
             </thead>
-            <tbody>
-              {loading ? (
-                Array.from({ length: 6 }).map((_, i) => (
-                  <tr key={i} className="border-b last:border-0" aria-hidden>
-                    {selectable && (
-                      <td className="px-3 py-2">
-                        <div className="size-4 rounded bg-muted/70 animate-pulse motion-reduce:animate-none" />
-                      </td>
-                    )}
-                    {columns.map((c, ci) => (
-                      <td
-                        key={c.key}
-                        className={cn("px-3", density === "compact" ? "py-2" : "py-3")}
-                      >
-                        <div
-                          className={cn(
-                            "h-3 rounded bg-muted/70 animate-pulse motion-reduce:animate-none",
-                            ci === 0 ? "w-3/4" : ci === columns.length - 1 ? "w-1/3" : "w-2/3",
-                          )}
-                        />
-                      </td>
-                    ))}
-                  </tr>
-                ))
-              ) : view.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={columns.length + (selectable ? 1 : 0)}
-                    className="px-3 py-10 text-center text-muted-foreground text-sm"
-                  >
-                    {empty ?? "No results"}
-                  </td>
-                </tr>
-              ) : (
-                view.map((row, i) => {
-                  const id = rowKey ? rowKey(row) : String(i);
-                  const isSel = selectable && rowKey ? selected.has(id) : false;
-                  return (
-                    <tr
-                      key={id}
-                      className={cn(
-                        "border-b last:border-0 hover:bg-muted/30",
-                        isSel && "bg-primary/5",
-                      )}
-                      onContextMenu={onRowContextMenu ? (e) => onRowContextMenu(row, e) : undefined}
-                    >
-                      {selectable && (
-                        <td className="px-3 py-2">
-                          <Checkbox
-                            checked={isSel}
-                            onCheckedChange={() => rowKey && toggleRow(rowKey(row))}
-                            aria-label="Select row"
-                          />
-                        </td>
-                      )}
-                      {columns.map((c) => (
-                        <td
-                          key={c.key}
-                          className={cn(
-                            "px-3",
-                            density === "compact" ? "py-1.5" : "py-2.5",
-                            c.className,
-                          )}
-                        >
-                          {c.cell(row)}
-                        </td>
-                      ))}
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
+            <tbody>{tbodyContent}</tbody>
           </table>
         </div>
         {paginate && total > 0 && (

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle, type LucideIcon } from "lucide-react";
 import { api } from "@/mocks/api";
 import { cn } from "@/lib/utils";
 
@@ -39,7 +39,10 @@ export function StatusHero({ className }: { className?: string }) {
     detail = `CPU ${Math.round(cpu)}% · Mem ${Math.round(mem)}% · ${total} services online`;
   }
 
-  const Icon = level === "ok" ? CheckCircle2 : level === "warn" ? AlertTriangle : XCircle;
+  let Icon: LucideIcon;
+  if (level === "ok") Icon = CheckCircle2;
+  else if (level === "warn") Icon = AlertTriangle;
+  else Icon = XCircle;
   const tone = {
     ok: "bg-[var(--success)]/10 text-[var(--success)] border-[var(--success)]/30",
     warn: "bg-[var(--warning)]/10 text-[var(--warning)] border-[var(--warning)]/40",

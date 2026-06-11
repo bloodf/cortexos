@@ -212,10 +212,10 @@ describe("CORTEX_DOCKER_REAL=0 → stub data (no real docker calls)", () => {
     const items = await listImages();
     expect(items.length).toBeGreaterThan(0);
     // Verify none have <none> repo or tag
-    for (const img of items) {
+    items.forEach((img) => {
       expect(img.repo).not.toBe("<none>");
       expect(img.tag).not.toBe("<none>");
-    }
+    });
   });
 
   it("listVolumes returns stub volumes when CORTEX_DOCKER_REAL=0", async () => {

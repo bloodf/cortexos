@@ -70,7 +70,7 @@ export function AdminEnvPage() {
 
   useEffect(() => {
     if (revealed && remainingSeconds(data?.revealExpiresAt ?? null) === 0) {
-      void query.refetch();
+      query.refetch().catch(() => {});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [now]);
@@ -96,9 +96,61 @@ export function AdminEnvPage() {
   };
 
   const copy = (key: string, value: string) => {
-    void navigator.clipboard?.writeText(value);
+    navigator.clipboard?.writeText(value)?.catch(() => {});
     toast.success(`Copied ${key}`);
   };
+
+  let entriesPanel;
+  if (query.isError) {
+    entriesPanel = (
+      <EmptyState
+        icon={<FileCode className="size-8" />}
+        title="Env browser unavailable"
+        description="This file is not accessible or the env browser requires server-side configuration."
+      />
+    );
+  } else if (query.isLoading) {
+    entriesPanel = <EmptyState title="Loading…" />;
+  } else if (data && data.entries.length > 0) {
+    entriesPanel = (
+      <>
+        <div className="flex items-center justify-between mb-3">
+          <code className="text-xs text-muted-foreground">{data.path}</code>
+          <span className="text-xs text-muted-foreground">{data.entries.length} keys</span>
+        </div>
+        <div className="space-y-2">
+          {data.entries.map((entry) => (
+            <div
+              key={entry.key}
+              className="grid grid-cols-[200px_1fr_auto] gap-2 items-center"
+            >
+              <code className="text-xs font-semibold">{entry.key}</code>
+              <Input value={entry.value} readOnly className="h-8 font-mono text-xs" />
+              <div className="flex gap-1">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={!revealed}
+                  onClick={() => copy(entry.key, entry.value)}
+                  title={revealed ? "Copy value" : "Unlock to copy cleartext"}
+                >
+                  <Copy className="size-3.5" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </>
+    );
+  } else {
+    entriesPanel = (
+      <EmptyState
+        icon={<FileCode className="size-8" />}
+        title="No entries"
+        description="This env file has no readable keys."
+      />
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -135,52 +187,7 @@ export function AdminEnvPage() {
             </button>
           ))}
         </Card>
-        <Card className="p-4">
-          {query.isError ? (
-            <EmptyState
-              icon={<FileCode className="size-8" />}
-              title="Env browser unavailable"
-              description="This file is not accessible or the env browser requires server-side configuration."
-            />
-          ) : query.isLoading ? (
-            <EmptyState title="Loading…" />
-          ) : data && data.entries.length > 0 ? (
-            <>
-              <div className="flex items-center justify-between mb-3">
-                <code className="text-xs text-muted-foreground">{data.path}</code>
-                <span className="text-xs text-muted-foreground">{data.entries.length} keys</span>
-              </div>
-              <div className="space-y-2">
-                {data.entries.map((entry) => (
-                  <div
-                    key={entry.key}
-                    className="grid grid-cols-[200px_1fr_auto] gap-2 items-center"
-                  >
-                    <code className="text-xs font-semibold">{entry.key}</code>
-                    <Input value={entry.value} readOnly className="h-8 font-mono text-xs" />
-                    <div className="flex gap-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={!revealed}
-                        onClick={() => copy(entry.key, entry.value)}
-                        title={revealed ? "Copy value" : "Unlock to copy cleartext"}
-                      >
-                        <Copy className="size-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          ) : (
-            <EmptyState
-              icon={<FileCode className="size-8" />}
-              title="No entries"
-              description="This env file has no readable keys."
-            />
-          )}
-        </Card>
+        <Card className="p-4">{entriesPanel}</Card>
       </div>
 
       <Dialog
@@ -209,7 +216,7 @@ export function AdminEnvPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && password && !unlocking) void doUnlock();
+                if (e.key === "Enter" && password && !unlocking) doUnlock().catch(() => {});
               }}
               className="h-9"
             />
@@ -225,7 +232,7 @@ export function AdminEnvPage() {
             >
               Cancel
             </Button>
-            <Button size="sm" onClick={() => void doUnlock()} disabled={!password || unlocking}>
+            <Button size="sm" onClick={() => { doUnlock().catch(() => {}); }} disabled={!password || unlocking}>
               {unlocking ? "Verifying…" : "Unlock"}
             </Button>
           </DialogFooter>

@@ -109,6 +109,103 @@ export function AlertsPage() {
     },
   ];
 
+  let timelinePanel: React.ReactNode;
+  if (lh) {
+    timelinePanel = <CardSkeleton lines={5} />;
+  } else if (eh) {
+    timelinePanel = (
+      <EmptyState
+        title="Failed to load alert history"
+        description="Could not reach the alerts service."
+        action={
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => qc.invalidateQueries({ queryKey: ["alerts", "history"] })}
+          >
+            Retry
+          </Button>
+        }
+      />
+    );
+  } else if (history.length === 0) {
+    timelinePanel = (
+      <EmptyState
+        title="No incidents recorded"
+        description="Alert firings will appear here once rules trigger."
+      />
+    );
+  } else {
+    timelinePanel = (
+      <Card className="p-5">
+        <IncidentTimeline items={history} />
+      </Card>
+    );
+  }
+
+  let historyPanel: React.ReactNode;
+  if (lh) {
+    historyPanel = <TableSkeleton rows={8} cols={5} />;
+  } else if (eh) {
+    historyPanel = (
+      <EmptyState
+        title="Failed to load history"
+        description="Could not reach the alerts service."
+        action={
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => qc.invalidateQueries({ queryKey: ["alerts", "history"] })}
+          >
+            Retry
+          </Button>
+        }
+      />
+    );
+  } else {
+    historyPanel = (
+      <DataTable
+        columns={histCols}
+        initialSort="timestamp"
+        initialSortDir="desc"
+        server={{
+          queryKey: ["alerts", "history"],
+          fetch: api.alerts.historyList,
+          refetchInterval: 3_000,
+        }}
+      />
+    );
+  }
+
+  let rulesPanel: React.ReactNode;
+  if (lr) {
+    rulesPanel = <TableSkeleton rows={5} cols={3} />;
+  } else if (er) {
+    rulesPanel = (
+      <EmptyState
+        title="Failed to load rules"
+        description="Could not reach the alerts service."
+        action={
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => qc.invalidateQueries({ queryKey: ["alerts", "rules"] })}
+          >
+            Retry
+          </Button>
+        }
+      />
+    );
+  } else {
+    rulesPanel = (
+      <DataTable
+        columns={ruleCols}
+        initialSort="name"
+        server={{ queryKey: ["alerts", "rules"], fetch: api.alerts.rulesList }}
+      />
+    );
+  }
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -124,89 +221,15 @@ export function AlertsPage() {
         </TabsList>
 
         <TabsContent value="timeline" className="mt-4">
-          {lh ? (
-            <CardSkeleton lines={5} />
-          ) : eh ? (
-            <EmptyState
-              title="Failed to load alert history"
-              description="Could not reach the alerts service."
-              action={
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => qc.invalidateQueries({ queryKey: ["alerts", "history"] })}
-                >
-                  Retry
-                </Button>
-              }
-            />
-          ) : history.length === 0 ? (
-            <EmptyState
-              title="No incidents recorded"
-              description="Alert firings will appear here once rules trigger."
-            />
-          ) : (
-            <Card className="p-5">
-              <IncidentTimeline items={history} />
-            </Card>
-          )}
+          {timelinePanel}
         </TabsContent>
 
         <TabsContent value="history" className="mt-4">
-          {lh ? (
-            <TableSkeleton rows={8} cols={5} />
-          ) : eh ? (
-            <EmptyState
-              title="Failed to load history"
-              description="Could not reach the alerts service."
-              action={
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => qc.invalidateQueries({ queryKey: ["alerts", "history"] })}
-                >
-                  Retry
-                </Button>
-              }
-            />
-          ) : (
-            <DataTable
-              columns={histCols}
-              initialSort="timestamp"
-              initialSortDir="desc"
-              server={{
-                queryKey: ["alerts", "history"],
-                fetch: api.alerts.historyList,
-                refetchInterval: 3_000,
-              }}
-            />
-          )}
+          {historyPanel}
         </TabsContent>
 
         <TabsContent value="rules" className="mt-4">
-          {lr ? (
-            <TableSkeleton rows={5} cols={3} />
-          ) : er ? (
-            <EmptyState
-              title="Failed to load rules"
-              description="Could not reach the alerts service."
-              action={
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => qc.invalidateQueries({ queryKey: ["alerts", "rules"] })}
-                >
-                  Retry
-                </Button>
-              }
-            />
-          ) : (
-            <DataTable
-              columns={ruleCols}
-              initialSort="name"
-              server={{ queryKey: ["alerts", "rules"], fetch: api.alerts.rulesList }}
-            />
-          )}
+          {rulesPanel}
         </TabsContent>
       </Tabs>
     </div>

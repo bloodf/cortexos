@@ -201,9 +201,9 @@ function collectArgSmugglingHits(
     return;
   }
   if (typeof value === "object") {
-    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    Object.entries(value as Record<string, unknown>).forEach(([k, v]) => {
       collectArgSmugglingHits(v, path ? `${path}.${k}` : k, hits);
-    }
+    });
   }
 }
 
@@ -246,7 +246,8 @@ function renderArgv(
   | { argv: string[] }
   | { code: "placeholder_unbound" | "arg_type"; field: string; reason: string } {
   const argv: string[] = [];
-  for (const token of entry.argv) {
+  for (let i = 0; i < entry.argv.length; i += 1) {
+    const token = entry.argv[i];
     if (PLACEHOLDER_RE.test(token)) {
       const key = token.slice(1, -1);
       const v = args[key];

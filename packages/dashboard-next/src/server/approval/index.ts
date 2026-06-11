@@ -86,9 +86,11 @@ export function actionHashFor(action: string, payload: Record<string, unknown>):
   const sorted = JSON.stringify({ action, payload }, (_, v) => {
     if (v && typeof v === "object" && !Array.isArray(v)) {
       const out: Record<string, unknown> = {};
-      for (const k of Object.keys(v as Record<string, unknown>).sort()) {
-        out[k] = (v as Record<string, unknown>)[k];
-      }
+      Object.keys(v as Record<string, unknown>)
+        .sort()
+        .forEach((k) => {
+          out[k] = (v as Record<string, unknown>)[k];
+        });
       return out;
     }
     return v;

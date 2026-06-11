@@ -30,7 +30,8 @@ function applySetCookie(serialized: string): void {
   const value = decodeURIComponent(first.slice(eq + 1));
 
   const options: Record<string, unknown> = {};
-  for (const attr of parts) {
+  for (let i = 0; i < parts.length; i += 1) {
+    const attr = parts[i];
     const [rawKey, rawVal] = attr.split("=");
     const key = (rawKey ?? "").toLowerCase();
     switch (key) {
@@ -74,7 +75,7 @@ export async function runServerFnGate<TIn, TOut>(opts: RouteOptions<TIn, TOut>):
   // SUCCESS: replay the pipeline's Set-Cookie + framework security headers onto
   // the live runtime response, then return the handler DATA (idiomatic typed
   // RPC — the client receives the value, not a Response object).
-  for (const [name, value] of response.headers.entries()) {
+  Array.from(response.headers.entries()).forEach(([name, value]) => {
     const lower = name.toLowerCase();
     if (lower === "set-cookie") {
       applySetCookie(value);
@@ -83,7 +84,7 @@ export async function runServerFnGate<TIn, TOut>(opts: RouteOptions<TIn, TOut>):
       // headers the RPC layer manages itself.
       setResponseHeader(name, value);
     }
-  }
+  });
 
   const text = await response.text();
   return text ? (JSON.parse(text) as TOut) : (null as TOut);

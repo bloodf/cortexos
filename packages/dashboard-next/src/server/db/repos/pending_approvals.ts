@@ -52,12 +52,14 @@ export async function listPendingApprovals(
 
   const sortBy = opts.sortBy ?? "requestedAt";
   const sortDir = opts.sortDir ?? "desc";
-  const sortColumn =
-    sortBy === "id"
-      ? pendingApprovals.id
-      : sortBy === "resolvedAt"
-        ? pendingApprovals.resolvedAt
-        : pendingApprovals.requestedAt;
+  let sortColumn;
+  if (sortBy === "id") {
+    sortColumn = pendingApprovals.id;
+  } else if (sortBy === "resolvedAt") {
+    sortColumn = pendingApprovals.resolvedAt;
+  } else {
+    sortColumn = pendingApprovals.requestedAt;
+  }
   const order = sortDir === "asc" ? asc(sortColumn) : desc(sortColumn);
 
   const [rows, totalRow] = await Promise.all([

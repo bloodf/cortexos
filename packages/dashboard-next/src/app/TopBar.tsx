@@ -37,6 +37,18 @@ import { LOCALES, LOCALE_LABEL } from "@/i18n";
 import { relativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
+function ThemeIcon({ theme }: { theme: string }) {
+  if (theme === "dark") return <Moon className="size-4" />;
+  if (theme === "light") return <Sun className="size-4" />;
+  return <Monitor className="size-4" />;
+}
+
+function severityColor(severity: string): string {
+  if (severity === "error") return "bg-[var(--destructive)]";
+  if (severity === "warn") return "bg-[var(--warning)]";
+  return "bg-[var(--primary)]";
+}
+
 interface Props {
   collapsed: boolean;
   onToggleCollapse: () => void;
@@ -153,13 +165,7 @@ export function TopBar({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" aria-label="Theme">
-            {theme === "dark" ? (
-              <Moon className="size-4" />
-            ) : theme === "light" ? (
-              <Sun className="size-4" />
-            ) : (
-              <Monitor className="size-4" />
-            )}
+            <ThemeIcon theme={theme} />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-40">
@@ -223,11 +229,7 @@ export function TopBar({
                   <span
                     className={cn(
                       "size-1.5 rounded-full mt-1.5 shrink-0",
-                      n.severity === "error"
-                        ? "bg-[var(--destructive)]"
-                        : n.severity === "warn"
-                          ? "bg-[var(--warning)]"
-                          : "bg-[var(--primary)]",
+                      severityColor(n.severity),
                     )}
                   />
                   <div className="min-w-0 flex-1">
@@ -278,9 +280,9 @@ export function TopBar({
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() => {
-              void logout().finally(() => {
+              logout().finally(() => {
                 window.location.href = "/login";
-              });
+              }).catch(() => {});
             }}
             className="gap-2 text-destructive focus:text-destructive"
           >

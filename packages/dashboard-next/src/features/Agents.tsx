@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -50,6 +50,12 @@ const HEALTH_TONE: Record<AgentHealth, string> = {
   degraded: "text-[var(--warning)] border-[var(--warning)]/30 bg-[var(--warning)]/10",
   down: "text-[var(--destructive)] border-[var(--destructive)]/30 bg-[var(--destructive)]/10",
 };
+
+function errorRateClass(pct: number): string {
+  if (pct >= 5) return "text-[var(--destructive)]";
+  if (pct >= 1) return "text-[var(--warning)]";
+  return "";
+}
 
 function formatUptime(sec: number) {
   if (!sec) return "—";
@@ -286,13 +292,15 @@ export function AgentsPage() {
         </div>
       </div>
 
-      {isLoading ? (
+      {(() => {
+        if (isLoading) return (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <CardSkeleton key={i} lines={4} />
           ))}
         </div>
-      ) : isError ? (
+        );
+        if (isError) return (
         <Card className="elev-1">
           <EmptyState
             icon={<AlertTriangle className="size-8 text-[var(--destructive)]" />}
@@ -300,7 +308,8 @@ export function AgentsPage() {
             description="Could not read the Hermes profiles registry. Check that the registry file exists and is readable."
           />
         </Card>
-      ) : filtered.length === 0 ? (
+        );
+        if (filtered.length === 0) return (
         <Card className="elev-1">
           <EmptyState
             icon={<Bot className="size-8" />}
@@ -324,7 +333,8 @@ export function AgentsPage() {
             }
           />
         </Card>
-      ) : (
+        );
+        return (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((a) => (
             <Card
@@ -388,16 +398,7 @@ export function AgentsPage() {
                 <Cell
                   label="Error rate"
                   value={
-                    <span
-                      className={cn(
-                        "tabular-nums",
-                        a.errorRatePct >= 5
-                          ? "text-[var(--destructive)]"
-                          : a.errorRatePct >= 1
-                            ? "text-[var(--warning)]"
-                            : "",
-                      )}
-                    >
+                    <span className={cn("tabular-nums", errorRateClass(a.errorRatePct))}>
                       {a.errorRatePct.toFixed(1)}%
                     </span>
                   }
@@ -486,7 +487,8 @@ export function AgentsPage() {
             </Card>
           ))}
         </div>
-      )}
+        );
+      })()}
 
       <Dialog open={!!inspect} onOpenChange={(o) => !o && setInspect(null)}>
         <DialogContent className="max-w-3xl">

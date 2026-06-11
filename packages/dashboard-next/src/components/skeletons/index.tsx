@@ -33,12 +33,13 @@ export function TableSkeleton({ rows = 8, cols = 5 }: { rows?: number; cols?: nu
             className="grid border-b last:border-b-0 px-4 py-3 gap-3 items-center"
             style={{ gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))` }}
           >
-            {Array.from({ length: cols }).map((_, c) => (
-              <Skeleton
-                key={c}
-                className={cn("h-4", c === 0 ? "w-3/4" : c === cols - 1 ? "w-1/3" : "w-2/3")}
-              />
-            ))}
+            {Array.from({ length: cols }).map((_, c) => {
+              let widthClass: string;
+              if (c === 0) widthClass = "w-3/4";
+              else if (c === cols - 1) widthClass = "w-1/3";
+              else widthClass = "w-2/3";
+              return <Skeleton key={c} className={cn("h-4", widthClass)} />;
+            })}
           </div>
         ))}
       </div>

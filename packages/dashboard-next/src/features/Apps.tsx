@@ -232,15 +232,18 @@ export function AppsPage() {
         </div>
       </div>
 
-      {isLoading ? (
+      {(() => {
+        if (isLoading) return (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {Array.from({ length: 8 }).map((_, i) => (
             <Card key={i} className="h-32 animate-pulse bg-muted/40 border-dashed" />
           ))}
         </div>
-      ) : filtered.length === 0 ? (
+        );
+        if (filtered.length === 0) return (
         <EmptyState title="No apps match" description="Try clearing filters." />
-      ) : (
+        );
+        return (
         <div className="space-y-6">
           {favs.length > 0 && (
             <section>
@@ -259,7 +262,8 @@ export function AppsPage() {
             <ServiceList items={rest} view={view} isFavorite={isFavorite} onToggle={toggle} />
           </section>
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

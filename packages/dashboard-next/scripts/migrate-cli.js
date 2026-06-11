@@ -34,14 +34,13 @@ function readDbEnv() {
 function getLanIp() {
   const ifaces = os.networkInterfaces();
   const candidates = [];
-  for (const [name, addrs] of Object.entries(ifaces)) {
-    if (!addrs) continue;
-    for (const addr of addrs) {
-      if (addr.internal) continue;
-      if (addr.family !== "IPv4") continue;
+  Object.entries(ifaces).forEach(([name, addrs]) => {
+    if (!addrs) return;
+    addrs.forEach((addr) => {
+      if (addr.internal || addr.family !== "IPv4") return;
       candidates.push({ ip: addr.address, source: name });
-    }
-  }
+    });
+  });
   const score = (source) => {
     const s = source.toLowerCase();
     if (s.startsWith("eth") || s.startsWith("en")) return 1;
@@ -81,23 +80,23 @@ async function main() {
 
     for (const file of files) {
       const name = file.replace(/\.sql$/, "");
-      if (appliedSet.has(name)) continue;
+      if (!appliedSet.has(name)) {
+        const filePath = join(migrationsDir, file);
+        if (filePath.startsWith(migrationsDir)) {
+          let sql = readFileSync(filePath, "utf-8");
+          if (lanIp) {
+            sql = sql.replace(/<VPS_LAN_IP>/g, lanIp);
+          }
 
-      const filePath = join(migrationsDir, file);
-      if (!filePath.startsWith(migrationsDir)) continue;
-
-      let sql = readFileSync(filePath, "utf-8");
-      if (lanIp) {
-        sql = sql.replace(/<VPS_LAN_IP>/g, lanIp);
+          await client.query(sql);
+          await client.query(
+            "INSERT INTO migrations (name) VALUES ($1) ON CONFLICT (name) DO NOTHING",
+            [name],
+          );
+          console.log(`  ✓ ${name}`);
+          ran += 1;
+        }
       }
-
-      await client.query(sql);
-      await client.query(
-        "INSERT INTO migrations (name) VALUES ($1) ON CONFLICT (name) DO NOTHING",
-        [name],
-      );
-      console.log(`  ✓ ${name}`);
-      ran++;
     }
 
     if (ran === 0) {

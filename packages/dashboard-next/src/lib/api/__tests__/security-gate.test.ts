@@ -237,7 +237,7 @@ function loginRequest(body: unknown): Request {
 function parseSetCookies(res: Response): Map<string, { value: string; attrs: Set<string> }> {
   const out = new Map<string, { value: string; attrs: Set<string> }>();
   const raw = (res.headers as unknown as { getSetCookie?: () => string[] }).getSetCookie?.() ?? [];
-  for (const sc of raw) {
+  raw.forEach((sc) => {
     const parts = sc.split(";").map((p) => p.trim());
     const first = parts.shift() ?? "";
     const eq = first.indexOf("=");
@@ -245,7 +245,7 @@ function parseSetCookies(res: Response): Map<string, { value: string; attrs: Set
     const value = decodeURIComponent(first.slice(eq + 1));
     const attrs = new Set(parts.map((p) => p.split("=")[0].toLowerCase()));
     out.set(name, { value, attrs });
-  }
+  });
   return out;
 }
 

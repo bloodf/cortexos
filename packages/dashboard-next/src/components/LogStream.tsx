@@ -84,14 +84,14 @@ export function LogStream({
       }
     };
     // Fire immediately on mount, then on each interval tick.
-    void tick();
+    tick().catch(() => {});
     if (paused) {
       return () => {
         cancelled = true;
       };
     }
     timer.current = setInterval(() => {
-      void tick();
+      tick().catch(() => {});
     }, refetchIntervalMs);
     return () => {
       cancelled = true;
@@ -124,13 +124,12 @@ export function LogStream({
     };
   }, [paused, intervalMs, max, fetcher]);
 
-  const modeLabel = fetcher
-    ? paused
-      ? "paused"
-      : `polling every ${refetchIntervalMs}ms`
-    : paused
-      ? "paused"
-      : `streaming every ${intervalMs}ms`;
+  let modeLabel: string;
+  if (fetcher) {
+    modeLabel = paused ? "paused" : `polling every ${refetchIntervalMs}ms`;
+  } else {
+    modeLabel = paused ? "paused" : `streaming every ${intervalMs}ms`;
+  }
 
   return (
     <div className="space-y-2">

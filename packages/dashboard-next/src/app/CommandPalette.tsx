@@ -33,6 +33,12 @@ import { live } from "@/mocks/drift";
 import { NAV, PINNED } from "./NavConfig";
 import { LOCALES, LOCALE_LABEL } from "@/i18n";
 
+function unitActiveColor(active: string): string {
+  if (active === "active") return "var(--success)";
+  if (active === "failed") return "var(--destructive)";
+  return "var(--muted-foreground)";
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -153,9 +159,9 @@ export function CommandPalette({ open, onOpenChange, onOpenHelp }: Props) {
       label: "Sign out",
       icon: LogOut,
       run: () => {
-        void logout().finally(() => {
+        logout().finally(() => {
           window.location.href = "/login";
-        });
+        }).catch(() => {});
       },
     },
   ];
@@ -314,12 +320,7 @@ export function CommandPalette({ open, onOpenChange, onOpenHelp }: Props) {
               <span
                 className="size-2 rounded-full mr-2"
                 style={{
-                  background:
-                    u.active === "active"
-                      ? "var(--success)"
-                      : u.active === "failed"
-                        ? "var(--destructive)"
-                        : "var(--muted-foreground)",
+                  background: unitActiveColor(u.active),
                 }}
               />
               <span className="flex-1 font-mono text-xs">{u.name}</span>

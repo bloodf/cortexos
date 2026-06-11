@@ -32,10 +32,10 @@ function req(opts: { method?: string; csrfCookie?: string; csrfHeader?: string }
 
 describe("csrfIsSafeMethod", () => {
   it("treats GET/HEAD/OPTIONS as safe", () => {
-    for (const m of ["GET", "head", "Options"]) expect(csrfIsSafeMethod(m)).toBe(true);
+    ["GET", "head", "Options"].forEach((m) => expect(csrfIsSafeMethod(m)).toBe(true));
   });
   it("treats POST/PUT/PATCH/DELETE as unsafe", () => {
-    for (const m of ["POST", "PUT", "PATCH", "DELETE"]) expect(csrfIsSafeMethod(m)).toBe(false);
+    ["POST", "PUT", "PATCH", "DELETE"].forEach((m) => expect(csrfIsSafeMethod(m)).toBe(false));
   });
 });
 

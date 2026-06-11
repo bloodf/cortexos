@@ -23,14 +23,14 @@ export function IncidentToaster() {
       primed.current = true;
       return;
     }
-    for (const a of alerts) {
-      if (seen.current.has(a.id)) continue;
+    alerts.forEach((a) => {
+      if (seen.current.has(a.id)) return;
       seen.current.add(a.id);
       const title = `${a.serviceName}: ${a.message}`;
       if (a.status === "fired") toast.error(title, { description: a.ruleName });
       else if (a.status === "resolved") toast.success(title, { description: a.ruleName });
       else toast.info(title, { description: a.ruleName });
-    }
+    });
   }, [alerts]);
 
   return null;

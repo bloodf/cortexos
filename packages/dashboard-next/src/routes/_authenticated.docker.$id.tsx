@@ -136,7 +136,7 @@ function ContainerDetail() {
     try {
       await dispatchDockerAction("docker.rm", { container: c.id });
       toast.success(`Removed ${c.name}`);
-      void qc.invalidateQueries({ queryKey: ["docker", "containers"] });
+      qc.invalidateQueries({ queryKey: ["docker", "containers"] }).catch(() => {});
     } catch {
       toast.error(`Failed to remove ${c.name}`);
     } finally {
