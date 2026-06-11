@@ -74,6 +74,9 @@ const ERROR_SIGNATURES = [
   "Unable to load",
 ];
 
+const runSequentially = (items, fn) =>
+  items.reduce((p, item, i) => p.then(() => fn(item, i)), Promise.resolve());
+
 function fileFor(routePath) {
   const slug = routePath.replace(/^\//, "").replace(/\//g, "_") || "root";
   return `${SHOT_DIR}/${slug}.png`;
@@ -141,8 +144,7 @@ async function main() {
       { name: "cortexos_csrf", value: csrf, domain: "127.0.0.1", path: "/" },
     ]);
 
-    /* eslint-disable no-restricted-syntax, no-await-in-loop */
-    for (const route of ROUTES) {
+    await runSequentially(ROUTES, async (route) => {
       const page = await context.newPage();
       const consoleErrors = [];
       const failedRequests = [];
@@ -284,8 +286,7 @@ async function main() {
       });
 
       await page.close();
-    }
-    /* eslint-enable no-restricted-syntax, no-await-in-loop */
+    });
 
     await context.close();
   } finally {

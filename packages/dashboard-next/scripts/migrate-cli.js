@@ -18,6 +18,9 @@ import { Client } from "pg";
 
 const SAFE_FILENAME_RE = /^[a-zA-Z0-9_-]+\.sql$/;
 
+const runSequentially = (items, fn) =>
+  items.reduce((p, item, i) => p.then(() => fn(item, i)), Promise.resolve());
+
 function readDbEnv() {
   if (!process.env.DB_PASSWORD) {
     throw new Error("DB_PASSWORD environment variable is required");
@@ -78,28 +81,27 @@ async function main() {
     const lanIp = getLanIp();
     let ran = 0;
 
-    /* eslint-disable no-restricted-syntax, no-await-in-loop */
-    for (const file of files) {
+    await runSequentially(files, async (file) => {
       const name = file.replace(/\.sql$/, "");
-      if (!appliedSet.has(name)) {
-        const filePath = join(migrationsDir, file);
-        if (filePath.startsWith(migrationsDir)) {
-          let sql = readFileSync(filePath, "utf-8");
-          if (lanIp) {
-            sql = sql.replace(/<VPS_LAN_IP>/g, lanIp);
-          }
-
-          await client.query(sql);
-          await client.query(
-            "INSERT INTO migrations (name) VALUES ($1) ON CONFLICT (name) DO NOTHING",
-            [name],
-          );
-          console.info(`  ✓ ${name}`);
-          ran += 1;
-        }
+      if (appliedSet.has(name)) {
+        return;
       }
-    }
-    /* eslint-enable no-restricted-syntax, no-await-in-loop */
+      const filePath = join(migrationsDir, file);
+      if (filePath.startsWith(migrationsDir)) {
+        let sql = readFileSync(filePath, "utf-8");
+        if (lanIp) {
+          sql = sql.replace(/<VPS_LAN_IP>/g, lanIp);
+        }
+
+        await client.query(sql);
+        await client.query(
+          "INSERT INTO migrations (name) VALUES ($1) ON CONFLICT (name) DO NOTHING",
+          [name],
+        );
+        console.info(`  ✓ ${name}`);
+        ran += 1;
+      }
+    });
 
     if (ran === 0) {
       console.info("  (no new migrations)");
