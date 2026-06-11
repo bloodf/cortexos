@@ -653,3 +653,43 @@ chunks. Chunk A PASS. Chunk B REJECT, both findings ADJUDICATED ACCEPT:
   equivalent of Route.useRouteContext(), resolving a real
   use-before-define (components referenced Route pre-declaration);
   behavior identical, gates green, screens exercise the root route.
+
+## 2026-06-11 — Wave D2 (beaae61 + 0054c64) chunked review adjudications
+58+58 fixed across two checkpoint commits (deviation from one-commit-per-
+wave logged: three worker deaths on this wave; checkpoint was verified
+green before commit). Verdicts: p1b PASS (MINOR satisfies-statement noted,
+accepted); p1a REJECT and p2 REJECT with findings:
+- [BLOCKER, CONFIRMED] verify-screens.mjs:227 TS-only type-guard syntax
+  in plain .mjs — node --check fails; script currently broken. FIX queued.
+- [BLOCKER ×2, CONFIRMED] bridge.ts extractBridge/extractPool .find()
+  rewrites select first NIC/root-disk then fall back, ignoring later
+  valid devices (original continued past invalid ones). FIX queued: move
+  the full validity predicate into find().
+- [MAJOR] DetailDrawer.tsx single-draw Math.random() shifts mock log
+  severity mix (WARN 14.25% → 10%) → ADJUDICATED ACCEPT: mock/demo data,
+  no functional contract; distribution shift is cosmetic.
+
+## 2026-06-11 — Wave D3 (e07e99e + 4ebc053) review adjudications + scope correction
+D3c declared package-level zero using the PACKAGE eslint config — wrong
+ruler; the root config still counts 355 dashboard findings. D3 continues
+(D3d) with the explicit root-config capture command. Review verdicts
+(both REJECT) adjudicated:
+- [BLOCKER, FIX in D3d] audit.test.ts hash-chain appends converted to
+  Promise.all — order-dependent, plan-forbidden; revert to sequential.
+- [MINOR, ACCEPT] session-store destructuring style edit — out of scope,
+  harmless.
+- [MAJOR ×2, ACCEPT] formatting-only reflows (DataTable/calendar/
+  real-data/policy) — semantically neutral, prettier-aligned; scope
+  discipline noted to the implementer pattern.
+
+## 2026-06-11 — D3d/D3e worker deaths: revert-if-broken sweep + checkpoint parts 3-4
+Five kimi sessions died mid-D3. Checkpoint pattern held: parts 3 (3ec3f1b)
+and 4 committed only after orchestrator-verified green (tsc + 558/558).
+D3e left six mid-edit casualties, all reverted: drift.ts (2nd burn —
+type-assertion-sensitive mocks), bridge.ts+test and systemd.ts+test
+(split export-rename pairs), terminal/pty-bridge (duplicate decls),
+client.test.ts (2nd burn — arrow-fn constructor mock, same class as
+MP-014). New binding rules for continuations: export renames land
+ATOMICALLY with their test pair before touching anything else;
+twice-burned files (drift.ts, client.test.ts) are HANDS-OFF — their
+findings escalate.
