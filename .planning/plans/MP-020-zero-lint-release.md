@@ -3,25 +3,31 @@
 ## Operator directive (2026-06-11)
 "I want all the items fixed, with a plan with micro plans to fix all the
 issues." — every finding CODE-FIXED where technically possible; the only
-config scopes permitted are the 4 architecturally-irreducible ones below,
-each a one-liner with `// MP-020:` rationale.
+config items permitted are the THREE architecturally-irreducible ones
+below, each a one-liner with `// MP-020:` rationale.
 
-Baseline: `.planning/harness/artifacts/recon-mp020-baseline.txt`
-(102 findings, per-package/per-rule table verified to sum).
+Baseline: `.planning/harness/artifacts/recon-mp020-baseline.txt` — raw
+eslint output ending `✖ 102 problems (101 errors, 1 warning)` PLUS an
+appended orchestrator-derived per-package/per-rule table (sums to 102).
 
-## Irreducible config scopes (the ONLY ones; everything else is code)
+## Irreducible config items (EXACTLY THREE; everything else is code)
 1. `n/no-process-env` off for the ONE designated env module per package
-   (`packages/{cortex-telemetry,cortex-audit,cortex-mail-guardian}/src/env.*`)
-   — a Node process must read process.env somewhere; consolidation makes
-   it exactly one file per package and the scope ENFORCES that
-   architecture (any new read elsewhere = lint error).
+   (`packages/*/src/env.{js,ts}` glob) — a Node process must read
+   process.env somewhere; consolidation makes it exactly one file per
+   package and the scope ENFORCES that architecture (any new read
+   elsewhere = lint error). (MP-020b adds it; MP-020c reuses it.)
 2. `import-x/no-extraneous-dependencies` devDependencies allowance for
    `packages/*/scripts/**` — build scripts consuming devDeps is the
-   correct manifest layout; "fixing" by promoting build tools to runtime
-   dependencies would be wrong.
-(That is 2 scope RULES covering ≤ 4 glob lines total. camelcase and
-no-bitwise — previously flagged for scoping — are CODE-FIXED, see
-MP-020b/e.)
+   correct manifest layout; promoting build tools to runtime
+   dependencies would be wrong. (MP-020b.)
+3. `@typescript-eslint/only-throw-error` allow-extension for TanStack's
+   Redirect type (completing the existing allow so all 12 legacy disable
+   comments DELETE) — framework-required non-Error throws, allowed by
+   TYPE, not by suppression. (MP-020e.)
+camelcase and no-bitwise — previously flagged for scoping — are
+CODE-FIXED (MP-020b quoted keys; MP-020e golden-tested rewrites).
+Acceptance everywhere uses this same count: ≤ 3 config items, each
+`// MP-020:` commented.
 
 ## Micro-plans (execute strictly in order; each is a separate gated unit)
 - MP-020a — recon manifest (m27-hs, read-only)
@@ -45,13 +51,39 @@ MP-020b/e.)
   message + part N).
 - Each wave ends: package gates green + wave-scoped eslint = 0.
 
+## File ownership (campaign-wide)
+- Each wave edits ONLY: (a) files under its named package(s); (b) the
+  named eslint.config.js items from the three-item list above; (c) NEW
+  helper/test files explicitly named in its micro-plan (env modules,
+  sequential helpers, golden-test files); (d) its report (never
+  committed). DISCOVERED-REFERENCE RULE: an extra functional reference
+  required by a rename/move is owned iff tagged
+  `[discovered:<path>]` with rationale in the report; anything
+  structurally different → IMPL-BLOCKED.
+
+## Out of scope
+- Any behavior change (sequencing, exit codes, hash outputs, retrigger
+  cadence — all preserved and evidenced per micro-plan).
+- New dependencies; package-level eslint configs; historical docs;
+  untracked vendored/host content. (.planning/** clarification: workers
+  MUST write reports/artifacts under .planning/harness/artifacts/ —
+  those are repo-gitignored and NEVER COMMITTED; what is out of scope is
+  committing or editing any other .planning content.)
+- Rule deletions/global disables beyond the three-item list.
+
 ## Campaign acceptance (MP-020g)
-- `pnpm exec eslint .` → `✖ 0 problems` (TRUE ZERO).
+- TRUE ZERO, exit-code form (eslint success is SILENT — ledger lesson):
+  `pnpm exec eslint . > /tmp/z.txt 2>&1; echo rc=$?` → rc=0 AND
+  `wc -c < /tmp/z.txt` → 0 (no output at all).
 - `git diff <campaign-start>..HEAD | grep -cE '^\+.*eslint-disable'` → 0;
-  the 12 legacy only-throw-error comments REMOVED; the 2 react-hooks
-  comments REMOVED (MP-020f).
-- Config scopes ≤ the 2 rules above, each `// MP-020:` commented.
-- Full battery: tsc 0; dashboard 558/558 + build; contracts 243/243;
+  the 14 legacy disable comments REMOVED — baseline evidence:
+  `.planning/harness/artifacts/recon-legacy-disables.txt` (grep capture,
+  12× only-throw-error + 2× react-hooks/exhaustive-deps, 14 lines);
+  final check: the same grep returns EMPTY.
+- Config items ≤ the THREE above, each `// MP-020:` commented.
+- Full battery: tsc 0; dashboard suite ZERO FAILURES at its NEW total
+  (the prior 558 + the golden tests MP-020e adds; MP-020e quotes the new
+  total N, MP-020g asserts N) + build; contracts 243/243;
   audit/telemetry/mail-guardian suites; terminal node --check + systemd
   restart verification; `format:check` exit 0.
 - Deploy: rebuild, boot 200, restart, screens 18/18. Push only after

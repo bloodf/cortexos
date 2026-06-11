@@ -40,9 +40,17 @@ product. SMALLEST micro-plan, HIGHEST review scrutiny.
 End IMPL-COMPLETE or IMPL-BLOCKED: <reason>.
 
 ## Acceptance (binary)
-- A1: zero exhaustive-deps findings AND zero disable comments in the
-  package (`grep -rc 'eslint-disable' packages/dashboard-next/src | grep -v ':0'` → empty).
-- A2: gates green; behavior traces quoted; gpt-5.5 review of this diff
-  gets an EXTRA instruction to adversarially trace retrigger cadence.
-- A3 (orchestrator): screens 18/18 specifically re-checked for
-  /env-browser and /terminal routes after deploy.
+- A1: `pnpm exec eslint packages/dashboard-next 2>&1 | grep -cE 'exhaustive-deps|Unused eslint-disable'`
+  → 0 AND `grep -rn 'eslint-disable' packages/dashboard-next/src | wc -l`
+  → 0 (the package's last disables gone).
+- A2 (binary cadence proof): eslint's exhaustive-deps rule passing IS
+  the binary verifier that every dep is honest; additionally the diff
+  must show NO dep added to a timer/subscription effect's array unless
+  routed through a ref/effect-split (reviewer instruction: REJECT any
+  hunk where an identifier was appended verbatim to an existing dep
+  array — that changes retrigger cadence by definition).
+- A3: full suite zero failures at the MP-020e total N (binary); build
+  exit 0; tsc 0.
+- A4 (orchestrator): screen run PASS with /terminal WS handshake and
+  /env-browser rendering structurally green (the run's existing binary
+  checks), 18/18 overall.

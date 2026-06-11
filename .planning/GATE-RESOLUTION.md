@@ -808,3 +808,20 @@ camelcase (DB-mirror fixtures fix cleanly); golden-value tests make the
 no-bitwise hash rewrites provably output-identical; process.exitCode
 pattern replaces process.exit; dns.promises callback-adapter satisfies
 prefer-promises/dns inside tls.connect.
+
+## 2026-06-11 — MP-020 master plan (3 cycles, dispositions applied under /loop standing authorization)
+Artifacts: `harness/artifacts/critic-plan-MP-020-zero-lint-release.md-{1,2,3}.md`.
+Cycle 1 FIXED (scope contract unified to EXACTLY THREE config items;
+out-of-scope + ownership sections added; golden-test count reconciliation;
+baseline table appended to the artifact). Cycle 2 FIXED (stale "4"
+corrected; 14 legacy disables captured to recon-legacy-disables.txt and
+cited; MP-020f acceptance made binary — eslint as the dep-honesty
+verifier + reviewer instruction to reject verbatim dep-appends). Cycle 3
+dispositions, all FIXED:
+- [BLOCKER] zero-lint criterion would fail on success (eslint silent) →
+  exit-code + empty-output form in master and MP-020g.
+- [MAJOR] .planning ownership contradiction → clarified: artifact/report
+  writes required (gitignored, never committed); other .planning edits
+  out of scope.
+- [MINOR] phantom table reference → dropped.
+No overrules. W0 recon manifest RECON-COMPLETE; implementation begins.

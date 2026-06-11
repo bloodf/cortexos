@@ -4,8 +4,9 @@ Runs ONLY after MP-020b..f are committed, each with a PASS/adjudicated
 gpt-5.5 diff review. No worker edits in this unit.
 
 ## Tasks
-1. TRUE-ZERO check: `pnpm exec eslint . 2>&1 | tail -1` →
-   `✖ 0 problems` EXACTLY. If nonzero: every residual is a defect in a
+1. TRUE-ZERO check (exit-code form — eslint success is silent):
+   `pnpm exec eslint . > /tmp/z.txt 2>&1; echo rc=$?` → rc=0 AND
+   `wc -c < /tmp/z.txt` → 0. If rc≠0: every residual is a defect in a
    prior wave — route back, do not adjudicate.
 2. Suppression audit over the campaign range:
    `git diff <MP-020 start SHA>..HEAD | grep -cE '^\+.*eslint-disable'`
