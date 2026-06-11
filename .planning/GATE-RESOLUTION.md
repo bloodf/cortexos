@@ -1082,3 +1082,15 @@ palette), queryKey collisions, lossy adapters, orphaned admin set.
 Decision: "Wire live, drop what can't be" — topology removed until a
 real source exists. Plans: MP-025 (flip stubs), MP-026 (de-mock
 runtime), MP-027 (orphans + adapters).
+
+## 2026-06-11 — MP-025 plan (3 cycles, dispositions applied under /loop standing authorization)
+Artifacts: `harness/artifacts/critic-plan-MP-025-flip-client-stubs.md-{1,2,3}.md`.
+Cycle 1 FIXED (exactly NINE entries line-cited — the 10th grep hit is
+the helper def; psql ground truth pinned to alert_history/audit_log).
+Cycle 2 FIXED (backend map ADDENDUM: listAlerts:91, alertHistory:215,
+listApprovals:86, listAudit:367, listAgents:72, readEnv:175; stale "10"
+ownership corrected). Cycle 3 dispositions, all FIXED: paths rooted to
+packages/dashboard-next/; binary mapping contract (declared return
+types unchanged + field-by-field sample assertion; helpers private to
+client.ts); notYetWired gate pinned to 0 exactly (helper deleted).
+No overrules. Implementer kimi; gpt-5.5 diff review before push.
