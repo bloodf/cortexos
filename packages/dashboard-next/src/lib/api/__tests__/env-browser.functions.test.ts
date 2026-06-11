@@ -295,6 +295,7 @@ describe("env-browser.unlock (auth: admin, mutation)", () => {
     const { token, csrf } = await makeAdminSession("admin");
     const codes: number[] = [];
     for (let i = 0; i < 6; i++) {
+      // eslint-disable-next-line no-await-in-loop
       const res = await unlockCore(unlockRequest(token, csrf, { password: "wrong" }));
       codes.push(res.status);
     }

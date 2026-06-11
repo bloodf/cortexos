@@ -20,6 +20,7 @@ declare global {
 
 export default function reportLovableError(error: unknown, context: Record<string, unknown> = {}) {
   if (typeof window === "undefined") return;
+  // eslint-disable-next-line no-underscore-dangle
   window.__lovableEvents?.captureException?.(
     error,
     {
