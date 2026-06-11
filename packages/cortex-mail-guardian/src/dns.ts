@@ -34,7 +34,7 @@ const lookupWithFallback = ((
     cb = options;
     opts = {};
   } else {
-    opts = options;
+    opts = options ?? {};
     cb = callback;
   }
   dns.promises
