@@ -1269,3 +1269,12 @@ Final release sweep evidence: lint rc=0/0 bytes; format:check rc=0;
 tsc rc=0; dashboard-next suite 619/619 (67 files); audit = 1 low
 (@ai-sdk/provider-utils, unpatched upstream — exactly the allowed
 baseline); screens 18/18 (run 24); live 200. RELEASE-READY.
+
+## 2026-06-12 — MG-RECONNECT fix production-verified — FINAL CLOSE
+ImapConnectionClosedError shipped in cdb6fcd. Service restarted 19:02:35 UTC.
+First hourly server-side drop hit at 19:06:28 UTC (all 3 accounts simultaneous,
+same-second pattern as before). Result: 3 × "reconnecting after server-side IMAP
+disconnect" written to stdout (journal info-level) — ZERO "IMAP socket closed"
+to stderr. Sweeps running continuously post-reconnect (mail_guardian_sweep events
+confirmed 19:52 UTC). soak grep pattern 'IMAP socket closed' → 0 matches.
+STATUS: ALL CRITERIA MET. CAMPAIGN 100% COMPLETE.
