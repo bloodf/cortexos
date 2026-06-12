@@ -75,6 +75,7 @@ describe('mail guardian sweep', () => {
         hasProcessed: async (_accountSlug: string, uid: number) => uid === 1,
         findRules: async () => [],
         hasAllowRule: async () => false,
+        getLatestBrief: async () => null,
         createPendingReview: async () => 10,
         markProcessed: async () => undefined,
         recordDecision: async () => undefined,
@@ -231,6 +232,7 @@ describe('mail guardian processMessage — auto-trash branch', () => {
         hasProcessed: async () => false,
         findRules: async () => [],
         hasAllowRule: async () => false,
+        getLatestBrief: async () => null,
         createPendingReview: async () => 55,
         markProcessed: async (_slug: string, _uid: number, action: string) => {
           processedActions.push(action);
@@ -289,6 +291,7 @@ describe('mail guardian processMessage — auto-trash branch', () => {
         hasProcessed: async () => false,
         findRules: async () => [],
         hasAllowRule: async () => false,
+        getLatestBrief: async () => null,
         createPendingReview: async () => 10,
         markProcessed: async () => undefined,
         resolveReview: async () => undefined,
@@ -324,6 +327,7 @@ describe('mail guardian processMessage — auto-trash branch', () => {
         hasProcessed: async () => false,
         findRules: async () => [],
         hasAllowRule: async () => false,
+        getLatestBrief: async () => null,
         createPendingReview: async () => 56,
         markProcessed: async (_slug: string, _uid: number, action: string) => {
           processedActions.push(action);
@@ -372,6 +376,7 @@ describe('mail guardian processMessage — kept branch records kept', () => {
         hasProcessed: async () => false,
         findRules: async () => [],
         hasAllowRule: async () => false,
+        getLatestBrief: async () => null,
         markProcessed: async () => undefined,
         recordDecision: async (input: unknown) => { decisions.push(input); },
       },
@@ -405,6 +410,7 @@ describe('mail guardian processMessage — classify_failed dead-letter', () => {
         hasProcessed: async () => false,
         findRules: async () => [],
         hasAllowRule: async () => false,
+        getLatestBrief: async () => null,
         createPendingReview: async () => 77,
         markProcessed: async (_slug: string, _uid: number, action: string) => {
           processedActions.push(action);
@@ -451,6 +457,7 @@ describe('mail guardian processMessage — classify_failed dead-letter', () => {
         hasProcessed: async () => false,
         findRules: async () => [],
         hasAllowRule: async () => false,
+        getLatestBrief: async () => null,
         createPendingReview: async () => 78,
         markProcessed: async (_slug: string, _uid: number, action: string) => {
           processedActions.push(action);
@@ -496,6 +503,7 @@ describe('mail guardian processMessage — review path records pending', () => {
         hasProcessed: async () => false,
         findRules: async () => [],
         hasAllowRule: async () => false,
+        getLatestBrief: async () => null,
         createPendingReview: async () => 88,
         markProcessed: async () => undefined,
         recordDecision: async (input: unknown) => { decisions.push(input); },
@@ -526,6 +534,7 @@ describe('mail guardian processMessage — cross-model call signatures', () => {
         hasProcessed: async () => false,
         findRules: async () => [],
         hasAllowRule: async () => false,
+        getLatestBrief: async () => null,
         createPendingReview: async () => 99,
         markProcessed: async () => undefined,
         recordDecision: async () => undefined,
@@ -554,5 +563,37 @@ describe('mail guardian processMessage — cross-model call signatures', () => {
     expect(verifyPrimary.model).toBe('cx/gpt-5.5');
     expect(verifyFallback).toBeNull();
     expect(verifyInput).not.toHaveProperty('feedbackSummary');
+  });
+});
+
+describe('mail guardian processMessage — feedbackSummary injection', () => {
+  it('passes feedbackSummary from getLatestBrief to both classify and verify calls', async () => {
+    const deps = {
+      config: { accounts: [account('one')], ...baseConfig, dryRun: true },
+      store: {
+        hasProcessed: async () => false,
+        findRules: async () => [],
+        hasAllowRule: async () => false,
+        getLatestBrief: async () => ({
+          id: 1,
+          brief: 'owner keeps transactional email',
+          source_decisions: 5,
+          generated_at: new Date(),
+        }),
+        createPendingReview: async () => 44,
+        markProcessed: async () => undefined,
+        recordDecision: async () => undefined,
+      },
+      mail: { moveToReview: async () => undefined },
+      telegram: { sendMessage: async () => undefined },
+    } as unknown as ProcessDeps;
+
+    await processMessage(deps, account('one'), { uid: 30, from: 'x@y.test', subject: 'test', text: 'body' });
+
+    expect(classifyWithFallbackMock).toHaveBeenCalledTimes(2);
+    const [, , classifyInput] = classifyWithFallbackMock.mock.calls[0] as [unknown, unknown, Record<string, unknown>];
+    expect(classifyInput.feedbackSummary).toBe('owner keeps transactional email');
+    const [, , verifyInput] = classifyWithFallbackMock.mock.calls[1] as [unknown, unknown, Record<string, unknown>];
+    expect(verifyInput.feedbackSummary).toBe('owner keeps transactional email');
   });
 });

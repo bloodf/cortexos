@@ -7,6 +7,7 @@ import { TlsImapMailClient } from './imap.js';
 import { GuardianStore } from './store.js';
 import { assertTelegramReady, BotApiTelegramClient, discoverOwnerChatId } from './telegram.js';
 import { applyReviewDecision, handleTelegramUpdates, sweep } from './processor.js';
+import { distillBrief } from './distill.js';
 
 export const sleep = (ms: number): Promise<void> =>
   new Promise((resolve) => {
@@ -186,6 +187,23 @@ async function decide(): Promise<void> {
   }
 }
 
+export async function distillWithDeps(
+  deps: Awaited<ReturnType<typeof buildDeps>>,
+  distillFn: typeof distillBrief = distillBrief,
+): Promise<void> {
+  const result = await distillFn(deps);
+  process.stdout.write(`${JSON.stringify({ event: 'mail_guardian_distill', ...result })}\n`);
+}
+
+async function runDistill(): Promise<void> {
+  const deps = await buildDeps();
+  try {
+    await distillWithDeps(deps);
+  } finally {
+    await deps.store.close();
+  }
+}
+
 async function main(): Promise<void> {
   const command = process.argv[2] ?? 'sweep';
   if (command === 'smoke') await smoke();
@@ -193,6 +211,7 @@ async function main(): Promise<void> {
   else if (command === 'listen') await listen();
   else if (command === 'telegram-discover-owner') await telegramDiscoverOwner();
   else if (command === 'decide') await decide();
+  else if (command === 'distill') await runDistill();
   else throw new Error(`unknown command: ${command}`);
 }
 

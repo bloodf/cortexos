@@ -41,6 +41,24 @@ export interface DecisionInput {
   outcome: string;
 }
 
+export interface DecisionRow {
+  account_slug: string;
+  message_uid: number;
+  from_hash: string;
+  domain_hash: string;
+  summary: string;
+  verdict: string | null;
+  outcome: string;
+  created_at: Date;
+}
+
+export interface KnowledgeBriefRow {
+  id: number;
+  brief: string;
+  source_decisions: number;
+  generated_at: Date;
+}
+
 export interface QueuedReviewDecision {
   id: number;
   review_id: number;
@@ -329,5 +347,39 @@ export class GuardianStore {
        WHERE account_slug = $1 AND message_uid = $2`,
       [accountSlug, uid, outcome],
     );
+  }
+
+  async listRecentDecisions(limit: number): Promise<DecisionRow[]> {
+    const result = await this.pool.query<DecisionRow>(
+      `SELECT account_slug, message_uid, from_hash, domain_hash, summary,
+              verdict, outcome, created_at
+       FROM mail_guardian_decisions
+       WHERE outcome IN ('owner_spam','owner_keep','owner_block','owner_allow')
+       ORDER BY CASE
+         WHEN (verdict = 'spam' AND outcome IN ('owner_keep','owner_allow'))
+           OR (verdict = 'not_spam' AND outcome IN ('owner_spam','owner_block'))
+         THEN 0 ELSE 1
+       END, created_at DESC
+       LIMIT $1`,
+      [limit],
+    );
+    return result.rows;
+  }
+
+  async insertBrief(brief: string, sourceDecisions: number): Promise<void> {
+    await this.pool.query(
+      `INSERT INTO mail_guardian_knowledge (brief, source_decisions) VALUES ($1, $2)`,
+      [brief, sourceDecisions],
+    );
+  }
+
+  async getLatestBrief(): Promise<KnowledgeBriefRow | null> {
+    const result = await this.pool.query<KnowledgeBriefRow>(
+      `SELECT id, brief, source_decisions, generated_at
+       FROM mail_guardian_knowledge
+       ORDER BY generated_at DESC, id DESC
+       LIMIT 1`,
+    );
+    return result.rows[0] ?? null;
   }
 }

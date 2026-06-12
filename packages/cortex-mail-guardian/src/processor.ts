@@ -91,27 +91,27 @@ export async function processMessage(
     : null;
   const verifyConfig = fallbackConfig ?? primaryConfig;
 
+  const briefRow = await deps.store.getLatestBrief();
+  const classifyInput = {
+    from: message.from,
+    subject: message.subject,
+    text: message.text,
+    ...(briefRow ? { feedbackSummary: briefRow.brief } : {}),
+  };
+
   let classifyFailed = false;
   let classifyResult: Awaited<ReturnType<typeof classifyWithFallback>> | null = null;
   let verifyResult: Awaited<ReturnType<typeof classifyWithFallback>> | null = null;
 
   try {
-    classifyResult = await classifyWithFallback(primaryConfig, fallbackConfig, {
-      from: message.from,
-      subject: message.subject,
-      text: message.text,
-    });
+    classifyResult = await classifyWithFallback(primaryConfig, fallbackConfig, classifyInput);
   } catch {
     classifyFailed = true;
   }
 
   if (!classifyFailed) {
     try {
-      verifyResult = await classifyWithFallback(verifyConfig, null, {
-        from: message.from,
-        subject: message.subject,
-        text: message.text,
-      });
+      verifyResult = await classifyWithFallback(verifyConfig, null, classifyInput);
     } catch {
       classifyFailed = true;
     }

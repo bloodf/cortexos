@@ -1,0 +1,9 @@
+[Unit]
+Description=Cortex Mail Guardian daily brief distillation timer
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+
+[Install]
+WantedBy=timers.target
