@@ -173,6 +173,17 @@ import { uploadAgentFile as _uploadAgentFile, listAgents as _listAgents } from "
 import { readEnv as _readEnv } from "./env-browser.functions";
 import type { HermesProfile } from "@/server/agents/registry";
 
+// Topbar bell notifications — no server fn yet (TODO domain above); shape
+// mirrors the legacy mock `Notification` so the TopBar consumer stays typed.
+export interface DashNotification {
+  id: string;
+  title: string;
+  body: string;
+  timestamp: string;
+  read: boolean;
+  severity: "info" | "warn" | "error";
+}
+
 export * as auth from "./auth";
 
 // Re-export error types so Wave-2 consumers can import from one place.
@@ -1247,7 +1258,8 @@ export const api = {
   },
 
   // ── Notifications ──────────────────────────────────────────────────────
-  notifications: (): Promise<unknown[]> => Promise.resolve([]),
+  // No live notifications server fn yet — typed empty stub until one ships.
+  notifications: (): Promise<DashNotification[]> => Promise.resolve([]),
 
   // ── Env browser (WIRED — MP-025) ───────────────────────────────────────
   /**
