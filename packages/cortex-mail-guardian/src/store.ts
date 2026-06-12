@@ -382,4 +382,38 @@ export class GuardianStore {
     );
     return result.rows[0] ?? null;
   }
+
+  async countDomainOutcomes(domainHash: string): Promise<{ spam: number; allow: number }> {
+    const result = await this.pool.query<{ spam: string; allow: string }>(
+      `SELECT
+         COUNT(*) FILTER (WHERE outcome IN ('owner_spam','owner_block')) AS spam,
+         COUNT(*) FILTER (WHERE outcome IN ('owner_keep','owner_allow')) AS allow
+       FROM mail_guardian_decisions
+       WHERE domain_hash = $1`,
+      [domainHash],
+    );
+    const row = result.rows[0];
+    return { spam: Number(row?.spam ?? 0), allow: Number(row?.allow ?? 0) };
+  }
+
+  async hasRule(
+    ruleType: 'allow' | 'block',
+    scope: 'sender' | 'domain',
+    valueHash: string,
+  ): Promise<boolean> {
+    const result = await this.pool.query(
+      `SELECT 1 FROM mail_guardian_rules
+       WHERE rule_type = $1 AND scope = $2 AND value_hash = $3 LIMIT 1`,
+      [ruleType, scope, valueHash],
+    );
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async getReviewDomainHash(reviewId: number): Promise<string | null> {
+    const result = await this.pool.query<{ domain_hash: string }>(
+      `SELECT domain_hash FROM mail_guardian_reviews WHERE id = $1`,
+      [reviewId],
+    );
+    return result.rows[0]?.domain_hash ?? null;
+  }
 }

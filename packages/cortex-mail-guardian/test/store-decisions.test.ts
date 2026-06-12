@@ -223,3 +223,105 @@ describe('GuardianStore.getLatestBrief', () => {
     expect(sql).toContain('id DESC');
   });
 });
+
+describe('GuardianStore.countDomainOutcomes', () => {
+  beforeEach(() => {
+    querySpy.mockReset();
+  });
+
+  it('counts owner-confirmed spam and allow outcomes for a domain hash', async () => {
+    querySpy.mockResolvedValue({ rows: [{ spam: '3', allow: '1' }], rowCount: 1 });
+    const store = new GuardianStore(config as never);
+
+    const result = await store.countDomainOutcomes('domain-hash-xyz');
+
+    expect(querySpy).toHaveBeenCalledOnce();
+    const [sql, params] = querySpy.mock.calls[0] as [string, unknown[]];
+    expect(sql).toContain('mail_guardian_decisions');
+    expect(sql).toContain('owner_spam');
+    expect(sql).toContain('owner_block');
+    expect(sql).toContain('owner_keep');
+    expect(sql).toContain('owner_allow');
+    expect(params).toContain('domain-hash-xyz');
+    expect(result).toEqual({ spam: 3, allow: 1 });
+  });
+
+  it('excludes auto_trashed and pending outcomes', async () => {
+    querySpy.mockResolvedValue({ rows: [{ spam: '0', allow: '0' }], rowCount: 1 });
+    const store = new GuardianStore(config as never);
+
+    await store.countDomainOutcomes('dh');
+
+    const [sql] = querySpy.mock.calls[0] as [string];
+    expect(sql).not.toContain('auto_trashed');
+  });
+
+  it('returns numeric zero counts when domain has no decisions', async () => {
+    querySpy.mockResolvedValue({ rows: [{ spam: '0', allow: '0' }], rowCount: 1 });
+    const store = new GuardianStore(config as never);
+
+    const result = await store.countDomainOutcomes('unknown-hash');
+
+    expect(result).toEqual({ spam: 0, allow: 0 });
+  });
+});
+
+describe('GuardianStore.hasRule', () => {
+  beforeEach(() => {
+    querySpy.mockReset();
+  });
+
+  it('returns true when a matching rule exists', async () => {
+    querySpy.mockResolvedValue({ rows: [{ 1: 1 }], rowCount: 1 });
+    const store = new GuardianStore(config as never);
+
+    const result = await store.hasRule('block', 'domain', 'some-hash');
+
+    expect(querySpy).toHaveBeenCalledOnce();
+    const [sql, params] = querySpy.mock.calls[0] as [string, unknown[]];
+    expect(sql).toContain('mail_guardian_rules');
+    expect(params).toContain('block');
+    expect(params).toContain('domain');
+    expect(params).toContain('some-hash');
+    expect(result).toBe(true);
+  });
+
+  it('returns false when no matching rule exists', async () => {
+    querySpy.mockResolvedValue({ rows: [], rowCount: 0 });
+    const store = new GuardianStore(config as never);
+
+    const result = await store.hasRule('allow', 'domain', 'no-hash');
+
+    expect(result).toBe(false);
+  });
+});
+
+describe('GuardianStore.getReviewDomainHash', () => {
+  beforeEach(() => {
+    querySpy.mockReset();
+  });
+
+  it('returns domain_hash for a review id without resolved_at filter', async () => {
+    querySpy.mockResolvedValue({ rows: [{ domain_hash: 'dh-abc' }], rowCount: 1 });
+    const store = new GuardianStore(config as never);
+
+    const result = await store.getReviewDomainHash(55);
+
+    expect(querySpy).toHaveBeenCalledOnce();
+    const [sql, params] = querySpy.mock.calls[0] as [string, unknown[]];
+    expect(sql).toContain('mail_guardian_reviews');
+    expect(sql).toContain('domain_hash');
+    expect(sql).not.toContain('resolved_at');
+    expect(params).toContain(55);
+    expect(result).toBe('dh-abc');
+  });
+
+  it('returns null when review does not exist', async () => {
+    querySpy.mockResolvedValue({ rows: [], rowCount: 0 });
+    const store = new GuardianStore(config as never);
+
+    const result = await store.getReviewDomainHash(999);
+
+    expect(result).toBeNull();
+  });
+});

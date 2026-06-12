@@ -2,6 +2,7 @@ import type { GuardianConfig, MailAccountConfig } from './config.js';
 import type { MailClient, MailMessage } from './imap.js';
 import type { GuardianStore } from './store.js';
 import type { TelegramClient, TelegramUpdate } from './telegram.js';
+
 import {
   classifyWithFallback,
   heuristicSpamScore,
@@ -11,6 +12,9 @@ import {
 import { redactEmail } from './redact.js';
 import { evaluateRules } from './rules.js';
 import runSequentially, { STOP } from './sequential.js';
+
+const DOMAIN_BLOCK_THRESHOLD = 3;
+const skippedDomains = new Set<string>();
 
 export interface ProcessDeps {
   config: GuardianConfig;
@@ -303,6 +307,32 @@ export async function applyReviewDecision(
   };
   await deps.store.updateDecisionOutcome(review.account_slug, review.message_uid, outcomeMap[decision]);
   await deps.store.resolveReview(reviewId, decision, approver);
+  if (
+    (decision === 'spam' || decision === 'block_sender') &&
+    deps.config.telegramOwnerChatId
+  ) {
+    const { spam, allow } = await deps.store.countDomainOutcomes(review.domain_hash);
+    if (
+      spam >= DOMAIN_BLOCK_THRESHOLD &&
+      allow === 0 &&
+      !(await deps.store.hasRule('block', 'domain', review.domain_hash)) &&
+      !(await deps.store.hasRule('allow', 'domain', review.domain_hash)) &&
+      !skippedDomains.has(review.domain_hash)
+    ) {
+      await deps.telegram.sendMessage(
+        deps.config.telegramOwnerChatId,
+        `Domain flagged: ${spam} owner-confirmed spams, no keeps. Block all mail from this domain?`,
+        {
+          inline_keyboard: [
+            [
+              { text: '🚫 Block domain', callback_data: `mgdom:${reviewId}:block` },
+              { text: '⏭️ Skip', callback_data: `mgdom:${reviewId}:skip` },
+            ],
+          ],
+        },
+      );
+    }
+  }
 }
 
 export async function sweep(deps: ProcessDeps): Promise<{
@@ -381,12 +411,36 @@ export async function handleTelegramUpdates(
   const relevantUpdates = updates.filter((update) => {
     const callback = update.callback_query;
     const data = callback?.data;
-    return callback && data?.startsWith('mg:');
+    return callback && (data?.startsWith('mg:') || data?.startsWith('mgdom:'));
   });
   await runSequentially(relevantUpdates, async (update) => {
     const callback = update.callback_query!;
     const data = callback.data!;
-    const [, reviewIdRaw, decision] = data.split(':');
+    const parts = data.split(':');
+    const prefix = parts[0];
+
+    if (prefix === 'mgdom') {
+      const reviewId = Number(parts[1]);
+      const action = parts[2];
+      if (!Number.isInteger(reviewId)) return;
+      const domainHash = await deps.store.getReviewDomainHash(reviewId);
+      if (!domainHash) {
+        await deps.telegram.answerCallbackQuery(callback.id, 'Proposal expired.');
+        return;
+      }
+      if (action === 'block') {
+        await deps.store.addRule('block', 'domain', domainHash);
+        await deps.telegram.answerCallbackQuery(callback.id, 'Domain blocked.');
+        handled += 1;
+      } else if (action === 'skip') {
+        skippedDomains.add(domainHash);
+        await deps.telegram.answerCallbackQuery(callback.id, 'Domain proposal dismissed.');
+        handled += 1;
+      }
+      return;
+    }
+
+    const [, reviewIdRaw, decision] = parts;
     const reviewId = Number(reviewIdRaw);
     if (Number.isInteger(reviewId)) {
       const reviewRecord = await deps.store.getReview(reviewId);

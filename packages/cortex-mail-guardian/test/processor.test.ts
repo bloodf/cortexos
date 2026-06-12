@@ -3,6 +3,7 @@ import type { ProcessDeps } from '../src/processor.js';
 import {
   applyReviewDecision,
   buildReviewMessage,
+  handleTelegramUpdates,
   processMessage,
   sweep,
 } from '../src/processor.js';
@@ -595,5 +596,248 @@ describe('mail guardian processMessage — feedbackSummary injection', () => {
     expect(classifyInput.feedbackSummary).toBe('owner keeps transactional email');
     const [, , verifyInput] = classifyWithFallbackMock.mock.calls[1] as [unknown, unknown, Record<string, unknown>];
     expect(verifyInput.feedbackSummary).toBe('owner keeps transactional email');
+  });
+});
+
+describe('mail guardian applyReviewDecision — domain block proposal', () => {
+  it('sends domain block proposal when spam >= 3 and no allow or existing domain rule', async () => {
+    const sentMessages: unknown[][] = [];
+    const deps = {
+      config: { accounts: [account('one')], dryRun: false, telegramOwnerChatId: '777' },
+      store: {
+        getReview: async () => ({
+          id: 10,
+          account_slug: 'one',
+          message_uid: 200,
+          message_id: null,
+          from_hash: 'fh',
+          domain_hash: 'bulk-domain-hash',
+        }),
+        addRule: async () => undefined,
+        markProcessed: async () => undefined,
+        updateDecisionOutcome: async () => undefined,
+        resolveReview: async () => undefined,
+        countDomainOutcomes: async () => ({ spam: 3, allow: 0 }),
+        hasRule: async () => false,
+      },
+      mail: { moveToTrash: async () => undefined },
+      telegram: { sendMessage: async (...args: unknown[]) => { sentMessages.push(args); } },
+    } as unknown as ProcessDeps;
+
+    await applyReviewDecision(deps, 10, 'spam', 'telegram');
+
+    expect(sentMessages).toHaveLength(1);
+    const [chatId, , markup] = sentMessages[0] as [
+      string,
+      string,
+      { inline_keyboard: { callback_data: string; text: string }[][] },
+    ];
+    expect(chatId).toBe('777');
+    const buttons = markup.inline_keyboard.flat();
+    expect(buttons.find((b) => b.callback_data === 'mgdom:10:block')).toBeDefined();
+    expect(buttons.find((b) => b.callback_data === 'mgdom:10:skip')).toBeDefined();
+  });
+
+  it('does not send proposal when spam count is below threshold', async () => {
+    const sentMessages: unknown[][] = [];
+    const deps = {
+      config: { accounts: [account('one')], dryRun: false, telegramOwnerChatId: '777' },
+      store: {
+        getReview: async () => ({
+          id: 11,
+          account_slug: 'one',
+          message_uid: 201,
+          message_id: null,
+          from_hash: 'fh',
+          domain_hash: 'rare-domain',
+        }),
+        addRule: async () => undefined,
+        markProcessed: async () => undefined,
+        updateDecisionOutcome: async () => undefined,
+        resolveReview: async () => undefined,
+        countDomainOutcomes: async () => ({ spam: 2, allow: 0 }),
+        hasRule: async () => false,
+      },
+      mail: { moveToTrash: async () => undefined },
+      telegram: { sendMessage: async (...args: unknown[]) => { sentMessages.push(args); } },
+    } as unknown as ProcessDeps;
+
+    await applyReviewDecision(deps, 11, 'spam', 'telegram');
+
+    expect(sentMessages).toHaveLength(0);
+  });
+
+  it('does not send proposal when domain has any allow outcomes', async () => {
+    const sentMessages: unknown[][] = [];
+    const deps = {
+      config: { accounts: [account('one')], dryRun: false, telegramOwnerChatId: '777' },
+      store: {
+        getReview: async () => ({
+          id: 12,
+          account_slug: 'one',
+          message_uid: 202,
+          message_id: null,
+          from_hash: 'fh',
+          domain_hash: 'mixed-domain',
+        }),
+        addRule: async () => undefined,
+        markProcessed: async () => undefined,
+        updateDecisionOutcome: async () => undefined,
+        resolveReview: async () => undefined,
+        countDomainOutcomes: async () => ({ spam: 5, allow: 1 }),
+        hasRule: async () => false,
+      },
+      mail: { moveToTrash: async () => undefined },
+      telegram: { sendMessage: async (...args: unknown[]) => { sentMessages.push(args); } },
+    } as unknown as ProcessDeps;
+
+    await applyReviewDecision(deps, 12, 'spam', 'telegram');
+
+    expect(sentMessages).toHaveLength(0);
+  });
+
+  it('does not send proposal when a domain block rule already exists', async () => {
+    const sentMessages: unknown[][] = [];
+    const deps = {
+      config: { accounts: [account('one')], dryRun: false, telegramOwnerChatId: '777' },
+      store: {
+        getReview: async () => ({
+          id: 13,
+          account_slug: 'one',
+          message_uid: 203,
+          message_id: null,
+          from_hash: 'fh',
+          domain_hash: 'already-blocked-domain',
+        }),
+        addRule: async () => undefined,
+        markProcessed: async () => undefined,
+        updateDecisionOutcome: async () => undefined,
+        resolveReview: async () => undefined,
+        countDomainOutcomes: async () => ({ spam: 5, allow: 0 }),
+        hasRule: async (_ruleType: string, scope: string) => scope === 'domain',
+      },
+      mail: { moveToTrash: async () => undefined },
+      telegram: { sendMessage: async (...args: unknown[]) => { sentMessages.push(args); } },
+    } as unknown as ProcessDeps;
+
+    await applyReviewDecision(deps, 13, 'spam', 'telegram');
+
+    expect(sentMessages).toHaveLength(0);
+  });
+
+  it('does not send proposal for keep or allow_sender decisions', async () => {
+    const sentMessages: unknown[][] = [];
+    const mkDeps = (reviewId: number, uid: number) =>
+      ({
+        config: { accounts: [account('one')], dryRun: false, telegramOwnerChatId: '777' },
+        store: {
+          getReview: async () => ({
+            id: reviewId,
+            account_slug: 'one',
+            message_uid: uid,
+            message_id: null,
+            from_hash: 'fh',
+            domain_hash: 'keep-domain',
+          }),
+          addRule: async () => undefined,
+          markProcessed: async () => undefined,
+          updateDecisionOutcome: async () => undefined,
+          resolveReview: async () => undefined,
+        },
+        mail: { moveToInbox: async () => undefined },
+        telegram: { sendMessage: async (...args: unknown[]) => { sentMessages.push(args); } },
+      }) as unknown as ProcessDeps;
+
+    await applyReviewDecision(mkDeps(14, 204), 14, 'keep', 'telegram');
+    await applyReviewDecision(mkDeps(15, 205), 15, 'allow_sender', 'telegram');
+
+    expect(sentMessages).toHaveLength(0);
+  });
+});
+
+describe('mail guardian handleTelegramUpdates — mgdom callbacks', () => {
+  it('blocks a domain when mgdom:id:block callback arrives', async () => {
+    const rules: { ruleType: string; scope: string; valueHash: string }[] = [];
+    const answers: string[] = [];
+    const deps = {
+      config: { accounts: [account('one')], dryRun: false },
+      store: {
+        getReviewDomainHash: async () => 'bulk-domain-hash-2',
+        addRule: async (ruleType: string, scope: string, valueHash: string) => {
+          rules.push({ ruleType, scope, valueHash });
+        },
+      },
+      telegram: {
+        answerCallbackQuery: async (_id: string, text: string) => {
+          answers.push(text);
+        },
+      },
+    } as unknown as ProcessDeps;
+
+    const update = {
+      update_id: 1,
+      callback_query: { id: 'cq-1', data: 'mgdom:42:block', message: { chat: { id: 777 } } },
+    };
+
+    const handled = await handleTelegramUpdates(deps, [update]);
+
+    expect(handled).toBe(1);
+    expect(rules).toEqual([{ ruleType: 'block', scope: 'domain', valueHash: 'bulk-domain-hash-2' }]);
+    expect(answers).toEqual(['Domain blocked.']);
+  });
+
+  it('dismisses domain proposal and answers on mgdom:id:skip callback', async () => {
+    const rules: unknown[] = [];
+    const answers: string[] = [];
+    const deps = {
+      config: { accounts: [account('one')], dryRun: false },
+      store: {
+        getReviewDomainHash: async () => 'skip-domain-hash-unique',
+        addRule: async (...args: unknown[]) => {
+          rules.push(args);
+        },
+      },
+      telegram: {
+        answerCallbackQuery: async (_id: string, text: string) => {
+          answers.push(text);
+        },
+      },
+    } as unknown as ProcessDeps;
+
+    const update = {
+      update_id: 2,
+      callback_query: { id: 'cq-2', data: 'mgdom:43:skip', message: { chat: { id: 777 } } },
+    };
+
+    const handled = await handleTelegramUpdates(deps, [update]);
+
+    expect(handled).toBe(1);
+    expect(rules).toHaveLength(0);
+    expect(answers).toEqual(['Domain proposal dismissed.']);
+  });
+
+  it('answers Proposal expired when review id not found for mgdom:block', async () => {
+    const answers: string[] = [];
+    const deps = {
+      config: { accounts: [account('one')], dryRun: false },
+      store: {
+        getReviewDomainHash: async () => null,
+        addRule: async () => undefined,
+      },
+      telegram: {
+        answerCallbackQuery: async (_id: string, text: string) => {
+          answers.push(text);
+        },
+      },
+    } as unknown as ProcessDeps;
+
+    const update = {
+      update_id: 3,
+      callback_query: { id: 'cq-3', data: 'mgdom:999:block', message: { chat: { id: 777 } } },
+    };
+
+    await handleTelegramUpdates(deps, [update]);
+
+    expect(answers).toEqual(['Proposal expired.']);
   });
 });
