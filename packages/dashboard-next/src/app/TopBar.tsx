@@ -31,7 +31,7 @@ import { useUI } from "@/hooks/useUI";
 import { ACCENTS } from "@/hooks/accents";
 import { useAuth } from "@/hooks/useAuth";
 import { useT } from "@/hooks/useT";
-import { api } from "@/mocks/api";
+import { api } from "@/lib/api/client";
 import { NAV } from "./NavConfig";
 import { LOCALES, LOCALE_LABEL } from "@/i18n";
 import { relativeTime } from "@/lib/format";

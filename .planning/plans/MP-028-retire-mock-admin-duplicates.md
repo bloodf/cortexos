@@ -54,7 +54,9 @@ green proof.
    - `pnpm run format:check >/dev/null 2>&1; echo rc=$?` → rc=0
      (pipe-safe; no tail masking)
    - the runtime-mock-import survivor count:
-   `grep -rn 'from "@/mocks/api"' packages/dashboard-next/src --include='*.ts*' | grep -v __tests__ | grep -cv 'src/mocks/'` → 0
+   `grep -rn '^import { api } from "@/mocks/api"' packages/dashboard-next/src --include='*.ts*' | grep -v __tests__ | grep -cv 'src/mocks/'` → 0
+   (anchored to real import lines — doc comments excluded; TopBar's
+   mock import was swapped to the live client pre-dispatch)
    (the LAST runtime mock imports leave with these four);
    - LIVE-ADMIN SURVIVAL (binary): `ls packages/dashboard-next/src/routes/ | grep -c 'admin'`
      → 8 (account, alerts, badges, env-browser, projects, services,
