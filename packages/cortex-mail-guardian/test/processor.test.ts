@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ProcessDeps } from '../src/processor.js';
 import {
   applyReviewDecision,
@@ -7,18 +7,34 @@ import {
   sweep,
 } from '../src/processor.js';
 
+const classifyWithFallbackMock = vi.fn(async () => ({
+  result: { verdict: 'uncertain' as const, confidence: 0.5, reasons: [] as string[], riskSignals: [] as string[] },
+  modelUsed: 'test-model',
+  attempts: 1,
+}));
+const shouldKeepInInboxMock = vi.fn(() => false);
+const shouldAutoQuarantineMock = vi.fn(() => false);
+
 vi.mock('../src/model.js', () => ({
-  classifyEmail: async () => ({
-    verdict: 'uncertain',
-    confidence: 0.5,
-    reasons: [],
-    riskSignals: [],
-  }),
+  classifyWithFallback: (...args: unknown[]) => classifyWithFallbackMock(...args),
   heuristicSpamScore: () => 0,
-  shouldKeepInInbox: () => false,
-  shouldAutoQuarantine: () => false,
+  shouldKeepInInbox: (...args: unknown[]) => shouldKeepInInboxMock(...args),
+  shouldAutoQuarantine: (...args: unknown[]) => shouldAutoQuarantineMock(...args),
   shouldAutoTrash: () => false,
 }));
+
+beforeEach(() => {
+  classifyWithFallbackMock.mockReset();
+  classifyWithFallbackMock.mockResolvedValue({
+    result: { verdict: 'uncertain' as const, confidence: 0.5, reasons: [] as string[], riskSignals: [] as string[] },
+    modelUsed: 'test-model',
+    attempts: 1,
+  });
+  shouldAutoQuarantineMock.mockReset();
+  shouldAutoQuarantineMock.mockReturnValue(false);
+  shouldKeepInInboxMock.mockReset();
+  shouldKeepInInboxMock.mockReturnValue(false);
+});
 
 function account(slug: string) {
   return {
@@ -45,6 +61,7 @@ describe('mail guardian sweep', () => {
         nineRouterBaseUrl: 'http://127.0.0.1:11434/v1',
         nineRouterApiKey: 'test',
         model: 'test',
+        fallbackModel: 'test-fallback',
         modelTimeoutMs: 30_000,
         confidenceThreshold: 0.95,
         dryRun: true,
@@ -107,6 +124,7 @@ describe('mail guardian rule pre-filter', () => {
     expect(result).toBe('trashed');
     expect(moved).toEqual([{ slug: 'one', uid: 7 }]);
     expect(processed).toEqual([{ slug: 'one', uid: 7, action: 'trashed' }]);
+    expect(classifyWithFallbackMock).not.toHaveBeenCalled();
   });
 });
 
@@ -169,5 +187,243 @@ describe('mail guardian review decisions', () => {
     expect(moved).toEqual([{ slug: 'one', uid: 101 }]);
     expect(processed).toEqual([{ slug: 'one', uid: 101, action: 'trashed' }]);
     expect(rules).toEqual([{ ruleType: 'block', scope: 'sender', valueHash: 'sender-hash' }]);
+  });
+});
+
+describe('mail guardian processMessage — auto-trash branch', () => {
+  it('moves to trash, resolves review, sends plain FYI with no reply_markup, returns trashed', async () => {
+    shouldAutoQuarantineMock.mockReturnValue(true);
+    const moved: string[] = [];
+    const processedActions: string[] = [];
+    const resolvedIds: number[] = [];
+    const telegramCalls: unknown[][] = [];
+
+    const deps = {
+      config: {
+        accounts: [account('one')],
+        nineRouterBaseUrl: 'http://127.0.0.1:11434/v1',
+        nineRouterApiKey: 'test',
+        model: 'minimax/MiniMax-M3',
+        fallbackModel: 'cx/gpt-5.5',
+        modelTimeoutMs: 30_000,
+        confidenceThreshold: 0.95,
+        dryRun: false,
+        telegramOwnerChatId: '999',
+      },
+      store: {
+        hasProcessed: async () => false,
+        findRules: async () => [],
+        hasAllowRule: async () => false,
+        createPendingReview: async () => 55,
+        markProcessed: async (_slug: string, _uid: number, action: string) => {
+          processedActions.push(action);
+        },
+        resolveReview: async (id: number) => {
+          resolvedIds.push(id);
+        },
+      },
+      mail: {
+        moveToTrash: async (_acct: unknown, uid: number) => {
+          moved.push(`trash:${uid}`);
+        },
+      },
+      telegram: {
+        sendMessage: async (...args: unknown[]) => {
+          telegramCalls.push(args);
+        },
+      },
+    } as unknown as ProcessDeps;
+
+    const result = await processMessage(deps, account('one'), {
+      uid: 42,
+      from: 'spammer@evil.test',
+      subject: 'win prizes',
+      text: 'click here now',
+    });
+
+    expect(result).toBe('trashed');
+    expect(moved).toEqual(['trash:42']);
+    expect(processedActions).toContain('trashed');
+    expect(resolvedIds).toContain(55);
+    expect(telegramCalls).toHaveLength(1);
+    const [, , replyMarkup] = telegramCalls[0] as [unknown, unknown, unknown];
+    expect(replyMarkup).toBeUndefined();
+  });
+
+  it('records would_trash under dryRun, still resolves review', async () => {
+    shouldAutoQuarantineMock.mockReturnValue(true);
+    const processedActions: string[] = [];
+    const resolvedIds: number[] = [];
+
+    const deps = {
+      config: {
+        accounts: [account('one')],
+        nineRouterBaseUrl: 'http://127.0.0.1:11434/v1',
+        nineRouterApiKey: 'test',
+        model: 'minimax/MiniMax-M3',
+        fallbackModel: 'cx/gpt-5.5',
+        modelTimeoutMs: 30_000,
+        confidenceThreshold: 0.95,
+        dryRun: true,
+      },
+      store: {
+        hasProcessed: async () => false,
+        findRules: async () => [],
+        hasAllowRule: async () => false,
+        createPendingReview: async () => 56,
+        markProcessed: async (_slug: string, _uid: number, action: string) => {
+          processedActions.push(action);
+        },
+        resolveReview: async (id: number) => {
+          resolvedIds.push(id);
+        },
+      },
+      mail: {},
+      telegram: { sendMessage: async () => undefined },
+    } as unknown as ProcessDeps;
+
+    const result = await processMessage(deps, account('one'), {
+      uid: 43,
+      from: 'spammer@evil.test',
+      subject: 'win prizes',
+      text: 'click here now',
+    });
+
+    expect(result).toBe('trashed');
+    expect(processedActions).toContain('would_trash');
+    expect(resolvedIds).toContain(56);
+  });
+});
+
+describe('mail guardian processMessage — classify_failed dead-letter', () => {
+  it('stores classify_failed and returns review when classification throws', async () => {
+    classifyWithFallbackMock.mockRejectedValueOnce(new Error('model error'));
+    const processedActions: string[] = [];
+
+    const deps = {
+      config: {
+        accounts: [account('one')],
+        nineRouterBaseUrl: 'http://127.0.0.1:11434/v1',
+        nineRouterApiKey: 'test',
+        model: 'minimax/MiniMax-M3',
+        fallbackModel: 'cx/gpt-5.5',
+        modelTimeoutMs: 30_000,
+        confidenceThreshold: 0.95,
+        dryRun: false,
+      },
+      store: {
+        hasProcessed: async () => false,
+        findRules: async () => [],
+        hasAllowRule: async () => false,
+        createPendingReview: async () => 77,
+        markProcessed: async (_slug: string, _uid: number, action: string) => {
+          processedActions.push(action);
+        },
+      },
+      mail: { moveToReview: async () => undefined },
+      telegram: { sendMessage: async () => undefined },
+    } as unknown as ProcessDeps;
+
+    const result = await processMessage(deps, account('one'), {
+      uid: 10,
+      from: 'x@y.test',
+      subject: 'test',
+      text: 'body',
+    });
+
+    expect(result).toBe('review');
+    expect(processedActions).toContain('classify_failed');
+  });
+
+  it('stores classify_failed and returns review when verification throws', async () => {
+    classifyWithFallbackMock
+      .mockResolvedValueOnce({
+        result: { verdict: 'spam' as const, confidence: 0.99, reasons: [] as string[], riskSignals: [] as string[] },
+        modelUsed: 'primary',
+        attempts: 1,
+      })
+      .mockRejectedValueOnce(new Error('verify error'));
+    const processedActions: string[] = [];
+
+    const deps = {
+      config: {
+        accounts: [account('one')],
+        nineRouterBaseUrl: 'http://127.0.0.1:11434/v1',
+        nineRouterApiKey: 'test',
+        model: 'minimax/MiniMax-M3',
+        fallbackModel: 'cx/gpt-5.5',
+        modelTimeoutMs: 30_000,
+        confidenceThreshold: 0.95,
+        dryRun: false,
+      },
+      store: {
+        hasProcessed: async () => false,
+        findRules: async () => [],
+        hasAllowRule: async () => false,
+        createPendingReview: async () => 78,
+        markProcessed: async (_slug: string, _uid: number, action: string) => {
+          processedActions.push(action);
+        },
+      },
+      mail: { moveToReview: async () => undefined },
+      telegram: { sendMessage: async () => undefined },
+    } as unknown as ProcessDeps;
+
+    const result = await processMessage(deps, account('one'), {
+      uid: 11,
+      from: 'x@y.test',
+      subject: 'test',
+      text: 'body',
+    });
+
+    expect(result).toBe('review');
+    expect(processedActions).toContain('classify_failed');
+  });
+});
+
+describe('mail guardian processMessage — cross-model call signatures', () => {
+  it('classifies with primary+fallback and verifies with fallback+null, no feedbackSummary', async () => {
+    const deps = {
+      config: {
+        accounts: [account('one')],
+        nineRouterBaseUrl: 'http://127.0.0.1:11434/v1',
+        nineRouterApiKey: 'test',
+        model: 'minimax/MiniMax-M3',
+        fallbackModel: 'cx/gpt-5.5',
+        modelTimeoutMs: 30_000,
+        confidenceThreshold: 0.95,
+        dryRun: true,
+      },
+      store: {
+        hasProcessed: async () => false,
+        findRules: async () => [],
+        hasAllowRule: async () => false,
+        createPendingReview: async () => 99,
+        markProcessed: async () => undefined,
+      },
+      mail: { moveToReview: async () => undefined },
+      telegram: { sendMessage: async () => undefined },
+    } as unknown as ProcessDeps;
+
+    await processMessage(deps, account('one'), {
+      uid: 20,
+      from: 'x@y.test',
+      subject: 'test',
+      text: 'body',
+    });
+
+    expect(classifyWithFallbackMock).toHaveBeenCalledTimes(2);
+
+    const [classifyPrimary, classifyFallback, classifyInput] =
+      classifyWithFallbackMock.mock.calls[0] as [{ model: string }, { model: string } | null, Record<string, unknown>];
+    expect(classifyPrimary.model).toBe('minimax/MiniMax-M3');
+    expect(classifyFallback?.model).toBe('cx/gpt-5.5');
+    expect(classifyInput).not.toHaveProperty('feedbackSummary');
+
+    const [verifyPrimary, verifyFallback, verifyInput] =
+      classifyWithFallbackMock.mock.calls[1] as [{ model: string }, null, Record<string, unknown>];
+    expect(verifyPrimary.model).toBe('cx/gpt-5.5');
+    expect(verifyFallback).toBeNull();
+    expect(verifyInput).not.toHaveProperty('feedbackSummary');
   });
 });
