@@ -1,8 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import {
-  COMMAND_SOCKET_TIMEOUT_MS,
-  IDLE_SOCKET_TIMEOUT_MS,
-} from '../src/imap.js';
+import { COMMAND_SOCKET_TIMEOUT_MS, IDLE_SOCKET_TIMEOUT_MS } from '../src/imap.js';
 import { makeListenerOnError } from '../src/index.js';
 
 describe('IMAP socket timeout constants', () => {

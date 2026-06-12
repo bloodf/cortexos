@@ -305,12 +305,13 @@ export async function applyReviewDecision(
     block_sender: 'owner_block',
     allow_sender: 'owner_allow',
   };
-  await deps.store.updateDecisionOutcome(review.account_slug, review.message_uid, outcomeMap[decision]);
+  await deps.store.updateDecisionOutcome(
+    review.account_slug,
+    review.message_uid,
+    outcomeMap[decision],
+  );
   await deps.store.resolveReview(reviewId, decision, approver);
-  if (
-    (decision === 'spam' || decision === 'block_sender') &&
-    deps.config.telegramOwnerChatId
-  ) {
+  if ((decision === 'spam' || decision === 'block_sender') && deps.config.telegramOwnerChatId) {
     const { spam, allow } = await deps.store.countDomainOutcomes(review.domain_hash);
     if (
       spam >= DOMAIN_BLOCK_THRESHOLD &&

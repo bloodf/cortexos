@@ -9,7 +9,12 @@ import {
 } from '../src/processor.js';
 
 const classifyWithFallbackMock = vi.fn(async () => ({
-  result: { verdict: 'uncertain' as const, confidence: 0.5, reasons: [] as string[], riskSignals: [] as string[] },
+  result: {
+    verdict: 'uncertain' as const,
+    confidence: 0.5,
+    reasons: [] as string[],
+    riskSignals: [] as string[],
+  },
   modelUsed: 'test-model',
   attempts: 1,
 }));
@@ -27,7 +32,12 @@ vi.mock('../src/model.js', () => ({
 beforeEach(() => {
   classifyWithFallbackMock.mockReset();
   classifyWithFallbackMock.mockResolvedValue({
-    result: { verdict: 'uncertain' as const, confidence: 0.5, reasons: [] as string[], riskSignals: [] as string[] },
+    result: {
+      verdict: 'uncertain' as const,
+      confidence: 0.5,
+      reasons: [] as string[],
+      riskSignals: [] as string[],
+    },
     modelUsed: 'test-model',
     attempts: 1,
   });
@@ -275,12 +285,22 @@ describe('mail guardian processMessage — auto-trash branch', () => {
     shouldAutoQuarantineMock.mockReturnValue(true);
     classifyWithFallbackMock
       .mockResolvedValueOnce({
-        result: { verdict: 'spam' as const, confidence: 0.98, reasons: ['phishing'] as string[], riskSignals: ['link'] as string[] },
+        result: {
+          verdict: 'spam' as const,
+          confidence: 0.98,
+          reasons: ['phishing'] as string[],
+          riskSignals: ['link'] as string[],
+        },
         modelUsed: 'minimax/MiniMax-M3',
         attempts: 1,
       })
       .mockResolvedValueOnce({
-        result: { verdict: 'spam' as const, confidence: 0.97, reasons: ['scam'] as string[], riskSignals: ['wallet'] as string[] },
+        result: {
+          verdict: 'spam' as const,
+          confidence: 0.97,
+          reasons: ['scam'] as string[],
+          riskSignals: ['wallet'] as string[],
+        },
         modelUsed: 'cx/gpt-5.5',
         attempts: 1,
       });
@@ -296,13 +316,20 @@ describe('mail guardian processMessage — auto-trash branch', () => {
         createPendingReview: async () => 10,
         markProcessed: async () => undefined,
         resolveReview: async () => undefined,
-        recordDecision: async (input: unknown) => { decisions.push(input); },
+        recordDecision: async (input: unknown) => {
+          decisions.push(input);
+        },
       },
       mail: { moveToTrash: async () => undefined },
       telegram: { sendMessage: async () => undefined },
     } as unknown as ProcessDeps;
 
-    await processMessage(deps, account('one'), { uid: 5, from: 'x@evil.test', subject: 's', text: 'b' });
+    await processMessage(deps, account('one'), {
+      uid: 5,
+      from: 'x@evil.test',
+      subject: 's',
+      text: 'b',
+    });
 
     expect(decisions).toHaveLength(1);
     const d = decisions[0] as Record<string, unknown>;
@@ -360,12 +387,22 @@ describe('mail guardian processMessage — kept branch records kept', () => {
     shouldKeepInInboxMock.mockReturnValue(true);
     classifyWithFallbackMock
       .mockResolvedValueOnce({
-        result: { verdict: 'not_spam' as const, confidence: 0.95, reasons: [] as string[], riskSignals: [] as string[] },
+        result: {
+          verdict: 'not_spam' as const,
+          confidence: 0.95,
+          reasons: [] as string[],
+          riskSignals: [] as string[],
+        },
         modelUsed: 'minimax/MiniMax-M3',
         attempts: 1,
       })
       .mockResolvedValueOnce({
-        result: { verdict: 'not_spam' as const, confidence: 0.93, reasons: [] as string[], riskSignals: [] as string[] },
+        result: {
+          verdict: 'not_spam' as const,
+          confidence: 0.93,
+          reasons: [] as string[],
+          riskSignals: [] as string[],
+        },
         modelUsed: 'cx/gpt-5.5',
         attempts: 1,
       });
@@ -379,13 +416,20 @@ describe('mail guardian processMessage — kept branch records kept', () => {
         hasAllowRule: async () => false,
         getLatestBrief: async () => null,
         markProcessed: async () => undefined,
-        recordDecision: async (input: unknown) => { decisions.push(input); },
+        recordDecision: async (input: unknown) => {
+          decisions.push(input);
+        },
       },
       mail: {},
       telegram: { sendMessage: async () => undefined },
     } as unknown as ProcessDeps;
 
-    const result = await processMessage(deps, account('one'), { uid: 6, from: 'friend@good.test', subject: 'lunch', text: 'see you' });
+    const result = await processMessage(deps, account('one'), {
+      uid: 6,
+      from: 'friend@good.test',
+      subject: 'lunch',
+      text: 'see you',
+    });
 
     expect(result).toBe('kept');
     expect(decisions).toHaveLength(1);
@@ -416,7 +460,9 @@ describe('mail guardian processMessage — classify_failed dead-letter', () => {
         markProcessed: async (_slug: string, _uid: number, action: string) => {
           processedActions.push(action);
         },
-        recordDecision: async (input: unknown) => { decisions.push(input); },
+        recordDecision: async (input: unknown) => {
+          decisions.push(input);
+        },
       },
       mail: { moveToReview: async () => undefined },
       telegram: { sendMessage: async () => undefined },
@@ -441,7 +487,12 @@ describe('mail guardian processMessage — classify_failed dead-letter', () => {
   it('stores classify_failed and returns review when verification throws', async () => {
     classifyWithFallbackMock
       .mockResolvedValueOnce({
-        result: { verdict: 'spam' as const, confidence: 0.99, reasons: [] as string[], riskSignals: [] as string[] },
+        result: {
+          verdict: 'spam' as const,
+          confidence: 0.99,
+          reasons: [] as string[],
+          riskSignals: [] as string[],
+        },
         modelUsed: 'primary',
         attempts: 1,
       })
@@ -463,7 +514,9 @@ describe('mail guardian processMessage — classify_failed dead-letter', () => {
         markProcessed: async (_slug: string, _uid: number, action: string) => {
           processedActions.push(action);
         },
-        recordDecision: async (input: unknown) => { decisions.push(input); },
+        recordDecision: async (input: unknown) => {
+          decisions.push(input);
+        },
       },
       mail: { moveToReview: async () => undefined },
       telegram: { sendMessage: async () => undefined },
@@ -488,12 +541,22 @@ describe('mail guardian processMessage — review path records pending', () => {
   it('records outcome pending for regular uncertain review', async () => {
     classifyWithFallbackMock
       .mockResolvedValueOnce({
-        result: { verdict: 'uncertain' as const, confidence: 0.5, reasons: [] as string[], riskSignals: [] as string[] },
+        result: {
+          verdict: 'uncertain' as const,
+          confidence: 0.5,
+          reasons: [] as string[],
+          riskSignals: [] as string[],
+        },
         modelUsed: 'minimax/MiniMax-M3',
         attempts: 1,
       })
       .mockResolvedValueOnce({
-        result: { verdict: 'uncertain' as const, confidence: 0.5, reasons: [] as string[], riskSignals: [] as string[] },
+        result: {
+          verdict: 'uncertain' as const,
+          confidence: 0.5,
+          reasons: [] as string[],
+          riskSignals: [] as string[],
+        },
         modelUsed: 'cx/gpt-5.5',
         attempts: 1,
       });
@@ -507,13 +570,20 @@ describe('mail guardian processMessage — review path records pending', () => {
         getLatestBrief: async () => null,
         createPendingReview: async () => 88,
         markProcessed: async () => undefined,
-        recordDecision: async (input: unknown) => { decisions.push(input); },
+        recordDecision: async (input: unknown) => {
+          decisions.push(input);
+        },
       },
       mail: { moveToReview: async () => undefined },
       telegram: { sendMessage: async () => undefined },
     } as unknown as ProcessDeps;
 
-    const result = await processMessage(deps, account('one'), { uid: 15, from: 'x@y.test', subject: 'test', text: 'body' });
+    const result = await processMessage(deps, account('one'), {
+      uid: 15,
+      from: 'x@y.test',
+      subject: 'test',
+      text: 'body',
+    });
 
     expect(result).toBe('review');
     expect(decisions).toHaveLength(1);
@@ -553,14 +623,17 @@ describe('mail guardian processMessage — cross-model call signatures', () => {
 
     expect(classifyWithFallbackMock).toHaveBeenCalledTimes(2);
 
-    const [classifyPrimary, classifyFallback, classifyInput] =
-      classifyWithFallbackMock.mock.calls[0] as [{ model: string }, { model: string } | null, Record<string, unknown>];
+    const [classifyPrimary, classifyFallback, classifyInput] = classifyWithFallbackMock.mock
+      .calls[0] as [{ model: string }, { model: string } | null, Record<string, unknown>];
     expect(classifyPrimary.model).toBe('minimax/MiniMax-M3');
     expect(classifyFallback?.model).toBe('cx/gpt-5.5');
     expect(classifyInput).not.toHaveProperty('feedbackSummary');
 
-    const [verifyPrimary, verifyFallback, verifyInput] =
-      classifyWithFallbackMock.mock.calls[1] as [{ model: string }, null, Record<string, unknown>];
+    const [verifyPrimary, verifyFallback, verifyInput] = classifyWithFallbackMock.mock.calls[1] as [
+      { model: string },
+      null,
+      Record<string, unknown>,
+    ];
     expect(verifyPrimary.model).toBe('cx/gpt-5.5');
     expect(verifyFallback).toBeNull();
     expect(verifyInput).not.toHaveProperty('feedbackSummary');
@@ -589,12 +662,25 @@ describe('mail guardian processMessage — feedbackSummary injection', () => {
       telegram: { sendMessage: async () => undefined },
     } as unknown as ProcessDeps;
 
-    await processMessage(deps, account('one'), { uid: 30, from: 'x@y.test', subject: 'test', text: 'body' });
+    await processMessage(deps, account('one'), {
+      uid: 30,
+      from: 'x@y.test',
+      subject: 'test',
+      text: 'body',
+    });
 
     expect(classifyWithFallbackMock).toHaveBeenCalledTimes(2);
-    const [, , classifyInput] = classifyWithFallbackMock.mock.calls[0] as [unknown, unknown, Record<string, unknown>];
+    const [, , classifyInput] = classifyWithFallbackMock.mock.calls[0] as [
+      unknown,
+      unknown,
+      Record<string, unknown>,
+    ];
     expect(classifyInput.feedbackSummary).toBe('owner keeps transactional email');
-    const [, , verifyInput] = classifyWithFallbackMock.mock.calls[1] as [unknown, unknown, Record<string, unknown>];
+    const [, , verifyInput] = classifyWithFallbackMock.mock.calls[1] as [
+      unknown,
+      unknown,
+      Record<string, unknown>,
+    ];
     expect(verifyInput.feedbackSummary).toBe('owner keeps transactional email');
   });
 });
@@ -621,7 +707,11 @@ describe('mail guardian applyReviewDecision — domain block proposal', () => {
         hasRule: async () => false,
       },
       mail: { moveToTrash: async () => undefined },
-      telegram: { sendMessage: async (...args: unknown[]) => { sentMessages.push(args); } },
+      telegram: {
+        sendMessage: async (...args: unknown[]) => {
+          sentMessages.push(args);
+        },
+      },
     } as unknown as ProcessDeps;
 
     await applyReviewDecision(deps, 10, 'spam', 'telegram');
@@ -659,7 +749,11 @@ describe('mail guardian applyReviewDecision — domain block proposal', () => {
         hasRule: async () => false,
       },
       mail: { moveToTrash: async () => undefined },
-      telegram: { sendMessage: async (...args: unknown[]) => { sentMessages.push(args); } },
+      telegram: {
+        sendMessage: async (...args: unknown[]) => {
+          sentMessages.push(args);
+        },
+      },
     } as unknown as ProcessDeps;
 
     await applyReviewDecision(deps, 11, 'spam', 'telegram');
@@ -688,7 +782,11 @@ describe('mail guardian applyReviewDecision — domain block proposal', () => {
         hasRule: async () => false,
       },
       mail: { moveToTrash: async () => undefined },
-      telegram: { sendMessage: async (...args: unknown[]) => { sentMessages.push(args); } },
+      telegram: {
+        sendMessage: async (...args: unknown[]) => {
+          sentMessages.push(args);
+        },
+      },
     } as unknown as ProcessDeps;
 
     await applyReviewDecision(deps, 12, 'spam', 'telegram');
@@ -717,7 +815,11 @@ describe('mail guardian applyReviewDecision — domain block proposal', () => {
         hasRule: async (_ruleType: string, scope: string) => scope === 'domain',
       },
       mail: { moveToTrash: async () => undefined },
-      telegram: { sendMessage: async (...args: unknown[]) => { sentMessages.push(args); } },
+      telegram: {
+        sendMessage: async (...args: unknown[]) => {
+          sentMessages.push(args);
+        },
+      },
     } as unknown as ProcessDeps;
 
     await applyReviewDecision(deps, 13, 'spam', 'telegram');
@@ -745,7 +847,11 @@ describe('mail guardian applyReviewDecision — domain block proposal', () => {
           resolveReview: async () => undefined,
         },
         mail: { moveToInbox: async () => undefined },
-        telegram: { sendMessage: async (...args: unknown[]) => { sentMessages.push(args); } },
+        telegram: {
+          sendMessage: async (...args: unknown[]) => {
+            sentMessages.push(args);
+          },
+        },
       }) as unknown as ProcessDeps;
 
     await applyReviewDecision(mkDeps(14, 204), 14, 'keep', 'telegram');
@@ -782,7 +888,9 @@ describe('mail guardian handleTelegramUpdates — mgdom callbacks', () => {
     const handled = await handleTelegramUpdates(deps, [update]);
 
     expect(handled).toBe(1);
-    expect(rules).toEqual([{ ruleType: 'block', scope: 'domain', valueHash: 'bulk-domain-hash-2' }]);
+    expect(rules).toEqual([
+      { ruleType: 'block', scope: 'domain', valueHash: 'bulk-domain-hash-2' },
+    ]);
     expect(answers).toEqual(['Domain blocked.']);
   });
 

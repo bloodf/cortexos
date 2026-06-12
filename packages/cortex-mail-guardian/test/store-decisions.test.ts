@@ -122,7 +122,9 @@ describe('GuardianStore.updateDecisionOutcome', () => {
     querySpy.mockResolvedValue({ rows: [], rowCount: 0 });
     const store = new GuardianStore(config as never);
 
-    await expect(store.updateDecisionOutcome('old-account', 99, 'owner_keep')).resolves.toBeUndefined();
+    await expect(
+      store.updateDecisionOutcome('old-account', 99, 'owner_keep'),
+    ).resolves.toBeUndefined();
   });
 });
 
@@ -163,7 +165,16 @@ describe('GuardianStore.listRecentDecisions', () => {
   it('returns mapped rows', async () => {
     querySpy.mockResolvedValue({
       rows: [
-        { account_slug: 'acc', message_uid: 1, from_hash: 'fh', domain_hash: 'dh', summary: 's', verdict: 'spam', outcome: 'owner_keep', created_at: new Date() },
+        {
+          account_slug: 'acc',
+          message_uid: 1,
+          from_hash: 'fh',
+          domain_hash: 'dh',
+          summary: 's',
+          verdict: 'spam',
+          outcome: 'owner_keep',
+          created_at: new Date(),
+        },
       ],
       rowCount: 1,
     });

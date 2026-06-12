@@ -15,7 +15,13 @@ describe('mail guardian distill CLI dispatch', () => {
     const stubDistillBrief = vi.fn(async () => stubResult);
 
     const fakeDeps = {
-      config: { model: 'minimax/MiniMax-M3', nineRouterBaseUrl: 'http://localhost', nineRouterApiKey: 'k', dryRun: false, accounts: [] },
+      config: {
+        model: 'minimax/MiniMax-M3',
+        nineRouterBaseUrl: 'http://localhost',
+        nineRouterApiKey: 'k',
+        dryRun: false,
+        accounts: [],
+      },
       store: {},
       mail: {},
       telegram: {},
