@@ -4,6 +4,9 @@ import type { MailAccountConfig } from './config.js';
 import lookupWithFallback from './dns.js';
 import runSequentially from './sequential.js';
 
+export const COMMAND_SOCKET_TIMEOUT_MS = 30_000;
+export const IDLE_SOCKET_TIMEOUT_MS = 120_000;
+
 export interface MailMessage {
   uid: number;
   messageId?: string;
@@ -98,7 +101,7 @@ class ImapSession {
       lookup: lookupWithFallback,
     });
     this.socket = socket;
-    socket.setTimeout(30_000);
+    socket.setTimeout(COMMAND_SOCKET_TIMEOUT_MS);
     socket.setEncoding('utf8');
     const timeoutError = new Error(`IMAP connection timed out for ${this.account.slug}`);
     socket.once('timeout', () => socket.destroy(timeoutError));
@@ -191,11 +194,16 @@ class ImapSession {
     const tag = this.nextTag();
     this.write(`${tag} IDLE\r\n`);
     await this.readUntil(/^\+ /m);
+    if (!this.socket) {
+      throw new Error(`IMAP socket missing for ${this.account.slug}`);
+    }
+    this.socket.setTimeout(IDLE_SOCKET_TIMEOUT_MS);
     await new Promise((resolve) => {
       setTimeout(resolve, 29_000);
     });
     this.write('DONE\r\n');
     await this.readUntil(new RegExp(`^${tag} OK`, 'm'));
+    this.socket.setTimeout(COMMAND_SOCKET_TIMEOUT_MS);
   }
 
   private async command(command: string, ...args: string[]): Promise<string> {
