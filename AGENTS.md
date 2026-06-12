@@ -5,6 +5,10 @@
 
 agentic-engineering: opt-in
 
+Orchestration protocol: [`CLI_ORCHESTRATOR.md`](CLI_ORCHESTRATOR.md) — roles,
+pipeline, planning loop, micro-plan gate, implementation/validation/shipping
+loops, OMC and Claude Code usage rules, Headroom and claude-mem integration.
+
 Self-hosted AI infrastructure system: deployment docs and installer prompts, Docker Compose stacks for databases/monitoring, a TanStack Start + React 19 dashboard for server control, the 9Router AI gateway configuration, and agent orchestration templates. Target host runs Ubuntu 24.04+ (Debian 13 supported) at `/opt/cortexos`.
 
 ## Decisions
