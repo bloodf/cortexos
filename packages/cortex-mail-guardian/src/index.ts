@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { listenerStep } from './backoff.js';
 import { accountFromRow, loadConfig, mergeAccounts } from './config.js';
 import { getMailGuardianEnvPath } from './env.js';
-import { TlsImapMailClient } from './imap.js';
+import { ImapConnectionClosedError, TlsImapMailClient } from './imap.js';
 import { GuardianStore } from './store.js';
 import { assertTelegramReady, BotApiTelegramClient, discoverOwnerChatId } from './telegram.js';
 import { applyReviewDecision, handleTelegramUpdates, sweep } from './processor.js';
@@ -15,8 +15,15 @@ export const sleep = (ms: number): Promise<void> =>
   });
 
 export function makeListenerOnError(accountSlug: string): (err: unknown) => void {
-  return (err: unknown) =>
-    process.stderr.write(`[mail-guardian] ${accountSlug} listener error: ${String(err)}\n`);
+  return (err: unknown) => {
+    if (err instanceof ImapConnectionClosedError) {
+      process.stdout.write(
+        `[mail-guardian] ${accountSlug} reconnecting after server-side IMAP disconnect\n`,
+      );
+    } else {
+      process.stderr.write(`[mail-guardian] ${accountSlug} listener error: ${String(err)}\n`);
+    }
+  };
 }
 
 function disabledTelegramClient() {

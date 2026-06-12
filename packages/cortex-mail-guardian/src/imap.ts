@@ -7,6 +7,16 @@ import runSequentially from './sequential.js';
 export const COMMAND_SOCKET_TIMEOUT_MS = 30_000;
 export const IDLE_SOCKET_TIMEOUT_MS = 120_000;
 
+// Server-side connection recycles (e.g. shared IMAP hosts that drop idle
+// connections hourly) are expected and benign — distinguish them from real
+// errors so callers can log at the appropriate level.
+export class ImapConnectionClosedError extends Error {
+  constructor(slug: string) {
+    super(`IMAP connection closed for ${slug}`);
+    this.name = 'ImapConnectionClosedError';
+  }
+}
+
 export interface MailMessage {
   uid: number;
   messageId?: string;
@@ -225,7 +235,7 @@ class ImapSession {
 
   private write(data: string): void {
     if (!this.socket || this.socket.destroyed) {
-      throw new Error(`IMAP socket closed for ${this.account.slug}`);
+      throw new ImapConnectionClosedError(this.account.slug);
     }
     this.socket.write(data);
   }
@@ -259,7 +269,7 @@ class ImapSession {
           socket.off('data', handlers.onData);
           socket.off('error', handlers.onError);
           socket.off('close', handlers.onClose);
-          reject(new Error(`IMAP socket closed for ${this.account.slug}`));
+          reject(new ImapConnectionClosedError(this.account.slug));
         },
       };
       socket.on('data', handlers.onData);

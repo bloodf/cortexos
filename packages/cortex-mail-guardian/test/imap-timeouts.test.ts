@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { COMMAND_SOCKET_TIMEOUT_MS, IDLE_SOCKET_TIMEOUT_MS } from '../src/imap.js';
+import {
+  COMMAND_SOCKET_TIMEOUT_MS,
+  IDLE_SOCKET_TIMEOUT_MS,
+  ImapConnectionClosedError,
+} from '../src/imap.js';
 import { makeListenerOnError } from '../src/index.js';
 
 describe('IMAP socket timeout constants', () => {
@@ -17,7 +21,7 @@ describe('IMAP socket timeout constants', () => {
 });
 
 describe('makeListenerOnError', () => {
-  it('writes the account slug and error to stderr', () => {
+  it('writes the account slug and error to stderr for unexpected errors', () => {
     const writeSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
     const onError = makeListenerOnError('test-slug');
     onError(new Error('boom'));
@@ -27,5 +31,20 @@ describe('makeListenerOnError', () => {
     expect(writeSpy).toHaveBeenCalledWith(expect.stringContaining('test-slug'));
 
     writeSpy.mockRestore();
+  });
+
+  it('writes a reconnect notice to stdout (not stderr) for ImapConnectionClosedError', () => {
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    const onError = makeListenerOnError('test-slug');
+    onError(new ImapConnectionClosedError('test-slug'));
+
+    expect(stderrSpy).not.toHaveBeenCalled();
+    expect(stdoutSpy).toHaveBeenCalledTimes(1);
+    expect(stdoutSpy).toHaveBeenCalledWith(expect.stringContaining('reconnecting'));
+    expect(stdoutSpy).toHaveBeenCalledWith(expect.stringContaining('test-slug'));
+
+    stderrSpy.mockRestore();
+    stdoutSpy.mockRestore();
   });
 });
