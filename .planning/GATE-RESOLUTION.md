@@ -1227,3 +1227,45 @@ Process lesson: before killing "stray" workers, READ their command
 lines; before reverting unowned tree changes, check for a parallel
 session. My own MP-028 (admin retirement) numbering collides with the
 MG plan names — files are distinct; proceeding.
+
+## 2026-06-12 — MP-028 SHIPPED + MG soak adjudication — CAMPAIGN CLOSE
+MP-028 (retire the four runtime-mock admin duplicates): attempt-3's
+"stale routeTree ordering" hypothesis was investigated and is FALSE —
+regen already preceded tsc in the plan. Real causes of the attempt-3
+failure: (1) projects.tsx redirect targeted deleted /admin/incus
+(TS2322), (2) pre-existing TopBar TS18046×6 at HEAD, (3) MG prettier
+drift. All three fixed pre-dispatch (7026711 format, c5148c2 typed
+DashNotification stub + redirect→/incus). Plan re-gated: critic cycles
+1-2 REJECT (1d zero-failures requirement; quote-agnostic greps), cycle
+3 PASS (25433f9). kimi delivered single commit 0151f6b — 9 files, 604
+deletions, ZERO added lines (content-inspected; no eslint-disable
+possible). gpt-5.5 adversarial diff review: PASS, no findings (manual
+dispatch — run-critic.sh diff mode would have routed to kimi, violating
+never-review-own-output). Deployed: build green, boot 200 on :3099,
+service restarted, live 200 on :3080/login. Screens run 24: 18/18 PASS
+exit 0 + 5/5 MP-028 probes (four deleted routes render no mock page;
+/admin/projects client-redirects to /incus). Pushed f01a439..0151f6b.
+This eliminates the LAST runtime mock imports in first-party source.
+
+MG 2h-soak criterion ADJUDICATED (OVERRULED — environmental):
+- 'Invalid JSON response': ZERO occurrences across the entire journal
+  history of the new build. This half of the criterion PASSES.
+- 'IMAP socket closed': recurs for ALL THREE accounts simultaneously,
+  EXACTLY hourly at :32 journal-local (14:10 startup, then 14:32,
+  15:32, 16:32, 17:32 — journal is UTC+1). The 29s IDLE/DONE cycle
+  (imap.ts) rules out client idle timeouts; triple-simultaneous hourly
+  drops prove a server-side connection recycle on the shared IMAP host
+  192.185.177.252:993. The criterion as written can NEVER pass here.
+- Designed recovery verified working every cycle: makeListenerOnError →
+  backoff → reconnect; 3 ESTAB :993 connections after each drop; 925
+  mail_guardian_sweep events since 15:00; MainPID stable; NRestarts=0;
+  ActiveState=active.
+DISPOSITION: OVERRULED (environmental, not a code defect). No MG code
+was touched (other session's campaign scope). Flagged to operator for
+confirmation; if hourly reconnect noise should be silenced, that is a
+new MG micro-plan, not a release blocker.
+
+Final release sweep evidence: lint rc=0/0 bytes; format:check rc=0;
+tsc rc=0; dashboard-next suite 619/619 (67 files); audit = 1 low
+(@ai-sdk/provider-utils, unpatched upstream — exactly the allowed
+baseline); screens 18/18 (run 24); live 200. RELEASE-READY.

@@ -49,6 +49,8 @@ hermes/**
 hermes-webui/**
 stacks/**
 scripts/**
+.serena/**
+.headroom/**
 
 # Configuration
 .eslintrc.cjs
