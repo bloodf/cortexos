@@ -1198,3 +1198,13 @@ rc=0/0 bytes; format clean; live 200.
 KNOWN REMAINING: the restored /admin/* pages are mock-wired (pre-existing
 state; my review's CRITICAL-2 survivors) — MP-028 candidate: wire live
 or retire the parallel admin set (operator decision pending).
+
+## 2026-06-12 — operator decision: admin set (recorded with framing correction)
+AskUserQuestion answer: "Retire the admin set (Recommended)" — but my
+question's framing ("largely duplicate... render MOCK data") was
+over-broad: recon (features/admin/rpc.ts) proves the nav-linked admin
+pages are LIVE (real server fns). Corrected scope honoring the intent
+(kill the mock-data pages): MP-028 retires ONLY the four runtime-mock
+duplicates (admin Docker/Incus/Systemd/Audit, unlinked in nav,
+duplicating live main pages); the real live admin suite stays. This
+also eliminates the LAST runtime mock imports in first-party source.
