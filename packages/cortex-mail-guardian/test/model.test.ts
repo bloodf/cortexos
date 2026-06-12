@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const generateObjectMock = vi.fn();
 const createOpenAIMock = vi.fn(() => (model: string) => ({ modelId: model }));
@@ -10,7 +10,8 @@ vi.mock('@ai-sdk/openai', () => ({
   createOpenAI: (...args: unknown[]) => createOpenAIMock(...args),
 }));
 
-const { classifyEmail, shouldAutoTrash, validateClassification } = await import('../src/model.js');
+const { classifyEmail, classifyWithFallback, shouldAutoTrash, validateClassification } =
+  await import('../src/model.js');
 
 const modelConfig = {
   baseUrl: 'http://localhost:11434/v1',
@@ -18,6 +19,22 @@ const modelConfig = {
   model: 'minimax/MiniMax-M2.7-highspeed',
   timeoutMs: 5_000,
 };
+
+const fallbackConfig = {
+  ...modelConfig,
+  model: 'cx/gpt-5.5',
+};
+
+const sampleInput = {
+  from: 'test@example.com',
+  subject: 'test',
+  text: 'hello',
+};
+
+beforeEach(() => {
+  generateObjectMock.mockReset();
+  createOpenAIMock.mockClear();
+});
 
 describe('model decisions', () => {
   it('auto-trashes only when classifier and verifier meet threshold', () => {
@@ -101,5 +118,59 @@ describe('classifyEmail (Vercel AI SDK wiring)', () => {
 
     expect(result.verdict).toBe('spam');
     expect(result.riskSignals).toEqual(['credential request']);
+  });
+});
+
+describe('classifyWithFallback', () => {
+  it('returns the primary result on the first attempt when it succeeds', async () => {
+    generateObjectMock.mockResolvedValue({
+      object: { verdict: 'ham', confidence: 0.9, reasons: [], riskSignals: [] },
+    });
+
+    const outcome = await classifyWithFallback(modelConfig, fallbackConfig, sampleInput);
+
+    expect(createOpenAIMock).toHaveBeenCalledTimes(1);
+    expect(outcome.modelUsed).toBe(modelConfig.model);
+    expect(outcome.attempts).toBe(1);
+    expect(outcome.result.verdict).toBe('not_spam');
+  });
+
+  it('retries the primary once and then uses the fallback', async () => {
+    generateObjectMock
+      .mockRejectedValueOnce(new Error('primary attempt 1 failed'))
+      .mockRejectedValueOnce(new Error('primary attempt 2 failed'))
+      .mockResolvedValueOnce({
+        object: { verdict: 'spam', confidence: 0.99, reasons: ['phishing'], riskSignals: [] },
+      });
+
+    const outcome = await classifyWithFallback(modelConfig, fallbackConfig, sampleInput);
+
+    expect(createOpenAIMock).toHaveBeenCalledTimes(3);
+    expect(outcome.modelUsed).toBe(fallbackConfig.model);
+    expect(outcome.attempts).toBe(3);
+    expect(outcome.result.verdict).toBe('spam');
+  });
+
+  it('propagates the last error when primary and fallback all fail', async () => {
+    generateObjectMock
+      .mockRejectedValueOnce(new Error('primary attempt 1 failed'))
+      .mockRejectedValueOnce(new Error('primary attempt 2 failed'))
+      .mockRejectedValueOnce(new Error('fallback failed'));
+
+    await expect(classifyWithFallback(modelConfig, fallbackConfig, sampleInput)).rejects.toThrow(
+      'fallback failed',
+    );
+    expect(createOpenAIMock).toHaveBeenCalledTimes(3);
+    expect(generateObjectMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('makes exactly two attempts and throws when no fallback is provided', async () => {
+    generateObjectMock.mockRejectedValue(new Error('primary keeps failing'));
+
+    await expect(classifyWithFallback(modelConfig, null, sampleInput)).rejects.toThrow(
+      'primary keeps failing',
+    );
+    expect(createOpenAIMock).toHaveBeenCalledTimes(2);
+    expect(generateObjectMock).toHaveBeenCalledTimes(2);
   });
 });

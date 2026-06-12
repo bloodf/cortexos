@@ -111,6 +111,29 @@ export async function classifyEmail(
   };
 }
 
+export async function classifyWithFallback(
+  primary: ModelClientConfig,
+  fallback: ModelClientConfig | null,
+  input: {
+    from: string;
+    subject: string;
+    text: string;
+    feedbackSummary?: string;
+  },
+): Promise<{ result: ClassificationResult; modelUsed: string; attempts: number }> {
+  const configs = [primary, primary, ...(fallback ? [fallback] : [])];
+  let lastError: unknown;
+  for (let i = 0; i < configs.length; i++) {
+    try {
+      const result = await classifyEmail(configs[i], input);
+      return { result, modelUsed: configs[i].model, attempts: i + 1 };
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw lastError;
+}
+
 export function heuristicSpamScore(input: { from: string; subject: string; text: string }): number {
   const haystack = `${input.from}\n${input.subject}\n${input.text.slice(0, 20000)}`.toLowerCase();
   const patterns = [
