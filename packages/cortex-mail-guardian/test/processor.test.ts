@@ -50,6 +50,16 @@ function account(slug: string) {
   };
 }
 
+const baseConfig = {
+  nineRouterBaseUrl: 'http://127.0.0.1:11434/v1',
+  nineRouterApiKey: 'test',
+  model: 'minimax/MiniMax-M3',
+  fallbackModel: 'cx/gpt-5.5',
+  modelTimeoutMs: 30_000,
+  confidenceThreshold: 0.95,
+  dryRun: false,
+};
+
 describe('mail guardian sweep', () => {
   it('does not let skipped messages consume the per-account processing cap', async () => {
     const accounts = [account('one'), account('two'), account('three')];
@@ -58,12 +68,7 @@ describe('mail guardian sweep', () => {
       config: {
         accounts,
         maxMessagesPerSweep: 1,
-        nineRouterBaseUrl: 'http://127.0.0.1:11434/v1',
-        nineRouterApiKey: 'test',
-        model: 'test',
-        fallbackModel: 'test-fallback',
-        modelTimeoutMs: 30_000,
-        confidenceThreshold: 0.95,
+        ...baseConfig,
         dryRun: true,
       },
       store: {
@@ -72,6 +77,7 @@ describe('mail guardian sweep', () => {
         hasAllowRule: async () => false,
         createPendingReview: async () => 10,
         markProcessed: async () => undefined,
+        recordDecision: async () => undefined,
         claimPendingActions: async () => [],
       },
       telegram: {
@@ -85,6 +91,7 @@ describe('mail guardian sweep', () => {
             { uid: 2, from: 'sender@example.test', subject: 'second', text: 'second' },
           ];
         },
+        moveToReview: async () => undefined,
       },
     } as unknown as ProcessDeps;
 
@@ -97,6 +104,7 @@ describe('mail guardian rule pre-filter', () => {
   it('trashes a message matched by a block rule without calling the model', async () => {
     const moved: { slug: string; uid: number }[] = [];
     const processed: { slug: string; uid: number; action: string }[] = [];
+    const recordDecisionCalls: unknown[] = [];
     const deps = {
       config: { accounts: [account('one')], dryRun: false, maxMessagesPerSweep: 10 },
       store: {
@@ -104,6 +112,9 @@ describe('mail guardian rule pre-filter', () => {
         findRules: async () => [{ verdict: 'spam', scope: 'sender', ruleType: 'block' }],
         markProcessed: async (slug: string, uid: number, action: string) => {
           processed.push({ slug, uid, action });
+        },
+        recordDecision: async (...args: unknown[]) => {
+          recordDecisionCalls.push(args);
         },
       },
       mail: {
@@ -125,6 +136,7 @@ describe('mail guardian rule pre-filter', () => {
     expect(moved).toEqual([{ slug: 'one', uid: 7 }]);
     expect(processed).toEqual([{ slug: 'one', uid: 7, action: 'trashed' }]);
     expect(classifyWithFallbackMock).not.toHaveBeenCalled();
+    expect(recordDecisionCalls).toHaveLength(0);
   });
 });
 
@@ -152,6 +164,9 @@ describe('mail guardian review decisions', () => {
     const rules: { ruleType: string; scope: string; valueHash: string }[] = [];
     const moved: { slug: string; uid: number }[] = [];
     const processed: { slug: string; uid: number; action: string }[] = [];
+    const outcomeUpdates: { accountSlug: string; uid: number; outcome: string }[] = [];
+    const resolveOrder: string[] = [];
+
     const deps = {
       config: {
         accounts: [account('one')],
@@ -172,7 +187,13 @@ describe('mail guardian review decisions', () => {
         markProcessed: async (slug: string, uid: number, action: string) => {
           processed.push({ slug, uid, action });
         },
-        resolveReview: async () => undefined,
+        updateDecisionOutcome: async (accountSlug: string, uid: number, outcome: string) => {
+          outcomeUpdates.push({ accountSlug, uid, outcome });
+          resolveOrder.push('updateDecisionOutcome');
+        },
+        resolveReview: async () => {
+          resolveOrder.push('resolveReview');
+        },
       },
       mail: {
         moveToTrash: async (mailAccount: { slug: string }, uid: number) => {
@@ -187,6 +208,8 @@ describe('mail guardian review decisions', () => {
     expect(moved).toEqual([{ slug: 'one', uid: 101 }]);
     expect(processed).toEqual([{ slug: 'one', uid: 101, action: 'trashed' }]);
     expect(rules).toEqual([{ ruleType: 'block', scope: 'sender', valueHash: 'sender-hash' }]);
+    expect(outcomeUpdates).toEqual([{ accountSlug: 'one', uid: 101, outcome: 'owner_spam' }]);
+    expect(resolveOrder).toEqual(['updateDecisionOutcome', 'resolveReview']);
   });
 });
 
@@ -201,13 +224,7 @@ describe('mail guardian processMessage — auto-trash branch', () => {
     const deps = {
       config: {
         accounts: [account('one')],
-        nineRouterBaseUrl: 'http://127.0.0.1:11434/v1',
-        nineRouterApiKey: 'test',
-        model: 'minimax/MiniMax-M3',
-        fallbackModel: 'cx/gpt-5.5',
-        modelTimeoutMs: 30_000,
-        confidenceThreshold: 0.95,
-        dryRun: false,
+        ...baseConfig,
         telegramOwnerChatId: '999',
       },
       store: {
@@ -221,6 +238,7 @@ describe('mail guardian processMessage — auto-trash branch', () => {
         resolveReview: async (id: number) => {
           resolvedIds.push(id);
         },
+        recordDecision: async () => undefined,
       },
       mail: {
         moveToTrash: async (_acct: unknown, uid: number) => {
@@ -250,6 +268,47 @@ describe('mail guardian processMessage — auto-trash branch', () => {
     expect(replyMarkup).toBeUndefined();
   });
 
+  it('records outcome auto_trashed with classifier and verifier model data', async () => {
+    shouldAutoQuarantineMock.mockReturnValue(true);
+    classifyWithFallbackMock
+      .mockResolvedValueOnce({
+        result: { verdict: 'spam' as const, confidence: 0.98, reasons: ['phishing'] as string[], riskSignals: ['link'] as string[] },
+        modelUsed: 'minimax/MiniMax-M3',
+        attempts: 1,
+      })
+      .mockResolvedValueOnce({
+        result: { verdict: 'spam' as const, confidence: 0.97, reasons: ['scam'] as string[], riskSignals: ['wallet'] as string[] },
+        modelUsed: 'cx/gpt-5.5',
+        attempts: 1,
+      });
+
+    const decisions: unknown[] = [];
+    const deps = {
+      config: { accounts: [account('one')], ...baseConfig },
+      store: {
+        hasProcessed: async () => false,
+        findRules: async () => [],
+        hasAllowRule: async () => false,
+        createPendingReview: async () => 10,
+        markProcessed: async () => undefined,
+        resolveReview: async () => undefined,
+        recordDecision: async (input: unknown) => { decisions.push(input); },
+      },
+      mail: { moveToTrash: async () => undefined },
+      telegram: { sendMessage: async () => undefined },
+    } as unknown as ProcessDeps;
+
+    await processMessage(deps, account('one'), { uid: 5, from: 'x@evil.test', subject: 's', text: 'b' });
+
+    expect(decisions).toHaveLength(1);
+    const d = decisions[0] as Record<string, unknown>;
+    expect(d.outcome).toBe('auto_trashed');
+    expect(d.model).toBe('minimax/MiniMax-M3');
+    expect(d.verifyModel).toBe('cx/gpt-5.5');
+    expect(d.reasons).toEqual(['phishing']);
+    expect(d.riskSignals).toEqual(['link']);
+  });
+
   it('records would_trash under dryRun, still resolves review', async () => {
     shouldAutoQuarantineMock.mockReturnValue(true);
     const processedActions: string[] = [];
@@ -258,12 +317,7 @@ describe('mail guardian processMessage — auto-trash branch', () => {
     const deps = {
       config: {
         accounts: [account('one')],
-        nineRouterBaseUrl: 'http://127.0.0.1:11434/v1',
-        nineRouterApiKey: 'test',
-        model: 'minimax/MiniMax-M3',
-        fallbackModel: 'cx/gpt-5.5',
-        modelTimeoutMs: 30_000,
-        confidenceThreshold: 0.95,
+        ...baseConfig,
         dryRun: true,
       },
       store: {
@@ -277,6 +331,7 @@ describe('mail guardian processMessage — auto-trash branch', () => {
         resolveReview: async (id: number) => {
           resolvedIds.push(id);
         },
+        recordDecision: async () => undefined,
       },
       mail: {},
       telegram: { sendMessage: async () => undefined },
@@ -295,21 +350,56 @@ describe('mail guardian processMessage — auto-trash branch', () => {
   });
 });
 
+describe('mail guardian processMessage — kept branch records kept', () => {
+  it('records outcome kept with classification and verification data', async () => {
+    shouldKeepInInboxMock.mockReturnValue(true);
+    classifyWithFallbackMock
+      .mockResolvedValueOnce({
+        result: { verdict: 'not_spam' as const, confidence: 0.95, reasons: [] as string[], riskSignals: [] as string[] },
+        modelUsed: 'minimax/MiniMax-M3',
+        attempts: 1,
+      })
+      .mockResolvedValueOnce({
+        result: { verdict: 'not_spam' as const, confidence: 0.93, reasons: [] as string[], riskSignals: [] as string[] },
+        modelUsed: 'cx/gpt-5.5',
+        attempts: 1,
+      });
+
+    const decisions: unknown[] = [];
+    const deps = {
+      config: { accounts: [account('one')], ...baseConfig },
+      store: {
+        hasProcessed: async () => false,
+        findRules: async () => [],
+        hasAllowRule: async () => false,
+        markProcessed: async () => undefined,
+        recordDecision: async (input: unknown) => { decisions.push(input); },
+      },
+      mail: {},
+      telegram: { sendMessage: async () => undefined },
+    } as unknown as ProcessDeps;
+
+    const result = await processMessage(deps, account('one'), { uid: 6, from: 'friend@good.test', subject: 'lunch', text: 'see you' });
+
+    expect(result).toBe('kept');
+    expect(decisions).toHaveLength(1);
+    const d = decisions[0] as Record<string, unknown>;
+    expect(d.outcome).toBe('kept');
+    expect(d.model).toBe('minimax/MiniMax-M3');
+    expect(d.verifyModel).toBe('cx/gpt-5.5');
+  });
+});
+
 describe('mail guardian processMessage — classify_failed dead-letter', () => {
   it('stores classify_failed and returns review when classification throws', async () => {
     classifyWithFallbackMock.mockRejectedValueOnce(new Error('model error'));
     const processedActions: string[] = [];
+    const decisions: unknown[] = [];
 
     const deps = {
       config: {
         accounts: [account('one')],
-        nineRouterBaseUrl: 'http://127.0.0.1:11434/v1',
-        nineRouterApiKey: 'test',
-        model: 'minimax/MiniMax-M3',
-        fallbackModel: 'cx/gpt-5.5',
-        modelTimeoutMs: 30_000,
-        confidenceThreshold: 0.95,
-        dryRun: false,
+        ...baseConfig,
       },
       store: {
         hasProcessed: async () => false,
@@ -319,6 +409,7 @@ describe('mail guardian processMessage — classify_failed dead-letter', () => {
         markProcessed: async (_slug: string, _uid: number, action: string) => {
           processedActions.push(action);
         },
+        recordDecision: async (input: unknown) => { decisions.push(input); },
       },
       mail: { moveToReview: async () => undefined },
       telegram: { sendMessage: async () => undefined },
@@ -333,6 +424,11 @@ describe('mail guardian processMessage — classify_failed dead-letter', () => {
 
     expect(result).toBe('review');
     expect(processedActions).toContain('classify_failed');
+    expect(decisions).toHaveLength(1);
+    const d = decisions[0] as Record<string, unknown>;
+    expect(d.outcome).toBe('pending');
+    expect(d.model).toBeNull();
+    expect(d.verdict).toBeNull();
   });
 
   it('stores classify_failed and returns review when verification throws', async () => {
@@ -344,17 +440,12 @@ describe('mail guardian processMessage — classify_failed dead-letter', () => {
       })
       .mockRejectedValueOnce(new Error('verify error'));
     const processedActions: string[] = [];
+    const decisions: unknown[] = [];
 
     const deps = {
       config: {
         accounts: [account('one')],
-        nineRouterBaseUrl: 'http://127.0.0.1:11434/v1',
-        nineRouterApiKey: 'test',
-        model: 'minimax/MiniMax-M3',
-        fallbackModel: 'cx/gpt-5.5',
-        modelTimeoutMs: 30_000,
-        confidenceThreshold: 0.95,
-        dryRun: false,
+        ...baseConfig,
       },
       store: {
         hasProcessed: async () => false,
@@ -364,6 +455,7 @@ describe('mail guardian processMessage — classify_failed dead-letter', () => {
         markProcessed: async (_slug: string, _uid: number, action: string) => {
           processedActions.push(action);
         },
+        recordDecision: async (input: unknown) => { decisions.push(input); },
       },
       mail: { moveToReview: async () => undefined },
       telegram: { sendMessage: async () => undefined },
@@ -378,6 +470,47 @@ describe('mail guardian processMessage — classify_failed dead-letter', () => {
 
     expect(result).toBe('review');
     expect(processedActions).toContain('classify_failed');
+    expect(decisions).toHaveLength(1);
+    const d = decisions[0] as Record<string, unknown>;
+    expect(d.outcome).toBe('pending');
+  });
+});
+
+describe('mail guardian processMessage — review path records pending', () => {
+  it('records outcome pending for regular uncertain review', async () => {
+    classifyWithFallbackMock
+      .mockResolvedValueOnce({
+        result: { verdict: 'uncertain' as const, confidence: 0.5, reasons: [] as string[], riskSignals: [] as string[] },
+        modelUsed: 'minimax/MiniMax-M3',
+        attempts: 1,
+      })
+      .mockResolvedValueOnce({
+        result: { verdict: 'uncertain' as const, confidence: 0.5, reasons: [] as string[], riskSignals: [] as string[] },
+        modelUsed: 'cx/gpt-5.5',
+        attempts: 1,
+      });
+    const decisions: unknown[] = [];
+    const deps = {
+      config: { accounts: [account('one')], ...baseConfig },
+      store: {
+        hasProcessed: async () => false,
+        findRules: async () => [],
+        hasAllowRule: async () => false,
+        createPendingReview: async () => 88,
+        markProcessed: async () => undefined,
+        recordDecision: async (input: unknown) => { decisions.push(input); },
+      },
+      mail: { moveToReview: async () => undefined },
+      telegram: { sendMessage: async () => undefined },
+    } as unknown as ProcessDeps;
+
+    const result = await processMessage(deps, account('one'), { uid: 15, from: 'x@y.test', subject: 'test', text: 'body' });
+
+    expect(result).toBe('review');
+    expect(decisions).toHaveLength(1);
+    const d = decisions[0] as Record<string, unknown>;
+    expect(d.outcome).toBe('pending');
+    expect(d.model).toBe('minimax/MiniMax-M3');
   });
 });
 
@@ -386,12 +519,7 @@ describe('mail guardian processMessage — cross-model call signatures', () => {
     const deps = {
       config: {
         accounts: [account('one')],
-        nineRouterBaseUrl: 'http://127.0.0.1:11434/v1',
-        nineRouterApiKey: 'test',
-        model: 'minimax/MiniMax-M3',
-        fallbackModel: 'cx/gpt-5.5',
-        modelTimeoutMs: 30_000,
-        confidenceThreshold: 0.95,
+        ...baseConfig,
         dryRun: true,
       },
       store: {
@@ -400,6 +528,7 @@ describe('mail guardian processMessage — cross-model call signatures', () => {
         hasAllowRule: async () => false,
         createPendingReview: async () => 99,
         markProcessed: async () => undefined,
+        recordDecision: async () => undefined,
       },
       mail: { moveToReview: async () => undefined },
       telegram: { sendMessage: async () => undefined },

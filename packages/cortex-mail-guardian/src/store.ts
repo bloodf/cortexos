@@ -24,6 +24,23 @@ export interface ReviewRecord {
   domain_hash: string;
 }
 
+export interface DecisionInput {
+  accountSlug: string;
+  messageUid: number;
+  fromHash: string;
+  domainHash: string;
+  summary: string;
+  model: string | null;
+  verdict: string | null;
+  confidence: number | null;
+  reasons: string[];
+  riskSignals: string[];
+  verifyModel: string | null;
+  verifyVerdict: string | null;
+  verifyConfidence: number | null;
+  outcome: string;
+}
+
 export interface QueuedReviewDecision {
   id: number;
   review_id: number;
@@ -270,6 +287,47 @@ export class GuardianStore {
 			 SET status = 'failed', processed_at = now(), error = $2
 			 WHERE id = $1`,
       [actionId, error.slice(0, 1000)],
+    );
+  }
+
+  async recordDecision(input: DecisionInput): Promise<void> {
+    await this.pool.query(
+      `INSERT INTO mail_guardian_decisions (
+         account_slug, message_uid, from_hash, domain_hash, summary,
+         model, verdict, confidence, reasons, risk_signals,
+         verify_model, verify_verdict, verify_confidence, outcome
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10::jsonb,$11,$12,$13,$14)
+       ON CONFLICT (account_slug, message_uid) DO UPDATE SET
+         model = EXCLUDED.model, verdict = EXCLUDED.verdict,
+         confidence = EXCLUDED.confidence, reasons = EXCLUDED.reasons,
+         risk_signals = EXCLUDED.risk_signals,
+         verify_model = EXCLUDED.verify_model, verify_verdict = EXCLUDED.verify_verdict,
+         verify_confidence = EXCLUDED.verify_confidence, outcome = EXCLUDED.outcome`,
+      [
+        input.accountSlug,
+        input.messageUid,
+        input.fromHash,
+        input.domainHash,
+        input.summary,
+        input.model,
+        input.verdict,
+        input.confidence,
+        JSON.stringify(input.reasons),
+        JSON.stringify(input.riskSignals),
+        input.verifyModel,
+        input.verifyVerdict,
+        input.verifyConfidence,
+        input.outcome,
+      ],
+    );
+  }
+
+  async updateDecisionOutcome(accountSlug: string, uid: number, outcome: string): Promise<void> {
+    await this.pool.query(
+      `UPDATE mail_guardian_decisions
+       SET outcome = $3, decided_at = now()
+       WHERE account_slug = $1 AND message_uid = $2`,
+      [accountSlug, uid, outcome],
     );
   }
 }

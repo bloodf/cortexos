@@ -2,7 +2,6 @@ import type { GuardianConfig, MailAccountConfig } from './config.js';
 import type { MailClient, MailMessage } from './imap.js';
 import type { GuardianStore } from './store.js';
 import type { TelegramClient, TelegramUpdate } from './telegram.js';
-import type { ClassificationResult } from './model.js';
 import {
   classifyWithFallback,
   heuristicSpamScore,
@@ -92,127 +91,139 @@ export async function processMessage(
     : null;
   const verifyConfig = fallbackConfig ?? primaryConfig;
 
-  const handleModelFailure = async (): Promise<'review'> => {
-    const failReviewId = await deps.store.createPendingReview({
-      accountSlug: account.slug,
-      messageUid: message.uid,
-      messageId: message.messageId,
-      ...redacted,
-      modelVerdict: 'uncertain',
-      modelConfidence: 0,
-    });
-    if (!deps.config.dryRun) await deps.mail.moveToReview(account, message.uid);
-    if (deps.config.telegramOwnerChatId) {
-      await deps.telegram.sendMessage(
-        deps.config.telegramOwnerChatId,
-        buildReviewMessage({
-          accountAddress: account.address,
-          from: message.from,
-          subject: message.subject,
-          verdict: 'uncertain',
-          confidence: 0,
-          reviewId: failReviewId,
-        }),
-        {
-          inline_keyboard: [
-            [
-              { text: '🗑️ Spam -> Trash', callback_data: `mg:${failReviewId}:spam` },
-              { text: '✅ Not spam -> Inbox', callback_data: `mg:${failReviewId}:keep` },
-            ],
-            [
-              { text: '🚫 Block sender', callback_data: `mg:${failReviewId}:block_sender` },
-              { text: '🛡️ Allow sender', callback_data: `mg:${failReviewId}:allow_sender` },
-            ],
-          ],
-        },
-      );
-    }
-    await deps.store.markProcessed(account.slug, message.uid, 'classify_failed', message.messageId);
-    return 'review';
-  };
+  let classifyFailed = false;
+  let classifyResult: Awaited<ReturnType<typeof classifyWithFallback>> | null = null;
+  let verifyResult: Awaited<ReturnType<typeof classifyWithFallback>> | null = null;
 
-  let classification: ClassificationResult;
   try {
-    const { result } = await classifyWithFallback(primaryConfig, fallbackConfig, {
+    classifyResult = await classifyWithFallback(primaryConfig, fallbackConfig, {
       from: message.from,
       subject: message.subject,
       text: message.text,
     });
-    classification = result;
   } catch {
-    return handleModelFailure();
+    classifyFailed = true;
   }
 
-  let verification: ClassificationResult;
-  try {
-    const { result } = await classifyWithFallback(verifyConfig, null, {
-      from: message.from,
-      subject: message.subject,
-      text: message.text,
-    });
-    verification = result;
-  } catch {
-    return handleModelFailure();
-  }
-
-  if (
-    shouldKeepInInbox({
-      classification,
-      verification,
-      hasAllowRule,
-      heuristicScore,
-    })
-  ) {
-    await deps.store.markProcessed(account.slug, message.uid, 'kept', message.messageId);
-    return 'kept';
-  }
-
-  if (
-    shouldAutoQuarantine({
-      classification,
-      verification,
-      threshold: deps.config.confidenceThreshold,
-      hasAllowRule,
-      heuristicScore,
-    })
-  ) {
-    if (!deps.config.dryRun) {
-      await deps.mail.moveToTrash(account, message.uid, {
-        sourceMailbox: account.inbox,
-        messageId: message.messageId,
+  if (!classifyFailed) {
+    try {
+      verifyResult = await classifyWithFallback(verifyConfig, null, {
+        from: message.from,
+        subject: message.subject,
+        text: message.text,
       });
+    } catch {
+      classifyFailed = true;
     }
-    const autoReviewId = await deps.store.createPendingReview({
-      accountSlug: account.slug,
-      messageUid: message.uid,
-      messageId: message.messageId,
-      ...redacted,
-      modelVerdict: 'spam',
-      modelConfidence: classification.confidence,
-    });
-    await deps.store.resolveReview(autoReviewId, 'spam', 'auto');
-    await deps.store.markProcessed(
-      account.slug,
-      message.uid,
-      deps.config.dryRun ? 'would_trash' : 'trashed',
-      message.messageId,
-    );
-    if (deps.config.telegramOwnerChatId) {
-      await deps.telegram.sendMessage(
-        deps.config.telegramOwnerChatId,
-        `Auto-trashed: ${redacted.subjectHash}`,
-      );
-    }
-    return 'trashed';
   }
 
+  if (!classifyFailed && classifyResult && verifyResult) {
+    const classification = classifyResult.result;
+    const verification = verifyResult.result;
+
+    if (shouldKeepInInbox({ classification, verification, hasAllowRule, heuristicScore })) {
+      await deps.store.recordDecision({
+        accountSlug: account.slug,
+        messageUid: message.uid,
+        fromHash: redacted.fromHash,
+        domainHash: redacted.domainHash,
+        summary: redacted.summary,
+        model: classifyResult.modelUsed,
+        verdict: classification.verdict,
+        confidence: classification.confidence,
+        reasons: classification.reasons,
+        riskSignals: classification.riskSignals,
+        verifyModel: verifyResult.modelUsed,
+        verifyVerdict: verification.verdict,
+        verifyConfidence: verification.confidence,
+        outcome: 'kept',
+      });
+      await deps.store.markProcessed(account.slug, message.uid, 'kept', message.messageId);
+      return 'kept';
+    }
+
+    if (
+      shouldAutoQuarantine({
+        classification,
+        verification,
+        threshold: deps.config.confidenceThreshold,
+        hasAllowRule,
+        heuristicScore,
+      })
+    ) {
+      if (!deps.config.dryRun) {
+        await deps.mail.moveToTrash(account, message.uid, {
+          sourceMailbox: account.inbox,
+          messageId: message.messageId,
+        });
+      }
+      const autoReviewId = await deps.store.createPendingReview({
+        accountSlug: account.slug,
+        messageUid: message.uid,
+        messageId: message.messageId,
+        ...redacted,
+        modelVerdict: 'spam',
+        modelConfidence: classification.confidence,
+      });
+      await deps.store.recordDecision({
+        accountSlug: account.slug,
+        messageUid: message.uid,
+        fromHash: redacted.fromHash,
+        domainHash: redacted.domainHash,
+        summary: redacted.summary,
+        model: classifyResult.modelUsed,
+        verdict: classification.verdict,
+        confidence: classification.confidence,
+        reasons: classification.reasons,
+        riskSignals: classification.riskSignals,
+        verifyModel: verifyResult.modelUsed,
+        verifyVerdict: verification.verdict,
+        verifyConfidence: verification.confidence,
+        outcome: 'auto_trashed',
+      });
+      await deps.store.resolveReview(autoReviewId, 'spam', 'auto');
+      await deps.store.markProcessed(
+        account.slug,
+        message.uid,
+        deps.config.dryRun ? 'would_trash' : 'trashed',
+        message.messageId,
+      );
+      if (deps.config.telegramOwnerChatId) {
+        await deps.telegram.sendMessage(
+          deps.config.telegramOwnerChatId,
+          `Auto-trashed: ${redacted.subjectHash}`,
+        );
+      }
+      return 'trashed';
+    }
+  }
+
+  // Review path — covers classify_failed, verify_failed, and regular pending review
+  const reviewVerdict = classifyResult?.result.verdict ?? 'uncertain';
+  const reviewConfidence = classifyResult?.result.confidence ?? 0;
   const reviewId = await deps.store.createPendingReview({
     accountSlug: account.slug,
     messageUid: message.uid,
     messageId: message.messageId,
     ...redacted,
-    modelVerdict: classification.verdict,
-    modelConfidence: classification.confidence,
+    modelVerdict: reviewVerdict,
+    modelConfidence: reviewConfidence,
+  });
+  await deps.store.recordDecision({
+    accountSlug: account.slug,
+    messageUid: message.uid,
+    fromHash: redacted.fromHash,
+    domainHash: redacted.domainHash,
+    summary: redacted.summary,
+    model: classifyResult?.modelUsed ?? null,
+    verdict: classifyResult?.result.verdict ?? null,
+    confidence: classifyResult?.result.confidence ?? null,
+    reasons: classifyResult?.result.reasons ?? [],
+    riskSignals: classifyResult?.result.riskSignals ?? [],
+    verifyModel: verifyResult?.modelUsed ?? null,
+    verifyVerdict: verifyResult?.result.verdict ?? null,
+    verifyConfidence: verifyResult?.result.confidence ?? null,
+    outcome: 'pending',
   });
   if (!deps.config.dryRun) await deps.mail.moveToReview(account, message.uid);
   if (deps.config.telegramOwnerChatId) {
@@ -222,8 +233,8 @@ export async function processMessage(
         accountAddress: account.address,
         from: message.from,
         subject: message.subject,
-        verdict: classification.verdict,
-        confidence: classification.confidence,
+        verdict: reviewVerdict,
+        confidence: reviewConfidence,
         reviewId,
       }),
       {
@@ -240,7 +251,12 @@ export async function processMessage(
       },
     );
   }
-  await deps.store.markProcessed(account.slug, message.uid, 'pending_review', message.messageId);
+  await deps.store.markProcessed(
+    account.slug,
+    message.uid,
+    classifyFailed ? 'classify_failed' : 'pending_review',
+    message.messageId,
+  );
   return 'review';
 }
 
@@ -279,6 +295,13 @@ export async function applyReviewDecision(
   } else {
     throw new Error(`unknown decision: ${decision}`);
   }
+  const outcomeMap: Record<string, string> = {
+    spam: 'owner_spam',
+    keep: 'owner_keep',
+    block_sender: 'owner_block',
+    allow_sender: 'owner_allow',
+  };
+  await deps.store.updateDecisionOutcome(review.account_slug, review.message_uid, outcomeMap[decision]);
   await deps.store.resolveReview(reviewId, decision, approver);
 }
 
