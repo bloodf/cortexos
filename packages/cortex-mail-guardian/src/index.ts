@@ -1,10 +1,22 @@
 import { readFileSync, writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { listenerStep } from './backoff.js';
 import { accountFromRow, loadConfig, mergeAccounts } from './config.js';
 import { getMailGuardianEnvPath } from './env.js';
 import { TlsImapMailClient } from './imap.js';
 import { GuardianStore } from './store.js';
 import { assertTelegramReady, BotApiTelegramClient, discoverOwnerChatId } from './telegram.js';
 import { applyReviewDecision, handleTelegramUpdates, sweep } from './processor.js';
+
+export const sleep = (ms: number): Promise<void> =>
+  new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+
+export function makeListenerOnError(accountSlug: string): (err: unknown) => void {
+  return (err: unknown) =>
+    process.stderr.write(`[mail-guardian] ${accountSlug} listener error: ${String(err)}\n`);
+}
 
 function disabledTelegramClient() {
   return {
@@ -119,19 +131,14 @@ async function listen(): Promise<void> {
   }
   await runSweep();
   const listeners = deps.config.accounts.map((account) => {
-    const loop = async (): Promise<void> => {
-      try {
-        await deps.mail.waitForNewMail(account);
-        await runSweep();
-      } catch (error) {
-        process.stderr.write(
-          `[mail-guardian] ${account.slug} listener error: ${error instanceof Error ? error.message : String(error)}\n`,
-        );
-        await new Promise((resolve) => {
-          setTimeout(resolve, 30_000);
-        });
-      }
-      return loop();
+    const loop = async (attempt = 0): Promise<void> => {
+      const next = await listenerStep(attempt, {
+        waitForNewMail: () => deps.mail.waitForNewMail(account),
+        sweep: runSweep,
+        sleep,
+        onError: makeListenerOnError(account.slug),
+      });
+      return loop(next);
     };
     return loop();
   });
@@ -189,9 +196,11 @@ async function main(): Promise<void> {
   else throw new Error(`unknown command: ${command}`);
 }
 
-main().catch((error) => {
-  process.stderr.write(
-    `cortex-mail-guardian: ${error instanceof Error ? error.message : String(error)}\n`,
-  );
-  process.exitCode = 1;
-});
+if (fileURLToPath(import.meta.url) === process.argv[1]) {
+  main().catch((error) => {
+    process.stderr.write(
+      `cortex-mail-guardian: ${error instanceof Error ? error.message : String(error)}\n`,
+    );
+    process.exitCode = 1;
+  });
+}

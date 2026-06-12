@@ -121,17 +121,22 @@ export async function classifyWithFallback(
     feedbackSummary?: string;
   },
 ): Promise<{ result: ClassificationResult; modelUsed: string; attempts: number }> {
-  const configs = [primary, primary, ...(fallback ? [fallback] : [])];
-  let lastError: unknown;
-  for (let i = 0; i < configs.length; i++) {
+  try {
+    return { result: await classifyEmail(primary, input), modelUsed: primary.model, attempts: 1 };
+  } catch {
     try {
-      const result = await classifyEmail(configs[i], input);
-      return { result, modelUsed: configs[i].model, attempts: i + 1 };
+      return { result: await classifyEmail(primary, input), modelUsed: primary.model, attempts: 2 };
     } catch (err) {
-      lastError = err;
+      if (fallback) {
+        return {
+          result: await classifyEmail(fallback, input),
+          modelUsed: fallback.model,
+          attempts: 3,
+        };
+      }
+      throw err;
     }
   }
-  throw lastError;
 }
 
 export function heuristicSpamScore(input: { from: string; subject: string; text: string }): number {
