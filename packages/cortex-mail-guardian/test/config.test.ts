@@ -35,7 +35,7 @@ describe('config', () => {
     expect(config.accounts[0].password).toBe('dummy#password;with.symbols');
     expect(config.accounts[2].host).toBe('mail.heitorramon.com');
     expect(config.accounts[2].reviewMailbox).toBe('INBOX.Cortex Mail Guardian Review');
-    expect(config.model).toBe('minimax/MiniMax-M2.7-highspeed');
+    expect(config.model).toBe('minimax/MiniMax-M3');
     expect(config.confidenceThreshold).toBe(0.95);
   });
 
@@ -52,6 +52,33 @@ describe('config', () => {
   it('loads with no env accounts when the count is absent (DB-only mode)', () => {
     const config = loadConfig({ NINEROUTER_API_KEY: 'key' });
     expect(config.accounts).toHaveLength(0);
+  });
+});
+
+describe('model and fallback configuration', () => {
+  it('defaults to MiniMax-M3 when MAIL_GUARDIAN_MODEL is not set', () => {
+    const config = loadConfig({ NINEROUTER_API_KEY: 'key' });
+    expect(config.model).toBe('minimax/MiniMax-M3');
+  });
+
+  it('defaults fallbackModel to cx/gpt-5.5 when MAIL_GUARDIAN_FALLBACK_MODEL is not set', () => {
+    const config = loadConfig({ NINEROUTER_API_KEY: 'key' });
+    expect(config.fallbackModel).toBe('cx/gpt-5.5');
+  });
+
+  it('respects env overrides for model and fallbackModel', () => {
+    const config = loadConfig({
+      NINEROUTER_API_KEY: 'key',
+      MAIL_GUARDIAN_MODEL: 'custom/primary',
+      MAIL_GUARDIAN_FALLBACK_MODEL: 'custom/fallback',
+    });
+    expect(config.model).toBe('custom/primary');
+    expect(config.fallbackModel).toBe('custom/fallback');
+  });
+
+  it('keeps model and fallbackModel distinct when no env overrides are set', () => {
+    const config = loadConfig({ NINEROUTER_API_KEY: 'key' });
+    expect(config.fallbackModel).not.toBe(config.model);
   });
 });
 

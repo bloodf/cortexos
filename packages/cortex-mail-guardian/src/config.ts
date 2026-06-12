@@ -16,6 +16,7 @@ export interface MailAccountConfig {
 export interface GuardianConfig {
   accounts: MailAccountConfig[];
   model: string;
+  fallbackModel: string;
   confidenceThreshold: number;
   action: 'trash';
   telegramBotToken?: string;
@@ -121,7 +122,8 @@ export function loadConfig(source: NodeJS.ProcessEnv = getProcessEnv()): Guardia
 
   return {
     accounts,
-    model: env('MAIL_GUARDIAN_MODEL', source) ?? 'minimax/MiniMax-M2.7-highspeed',
+    model: env('MAIL_GUARDIAN_MODEL', source) ?? 'minimax/MiniMax-M3',
+    fallbackModel: env('MAIL_GUARDIAN_FALLBACK_MODEL', source) ?? 'cx/gpt-5.5',
     confidenceThreshold,
     action,
     telegramBotToken: env('TELEGRAM_BOT_TOKEN', source),
