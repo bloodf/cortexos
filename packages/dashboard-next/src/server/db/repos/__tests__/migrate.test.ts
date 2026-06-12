@@ -104,12 +104,15 @@ describe("migration roundtrip", () => {
     //   011_mail_guardian                             — Mail Guardian tables (reviews/actions/processed/rules/accounts)
     //   012_apps_webui_urls                           — MP-022 webui URL map + show_in_webui alignment
     //   013_obot_no_webui                             — MP-022 022b review: Obot has no reachable web UI
+    //   014_mail_guardian_classify_failed             — MG MP-028b dead-letter table
+    //   015_mail_guardian_decisions                   — MG MP-029a unified decision log
+    //   016_mail_guardian_knowledge                   — MG MP-029b knowledge briefs
     // Filenames 004 / 005 are intentionally not used in this branch —
     // the 002_seed/003_incus/004_reconcile/005_dashboard_command_audit
     // four-file expectation was authored against a pre-M1.5 state that
     // has since been superseded by 002_session_columns_for_auth +
     // 006_indexes_for_rbac_audit + 008_dashboard_command_audit.
-    expect(ran.length).toBe(12);
+    expect(ran.length).toBe(15);
     expect(ran).toEqual([
       "001_schema",
       "002_session_columns_for_auth",
@@ -123,6 +126,9 @@ describe("migration roundtrip", () => {
       "011_mail_guardian",
       "012_apps_webui_urls",
       "013_obot_no_webui",
+      "014_mail_guardian_classify_failed",
+      "015_mail_guardian_decisions",
+      "016_mail_guardian_knowledge",
     ]);
   });
 
