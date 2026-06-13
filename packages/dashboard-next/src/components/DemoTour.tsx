@@ -6,19 +6,15 @@ const KEY = "cortex.tour.v1.dismissed";
 const STEPS = [
   {
     title: "Welcome to CortexOS",
-    body: "This is a fully-mocked demo build. All data is generated locally — nothing is sent anywhere.",
+    body: "Live control for this host — services, Docker, Incus, storage, mail, and more, all from one place.",
   },
   {
     title: "Keyboard-first",
     body: "Press ⌘K to open the command palette. Press ? for the full shortcut list.",
   },
   {
-    title: "Customize Overview",
-    body: "On the Overview page, hit Edit to rearrange or remove widgets. Your layout is saved locally.",
-  },
-  {
-    title: "Try the simulate menu",
-    body: "Sign in as admin (admin / admin) and use the flask icon in the top bar to crash, heal, or stress services.",
+    title: "Make Overview yours",
+    body: "On the Overview page, hit Edit to rearrange or hide widgets. Your layout is saved on this device.",
   },
 ];
 
@@ -50,7 +46,7 @@ export function DemoTour() {
     <div
       role="dialog"
       aria-label={s.title}
-      className="fixed bottom-4 right-4 z-50 w-[calc(100%-2rem)] max-w-sm rounded-lg border bg-card shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-300"
+      className="fixed bottom-4 right-4 z-50 w-[calc(100%-2rem)] max-w-sm rounded-xl border border-border/60 bg-popover/95 backdrop-blur elev-sheet animate-in fade-in slide-in-from-bottom-2 duration-300"
     >
       <div className="flex items-start gap-2 p-4">
         <div className="flex-1 min-w-0">

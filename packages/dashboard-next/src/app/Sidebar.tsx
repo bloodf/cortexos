@@ -46,8 +46,8 @@ function NavLink({
       className={cn(
         "flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors",
         active
-          ? "bg-sidebar-accent text-sidebar-accent-foreground"
-          : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+          ? "bg-primary text-primary-foreground shadow-sm"
+          : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
         collapsed && "md:justify-center md:px-2",
       )}
     >
@@ -132,7 +132,7 @@ export function Sidebar({ collapsed, mobileOpen, onClose }: Props) {
       )}
       <aside
         className={cn(
-          "z-50 bg-sidebar text-sidebar-foreground border-r border-sidebar-border shrink-0 flex flex-col",
+          "z-50 mac-vibrant text-sidebar-foreground border-r border-sidebar-border/70 shrink-0 flex flex-col",
           "fixed inset-y-0 left-0 transform transition-transform md:relative md:translate-x-0",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
           collapsed ? "md:w-16" : "md:w-60",
@@ -201,15 +201,15 @@ export function Sidebar({ collapsed, mobileOpen, onClose }: Props) {
                   <button
                     onClick={() => toggle(group.id)}
                     className={cn(
-                      "w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-xs font-medium uppercase tracking-wider transition-colors",
+                      "w-full flex items-center gap-2 rounded-md px-2 py-1 text-xs font-semibold transition-colors",
                       hasActive
                         ? "text-sidebar-foreground"
-                        : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/40",
+                        : "text-sidebar-foreground/55 hover:text-sidebar-foreground hover:bg-sidebar-accent/40",
                     )}
                     aria-expanded={isOpen}
                   >
                     <Icon className="size-3.5" />
-                    <span className="flex-1 text-left text-[10px]">{groupTitle[group.id]}</span>
+                    <span className="flex-1 text-left">{groupTitle[group.id]}</span>
                     <ChevronDown
                       className={cn("size-3 transition-transform", !isOpen && "-rotate-90")}
                     />

@@ -93,7 +93,7 @@ export function TopBar({
   const unread = notifs.filter((n) => !n.read).length;
 
   return (
-    <header className="sticky top-0 z-30 h-14 bg-background/80 backdrop-blur border-b flex items-center gap-2 px-3 sm:px-5">
+    <header className="mac-toolbar sticky top-0 z-30 h-14 border-b border-border/60 flex items-center gap-2 px-3 sm:px-5">
       <Button
         variant="ghost"
         size="icon"
@@ -132,7 +132,7 @@ export function TopBar({
 
       <button
         onClick={onOpenPalette}
-        className="hidden sm:flex items-center gap-2 rounded-md border bg-muted/40 px-3 h-9 text-sm text-muted-foreground hover:bg-muted/70 transition-colors min-w-[200px] lg:min-w-[280px]"
+        className="hidden sm:flex items-center gap-2 rounded-lg border border-border/70 bg-muted/50 px-3 h-8 text-sm text-muted-foreground hover:bg-muted/80 transition-colors min-w-[200px] lg:min-w-[280px]"
       >
         <Search className="size-4" />
         <span className="flex-1 text-left">{t.common.search}</span>
