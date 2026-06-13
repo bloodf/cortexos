@@ -1,17 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Lock,
-  Moon,
-  Sun,
-  Palette,
-  Globe,
-  UserCog,
-  Keyboard,
-  LogOut,
-  type LucideIcon,
-} from "lucide-react";
+import { Lock, Moon, Sun, Palette, Globe, Keyboard, LogOut, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import {
   CommandDialog,
@@ -55,7 +45,6 @@ export function CommandPalette({ open, onOpenChange, onOpenHelp }: Props) {
     queryFn: api.docker.containers,
   });
   const { data: units = [] } = useQuery({ queryKey: ["systemd"], queryFn: api.systemd });
-  const { data: users = [] } = useQuery({ queryKey: ["users"], queryFn: api.users });
   const { data: audit = [] } = useQuery({ queryKey: ["audit"], queryFn: api.audit });
   const [recent, setRecent] = useState<string[]>([]);
   const [q, setQ] = useState("");
@@ -306,24 +295,6 @@ export function CommandPalette({ open, onOpenChange, onOpenHelp }: Props) {
             </CommandItem>
           ))}
         </CommandGroup>
-
-        {user?.is_admin && (
-          <CommandGroup heading="Users">
-            {users.slice(0, 10).map((u) => (
-              <CommandItem
-                key={u.username}
-                onSelect={() => {
-                  runNav("/admin/users");
-                }}
-                value={`user ${u.username} ${u.groups.join(" ")}`}
-              >
-                <UserCog className="size-3.5 mr-2 text-muted-foreground" />
-                <span className="flex-1">{u.username}</span>
-                {u.is_admin && <span className="text-[10px] text-muted-foreground">admin</span>}
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        )}
 
         {user?.is_admin && (
           <CommandGroup heading="Recent audit">

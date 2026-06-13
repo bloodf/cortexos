@@ -27,14 +27,13 @@
  *   backups   — MP-024b (listBackupRuns)
  *   scheduler — MP-024a (listSchedulerJobs)
  *
- * TODO domains (server fns not yet implemented — returns empty / placeholder):
- *   notifications, users, projects, badges
+ * Stub domain (no server fn yet — returns a typed empty list):
+ *   notifications (TopBar bell)
  *
  * See docs/rebuild/ADR-001-server-transport.md for the RPC transport decision.
  * See src/lib/api/README.md for the full swap guide.
  */
 
-// Re-export auth for the Wave-2 shell/login WP.
 // ---------------------------------------------------------------------------
 // Import mock row types so adapters can use them and client can type correctly.
 // We import type-only — no runtime dependency on the mock data.
@@ -55,8 +54,6 @@ import type {
   AlertHistory,
   ApprovalRequest,
   AuditEntry,
-  PamUser,
-  Project,
   Agent,
   MailReview,
   SchedulerJob,
@@ -173,8 +170,8 @@ import { uploadAgentFile as _uploadAgentFile, listAgents as _listAgents } from "
 import { readEnv as _readEnv } from "./env-browser.functions";
 import type { HermesProfile } from "@/server/agents/registry";
 
-// Topbar bell notifications — no server fn yet (TODO domain above); shape
-// mirrors the legacy mock `Notification` so the TopBar consumer stays typed.
+// Topbar bell notifications — no server fn yet; returns a typed empty list.
+// Shape mirrors the legacy mock `Notification` so the TopBar consumer stays typed.
 export interface DashNotification {
   id: string;
   title: string;
@@ -183,8 +180,6 @@ export interface DashNotification {
   read: boolean;
   severity: "info" | "warn" | "error";
 }
-
-export * as auth from "./auth";
 
 // Re-export error types so Wave-2 consumers can import from one place.
 export type { ApiClientError, ApiErrorCode, ApiErrorEnvelope } from "./http";
@@ -226,8 +221,6 @@ export type {
   AlertHistory,
   ApprovalRequest,
   AuditEntry,
-  PamUser,
-  Project,
   Agent,
   MailReview,
   BackupRunRow,
@@ -1209,18 +1202,6 @@ export const api = {
       pageSize: result.pageSize,
     };
   },
-
-  // ── Users ──────────────────────────────────────────────────────────────
-  users: (): Promise<PamUser[]> => Promise.resolve([]),
-
-  usersList: (p?: ListParams): Promise<ListResult<PamUser>> =>
-    Promise.resolve(emptyList<PamUser>(p)),
-
-  // ── Projects ──────────────────────────────────────────────────────────
-  projects: (): Promise<Project[]> => Promise.resolve([]),
-
-  projectsList: (p?: ListParams): Promise<ListResult<Project>> =>
-    Promise.resolve(emptyList<Project>(p)),
 
   // ── Agents (WIRED — MP-025) ───────────────────────────────────────────
   /**

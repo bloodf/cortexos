@@ -12,7 +12,7 @@ import {
 import { UIProvider } from "@/hooks/ui-provider";
 import { CommandPalette } from "@/app/CommandPalette";
 import { api } from "@/lib/api/client";
-import type { Service, DockerContainer, SystemdUnit, PamUser, AuditEntry } from "@/mocks/types";
+import type { Service, DockerContainer, SystemdUnit, AuditEntry } from "@/mocks/types";
 import source from "@/app/CommandPalette.tsx?raw";
 
 vi.mock("@/lib/api/client", () => ({
@@ -20,7 +20,6 @@ vi.mock("@/lib/api/client", () => ({
     services: vi.fn(),
     docker: { containers: vi.fn() },
     systemd: vi.fn(),
-    users: vi.fn(),
     audit: vi.fn(),
   },
 }));
@@ -96,7 +95,6 @@ describe("CommandPalette live wiring (MP-026 RED)", () => {
     vi.mocked(api.services).mockResolvedValue(mockServices);
     vi.mocked(api.docker.containers).mockResolvedValue([] as DockerContainer[]);
     vi.mocked(api.systemd).mockResolvedValue([] as SystemdUnit[]);
-    vi.mocked(api.users).mockResolvedValue([] as PamUser[]);
     vi.mocked(api.audit).mockResolvedValue([] as AuditEntry[]);
   });
 

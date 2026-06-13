@@ -12,6 +12,5 @@ export * from "./services";
 export * from "./incus";
 export * from "./audit";
 export * from "./approvals";
-export * from "./users";
 export * from "./mail";
 export * from "./alerts";
