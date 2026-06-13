@@ -13,19 +13,6 @@
   "endOfLine": "lf",
   "overrides": [
     {
-      "files": "*.svelte",
-      "options": {
-        "parser": "prettier-plugin-svelte",
-        "plugins": ["prettier-plugin-svelte"]
-      }
-    },
-    {
-      "files": "*.html",
-      "options": {
-        "parser": "prettier-plugin-svelte"
-      }
-    },
-    {
       "files": "*.css",
       "options": {
         "plugins": ["prettier-plugin-tailwindcss"]

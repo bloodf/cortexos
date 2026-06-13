@@ -6,8 +6,6 @@
 //   - ESLint 9.39.4
 //   - eslint-config-airbnb-extended 3.1.0  (NOT the stale canonical airbnb)
 //   - typescript-eslint 8.60.1
-//   - eslint-plugin-svelte 3.19.0
-//   - svelte-eslint-parser 1.7.1
 //   - @eslint/js 9.39.4
 //   - globals 17.6.0
 //
@@ -30,8 +28,6 @@
 
 import js from '@eslint/js';
 import ts from 'typescript-eslint';
-import svelte from 'eslint-plugin-svelte';
-import svelteParser from 'svelte-eslint-parser';
 import { configs as airbnbExtConfigs } from 'eslint-config-airbnb-extended';
 import importX from 'eslint-plugin-import-x';
 import stylistic from '@stylistic/eslint-plugin';
@@ -39,14 +35,13 @@ import n from 'eslint-plugin-n';
 import reactHooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
 
-const SRC_GLOBS = ['**/*.{js,jsx,mjs,cjs,ts,tsx,svelte}'];
+const SRC_GLOBS = ['**/*.{js,jsx,mjs,cjs,ts,tsx}'];
 
 // Files ESLint should never look at (per-package, framework build outputs, deps)
 const IGNORE = [
   '**/node_modules/**',
   '**/dist/**',
   '**/build/**',
-  '**/.svelte-kit/**',
   '**/.next/**',
   '**/out/**',
   '**/coverage/**',
@@ -231,41 +226,7 @@ export default [
     },
   },
 
-  // 6) Svelte overrides — only on .svelte files
-  //    a) Use svelte-eslint-parser
-  //    b) Disable React-only rules from airbnb-extended
-  //    c) Apply svelte/recommended rules
-  {
-    files: ['**/*.svelte'],
-    languageOptions: {
-      parser: svelteParser,
-      parserOptions: {
-        parser: ts.parser,
-        extraFileExtensions: ['.svelte'],
-        // project: not enabled by default — see §1 below. Add per-package.
-      },
-    },
-    plugins: {
-      svelte,
-    },
-    rules: {
-      // The React-specific rules from airbnb-extended
-      'react/jsx-uses-react': 'off',
-      'react/react-in-jsx-scope': 'off',
-      'react-hooks/rules-of-hooks': 'off',
-      'react-hooks/exhaustive-deps': 'off',
-      'jsx-a11y/anchor-has-content': 'off',
-      'jsx-a11y/alt-text': 'off',
-      'jsx-a11y/click-events-have-key-events': 'off',
-      'jsx-a11y/no-static-element-interactions': 'off',
-      'jsx-a11y/role-has-required-aria-props': 'off',
-      'jsx-a11y/role-supports-aria-props': 'off',
-      // Svelte 5 has its own a11y rules in eslint-plugin-svelte
-    },
-  },
-  ...svelte.configs['flat/recommended'],
-
-  // 7) Per-package overrides — stricter for libs, looser for tests/migrations
+  // 6) Per-package overrides — stricter for libs, looser for tests/migrations
   // 7a) Workspace-internal libs (contracts, design-tokens, audit, mail-guardian,
   //     telemetry): zero-tolerance, no console, no any, no process.exit
   {
