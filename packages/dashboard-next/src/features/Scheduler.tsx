@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Clock, Play, Plus } from "lucide-react";
+import { Clock, Play, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { DataTable, type Column } from "@/components/DataTable";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +10,8 @@ import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/useAuth";
 import { useT } from "@/hooks/useT";
 import { relativeTime } from "@/lib/format";
-import { api } from "@/lib/api/client";
+import { api, callSystemdAction, callMintApproval } from "@/lib/api/client";
+import { csrfHeaders } from "@/lib/csrf";
 import type { SchedulerJob } from "@/lib/api/client";
 
 function formatTime(iso: string): string {
@@ -17,28 +19,62 @@ function formatTime(iso: string): string {
   return relativeTime(iso);
 }
 
+/**
+ * Mint an approval token then dispatch a systemd action against a unit.
+ * Reuses the gated/audited systemd RPC (same path as the Systemd page).
+ * "Run now" starts the target `.service`; the toggle enables/disables the
+ * `.timer` unit (`SchedulerJob.id` is always the timer unit name).
+ */
+async function dispatchSystemdAction(
+  action: "start" | "enable" | "disable",
+  name: string,
+): Promise<void> {
+  const mint = await callMintApproval({
+    data: { action: `systemd.${action}`, payload: { action, name } },
+  });
+  await callSystemdAction({
+    data: { action, name },
+    headers: { ...csrfHeaders(), "x-cortex-approval-token": mint.token },
+  });
+}
+
 export function SchedulerPage() {
   const { user } = useAuth();
   const isAdmin = !!user?.is_admin;
   const qc = useQueryClient();
   const t = useT();
+  const [pending, setPending] = useState<string | null>(null);
 
-  const toggle = (id: string) => {
-    qc.setQueryData<SchedulerJob[]>(["scheduler"], (p) =>
-      p?.map((j) =>
-        j.id === id ? { ...j, enabled: !j.enabled, status: !j.enabled ? "ok" : "paused" } : j,
-      ),
-    );
-    toast.success("Job updated");
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["scheduler"] }).catch(() => {});
   };
 
-  const runNow = (j: SchedulerJob) => {
-    qc.setQueryData<SchedulerJob[]>(["scheduler"], (p) =>
-      p?.map((x) =>
-        x.id === j.id ? { ...x, lastRun: new Date().toISOString(), status: "ok" } : x,
-      ),
-    );
-    toast.success(`Triggered ${j.name}`, { description: "Simulated run queued." });
+  const toggle = async (j: SchedulerJob) => {
+    const action = j.enabled ? "disable" : "enable";
+    setPending(`toggle-${j.id}`);
+    try {
+      await dispatchSystemdAction(action, j.id);
+      toast.success(j.enabled ? `Disabled ${j.id}` : `Enabled ${j.id}`);
+      invalidate();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to update timer");
+    } finally {
+      setPending(null);
+    }
+  };
+
+  const runNow = async (j: SchedulerJob) => {
+    const unit = j.target || j.id;
+    setPending(`run-${j.id}`);
+    try {
+      await dispatchSystemdAction("start", unit);
+      toast.success(`Triggered ${unit}`);
+      invalidate();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to trigger job");
+    } finally {
+      setPending(null);
+    }
   };
 
   const cols: Column<SchedulerJob>[] = [
@@ -94,16 +130,27 @@ export function SchedulerPage() {
       header: "",
       cell: (r) => (
         <div className="flex items-center gap-2 justify-end">
-          {isAdmin && r.enabled && (
-            <Button size="sm" variant="ghost" onClick={() => runNow(r)}>
-              <Play className="size-3.5" />
+          {isAdmin && (
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={pending === `run-${r.id}`}
+              onClick={() => runNow(r)}
+              aria-label={`Run ${r.id} now`}
+            >
+              {pending === `run-${r.id}` ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Play className="size-3.5" />
+              )}
             </Button>
           )}
           {isAdmin && (
             <Switch
               checked={r.enabled}
-              onCheckedChange={() => toggle(r.id)}
-              aria-label={`Enable ${r.name}`}
+              disabled={pending === `toggle-${r.id}`}
+              onCheckedChange={() => toggle(r)}
+              aria-label={`Toggle ${r.id}`}
             />
           )}
         </div>
@@ -117,14 +164,6 @@ export function SchedulerPage() {
         icon={<Clock className="size-5" />}
         title={t.nav.scheduler}
         description="Cron jobs and scheduled tasks across systemd timers and Docker."
-        actions={
-          isAdmin && (
-            <Button size="sm" onClick={() => toast.success("New job form (simulated)")}>
-              <Plus className="size-4 mr-1" />
-              New job
-            </Button>
-          )
-        }
       />
       <DataTable
         columns={cols}

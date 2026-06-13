@@ -18,6 +18,8 @@ vi.mock("@/lib/api/client", () => ({
   api: {
     schedulerList: vi.fn(),
   },
+  callSystemdAction: vi.fn(),
+  callMintApproval: vi.fn(),
 }));
 
 vi.mock("@/hooks/useAuth", () => ({
