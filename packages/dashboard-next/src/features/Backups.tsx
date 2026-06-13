@@ -1,18 +1,15 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Database, Download, HardDrive, Plus, RotateCcw } from "lucide-react";
-import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { Database, HardDrive, RotateCcw } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { DataTable, type Column } from "@/components/DataTable";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { useAuth } from "@/hooks/useAuth";
 import { bytes, relativeTime } from "@/lib/format";
 import { api } from "@/lib/api/client";
 import type { BackupRunRow } from "@/lib/api/client";
 
 function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="rounded-lg border bg-card px-4 py-3 flex items-center gap-3">
+    <div className="rounded-lg border border-border/60 bg-card px-4 py-3 flex items-center gap-3">
       <div className="size-9 rounded-md bg-primary/10 text-primary grid place-items-center">
         {icon}
       </div>
@@ -25,9 +22,6 @@ function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; va
 }
 
 export function BackupsPage() {
-  const { user } = useAuth();
-  const isAdmin = !!user?.is_admin;
-  const qc = useQueryClient();
   const { data: snaps = [] } = useQuery({ queryKey: ["backups"], queryFn: api.backups });
 
   const totalBytes = snaps.reduce((s, x) => s + (x.sizeBytes ?? 0), 0);
@@ -38,27 +32,6 @@ export function BackupsPage() {
         .sort()
         .reverse()[0]
     : null;
-
-  const restore = (s: BackupRunRow) =>
-    toast.success(`Restore queued for ${s.target}`, { description: "Simulated restore." });
-  const download = (s: BackupRunRow) =>
-    toast.success("Download started", { description: s.target });
-  const createSnap = () => {
-    const fresh: BackupRunRow = {
-      id: `s${Date.now()}`,
-      target: "tank/manual",
-      timestamp: new Date().toISOString(),
-      sizeBytes: Math.round(1_000_000_000 + Math.random() * 4_000_000_000),
-      status: "running",
-    };
-    qc.setQueryData<BackupRunRow[]>(["backups"], (p) => [fresh, ...(p ?? [])]);
-    toast.success("Snapshot started", { description: fresh.target });
-    setTimeout(() => {
-      qc.setQueryData<BackupRunRow[]>(["backups"], (p) =>
-        p?.map((x) => (x.id === fresh.id ? { ...x, status: "success" } : x)),
-      );
-    }, 1500);
-  };
 
   const cols: Column<BackupRunRow>[] = [
     {
@@ -98,22 +71,6 @@ export function BackupsPage() {
         );
       },
     },
-    {
-      key: "actions",
-      header: "",
-      cell: (r) => (
-        <div className="flex items-center gap-1 justify-end">
-          <Button size="sm" variant="ghost" onClick={() => download(r)} aria-label="Download">
-            <Download className="size-3.5" />
-          </Button>
-          {isAdmin && (
-            <Button size="sm" variant="ghost" onClick={() => restore(r)} aria-label="Restore">
-              <RotateCcw className="size-3.5" />
-            </Button>
-          )}
-        </div>
-      ),
-    },
   ];
 
   return (
@@ -122,14 +79,6 @@ export function BackupsPage() {
         icon={<Database className="size-5" />}
         title="Backups & snapshots"
         description="ZFS snapshots, Docker volume archives, and Postgres dumps in one place."
-        actions={
-          isAdmin && (
-            <Button size="sm" onClick={createSnap}>
-              <Plus className="size-4 mr-1" />
-              New snapshot
-            </Button>
-          )
-        }
       />
 
       <div className="grid sm:grid-cols-3 gap-3">
