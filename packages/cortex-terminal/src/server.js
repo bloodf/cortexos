@@ -35,6 +35,7 @@
  */
 
 import { createServer } from 'node:http';
+import { fileURLToPath } from 'node:url';
 
 import { WebSocketServer } from 'ws';
 import pkg from 'pg';
@@ -81,7 +82,7 @@ function log(msg, fields) {
  * (supplied via EnvironmentFile=/opt/cortexos/.secrets/dashboard.env).
  * @returns {import('pg').ClientConfig}
  */
-function dbConfig() {
+export function dbConfig() {
   if (!process.env.DB_PASSWORD && !process.env.DATABASE_URL) {
     throw new Error('DB_PASSWORD (or DATABASE_URL) is required');
   }
@@ -102,7 +103,7 @@ function dbConfig() {
  * @param {string | undefined} header
  * @returns {Record<string, string>}
  */
-function parseCookies(header) {
+export function parseCookies(header) {
   /** @type {Record<string, string>} */
   const out = {};
   if (!header) return out;
@@ -111,7 +112,14 @@ function parseCookies(header) {
     if (idx === -1) return;
     const k = part.slice(0, idx).trim();
     const v = part.slice(idx + 1).trim();
-    if (k) out[k] = decodeURIComponent(v);
+    if (!k) return;
+    try {
+      out[k] = decodeURIComponent(v);
+    } catch {
+      // Malformed %-escape (e.g. a lone "%"): keep the raw value rather than
+      // throw, so a crafted Cookie header can't break the upgrade handler.
+      out[k] = v;
+    }
   });
   return out;
 }
@@ -151,12 +159,38 @@ async function validateSession(token) {
  * Caddy proxies). Never used as an auth signal — forensic only.
  * @param {import('node:http').IncomingMessage} req
  */
-function clientIp(req) {
+export function clientIp(req) {
   const xff = req.headers['x-forwarded-for'];
   if (typeof xff === 'string' && xff.length > 0) {
     return xff.split(',')[0].trim();
   }
   return req.socket.remoteAddress || 'unknown';
+}
+
+/**
+ * Decide whether a WS upgrade's Origin is allowed. This is the CSRF defense:
+ * browsers send cookies on cross-site WS too, so the cookie alone is not enough.
+ *   - allowedOrigin a concrete origin → require an exact Origin match.
+ *   - allowedOrigin unset or "same-origin" → require the Origin's host to equal
+ *     the Host being connected to (correct behind Caddy/Tailscale where there is
+ *     no single fixed public origin). A missing / unparseable Origin is rejected.
+ * @param {string | undefined} origin the request `Origin` header
+ * @param {string | undefined} host the request `Host` header
+ * @param {string} allowedOrigin the ALLOWED_ORIGIN config value
+ * @returns {boolean}
+ */
+export function checkOrigin(origin, host, allowedOrigin) {
+  const sameOriginMode = !allowedOrigin || allowedOrigin === 'same-origin';
+  if (!sameOriginMode) {
+    return origin === allowedOrigin;
+  }
+  let originHost = null;
+  try {
+    originHost = origin ? new URL(origin).host : null;
+  } catch {
+    originHost = null;
+  }
+  return Boolean(originHost) && originHost === host;
 }
 
 // ---------------------------------------------------------------------------
@@ -437,29 +471,16 @@ httpServer.on('upgrade', (req, socket, head) => {
     //     equal the Host being connected to (correct behind Caddy :80/Tailscale
     //     where there is no single fixed public origin). No Origin → reject.
     const { origin } = req.headers;
-    const sameOriginMode = !ALLOWED_ORIGIN || ALLOWED_ORIGIN === 'same-origin';
-    if (!sameOriginMode) {
-      if (origin !== ALLOWED_ORIGIN) {
-        log('rejected: origin mismatch', { ip, origin: origin || null });
-        abortHandshake(socket, 403);
-        return;
-      }
-    } else {
-      let originHost = null;
-      try {
-        originHost = origin ? new URL(origin).host : null;
-      } catch {
-        originHost = null;
-      }
-      if (!originHost || originHost !== req.headers.host) {
-        log('rejected: cross-origin WS (same-origin enforced)', {
-          ip,
-          origin: origin || null,
-          host: req.headers.host || null,
-        });
-        abortHandshake(socket, 403);
-        return;
-      }
+    if (!checkOrigin(origin, req.headers.host, ALLOWED_ORIGIN)) {
+      const sameOriginMode = !ALLOWED_ORIGIN || ALLOWED_ORIGIN === 'same-origin';
+      log(
+        sameOriginMode
+          ? 'rejected: cross-origin WS (same-origin enforced)'
+          : 'rejected: origin mismatch',
+        { ip, origin: origin || null, host: req.headers.host || null },
+      );
+      abortHandshake(socket, 403);
+      return;
     }
 
     // 2. Cookie → session token.
@@ -543,24 +564,32 @@ function shutdown(signal) {
   });
 }
 
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT', () => shutdown('SIGINT'));
-// Never let an unexpected error take the whole sidecar down silently.
-process.on('uncaughtException', (err) => {
-  log('uncaughtException', { error: err.message });
-});
-process.on('unhandledRejection', (reason) => {
-  log('unhandledRejection', { reason: String(reason) });
-});
-
-if (startupCheck()) {
-  httpServer.listen(PORT, HOST, () => {
-    log('listening', {
-      host: HOST,
-      port: PORT,
-      shell: SHELL,
-      idleSec: IDLE_SEC,
-      originEnforced: Boolean(ALLOWED_ORIGIN),
-    });
+function main() {
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  // Never let an unexpected error take the whole sidecar down silently.
+  process.on('uncaughtException', (err) => {
+    log('uncaughtException', { error: err.message });
   });
+  process.on('unhandledRejection', (reason) => {
+    log('unhandledRejection', { reason: String(reason) });
+  });
+
+  if (startupCheck()) {
+    httpServer.listen(PORT, HOST, () => {
+      log('listening', {
+        host: HOST,
+        port: PORT,
+        shell: SHELL,
+        idleSec: IDLE_SEC,
+        originEnforced: Boolean(ALLOWED_ORIGIN),
+      });
+    });
+  }
+}
+
+// Only start the server when run directly (`node src/server.js`), not when
+// imported by tests. Mirrors the guard in cortex-mail-guardian's entrypoint.
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  main();
 }
