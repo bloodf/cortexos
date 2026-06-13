@@ -1,7 +1,6 @@
 import { createFileRoute, redirect, useRouter, useSearch } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import brandLogo from "@/assets/cortexos-logo.svg";
 import brandMark from "@/assets/cortexos-mark.svg";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,93 +46,72 @@ function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2">
-      <div className="hidden lg:flex relative overflow-hidden bg-gradient-to-br from-[oklch(0.22_0.08_277)] to-[oklch(0.14_0.02_260)] p-12 flex-col justify-between">
-        <div className="flex items-center gap-2 text-white">
-          <img src={brandLogo} alt={t.app.name} className="h-9 w-auto" />
+    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden p-6">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-[oklch(0.93_0.045_277)] via-background to-[oklch(0.91_0.04_230)] dark:from-[oklch(0.24_0.06_277)] dark:via-background dark:to-[oklch(0.17_0.03_260)]"
+      />
+      <form
+        onSubmit={submit}
+        className="w-full max-w-sm space-y-5 rounded-2xl border border-border/60 bg-card/80 p-8 backdrop-blur-xl elev-sheet"
+      >
+        <div className="flex flex-col items-center gap-3 text-center">
+          <img src={brandMark} alt="" className="size-12" aria-hidden />
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight">{t.auth.signIn}</h1>
+            <p className="mt-0.5 text-sm text-muted-foreground">{t.app.tagline}</p>
+          </div>
         </div>
-        <div className="text-white/90 max-w-md">
-          <p className="text-3xl font-semibold leading-tight">
-            One pane of glass for your home server.
-          </p>
-          <p className="mt-3 text-white/60">
-            Native systemd · Docker · Incus · agents. Keyboard-first, observable, calm.
-          </p>
+        <div className="space-y-2">
+          <Label htmlFor="u">{t.auth.username}</Label>
+          <Input
+            id="u"
+            value={u}
+            onChange={(e) => setU(e.target.value)}
+            autoComplete="username"
+            autoFocus
+          />
         </div>
-        <div className="grid grid-cols-3 gap-3 text-white/80 text-xs">
-          {["29 services", "live metrics", "audit chain"].map((x) => (
-            <div
-              key={x}
-              className="rounded-md bg-white/5 border border-white/10 px-3 py-2 backdrop-blur"
+        <div className="space-y-2">
+          <Label htmlFor="p">{t.auth.password}</Label>
+          <div className="relative">
+            <Input
+              id="p"
+              type={show ? "text" : "password"}
+              value={p}
+              onChange={(e) => setP(e.target.value)}
+              autoComplete="current-password"
+              className="pr-10"
+            />
+            <button
+              type="button"
+              onClick={() => setShow(!show)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label={show ? t.auth.hide : t.auth.show}
             >
-              {x}
-            </div>
+              {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+            </button>
+          </div>
+        </div>
+        {err && <p className="text-sm text-destructive">{err}</p>}
+        <Button type="submit" className="w-full" disabled={busy}>
+          {busy ? "…" : t.auth.signIn}
+        </Button>
+      </form>
+      <footer className="mt-6 flex items-center gap-4 text-xs text-muted-foreground">
+        <span>© CortexOS</span>
+        <select
+          value={locale}
+          onChange={(e) => setLocale(e.target.value as Locale)}
+          className="rounded border bg-transparent px-2 py-1"
+        >
+          {LOCALES.map((l) => (
+            <option key={l} value={l}>
+              {LOCALE_LABEL[l]}
+            </option>
           ))}
-        </div>
-      </div>
-      <div className="flex flex-col">
-        <div className="flex-1 flex items-center justify-center p-6">
-          <form onSubmit={submit} className="w-full max-w-sm space-y-5">
-            <div className="lg:hidden flex items-center gap-2 mb-6">
-              <img src={brandMark} alt="" className="size-7" aria-hidden />
-              <span className="font-semibold">{t.app.name}</span>
-            </div>
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight">{t.auth.signIn}</h1>
-              <p className="text-sm text-muted-foreground mt-1">{t.app.tagline}</p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="u">{t.auth.username}</Label>
-              <Input
-                id="u"
-                value={u}
-                onChange={(e) => setU(e.target.value)}
-                autoComplete="username"
-                autoFocus
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="p">{t.auth.password}</Label>
-              <div className="relative">
-                <Input
-                  id="p"
-                  type={show ? "text" : "password"}
-                  value={p}
-                  onChange={(e) => setP(e.target.value)}
-                  autoComplete="current-password"
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShow(!show)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  aria-label={show ? t.auth.hide : t.auth.show}
-                >
-                  {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                </button>
-              </div>
-            </div>
-            {err && <p className="text-sm text-destructive">{err}</p>}
-            <Button type="submit" className="w-full" disabled={busy}>
-              {busy ? "…" : t.auth.signIn}
-            </Button>
-          </form>
-        </div>
-        <footer className="flex items-center justify-between border-t px-6 py-3 text-xs text-muted-foreground">
-          <span>© CortexOS</span>
-          <select
-            value={locale}
-            onChange={(e) => setLocale(e.target.value as Locale)}
-            className="bg-transparent border rounded px-2 py-1"
-          >
-            {LOCALES.map((l) => (
-              <option key={l} value={l}>
-                {LOCALE_LABEL[l]}
-              </option>
-            ))}
-          </select>
-        </footer>
-      </div>
+        </select>
+      </footer>
     </div>
   );
 }
