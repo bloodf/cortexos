@@ -75,7 +75,7 @@ describe('query — FilterSchema', () => {
   });
   it('accepts `isNull` and `isNotNull` without a value', () => {
     const parsed = FilterSchema.parse([{ field: 'a', op: 'isNull' }]);
-    expect(parsed[0].value).toBeUndefined();
+    expect(parsed[0]?.value).toBeUndefined();
   });
 });
 

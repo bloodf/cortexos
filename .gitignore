@@ -208,5 +208,7 @@ tmp/
 .gpt/
 .deepseek/
 .grok/
+.headroom/
+.serena/
 boxbox/
 memory-os/

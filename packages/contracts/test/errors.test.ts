@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import type { z } from 'zod';
 import {
   ValidationErrorSchema,
   AuthRequiredErrorSchema,
@@ -20,10 +21,7 @@ import {
 
 const CASES: {
   name: string;
-  schema:
-    | typeof ValidationErrorSchema
-    | typeof AuthRequiredErrorSchema
-    | typeof NotFoundErrorSchema;
+  schema: z.ZodTypeAny;
   expectedCode: string;
   expectedStatus: number;
   payload: Record<string, unknown>;
