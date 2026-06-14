@@ -27,6 +27,12 @@ import {
   patchBadge as _patchBadge,
   deleteBadge as _deleteBadge,
 } from "@/lib/api/badges.functions";
+import {
+  listProjects as _listProjects,
+  createProject as _createProject,
+  patchProject as _patchProject,
+  deleteProject as _deleteProject,
+} from "@/lib/api/projects.functions";
 
 import { toServiceRow } from "@/lib/adapters/services";
 import type { Service as MockService } from "@/mocks/types";
@@ -172,6 +178,59 @@ export function deleteAdminBadge(id: number): Promise<{ ok: true }> {
   return deleteBadgeFn({ data: { id }, headers: csrfHeaders() });
 }
 export type { BadgeRow, BadgeCreateData, BadgePatchData };
+
+// ---------------------------------------------------------------------------
+// Projects
+// ---------------------------------------------------------------------------
+
+type MessagingMode = "single" | "distributed";
+interface ProjectRow {
+  id: number;
+  slug: string;
+  name: string;
+  repoUrl: string | null;
+  primaryPmAccount: string | null;
+  messagingMode: MessagingMode;
+}
+interface ProjectCreateData {
+  slug: string;
+  name: string;
+  repoUrl: string | null;
+  primaryPmAccount: string | null;
+  messagingMode: MessagingMode;
+}
+type ProjectPatchData = Partial<ProjectCreateData> & { id: number };
+
+const listProjectsFn = _listProjects as unknown as (opts: {
+  data: Record<string, never>;
+}) => Promise<{ rows: ProjectRow[] }>;
+const createProjectFn = _createProject as unknown as (opts: {
+  data: ProjectCreateData;
+  headers?: Record<string, string>;
+}) => Promise<ProjectRow>;
+const patchProjectFn = _patchProject as unknown as (opts: {
+  data: ProjectPatchData;
+  headers?: Record<string, string>;
+}) => Promise<ProjectRow>;
+const deleteProjectFn = _deleteProject as unknown as (opts: {
+  data: { id: number };
+  headers?: Record<string, string>;
+}) => Promise<{ ok: true }>;
+
+export async function listAdminProjects(): Promise<ProjectRow[]> {
+  const { rows } = await listProjectsFn({ data: {} });
+  return rows;
+}
+export function createAdminProject(data: ProjectCreateData): Promise<ProjectRow> {
+  return createProjectFn({ data, headers: csrfHeaders() });
+}
+export function patchAdminProject(data: ProjectPatchData): Promise<ProjectRow> {
+  return patchProjectFn({ data, headers: csrfHeaders() });
+}
+export function deleteAdminProject(id: number): Promise<{ ok: true }> {
+  return deleteProjectFn({ data: { id }, headers: csrfHeaders() });
+}
+export type { ProjectRow, ProjectCreateData, ProjectPatchData, MessagingMode };
 
 // ---------------------------------------------------------------------------
 // Env browser
