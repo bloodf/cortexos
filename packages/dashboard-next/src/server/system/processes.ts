@@ -46,3 +46,18 @@ export async function readProcesses(): Promise<ProcessInfo[]> {
     return [];
   }
 }
+
+/**
+ * Send a signal to a process. Admin-gated at the server-fn layer. Guards against
+ * obviously-dangerous targets: PID <= 1 (init), and the dashboard's own process
+ * (killing it would take the control plane down).
+ */
+export function killProcess(pid: number, signal: "SIGTERM" | "SIGKILL" = "SIGTERM"): void {
+  if (!Number.isInteger(pid) || pid <= 1) {
+    throw new Error(`Refusing to signal PID ${pid}`);
+  }
+  if (pid === process.pid) {
+    throw new Error("Refusing to signal the dashboard process itself");
+  }
+  process.kill(pid, signal);
+}

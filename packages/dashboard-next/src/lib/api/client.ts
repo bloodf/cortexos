@@ -86,6 +86,7 @@ import {
   getNetwork as _getNetwork,
   getProcesses as _getProcesses,
   getStorage as _getStorage,
+  killProcess as _killProcess,
 } from "./system.functions";
 
 // ---------------------------------------------------------------------------
@@ -371,6 +372,11 @@ export const callSystemdAction = _systemdAction as unknown as (opts: {
 export const callUnitLogs = _unitLogs as unknown as (opts: {
   data: UnitLogsInputType;
 }) => Promise<UnitLogsOutput>;
+/** Call killProcess RPC — admin only; sends SIGTERM/SIGKILL to a PID. */
+export const callKillProcess = _killProcess as unknown as (opts: {
+  data: { pid: number; signal?: "SIGTERM" | "SIGKILL" };
+  headers?: Record<string, string>;
+}) => Promise<{ ok: true }>;
 /**
  * MP-009 — Call hostLogs RPC directly (admin only). Returns the most-recent
  * `limit` lines from the whole host journal (no unit filter, no

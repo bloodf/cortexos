@@ -1,6 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, Cpu, List, Network, Search } from "lucide-react";
+import { Ban, ChevronDown, ChevronRight, Cpu, List, Network, Search, Skull } from "lucide-react";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { DataTable, type Column } from "@/components/DataTable";
 import { Progress } from "@/components/ui/progress";
@@ -9,8 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/EmptyState";
 import { TableSkeleton } from "@/components/skeletons";
-import { api } from "@/lib/api/client";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { api, callKillProcess } from "@/lib/api/client";
+import { csrfHeaders } from "@/lib/csrf";
 import { useT } from "@/hooks/useT";
+import { useAuth } from "@/hooks/useAuth";
 import type { ProcessInfo } from "@/lib/api/client";
 
 type View = "list" | "tree";
@@ -151,6 +155,19 @@ export function ProcessesPage() {
   const [view, setView] = useState<View>("list");
   const [q, setQ] = useState("");
 
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const isAdmin = !!user?.is_admin;
+  const killMut = useMutation({
+    mutationFn: (vars: { pid: number; signal: "SIGTERM" | "SIGKILL" }) =>
+      callKillProcess({ data: vars, headers: csrfHeaders() }),
+    onSuccess: (_d, vars) => {
+      toast.success(`Sent ${vars.signal} to PID ${vars.pid}`);
+      qc.invalidateQueries({ queryKey: ["processes"] }).catch(() => {});
+    },
+    onError: (e: Error) => toast.error(e.message || "Failed to signal process"),
+  });
+
   const cols: Column<ProcessInfo>[] = [
     {
       key: "pid",
@@ -197,6 +214,41 @@ export function ProcessesPage() {
       ),
     },
   ];
+
+  if (isAdmin) {
+    cols.push({
+      key: "actions",
+      header: "",
+      className: "text-right w-24",
+      cell: (r) => (
+        <div className="flex justify-end gap-1">
+          <ConfirmDialog
+            trigger={
+              <Button size="sm" variant="ghost" aria-label={`Terminate PID ${r.pid}`}>
+                <Ban className="size-3.5 text-amber-500" />
+              </Button>
+            }
+            title={`Terminate PID ${r.pid}?`}
+            description={`Send SIGTERM to "${r.command}" (user ${r.user}).`}
+            confirmLabel="Send SIGTERM"
+            onConfirm={() => killMut.mutate({ pid: r.pid, signal: "SIGTERM" })}
+          />
+          <ConfirmDialog
+            trigger={
+              <Button size="sm" variant="ghost" aria-label={`Force kill PID ${r.pid}`}>
+                <Skull className="size-3.5 text-destructive" />
+              </Button>
+            }
+            title={`Force kill PID ${r.pid}?`}
+            description={`Send SIGKILL to "${r.command}" (user ${r.user}). This cannot be caught or ignored.`}
+            destructive
+            confirmLabel="Send SIGKILL"
+            onConfirm={() => killMut.mutate({ pid: r.pid, signal: "SIGKILL" })}
+          />
+        </div>
+      ),
+    });
+  }
 
   return (
     <div className="space-y-5">

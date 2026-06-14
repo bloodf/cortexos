@@ -112,3 +112,39 @@ const storageGate = defineServerFn({
 export const getStorage = createServerFn({ method: "GET" })
   .middleware([storageGate])
   .handler(serverFnNoop);
+
+// ---------------------------------------------------------------------------
+// killProcess — POST, auth: admin, rate-limit 20/min/user → { ok: true }
+// Destructive: sends SIGTERM (default) or SIGKILL to a PID. The bridge refuses
+// PID <= 1 and the dashboard's own process; the UI gates it behind a confirm.
+// ---------------------------------------------------------------------------
+
+const KillProcessInput = z
+  .object({
+    pid: z.coerce.number().int().positive(),
+    signal: z.enum(["SIGTERM", "SIGKILL"]).default("SIGTERM"),
+  })
+  .strict();
+
+const killProcessGate = defineServerFn({
+  method: "POST",
+  auth: "admin",
+  input: KillProcessInput,
+  rateLimit: { limit: 20, windowSec: 60, bucket: "user" },
+  surface: "system",
+  action: "processes.kill",
+  target: (input) => `${input.signal}:${input.pid}`,
+  handler: async ({ input }) => {
+    const { killProcess: doKill } = await import("@/server/system/processes");
+    const { validationError } = await import("@/server/errors/types");
+    try {
+      doKill(input.pid, input.signal);
+    } catch (e) {
+      throw validationError(e instanceof Error ? e.message : "Failed to signal process", []);
+    }
+    return { ok: true } as const;
+  },
+});
+export const killProcess = createServerFn({ method: "POST" })
+  .middleware([killProcessGate])
+  .handler(serverFnNoop);
