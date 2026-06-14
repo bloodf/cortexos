@@ -21,6 +21,12 @@ import {
 } from "@/lib/api/services.functions";
 import { readEnv as _readEnv, unlock as _unlock } from "@/lib/api/env-browser.functions";
 import { me as _me } from "@/lib/api/auth.functions";
+import {
+  listBadges as _listBadges,
+  createBadge as _createBadge,
+  patchBadge as _patchBadge,
+  deleteBadge as _deleteBadge,
+} from "@/lib/api/badges.functions";
 
 import { toServiceRow } from "@/lib/adapters/services";
 import type { Service as MockService } from "@/mocks/types";
@@ -116,6 +122,56 @@ export function deleteAdminService(id: number): Promise<{ ok: true }> {
 }
 
 export type { ServiceCreateData, ServicePatchData };
+
+// ---------------------------------------------------------------------------
+// Badges
+// ---------------------------------------------------------------------------
+
+interface BadgeRow {
+  id: number;
+  slug: string;
+  label: string;
+  color: string;
+  textColor: string;
+}
+interface BadgeCreateData {
+  slug: string;
+  label: string;
+  color: string;
+  textColor: string;
+}
+type BadgePatchData = Partial<BadgeCreateData> & { id: number };
+
+const listBadgesFn = _listBadges as unknown as (opts: {
+  data: Record<string, never>;
+}) => Promise<{ rows: BadgeRow[] }>;
+const createBadgeFn = _createBadge as unknown as (opts: {
+  data: BadgeCreateData;
+  headers?: Record<string, string>;
+}) => Promise<BadgeRow>;
+const patchBadgeFn = _patchBadge as unknown as (opts: {
+  data: BadgePatchData;
+  headers?: Record<string, string>;
+}) => Promise<BadgeRow>;
+const deleteBadgeFn = _deleteBadge as unknown as (opts: {
+  data: { id: number };
+  headers?: Record<string, string>;
+}) => Promise<{ ok: true }>;
+
+export async function listAdminBadges(): Promise<BadgeRow[]> {
+  const { rows } = await listBadgesFn({ data: {} });
+  return rows;
+}
+export function createAdminBadge(data: BadgeCreateData): Promise<BadgeRow> {
+  return createBadgeFn({ data, headers: csrfHeaders() });
+}
+export function patchAdminBadge(data: BadgePatchData): Promise<BadgeRow> {
+  return patchBadgeFn({ data, headers: csrfHeaders() });
+}
+export function deleteAdminBadge(id: number): Promise<{ ok: true }> {
+  return deleteBadgeFn({ data: { id }, headers: csrfHeaders() });
+}
+export type { BadgeRow, BadgeCreateData, BadgePatchData };
 
 // ---------------------------------------------------------------------------
 // Env browser
