@@ -107,6 +107,36 @@ async function readEnvFile(path: string): Promise<EnvEntry[]> {
   return entries;
 }
 
+/**
+ * Replace a single `KEY=value` line in an env file, preserving every other line
+ * (comments, blanks, ordering). Quotes the value when it contains whitespace or
+ * shell-significant characters. Writes atomically (tmp + rename) so a torn write
+ * can never leave the file — which may be the dashboard's own creds — corrupt.
+ * Returns false if the key was not present.
+ */
+export async function writeEnvValue(path: string, key: string, value: string): Promise<boolean> {
+  const { readFile, writeFile, rename } = await import("node:fs/promises");
+  const text = await readFile(path, "utf-8");
+  const lines = text.split("\n");
+  let found = false;
+  const next = lines.map((line) => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) return line;
+    const eq = trimmed.indexOf("=");
+    if (eq === -1 || trimmed.slice(0, eq).trim() !== key) return line;
+    found = true;
+    const lead = line.slice(0, line.indexOf(trimmed));
+    const needsQuote = value === "" || /[\s#"'$`\\]/.test(value);
+    const v = needsQuote ? `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"` : value;
+    return `${lead}${key}=${v}`;
+  });
+  if (!found) return false;
+  const tmp = `${path}.cortex-tmp`;
+  await writeFile(tmp, next.join("\n"), { mode: 0o600 });
+  await rename(tmp, path);
+  return true;
+}
+
 // ---------------------------------------------------------------------------
 // readEnv — GET, auth: admin → { path, revealed, revealExpiresAt, entries }
 //
@@ -233,4 +263,61 @@ export const unlockGateOptions: ServerFnOptions<UnlockInputT, UnlockOutput> = {
 const unlockGate = defineServerFn(unlockGateOptions);
 export const unlock = createServerFn({ method: "POST" })
   .middleware([unlockGate])
+  .handler(serverFnNoop);
+
+// ---------------------------------------------------------------------------
+// updateEnv — POST, auth: admin, rate-limit 20/60s/user → { ok }
+//
+// Writes a single KEY=value back to an allowlisted env file. Requires a LIVE
+// reveal grant — the same PAM step-up that reveals secrets — so a masked file
+// can never be blind-edited. The value is never logged or placed in the audit
+// target (only the path + key, both non-secret).
+// ---------------------------------------------------------------------------
+
+const UpdateEnvInput = z
+  .object({
+    path: z.string().min(1).max(512),
+    key: z
+      .string()
+      .min(1)
+      .max(256)
+      .regex(/^[A-Za-z_][A-Za-z0-9_]*$/, "invalid env key"),
+    value: z.string().max(8192),
+  })
+  .strict();
+
+type UpdateEnvInputT = z.infer<typeof UpdateEnvInput>;
+
+interface UpdateEnvOutput {
+  ok: true;
+}
+
+export const updateEnvGateOptions: ServerFnOptions<UpdateEnvInputT, UpdateEnvOutput> = {
+  method: "POST",
+  auth: "admin",
+  input: UpdateEnvInput,
+  rateLimit: { limit: 20, windowSec: 60, bucket: "user" },
+  surface: "env-browser",
+  action: "env-browser.update",
+  target: (input) => `${input.path} (${input.key})`,
+  handler: async ({ input, ctx }) => {
+    const { notFoundError, permissionError } = await import("@/server/errors/types");
+    const { hasRevealGrant } = await import("@/server/env-reveal");
+
+    const sessionId = ctx.session?.id ?? null;
+    if (!hasRevealGrant(sessionId)) {
+      throw permissionError("Unlock the file (re-enter your password) before editing.");
+    }
+    if (!(await isPathAllowed(input.path))) {
+      throw permissionError(`Path not in allowlist: ${input.path}`);
+    }
+    const ok = await writeEnvValue(input.path, input.key, input.value);
+    if (!ok) throw notFoundError(`Key '${input.key}' not found in ${input.path}`, "env_key");
+    return { ok: true as const };
+  },
+};
+
+const updateEnvGate = defineServerFn(updateEnvGateOptions);
+export const updateEnv = createServerFn({ method: "POST" })
+  .middleware([updateEnvGate])
   .handler(serverFnNoop);

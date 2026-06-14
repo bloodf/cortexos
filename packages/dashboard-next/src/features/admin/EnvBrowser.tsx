@@ -1,6 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { FileCode, Lock, Unlock, Copy, ShieldCheck } from "lucide-react";
+import { FileCode, Lock, Unlock, Copy, ShieldCheck, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
@@ -17,7 +17,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { readAdminEnv, unlockAdminEnv } from "./rpc";
+import { readAdminEnv, unlockAdminEnv, updateAdminEnv } from "./rpc";
 
 /**
  * Known allowlisted env paths. The server enforces an allowlist
@@ -110,6 +110,19 @@ export function AdminEnvPage() {
     toast.success(`Copied ${key}`);
   };
 
+  const qc = useQueryClient();
+  const [editEntry, setEditEntry] = useState<{ key: string; value: string } | null>(null);
+  const saveMut = useMutation({
+    mutationFn: (vars: { key: string; value: string }) =>
+      updateAdminEnv(path, vars.key, vars.value),
+    onSuccess: (_d, vars) => {
+      toast.success(`Updated ${vars.key}`);
+      setEditEntry(null);
+      qc.invalidateQueries({ queryKey: ["envFiles", path] }).catch(() => {});
+    },
+    onError: (e: Error) => toast.error(e.message || "Failed to update value"),
+  });
+
   let entriesPanel;
   if (query.isError) {
     entriesPanel = (
@@ -142,6 +155,16 @@ export function AdminEnvPage() {
                   title={revealed ? "Copy value" : "Unlock to copy cleartext"}
                 >
                   <Copy className="size-3.5" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={!revealed}
+                  onClick={() => setEditEntry({ key: entry.key, value: entry.value })}
+                  title={revealed ? "Edit value" : "Unlock to edit"}
+                  aria-label={`Edit ${entry.key}`}
+                >
+                  <Pencil className="size-3.5" />
                 </Button>
               </div>
             </div>
@@ -247,6 +270,43 @@ export function AdminEnvPage() {
               disabled={!password || unlocking}
             >
               {unlocking ? "Verifying…" : "Unlock"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editEntry} onOpenChange={(o) => !o && setEditEntry(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="size-4" />
+              Edit {editEntry?.key}
+            </DialogTitle>
+            <DialogDescription>
+              Writes <code className="font-mono">{editEntry?.key}</code> back to{" "}
+              <code className="font-mono">{path}</code>. Changing a value here can break the
+              services that read it — they may need a restart to pick it up.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Value</Label>
+            <Input
+              autoFocus
+              value={editEntry?.value ?? ""}
+              onChange={(e) => setEditEntry((p) => (p ? { ...p, value: e.target.value } : p))}
+              className="h-9 font-mono text-xs"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setEditEntry(null)}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              disabled={saveMut.isPending}
+              onClick={() => editEntry && saveMut.mutate(editEntry)}
+            >
+              {saveMut.isPending ? "Saving…" : "Save value"}
             </Button>
           </DialogFooter>
         </DialogContent>

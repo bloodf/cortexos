@@ -19,7 +19,11 @@ import {
   patchService as _patchService,
   deleteService as _deleteService,
 } from "@/lib/api/services.functions";
-import { readEnv as _readEnv, unlock as _unlock } from "@/lib/api/env-browser.functions";
+import {
+  readEnv as _readEnv,
+  unlock as _unlock,
+  updateEnv as _updateEnv,
+} from "@/lib/api/env-browser.functions";
 import { me as _me } from "@/lib/api/auth.functions";
 import {
   listBadges as _listBadges,
@@ -251,6 +255,19 @@ export function unlockAdminEnv(
   password: string,
 ): Promise<{ ok: true; expiresAt: number; ttlSec: number }> {
   return unlockFn({ data: { password }, headers: csrfHeaders() });
+}
+
+const updateEnvFn = _updateEnv as unknown as (opts: {
+  data: { path: string; key: string; value: string };
+  headers?: Record<string, string>;
+}) => Promise<{ ok: true }>;
+
+/**
+ * Write a single KEY=value back to an allowlisted env file. Requires a live
+ * reveal grant (server-enforced) — the operator must unlock the file first.
+ */
+export function updateAdminEnv(path: string, key: string, value: string): Promise<{ ok: true }> {
+  return updateEnvFn({ data: { path, key, value }, headers: csrfHeaders() });
 }
 
 // ---------------------------------------------------------------------------
