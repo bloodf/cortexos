@@ -135,16 +135,6 @@ Server-fn gate tests live in `src/lib/api/__tests__/`. They drive the real
 pipeline through the node-env test harness (not bare `fn()` invocation, which
 skips the Nitro/Vite handler extraction).
 
-## Rollback to legacy SvelteKit
-
-```bash
-sudo cp /etc/systemd/system/cortex-dashboard.service.legacy-svelte.bak \
-        /etc/systemd/system/cortex-dashboard.service
-sudo systemctl daemon-reload
-sudo systemctl restart cortex-dashboard.service
-# Legacy app: packages/dashboard/build/index.js
-```
-
 ## Rules
 
 - Never commit credentials, `.env`, or `dashboard.env`.

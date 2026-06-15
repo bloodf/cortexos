@@ -5,12 +5,9 @@
  * Each member calls the corresponding server function directly (typed) so
  * TanStack handles the client↔server serialisation — no hand-rolled fetch.
  *
- * Exposes an `api` object with the SAME member names and call shapes as
- * `src/mocks/api.ts` so Wave-2 route WPs can swap their import from
- *   `import { api } from "@/mocks/api"`
- * to
- *   `import { api } from "@/lib/api/client"`
- * without any call-site changes.
+ * Exposes an `api` object whose member names and call shapes are stable across
+ * the dashboard; route WPs import it as
+ *   `import { api } from "@/lib/api/client"`.
  *
  * Wired domains (Wave-1 server fns exist):
  *   services  — WP-10 (listServices, getService, listServiceHealth)
@@ -246,7 +243,7 @@ const listNotificationsFn = _listNotifications as unknown as (opts: {
 export type { ApiClientError, ApiErrorCode, ApiErrorEnvelope } from "./http";
 
 // ---------------------------------------------------------------------------
-// Shared pagination types (mirrors mocks/api.ts — keep in sync)
+// Shared pagination types
 // ---------------------------------------------------------------------------
 
 export type SortDir = "asc" | "desc";
@@ -1013,7 +1010,7 @@ function clientSideList<T>(rows: T[], p: ListParams = {}): ListResult<T> {
 }
 
 // ---------------------------------------------------------------------------
-// API surface — mirrors mocks/api.ts exactly
+// API surface
 // ---------------------------------------------------------------------------
 
 export const api = {

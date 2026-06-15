@@ -4,7 +4,7 @@
  * Run against CURRENT implementation BEFORE and AFTER the no-bitwise rewrite.
  */
 import { describe, it, expect } from "vitest";
-import { fakeHash } from "@/mocks/seed";
+import { fakeHash } from "@/lib/constants";
 import { safeCsrfEqual } from "@/server/auth/cookies";
 
 describe("fakeHash golden outputs", () => {

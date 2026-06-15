@@ -12,7 +12,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-import { defineServerFn, serverFnNoop } from "@/lib/api/define-server-fn";
+import { defineServerFn, serverFnNoop, type ServerFnOptions } from "@/lib/api/define-server-fn";
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 
@@ -46,6 +46,21 @@ const BadgePatchInput = z
   })
   .strict();
 
+type BadgeCreateInputT = z.infer<typeof BadgeCreateInput>;
+type BadgePatchInputT = z.infer<typeof BadgePatchInput>;
+type BadgeIdInputT = z.infer<typeof BadgeIdInput>;
+
+/** Badge row shape returned by the create/patch handlers (mirrors the DB row). */
+interface BadgeRow {
+  id: number;
+  slug: string;
+  label: string;
+  color: string;
+  textColor: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // ---------------------------------------------------------------------------
 // listBadges — GET, auth: any → { rows }
 // ---------------------------------------------------------------------------
@@ -71,7 +86,7 @@ export const listBadges = createServerFn({ method: "GET" })
 // createBadge — POST, auth: admin → Badge
 // ---------------------------------------------------------------------------
 
-const createGate = defineServerFn({
+export const badgesCreateGateOptions: ServerFnOptions<BadgeCreateInputT, BadgeRow> = {
   method: "POST",
   auth: "admin",
   input: BadgeCreateInput,
@@ -93,7 +108,8 @@ const createGate = defineServerFn({
       textColor: input.textColor,
     });
   },
-});
+};
+const createGate = defineServerFn(badgesCreateGateOptions);
 export const createBadge = createServerFn({ method: "POST" })
   .middleware([createGate])
   .handler(serverFnNoop);
@@ -102,7 +118,7 @@ export const createBadge = createServerFn({ method: "POST" })
 // patchBadge — POST, auth: admin → Badge | 404
 // ---------------------------------------------------------------------------
 
-const patchGate = defineServerFn({
+export const badgesPatchGateOptions: ServerFnOptions<BadgePatchInputT, BadgeRow> = {
   method: "POST",
   auth: "admin",
   input: BadgePatchInput,
@@ -118,7 +134,8 @@ const patchGate = defineServerFn({
     if (!next) throw notFoundError(`Badge ${id} not found`, "badge");
     return next;
   },
-});
+};
+const patchGate = defineServerFn(badgesPatchGateOptions);
 export const patchBadge = createServerFn({ method: "POST" })
   .middleware([patchGate])
   .handler(serverFnNoop);
@@ -127,7 +144,7 @@ export const patchBadge = createServerFn({ method: "POST" })
 // deleteBadge — POST, auth: admin → { ok: true } | 404
 // ---------------------------------------------------------------------------
 
-const deleteGate = defineServerFn({
+export const badgesDeleteGateOptions: ServerFnOptions<BadgeIdInputT, { ok: true }> = {
   method: "POST",
   auth: "admin",
   input: BadgeIdInput,
@@ -142,7 +159,8 @@ const deleteGate = defineServerFn({
     if (!ok) throw notFoundError(`Badge ${input.id} not found`, "badge");
     return { ok: true } as const;
   },
-});
+};
+const deleteGate = defineServerFn(badgesDeleteGateOptions);
 export const deleteBadge = createServerFn({ method: "POST" })
   .middleware([deleteGate])
   .handler(serverFnNoop);

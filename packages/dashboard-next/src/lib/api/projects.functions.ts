@@ -9,7 +9,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-import { defineServerFn, serverFnNoop } from "@/lib/api/define-server-fn";
+import { defineServerFn, serverFnNoop, type ServerFnOptions } from "@/lib/api/define-server-fn";
 
 const ProjectIdInput = z.object({ id: z.coerce.number().int().positive() }).strict();
 
@@ -43,6 +43,23 @@ const ProjectPatchInput = z
   })
   .strict();
 
+type ProjectCreateInputT = z.infer<typeof ProjectCreateInput>;
+type ProjectPatchInputT = z.infer<typeof ProjectPatchInput>;
+type ProjectIdInputT = z.infer<typeof ProjectIdInput>;
+
+/** Project row shape returned by the create/patch handlers (mirrors the DB row). */
+interface ProjectRow {
+  id: number;
+  slug: string;
+  name: string;
+  repoUrl: string | null;
+  primaryPmAccount: string | null;
+  messagingMode: string;
+  settings: unknown;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // ---------------------------------------------------------------------------
 // listProjects — GET, auth: any → { rows }
 // ---------------------------------------------------------------------------
@@ -68,7 +85,7 @@ export const listProjects = createServerFn({ method: "GET" })
 // createProject — POST, auth: admin → Project
 // ---------------------------------------------------------------------------
 
-const createGate = defineServerFn({
+export const projectsCreateGateOptions: ServerFnOptions<ProjectCreateInputT, ProjectRow> = {
   method: "POST",
   auth: "admin",
   input: ProjectCreateInput,
@@ -92,7 +109,8 @@ const createGate = defineServerFn({
       messagingMode: input.messagingMode,
     });
   },
-});
+};
+const createGate = defineServerFn(projectsCreateGateOptions);
 export const createProject = createServerFn({ method: "POST" })
   .middleware([createGate])
   .handler(serverFnNoop);
@@ -101,7 +119,7 @@ export const createProject = createServerFn({ method: "POST" })
 // patchProject — POST, auth: admin → Project | 404
 // ---------------------------------------------------------------------------
 
-const patchGate = defineServerFn({
+export const projectsPatchGateOptions: ServerFnOptions<ProjectPatchInputT, ProjectRow> = {
   method: "POST",
   auth: "admin",
   input: ProjectPatchInput,
@@ -117,7 +135,8 @@ const patchGate = defineServerFn({
     if (!next) throw notFoundError(`Project ${id} not found`, "project");
     return next;
   },
-});
+};
+const patchGate = defineServerFn(projectsPatchGateOptions);
 export const patchProject = createServerFn({ method: "POST" })
   .middleware([patchGate])
   .handler(serverFnNoop);
@@ -126,7 +145,7 @@ export const patchProject = createServerFn({ method: "POST" })
 // deleteProject — POST, auth: admin → { ok: true } | 404
 // ---------------------------------------------------------------------------
 
-const deleteGate = defineServerFn({
+export const projectsDeleteGateOptions: ServerFnOptions<ProjectIdInputT, { ok: true }> = {
   method: "POST",
   auth: "admin",
   input: ProjectIdInput,
@@ -141,7 +160,8 @@ const deleteGate = defineServerFn({
     if (!ok) throw notFoundError(`Project ${input.id} not found`, "project");
     return { ok: true } as const;
   },
-});
+};
+const deleteGate = defineServerFn(projectsDeleteGateOptions);
 export const deleteProject = createServerFn({ method: "POST" })
   .middleware([deleteGate])
   .handler(serverFnNoop);

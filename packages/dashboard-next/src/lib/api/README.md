@@ -3,13 +3,9 @@
 Transport = **typed `createServerFn` RPC** (ADR-001). There are NO `/api/*` fetch calls.
 Each `api` member calls a server function directly; TanStack handles the client↔server bridge.
 
-Wave-2 route WPs switch their data source by changing **one import line** per feature:
+Routes import the typed `api` object directly:
 
 ```ts
-// Current (mock):
-import { api } from "@/mocks/api";
-
-// Wave-2 replacement (one-line change, identical call shapes):
 import { api } from "@/lib/api/client";
 ```
 
@@ -19,7 +15,7 @@ import { api } from "@/lib/api/client";
 
 ```
 src/lib/api/
-  client.ts               `api` object — same shape as mocks/api.ts; calls server fns (RPC)
+  client.ts               `api` object — typed RPC surface; calls server fns (RPC)
   auth.ts                 login / logout / me  (TODO WP-20 stubs)
   http.ts                 ApiClientError / ApiErrorCode / ApiErrorEnvelope types (no fetch)
   define-server-fn.ts     defineServerFn() — security-gate middleware factory (WP-01)

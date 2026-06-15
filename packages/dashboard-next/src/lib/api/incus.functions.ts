@@ -17,9 +17,9 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import type { IncusShellOp } from "@cortexos/contracts";
+import type { IncusShellOp, IncusInstance } from "@cortexos/contracts";
 
-import { defineServerFn, serverFnNoop } from "@/lib/api/define-server-fn";
+import { defineServerFn, serverFnNoop, type ServerFnOptions } from "@/lib/api/define-server-fn";
 
 // ---------------------------------------------------------------------------
 // Input schemas
@@ -55,7 +55,10 @@ const IncusLogsInput = z
 // listInstances — GET, auth: any → { items: IncusInstance[] }
 // ---------------------------------------------------------------------------
 
-const listInstancesGate = defineServerFn({
+export const incusListInstancesGateOptions: ServerFnOptions<
+  z.infer<typeof IncusListInput>,
+  { items: IncusInstance[] }
+> = {
   method: "GET",
   auth: "any",
   input: IncusListInput,
@@ -66,7 +69,8 @@ const listInstancesGate = defineServerFn({
     const items = await listInstances();
     return { items };
   },
-});
+};
+const listInstancesGate = defineServerFn(incusListInstancesGateOptions);
 export const listInstances = createServerFn({ method: "GET" })
   .middleware([listInstancesGate])
   .handler(serverFnNoop);

@@ -1,4 +1,4 @@
-import { BRAND_COLORS } from "@/mocks/seed";
+import { BRAND_COLORS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 interface Props {
