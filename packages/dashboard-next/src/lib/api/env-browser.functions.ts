@@ -311,8 +311,47 @@ export const updateEnvGateOptions: ServerFnOptions<UpdateEnvInputT, UpdateEnvOut
     if (!(await isPathAllowed(input.path))) {
       throw permissionError(`Path not in allowlist: ${input.path}`);
     }
+
+    // Capture the OLD raw value BEFORE writing so we can record a hashed
+    // before/after attribution record. A missing file still proceeds to the
+    // existing not-found path below (writeEnvValue will throw / return false).
+    let oldValue: string | undefined;
+    try {
+      const existing = await readEnvFile(input.path);
+      oldValue = existing.find((e) => e.key === input.key)?.value;
+    } catch {
+      oldValue = undefined;
+    }
+
     const ok = await writeEnvValue(input.path, input.key, input.value);
     if (!ok) throw notFoundError(`Key '${input.key}' not found in ${input.path}`, "env_key");
+
+    // Durable attribution record — store HASH + LENGTH only (never cleartext)
+    // so secret edits are attributable. Best-effort: the write already
+    // succeeded, so a DB failure here must never surface to the caller.
+    try {
+      const { createHash } = await import("node:crypto");
+      const { getDb } = await import("@/server/db/client");
+      const { appendAuditLog } = await import("@/server/db/repos/audit");
+      const sha = (s: string) => createHash("sha256").update(s).digest("hex");
+      await appendAuditLog(getDb(), {
+        eventType: "env-browser.update.value",
+        source: "env-browser",
+        subject: `${input.path} (${input.key})`,
+        actor: ctx.user?.id != null ? String(ctx.user.id) : null,
+        payload: {
+          path: input.path,
+          key: input.key,
+          oldHash: oldValue != null ? sha(oldValue) : null,
+          oldLen: oldValue != null ? oldValue.length : null,
+          newHash: sha(input.value),
+          newLen: input.value.length,
+        },
+      });
+    } catch {
+      // best-effort attribution record; the write already succeeded
+    }
+
     return { ok: true as const };
   },
 };

@@ -41,6 +41,8 @@ import type { ApiError } from "./errors/types";
 import { ApiErrorThrown, errorBody, httpStatusFor, jsonError } from "./errors";
 import { isApiError } from "./errors/types";
 import { audit, type AuditInput } from "./audit";
+import { getDb } from "./db/client";
+import { appendAuditLog } from "./db/repos/audit";
 import { actionHashFor, consumeApproval } from "./approval";
 import {
   resolveContext,
@@ -284,6 +286,41 @@ async function readRequestInput(request: Request): Promise<unknown> {
 // Audit — never throws (ported from legacy safeAudit).
 // ---------------------------------------------------------------------------
 
+// Durable audit sink — serialize through an in-process queue so concurrent
+// appends never race the hash-chain tip (single-process dashboard). Best-effort:
+// a DB error (e.g. no DB under vitest) must never break the request.
+let durableAuditTail: Promise<void> = Promise.resolve();
+function persistDurableAudit(input: AuditInput): void {
+  durableAuditTail = durableAuditTail
+    .then(async () => {
+      const payload: Record<string, unknown> = {
+        ...input.payload,
+        result: input.result,
+        actorIp: input.actorIp,
+        actorUserAgent: input.actorUserAgent,
+        actorSessionId: input.actorSessionId,
+        actorUserId: input.actorUserId,
+        requestId: input.requestId ?? null,
+        errorCode: input.errorCode,
+      };
+      await appendAuditLog(getDb(), {
+        eventType: input.action,
+        source: input.surface,
+        subject: input.target,
+        actor:
+          input.actorUserId != null ? String(input.actorUserId) : (input.actorSessionId ?? null),
+        payload,
+      });
+    })
+    .catch(() => {
+      // Never let a durable-audit failure surface to the request path.
+    });
+}
+/** Test helper: await all pending durable audit writes. */
+export async function flushDurableAudit(): Promise<void> {
+  await durableAuditTail;
+}
+
 function safeAudit<TIn>(
   ctx: RequestCtx,
   opts: RouteOptions<TIn, unknown>,
@@ -309,7 +346,7 @@ function safeAudit<TIn>(
     if (target) basePayload.target = target;
     if (err) basePayload.error = { kind: err.kind, message: err.message };
     if (successData !== undefined) basePayload.response_kind = typeof successData;
-    audit({
+    const entry: AuditInput = {
       actorUserId: user?.id ?? null,
       actorSessionId: ctx.session?.id ?? null,
       actorIp: ctx.clientIp,
@@ -321,7 +358,9 @@ function safeAudit<TIn>(
       errorCode: err?.kind ?? null,
       requestId: ctx.requestId,
       payload: basePayload,
-    });
+    };
+    audit(entry);
+    persistDurableAudit(entry);
   } catch {
     // Never let audit failures break the request.
   }

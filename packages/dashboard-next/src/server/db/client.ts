@@ -83,6 +83,11 @@ export function resetDbForTests() {
   cachedDb = null;
 }
 
+/** For tests: install a specific (e.g. pglite) client as the singleton. */
+export function setDbForTests(client: DbClient): void {
+  cachedDb = client as unknown as NodePgDatabase<typeof schema>;
+}
+
 /**
  * Cross-driver Drizzle client type. The repos accept this so they
  * work with both the production `node-postgres` and the test `pglite`
