@@ -68,7 +68,7 @@ export const es: Dict = {
     approvals: "Aprobaciones",
     audit: "Auditoría",
     services: "Servicios",
-    badges: "Panel",
+    badges: "Insignias",
     env: "Explorador Env",
     users: "Usuarios",
     projects: "Proyectos",

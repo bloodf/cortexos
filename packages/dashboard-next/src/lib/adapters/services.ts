@@ -52,12 +52,17 @@ function mapServiceStatus(status: ContractService["status"]): MockStatus {
 }
 
 /**
- * Convert a UUID to a stable integer id that sys-pilot numeric `id` fields
- * expect. Uses the first 8 hex chars of the UUID as a base-16 number.
- * Collisions are theoretically possible but irrelevant for display purposes.
+ * Convert a service id to the stable integer id sys-pilot numeric `id` fields
+ * expect. The services table uses an integer serial id (so the value arrives as
+ * a number); older/contract data may use a UUID string. Handle both: a number
+ * passes through, a UUID is reduced to its first 8 hex chars as a base-16 int.
+ * Guarding the string case is what keeps a real integer id from throwing
+ * `id.replace is not a function`, which would reject the whole row map and blank
+ * every services view (Apps, Overview, admin/Services).
  */
-function hashId(uuid: string): number {
-  const n = parseInt(uuid.replace(/-/g, "").slice(0, 8), 16);
+function hashId(id: string | number): number {
+  if (typeof id === "number") return Number.isFinite(id) ? id : 0;
+  const n = parseInt(String(id).replace(/-/g, "").slice(0, 8), 16);
   return Number.isNaN(n) ? 0 : n;
 }
 

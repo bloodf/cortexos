@@ -73,7 +73,7 @@ export const ptBR: Dict = {
     approvals: "Aprovações",
     audit: "Auditoria",
     services: "Serviços",
-    badges: "Painel",
+    badges: "Selos",
     env: "Navegador Env",
     users: "Usuários",
     projects: "Projetos",

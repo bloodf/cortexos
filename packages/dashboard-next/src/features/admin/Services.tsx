@@ -65,7 +65,13 @@ const EMPTY_FORM: FormState = {
 
 export function AdminServicesPage() {
   const qc = useQueryClient();
-  const { data = [], isLoading } = useQuery({ queryKey: ["services"], queryFn: listAdminServices });
+  // Distinct key from api.services (which is web-UI-filtered under ["services"]).
+  // Sharing one key collided: the webui subset clobbered this "all services"
+  // view (admin showed 0) and vice-versa (Apps went empty).
+  const { data = [], isLoading } = useQuery({
+    queryKey: ["services", "all"],
+    queryFn: listAdminServices,
+  });
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Service | null>(null);

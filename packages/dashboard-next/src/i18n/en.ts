@@ -66,7 +66,7 @@ export const en = {
     approvals: "Approvals",
     audit: "Audit",
     services: "Services",
-    badges: "Dashboard",
+    badges: "Badges",
     env: "Env Browser",
     users: "Users",
     projects: "Projects",

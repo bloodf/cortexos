@@ -13,8 +13,12 @@ import type { AlertRule as MockAlertRule, AlertHistory as MockAlertHistory } fro
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-function hashId(uuid: string): number {
-  const n = parseInt(uuid.replace(/-/g, "").slice(0, 8), 16);
+// Handle both an integer serial id (the real DB shape — passes through) and a
+// UUID string. Guarding the string case stops a real integer id from throwing
+// `id.replace is not a function`, which would blank the alerts views.
+function hashId(id: string | number): number {
+  if (typeof id === "number") return Number.isFinite(id) ? id : 0;
+  const n = parseInt(String(id).replace(/-/g, "").slice(0, 8), 16);
   return Number.isNaN(n) ? 0 : n;
 }
 
