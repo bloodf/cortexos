@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Lock, Moon, Sun, Palette, Globe, Keyboard, LogOut, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -16,7 +16,15 @@ import { useAuth } from "@/hooks/useAuth";
 import { useT } from "@/hooks/useT";
 import { useUI } from "@/hooks/useUI";
 import { ACCENTS } from "@/hooks/accents";
-import { api } from "@/lib/api/client";
+import {
+  api,
+  callMintApproval,
+  callSystemdAction,
+  dockerPruneEstimate,
+  callMarkNotificationsRead,
+} from "@/lib/api/client";
+import { csrfHeaders } from "@/lib/csrf";
+import { bytes } from "@/lib/format";
 import { NAV, PINNED } from "./NavConfig";
 import { LOCALES, LOCALE_LABEL } from "@/i18n";
 
@@ -39,6 +47,7 @@ export function CommandPalette({ open, onOpenChange, onOpenHelp }: Props) {
   const { user, logout } = useAuth();
   const { theme, setTheme, accent, setAccent, locale, setLocale } = useUI();
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const { data: services = [] } = useQuery({ queryKey: ["services"], queryFn: api.services });
   const { data: containers = [] } = useQuery({
     queryKey: ["docker", "containers"],
@@ -73,6 +82,60 @@ export function CommandPalette({ open, onOpenChange, onOpenHelp }: Props) {
     navigate({ to });
   };
 
+  // --- Real privileged actions (plan 0.5) ---------------------------------
+
+  /** Restart caddy.service via the REAL systemd RPC (approval-gated, SR-120). */
+  const restartCaddy = async (): Promise<void> => {
+    const name = "caddy.service";
+    const action = "restart" as const;
+    try {
+      // Pipeline hashes actionHashFor("systemd.action", { action, name }).
+      const mint = await callMintApproval({
+        data: { action: "systemd.action", payload: { action, name } },
+      });
+      await callSystemdAction({
+        data: { action, name },
+        headers: { ...csrfHeaders(), "x-cortex-approval-token": mint.token },
+      });
+      toast.success(`${name}: restart dispatched`);
+    } catch {
+      toast.error(`Failed to restart ${name}`);
+    }
+  };
+
+  /** Show a TRUE reclaimable estimate from `docker system df` (dry-run only). */
+  const pruneDockerEstimate = async (): Promise<void> => {
+    try {
+      const est = await dockerPruneEstimate({ data: {} });
+      if (est.unavailable) {
+        toast.error("Docker prune estimate unavailable");
+        return;
+      }
+      toast.info(`Dry-run: would reclaim ${bytes(est.reclaimableBytes)}`, {
+        description: `Images ${bytes(est.breakdown.images)} · Build cache ${bytes(
+          est.breakdown.buildCache,
+        )}`,
+      });
+    } catch {
+      toast.error("Failed to estimate docker reclaimable space");
+    }
+  };
+
+  /** Mark all notifications read via the REAL RPC, then refresh the bell. */
+  const markAllRead = async (): Promise<void> => {
+    try {
+      const res = await callMarkNotificationsRead({ data: {}, headers: csrfHeaders() });
+      toast.success(
+        res.acknowledged > 0
+          ? `Marked ${res.acknowledged} notification${res.acknowledged === 1 ? "" : "s"} read`
+          : "No unread notifications",
+      );
+      qc.invalidateQueries({ queryKey: ["notifications"] }).catch(() => {});
+    } catch {
+      toast.error("Failed to mark notifications read");
+    }
+  };
+
   const actions: {
     id: string;
     label: string;
@@ -95,14 +158,18 @@ export function CommandPalette({ open, onOpenChange, onOpenHelp }: Props) {
       label: "Restart caddy.service",
       icon: Lock,
       admin: true,
-      run: () => toast.success("Restart queued: caddy.service"),
+      run: () => {
+        restartCaddy().catch(() => {});
+      },
     },
     {
       id: "act-prune-docker",
       label: "Docker prune (dry-run)",
       icon: Lock,
       admin: true,
-      run: () => toast.info("Dry-run: would reclaim 4.2 GB"),
+      run: () => {
+        pruneDockerEstimate().catch(() => {});
+      },
     },
     {
       id: "act-new-incus",
@@ -115,7 +182,9 @@ export function CommandPalette({ open, onOpenChange, onOpenHelp }: Props) {
       id: "act-mark-read",
       label: "Mark all notifications read",
       icon: Lock,
-      run: () => toast.success("Notifications cleared"),
+      run: () => {
+        markAllRead().catch(() => {});
+      },
     },
     {
       id: "act-logout",

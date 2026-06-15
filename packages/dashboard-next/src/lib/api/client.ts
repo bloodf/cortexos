@@ -130,6 +130,8 @@ import {
   listVolumes as _listVolumes,
   dockerAction as _dockerAction,
   containerLogs as _containerLogs,
+  dockerPruneEstimate as _dockerPruneEstimate,
+  dockerPrune as _dockerPrune,
 } from "./docker.functions";
 import {
   mintApproval as _mintApproval,
@@ -168,6 +170,8 @@ import {
   deleteAlert as _deleteAlert,
   listAlerts as _listAlerts,
   alertHistory as _alertHistory,
+  listNotifications as _listNotifications,
+  markNotificationsRead as _markNotificationsRead,
 } from "./alerts.functions";
 import {
   uploadAgentFile as _uploadAgentFile,
@@ -188,6 +192,11 @@ export interface DashNotification {
   read: boolean;
   severity: "info" | "warn" | "error";
 }
+
+// listNotifications boundary cast (plan 0.5) — maps operational alerts.
+const listNotificationsFn = _listNotifications as unknown as (opts: {
+  data: Record<string, never>;
+}) => Promise<{ notifications: DashNotification[] }>;
 
 // Re-export error types so Wave-2 consumers can import from one place.
 export type { ApiClientError, ApiErrorCode, ApiErrorEnvelope } from "./http";
@@ -555,6 +564,28 @@ export const callDockerAction = _dockerAction as unknown as (opts: {
 export const callMintApproval = _mintApproval as unknown as (opts: {
   data: MintApprovalInputType;
 }) => Promise<MintApprovalOutput>;
+
+/**
+ * Call dockerPruneEstimate RPC — admin only. Returns a TRUE dry-run reclaimable
+ * estimate parsed from `docker system df` (plan 0.5). Read-only, no approval.
+ */
+export const dockerPruneEstimate = _dockerPruneEstimate as unknown as (opts: {
+  data: Record<string, never>;
+}) => Promise<{
+  reclaimableBytes: number;
+  breakdown: { images: number; buildCache: number; containers: number };
+  unavailable?: boolean;
+}>;
+
+/**
+ * Call dockerPrune RPC — admin only; approval: true gate (plan 0.5). Runs the
+ * SAFE prune (dangling images + build cache). Mint the token via
+ * callMintApproval for action `docker.prune` with empty payload `{}`, then pass
+ * it as `x-cortex-approval-token` + CSRF headers.
+ */
+export const callDockerPrune = _dockerPrune as unknown as (
+  opts: { data: Record<string, never> } & CsrfOpts,
+) => Promise<{ reclaimedBytes: number; raw: string }>;
 /**
  * MP-009 — Call containerLogs RPC directly (admin only). Returns the
  * most-recent `limit` lines from `docker logs` for a single container
@@ -1278,9 +1309,12 @@ export const api = {
     };
   },
 
-  // ── Notifications ──────────────────────────────────────────────────────
-  // No live notifications server fn yet — typed empty stub until one ships.
-  notifications: (): Promise<DashNotification[]> => Promise.resolve([]),
+  // ── Notifications (WIRED — plan 0.5) ───────────────────────────────────
+  // Maps operational alerts → DashNotification rows for the TopBar bell.
+  notifications: async (): Promise<DashNotification[]> => {
+    const { notifications } = await listNotificationsFn({ data: {} });
+    return notifications;
+  },
 
   // ── Env browser (WIRED — MP-025) ───────────────────────────────────────
   /**
@@ -1437,6 +1471,14 @@ export const callPatchAlert = _patchAlert as unknown as (
 export const callDeleteAlert = _deleteAlert as unknown as (
   opts: { data: { id: number } } & CsrfOpts,
 ) => Promise<unknown>;
+
+/**
+ * Call markNotificationsRead RPC (plan 0.5) — any session; CSRF-enforced.
+ * Omitted `ids` → ack ALL unacknowledged operational alerts. Pass csrfHeaders().
+ */
+export const callMarkNotificationsRead = _markNotificationsRead as unknown as (
+  opts: { data: { ids?: number[] } } & CsrfOpts,
+) => Promise<{ acknowledged: number }>;
 export const uploadAgentFile = _uploadAgentFile as unknown as (
   opts: { data: { slug: string; filename: string; content: string } } & CsrfOpts,
 ) => Promise<{ ok: boolean }>;

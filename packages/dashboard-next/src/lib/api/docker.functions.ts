@@ -25,7 +25,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-import { defineServerFn, serverFnNoop } from "@/lib/api/define-server-fn";
+import { defineServerFn, serverFnNoop, type ServerFnOptions } from "@/lib/api/define-server-fn";
 
 // ---------------------------------------------------------------------------
 // Input schemas
@@ -244,4 +244,58 @@ const dockerActionGate = defineServerFn({
 });
 export const dockerAction = createServerFn({ method: "POST" })
   .middleware([dockerActionGate])
+  .handler(serverFnNoop);
+
+// ---------------------------------------------------------------------------
+// dockerPruneEstimate — GET, auth: admin, rate-limit 30/60s/user (plan 0.5).
+// Returns a TRUE dry-run reclaimable estimate from `docker system df` (parsed
+// to bytes by the dedicated prune bridge). Read-only; never throws on the
+// bridge side (returns zeros + `unavailable` flag instead).
+// ---------------------------------------------------------------------------
+
+const dockerPruneEstimateGate = defineServerFn({
+  method: "GET",
+  auth: "admin",
+  input: z.object({}).strict(),
+  rateLimit: { limit: 30, windowSec: 60, bucket: "user" },
+  surface: "docker",
+  action: "docker.prune.estimate",
+  handler: async () => {
+    const { estimateReclaimable } = await import("@/server/docker/prune");
+    return estimateReclaimable();
+  },
+});
+export const dockerPruneEstimate = createServerFn({ method: "GET" })
+  .middleware([dockerPruneEstimateGate])
+  .handler(serverFnNoop);
+
+// ---------------------------------------------------------------------------
+// dockerPrune — POST, auth: admin, rate-limit 5/60s/user, approval: true.
+// Runs the SAFE prune (dangling images + build cache only) via the prune
+// bridge; returns the reclaimed bytes. NEVER prunes volumes / `-a` / system.
+// Gate options exported so the node-env pipeline test can drive the REAL
+// handler with a fake executor.
+// ---------------------------------------------------------------------------
+
+interface DockerPruneOutput {
+  reclaimedBytes: number;
+  raw: string;
+}
+
+export const dockerPruneGateOptions: ServerFnOptions<Record<string, never>, DockerPruneOutput> = {
+  method: "POST",
+  auth: "admin",
+  input: z.object({}).strict(),
+  rateLimit: { limit: 5, windowSec: 60, bucket: "user" },
+  surface: "docker",
+  action: "docker.prune",
+  approval: true,
+  handler: async () => {
+    const { runPrune } = await import("@/server/docker/prune");
+    return runPrune();
+  },
+};
+const dockerPruneGate = defineServerFn(dockerPruneGateOptions);
+export const dockerPrune = createServerFn({ method: "POST" })
+  .middleware([dockerPruneGate])
   .handler(serverFnNoop);

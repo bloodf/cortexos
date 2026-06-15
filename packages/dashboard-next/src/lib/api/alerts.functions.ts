@@ -25,7 +25,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-import { defineServerFn, serverFnNoop } from "@/lib/api/define-server-fn";
+import { defineServerFn, serverFnNoop, type ServerFnOptions } from "@/lib/api/define-server-fn";
 
 // ---------------------------------------------------------------------------
 // Input schemas
@@ -214,4 +214,102 @@ const historyGate = defineServerFn({
 });
 export const alertHistory = createServerFn({ method: "GET" })
   .middleware([historyGate])
+  .handler(serverFnNoop);
+
+// ===========================================================================
+// Notifications (plan 0.5 — real TopBar bell + mark-read)
+//
+// Source of truth = OPERATIONAL ALERTS (`alerts` table). The TopBar bell maps
+// each operational alert to a `DashNotification`-shaped row; `acknowledgedAt`
+// (null = unread) is the read flag. Distinct from the rule-based alert feed
+// above.
+// ===========================================================================
+
+/** Map an operational alert severity to the TopBar's 3-level severity. */
+function notificationSeverity(severity: string): "info" | "warn" | "error" {
+  if (severity === "error" || severity === "critical") return "error";
+  if (severity === "warn") return "warn";
+  return "info";
+}
+
+// ---------------------------------------------------------------------------
+// listNotifications — GET, auth: any → { notifications } (newest first, ≤50)
+// ---------------------------------------------------------------------------
+
+const listNotificationsGate = defineServerFn({
+  method: "GET",
+  auth: "any",
+  input: z.object({}).strict(),
+  surface: "notifications",
+  action: "notifications.list",
+  handler: async () => {
+    const { getDb } = await import("@/server/db/client");
+    const { listOperationalAlerts } = await import("@/server/db/repos/alerts");
+    const rows = await listOperationalAlerts(getDb(), { limit: 50 });
+    const notifications = rows.map((a) => ({
+      id: String(a.id),
+      title: a.title,
+      body: a.body ?? "",
+      timestamp: a.createdAt instanceof Date ? a.createdAt.toISOString() : String(a.createdAt),
+      read: a.acknowledgedAt !== null,
+      severity: notificationSeverity(a.severity),
+    }));
+    return { notifications };
+  },
+});
+export const listNotifications = createServerFn({ method: "GET" })
+  .middleware([listNotificationsGate])
+  .handler(serverFnNoop);
+
+// ---------------------------------------------------------------------------
+// markNotificationsRead — POST, auth: any, CSRF-enforced → { acknowledged }
+// Optional `{ ids?: number[] }`; omitted → ack ALL currently-unacknowledged
+// operational alerts. Gate options exported so the node-env pipeline test can
+// drive the REAL handler against a seeded pglite DB.
+// ---------------------------------------------------------------------------
+
+const MarkNotificationsReadInput = z
+  .object({
+    ids: z.array(z.coerce.number().int().positive()).max(500).optional(),
+  })
+  .strict();
+
+type MarkNotificationsReadInputT = z.infer<typeof MarkNotificationsReadInput>;
+
+interface MarkNotificationsReadOutput {
+  acknowledged: number;
+}
+
+export const markNotificationsReadGateOptions: ServerFnOptions<
+  MarkNotificationsReadInputT,
+  MarkNotificationsReadOutput
+> = {
+  method: "POST",
+  auth: "any",
+  input: MarkNotificationsReadInput,
+  surface: "notifications",
+  action: "notifications.mark_read",
+  handler: async ({ input }) => {
+    const { getDb } = await import("@/server/db/client");
+    const { listOperationalAlerts, acknowledgeOperationalAlert } =
+      await import("@/server/db/repos/alerts");
+    const { runSequentially } = await import("@/lib/sequential");
+
+    const db = getDb();
+    // Resolve the target ids: explicit list, or every currently-unread alert.
+    const targetIds =
+      input.ids && input.ids.length > 0
+        ? input.ids
+        : (await listOperationalAlerts(db, { unacknowledgedOnly: true })).map((a) => a.id);
+
+    // Sequential to keep the body lint-clean (no await-in-loop) and avoid
+    // hammering the pool; acknowledge is idempotent (already-acked → null).
+    const results = await runSequentially(targetIds, (id) => acknowledgeOperationalAlert(db, id));
+    const acknowledged = results.filter((r) => r !== null).length;
+    return { acknowledged };
+  },
+};
+const markNotificationsReadGate = defineServerFn(markNotificationsReadGateOptions);
+export const markNotificationsRead = createServerFn({ method: "POST" })
+  .middleware([markNotificationsReadGate])
   .handler(serverFnNoop);

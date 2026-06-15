@@ -14,8 +14,10 @@ import {
   ChevronRight,
   User as UserIcon,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/EmptyState";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,7 +33,8 @@ import { useUI } from "@/hooks/useUI";
 import { ACCENTS } from "@/hooks/accents";
 import { useAuth } from "@/hooks/useAuth";
 import { useT } from "@/hooks/useT";
-import { api } from "@/lib/api/client";
+import { api, callMarkNotificationsRead } from "@/lib/api/client";
+import { csrfHeaders } from "@/lib/csrf";
 import { NAV } from "./NavConfig";
 import { LOCALES, LOCALE_LABEL } from "@/i18n";
 import { relativeTime } from "@/lib/format";
@@ -86,11 +89,26 @@ export function TopBar({
 
   const crumbs = breadcrumbs(path, t);
 
+  const qc = useQueryClient();
   const { data: notifs = [] } = useQuery({
     queryKey: ["notifications"],
     queryFn: api.notifications,
   });
   const unread = notifs.filter((n) => !n.read).length;
+
+  const markAllRead = async (): Promise<void> => {
+    try {
+      const res = await callMarkNotificationsRead({ data: {}, headers: csrfHeaders() });
+      if (res.acknowledged > 0) {
+        toast.success(
+          `Marked ${res.acknowledged} notification${res.acknowledged === 1 ? "" : "s"} read`,
+        );
+      }
+      qc.invalidateQueries({ queryKey: ["notifications"] }).catch(() => {});
+    } catch {
+      toast.error("Failed to mark notifications read");
+    }
+  };
 
   return (
     <header className="mac-toolbar sticky top-0 z-30 h-14 border-b border-border/60 flex items-center gap-2 px-3 sm:px-5">
@@ -220,29 +238,48 @@ export function TopBar({
         <PopoverContent align="end" className="w-80 p-0">
           <div className="px-3 py-2 border-b flex items-center justify-between">
             <span className="text-sm font-medium">Notifications</span>
-            <span className="text-xs text-muted-foreground">{unread} unread</span>
+            {unread > 0 ? (
+              <button
+                type="button"
+                onClick={() => markAllRead().catch(() => {})}
+                className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+              >
+                <Check className="size-3" />
+                Mark all read
+              </button>
+            ) : (
+              <span className="text-xs text-muted-foreground">{unread} unread</span>
+            )}
           </div>
-          <ul className="max-h-80 overflow-y-auto divide-y">
-            {notifs.map((n) => (
-              <li key={n.id} className="px-3 py-2.5 hover:bg-muted/40">
-                <div className="flex items-start gap-2">
-                  <span
-                    className={cn(
-                      "size-1.5 rounded-full mt-1.5 shrink-0",
-                      severityColor(n.severity),
-                    )}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">{n.title}</p>
-                    <p className="text-xs text-muted-foreground truncate">{n.body}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
-                      {relativeTime(n.timestamp)}
-                    </p>
+          {notifs.length === 0 ? (
+            <EmptyState
+              icon={<Bell className="size-5" />}
+              title="No notifications"
+              description="You're all caught up."
+            />
+          ) : (
+            <ul className="max-h-80 overflow-y-auto divide-y">
+              {notifs.map((n) => (
+                <li key={n.id} className="px-3 py-2.5 hover:bg-muted/40">
+                  <div className="flex items-start gap-2">
+                    <span
+                      className={cn(
+                        "size-1.5 rounded-full mt-1.5 shrink-0",
+                        severityColor(n.severity),
+                      )}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">{n.title}</p>
+                      <p className="text-xs text-muted-foreground truncate">{n.body}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        {relativeTime(n.timestamp)}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </li>
-            ))}
-          </ul>
+                </li>
+              ))}
+            </ul>
+          )}
         </PopoverContent>
       </Popover>
 

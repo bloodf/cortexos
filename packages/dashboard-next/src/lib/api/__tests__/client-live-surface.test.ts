@@ -19,6 +19,7 @@ const mockReadEnv = vi.fn();
 const mockListInstances = vi.fn();
 const mockListImages = vi.fn();
 const mockListVolumes = vi.fn();
+const mockListNotifications = vi.fn();
 
 vi.mock("@/lib/api/alerts.functions", () => ({
   listAlerts: (...args: unknown[]) => mockListAlerts(...args),
@@ -26,6 +27,8 @@ vi.mock("@/lib/api/alerts.functions", () => ({
   createAlert: vi.fn(),
   patchAlert: vi.fn(),
   deleteAlert: vi.fn(),
+  listNotifications: (...args: unknown[]) => mockListNotifications(...args),
+  markNotificationsRead: vi.fn(),
 }));
 
 vi.mock("@/lib/api/approvals.functions", () => ({
@@ -41,6 +44,8 @@ vi.mock("@/lib/api/approvals.functions", () => ({
 vi.mock("@/lib/api/agents.functions", () => ({
   listAgents: (...args: unknown[]) => mockListAgents(...args),
   uploadAgentFile: vi.fn(),
+  agentStatuses: vi.fn(),
+  agentAction: vi.fn(),
 }));
 
 vi.mock("@/lib/api/env-browser.functions", () => ({
@@ -60,6 +65,8 @@ vi.mock("@/lib/api/docker.functions", () => ({
   listVolumes: (...args: unknown[]) => mockListVolumes(...args),
   dockerAction: vi.fn(),
   containerLogs: vi.fn(),
+  dockerPruneEstimate: vi.fn(),
+  dockerPrune: vi.fn(),
 }));
 
 beforeEach(() => {
@@ -343,10 +350,10 @@ describe("MP-025 live client surface", () => {
       slug: "orchestrator",
       name: "orchestrator",
       description: "Hermes profile: orchestrator",
-      state: "idle",
+      state: "stopped",
       model: "claude-sonnet-4-5",
       modelProvider: "anthropic",
-      health: "healthy",
+      health: "unknown",
       hermesUrl: "http://localhost:8001",
       version: "0.0.0",
       uptimeSec: 0,
