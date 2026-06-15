@@ -166,6 +166,8 @@ export async function processMessage(
         messageUid: message.uid,
         messageId: message.messageId,
         ...redacted,
+        subject: message.subject,
+        body: message.bodyText ?? message.text,
         modelVerdict: 'spam',
         modelConfidence: classification.confidence,
       });
@@ -210,6 +212,8 @@ export async function processMessage(
     messageUid: message.uid,
     messageId: message.messageId,
     ...redacted,
+    subject: message.subject,
+    body: message.bodyText ?? message.text,
     modelVerdict: reviewVerdict,
     modelConfidence: reviewConfidence,
   });

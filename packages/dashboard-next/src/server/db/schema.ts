@@ -719,6 +719,11 @@ export const mailGuardianReviews = pgTable(
     subjectHash: text("subject_hash").notNull(),
     bodyHash: text("body_hash").notNull(),
     summary: text("summary").notNull().default(""),
+    // Plaintext display fields (populated by the mail-guardian processor); null
+    // on rows persisted before the feature landed — the adapter falls back to
+    // summary for those.
+    subject: text("subject"),
+    bodyText: text("body_text"),
     modelVerdict: text("model_verdict").notNull(),
     modelConfidence: numeric("model_confidence", { precision: 5, scale: 4 }).notNull(),
     ownerDecision: text("owner_decision"),

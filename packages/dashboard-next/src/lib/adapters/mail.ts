@@ -30,6 +30,8 @@ export interface ServerMailReview {
   subjectHash: string;
   bodyHash: string;
   summary: string;
+  subject?: string | null;
+  bodyText?: string | null;
   modelVerdict: string;
   modelConfidence: string;
   ownerDecision: string | null;
@@ -84,14 +86,18 @@ function toStatus(
  */
 export function toMailReviewRow(m: ServerMailReview): MockMailReview {
   const summary = m.summary || "(no summary)";
-  const snippet = summary.length > 120 ? `${summary.slice(0, 117)}…` : summary;
+  // Prefer the plaintext subject + decoded body the processor now stores; fall
+  // back to the model summary for rows persisted before the feature landed.
+  const subject = m.subject?.trim() || summary;
+  const body = m.bodyText?.trim() || summary;
+  const snippet = body.length > 120 ? `${body.slice(0, 117)}…` : body;
   const fromDisplay = `${m.accountSlug}/<${m.fromHash.slice(0, 8)}…>`;
   return {
     id: String(m.id),
     from: fromDisplay,
-    subject: summary,
+    subject,
     snippet,
-    body: summary,
+    body,
     risk: toRisk(m.modelVerdict, m.modelConfidence),
     status: toStatus(m.ownerDecision, m.resolvedAt),
     received_at:

@@ -11,6 +11,10 @@ export interface PendingReviewInput {
   subjectHash: string;
   bodyHash: string;
   summary: string;
+  /** Plaintext subject for the dashboard review detail (display only). */
+  subject?: string;
+  /** Decoded, human-readable body for the dashboard review detail. */
+  body?: string;
   modelVerdict: string;
   modelConfidence: number;
 }
@@ -135,6 +139,14 @@ export class GuardianStore {
 			  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 			)
 		`);
+    // Display columns for the dashboard's review detail: a plaintext subject
+    // and a decoded, human-readable body. Added idempotently so the existing
+    // reviews table (created by the dashboard migrations) gains them.
+    await this.pool.query(`
+			ALTER TABLE mail_guardian_reviews
+			  ADD COLUMN IF NOT EXISTS subject TEXT,
+			  ADD COLUMN IF NOT EXISTS body_text TEXT
+		`);
   }
 
   async listAccounts(): Promise<AccountRow[]> {
@@ -214,10 +226,13 @@ export class GuardianStore {
     const result = await this.pool.query<{ id: number }>(
       `INSERT INTO mail_guardian_reviews (
 			   account_slug, message_uid, message_id, from_hash, domain_hash,
-			   subject_hash, body_hash, summary, model_verdict, model_confidence
-			 ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+			   subject_hash, body_hash, summary, model_verdict, model_confidence,
+			   subject, body_text
+			 ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
 			 ON CONFLICT (account_slug, message_uid) DO UPDATE
 			   SET summary = EXCLUDED.summary,
+			       subject = EXCLUDED.subject,
+			       body_text = EXCLUDED.body_text,
 			       model_verdict = EXCLUDED.model_verdict,
 			       model_confidence = EXCLUDED.model_confidence
 			 RETURNING id`,
@@ -232,6 +247,8 @@ export class GuardianStore {
         input.summary,
         input.modelVerdict,
         input.modelConfidence,
+        input.subject ?? null,
+        input.body ?? null,
       ],
     );
     return result.rows[0].id;
