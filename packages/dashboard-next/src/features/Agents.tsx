@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useRef, useState } from "react";
 import {
   Activity,
@@ -25,7 +25,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { CardSkeleton } from "@/components/skeletons";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { api, uploadAgentFile } from "@/lib/api/client";
+import { api, uploadAgentFile, callAgentAction, callMintApproval } from "@/lib/api/client";
+import { csrfHeaders } from "@/lib/csrf";
 import { useT } from "@/hooks/useT";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -43,12 +44,14 @@ const HEALTH_LABEL: Record<AgentHealth, string> = {
   healthy: "Healthy",
   degraded: "Degraded",
   down: "Down",
+  unknown: "Unknown",
 };
 
 const HEALTH_TONE: Record<AgentHealth, string> = {
   healthy: "text-[var(--success)] border-[var(--success)]/30 bg-[var(--success)]/10",
   degraded: "text-[var(--warning)] border-[var(--warning)]/30 bg-[var(--warning)]/10",
   down: "text-[var(--destructive)] border-[var(--destructive)]/30 bg-[var(--destructive)]/10",
+  unknown: "text-muted-foreground border-muted-foreground/30 bg-muted/40",
 };
 
 function errorRateClass(pct: number): string {
@@ -216,9 +219,12 @@ function InspectorBody({ agent, isAdmin }: { agent: Agent; isAdmin: boolean }) {
   );
 }
 
+type AgentControlAction = "start" | "stop" | "restart" | "pause";
+
 export default function AgentsPage() {
   const t = useT();
   const { user } = useAuth();
+  const qc = useQueryClient();
   const {
     data: agents = [],
     isLoading,
@@ -248,12 +254,40 @@ export default function AgentsPage() {
     [agents],
   );
 
-  const handleAction = (action: string, a: Agent) => {
+  const controlMutation = useMutation({
+    mutationFn: async (vars: { action: AgentControlAction; slug: string }) => {
+      // Mint a single-use approval token bound to action `agents.action` with
+      // the same input the pipeline hashes ({ slug, action }), then dispatch
+      // with the token + CSRF headers (mirrors Systemd.tsx dispatch flow).
+      const mint = await callMintApproval({
+        data: { action: "agents.action", payload: { slug: vars.slug, action: vars.action } },
+      });
+      return callAgentAction({
+        data: { slug: vars.slug, action: vars.action },
+        headers: {
+          ...csrfHeaders(),
+          "x-cortex-approval-token": mint.token,
+        },
+      });
+    },
+    onSuccess: (result) => {
+      toast.success(`${result.slug}: ${result.action} ${result.status}`, {
+        description: `State is now ${result.state}.`,
+      });
+      qc.invalidateQueries({ queryKey: ["agents"] }).catch(() => {});
+    },
+    onError: (err: unknown, vars) => {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      toast.error(`Failed to ${vars.action} ${vars.slug}`, { description: message });
+    },
+  });
+
+  const handleAction = (action: AgentControlAction, a: Agent) => {
     if (!user?.is_admin) {
       toast.error("Admin only", { description: "You need admin role to control agents." });
       return;
     }
-    toast.success(`${action} queued`, { description: `${a.name} (${a.slug})` });
+    controlMutation.mutate({ action, slug: a.slug });
   };
 
   return (
@@ -445,7 +479,8 @@ export default function AgentsPage() {
                         variant="outline-warning"
                         className="size-7"
                         title="Restart"
-                        onClick={() => handleAction("Restart", a)}
+                        disabled={controlMutation.isPending}
+                        onClick={() => handleAction("restart", a)}
                       >
                         <RotateCw className="size-3.5" />
                       </Button>
@@ -454,7 +489,8 @@ export default function AgentsPage() {
                         variant="outline"
                         className="size-7"
                         title="Pause"
-                        onClick={() => handleAction("Pause", a)}
+                        disabled={controlMutation.isPending}
+                        onClick={() => handleAction("pause", a)}
                       >
                         <Pause className="size-3.5" />
                       </Button>
@@ -463,7 +499,8 @@ export default function AgentsPage() {
                         variant="outline-destructive"
                         className="size-7"
                         title="Stop"
-                        onClick={() => handleAction("Stop", a)}
+                        disabled={controlMutation.isPending}
+                        onClick={() => handleAction("stop", a)}
                       >
                         <Power className="size-3.5" />
                       </Button>
@@ -474,7 +511,8 @@ export default function AgentsPage() {
                       variant="outline-success"
                       className="size-7"
                       title="Start"
-                      onClick={() => handleAction("Start", a)}
+                      disabled={controlMutation.isPending}
+                      onClick={() => handleAction("start", a)}
                     >
                       <PlayCircle className="size-3.5" />
                     </Button>

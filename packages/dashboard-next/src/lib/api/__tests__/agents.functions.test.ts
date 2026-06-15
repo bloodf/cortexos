@@ -26,16 +26,19 @@ import {
   resetSessionStore,
   generateSessionToken,
 } from "@/server/auth/session-store";
-import { SESSION_COOKIE, CSRF_COOKIE } from "@/server/config";
+import { SESSION_COOKIE, CSRF_COOKIE, setServerHmacKeyFromString } from "@/server/config";
 import {
   defineApiRoute,
   resetRateLimitBuckets,
   type ApiRouteCore,
 } from "@/server/server-fn-pipeline";
+import { mintApproval, resetApprovalStore } from "@/server/approval";
 
 let store: InMemorySessionStore;
 
 beforeEach(() => {
+  setServerHmacKeyFromString("agents-functions-test-deterministic-key-0123456789");
+  resetApprovalStore();
   resetSessionStore();
   store = new InMemorySessionStore();
   setSessionStore(store);
@@ -326,5 +329,191 @@ describe("validateFilePath — path traversal guard", () => {
     const { validateFilePath } = await import("@/server/agents/files");
     // After resolve, ../.. from /some/dir would escape: verify post-resolve check
     expect(() => validateFilePath("/some/dir", "../sibling/evil")).toThrow("path_traversal");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// agents.action gate + REAL control bridge (plan 0.5)
+//
+// Drives the REAL agentAction handler (and the real control bridge with an
+// injected fake executor) through the `defineApiRoute` pipeline. Asserts the
+// auth/CSRF/approval matrix AND that the bridge issued the expected systemctl
+// argv. The slug allowlist is a temp Hermes registry.
+// ---------------------------------------------------------------------------
+
+describe("agents.action gate (auth: admin, approval: true) + control bridge", () => {
+  let agentTmpDir: string;
+  const originalRegistry = process.env.HERMES_PROFILES_REGISTRY;
+  let agentActionCore: ApiRouteCore;
+  let calls: string[][];
+
+  beforeEach(async () => {
+    agentTmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cortex-agent-action-"));
+    const registry = path.join(agentTmpDir, "profiles.json");
+    fs.writeFileSync(
+      registry,
+      JSON.stringify({
+        profiles: [{ profile: "cleo", home: agentTmpDir, apiPort: 18700, model: "cx/gpt-5.5" }],
+      }),
+    );
+    process.env.HERMES_PROFILES_REGISTRY = registry;
+
+    // Inject a fake executor so the bridge never spawns systemctl.
+    const control = await import("@/server/agents/control");
+    calls = [];
+    control.setExecutorForTests(async (argv) => {
+      calls.push([...argv]);
+      const [verb, unit] = argv;
+      if (verb === "is-active") {
+        // Gateway reports active so the post-action state derives "running".
+        const word = unit === "hermes-gateway@cleo.service" ? "active" : "inactive";
+        return { stdout: `${word}\n`, stderr: "", exitCode: word === "active" ? 0 : 3 };
+      }
+      return { stdout: "", stderr: "", exitCode: 0 };
+    });
+
+    const { agentActionGateOptions } = await import("../agents.functions");
+    agentActionCore = defineApiRoute({
+      methods: [agentActionGateOptions.method],
+      auth: agentActionGateOptions.auth,
+      input: agentActionGateOptions.input,
+      rateLimit: agentActionGateOptions.rateLimit,
+      surface: agentActionGateOptions.surface,
+      action: agentActionGateOptions.action,
+      target: agentActionGateOptions.target,
+      approval: agentActionGateOptions.approval,
+      handler: agentActionGateOptions.handler,
+    });
+  });
+
+  afterEach(async () => {
+    const control = await import("@/server/agents/control");
+    control.setExecutorForTests(null);
+    if (originalRegistry === undefined) delete process.env.HERMES_PROFILES_REGISTRY;
+    else process.env.HERMES_PROFILES_REGISTRY = originalRegistry;
+    try {
+      fs.rmSync(agentTmpDir, { recursive: true, force: true });
+    } catch {
+      // best-effort
+    }
+  });
+
+  it("403 for an authenticated non-admin (with valid CSRF)", async () => {
+    const { token, csrf } = await makeSession({ isAdmin: false });
+    const res = await agentActionCore(
+      new Request("http://localhost/_serverFn/agents.action", {
+        method: "POST",
+        headers: {
+          cookie: cookieHeader({ [SESSION_COOKIE]: token, [CSRF_COOKIE]: csrf }),
+          "content-type": "application/json",
+          "x-csrf-token": csrf,
+        },
+        body: JSON.stringify({ slug: "cleo", action: "start" }),
+      }),
+    );
+    expect(res.status).toBe(403);
+    expect((await res.json()).code).toBe("permission");
+    expect(calls).toHaveLength(0);
+  });
+
+  it("412 for an admin with valid CSRF but NO approval token", async () => {
+    const { token, csrf } = await makeSession({ isAdmin: true });
+    const res = await agentActionCore(
+      new Request("http://localhost/_serverFn/agents.action", {
+        method: "POST",
+        headers: {
+          cookie: cookieHeader({ [SESSION_COOKIE]: token, [CSRF_COOKIE]: csrf }),
+          "content-type": "application/json",
+          "x-csrf-token": csrf,
+        },
+        body: JSON.stringify({ slug: "cleo", action: "start" }),
+      }),
+    );
+    expect(res.status).toBe(412);
+    expect((await res.json()).code).toBe("approval_required");
+    expect(calls).toHaveLength(0);
+  });
+
+  it("201 for admin + CSRF + valid approval token → bridge issues both systemctl starts", async () => {
+    const { token, csrf } = await makeSession({ isAdmin: true });
+    const resolved = (await store.resolveByToken(token))!;
+    const approval = mintApproval({
+      // Pipeline hashes actionHashFor("agents.action", { slug, action }).
+      action: "agents.action",
+      payload: { slug: "cleo", action: "start" },
+      sessionId: resolved.session.id,
+      userId: resolved.user.id,
+    });
+
+    const res = await agentActionCore(
+      new Request("http://localhost/_serverFn/agents.action", {
+        method: "POST",
+        headers: {
+          cookie: cookieHeader({ [SESSION_COOKIE]: token, [CSRF_COOKIE]: csrf }),
+          "content-type": "application/json",
+          "x-csrf-token": csrf,
+          "x-cortex-approval-token": approval.token,
+        },
+        body: JSON.stringify({ slug: "cleo", action: "start" }),
+      }),
+    );
+
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body).toMatchObject({
+      slug: "cleo",
+      action: "start",
+      status: "accepted",
+      state: "running",
+    });
+
+    // The bridge issued `start` for BOTH units (is-active probes excluded).
+    const dispatched = calls.filter((c) => c[0] !== "is-active");
+    expect(dispatched).toEqual([
+      ["start", "hermes-gateway@cleo.service"],
+      ["start", "hermes-profile@cleo.service"],
+    ]);
+  });
+
+  it("404 for an unknown slug even with a valid approval token", async () => {
+    const { token, csrf } = await makeSession({ isAdmin: true });
+    const resolved = (await store.resolveByToken(token))!;
+    const approval = mintApproval({
+      action: "agents.action",
+      payload: { slug: "ghost", action: "start" },
+      sessionId: resolved.session.id,
+      userId: resolved.user.id,
+    });
+    const res = await agentActionCore(
+      new Request("http://localhost/_serverFn/agents.action", {
+        method: "POST",
+        headers: {
+          cookie: cookieHeader({ [SESSION_COOKIE]: token, [CSRF_COOKIE]: csrf }),
+          "content-type": "application/json",
+          "x-csrf-token": csrf,
+          "x-cortex-approval-token": approval.token,
+        },
+        body: JSON.stringify({ slug: "ghost", action: "start" }),
+      }),
+    );
+    expect(res.status).toBe(404);
+    expect((await res.json()).code).toBe("not_found");
+  });
+
+  it("400 for a disallowed action verb", async () => {
+    const { token, csrf } = await makeSession({ isAdmin: true });
+    const res = await agentActionCore(
+      new Request("http://localhost/_serverFn/agents.action", {
+        method: "POST",
+        headers: {
+          cookie: cookieHeader({ [SESSION_COOKIE]: token, [CSRF_COOKIE]: csrf }),
+          "content-type": "application/json",
+          "x-csrf-token": csrf,
+        },
+        body: JSON.stringify({ slug: "cleo", action: "kill" }),
+      }),
+    );
+    expect(res.status).toBe(400);
+    expect((await res.json()).code).toBe("validation");
   });
 });

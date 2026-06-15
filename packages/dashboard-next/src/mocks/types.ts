@@ -210,7 +210,7 @@ export interface Project {
   created_at: string;
 }
 export type AgentRunState = "running" | "idle" | "stopped" | "error";
-export type AgentHealth = "healthy" | "degraded" | "down";
+export type AgentHealth = "healthy" | "degraded" | "down" | "unknown";
 export interface Agent {
   slug: string;
   name: string;

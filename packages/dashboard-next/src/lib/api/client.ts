@@ -55,6 +55,8 @@ import type {
   ApprovalRequest,
   AuditEntry,
   Agent,
+  AgentRunState,
+  AgentHealth,
   MailReview,
   SchedulerJob,
   DriveInfo,
@@ -167,7 +169,12 @@ import {
   listAlerts as _listAlerts,
   alertHistory as _alertHistory,
 } from "./alerts.functions";
-import { uploadAgentFile as _uploadAgentFile, listAgents as _listAgents } from "./agents.functions";
+import {
+  uploadAgentFile as _uploadAgentFile,
+  listAgents as _listAgents,
+  agentAction as _agentAction,
+  agentStatuses as _agentStatuses,
+} from "./agents.functions";
 import { readEnv as _readEnv } from "./env-browser.functions";
 import type { HermesProfile } from "@/server/agents/registry";
 
@@ -667,6 +674,9 @@ const listAuditFn = _listAudit as unknown as (opts: {
 const listAgentsFn = _listAgents as unknown as (opts: {
   data: Record<string, never>;
 }) => Promise<ListAgentsOutput>;
+const agentStatusesFn = _agentStatuses as unknown as (opts: {
+  data: { slugs?: string[] };
+}) => Promise<{ states: Record<string, AgentRunState> }>;
 const readEnvFn = _readEnv as unknown as (opts: {
   data: { path: string };
 }) => Promise<ReadEnvOutput>;
@@ -749,8 +759,23 @@ function inferModelProvider(model: string): string {
   return "unknown";
 }
 
-/** Map a server HermesProfile to the mock Agent shape with safe defaults. */
-function toAgentRow(p: HermesProfile): Agent {
+/**
+ * Derive an honest health value from the real run-state. Stopped/idle agents
+ * are NOT claimed "healthy" — only a running agent reports healthy; an errored
+ * agent reports down; everything else is unknown.
+ */
+function healthForState(state: AgentRunState): AgentHealth {
+  if (state === "running") return "healthy";
+  if (state === "error") return "down";
+  return "unknown";
+}
+
+/**
+ * Map a server HermesProfile to the mock Agent shape, using the REAL run-state
+ * derived from systemd (falls back to "stopped" when status is unavailable).
+ * Numeric metrics remain 0 (out of scope) — state + health are real.
+ */
+function toAgentRow(p: HermesProfile, state: AgentRunState = "stopped"): Agent {
   const slug = p.profile;
   const hermesUrl = p.apiPort ? `http://localhost:${p.apiPort}` : "http://localhost";
   const modelProvider = inferModelProvider(p.model ?? "");
@@ -758,10 +783,10 @@ function toAgentRow(p: HermesProfile): Agent {
     slug,
     name: slug,
     description: `Hermes profile: ${slug}`,
-    state: "idle",
+    state,
     model: p.model ?? "unknown",
     modelProvider,
-    health: "healthy",
+    health: healthForState(state),
     hermesUrl,
     version: "0.0.0",
     uptimeSec: 0,
@@ -1209,14 +1234,23 @@ export const api = {
     };
   },
 
-  // ── Agents (WIRED — MP-025) ───────────────────────────────────────────
+  // ── Agents (WIRED — MP-025; live state — plan 0.5) ────────────────────
   /**
-   * Returns Hermes agent profiles mapped to the mock Agent shape.
-   * Calls listAgents RPC → server/agents/registry.readRegistry().
+   * Returns Hermes agent profiles mapped to the mock Agent shape with their
+   * REAL run-state. Calls listAgents (registry) + agentStatuses (systemd
+   * is-active derivation) and merges; state falls back to "stopped" when a
+   * status is missing so health is never falsely reported "healthy".
    */
   agents: async (): Promise<Agent[]> => {
     const { agents } = await listAgentsFn({ data: {} });
-    return agents.map(toAgentRow);
+    let states: Record<string, AgentRunState> = {};
+    try {
+      const res = await agentStatusesFn({ data: { slugs: agents.map((a) => a.profile) } });
+      states = res.states;
+    } catch {
+      // Status probe failed — fall back to "stopped" per-row (honest default).
+    }
+    return agents.map((p) => toAgentRow(p, states[p.profile] ?? "stopped"));
   },
 
   // ── Mail-Guardian (WIRED — WP-37) ────────────────────────────────────
@@ -1406,3 +1440,25 @@ export const callDeleteAlert = _deleteAlert as unknown as (
 export const uploadAgentFile = _uploadAgentFile as unknown as (
   opts: { data: { slug: string; filename: string; content: string } } & CsrfOpts,
 ) => Promise<{ ok: boolean }>;
+
+/**
+ * Call agentAction RPC — admin only; approval: true gate (plan 0.5).
+ * Mint the token via callMintApproval for action `agents.action` with payload
+ * `{ slug, action }`, then pass it as `x-cortex-approval-token` + CSRF headers.
+ */
+export const callAgentAction = _agentAction as unknown as (
+  opts: {
+    data: { slug: string; action: "start" | "stop" | "restart" | "pause" };
+  } & CsrfOpts,
+) => Promise<{
+  slug: string;
+  action: "start" | "stop" | "restart" | "pause";
+  status: "accepted" | "rejected";
+  units: { unit: string; exitCode: number; stderr: string }[];
+  state: AgentRunState;
+}>;
+
+/** Call agentStatuses RPC — any session; returns slug → live run-state map. */
+export const callAgentStatuses = _agentStatuses as unknown as (opts: {
+  data: { slugs?: string[] };
+}) => Promise<{ states: Record<string, AgentRunState> }>;
