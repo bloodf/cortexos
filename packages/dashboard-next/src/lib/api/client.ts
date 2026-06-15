@@ -184,6 +184,48 @@ import {
 import { readEnv as _readEnv } from "./env-browser.functions";
 import type { HermesProfile } from "@/server/agents/registry";
 
+/**
+ * Map a list of DB-shaped rows to UI rows, isolating per-row failures.
+ *
+ * React Query swallows a rejected queryFn → the page renders blank with NO
+ * console error. So a single bad row that makes a mapper throw silently blanks
+ * the WHOLE list (the "hashId class" of bugs). This helper maps each row inside
+ * a try/catch: a throwing row is DROPPED (not fatal) and a one-line
+ * `console.warn` is emitted so a systematically-broken mapper is still
+ * discoverable in the browser console — never swallowed without a trace.
+ *
+ * Exported so the adapter/mapper unit tests can assert the drop-one-keep-rest
+ * contract directly.
+ */
+export function mapRowsSafe<TIn, TOut>(
+  rows: readonly TIn[],
+  mapFn: (row: TIn) => TOut,
+  label: string,
+): TOut[] {
+  const out: TOut[] = [];
+  for (let i = 0; i < rows.length; i += 1) {
+    const row = rows[i];
+    try {
+      out.push(mapFn(row));
+    } catch (err) {
+      // Best-effort row id for the diagnostic; never let the lookup itself throw.
+      let rowId: unknown = i;
+      try {
+        const r = row as { id?: unknown } | null | undefined;
+        if (r != null && r.id != null) rowId = r.id;
+      } catch {
+        /* keep index as id */
+      }
+      console.warn(
+        `[client] ${label}: dropped a row that failed to map (id=${String(rowId)}): ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+  return out;
+}
+
 // Topbar bell notifications — no server fn yet; returns a typed empty list.
 // Shape mirrors the legacy mock `Notification` so the TopBar consumer stays typed.
 export interface DashNotification {
@@ -474,8 +516,15 @@ export const callInstanceLogs = _instanceLogs as unknown as (opts: {
 }) => Promise<InstanceLogsOutput>;
 
 /** Map a contracts IncusInstance to the mock IncusInstance shape used by the UI. */
-function toIncusInstance(inst: ContractIncusInstance): IncusInstance {
-  const cfg = inst.config;
+export function toIncusInstance(inst: ContractIncusInstance): IncusInstance {
+  // Guard the nested config/target: a row missing `config` or `config.target`
+  // (legacy/partial DB shape) would throw on `cfg.target.slug` and reject the
+  // whole instances query → blank Incus page with no console error.
+  const cfg = inst.config as ContractIncusInstance["config"] | null | undefined;
+  const target = cfg?.target as
+    | { slug?: string; description?: string | null; repoUrl?: string | null; branch?: string }
+    | null
+    | undefined;
   const lv = inst.lastValidation as
     | { ok?: boolean; ranAt?: string; notes?: string }
     | null
@@ -489,16 +538,16 @@ function toIncusInstance(inst: ContractIncusInstance): IncusInstance {
     cpu: inst.cpu ?? null,
     memory: inst.memory ?? null,
     config: {},
-    devices: inst.devices as Record<string, Record<string, string>>,
+    devices: (inst.devices ?? {}) as Record<string, Record<string, string>>,
     last_validation: lv
       ? { ok: lv.ok ?? false, ran_at: lv.ranAt ?? inst.updatedAt, notes: lv.notes ?? "" }
       : null,
     created_at: inst.createdAt,
     project: {
-      name: cfg.target.slug,
-      description: cfg.target.description ?? "",
-      repo_url: cfg.target.repoUrl ?? "",
-      branch: cfg.target.branch,
+      name: target?.slug ?? inst.slug,
+      description: target?.description ?? "",
+      repo_url: target?.repoUrl ?? "",
+      branch: target?.branch ?? "main",
     },
   };
 }
@@ -715,7 +764,7 @@ const readEnvFn = _readEnv as unknown as (opts: {
 }) => Promise<ReadEnvOutput>;
 
 /** Map a server alert_rules row to the mock AlertRule shape. */
-function toAlertRuleRow(r: ListAlertsOutput["rules"][number]): AlertRule {
+export function toAlertRuleRow(r: ListAlertsOutput["rules"][number]): AlertRule {
   return {
     id: String(r.id),
     name: r.name,
@@ -727,7 +776,7 @@ function toAlertRuleRow(r: ListAlertsOutput["rules"][number]): AlertRule {
 }
 
 /** Map a server alert-history item to the mock AlertHistory shape. */
-function toAlertHistoryRow(h: AlertHistoryOutput["history"][number]): AlertHistory {
+export function toAlertHistoryRow(h: AlertHistoryOutput["history"][number]): AlertHistory {
   return {
     id: String(h.id),
     ruleName: h.ruleName,
@@ -739,7 +788,7 @@ function toAlertHistoryRow(h: AlertHistoryOutput["history"][number]): AlertHisto
 }
 
 /** Map a server pending_approvals row to the mock ApprovalRequest shape. */
-function toApprovalRequestRow(a: ListApprovalsOutput["pending"][number]): ApprovalRequest {
+export function toApprovalRequestRow(a: ListApprovalsOutput["pending"][number]): ApprovalRequest {
   const resolvedDecision: ApprovalRequest["status"] =
     a.decision === "approve" ? "approved" : "denied";
   const status: ApprovalRequest["status"] = a.decision === null ? "pending" : resolvedDecision;
@@ -762,7 +811,7 @@ function toApprovalRequestRow(a: ListApprovalsOutput["pending"][number]): Approv
 }
 
 /** Map a server audit_log event to the mock AuditEntry shape. */
-function toAuditEntryRow(e: ListAuditOutput["events"][number]): AuditEntry {
+export function toAuditEntryRow(e: ListAuditOutput["events"][number]): AuditEntry {
   const payload = e.payload ?? {};
   const result = e.result ?? (typeof payload.result === "string" ? payload.result : "");
   const detail = typeof payload.detail === "string" ? payload.detail : result;
@@ -996,7 +1045,7 @@ export const api = {
     const { rows } = await listServicesFn({
       data: { activeOnly: true, hasWebui: true, pageSize: 500 },
     });
-    return rows.map(toServiceRow);
+    return mapRowsSafe(rows, toServiceRow, "services");
   },
 
   /**
@@ -1013,7 +1062,7 @@ export const api = {
       },
     });
     return {
-      rows: result.rows.map(toServiceRow),
+      rows: mapRowsSafe(result.rows, toServiceRow, "servicesList"),
       total: result.total,
       page: p?.page ?? 0,
       pageSize,
@@ -1041,7 +1090,7 @@ export const api = {
         pageSize,
       },
     });
-    const rows = result.rows.map(toServiceRow);
+    const rows = mapRowsSafe(result.rows, toServiceRow, "healthcheckList");
     // Apply q filter client-side (contract does not support freetext q)
     const q = (p?.q ?? "").trim().toLowerCase();
     const filtered = q
@@ -1099,7 +1148,7 @@ export const api = {
    */
   incus: async (): Promise<IncusInstance[]> => {
     const { items } = await listInstancesFn({ data: {} });
-    return items.map(toIncusInstance);
+    return mapRowsSafe(items, toIncusInstance, "incus");
   },
 
   /**
@@ -1107,7 +1156,7 @@ export const api = {
    */
   incusList: async (p?: ListParams): Promise<ListResult<IncusInstance>> => {
     const { items } = await listInstancesFn({ data: {} });
-    const mapped = items.map(toIncusInstance);
+    const mapped = mapRowsSafe(items, toIncusInstance, "incusList");
     const q = (p?.q ?? "").trim().toLowerCase();
     const filtered = q
       ? mapped.filter(
@@ -1155,7 +1204,7 @@ export const api = {
      */
     rules: async (): Promise<AlertRule[]> => {
       const { rules } = await listAlertsFn({ data: {} });
-      return rules.map(toAlertRuleRow);
+      return mapRowsSafe(rules, toAlertRuleRow, "alerts.rules");
     },
 
     /**
@@ -1164,7 +1213,7 @@ export const api = {
      */
     history: async (): Promise<AlertHistory[]> => {
       const { history } = await alertHistoryFn({ data: {} });
-      return history.map(toAlertHistoryRow);
+      return mapRowsSafe(history, toAlertHistoryRow, "alerts.history");
     },
 
     /**
@@ -1172,7 +1221,7 @@ export const api = {
      */
     rulesList: async (p?: ListParams): Promise<ListResult<AlertRule>> => {
       const { rules } = await listAlertsFn({ data: {} });
-      const mapped = rules.map(toAlertRuleRow);
+      const mapped = mapRowsSafe(rules, toAlertRuleRow, "alerts.rulesList");
       const q = (p?.q ?? "").trim().toLowerCase();
       const filtered = q
         ? mapped.filter(
@@ -1187,7 +1236,7 @@ export const api = {
      */
     historyList: async (p?: ListParams): Promise<ListResult<AlertHistory>> => {
       const { history } = await alertHistoryFn({ data: {} });
-      const mapped = history.map(toAlertHistoryRow);
+      const mapped = mapRowsSafe(history, toAlertHistoryRow, "alerts.historyList");
       const q = (p?.q ?? "").trim().toLowerCase();
       const filtered = q
         ? mapped.filter(
@@ -1228,7 +1277,7 @@ export const api = {
    */
   approvals: async (): Promise<ApprovalRequest[]> => {
     const { pending } = await listApprovalsFn({ data: {} });
-    return pending.map(toApprovalRequestRow);
+    return mapRowsSafe(pending, toApprovalRequestRow, "approvals");
   },
 
   // ── Audit (WIRED — MP-025) ─────────────────────────────────────────────
@@ -1240,7 +1289,7 @@ export const api = {
    */
   audit: async (): Promise<AuditEntry[]> => {
     const { events } = await listAuditFn({ data: { pageSize: 500 } });
-    return events.map(toAuditEntryRow);
+    return mapRowsSafe(events, toAuditEntryRow, "audit");
   },
 
   /**
@@ -1260,7 +1309,7 @@ export const api = {
       },
     });
     return {
-      rows: result.events.map(toAuditEntryRow),
+      rows: mapRowsSafe(result.events, toAuditEntryRow, "auditList"),
       total: result.total,
       page: result.page,
       pageSize: result.pageSize,
@@ -1293,7 +1342,7 @@ export const api = {
    */
   mail: async (): Promise<MailReview[]> => {
     const { reviews } = await listReviewsFn({ data: {} });
-    return reviews.map(toMailReviewRow);
+    return mapRowsSafe(reviews, toMailReviewRow, "mail");
   },
 
   /**
@@ -1304,7 +1353,7 @@ export const api = {
     const pageSize = p?.pageSize ?? 25;
     const result = await listReviewsFn({ data: { page, pageSize } });
     return {
-      rows: result.reviews.map(toMailReviewRow),
+      rows: mapRowsSafe(result.reviews, toMailReviewRow, "mailList"),
       total: result.total,
       page: p?.page ?? 0,
       pageSize,

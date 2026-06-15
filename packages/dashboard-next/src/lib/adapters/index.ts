@@ -1,16 +1,14 @@
 /**
- * Barrel export for all entity adapters.
+ * Barrel export for the LIVE entity adapters.
  *
- * Each adapter maps a @cortexos/contracts entity to the sys-pilot component
- * prop shape defined in src/mocks/types.ts. Import from here in Wave-2 route
- * WPs when you need to transform API responses before passing to components.
+ * Only `services` and `mail` adapters are live. The alerts/audit/approvals/incus
+ * adapters were dead code — their row-mappers live INLINE in
+ * `src/lib/api/client.ts` (toAlertRuleRow, toAuditEntryRow, toApprovalRequestRow,
+ * toIncusInstance). The standalone adapter files had no live importers and were
+ * removed (MP-028 / item 1.2). Do not re-add re-exports for them here.
  *
  * Usage:
- *   import { toServiceRow, toAlertRuleRow } from "@/lib/adapters";
+ *   import { toServiceRow, toMailReviewRow } from "@/lib/adapters";
  */
 export * from "./services";
-export * from "./incus";
-export * from "./audit";
-export * from "./approvals";
 export * from "./mail";
-export * from "./alerts";

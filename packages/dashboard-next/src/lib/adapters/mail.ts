@@ -85,13 +85,18 @@ function toStatus(
  * sys-pilot components consume.
  */
 export function toMailReviewRow(m: ServerMailReview): MockMailReview {
-  const summary = m.summary || "(no summary)";
+  // Coerce every string-shaped field defensively: the DB contract types claim
+  // `string`, but a malformed/legacy row can carry null/number. A bare
+  // `.slice`/`.trim` on a non-string throws, and React Query swallows the
+  // rejection → the WHOLE mail page renders blank with no console error.
+  const summary = String(m.summary ?? "").trim() || "(no summary)";
   // Prefer the plaintext subject + decoded body the processor now stores; fall
   // back to the model summary for rows persisted before the feature landed.
-  const subject = m.subject?.trim() || summary;
-  const body = m.bodyText?.trim() || summary;
+  const subject = String(m.subject ?? "").trim() || summary;
+  const body = String(m.bodyText ?? "").trim() || summary;
   const snippet = body.length > 120 ? `${body.slice(0, 117)}…` : body;
-  const fromDisplay = `${m.accountSlug}/<${m.fromHash.slice(0, 8)}…>`;
+  const fromHash = String(m.fromHash ?? "");
+  const fromDisplay = `${m.accountSlug}/<${fromHash.slice(0, 8)}…>`;
   return {
     id: String(m.id),
     from: fromDisplay,
