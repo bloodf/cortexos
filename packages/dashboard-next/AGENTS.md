@@ -85,7 +85,7 @@ src/
     api/            <domain>.functions.ts + define-server-fn.ts
     adapters/       @cortexos/contracts → component props
   i18n/             en.ts, es.ts, ptBR.ts
-migrations/         SQL migrations; runner: scripts/migrate-cli.js
+migrations/         SQL migrations; runner: src/server/db/migrate.ts
 .output/            Nitro build output (gitignored)
 ```
 
@@ -101,7 +101,21 @@ Reference: `src/lib/api/define-server-fn.ts`
 
 - PostgreSQL `cortex_dashboard` at `127.0.0.1:5432`, user `dashboard`
 - Migrations: `migrations/NNN_description.sql` (lexical order)
-- Runner: `scripts/migrate-cli.js` (host, not package-local)
+- Runner: `src/server/db/migrate.ts` (`runSqlMigrations`, in-process at
+  startup; `defaultMigrationsDir()` = `cwd/migrations`). `scripts/migrate-cli.js`
+  does not exist; root `scripts/migrate.js` is retired.
+- Ledger: `dashboard_migrations` (namespaced, checksum-verified) —
+  `(id, name UNIQUE, checksum CHAR(64), applied_at)`. Checksum =
+  `sha256(raw file content)`. The runner records names automatically.
+- Lineage: a SHARED legacy `migrations` table holds historical
+  mixed-lineage rows (root / SvelteKit / dashboard-next) with colliding bare
+  prefixes; it is NO longer the dashboard-next source of truth. First run
+  reconciles `dashboard_migrations` from it (only this dir's names) so a
+  fully-applied prod DB transitions without re-running migrations; content
+  drift on an applied file triggers a `console.warn` and is not re-applied.
+- New migrations need no trailing `INSERT INTO migrations ...` footer (the
+  runner records into `dashboard_migrations`); such a footer is legacy/no-op,
+  redundant but harmless.
 
 ## Auth
 

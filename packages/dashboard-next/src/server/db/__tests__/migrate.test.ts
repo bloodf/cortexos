@@ -7,7 +7,7 @@
  * PGlite executor wired through `pgliteExecutor` so the runner sees
  * a faithful Postgres engine.
  */
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { join } from "node:path";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -150,6 +150,123 @@ describe("migrate — runSqlMigrations", () => {
 
     const res = await client.query<{ ip: string }>("SELECT ip FROM _ip_test");
     expect(res.rows[0]?.ip).toBe("192.168.42.42");
+
+    rmSync(dir, { recursive: true });
+  });
+});
+
+describe("migrate — dashboard_migrations ledger + reconciliation", () => {
+  it("records applied migrations in dashboard_migrations with checksums (fresh DB)", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "migrate-ledger-"));
+    writeFileSync(join(dir, "001_init.sql"), "CREATE TABLE foo (id int);");
+    writeFileSync(join(dir, "002_more.sql"), "CREATE TABLE bar (id int);");
+
+    const out = await runSqlMigrations({ dir, executor: pgliteExecutor(client) });
+    expect(out).toEqual(["001_init", "002_more"]);
+
+    const rows = await client.query<{ name: string; checksum: string }>(
+      "SELECT name, checksum FROM dashboard_migrations ORDER BY name",
+    );
+    expect(rows.rows.map((r) => r.name)).toEqual(["001_init", "002_more"]);
+    // checksum is a 64-char sha256 hex digest of the raw file content.
+    rows.rows.forEach((r) => {
+      expect(r.checksum).toMatch(/^[0-9a-f]{64}$/);
+    });
+    // No legacy `migrations` table is created by the new runner.
+    const reg = await client.query<{ reg: string | null }>(
+      "SELECT to_regclass('migrations') AS reg",
+    );
+    expect(reg.rows[0]?.reg).toBeNull();
+
+    rmSync(dir, { recursive: true });
+  });
+
+  it("reconciles from a pre-existing legacy migrations table without re-applying", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "migrate-reconcile-"));
+    // These files would FAIL if re-applied (the referenced tables don't
+    // exist), proving reconciliation truly skips the apply step.
+    writeFileSync(join(dir, "001_a.sql"), "INSERT INTO nonexistent_a (id) VALUES (1);");
+    writeFileSync(join(dir, "002_b.sql"), "INSERT INTO nonexistent_b (id) VALUES (1);");
+
+    // Simulate the live DB: a legacy shared `migrations` table already
+    // holding this dir's bare names (plus an unrelated legacy lineage row).
+    await client.exec(`
+      CREATE TABLE migrations (id SERIAL PRIMARY KEY, name VARCHAR(255) UNIQUE NOT NULL, applied_at TIMESTAMP DEFAULT NOW());
+      INSERT INTO migrations (name) VALUES ('001_a'), ('002_b'), ('017_some_legacy_lineage');
+    `);
+
+    const out = await runSqlMigrations({ dir, executor: pgliteExecutor(client) });
+    // ZERO new migrations applied — the apply step never ran (which would
+    // have thrown on the nonexistent tables).
+    expect(out).toEqual([]);
+
+    // dashboard_migrations backfilled with ONLY this dir's names.
+    const rows = await client.query<{ name: string; checksum: string }>(
+      "SELECT name, checksum FROM dashboard_migrations ORDER BY name",
+    );
+    expect(rows.rows.map((r) => r.name)).toEqual(["001_a", "002_b"]);
+    rows.rows.forEach((r) => {
+      expect(r.checksum).toMatch(/^[0-9a-f]{64}$/);
+    });
+
+    rmSync(dir, { recursive: true });
+  });
+
+  it("warns on checksum drift and does NOT re-apply the migration", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "migrate-drift-"));
+    writeFileSync(join(dir, "001_init.sql"), "CREATE TABLE drift_t (id int);");
+
+    const first = await runSqlMigrations({ dir, executor: pgliteExecutor(client) });
+    expect(first).toEqual(["001_init"]);
+
+    // Mutate the applied migration's content. Re-running it would throw
+    // (table already exists), so a silent re-apply would surface as an
+    // error — proving the runner skips it.
+    writeFileSync(
+      join(dir, "001_init.sql"),
+      "CREATE TABLE drift_t (id int); -- edited after apply",
+    );
+
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const second = await runSqlMigrations({ dir, executor: pgliteExecutor(client) });
+    expect(second).toEqual([]); // not re-applied
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(warnSpy.mock.calls[0]?.[0]).toMatch(/checksum drift.*001_init/);
+
+    // Stored checksum is unchanged (no auto-mutation).
+    const rows = await client.query<{ checksum: string }>(
+      "SELECT checksum FROM dashboard_migrations WHERE name = '001_init'",
+    );
+    expect(rows.rows).toHaveLength(1);
+
+    warnSpy.mockRestore();
+    rmSync(dir, { recursive: true });
+  });
+
+  it("applies a genuinely-new migration after reconciliation", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "migrate-new-"));
+    writeFileSync(join(dir, "001_known.sql"), "INSERT INTO nonexistent_known (id) VALUES (1);");
+    writeFileSync(join(dir, "002_new.sql"), "CREATE TABLE genuinely_new (id int);");
+
+    // Legacy table knows only 001 — so 002 is new in both tables.
+    await client.exec(`
+      CREATE TABLE migrations (id SERIAL PRIMARY KEY, name VARCHAR(255) UNIQUE NOT NULL, applied_at TIMESTAMP DEFAULT NOW());
+      INSERT INTO migrations (name) VALUES ('001_known');
+    `);
+
+    const out = await runSqlMigrations({ dir, executor: pgliteExecutor(client) });
+    // 001 reconciled (skipped), 002 applied fresh.
+    expect(out).toEqual(["002_new"]);
+
+    const rows = await client.query<{ name: string }>(
+      "SELECT name FROM dashboard_migrations ORDER BY name",
+    );
+    expect(rows.rows.map((r) => r.name)).toEqual(["001_known", "002_new"]);
+    // The new table really got created.
+    const t = await client.query<{ reg: string | null }>(
+      "SELECT to_regclass('genuinely_new') AS reg",
+    );
+    expect(t.rows[0]?.reg).not.toBeNull();
 
     rmSync(dir, { recursive: true });
   });

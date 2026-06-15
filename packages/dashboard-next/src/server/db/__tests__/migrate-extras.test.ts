@@ -45,16 +45,18 @@ describe("migrate — pgExecutor", () => {
     const rows = [{ name: "001_init" }, { name: "002_more" }];
     const query = vi.fn().mockResolvedValue({ rows });
     const ex = await pgExecutor({ query });
-    const out = await ex.query<{ name: string }>("SELECT name FROM migrations");
+    const out = await ex.query<{ name: string }>("SELECT name FROM dashboard_migrations");
     expect(out).toEqual(rows);
-    expect(query).toHaveBeenCalledWith("SELECT name FROM migrations", undefined);
+    expect(query).toHaveBeenCalledWith("SELECT name FROM dashboard_migrations", undefined);
   });
 
   it("forwards params to the pool", async () => {
     const query = vi.fn().mockResolvedValue({ rows: [] });
     const ex = await pgExecutor({ query });
-    await ex.query("INSERT INTO migrations (name) VALUES ($1)", ["001_init"]);
-    expect(query).toHaveBeenCalledWith("INSERT INTO migrations (name) VALUES ($1)", ["001_init"]);
+    await ex.query("INSERT INTO dashboard_migrations (name) VALUES ($1)", ["001_init"]);
+    expect(query).toHaveBeenCalledWith("INSERT INTO dashboard_migrations (name) VALUES ($1)", [
+      "001_init",
+    ]);
   });
 });
 
@@ -66,9 +68,9 @@ describe("migrate — defaultMigrationsDir", () => {
 
 describe("migrate — errorMessage (private) via runSqlMigrations", () => {
   /**
-   * The bootstrap `CREATE TABLE IF NOT EXISTS migrations` runs BEFORE the
-   * try/catch, so a blanket-throwing executor would fail before the
-   * extension-swallow path is ever reached. We only throw for SQL that
+   * The bootstrap `CREATE TABLE IF NOT EXISTS dashboard_migrations` runs
+   * BEFORE the try/catch, so a blanket-throwing executor would fail before
+   * the extension-swallow path is ever reached. We only throw for SQL that
    * references the ignored extension.
    */
   function execThatThrowsOnTimescale(throwable: unknown) {
@@ -77,8 +79,8 @@ describe("migrate — errorMessage (private) via runSqlMigrations", () => {
         if (/timescaledb/i.test(sql)) {
           throw throwable;
         }
-        // For the bootstrap (CREATE TABLE IF NOT EXISTS migrations) and
-        // the migrations bookkeeping INSERT, just succeed.
+        // For the bootstrap (CREATE TABLE IF NOT EXISTS dashboard_migrations)
+        // and the ledger bookkeeping INSERT, just succeed.
       },
       query: async () => [],
     };
@@ -291,7 +293,7 @@ describe("migrate — getLanIp score function (eth / en / wl / tailscale / defau
 describe("migrate — integration: errorMessage + pglite executor", () => {
   it("round-trips a real Error message into the swallowing path", async () => {
     // errorMessage(e) → e instanceof Error branch. The bootstrap
-    // (CREATE TABLE IF NOT EXISTS migrations) is called outside the
+    // (CREATE TABLE IF NOT EXISTS dashboard_migrations) is called outside the
     // try/catch so it can't be the throw site. We succeed the
     // bootstrap (1st call) and throw an Error on the migration exec
     // (2nd call) so the runner reaches the catch and exercises

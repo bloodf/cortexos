@@ -2,14 +2,33 @@
  * Programmatic SQL migration runner for the CortexOS dashboard.
  *
  * Reads `migrations/*.sql` in lexical order, applies any that are not
- * already recorded in the `migrations` table. This is the sole live runner
- * (`src/lib/server/db/migrate.ts`); the legacy `scripts/migrate.js` is retired.
+ * already recorded in dashboard-next's OWN namespaced ledger table
+ * `dashboard_migrations`. This is the sole live runner
+ * (`src/server/db/migrate.ts`); the legacy `scripts/migrate.js` is retired.
  *   - File name must match `^[a-zA-Z0-9_-]+\.sql$`
  *   - `<VPS_LAN_IP>` placeholder is replaced with the host's first
  *     non-internal IPv4 address (sorted: eth/en > wlan/wlp > tailscale)
  *   - Each migration is applied as a single statement (or wrapped in
  *     the transaction the SQL body declares explicitly)
  *   - Re-running is a no-op for already-applied migrations
+ *
+ * Ledger namespacing & lineage:
+ *   The live `cortex_dashboard` DB carries a SHARED legacy `migrations`
+ *   table holding ~80 rows from 3+ historical lineages (root / SvelteKit /
+ *   dashboard-next). Bare prefixes (002–027) collide across lineages, so
+ *   the bare-filename ledger is ambiguous. dashboard-next therefore keeps
+ *   its own `dashboard_migrations` table keyed by name + a content
+ *   checksum. On first run the runner RECONCILES: it backfills
+ *   `dashboard_migrations` from the legacy `migrations` table for ONLY the
+ *   names that correspond to files in THIS dir, so a DB where all 15 files
+ *   are already applied transitions without re-running anything.
+ *
+ * Checksum & drift:
+ *   Each ledger row stores sha256(RAW file content) — computed BEFORE the
+ *   `<VPS_LAN_IP>` substitution, so it is stable across hosts. If an
+ *   already-recorded migration's current file checksum differs from the
+ *   stored one, the runner emits a loud warning (content drift = an applied
+ *   migration was edited) but does NOT re-apply or auto-mutate.
  *
  * The runner is DB-agnostic: it accepts an `Executor` that can both
  *   - `exec(sql)`: run a multi-statement DDL string and discard results
@@ -22,6 +41,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import os from "node:os";
+import { createHash } from "node:crypto";
 import { runSequentially } from "@/lib/sequential";
 
 const SAFE_FILENAME_RE = /^[a-zA-Z0-9_-]+\.sql$/;
@@ -97,6 +117,40 @@ interface MigrationRow {
   name: string;
 }
 
+interface DashboardMigrationRow {
+  name: string;
+  checksum: string;
+}
+
+/** Ledger table name for dashboard-next's namespaced migration history. */
+const LEDGER_TABLE = "dashboard_migrations";
+
+/**
+ * sha256 hex digest of the RAW migration file content. Computed BEFORE
+ * the `<VPS_LAN_IP>` substitution so the checksum is identical across
+ * hosts (the placeholder is part of the committed file, the resolved IP
+ * is host-specific and would make the digest unstable).
+ */
+function migrationChecksum(rawSql: string): string {
+  return createHash("sha256").update(rawSql, "utf-8").digest("hex");
+}
+
+/**
+ * Best-effort check whether a relation exists, used to guard the
+ * legacy-table read during reconciliation. Returns false if the
+ * `to_regclass` probe itself fails (driver without the function, etc.).
+ */
+async function relationExists(executor: Executor, table: string): Promise<boolean> {
+  try {
+    const rows = await executor.query<{ reg: string | null }>("SELECT to_regclass($1) AS reg", [
+      table,
+    ]);
+    return rows[0]?.reg != null;
+  } catch {
+    return false;
+  }
+}
+
 function errorMessage(e: unknown): string {
   if (e instanceof Error) return e.message;
   if (typeof e === "string") return e;
@@ -152,36 +206,87 @@ function filterExtensionStatements(sql: string, patterns?: string[]): string {
  * the order they were applied). Idempotent: re-running returns [].
  */
 export async function runSqlMigrations(opts: RunMigrationsOptions): Promise<string[]> {
-  // Bootstrap the migrations table if it doesn't exist yet. Safe to
-  // re-run (the SQL is idempotent).
+  // Bootstrap dashboard-next's OWN namespaced ledger table if it doesn't
+  // exist yet. Safe to re-run (IF NOT EXISTS). Keyed by name + a content
+  // checksum so drift in an applied migration is detectable.
   await opts.executor.exec(`
-		CREATE TABLE IF NOT EXISTS migrations (
+		CREATE TABLE IF NOT EXISTS ${LEDGER_TABLE} (
 			id SERIAL PRIMARY KEY,
 			name VARCHAR(255) UNIQUE NOT NULL,
+			checksum CHAR(64) NOT NULL,
 			applied_at TIMESTAMP DEFAULT NOW()
 		)
 	`);
 
-  const applied = await opts.executor.query<MigrationRow>(
-    "SELECT name FROM migrations ORDER BY name",
-  );
-  const appliedSet = new Set(applied.map((m) => m.name));
-
+  // Enumerate the migration files in this dir up-front so both
+  // reconciliation and the apply loop work off the same list.
   const files = readdirSync(opts.dir)
     .filter((f) => f.endsWith(".sql") && SAFE_FILENAME_RE.test(f))
     .sort();
+  const entries = files.map((file) => {
+    const filePath = join(opts.dir, file);
+    const rawSql = readFileSync(filePath, "utf-8");
+    return {
+      file,
+      filePath,
+      name: file.replace(/\.sql$/, ""),
+      rawSql,
+      checksum: migrationChecksum(rawSql),
+    };
+  });
+
+  // RECONCILIATION (one-time, automatic, idempotent). If the ledger is
+  // freshly created/empty AND a legacy shared `migrations` table exists
+  // with rows, backfill `dashboard_migrations` for ONLY the names that
+  // correspond to files in THIS dir. This lets a live prod DB (where all
+  // these migrations were already applied under the shared ledger)
+  // transition WITHOUT re-running any migration. A truly fresh DB (no
+  // legacy rows) backfills nothing and applies everything fresh.
+  const ledgerCount = await opts.executor.query<{ n: string | number }>(
+    `SELECT COUNT(*) AS n FROM ${LEDGER_TABLE}`,
+  );
+  const ledgerIsEmpty = Number(ledgerCount[0]?.n ?? 0) === 0;
+  if (ledgerIsEmpty && (await relationExists(opts.executor, "migrations"))) {
+    const legacy = await opts.executor.query<MigrationRow>("SELECT name FROM migrations");
+    const legacyNames = new Set(legacy.map((m) => m.name));
+    const toBackfill = entries.filter((e) => legacyNames.has(e.name));
+    await runSequentially(toBackfill, async (e) => {
+      await opts.executor.query(
+        `INSERT INTO ${LEDGER_TABLE} (name, checksum) VALUES ($1, $2) ON CONFLICT (name) DO NOTHING`,
+        [e.name, e.checksum],
+      );
+    });
+  }
+
+  // Build the recorded-set + stored checksums from the namespaced ledger.
+  const applied = await opts.executor.query<DashboardMigrationRow>(
+    `SELECT name, checksum FROM ${LEDGER_TABLE} ORDER BY name`,
+  );
+  const appliedChecksums = new Map(applied.map((m) => [m.name, m.checksum]));
 
   const run: string[] = [];
 
-  const pending = files
-    .map((file) => ({ file, name: file.replace(/\.sql$/, "") }))
-    .filter(({ name }) => !appliedSet.has(name));
+  // CHECKSUM DRIFT DETECTION: for any file whose name is already recorded,
+  // compare stored vs current checksum. On mismatch, warn loudly (someone
+  // edited an applied migration) but do NOT re-apply or auto-mutate.
+  entries.forEach((e) => {
+    const stored = appliedChecksums.get(e.name);
+    if (stored !== undefined && stored !== e.checksum) {
+      console.warn(
+        `[migrate] checksum drift for already-applied migration "${e.name}": ` +
+          `stored=${stored} current=${e.checksum}. The file content changed ` +
+          `after it was applied. Skipping re-apply (not auto-mutating); ` +
+          `reconcile manually if this is intentional.`,
+      );
+    }
+  });
 
-  await runSequentially(pending, async ({ file, name }) => {
-    const filePath = join(opts.dir, file);
+  const pending = entries.filter((e) => !appliedChecksums.has(e.name));
+
+  await runSequentially(pending, async ({ filePath, name, rawSql, checksum }) => {
     // Defence-in-depth: ensure the resolved path is still inside `dir`.
     if (!filePath.startsWith(opts.dir)) return;
-    const sqlText = readFileSync(filePath, "utf-8");
+    const sqlText = rawSql;
     const ip = opts.lanIp ?? getLanIp();
     let finalSql = ip ? replaceVpsLanIp(sqlText, ip) : sqlText;
 
@@ -220,11 +325,13 @@ export async function runSqlMigrations(opts: RunMigrationsOptions): Promise<stri
       }
     }
 
-    // Record the applied migration. Parameterised; safe regardless
-    // of filename contents.
+    // Record the applied migration in the namespaced ledger, with its
+    // content checksum. Parameterised; safe regardless of filename
+    // contents. The runner records names itself, so migration files do
+    // NOT need a trailing `INSERT INTO migrations ...` footer.
     await opts.executor.query(
-      "INSERT INTO migrations (name) VALUES ($1) ON CONFLICT (name) DO NOTHING",
-      [name],
+      `INSERT INTO ${LEDGER_TABLE} (name, checksum) VALUES ($1, $2) ON CONFLICT (name) DO NOTHING`,
+      [name, checksum],
     );
     run.push(name);
   });
