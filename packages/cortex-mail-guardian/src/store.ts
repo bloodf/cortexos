@@ -1,6 +1,7 @@
 import pg from 'pg';
 import type { GuardianConfig } from './config.js';
 import type { RuleMatch } from './rules.js';
+import runSequentially from './sequential.js';
 
 export interface PendingReviewInput {
   accountSlug: string;
@@ -26,6 +27,16 @@ export interface ReviewRecord {
   message_id?: string | null;
   from_hash: string;
   domain_hash: string;
+}
+
+export interface BackfillReviewRow {
+  id: number;
+  account_slug: string;
+  message_uid: number;
+  message_id: string | null;
+  subject: string | null;
+  body_text: string | null;
+  summary: string | null;
 }
 
 export interface DecisionInput {
@@ -432,5 +443,66 @@ export class GuardianStore {
       [reviewId],
     );
     return result.rows[0]?.domain_hash ?? null;
+  }
+
+  /**
+   * Read review rows needing decode backfill. Returns the identity columns the
+   * backfill needs (account_slug, message_uid) plus the current display fields
+   * so the caller can diff old vs new. Read-only.
+   */
+  async listReviewsForBackfill(): Promise<BackfillReviewRow[]> {
+    const result = await this.pool.query<BackfillReviewRow>(
+      `SELECT id, account_slug, message_uid, message_id, subject, body_text, summary
+       FROM mail_guardian_reviews
+       ORDER BY id`,
+    );
+    return result.rows;
+  }
+
+  /**
+   * UPDATE-only patch of the decoded display fields on a single review row.
+   * Never inserts or deletes. Used by the one-off decode backfill to repair
+   * rows that stored undecoded MIME/base64/QP before the decode fix landed.
+   */
+  async updateReviewDecodedFields(
+    id: number,
+    fields: { subject?: string; bodyText?: string; summary: string },
+    executor: { query: pg.Pool['query'] } = this.pool,
+  ): Promise<void> {
+    await executor.query(
+      `UPDATE mail_guardian_reviews
+       SET subject = $2, body_text = $3, summary = $4
+       WHERE id = $1`,
+      [id, fields.subject ?? null, fields.bodyText ?? null, fields.summary],
+    );
+  }
+
+  /**
+   * Apply many decoded-field patches atomically in one transaction. Idempotent
+   * (re-running yields the same decoded values) and UPDATE-only. Used by the
+   * decode backfill so a partial run never leaves a mix of old/new rows.
+   */
+  async updateReviewDecodedFieldsBatch(
+    updates: { id: number; subject?: string; bodyText?: string; summary: string }[],
+  ): Promise<number> {
+    if (updates.length === 0) return 0;
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      await runSequentially(updates, (update) =>
+        this.updateReviewDecodedFields(
+          update.id,
+          { subject: update.subject, bodyText: update.bodyText, summary: update.summary },
+          client,
+        ),
+      );
+      await client.query('COMMIT');
+      return updates.length;
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 }

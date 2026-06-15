@@ -56,7 +56,9 @@ export async function processMessage(
   const redacted = redactEmail({
     from: message.from,
     subject: message.subject,
-    text: message.text,
+    // Use the decoded body (multipart/base64/QP unwrapped) so the redacted
+    // summary is human-readable; fall back to raw text only when undecoded.
+    text: message.bodyText ?? message.text,
   });
 
   // Deterministic rule pre-filter — runs BEFORE any AI/model call.
@@ -99,7 +101,9 @@ export async function processMessage(
   const classifyInput = {
     from: message.from,
     subject: message.subject,
-    text: message.text,
+    // Classify on the decoded body, not raw MIME/base64/QP, or the spam
+    // classifier scores garbage. Fall back to raw text only when undecoded.
+    text: message.bodyText ?? message.text,
     ...(briefRow ? { feedbackSummary: briefRow.brief } : {}),
   };
 

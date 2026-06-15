@@ -394,6 +394,55 @@ export class TlsImapMailClient implements MailClient {
     });
   }
 
+  /**
+   * Read-only fetch of a single message by UID from an explicit mailbox,
+   * re-parsed through the same path as `listInbox` (so the result carries the
+   * decoded `bodyText`/`subject`). Returns `undefined` when the UID is no
+   * longer present in the mailbox. Used by the one-off decode backfill; it
+   * SELECTs and FETCHes only — it never moves, copies, or deletes mail.
+   */
+  async fetchRawByUid(
+    account: MailAccountConfig,
+    mailbox: string,
+    uid: number,
+  ): Promise<MailMessage | undefined> {
+    const session = await this.session(account);
+    await session.select(mailbox);
+    const raw = await session.fetchRaw(uid);
+    const parsed = parseRawEmail(raw);
+    // A FETCH for an absent UID returns the tagged OK with no message literal;
+    // fetchRaw then yields the bare protocol echo, which parses to an empty
+    // message. Treat "no from, subject, or body" as "UID gone".
+    if (!parsed.from && !parsed.subject && !parsed.text) return undefined;
+    return { uid, ...parsed };
+  }
+
+  /**
+   * Read-only fetch of a single message located by its `Message-ID` header
+   * within an explicit mailbox. Needed because IMAP MOVE/COPY reassigns
+   * destination-mailbox UIDs — a review row's stored `message_uid` (the original
+   * INBOX UID) does not address the same message once it sits in the review
+   * mailbox, but the immutable Message-ID still does. Returns `undefined` when
+   * no message matches. SELECT + SEARCH + FETCH only; never mutates mail.
+   */
+  async fetchByMessageId(
+    account: MailAccountConfig,
+    mailbox: string,
+    messageId: string,
+  ): Promise<MailMessage | undefined> {
+    const session = await this.session(account);
+    await session.select(mailbox);
+    const uid = await session.findUidByMessageId(messageId);
+    // No (valid) match: an empty IMAP SEARCH yields no usable UID, so don't
+    // issue a `UID FETCH` for a missing/zero UID (servers reject it as an
+    // "invalid uidset"). Treat as "message not in this mailbox".
+    if (uid === undefined || !Number.isInteger(uid) || uid <= 0) return undefined;
+    const raw = await session.fetchRaw(uid);
+    const parsed = parseRawEmail(raw);
+    if (!parsed.from && !parsed.subject && !parsed.text) return undefined;
+    return { uid, ...parsed };
+  }
+
   async moveToReview(account: MailAccountConfig, uid: number): Promise<string> {
     return this.moveToMailbox(account, uid, account.reviewMailbox, {
       sourceMailbox: account.inbox,
