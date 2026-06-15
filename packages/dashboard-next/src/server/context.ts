@@ -161,14 +161,30 @@ function newRequestId(): string {
   return randomUUID().replace(/-/g, "").slice(0, 16);
 }
 
-/** Best-effort client IP from forwarding headers. */
-function readClientIp(request: Request): string {
-  const xff = request.headers.get("x-forwarded-for");
-  if (xff) {
-    const first = xff.split(",")[0]?.trim();
-    if (first) return first;
-  }
-  return request.headers.get("x-real-ip") ?? "127.0.0.1";
+/**
+ * Resolve the client IP used for rate-limiting and audit.
+ *
+ * TRUST MODEL (load-bearing — this is a brute-force defence, not cosmetics):
+ * the dashboard binds 127.0.0.1:3080 and is reachable ONLY through Caddy, the
+ * sole trusted proxy. Caddy is configured (global `servers.trusted_proxies` +
+ * the dashboard `reverse_proxy`) to set `X-Real-IP` to its `{client_ip}` — the
+ * real client resolved after stripping trusted-proxy hops (e.g. the tailscale
+ * loopback that fronts Caddy). We therefore read ONLY `X-Real-IP`.
+ *
+ * We must NOT read the raw `X-Forwarded-For`: Caddy/tailscale APPEND the real
+ * peer, so the left-hand entries are client-supplied and spoofable. The old
+ * `xff.split(',')[0]` took that spoofable left entry, letting an attacker rotate
+ * `X-Forwarded-For` to get a fresh login rate-limit bucket per request and
+ * defeat PAM brute-force protection (SR / login-ratelimit-bypass-via-spoofed-xff).
+ *
+ * Fallback: when `X-Real-IP` is absent (a direct loopback request in dev/tests,
+ * or a misconfigured proxy) we return loopback rather than trusting attacker
+ * input — fail closed to a single shared bucket, never to a spoofable value.
+ */
+export function readClientIp(request: Request): string {
+  const realIp = request.headers.get("x-real-ip")?.trim();
+  if (realIp) return realIp;
+  return "127.0.0.1";
 }
 
 /**

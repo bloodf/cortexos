@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { checkOrigin, clientIp, dbConfig, parseCookies } from '../src/server.js';
+import {
+  checkOrigin,
+  clientIp,
+  dbConfig,
+  deriveSessionGrant,
+  parseCookies,
+} from '../src/server.js';
 
 describe('parseCookies', () => {
   it('returns an empty map for a missing or empty header', () => {
@@ -88,6 +94,69 @@ describe('clientIp', () => {
   it('returns "unknown" when neither is available', () => {
     const req = { headers: {}, socket: {} };
     expect(clientIp(req)).toBe('unknown');
+  });
+});
+
+describe('deriveSessionGrant (live admin + active re-derivation)', () => {
+  const now = () => 1_000_000;
+  const maxRoleAgeMs = 120_000;
+  // A row whose dashboard role-check is fresh relative to `now`.
+  const freshRow = (overrides = {}) => ({
+    username: 'alice',
+    lastRoleCheckAt: now() - 10_000,
+    ...overrides,
+  });
+  // Probes that report a live, active admin.
+  const adminActive = {
+    userActive: () => true,
+    isAdmin: () => true,
+    now,
+    maxRoleAgeMs,
+  };
+
+  it('grants a root PTY for a live admin whose account is active and role is fresh', () => {
+    expect(deriveSessionGrant(freshRow(), adminActive)).toEqual({
+      isAdmin: true,
+      username: 'alice',
+    });
+  });
+
+  it('denies when the account is inactive even though the stored is_admin was true', () => {
+    // Simulates a disabled/removed account: the OS no longer resolves the uid.
+    const grant = deriveSessionGrant(freshRow(), {
+      ...adminActive,
+      userActive: () => false,
+    });
+    expect(grant).toBeNull();
+  });
+
+  it('denies admin when the user is NOT in the live cortexos-admin group', () => {
+    // The session row claimed admin, but live group membership says otherwise:
+    // the demoted user must not be granted admin (no root shell).
+    const grant = deriveSessionGrant(freshRow(), {
+      ...adminActive,
+      isAdmin: () => false,
+    });
+    expect(grant).toEqual({ isAdmin: false, username: 'alice' });
+  });
+
+  it('denies (null) when the role-check timestamp is staler than the freshness bound', () => {
+    const grant = deriveSessionGrant(
+      freshRow({ lastRoleCheckAt: now() - (maxRoleAgeMs + 1) }),
+      adminActive,
+    );
+    expect(grant).toBeNull();
+  });
+
+  it('denies (null) for an expired/absent session (null row)', () => {
+    // validateSession passes null when the `expires_at > now()` SQL filter
+    // matched no row — an expired or unknown session must never resolve.
+    expect(deriveSessionGrant(null, adminActive)).toBeNull();
+  });
+
+  it('treats a missing/zero last_role_check_at as stale and denies', () => {
+    const grant = deriveSessionGrant(freshRow({ lastRoleCheckAt: 0 }), adminActive);
+    expect(grant).toBeNull();
   });
 });
 

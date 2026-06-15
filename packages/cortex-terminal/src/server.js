@@ -15,7 +15,14 @@
  *   1. Cookie auth   — the `cortexos_session` HttpOnly cookie from the upgrade
  *                      request is validated against Postgres `admin_sessions`
  *                      (token + expiry). No row → close 4401.
- *   2. RBAC          — the session must be `is_admin = true`. Otherwise close 4403.
+ *   2. RBAC          — admin is RE-DERIVED LIVE from OS group membership of
+ *                      `cortexos-admin` (`id -Gn`), NOT from the denormalized
+ *                      `admin_sessions.is_admin` column, AND the account must
+ *                      still be active on the host (`id -u`), AND the dashboard
+ *                      must have re-confirmed the role within ROLE_CHECK_MAX_AGE
+ *                      (`last_role_check_at`). This mirrors the dashboard so a
+ *                      revoked admin / disabled account loses the shell instead
+ *                      of riding a stale session row. Not currently admin → 4403.
  *   3. CSRF / origin — the WS `Origin` header MUST equal ALLOWED_ORIGIN to stop
  *                      cross-site WebSocket hijacking (the cookie alone is not
  *                      enough; browsers send cookies on cross-site WS too).
@@ -23,6 +30,11 @@
  *                      access (same model as the legacy /api/terminal), so this
  *                      is an unrestricted server shell, gated only by the auth
  *                      checks above.
+ *
+ * Re-validation gates NEW grants only. Live PTYs already open when an admin is
+ * revoked are not force-closed mid-session (they end on idle timeout / exit /
+ * disconnect). Periodic re-validation + teardown of live sessions is a tracked
+ * follow-up (see REMEDIATION notes), not implemented here.
  *
  * Privacy: we log connection lifecycle (user, ip, close codes) but NEVER pty
  * content (no keystrokes, no output).
@@ -34,6 +46,7 @@
  * directly). A control frame `{ type: 'exit', code }` is sent on pty exit.
  */
 
+import { execFileSync } from 'node:child_process';
 import { createServer } from 'node:http';
 import { fileURLToPath } from 'node:url';
 
@@ -57,6 +70,20 @@ const IDLE_SEC = parseInt(process.env.TERMINAL_IDLE_SEC || '900', 10);
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || '';
 
 const SESSION_COOKIE = 'cortexos_session';
+
+// The dashboard re-validates a session's admin role against live OS group
+// membership whenever `admin_sessions.last_role_check_at` is older than its
+// ROLE_CHECK_TTL_MS (60s; see dashboard-next src/server/context.ts). The
+// terminal re-derives admin live on every upgrade, but it ALSO honors this
+// freshness bound as defence-in-depth: if the dashboard has not confirmed the
+// role within this window the grant is refused, so a stale row can never be
+// the sole basis for a root shell. Slightly larger than the dashboard's 60s to
+// tolerate clock skew between the two services.
+const ROLE_CHECK_MAX_AGE_MS = parseInt(process.env.TERMINAL_ROLE_CHECK_MAX_AGE_MS || '120000', 10);
+
+// The only OS group that confers admin (root shell). Mirrors the dashboard's
+// single admin-bearing group (dashboard-next src/server/auth/pam.ts).
+const ADMIN_GROUP = 'cortexos-admin';
 
 // ---------------------------------------------------------------------------
 // Structured logging (NEVER logs pty content)
@@ -125,9 +152,115 @@ export function parseCookies(header) {
 }
 
 /**
+ * Live OS account-active probe. An account that has been deleted or otherwise
+ * removed from the system has no uid, so `id -u <user>` exits non-zero. Mirrors
+ * the dashboard's `safeUserExists` (dashboard-next src/server/auth/pam.ts): a
+ * disabled/removed account must not keep a privileged shell. Returns false on
+ * any failure (fail-closed). Never throws.
+ * @param {string} username
+ * @returns {boolean}
+ */
+export function osUserActive(username) {
+  if (!username) return false;
+  try {
+    const out = execFileSync('id', ['-u', username], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    return /^\d+$/.test(out.trim());
+  } catch {
+    // `id` exits non-zero when the user doesn't exist. Treat as inactive.
+    return false;
+  }
+}
+
+/**
+ * Live re-derivation of admin from OS group membership. Calls `id -Gn <user>`
+ * and checks for `cortexos-admin`, EXACTLY as the dashboard does
+ * (LinuxPamAuthenticator.isAdmin in dashboard-next src/server/auth/pam.ts).
+ * This is the source of truth for admin — never the denormalized
+ * `admin_sessions.is_admin` column. Returns false on any failure (fail-closed).
+ * Never throws.
+ * @param {string} username
+ * @returns {boolean}
+ */
+export function osUserIsAdmin(username) {
+  if (!username) return false;
+  try {
+    const out = execFileSync('id', ['-Gn', username], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    return out
+      .split(/\s+/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .includes(ADMIN_GROUP);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Pure decision core for whether a session row earns a root PTY. Extracted so
+ * it can be unit-tested with real-shaped rows and injected OS probes, WITHOUT
+ * opening a database or a PTY. Do NOT weaken any check here to ease testing.
+ *
+ * Security requirements (all must hold to grant):
+ *   1. The row exists and is unexpired (enforced by the SQL `expires_at > now()`
+ *      filter; a null/absent row here means "no valid session" → deny).
+ *   2. The account is ACTIVE on the host right now (`osUserActive`). A deleted
+ *      or disabled account is denied even if a session row survives.
+ *   3. Admin is RE-DERIVED LIVE from OS group membership (`osUserIsAdmin`); the
+ *      stored `is_admin` column is NOT trusted. Only a live admin gets a shell.
+ *   4. Freshness bound: the dashboard's `last_role_check_at` must be within
+ *      ROLE_CHECK_MAX_AGE_MS, so the dashboard has recently re-confirmed the
+ *      role (defence-in-depth against an OS probe that is fooled or skipped).
+ *
+ * @param {{ username: string, lastRoleCheckAt: number } | null} row
+ * @param {{
+ *   userActive: (u: string) => boolean,
+ *   isAdmin: (u: string) => boolean,
+ *   now?: () => number,
+ *   maxRoleAgeMs?: number,
+ * }} deps
+ * @returns {{ isAdmin: boolean, username: string } | null}
+ */
+export function deriveSessionGrant(row, deps) {
+  if (!row) return null;
+  const username = String(row.username || '');
+  if (!username) return null;
+
+  // 2. Account must be active on the host right now.
+  if (!deps.userActive(username)) {
+    log('rejected: account inactive', { user: username });
+    return null;
+  }
+
+  // 4. Freshness bound — the dashboard must have re-confirmed the role recently.
+  const now = (deps.now ?? Date.now)();
+  const maxAge = deps.maxRoleAgeMs ?? ROLE_CHECK_MAX_AGE_MS;
+  const lastRoleCheckAt = Number(row.lastRoleCheckAt) || 0;
+  if (now - lastRoleCheckAt > maxAge) {
+    log('rejected: stale role check', { user: username, lastRoleCheckAt });
+    return null;
+  }
+
+  // 3. Re-derive admin LIVE from OS group membership; ignore the stored column.
+  const isAdmin = deps.isAdmin(username) === true;
+  return { isAdmin, username };
+}
+
+/**
  * Validate the session token against `admin_sessions`. A fresh short-lived
  * pg Client is used per upgrade (low volume, avoids a stale pool on a server
  * that mostly idles). Returns null on any failure.
+ *
+ * The grant is NOT based on the denormalized `admin_sessions.is_admin` column:
+ * that value is never re-validated by the terminal and would let a user whose
+ * admin was revoked (removed from `cortexos-admin`, or whose account was
+ * disabled) keep a root shell. Instead we re-derive admin + account-active
+ * LIVE from the OS via `deriveSessionGrant`, mirroring the dashboard.
  * @param {string} token
  * @returns {Promise<{ isAdmin: boolean, username: string } | null>}
  */
@@ -136,14 +269,17 @@ async function validateSession(token) {
   try {
     await client.connect();
     const res = await client.query(
-      'select s.is_admin, u.username from admin_sessions s ' +
+      'select u.username, s.last_role_check_at from admin_sessions s ' +
         'join pam_users u on u.id = s.user_id ' +
         'where s.token = $1 and s.expires_at > now()',
       [token],
     );
     if (res.rowCount === 0) return null;
     const row = res.rows[0];
-    return { isAdmin: row.is_admin === true, username: String(row.username) };
+    return deriveSessionGrant(
+      { username: String(row.username), lastRoleCheckAt: Number(row.last_role_check_at) },
+      { userActive: osUserActive, isAdmin: osUserIsAdmin },
+    );
   } catch (err) {
     log('session validation error', {
       error: err instanceof Error ? err.message : String(err),
