@@ -85,18 +85,30 @@ async function smoke(): Promise<void> {
   }
 }
 
+// Runs a single sweep against ALREADY-BUILT deps. The caller owns the deps
+// lifecycle (build/close); this function never tears them down. The long-lived
+// `listen` loop reuses one set of deps across every idle cycle so it does not
+// rebuild the IMAP client / DB pool or re-run ensureSchema on each wake.
+export async function runSweepWithDeps(
+  deps: Awaited<ReturnType<typeof buildDeps>>,
+  sweepFn: typeof sweep = sweep,
+): Promise<void> {
+  if (!telegramEnabled(deps.config) || !deps.config.telegramOwnerChatId) {
+    process.stderr.write(
+      '[mail-guardian] Telegram not fully configured (needs both TELEGRAM_BOT_TOKEN and MAIL_GUARDIAN_TELEGRAM_OWNER_CHAT_ID); review notifications disabled.\n',
+    );
+  } else {
+    await assertTelegramReady(deps.telegram, deps.config.telegramOwnerChatId);
+  }
+  const result = await sweepFn(deps);
+  process.stdout.write(`${JSON.stringify({ event: 'mail_guardian_sweep', ...result })}\n`);
+}
+
+// One-shot `sweep` command path: legitimately builds deps once, runs, and exits.
 async function runSweep(): Promise<void> {
   const deps = await buildDeps();
   try {
-    if (!telegramEnabled(deps.config) || !deps.config.telegramOwnerChatId) {
-      process.stderr.write(
-        '[mail-guardian] Telegram not fully configured (needs both TELEGRAM_BOT_TOKEN and MAIL_GUARDIAN_TELEGRAM_OWNER_CHAT_ID); review notifications disabled.\n',
-      );
-    } else {
-      await assertTelegramReady(deps.telegram, deps.config.telegramOwnerChatId);
-    }
-    const result = await sweep(deps);
-    process.stdout.write(`${JSON.stringify({ event: 'mail_guardian_sweep', ...result })}\n`);
+    await runSweepWithDeps(deps);
   } finally {
     await deps.mail.close();
     await deps.store.close();
@@ -140,12 +152,16 @@ async function listen(): Promise<void> {
   } else {
     await assertTelegramReady(deps.telegram, deps.config.telegramOwnerChatId);
   }
-  await runSweep();
+  // Initial sweep + every idle-wake sweep reuse the deps built once above.
+  // The IMAP client self-heals via session.ensureConnected() on each
+  // waitForNewMail, so a dropped connection reconnects without rebuilding deps
+  // or re-running ensureSchema; only an error path triggers backoff.
+  await runSweepWithDeps(deps);
   const listeners = deps.config.accounts.map((account) => {
     const loop = async (attempt = 0): Promise<void> => {
       const next = await listenerStep(attempt, {
         waitForNewMail: () => deps.mail.waitForNewMail(account),
-        sweep: runSweep,
+        sweep: () => runSweepWithDeps(deps),
         sleep,
         onError: makeListenerOnError(account.slug),
       });
