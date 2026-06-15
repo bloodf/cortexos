@@ -94,7 +94,7 @@ function decodeQuotedPrintable(input: string): string {
       bytes.push(parseInt(stripped.slice(i + 1, i + 3), 16));
       i += 2;
     } else {
-      bytes.push(ch.charCodeAt(0) & 0xff);
+      bytes.push(ch.charCodeAt(0));
     }
   }
   return Buffer.from(bytes).toString('utf8');
