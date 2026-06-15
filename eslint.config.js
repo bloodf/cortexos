@@ -357,6 +357,7 @@ export default [
           allowDefaultProject: [
             'packages/cortex-audit/src/index.d.ts',
             'packages/cortex-mail-guardian/test/*.ts',
+            'packages/cortex-mail-guardian/scripts/*.ts',
             'packages/cortex-mail-guardian/vitest.config.ts',
           ],
           maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 20,
