@@ -60,6 +60,40 @@ function parseMailboxPath(line: string): string | undefined {
   return line.trim().split(/\s+/).at(-1);
 }
 
+/**
+ * Extract the personal-namespace prefix from an IMAP NAMESPACE response.
+ *
+ * Some Dovecot servers (e.g. mail.heitorramon.com) expose a personal namespace
+ * rooted under `INBOX.` — SELECT/MOVE on a bare `Trash` or `Cortex Mail
+ * Guardian Review` is rejected with "nonexistent namespace ... prefix with
+ * INBOX.". The response looks like: `* NAMESPACE (("INBOX." ".")) NIL NIL`.
+ * Returns the first personal prefix (here `INBOX.`) or undefined when the
+ * personal namespace has an empty prefix (the common case, e.g. the geeks
+ * servers, where no normalization is needed).
+ */
+export function parseNamespacePrefix(output: string): string | undefined {
+  const match = output.match(/\* NAMESPACE\s+\(\((.*?)\)\)/);
+  if (!match) return undefined;
+  // First personal namespace entry: ("<prefix>" "<delim>").
+  const entry = match[1].match(/"((?:\\"|[^"])*)"/);
+  const prefix = entry?.[1]?.replace(/\\"/g, '"');
+  return prefix && prefix.length > 0 ? prefix : undefined;
+}
+
+/**
+ * Defensively prefix a mailbox name with the server's personal-namespace prefix
+ * when required. Leaves `INBOX` (and anything already under the prefix) alone;
+ * applies the prefix to bare names like `Trash` → `INBOX.Trash`. A no-op when
+ * the server has no personal prefix. This makes mailbox addressing robust to
+ * stored values (DB/env) or discovered names that omit the prefix.
+ */
+export function applyNamespacePrefix(mailbox: string, prefix: string | undefined): string {
+  if (!prefix) return mailbox;
+  if (mailbox === 'INBOX' || mailbox === prefix.replace(/\.$/, '')) return mailbox;
+  if (mailbox.startsWith(prefix)) return mailbox;
+  return `${prefix}${mailbox}`;
+}
+
 function parseHeaders(raw: string): Map<string, string> {
   const unfolded = raw.replace(/\r?\n[ \t]+/g, ' ');
   const headers = new Map<string, string>();
@@ -191,6 +225,8 @@ class ImapSession {
   private socket?: tls.TLSSocket;
   private tag = 0;
   private buffer = '';
+  /** Server personal-namespace prefix (e.g. `INBOX.`); undefined when none. */
+  private namespacePrefix?: string;
 
   constructor(private readonly account: MailAccountConfig) {}
 
@@ -216,9 +252,22 @@ class ImapSession {
     ]);
     await this.readUntil(/^(\* OK|\* PREAUTH)/m);
     await this.command('LOGIN', quote(this.account.username), quote(this.account.password));
+    // Capture the personal-namespace prefix so mailbox names are addressed
+    // correctly on servers that require one (e.g. INBOX.-rooted Dovecot).
+    // Best-effort: servers without NAMESPACE leave the prefix undefined.
+    try {
+      this.namespacePrefix = parseNamespacePrefix(await this.command('NAMESPACE'));
+    } catch {
+      this.namespacePrefix = undefined;
+    }
     socket.on('error', () => {
       // Later command/read paths handle closed sockets; avoid process-level unhandled errors.
     });
+  }
+
+  /** Normalize a mailbox name against the server's personal namespace. */
+  private qualify(mailbox: string): string {
+    return applyNamespacePrefix(mailbox, this.namespacePrefix);
   }
 
   async close(): Promise<void> {
@@ -232,7 +281,7 @@ class ImapSession {
   }
 
   async select(mailbox: string): Promise<void> {
-    await this.command('SELECT', quote(mailbox));
+    await this.command('SELECT', quote(this.qualify(mailbox)));
   }
 
   async searchAll(): Promise<number[]> {
@@ -265,7 +314,7 @@ class ImapSession {
 
   async ensureMailbox(mailbox: string): Promise<void> {
     try {
-      await this.command('CREATE', quote(mailbox));
+      await this.command('CREATE', quote(this.qualify(mailbox)));
     } catch {
       // CREATE fails when the mailbox already exists on many servers.
     }
@@ -285,10 +334,11 @@ class ImapSession {
   }
 
   async move(uid: number, destination: string): Promise<void> {
+    const target = this.qualify(destination);
     try {
-      await this.command('UID', 'MOVE', String(uid), quote(destination));
+      await this.command('UID', 'MOVE', String(uid), quote(target));
     } catch {
-      await this.command('UID', 'COPY', String(uid), quote(destination));
+      await this.command('UID', 'COPY', String(uid), quote(target));
       await this.command('UID', 'STORE', String(uid), '+FLAGS.SILENT', '(\\Deleted)');
     }
   }

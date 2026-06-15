@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { listenerStep } from './backoff.js';
-import { accountFromRow, loadConfig, mergeAccounts } from './config.js';
+import { accountFromRow, loadConfig, mergeAccounts, telegramEnabled } from './config.js';
 import { getMailGuardianEnvPath } from './env.js';
 import { ImapConnectionClosedError, TlsImapMailClient } from './imap.js';
 import { GuardianStore } from './store.js';
@@ -67,6 +67,9 @@ async function smoke(): Promise<void> {
     if (!config.telegramOwnerChatId) {
       throw new Error('MAIL_GUARDIAN_TELEGRAM_OWNER_CHAT_ID is required for smoke');
     }
+    if (!config.telegramBotToken) {
+      throw new Error('TELEGRAM_BOT_TOKEN is required for smoke');
+    }
     await assertTelegramReady(telegram, config.telegramOwnerChatId);
     const modelsRes = await fetch(`${config.nineRouterBaseUrl.replace(/\/+$/, '')}/models`, {
       headers: { authorization: `Bearer ${config.nineRouterApiKey}` },
@@ -85,9 +88,9 @@ async function smoke(): Promise<void> {
 async function runSweep(): Promise<void> {
   const deps = await buildDeps();
   try {
-    if (!deps.config.telegramOwnerChatId) {
+    if (!telegramEnabled(deps.config) || !deps.config.telegramOwnerChatId) {
       process.stderr.write(
-        '[mail-guardian] Telegram owner chat missing; review notifications disabled.\n',
+        '[mail-guardian] Telegram not fully configured (needs both TELEGRAM_BOT_TOKEN and MAIL_GUARDIAN_TELEGRAM_OWNER_CHAT_ID); review notifications disabled.\n',
       );
     } else {
       await assertTelegramReady(deps.telegram, deps.config.telegramOwnerChatId);
@@ -101,7 +104,7 @@ async function runSweep(): Promise<void> {
 }
 
 async function pollTelegramReviews(deps: Awaited<ReturnType<typeof buildDeps>>): Promise<void> {
-  if (!deps.config.telegramOwnerChatId) return undefined;
+  if (!telegramEnabled(deps.config)) return undefined;
   let offset: number | undefined;
   const loop = async (): Promise<void> => {
     try {
@@ -130,9 +133,9 @@ async function pollTelegramReviews(deps: Awaited<ReturnType<typeof buildDeps>>):
 
 async function listen(): Promise<void> {
   const deps = await buildDeps();
-  if (!deps.config.telegramOwnerChatId) {
+  if (!telegramEnabled(deps.config) || !deps.config.telegramOwnerChatId) {
     process.stderr.write(
-      '[mail-guardian] Telegram owner chat missing; Telegram polling disabled.\n',
+      '[mail-guardian] Telegram not fully configured (needs both TELEGRAM_BOT_TOKEN and MAIL_GUARDIAN_TELEGRAM_OWNER_CHAT_ID); Telegram polling disabled.\n',
     );
   } else {
     await assertTelegramReady(deps.telegram, deps.config.telegramOwnerChatId);

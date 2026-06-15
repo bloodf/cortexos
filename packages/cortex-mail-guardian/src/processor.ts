@@ -1,4 +1,5 @@
 import type { GuardianConfig, MailAccountConfig } from './config.js';
+import { telegramEnabled } from './config.js';
 import type { MailClient, MailMessage } from './imap.js';
 import type { GuardianStore } from './store.js';
 import type { TelegramClient, TelegramUpdate } from './telegram.js';
@@ -14,6 +15,8 @@ import { evaluateRules } from './rules.js';
 import runSequentially, { STOP } from './sequential.js';
 
 const DOMAIN_BLOCK_THRESHOLD = 3;
+/** Open-review backlog above this many rows emits a WARNING each sweep. */
+export const OPEN_REVIEW_BACKLOG_THRESHOLD = 100;
 const skippedDomains = new Set<string>();
 
 export interface ProcessDeps {
@@ -198,7 +201,7 @@ export async function processMessage(
         deps.config.dryRun ? 'would_trash' : 'trashed',
         message.messageId,
       );
-      if (deps.config.telegramOwnerChatId) {
+      if (telegramEnabled(deps.config) && deps.config.telegramOwnerChatId) {
         await deps.telegram.sendMessage(
           deps.config.telegramOwnerChatId,
           `Auto-trashed: ${redacted.subjectHash}`,
@@ -238,7 +241,7 @@ export async function processMessage(
     outcome: 'pending',
   });
   if (!deps.config.dryRun) await deps.mail.moveToReview(account, message.uid);
-  if (deps.config.telegramOwnerChatId) {
+  if (telegramEnabled(deps.config) && deps.config.telegramOwnerChatId) {
     await deps.telegram.sendMessage(
       deps.config.telegramOwnerChatId,
       buildReviewMessage({
@@ -317,9 +320,14 @@ export async function applyReviewDecision(
     review.account_slug,
     review.message_uid,
     outcomeMap[decision],
+    { fromHash: review.from_hash, domainHash: review.domain_hash },
   );
   await deps.store.resolveReview(reviewId, decision, approver);
-  if ((decision === 'spam' || decision === 'block_sender') && deps.config.telegramOwnerChatId) {
+  if (
+    (decision === 'spam' || decision === 'block_sender') &&
+    telegramEnabled(deps.config) &&
+    deps.config.telegramOwnerChatId
+  ) {
     const { spam, allow } = await deps.store.countDomainOutcomes(review.domain_hash);
     if (
       spam >= DOMAIN_BLOCK_THRESHOLD &&
@@ -352,6 +360,7 @@ export async function sweep(deps: ProcessDeps): Promise<{
   skipped: number;
   failed: number;
   actions: number;
+  openReviews: number;
 }> {
   let processed = 0;
   let trashed = 0;
@@ -409,7 +418,19 @@ export async function sweep(deps: ProcessDeps): Promise<{
       return undefined;
     });
   });
-  return { processed, trashed, review, kept, skipped, failed, actions };
+  const openReviews = await deps.store.countOpenReviews();
+  if (openReviews > OPEN_REVIEW_BACKLOG_THRESHOLD) {
+    process.stderr.write(
+      `${JSON.stringify({
+        event: 'mail_guardian_backlog_warning',
+        level: 'warn',
+        openReviews,
+        threshold: OPEN_REVIEW_BACKLOG_THRESHOLD,
+      })}\n`,
+    );
+    await deps.store.raiseBacklogAlert(openReviews, OPEN_REVIEW_BACKLOG_THRESHOLD);
+  }
+  return { processed, trashed, review, kept, skipped, failed, actions, openReviews };
 }
 
 export async function handleTelegramUpdates(

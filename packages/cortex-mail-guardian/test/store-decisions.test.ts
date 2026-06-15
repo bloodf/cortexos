@@ -103,28 +103,106 @@ describe('GuardianStore.updateDecisionOutcome', () => {
     querySpy.mockReset();
   });
 
-  it('updates outcome and decided_at for a matching row', async () => {
+  it('upserts the owner outcome (INSERT ... ON CONFLICT) so it always persists', async () => {
     querySpy.mockResolvedValue({ rows: [], rowCount: 1 });
     const store = new GuardianStore(config as never);
 
-    await store.updateDecisionOutcome('test-account', 42, 'owner_spam');
+    await store.updateDecisionOutcome('test-account', 42, 'owner_spam', {
+      fromHash: 'fh',
+      domainHash: 'dh',
+    });
 
     expect(querySpy).toHaveBeenCalledOnce();
     const [sql, params] = querySpy.mock.calls[0] as [string, unknown[]];
-    expect(sql).toContain('UPDATE mail_guardian_decisions');
+    // Must be an UPSERT, not a bare UPDATE — ~350 reviews have no decision row,
+    // so a plain UPDATE would match nothing and silently drop the owner choice.
+    expect(sql).toContain('INSERT INTO mail_guardian_decisions');
+    expect(sql).toContain('ON CONFLICT (account_slug, message_uid)');
+    expect(sql).toContain('outcome = EXCLUDED.outcome');
     expect(sql).toContain('decided_at');
     expect(params).toContain('test-account');
     expect(params).toContain(42);
     expect(params).toContain('owner_spam');
+    expect(params).toContain('fh');
+    expect(params).toContain('dh');
   });
 
-  it('resolves without throwing when no matching row exists', async () => {
-    querySpy.mockResolvedValue({ rows: [], rowCount: 0 });
+  it('supplies safe defaults for the NOT NULL identity columns when omitted', async () => {
+    querySpy.mockResolvedValue({ rows: [], rowCount: 1 });
+    const store = new GuardianStore(config as never);
+
+    await store.updateDecisionOutcome('acc', 7, 'owner_keep');
+
+    const [sql, params] = querySpy.mock.calls[0] as [string, unknown[]];
+    expect(sql).toContain('from_hash');
+    expect(sql).toContain('domain_hash');
+    expect(sql).toContain('summary');
+    // from_hash / domain_hash / summary default to '' (NOT NULL satisfied).
+    expect(params.filter((p) => p === '')).toHaveLength(3);
+    expect(params).toContain('owner_keep');
+  });
+
+  it('resolves without throwing', async () => {
+    querySpy.mockResolvedValue({ rows: [], rowCount: 1 });
     const store = new GuardianStore(config as never);
 
     await expect(
       store.updateDecisionOutcome('old-account', 99, 'owner_keep'),
     ).resolves.toBeUndefined();
+  });
+});
+
+describe('GuardianStore.countOpenReviews', () => {
+  beforeEach(() => {
+    querySpy.mockReset();
+  });
+
+  it('counts reviews with no owner resolution (resolved_at IS NULL)', async () => {
+    querySpy.mockResolvedValue({ rows: [{ open: '314' }], rowCount: 1 });
+    const store = new GuardianStore(config as never);
+
+    const count = await store.countOpenReviews();
+
+    expect(querySpy).toHaveBeenCalledOnce();
+    const [sql] = querySpy.mock.calls[0] as [string];
+    expect(sql).toContain('mail_guardian_reviews');
+    expect(sql).toContain('resolved_at IS NULL');
+    expect(count).toBe(314);
+  });
+
+  it('returns numeric zero when there are no open reviews', async () => {
+    querySpy.mockResolvedValue({ rows: [{ open: '0' }], rowCount: 1 });
+    const store = new GuardianStore(config as never);
+
+    expect(await store.countOpenReviews()).toBe(0);
+  });
+});
+
+describe('GuardianStore.raiseBacklogAlert', () => {
+  beforeEach(() => {
+    querySpy.mockReset();
+  });
+
+  it('inserts a warn alert guarded against duplicate recent alerts', async () => {
+    querySpy.mockResolvedValue({ rows: [], rowCount: 1 });
+    const store = new GuardianStore(config as never);
+
+    await store.raiseBacklogAlert(314, 100);
+
+    expect(querySpy).toHaveBeenCalledOnce();
+    const [sql, params] = querySpy.mock.calls[0] as [string, unknown[]];
+    expect(sql).toContain('INSERT INTO alerts');
+    expect(sql).toContain('mail_guardian_backlog');
+    expect(sql).toContain('NOT EXISTS');
+    expect(params[0] as string).toContain('314');
+    expect(params[0] as string).toContain('100');
+  });
+
+  it('swallows errors when the alerts table is absent (dashboard-owned)', async () => {
+    querySpy.mockRejectedValue(new Error('relation "alerts" does not exist'));
+    const store = new GuardianStore(config as never);
+
+    await expect(store.raiseBacklogAlert(200, 100)).resolves.toBeUndefined();
   });
 });
 

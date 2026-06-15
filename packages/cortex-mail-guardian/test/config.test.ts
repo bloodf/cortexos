@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { accountFromRow, decodeBase64Secret, loadConfig, mergeAccounts } from '../src/config.js';
+import {
+  accountFromRow,
+  decodeBase64Secret,
+  loadConfig,
+  mergeAccounts,
+  telegramEnabled,
+} from '../src/config.js';
 
 function baseEnv(): NodeJS.ProcessEnv {
   const password = Buffer.from('dummy#password;with.symbols', 'utf8').toString('base64');
@@ -52,6 +58,45 @@ describe('config', () => {
   it('loads with no env accounts when the count is absent (DB-only mode)', () => {
     const config = loadConfig({ NINEROUTER_API_KEY: 'key' });
     expect(config.accounts).toHaveLength(0);
+  });
+});
+
+describe('telegram configuration gate', () => {
+  it('reads the owner chat id directly, independent of the bot token', () => {
+    // Regression: the chat id used to be gated on TELEGRAM_BOT_TOKEN (a
+    // copy-paste bug), so a configured chat id vanished whenever the token was
+    // absent. With only the chat id set, telegramOwnerChatId must be defined.
+    const config = loadConfig({
+      NINEROUTER_API_KEY: 'key',
+      MAIL_GUARDIAN_TELEGRAM_OWNER_CHAT_ID: '123456789',
+    });
+    expect(config.telegramOwnerChatId).toBe('123456789');
+    expect(config.telegramBotToken).toBeUndefined();
+  });
+
+  it('treats Telegram as disabled (send path skipped) when the token is absent', () => {
+    const config = loadConfig({
+      NINEROUTER_API_KEY: 'key',
+      MAIL_GUARDIAN_TELEGRAM_OWNER_CHAT_ID: '123456789',
+    });
+    // chat id present, token absent → not live → no doomed send attempted.
+    expect(telegramEnabled(config)).toBe(false);
+  });
+
+  it('treats Telegram as live only when both token and chat id are present', () => {
+    const config = loadConfig({
+      NINEROUTER_API_KEY: 'key',
+      TELEGRAM_BOT_TOKEN: 'bot-token',
+      MAIL_GUARDIAN_TELEGRAM_OWNER_CHAT_ID: '123456789',
+    });
+    expect(config.telegramBotToken).toBe('bot-token');
+    expect(config.telegramOwnerChatId).toBe('123456789');
+    expect(telegramEnabled(config)).toBe(true);
+  });
+
+  it('is not live when the chat id is absent even if the token is present', () => {
+    const config = loadConfig({ NINEROUTER_API_KEY: 'key', TELEGRAM_BOT_TOKEN: 'bot-token' });
+    expect(telegramEnabled(config)).toBe(false);
   });
 });
 

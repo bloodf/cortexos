@@ -127,9 +127,13 @@ export function loadConfig(source: NodeJS.ProcessEnv = getProcessEnv()): Guardia
     confidenceThreshold,
     action,
     telegramBotToken: env('TELEGRAM_BOT_TOKEN', source),
-    telegramOwnerChatId: env('TELEGRAM_BOT_TOKEN', source)
-      ? env('MAIL_GUARDIAN_TELEGRAM_OWNER_CHAT_ID', source)
-      : undefined,
+    // Read the chat id directly. It must not be gated on the bot token: the two
+    // are independent secrets, and gating the id on the token was a copy-paste
+    // bug that hid a configured chat id whenever the token was absent. The
+    // actual SEND path is gated on telegramBotToken in index.ts (the disabled
+    // client is installed when no token is present), so a chat id without a
+    // token simply means "no doomed send is attempted" — not a crash.
+    telegramOwnerChatId: env('MAIL_GUARDIAN_TELEGRAM_OWNER_CHAT_ID', source),
     nineRouterBaseUrl: normalizeOpenAiBaseUrl(
       env('NINEROUTER_BASE_URL', source) ?? 'http://localhost:11434/v1',
     ),
@@ -146,6 +150,20 @@ export function loadConfig(source: NodeJS.ProcessEnv = getProcessEnv()): Guardia
     },
     dryRun: parseBool(env('MAIL_GUARDIAN_DRY_RUN', source), false),
   };
+}
+
+/**
+ * Telegram is "live" only when BOTH the bot token (authorises the API call)
+ * and the owner chat id (the recipient) are configured. Sending needs the
+ * token; with only a chat id the disabled client is installed and any send is
+ * a no-op, so callers must gate readiness checks / sends on this — otherwise a
+ * chat-id-without-token config would try (and fail) to reach the Telegram API.
+ */
+export function telegramEnabled(config: {
+  telegramBotToken?: string;
+  telegramOwnerChatId?: string;
+}): boolean {
+  return Boolean(config.telegramBotToken && config.telegramOwnerChatId);
 }
 
 /** Shape of a DB-backed account row (subset used to build MailAccountConfig). */

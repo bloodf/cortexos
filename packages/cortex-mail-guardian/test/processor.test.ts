@@ -91,6 +91,8 @@ describe('mail guardian sweep', () => {
         markProcessed: async () => undefined,
         recordDecision: async () => undefined,
         claimPendingActions: async () => [],
+        countOpenReviews: async () => 0,
+        raiseBacklogAlert: async () => undefined,
       },
       telegram: {
         sendMessage: async () => undefined,
@@ -109,6 +111,51 @@ describe('mail guardian sweep', () => {
 
     await expect(sweep(deps)).resolves.toMatchObject({ processed: 6, review: 3, skipped: 3 });
     expect(listed).toEqual(['one', 'two', 'three']);
+  });
+});
+
+describe('mail guardian open-review backlog metric', () => {
+  function backlogDeps(openReviews: number) {
+    const raiseBacklogAlert = vi.fn(async () => undefined);
+    const deps = {
+      config: { accounts: [], maxMessagesPerSweep: 1, ...baseConfig },
+      store: {
+        claimPendingActions: async () => [],
+        countOpenReviews: async () => openReviews,
+        raiseBacklogAlert,
+      },
+      telegram: { sendMessage: async () => undefined },
+      mail: { listInbox: async () => [], moveToReview: async () => undefined },
+    } as unknown as ProcessDeps;
+    return { deps, raiseBacklogAlert };
+  }
+
+  it('exposes the open-review count in the sweep result', async () => {
+    const { deps } = backlogDeps(42);
+    await expect(sweep(deps)).resolves.toMatchObject({ openReviews: 42 });
+  });
+
+  it('warns and raises an alert when the backlog exceeds the threshold', async () => {
+    const warnings: string[] = [];
+    const spy = vi.spyOn(process.stderr, 'write').mockImplementation((chunk: unknown) => {
+      warnings.push(String(chunk));
+      return true;
+    });
+    const { deps, raiseBacklogAlert } = backlogDeps(314);
+
+    await sweep(deps);
+
+    spy.mockRestore();
+    const warning = warnings.find((w) => w.includes('mail_guardian_backlog_warning'));
+    expect(warning).toBeDefined();
+    expect(warning).toContain('"openReviews":314');
+    expect(raiseBacklogAlert).toHaveBeenCalledWith(314, 100);
+  });
+
+  it('stays silent when the backlog is within the threshold', async () => {
+    const { deps, raiseBacklogAlert } = backlogDeps(5);
+    await sweep(deps);
+    expect(raiseBacklogAlert).not.toHaveBeenCalled();
   });
 });
 
@@ -237,6 +284,7 @@ describe('mail guardian processMessage — auto-trash branch', () => {
       config: {
         accounts: [account('one')],
         ...baseConfig,
+        telegramBotToken: 'test-token',
         telegramOwnerChatId: '999',
       },
       store: {
@@ -689,7 +737,12 @@ describe('mail guardian applyReviewDecision — domain block proposal', () => {
   it('sends domain block proposal when spam >= 3 and no allow or existing domain rule', async () => {
     const sentMessages: unknown[][] = [];
     const deps = {
-      config: { accounts: [account('one')], dryRun: false, telegramOwnerChatId: '777' },
+      config: {
+        accounts: [account('one')],
+        dryRun: false,
+        telegramBotToken: 'test-token',
+        telegramOwnerChatId: '777',
+      },
       store: {
         getReview: async () => ({
           id: 10,
@@ -731,7 +784,12 @@ describe('mail guardian applyReviewDecision — domain block proposal', () => {
   it('does not send proposal when spam count is below threshold', async () => {
     const sentMessages: unknown[][] = [];
     const deps = {
-      config: { accounts: [account('one')], dryRun: false, telegramOwnerChatId: '777' },
+      config: {
+        accounts: [account('one')],
+        dryRun: false,
+        telegramBotToken: 'test-token',
+        telegramOwnerChatId: '777',
+      },
       store: {
         getReview: async () => ({
           id: 11,
@@ -764,7 +822,12 @@ describe('mail guardian applyReviewDecision — domain block proposal', () => {
   it('does not send proposal when domain has any allow outcomes', async () => {
     const sentMessages: unknown[][] = [];
     const deps = {
-      config: { accounts: [account('one')], dryRun: false, telegramOwnerChatId: '777' },
+      config: {
+        accounts: [account('one')],
+        dryRun: false,
+        telegramBotToken: 'test-token',
+        telegramOwnerChatId: '777',
+      },
       store: {
         getReview: async () => ({
           id: 12,
@@ -797,7 +860,12 @@ describe('mail guardian applyReviewDecision — domain block proposal', () => {
   it('does not send proposal when a domain block rule already exists', async () => {
     const sentMessages: unknown[][] = [];
     const deps = {
-      config: { accounts: [account('one')], dryRun: false, telegramOwnerChatId: '777' },
+      config: {
+        accounts: [account('one')],
+        dryRun: false,
+        telegramBotToken: 'test-token',
+        telegramOwnerChatId: '777',
+      },
       store: {
         getReview: async () => ({
           id: 13,
@@ -831,7 +899,12 @@ describe('mail guardian applyReviewDecision — domain block proposal', () => {
     const sentMessages: unknown[][] = [];
     const mkDeps = (reviewId: number, uid: number) =>
       ({
-        config: { accounts: [account('one')], dryRun: false, telegramOwnerChatId: '777' },
+        config: {
+          accounts: [account('one')],
+          dryRun: false,
+          telegramBotToken: 'test-token',
+          telegramOwnerChatId: '777',
+        },
         store: {
           getReview: async () => ({
             id: reviewId,

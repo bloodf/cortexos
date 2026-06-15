@@ -368,13 +368,83 @@ export class GuardianStore {
     );
   }
 
-  async updateDecisionOutcome(accountSlug: string, uid: number, outcome: string): Promise<void> {
+  /**
+   * Persist an owner decision's outcome on the decisions ledger. Most reviews
+   * (~350 of 360) never had a model-path decision row, so a bare UPDATE matched
+   * nothing and silently dropped the owner's choice — starving `distill` of the
+   * owner_* outcomes it filters on. This UPSERTs: when a decision row already
+   * exists it patches outcome/decided_at (preserving the model fields); when
+   * none exists it INSERTs one carrying the owner outcome plus the identity
+   * columns the table requires NOT NULL (from_hash, domain_hash, summary).
+   *
+   * Relies on the `UNIQUE (account_slug, message_uid)` constraint that
+   * migration 015 defines on mail_guardian_decisions.
+   */
+  async updateDecisionOutcome(
+    accountSlug: string,
+    uid: number,
+    outcome: string,
+    identity?: { fromHash?: string; domainHash?: string; summary?: string },
+  ): Promise<void> {
     await this.pool.query(
-      `UPDATE mail_guardian_decisions
-       SET outcome = $3, decided_at = now()
-       WHERE account_slug = $1 AND message_uid = $2`,
-      [accountSlug, uid, outcome],
+      `INSERT INTO mail_guardian_decisions (
+         account_slug, message_uid, from_hash, domain_hash, summary, outcome, decided_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, now())
+       ON CONFLICT (account_slug, message_uid) DO UPDATE
+         SET outcome = EXCLUDED.outcome, decided_at = now()`,
+      [
+        accountSlug,
+        uid,
+        identity?.fromHash ?? '',
+        identity?.domainHash ?? '',
+        identity?.summary ?? '',
+        outcome,
+      ],
     );
+  }
+
+  /**
+   * Count reviews still awaiting an owner resolution (resolved_at IS NULL).
+   * Surfaced as an operational backlog metric each sweep — a large, growing
+   * count means the owner-feedback loop has stalled (e.g. notifications are
+   * not being delivered) and decisions are piling up unreviewed.
+   */
+  async countOpenReviews(): Promise<number> {
+    const result = await this.pool.query<{ open: string }>(
+      `SELECT count(*)::text AS open
+       FROM mail_guardian_reviews
+       WHERE resolved_at IS NULL`,
+    );
+    return Number(result.rows[0]?.open ?? 0);
+  }
+
+  /**
+   * Raise a dashboard operational alert for an open-review backlog, but only
+   * when there isn't already an unacknowledged backlog alert from the last
+   * hour — so a backlog that persists across sweeps logs one alert, not one
+   * per sweep. Best-effort: the `alerts` table is owned by the dashboard schema
+   * and may be absent in a bare backend DB, so failures are swallowed (the
+   * structured sweep log still carries the count regardless).
+   */
+  async raiseBacklogAlert(openReviews: number, threshold: number): Promise<void> {
+    try {
+      await this.pool.query(
+        `INSERT INTO alerts (kind, severity, title, body, source)
+         SELECT 'mail_guardian_backlog', 'warn',
+                'Mail Guardian review backlog',
+                $1, 'cortex-mail-guardian'
+         WHERE NOT EXISTS (
+           SELECT 1 FROM alerts
+           WHERE kind = 'mail_guardian_backlog'
+             AND acknowledged_at IS NULL
+             AND created_at > now() - interval '1 hour'
+         )`,
+        [`${openReviews} reviews awaiting an owner decision (threshold ${threshold}).`],
+      );
+    } catch {
+      // alerts table is dashboard-owned and optional for the backend; the
+      // structured warning emitted by the sweep is the durable signal.
+    }
   }
 
   async listRecentDecisions(limit: number): Promise<DecisionRow[]> {
