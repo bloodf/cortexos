@@ -38,7 +38,7 @@ import {
   deleteProject as _deleteProject,
 } from "@/lib/api/projects.functions";
 
-import { toServiceRow } from "@/lib/adapters/services";
+import { toServiceRow, type ServiceRowInput } from "@/lib/adapters/services";
 import type { Service as MockService } from "@/mocks/types";
 
 import { csrfHeaders } from "./csrf";
@@ -68,7 +68,7 @@ type ServicePatchData = Partial<ServiceCreateData> & {
 
 const listServicesFn = _listServices as unknown as (opts: {
   data: { activeOnly?: boolean; page?: number; pageSize?: number };
-}) => Promise<{ rows: ContractService[]; total: number }>;
+}) => Promise<{ rows: ServiceRowInput[]; total: number }>;
 
 const createServiceFn = _createService as unknown as (opts: {
   data: ServiceCreateData;

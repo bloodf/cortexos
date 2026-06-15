@@ -38,7 +38,6 @@
 // Import mock row types so adapters can use them and client can type correctly.
 // We import type-only — no runtime dependency on the mock data.
 // ---------------------------------------------------------------------------
-import type { Service as ContractService } from "@cortexos/contracts/entities";
 import type { IncusInstance as ContractIncusInstance } from "@cortexos/contracts";
 import type {
   Service,
@@ -77,8 +76,11 @@ import {
   listServiceHealth as _listServiceHealth,
 } from "./services.functions";
 
-import { toServiceRow } from "@/lib/adapters/services";
-import type { HealthSnapshotRow } from "@/lib/adapters/services";
+import {
+  toServiceRow,
+  type ServiceRowInput,
+  type HealthSnapshotRow,
+} from "@/lib/adapters/services";
 
 // ---------------------------------------------------------------------------
 // Wired server-function imports (WP-14 — system / network / processes / storage)
@@ -261,7 +263,7 @@ interface ListServicesInput {
   pageSize?: number;
 }
 interface ListServicesOutput {
-  rows: ContractService[];
+  rows: ServiceRowInput[];
   total: number;
 }
 interface ServiceHealthInput {

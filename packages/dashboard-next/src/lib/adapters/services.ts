@@ -19,6 +19,17 @@ import type {
   BadgeRef as MockBadgeRef,
 } from "@/mocks/types";
 
+/**
+ * The runtime service row this adapter actually receives from the WP-10
+ * server fns. It is the contract `Service` shape EXCEPT `id`, which is the
+ * DB's integer serial (a number), not a uuid string. The repo
+ * (`server/db/repos/services.ts`) returns exactly this: the flat `icon_*`
+ * columns folded into a nested `icon` object plus an aggregated `badges`
+ * array. Modelling `id` as `string | number` keeps the boundary honest
+ * (no fake uuid claim) and is what `hashId` is built to consume.
+ */
+export type ServiceRowInput = Omit<ContractService, "id"> & { id: string | number };
+
 // ---------------------------------------------------------------------------
 // Badge ref
 // ---------------------------------------------------------------------------
@@ -76,7 +87,7 @@ function hashId(id: string | number): number {
  * safe defaults so components never receive `undefined` where they expect
  * a value.
  */
-export function toServiceRow(s: ContractService): MockService {
+export function toServiceRow(s: ServiceRowInput): MockService {
   return {
     // ServiceCheck fields
     id: hashId(s.id),
@@ -106,7 +117,7 @@ export function toServiceRow(s: ContractService): MockService {
 }
 
 /** Map a contract Service to the leaner ServiceCheck shape. */
-export function toServiceCheckRow(s: ContractService): MockServiceCheck {
+export function toServiceCheckRow(s: ServiceRowInput): MockServiceCheck {
   return {
     id: hashId(s.id),
     slug: s.slug,

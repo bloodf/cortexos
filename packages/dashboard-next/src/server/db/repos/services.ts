@@ -11,13 +11,51 @@
  * SvelteKit call site — the repo does not enforce it.
  */
 
-import { and, asc, desc, eq, like, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, like, or, sql, type SQL } from "drizzle-orm";
 import type { DbClient } from "../client";
-import { services } from "../schema";
+import { badges, serviceBadges, services } from "../schema";
 import type { NewService, Service } from "../schema";
 
 export type ServiceKind = "app" | "service" | "docker" | "process" | "dashboard-launcher";
 export type HealthType = "http" | "tcp" | "docker" | "process" | "systemd";
+
+/**
+ * Denormalized badge reference embedded on a {@link ServiceRecord}, matching
+ * the `@cortexos/contracts` `BadgeRef` shape consumed by `toServiceRow`.
+ */
+export interface BadgeRef {
+  slug: string;
+  label: string;
+  color: string | null;
+}
+
+/**
+ * The icon source for a service card — the nested contract `icon` object the
+ * client adapter (`toServiceRow`) reads as `s.icon?.type/color/image`.
+ */
+export interface ServiceIcon {
+  type: string;
+  color: string | null;
+  image: string | null;
+}
+
+/**
+ * The CONTRACT-shaped service row this repo returns to the API/adapter layer.
+ *
+ * Mirrors `@cortexos/contracts` `Service` for the fields `toServiceRow` reads:
+ * the flat `icon_*` columns are folded into a nested `icon` object and the
+ * `service_badges`→`badges` join is aggregated into `badges`. Primitive types
+ * stay DB-native (integer serial `id`, `Date` timestamps) — the adapter's
+ * `hashId` already accepts a number, so we do NOT fabricate a uuid string.
+ *
+ * This is the single source of truth that fixes the "hashId class" data drop:
+ * before this, raw Drizzle rows had no `.icon` object and no `.badges`, so
+ * every icon + badge was silently dropped by `toServiceRow`.
+ */
+export type ServiceRecord = Omit<Service, "iconType" | "iconColor" | "iconImage"> & {
+  icon: ServiceIcon;
+  badges: BadgeRef[];
+};
 
 /**
  * Whitelist of sortable columns. Map public (snake_case) sortBy names
@@ -58,7 +96,7 @@ export interface ListServicesOptions {
 }
 
 export interface PaginatedServices {
-  rows: Service[];
+  rows: ServiceRecord[];
   total: number;
   page: number;
   pageSize: number;
@@ -66,6 +104,58 @@ export interface PaginatedServices {
 
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 500;
+
+/**
+ * Fetch every badge assigned to the given service ids in ONE query (avoids
+ * N+1) and group them by service id. Returns a Map keyed by service id; ids
+ * with no badges are simply absent (callers default to `[]`).
+ */
+async function fetchBadgesForServices(
+  db: DbClient,
+  serviceIds: number[],
+): Promise<Map<number, BadgeRef[]>> {
+  const grouped = new Map<number, BadgeRef[]>();
+  if (serviceIds.length === 0) return grouped;
+
+  const rows = await db
+    .select({
+      serviceId: serviceBadges.serviceId,
+      slug: badges.slug,
+      label: badges.label,
+      color: badges.color,
+    })
+    .from(serviceBadges)
+    .innerJoin(badges, eq(serviceBadges.badgeId, badges.id))
+    .where(inArray(serviceBadges.serviceId, serviceIds))
+    .orderBy(asc(serviceBadges.serviceId), asc(badges.slug));
+
+  rows.forEach((r) => {
+    const list = grouped.get(r.serviceId) ?? [];
+    list.push({ slug: r.slug, label: r.label, color: r.color ?? null });
+    grouped.set(r.serviceId, list);
+  });
+  return grouped;
+}
+
+/**
+ * Fold a raw Drizzle service row + its resolved badges into the CONTRACT
+ * {@link ServiceRecord} shape: nest the flat `icon_*` columns into `icon`
+ * and attach `badges` (empty array when none). `iconType` defaults to
+ * `'auto'` (the column default) when NULL so the adapter never sees a missing
+ * type.
+ */
+function toServiceRecord(row: Service, badgeList: BadgeRef[]): ServiceRecord {
+  const { iconType, iconColor, iconImage, ...rest } = row;
+  return {
+    ...rest,
+    icon: {
+      type: iconType ?? "auto",
+      color: iconColor ?? null,
+      image: iconImage ?? null,
+    },
+    badges: badgeList,
+  };
+}
 
 export async function listServices(
   db: DbClient,
@@ -113,22 +203,33 @@ export async function listServices(
       .where(where),
   ]);
 
+  const badgesByService = await fetchBadgesForServices(
+    db,
+    rows.map((r) => r.id),
+  );
+
   return {
-    rows,
+    rows: rows.map((r) => toServiceRecord(r, badgesByService.get(r.id) ?? [])),
     total: totalRow[0]?.count ?? 0,
     page,
     pageSize,
   };
 }
 
-export async function getServiceById(db: DbClient, id: number): Promise<Service | null> {
+export async function getServiceById(db: DbClient, id: number): Promise<ServiceRecord | null> {
   const rows = await db.select().from(services).where(eq(services.id, id)).limit(1);
-  return rows[0] ?? null;
+  const row = rows[0];
+  if (!row) return null;
+  const badgesByService = await fetchBadgesForServices(db, [row.id]);
+  return toServiceRecord(row, badgesByService.get(row.id) ?? []);
 }
 
-export async function getServiceBySlug(db: DbClient, slug: string): Promise<Service | null> {
+export async function getServiceBySlug(db: DbClient, slug: string): Promise<ServiceRecord | null> {
   const rows = await db.select().from(services).where(eq(services.slug, slug)).limit(1);
-  return rows[0] ?? null;
+  const row = rows[0];
+  if (!row) return null;
+  const badgesByService = await fetchBadgesForServices(db, [row.id]);
+  return toServiceRecord(row, badgesByService.get(row.id) ?? []);
 }
 
 export async function listCategories(
@@ -192,8 +293,9 @@ export async function updateService(
     }
   });
   if (Object.keys(update).length === 1) {
-    // Only updatedAt — caller passed no real fields. Return current row.
-    return getServiceById(db, id);
+    // Only updatedAt — caller passed no real fields. Return current raw row.
+    const current = await db.select().from(services).where(eq(services.id, id)).limit(1);
+    return current[0] ?? null;
   }
   const res = await db.update(services).set(update).where(eq(services.id, id)).returning();
   return res[0] ?? null;

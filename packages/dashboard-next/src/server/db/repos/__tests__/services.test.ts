@@ -9,6 +9,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import type { PGlite } from "@electric-sql/pglite";
 import { createTestDb, type PgliteDbClient } from "../../test-utils";
+import { badges, serviceBadges } from "../../schema";
 import {
   listServices,
   getServiceById,
@@ -216,5 +217,123 @@ describe("services repo", () => {
     });
     expect(await deleteService(db, created.id)).toBe(true);
     expect(await getServiceById(db, created.id)).toBeNull();
+  });
+});
+
+/**
+ * Contract-shape round-trip (MP-028 / item 1.1, "hashId class" data drop).
+ *
+ * The read functions must fold the flat `icon_*` columns into a nested `icon`
+ * object and aggregate the `service_badges → badges` join into a `badges`
+ * array — otherwise the client adapter (`toServiceRow`) silently drops every
+ * icon + badge because the raw Drizzle row has neither `.icon` nor `.badges`.
+ *
+ * These tests feed REAL DB-shaped rows: integer serial ids, NULL icon fields,
+ * and real join rows (NOT uuid strings).
+ */
+describe("services repo — contract shape (icon + badges)", () => {
+  /** Create two badge rows and assign them to `serviceId`. */
+  async function seedBadges(serviceId: number): Promise<void> {
+    const inserted = await db
+      .insert(badges)
+      .values([
+        { slug: "beta", label: "Beta", color: "#10b981", textColor: "#ffffff" },
+        { slug: "internal", label: "Internal", color: "#6366f1", textColor: "#ffffff" },
+      ])
+      .returning({ id: badges.id });
+    await db.insert(serviceBadges).values(inserted.map((b) => ({ serviceId, badgeId: b.id })));
+  }
+
+  it("getServiceById returns nested icon + aggregated badges", async () => {
+    const created = await createService(db, {
+      slug: "badged-svc",
+      name: "Badged",
+      kind: "service",
+      category: "Test",
+      healthUrl: "#",
+      healthType: "http",
+      openUrl: "#",
+      iconType: "monogram",
+      iconColor: "#abcdef",
+      iconImage: "/uploads/x.png",
+      sortOrder: 0,
+      isActive: true,
+      hasWebui: true,
+      showInHealthcheck: true,
+      showInWebui: true,
+    });
+    await seedBadges(created.id);
+
+    const got = await getServiceById(db, created.id);
+    expect(got).not.toBeNull();
+    expect(got?.icon).toEqual({ type: "monogram", color: "#abcdef", image: "/uploads/x.png" });
+    expect(got?.badges).toHaveLength(2);
+    expect(got?.badges.map((b) => b.slug).sort()).toEqual(["beta", "internal"]);
+    const beta = got?.badges.find((b) => b.slug === "beta");
+    expect(beta).toEqual({ slug: "beta", label: "Beta", color: "#10b981" });
+    // The flat icon_* columns must NOT leak onto the contract row.
+    expect("iconType" in (got as object)).toBe(false);
+    expect("iconColor" in (got as object)).toBe(false);
+    expect("iconImage" in (got as object)).toBe(false);
+  });
+
+  it("listServices populates icon + badges per row without N+1 drift", async () => {
+    const created = await createService(db, {
+      slug: "list-badged",
+      name: "ListBadged",
+      kind: "service",
+      category: "Test",
+      healthUrl: "#",
+      healthType: "http",
+      openUrl: "#",
+      iconType: "monogram",
+      iconColor: "#123456",
+      iconImage: null,
+      sortOrder: 0,
+      isActive: true,
+      hasWebui: true,
+      showInHealthcheck: true,
+      showInWebui: true,
+    });
+    await seedBadges(created.id);
+
+    const result = await listServices(db, { activeOnly: false, pageSize: 500 });
+    const row = result.rows.find((s) => s.slug === "list-badged");
+    expect(row).toBeDefined();
+    expect(row?.icon).toEqual({ type: "monogram", color: "#123456", image: null });
+    expect(row?.badges).toHaveLength(2);
+    // A service with NO badges yields an empty array (never undefined).
+    const seeded = result.rows.find((s) => s.slug === "postgresql");
+    expect(seeded?.badges).toEqual([]);
+  });
+
+  it("NULL icon fields default to icon.type 'auto' without throwing", async () => {
+    // Insert a row with NULL iconType/iconColor/iconImage straight through
+    // the raw column path (the column default is applied only on omission, so
+    // explicit nulls exercise the repo's `?? 'auto'` guard).
+    const created = await createService(db, {
+      slug: "null-icon",
+      name: "NullIcon",
+      kind: "service",
+      category: "Test",
+      healthUrl: "#",
+      healthType: "http",
+      openUrl: "#",
+      iconType: null,
+      iconColor: null,
+      iconImage: null,
+      sortOrder: 0,
+      isActive: true,
+      hasWebui: true,
+      showInHealthcheck: true,
+      showInWebui: true,
+    });
+
+    const bySlug = await getServiceBySlug(db, "null-icon");
+    expect(bySlug?.icon).toEqual({ type: "auto", color: null, image: null });
+    expect(bySlug?.badges).toEqual([]);
+
+    const byId = await getServiceById(db, created.id);
+    expect(byId?.icon.type).toBe("auto");
   });
 });
