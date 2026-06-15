@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { User, Shield, Globe, Palette } from "lucide-react";
+import { User, Shield, Palette } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,21 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useUI } from "@/hooks/useUI";
-import type { Locale } from "@/i18n";
 import { getMe } from "./rpc";
 
 export function AdminAccountPage() {
-  const { theme, setTheme, accent, setAccent, locale, setLocale } = useUI();
+  const { theme, setTheme, accent, setAccent } = useUI();
   const { data } = useQuery({ queryKey: ["auth", "me"], queryFn: getMe, retry: false });
   const user = data?.user ?? null;
   const groups = user?.groupMemberships?.map((g) => g.name) ?? [];
 
   const accents = ["cortex", "teal", "emerald", "amber"] as const;
-  const locales = [
-    { code: "en", label: "English" },
-    { code: "es", label: "Español" },
-    { code: "ptBR", label: "Português (BR)" },
-  ] as const;
 
   return (
     <div className="space-y-5">
@@ -106,24 +100,6 @@ export function AdminAccountPage() {
                   onClick={() => setAccent(a)}
                 >
                   {a}
-                </Button>
-              ))}
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-xs flex items-center gap-1">
-              <Globe className="size-3" />
-              Language
-            </Label>
-            <div className="flex gap-1">
-              {locales.map((l) => (
-                <Button
-                  key={l.code}
-                  size="sm"
-                  variant={locale === l.code ? "default" : "outline"}
-                  onClick={() => setLocale(l.code as Locale)}
-                >
-                  {l.label}
                 </Button>
               ))}
             </div>

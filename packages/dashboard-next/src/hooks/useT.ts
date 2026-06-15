@@ -1,9 +1,6 @@
-import { useUI } from "./useUI";
 import { getDict } from "@/i18n";
 
-export function useLocale() {
-  return useUI().locale;
-}
+/** Returns the (English-only) translation dictionary. */
 export function useT() {
-  return getDict(useUI().locale);
+  return getDict();
 }

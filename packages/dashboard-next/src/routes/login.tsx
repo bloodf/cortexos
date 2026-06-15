@@ -7,8 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { useT } from "@/hooks/useT";
-import { useUI } from "@/hooks/useUI";
-import { LOCALES, LOCALE_LABEL, type Locale } from "@/i18n";
 
 interface LoginSearch {
   redirect?: string;
@@ -17,7 +15,6 @@ interface LoginSearch {
 function LoginPage() {
   const { login, user } = useAuth();
   const t = useT();
-  const { locale, setLocale } = useUI();
   const router = useRouter();
   const search = useSearch({ from: "/login" });
   const [u, setU] = useState("");
@@ -100,17 +97,6 @@ function LoginPage() {
       </form>
       <footer className="mt-6 flex items-center gap-4 text-xs text-muted-foreground">
         <span>© CortexOS</span>
-        <select
-          value={locale}
-          onChange={(e) => setLocale(e.target.value as Locale)}
-          className="rounded border bg-transparent px-2 py-1"
-        >
-          {LOCALES.map((l) => (
-            <option key={l} value={l}>
-              {LOCALE_LABEL[l]}
-            </option>
-          ))}
-        </select>
       </footer>
     </div>
   );

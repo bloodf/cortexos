@@ -36,7 +36,6 @@ import { useT } from "@/hooks/useT";
 import { api, callMarkNotificationsRead } from "@/lib/api/client";
 import { csrfHeaders } from "@/lib/csrf";
 import { NAV } from "./NavConfig";
-import { LOCALES, LOCALE_LABEL } from "@/i18n";
 import { relativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -82,7 +81,7 @@ export function TopBar({
   onOpenPalette,
   onOpenHelp,
 }: Props) {
-  const { theme, setTheme, accent, setAccent, locale, setLocale } = useUI();
+  const { theme, setTheme, accent, setAccent } = useUI();
   const { user, logout } = useAuth();
   const t = useT();
   const path = useRouterState({ select: (s) => s.location.pathname });
@@ -304,16 +303,6 @@ export function TopBar({
               </p>
             </div>
           </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-            Language
-          </DropdownMenuLabel>
-          {LOCALES.map((l) => (
-            <DropdownMenuItem key={l} onClick={() => setLocale(l)} className="gap-2">
-              {locale === l ? <Check className="size-3.5" /> : <span className="size-3.5" />}
-              {LOCALE_LABEL[l]}
-            </DropdownMenuItem>
-          ))}
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() => {

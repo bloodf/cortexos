@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Database, HardDrive, RotateCcw } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { DataTable, type Column } from "@/components/DataTable";
+import { EmptyState } from "@/components/EmptyState";
 import { Badge } from "@/components/ui/badge";
 import { bytes, relativeTime } from "@/lib/format";
 import { api } from "@/lib/api/client";
@@ -104,6 +105,13 @@ export function BackupsPage() {
         initialSort="timestamp"
         initialSortDir="desc"
         server={{ queryKey: ["backups"], fetch: api.backupsList }}
+        empty={
+          <EmptyState
+            icon={<HardDrive className="size-6" />}
+            title="No backup runs yet"
+            description="Backup runs will appear here once the scheduler has completed its first job."
+          />
+        }
       />
     </div>
   );

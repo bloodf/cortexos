@@ -1,5 +1,4 @@
 import { createContext } from "react";
-import { type Locale } from "@/i18n";
 
 export type Theme = "light" | "dark" | "system";
 export type Accent = "cortex" | "teal" | "emerald" | "amber";
@@ -10,14 +9,11 @@ export interface UICtx {
   effective: "light" | "dark";
   accent: Accent;
   setAccent: (a: Accent) => void;
-  locale: Locale;
-  setLocale: (l: Locale) => void;
 }
 
 export const UIContext = createContext<UICtx | null>(null);
 export const THEME_KEY = "cortex.theme";
 export const ACCENT_KEY = "cortex.accent";
-export const LOCALE_KEY = "cortex.locale";
 
 export function resolveTheme(t: Theme): "light" | "dark" {
   if (t !== "system") return t;

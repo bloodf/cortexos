@@ -1,12 +1,13 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, HeartPulse } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { TechIcon } from "@/components/TechIcon";
 import { DataTable, type Column } from "@/components/DataTable";
+import { EmptyState } from "@/components/EmptyState";
 import { IncidentTimeline } from "@/components/IncidentTimeline";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -155,6 +156,13 @@ export function HealthcheckPage() {
               fetch: api.healthcheckList,
               refetchInterval: 3000,
             }}
+            empty={
+              <EmptyState
+                icon={<HeartPulse className="size-6" />}
+                title="No services to monitor"
+                description="Health checks will appear here once services are registered."
+              />
+            }
           />
 
           <Card className="elev-1">

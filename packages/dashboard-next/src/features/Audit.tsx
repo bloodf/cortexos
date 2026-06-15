@@ -3,6 +3,7 @@ import { useState } from "react";
 import { ScrollText, ShieldCheck, ShieldAlert, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { DataTable, type Column } from "@/components/DataTable";
+import { EmptyState } from "@/components/EmptyState";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { KeyValueList } from "@/components/KeyValueList";
 import { Badge } from "@/components/ui/badge";
@@ -136,6 +137,13 @@ export function AuditPage() {
           initialSortDir="desc"
           loading={isLoading}
           server={{ queryKey: ["audit", "list"], fetch: api.auditList }}
+          empty={
+            <EmptyState
+              icon={<ScrollText className="size-6" />}
+              title="No audit entries"
+              description="Privileged actions and policy decisions will be recorded here as they happen."
+            />
+          }
         />
       )}
       <Sheet open={!!sel} onOpenChange={(o) => !o && setSel(null)}>

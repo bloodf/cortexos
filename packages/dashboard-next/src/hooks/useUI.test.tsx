@@ -12,7 +12,6 @@ describe("useUI", () => {
     const { result } = renderHook(() => useUI(), { wrapper });
     expect(result.current.theme).toBe("dark");
     expect(result.current.accent).toBe("cortex");
-    expect(result.current.locale).toBe("en");
   });
 
   it("updates theme and persists", () => {
@@ -23,12 +22,10 @@ describe("useUI", () => {
     expect(localStorage.getItem("cortex.theme")).toBe("light");
   });
 
-  it("updates accent and locale", () => {
+  it("updates accent", () => {
     const { result } = renderHook(() => useUI(), { wrapper });
     act(() => result.current.setAccent("teal"));
-    act(() => result.current.setLocale("es"));
     expect(result.current.accent).toBe("teal");
-    expect(result.current.locale).toBe("es");
   });
 
   it("throws when used outside provider", () => {

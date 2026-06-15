@@ -45,6 +45,12 @@ function ServiceList({
             <button
               onClick={() => onToggle(s.slug)}
               className="text-muted-foreground hover:text-foreground"
+              aria-label={
+                isFavorite(s.slug)
+                  ? `Remove ${s.name} from favorites`
+                  : `Add ${s.name} to favorites`
+              }
+              aria-pressed={isFavorite(s.slug)}
             >
               {isFavorite(s.slug) ? (
                 <Star className="size-4 fill-current text-[var(--warning)]" />
@@ -57,6 +63,7 @@ function ServiceList({
               target="_blank"
               rel="noreferrer"
               className="text-muted-foreground hover:text-foreground"
+              aria-label={`Open ${s.name}`}
             >
               <ExternalLink className="size-4" />
             </a>
@@ -75,6 +82,10 @@ function ServiceList({
           <button
             onClick={() => onToggle(s.slug)}
             className="absolute top-2 right-2 opacity-60 group-hover:opacity-100 text-muted-foreground hover:text-foreground"
+            aria-label={
+              isFavorite(s.slug) ? `Remove ${s.name} from favorites` : `Add ${s.name} to favorites`
+            }
+            aria-pressed={isFavorite(s.slug)}
           >
             {isFavorite(s.slug) ? (
               <Star className="size-3.5 fill-current text-[var(--warning)]" />
@@ -101,6 +112,7 @@ function ServiceList({
               target="_blank"
               rel="noreferrer"
               className="text-xs text-primary hover:underline flex items-center gap-1"
+              aria-label={`Open ${s.name}`}
             >
               Open <ExternalLink className="size-3" />
             </a>
@@ -176,6 +188,8 @@ export default function AppsPage() {
               variant={view === "grid" ? "default" : "ghost"}
               onClick={() => setView("grid")}
               className="h-7 px-2"
+              aria-label="Grid view"
+              aria-pressed={view === "grid"}
             >
               <Grid3x3 className="size-3.5" />
             </Button>
@@ -184,6 +198,8 @@ export default function AppsPage() {
               variant={view === "list" ? "default" : "ghost"}
               onClick={() => setView("list")}
               className="h-7 px-2"
+              aria-label="List view"
+              aria-pressed={view === "list"}
             >
               <List className="size-3.5" />
             </Button>

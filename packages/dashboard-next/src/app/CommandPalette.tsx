@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Lock, Moon, Sun, Palette, Globe, Keyboard, LogOut, type LucideIcon } from "lucide-react";
+import { Lock, Moon, Sun, Palette, Keyboard, LogOut, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import {
   CommandDialog,
@@ -26,7 +26,6 @@ import {
 import { csrfHeaders } from "@/lib/csrf";
 import { bytes } from "@/lib/format";
 import { NAV, PINNED } from "./NavConfig";
-import { LOCALES, LOCALE_LABEL } from "@/i18n";
 
 function unitActiveColor(active: string): string {
   if (active === "active") return "var(--success)";
@@ -45,7 +44,7 @@ const RECENT_KEY = "cortex.palette.recent";
 export function CommandPalette({ open, onOpenChange, onOpenHelp }: Props) {
   const t = useT();
   const { user, logout } = useAuth();
-  const { theme, setTheme, accent, setAccent, locale, setLocale } = useUI();
+  const { theme, setTheme, accent, setAccent } = useUI();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { data: services = [] } = useQuery({ queryKey: ["services"], queryFn: api.services });
@@ -272,26 +271,6 @@ export function CommandPalette({ open, onOpenChange, onOpenHelp }: Props) {
               <Palette className="size-3.5 mr-2 text-muted-foreground" />
               {a.label}
               {accent === a.id && (
-                <span className="ml-auto text-[10px] text-muted-foreground">current</span>
-              )}
-            </CommandItem>
-          ))}
-        </CommandGroup>
-
-        <CommandGroup heading="Language">
-          {LOCALES.map((l) => (
-            <CommandItem
-              key={l}
-              onSelect={() => {
-                setLocale(l);
-                toast.success(`Language: ${LOCALE_LABEL[l]}`);
-                close();
-              }}
-              value={`lang ${LOCALE_LABEL[l]}`}
-            >
-              <Globe className="size-3.5 mr-2 text-muted-foreground" />
-              {LOCALE_LABEL[l]}
-              {locale === l && (
                 <span className="ml-auto text-[10px] text-muted-foreground">current</span>
               )}
             </CommandItem>
