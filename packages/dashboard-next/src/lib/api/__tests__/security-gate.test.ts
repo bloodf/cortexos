@@ -69,6 +69,7 @@ import {
   resetApprovalStore,
   actionHashFor,
   isTokenConsumed,
+  registerMintableAction,
 } from "@/server/approval";
 import { resetRevealGrants } from "@/server/env-reveal";
 import { asSessionId } from "@/server/entities";
@@ -193,6 +194,10 @@ const destructiveCore: ApiRouteCore = defineApiRoute({
   action: DESTRUCTIVE_ACTION,
   handler: ({ input }) => ({ ok: true, destroyed: input.target }),
 });
+// Synthetic destructive gate: register its action on the mintable allowlist
+// so the test's direct `mintApproval` calls succeed (a real gate's action is
+// part of the static allowlist in src/server/approval).
+registerMintableAction(DESTRUCTIVE_ACTION);
 
 function get(core: ApiRouteCore, path: string, token?: string): Promise<Response> {
   const headers: Record<string, string> = {};

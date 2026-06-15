@@ -137,6 +137,90 @@ function decodeToken(token: string): ApprovalClaims {
 }
 
 // ---------------------------------------------------------------------------
+// Mintable-action allowlist (SR — defence-in-depth, confirmation-only)
+// ---------------------------------------------------------------------------
+//
+// `mintApproval` previously accepted ANY action string. Because internal
+// self-mint paths (e.g. `systemd.ts`'s `bridgeMint`, the docker/incus
+// bridges, the agents gate) re-use `mintApproval` to satisfy a bridge's OWN
+// destructive-action gate, an arbitrary-action mint let a compromised path
+// self-mint approval for an action that gate would otherwise reject —
+// turning that internal gate into dead defence-in-depth.
+//
+// This allowlist enumerates the action strings real gates actually mint /
+// consume, so an unknown action is refused. It is CONFIRMATION-only
+// defence-in-depth: the primary control is RBAC + the per-surface policy
+// allowlist (`src/server/policy`). The allowlist is sourced from:
+//
+//   1. Gate `action` strings on `defineServerFn({ approval: true })` gates
+//      that the pipeline consumes (grep `action:` in src/lib/api/*.functions.ts):
+//      `systemd.action`, `agents.action`, `incus.action`,
+//      `docker.action`, `docker.prune`.
+//   2. Per-surface policy op names the bridges self-mint as `policyName`
+//      (`<surface>.<verb>`, e.g. `systemd.restart`, `incus.delete`,
+//      `docker.stop`) — these mirror the policy allowlist in
+//      `src/server/policy/index.ts` (systemd/docker/incus verbs).
+//   3. Agent control verbs (`start`/`stop`/`restart`/`pause`) used by the
+//      agents control bridge.
+//
+// Reveal grants use the `reveal.` prefix (env-browser secret reveal); they
+// are allowed by prefix. New mintable actions must be registered here (or via
+// `registerMintableAction` for synthetic/test gates) — fail closed otherwise.
+
+const MINTABLE_SURFACE_VERBS: Record<string, readonly string[]> = {
+  systemd: ["start", "stop", "restart", "reload", "enable", "disable"],
+  docker: ["start", "stop", "restart", "rm", "prune"],
+  incus: ["start", "stop", "restart", "delete", "launch"],
+};
+
+/** Exact action strings that may be minted. */
+const mintableActions = new Set<string>([
+  // (1) Pipeline gate action strings (`approval: true` gates).
+  "systemd.action",
+  "agents.action",
+  "incus.action",
+  "docker.action",
+  "docker.prune",
+  // (3) Agent control verbs (the agents bridge mints the bare verb).
+  "start",
+  "stop",
+  "restart",
+  "pause",
+]);
+
+// (2) Per-surface policy op names (`<surface>.<verb>`), mirroring the policy
+//     allowlist so bridge self-mint paths keep working.
+Object.entries(MINTABLE_SURFACE_VERBS).forEach(([surface, verbs]) => {
+  verbs.forEach((verb) => mintableActions.add(`${surface}.${verb}`));
+});
+
+/** Prefixes whose actions are always mintable (e.g. time-bounded reveals). */
+const MINTABLE_PREFIXES: readonly string[] = ["reveal."];
+
+/**
+ * Register an additional mintable action at runtime. Used by synthetic /
+ * test gates whose action strings are not part of the static surface set.
+ * Real surfaces should instead extend {@link mintableActions} above.
+ */
+export function registerMintableAction(action: string): void {
+  mintableActions.add(action);
+}
+
+/** True when `action` is on the mintable allowlist (exact or by prefix). */
+export function isMintableAction(action: string): boolean {
+  if (mintableActions.has(action)) return true;
+  return MINTABLE_PREFIXES.some((p) => action.startsWith(p));
+}
+
+/** Thrown when `mintApproval` is asked to mint an action outside the allowlist. */
+export class UnmintableActionError extends Error {
+  constructor(action: string) {
+    super(`action '${action}' is not on the mintable-action allowlist`);
+    this.name = "UnmintableActionError";
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Mint
 // ---------------------------------------------------------------------------
 
@@ -149,6 +233,12 @@ export interface MintInput {
 }
 
 export function mintApproval(input: MintInput): ApprovalToken {
+  // Defence-in-depth: refuse to mint approval for an action no real gate
+  // uses. Stops a compromised self-mint path from forging approval for an
+  // arbitrary action. See the allowlist commentary above.
+  if (!isMintableAction(input.action)) {
+    throw new UnmintableActionError(input.action);
+  }
   const ttl = input.ttlSec ?? 60;
   const iat = Date.now();
   const claims: ApprovalClaims = {

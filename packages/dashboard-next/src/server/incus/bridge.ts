@@ -67,6 +67,32 @@ export interface IncusLogLine {
 
 const execFileAsync = promisify(execFile);
 
+/**
+ * Injectable exec seam for the REAL instance-log fetch. Defaults to running
+ * the `incus` CLI via `execFile` (no shell, fixed argv). Tests swap it via
+ * `setLogExecForTests` to assert the argv and feed canned stdout without a
+ * real `incus` binary. Returns `{ stdout }` (stderr is ignored for logs).
+ */
+export type IncusLogExec = (argv: readonly string[]) => Promise<{ stdout: string }>;
+
+const defaultLogExec: IncusLogExec = async (argv) => {
+  const { stdout } = await execFileAsync("incus", argv as string[], {
+    timeout: 15_000,
+    maxBuffer: 8 * 1024 * 1024,
+  });
+  return { stdout: stdout ?? "" };
+};
+
+let logExec: IncusLogExec = defaultLogExec;
+
+/** Strict regex for incus instance names. Mirrors the policy module. */
+const INSTANCE_NAME_RE = /^[a-z0-9][a-z0-9-]{0,62}[a-z0-9]$/;
+
+/** Test helper: swap the log-exec seam. Pass `null` to reset to the default. */
+export function setLogExecForTests(fn: IncusLogExec | null): void {
+  logExec = fn ?? defaultLogExec;
+}
+
 // ---------------------------------------------------------------------------
 // Executor interface — the seam between M2 (mock) and M3 (incus CLI).
 // ---------------------------------------------------------------------------
@@ -522,6 +548,15 @@ export function setExecutorForTests(fn: IncusExecutor | null): void {
   executor = e;
 }
 
+/**
+ * Test helper: disable the mock so loaders take the REAL (incus CLI) path.
+ * Used together with `setLogExecForTests` to exercise the real log fetch
+ * without a live `incus` binary. `resetIncusBridgeForTests()` re-enables it.
+ */
+export function disableMockForTests(): void {
+  currentMock = null;
+}
+
 /** Test helper: peek at the underlying mock. */
 export function getMockExecutorForTests(): MockIncusExecutor {
   if (!currentMock) {
@@ -565,6 +600,43 @@ export async function getMockRecord(name: string): Promise<MockInstanceRecord | 
   return getMockRecordFromIncus(name);
 }
 
+/**
+ * Infer a log priority from a raw console line. Incus' `--show-log` is the
+ * instance console buffer (free text, no structured level), so we do a cheap
+ * keyword scan. Defaults to `info`.
+ */
+function inferLogPriority(line: string): IncusLogLine["priority"] {
+  const l = line.toLowerCase();
+  if (/\b(error|err|fail(ed|ure)?|fatal|panic)\b/.test(l)) return "error";
+  if (/\b(warn(ing)?)\b/.test(l)) return "warn";
+  if (/\b(debug|trace)\b/.test(l)) return "debug";
+  return "info";
+}
+
+/**
+ * Parse raw `incus console --show-log` stdout into log lines (oldest-first).
+ * The console buffer is unstructured text; each non-empty line becomes one
+ * entry with an inferred priority and the instance name. `ts` is left empty
+ * (the console buffer carries no reliable per-line timestamp).
+ */
+function parseConsoleLog(name: string, stdout: string): IncusLogLine[] {
+  return stdout
+    .split("\n")
+    .map((l) => l.replace(/\r$/, ""))
+    .filter((l) => l.trim().length > 0)
+    .map((message) => ({
+      ts: "",
+      priority: inferLogPriority(message),
+      name,
+      message,
+    }));
+}
+
+/** A single honest marker returned when real logs cannot be fetched. */
+function logsUnavailable(name: string): IncusLogLine[] {
+  return [{ ts: "", priority: "warn", name, message: "logs unavailable" }];
+}
+
 /** Return the most-recent `limit` log lines for an instance, newest first. */
 export async function listInstanceLogs(name: string, limit: number): Promise<IncusLogLine[]> {
   if (currentMock) {
@@ -578,7 +650,27 @@ export async function listInstanceLogs(name: string, limit: number): Promise<Inc
       message: l.message,
     }));
   }
-  return [];
+  // Real path: fetch the instance console buffer via the incus CLI. The name
+  // is validated to the strict instance-name regex first (defence-in-depth;
+  // the argv is fixed and passed via execFile, so no shell injection is
+  // possible regardless), then parsed into log lines.
+  if (!INSTANCE_NAME_RE.test(name)) {
+    return logsUnavailable(name);
+  }
+  try {
+    const { stdout } = await logExec(["console", name, "--show-log"]);
+    const parsed = parseConsoleLog(name, stdout);
+    if (parsed.length === 0) {
+      // Genuinely empty buffer is distinct from "not implemented": surface a
+      // single honest marker so the UI can tell them apart.
+      return logsUnavailable(name);
+    }
+    // Console buffer is oldest-first; the API returns newest-first.
+    const reversed = parsed.slice().reverse();
+    return reversed.slice(0, Math.max(0, limit));
+  } catch {
+    return logsUnavailable(name);
+  }
 }
 
 /**
@@ -840,9 +932,6 @@ const DESTRUCTIVE_ACTIONS_INTERNAL: ReadonlySet<IncusActionKind> = new Set<Incus
   "restart",
   "delete",
 ]);
-
-/** Strict regex for incus instance names. Mirrors the policy module. */
-const INSTANCE_NAME_RE = /^[a-z0-9][a-z0-9-]{0,62}[a-z0-9]$/;
 
 /** TTL for a destructive-action approval token. */
 const APPROVAL_TTL_SEC = 60;

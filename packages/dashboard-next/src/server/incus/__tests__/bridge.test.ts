@@ -17,6 +17,8 @@ import {
   dispatchAction,
   dispatchExecNamed,
   resetIncusBridgeForTests,
+  disableMockForTests,
+  setLogExecForTests,
   SEED_INSTANCES,
   DESTRUCTIVE_ACTIONS,
   DELETE_CONFIRMATION_PHRASE,
@@ -144,6 +146,87 @@ describe("listInstanceLogs", () => {
   it("returns empty array for unknown instance", async () => {
     const lines = await listInstanceLogs("nonexistent", 10);
     expect(lines).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// listInstanceLogs — REAL path (incus console --show-log), injected exec
+// ---------------------------------------------------------------------------
+
+describe("listInstanceLogs — real path", () => {
+  beforeEach(() => {
+    // Force the non-mock branch; mock is restored by the outer beforeEach.
+    disableMockForTests();
+  });
+
+  it("runs `incus console <name> --show-log` and maps parsed lines newest-first", async () => {
+    const seen: string[][] = [];
+    setLogExecForTests(async (argv) => {
+      seen.push([...argv]);
+      return {
+        stdout: ["boot: starting up", "WARN: disk almost full", "ERROR: oom killed proc"].join(
+          "\n",
+        ),
+      };
+    });
+
+    const lines = await listInstanceLogs("hermes-canary", 10);
+
+    // Exact argv (fixed, no shell).
+    expect(seen).toEqual([["console", "hermes-canary", "--show-log"]]);
+    // Newest-first: the error line (last in the buffer) comes first.
+    expect(lines).toHaveLength(3);
+    expect(lines[0]).toEqual({
+      ts: "",
+      priority: "error",
+      name: "hermes-canary",
+      message: "ERROR: oom killed proc",
+    });
+    expect(lines[1].priority).toBe("warn");
+    expect(lines[2].priority).toBe("info");
+
+    setLogExecForTests(null);
+  });
+
+  it("respects the limit on the real path", async () => {
+    setLogExecForTests(async () => ({ stdout: "a\nb\nc\nd\n" }));
+    const lines = await listInstanceLogs("hermes-canary", 2);
+    expect(lines).toHaveLength(2);
+    setLogExecForTests(null);
+  });
+
+  it("surfaces a single 'logs unavailable' marker when the exec throws", async () => {
+    setLogExecForTests(async () => {
+      throw new Error("incus: not found");
+    });
+    const lines = await listInstanceLogs("hermes-canary", 10);
+    expect(lines).toEqual([
+      { ts: "", priority: "warn", name: "hermes-canary", message: "logs unavailable" },
+    ]);
+    setLogExecForTests(null);
+  });
+
+  it("surfaces 'logs unavailable' for an empty console buffer", async () => {
+    setLogExecForTests(async () => ({ stdout: "\n  \n" }));
+    const lines = await listInstanceLogs("hermes-canary", 10);
+    expect(lines).toEqual([
+      { ts: "", priority: "warn", name: "hermes-canary", message: "logs unavailable" },
+    ]);
+    setLogExecForTests(null);
+  });
+
+  it("rejects an invalid instance name without shelling out", async () => {
+    let called = false;
+    setLogExecForTests(async () => {
+      called = true;
+      return { stdout: "" };
+    });
+    const lines = await listInstanceLogs("Bad Name; rm -rf /", 10);
+    expect(called).toBe(false);
+    expect(lines).toEqual([
+      { ts: "", priority: "warn", name: "Bad Name; rm -rf /", message: "logs unavailable" },
+    ]);
+    setLogExecForTests(null);
   });
 });
 
