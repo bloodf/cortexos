@@ -132,8 +132,13 @@ describe("migration roundtrip", () => {
     ]);
   });
 
-  it("records every applied migration in the migrations table", async () => {
-    const rows = await client.query<{ name: string }>("SELECT name FROM migrations ORDER BY name");
+  it("records every applied migration in the dashboard_migrations ledger", async () => {
+    // The runner records into the namespaced `dashboard_migrations` ledger
+    // (not the legacy shared `migrations` table) since the ledger-collision
+    // fix — see src/server/db/migrate.ts.
+    const rows = await client.query<{ name: string }>(
+      "SELECT name FROM dashboard_migrations ORDER BY name",
+    );
     const applied = rows.rows.map((r) => r.name);
     [
       "001_schema",
