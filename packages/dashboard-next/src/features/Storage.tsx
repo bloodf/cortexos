@@ -3,6 +3,7 @@ import { HardDrive } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, type Column } from "@/components/DataTable";
+import { EmptyState } from "@/components/EmptyState";
 import { api } from "@/lib/api/client";
 import { useT } from "@/hooks/useT";
 import { bytes } from "@/lib/format";
@@ -12,7 +13,7 @@ import { cn } from "@/lib/utils";
 
 export function StoragePage() {
   const t = useT();
-  const { data: sys } = useQuery({
+  const { data: sys, isError } = useQuery({
     queryKey: ["system"],
     queryFn: api.system,
     refetchInterval: 5000,
@@ -52,6 +53,14 @@ export function StoragePage() {
         title={t.nav.storage}
         description="Block devices, mounts and pools."
       />
+
+      {isError && (
+        <EmptyState
+          icon={<HardDrive className="size-6" />}
+          title="Couldn't load storage data"
+          description="The request failed — it will retry automatically."
+        />
+      )}
 
       <Card className="elev-1">
         <CardHeader className="pb-2">

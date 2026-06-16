@@ -23,7 +23,10 @@ function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; va
 }
 
 export function BackupsPage() {
-  const { data: snaps = [] } = useQuery({ queryKey: ["backups"], queryFn: api.backups });
+  const { data: snaps = [], isError } = useQuery({
+    queryKey: ["backups"],
+    queryFn: api.backups,
+  });
 
   const totalBytes = snaps.reduce((s, x) => s + (x.sizeBytes ?? 0), 0);
   const ok = snaps.filter((x) => x.status === "success").length;
@@ -81,6 +84,14 @@ export function BackupsPage() {
         title="Backups & snapshots"
         description="ZFS snapshots, Docker volume archives, and Postgres dumps in one place."
       />
+
+      {isError && (
+        <EmptyState
+          icon={<HardDrive className="size-6" />}
+          title="Couldn't load backup summary"
+          description="The request failed — it will retry automatically."
+        />
+      )}
 
       <div className="grid sm:grid-cols-3 gap-3">
         <Stat

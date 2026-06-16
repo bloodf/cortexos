@@ -152,6 +152,9 @@ export function DataTable<T>({
   const isServerLoading = server ? serverQuery.isLoading && !serverQuery.data : false;
   const isServerFetching = server ? serverQuery.isFetching : false;
   const loading = server ? isServerLoading : !!loadingProp;
+  // A failed server fetch must not masquerade as an empty table ("No results"
+  // when the request actually errored). Show an honest error row instead.
+  const serverError = server ? serverQuery.isError && !serverQuery.data : false;
 
   // ----- Local mode (when no server) -----
   const rows = useMemo(() => localRows ?? [], [localRows]);
@@ -249,6 +252,18 @@ export function DataTable<T>({
         })}
       </tr>
     ));
+  } else if (serverError) {
+    tbodyContent = (
+      <tr>
+        <td
+          colSpan={columns.length + (selectable ? 1 : 0)}
+          className="px-3 py-10 text-center text-destructive text-sm"
+          role="alert"
+        >
+          Failed to load. The request errored — it will retry automatically.
+        </td>
+      </tr>
+    );
   } else if (view.length === 0) {
     tbodyContent = (
       <tr>

@@ -147,7 +147,11 @@ function TreeView({
 
 export function ProcessesPage() {
   const t = useT();
-  const { data: procs = [], isLoading } = useQuery({
+  const {
+    data: procs = [],
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ["processes"],
     queryFn: api.processes,
     refetchInterval: 3000,
@@ -281,6 +285,14 @@ export function ProcessesPage() {
           </div>
         }
       />
+
+      {isError && (
+        <EmptyState
+          icon={<Cpu className="size-6" />}
+          title="Couldn't load processes"
+          description="The request failed — it will retry automatically."
+        />
+      )}
 
       {view === "list" ? (
         <DataTable

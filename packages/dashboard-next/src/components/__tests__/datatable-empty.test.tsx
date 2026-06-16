@@ -37,6 +37,25 @@ describe("DataTable empty prop", () => {
     expect(screen.queryByText("No results")).not.toBeInTheDocument();
   });
 
+  it("shows an honest error row (not 'No results') when a server fetch rejects", async () => {
+    renderWithClient(
+      <DataTable
+        columns={cols}
+        paginate={false}
+        empty={<EmptyState title="Nothing here yet" />}
+        server={{
+          queryKey: ["boom"],
+          fetch: () => Promise.reject(new Error("upstream down")),
+        }}
+      />,
+    );
+    expect(await screen.findByText(/Failed to load/i)).toBeInTheDocument();
+    // It must NOT show the empty state, which would imply "no data" rather than
+    // "the request errored".
+    expect(screen.queryByText("Nothing here yet")).not.toBeInTheDocument();
+    expect(screen.queryByText("No results")).not.toBeInTheDocument();
+  });
+
   it("does not render the empty state when rows are present", () => {
     renderWithClient(
       <DataTable

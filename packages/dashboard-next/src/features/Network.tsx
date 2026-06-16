@@ -3,13 +3,14 @@ import { Network as NetIcon, ArrowDown, ArrowUp } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { MetricCard } from "@/components/MetricCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/EmptyState";
 import { api } from "@/lib/api/client";
 import { useT } from "@/hooks/useT";
 import { bytes, kbps } from "@/lib/format";
 
 export function NetworkPage() {
   const t = useT();
-  const { data: net } = useQuery({
+  const { data: net, isError } = useQuery({
     queryKey: ["network"],
     queryFn: api.network,
     refetchInterval: 3000,
@@ -24,6 +25,13 @@ export function NetworkPage() {
         title={t.nav.network}
         description={`${interfaces.length} interfaces`}
       />
+      {isError && (
+        <EmptyState
+          icon={<NetIcon className="size-6" />}
+          title="Couldn't load network data"
+          description="The request failed — it will retry automatically."
+        />
+      )}
       <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
         <MetricCard
           label="Rx Total"
