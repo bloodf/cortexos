@@ -134,9 +134,7 @@ async function pollTelegramReviews(deps: Awaited<ReturnType<typeof buildDeps>>):
       process.stderr.write(
         `[mail-guardian] telegram polling error: ${error instanceof Error ? error.message : String(error)}\n`,
       );
-      await new Promise((resolve) => {
-        setTimeout(resolve, 30_000);
-      });
+      await sleep(30_000);
     }
     return loop();
   };

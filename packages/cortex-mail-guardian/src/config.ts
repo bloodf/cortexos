@@ -205,8 +205,10 @@ export function mergeAccounts(
   envAccounts: MailAccountConfig[],
   dbAccounts: MailAccountConfig[],
 ): MailAccountConfig[] {
-  const bySlug = new Map<string, MailAccountConfig>();
-  envAccounts.forEach((account) => bySlug.set(account.slug, account));
-  dbAccounts.forEach((account) => bySlug.set(account.slug, account));
+  // env first, then db — db values override env by slug while preserving the
+  // original (env-first) iteration order of each slug's first appearance.
+  const bySlug = new Map<string, MailAccountConfig>(
+    [...envAccounts, ...dbAccounts].map((account) => [account.slug, account]),
+  );
   return [...bySlug.values()];
 }

@@ -21,7 +21,6 @@ vi.mock('../src/model.js', () => ({
   heuristicSpamScore: () => 0,
   shouldKeepInInbox: () => false,
   shouldAutoQuarantine: () => false,
-  shouldAutoTrash: () => false,
 }));
 
 beforeEach(() => {

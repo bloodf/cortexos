@@ -10,8 +10,9 @@ vi.mock('@ai-sdk/openai', () => ({
   createOpenAI: (...args: unknown[]) => createOpenAIMock(...args),
 }));
 
-const { classifyEmail, classifyWithFallback, shouldAutoTrash, validateClassification } =
-  await import('../src/model.js');
+const { classifyEmail, classifyWithFallback, shouldAutoQuarantine } = await import(
+  '../src/model.js'
+);
 
 const modelConfig = {
   baseUrl: 'http://localhost:11434/v1',
@@ -37,36 +38,28 @@ beforeEach(() => {
 });
 
 describe('model decisions', () => {
-  it('auto-trashes only when classifier and verifier meet threshold', () => {
-    const classification = validateClassification({
-      verdict: 'spam',
+  it('auto-quarantines only when classifier and verifier meet threshold', () => {
+    const classification = {
+      verdict: 'spam' as const,
       confidence: 0.96,
       reasons: ['scam'],
       riskSignals: [],
-    });
-    const verification = validateClassification({
-      verdict: 'spam',
+    };
+    const verification = {
+      verdict: 'spam' as const,
       confidence: 0.95,
       reasons: ['phishing'],
       riskSignals: [],
-    });
+    };
     expect(
-      shouldAutoTrash({ classification, verification, threshold: 0.95, hasAllowRule: false }),
+      shouldAutoQuarantine({ classification, verification, threshold: 0.95, hasAllowRule: false }),
     ).toBe(true);
     expect(
-      shouldAutoTrash({ classification, verification, threshold: 0.97, hasAllowRule: false }),
+      shouldAutoQuarantine({ classification, verification, threshold: 0.97, hasAllowRule: false }),
     ).toBe(false);
     expect(
-      shouldAutoTrash({ classification, verification, threshold: 0.95, hasAllowRule: true }),
+      shouldAutoQuarantine({ classification, verification, threshold: 0.95, hasAllowRule: true }),
     ).toBe(false);
-  });
-
-  it('rejects malformed classifier output', () => {
-    expect(() => validateClassification({ verdict: 'maybe', confidence: 1.1 })).toThrow();
-  });
-
-  it("normalizes the model 'ham' verdict to not_spam", () => {
-    expect(validateClassification({ verdict: 'ham', confidence: 0.9 }).verdict).toBe('not_spam');
   });
 });
 
@@ -135,33 +128,39 @@ describe('classifyWithFallback', () => {
     expect(outcome.result.verdict).toBe('not_spam');
   });
 
-  it('retries the primary once and then uses the fallback', async () => {
+  it('invokes the fallback model when the primary throws', async () => {
     generateObjectMock
-      .mockRejectedValueOnce(new Error('primary attempt 1 failed'))
-      .mockRejectedValueOnce(new Error('primary attempt 2 failed'))
+      .mockRejectedValueOnce(new Error('primary attempt failed'))
       .mockResolvedValueOnce({
         object: { verdict: 'spam', confidence: 0.99, reasons: ['phishing'], riskSignals: [] },
       });
 
     const outcome = await classifyWithFallback(modelConfig, fallbackConfig, sampleInput);
 
-    expect(createOpenAIMock).toHaveBeenCalledTimes(3);
+    // Primary is attempted once, then the FALLBACK model is invoked — not a
+    // second call against the primary.
+    expect(createOpenAIMock).toHaveBeenCalledTimes(2);
+    expect(createOpenAIMock).toHaveBeenNthCalledWith(1, {
+      baseURL: modelConfig.baseUrl,
+      apiKey: modelConfig.apiKey,
+    });
+    const secondCallModel = generateObjectMock.mock.calls[1][0] as { model: { modelId: string } };
+    expect(secondCallModel.model.modelId).toBe(fallbackConfig.model);
     expect(outcome.modelUsed).toBe(fallbackConfig.model);
-    expect(outcome.attempts).toBe(3);
+    expect(outcome.attempts).toBe(2);
     expect(outcome.result.verdict).toBe('spam');
   });
 
-  it('propagates the last error when primary and fallback all fail', async () => {
+  it('propagates the fallback error when primary and fallback both fail', async () => {
     generateObjectMock
-      .mockRejectedValueOnce(new Error('primary attempt 1 failed'))
-      .mockRejectedValueOnce(new Error('primary attempt 2 failed'))
+      .mockRejectedValueOnce(new Error('primary attempt failed'))
       .mockRejectedValueOnce(new Error('fallback failed'));
 
     await expect(classifyWithFallback(modelConfig, fallbackConfig, sampleInput)).rejects.toThrow(
       'fallback failed',
     );
-    expect(createOpenAIMock).toHaveBeenCalledTimes(3);
-    expect(generateObjectMock).toHaveBeenCalledTimes(3);
+    expect(createOpenAIMock).toHaveBeenCalledTimes(2);
+    expect(generateObjectMock).toHaveBeenCalledTimes(2);
   });
 
   it('makes exactly two attempts and throws when no fallback is provided', async () => {

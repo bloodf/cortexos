@@ -36,29 +36,6 @@ function normalizeVerdict(verdict: RawClassification['verdict']): SpamVerdict {
   return verdict === 'ham' ? 'not_spam' : verdict;
 }
 
-export function validateClassification(value: unknown): ClassificationResult {
-  const input = value as {
-    verdict?: string;
-    confidence?: unknown;
-    reasons?: unknown;
-    riskSignals?: unknown;
-  } | null;
-  if (!input || typeof input !== 'object') throw new Error('classification must be an object');
-  const verdict: string | undefined = input.verdict === 'ham' ? 'not_spam' : input.verdict;
-  if (verdict !== 'spam' && verdict !== 'not_spam' && verdict !== 'uncertain') {
-    throw new Error('classification verdict is invalid');
-  }
-  if (typeof input.confidence !== 'number' || input.confidence < 0 || input.confidence > 1) {
-    throw new Error('classification confidence must be between 0 and 1');
-  }
-  return {
-    verdict,
-    confidence: input.confidence,
-    reasons: Array.isArray(input.reasons) ? input.reasons.map(String).slice(0, 6) : [],
-    riskSignals: Array.isArray(input.riskSignals) ? input.riskSignals.map(String).slice(0, 6) : [],
-  };
-}
-
 function buildPrompt(input: {
   from: string;
   subject: string;
@@ -124,18 +101,18 @@ export async function classifyWithFallback(
   try {
     return { result: await classifyEmail(primary, input), modelUsed: primary.model, attempts: 1 };
   } catch {
-    try {
-      return { result: await classifyEmail(primary, input), modelUsed: primary.model, attempts: 2 };
-    } catch (err) {
-      if (fallback) {
-        return {
-          result: await classifyEmail(fallback, input),
-          modelUsed: fallback.model,
-          attempts: 3,
-        };
-      }
-      throw err;
+    if (fallback) {
+      // Primary failed: fall back to the secondary model rather than retrying
+      // the same (likely-degraded) primary endpoint.
+      return {
+        result: await classifyEmail(fallback, input),
+        modelUsed: fallback.model,
+        attempts: 2,
+      };
     }
+    // No fallback configured: retry the primary once before giving up. Any
+    // error from the retry propagates to the caller.
+    return { result: await classifyEmail(primary, input), modelUsed: primary.model, attempts: 2 };
   }
 }
 
@@ -205,8 +182,4 @@ export function shouldKeepInInbox(input: {
     input.verification.riskSignals.length === 0 &&
     (input.heuristicScore ?? 0) === 0
   );
-}
-
-export function shouldAutoTrash(input: Parameters<typeof shouldAutoQuarantine>[0]): boolean {
-  return shouldAutoQuarantine(input);
 }

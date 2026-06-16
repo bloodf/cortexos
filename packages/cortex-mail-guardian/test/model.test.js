@@ -8,7 +8,7 @@ vi.mock('ai', () => ({
 vi.mock('@ai-sdk/openai', () => ({
   createOpenAI: (...args) => createOpenAIMock(...args),
 }));
-const { classifyEmail, shouldAutoTrash, validateClassification } = await import('../src/model.js');
+const { classifyEmail, shouldAutoQuarantine } = await import('../src/model.js');
 const modelConfig = {
   baseUrl: 'http://localhost:11434/v1',
   apiKey: 'test-key',
@@ -16,34 +16,28 @@ const modelConfig = {
   timeoutMs: 5_000,
 };
 describe('model decisions', () => {
-  it('auto-trashes only when classifier and verifier meet threshold', () => {
-    const classification = validateClassification({
+  it('auto-quarantines only when classifier and verifier meet threshold', () => {
+    const classification = {
       verdict: 'spam',
       confidence: 0.96,
       reasons: ['scam'],
       riskSignals: [],
-    });
-    const verification = validateClassification({
+    };
+    const verification = {
       verdict: 'spam',
       confidence: 0.95,
       reasons: ['phishing'],
       riskSignals: [],
-    });
+    };
     expect(
-      shouldAutoTrash({ classification, verification, threshold: 0.95, hasAllowRule: false }),
+      shouldAutoQuarantine({ classification, verification, threshold: 0.95, hasAllowRule: false }),
     ).toBe(true);
     expect(
-      shouldAutoTrash({ classification, verification, threshold: 0.97, hasAllowRule: false }),
+      shouldAutoQuarantine({ classification, verification, threshold: 0.97, hasAllowRule: false }),
     ).toBe(false);
     expect(
-      shouldAutoTrash({ classification, verification, threshold: 0.95, hasAllowRule: true }),
+      shouldAutoQuarantine({ classification, verification, threshold: 0.95, hasAllowRule: true }),
     ).toBe(false);
-  });
-  it('rejects malformed classifier output', () => {
-    expect(() => validateClassification({ verdict: 'maybe', confidence: 1.1 })).toThrow();
-  });
-  it("normalizes the model 'ham' verdict to not_spam", () => {
-    expect(validateClassification({ verdict: 'ham', confidence: 0.9 }).verdict).toBe('not_spam');
   });
 });
 describe('classifyEmail (Vercel AI SDK wiring)', () => {
