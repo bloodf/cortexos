@@ -818,7 +818,13 @@ export function toAuditEntryRow(e: ListAuditOutput["events"][number]): AuditEntr
     tool: e.action,
     tool_class: e.surface,
     args_hash: e.payloadHash,
-    decision: result === "deny" || result === "error" ? "deny" : "allow",
+    // safeAudit records result as "denied"/"failure"/"success"; older
+    // agent_gateway rows used "deny"/"error". Treat all failure vocabularies as
+    // a denied decision so a denied/failed event never renders as a green allow.
+    decision:
+      result === "denied" || result === "failure" || result === "deny" || result === "error"
+        ? "deny"
+        : "allow",
     decision_reason: detail,
     result,
     created_at: e.occurredAt,

@@ -22,7 +22,20 @@ export interface ListAuditEventsOptions {
   pageSize?: number;
 }
 
+const AUDIT_RESULTS = ["success", "failure", "denied", "error"] as const;
+
 function toEntity(row: AuditLogEntry): AuditEvent {
+  const payload = (row.payload ?? {}) as Record<string, unknown>;
+  // The `audit_log` table has no dedicated result/errorCode columns; safeAudit
+  // stores both inside the JSONB payload (server-fn-pipeline.persistDurableAudit:
+  // payload.result ∈ success|failure|denied, payload.errorCode = err.kind). Recover
+  // them here — hardcoding "success" made the Audit UI render every denied/failed
+  // event as a green "allow", a security-monitoring blind spot.
+  const rawResult = payload.result;
+  const result: AuditEvent["result"] = AUDIT_RESULTS.includes(rawResult as AuditEvent["result"])
+    ? (rawResult as AuditEvent["result"])
+    : "success";
+  const errorCode = typeof payload.errorCode === "string" ? payload.errorCode : null;
   return {
     id: asAuditEventId(String(row.id)),
     actorUserId: row.actor ? (row.actor as AuditEvent["actorUserId"]) : null,
@@ -32,12 +45,12 @@ function toEntity(row: AuditLogEntry): AuditEvent {
     surface: row.source,
     action: row.eventType,
     target: row.subject,
-    result: "success", // audit_log does not store result; default to success
-    errorCode: null,
+    result,
+    errorCode,
     requestId: row.eventId,
     prevHash: row.prevHash,
     payloadHash: row.payloadHash,
-    payload: row.payload as Record<string, unknown>,
+    payload,
     createdAt: row.occurredAt instanceof Date ? row.occurredAt.toISOString() : row.occurredAt,
   };
 }
