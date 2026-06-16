@@ -116,15 +116,35 @@ export async function processMessage(
 
   try {
     classifyResult = await classifyWithFallback(primaryConfig, fallbackConfig, classifyInput);
-  } catch {
+  } catch (err) {
     classifyFailed = true;
+    process.stderr.write(
+      `${JSON.stringify({
+        event: 'mail_guardian_classify_failed',
+        level: 'warn',
+        stage: 'classify',
+        account: account.slug,
+        uid: message.uid,
+        error: err instanceof Error ? err.message : String(err),
+      })}\n`,
+    );
   }
 
   if (!classifyFailed) {
     try {
       verifyResult = await classifyWithFallback(verifyConfig, null, classifyInput);
-    } catch {
+    } catch (err) {
       classifyFailed = true;
+      process.stderr.write(
+        `${JSON.stringify({
+          event: 'mail_guardian_classify_failed',
+          level: 'warn',
+          stage: 'verify',
+          account: account.slug,
+          uid: message.uid,
+          error: err instanceof Error ? err.message : String(err),
+        })}\n`,
+      );
     }
   }
 
