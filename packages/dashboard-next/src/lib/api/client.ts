@@ -1114,27 +1114,27 @@ export const api = {
   docker: {
     containers: async (): Promise<DockerContainer[]> => {
       const { items } = await listContainersFn({ data: {} });
-      return items.map(toDockerContainer);
+      return mapRowsSafe(items, toDockerContainer, "docker.containers");
     },
     images: async (): Promise<DockerImage[]> => {
       const { items } = await listImagesFn({ data: {} });
-      return items.map(toDockerImage);
+      return mapRowsSafe(items, toDockerImage, "docker.images");
     },
     volumes: async (): Promise<DockerVolume[]> => {
       const { items } = await listVolumesFn({ data: {} });
-      return items.map(toDockerVolume);
+      return mapRowsSafe(items, toDockerVolume, "docker.volumes");
     },
     containersList: async (p?: ListParams): Promise<ListResult<DockerContainer>> => {
       const { items } = await listContainersFn({ data: { query: p?.q } });
-      return clientSideList(items.map(toDockerContainer), p);
+      return clientSideList(mapRowsSafe(items, toDockerContainer, "docker.containersList"), p);
     },
     imagesList: async (p?: ListParams): Promise<ListResult<DockerImage>> => {
       const { items } = await listImagesFn({ data: { query: p?.q } });
-      return clientSideList(items.map(toDockerImage), p);
+      return clientSideList(mapRowsSafe(items, toDockerImage, "docker.imagesList"), p);
     },
     volumesList: async (p?: ListParams): Promise<ListResult<DockerVolume>> => {
       const { items } = await listVolumesFn({ data: { query: p?.q } });
-      return clientSideList(items.map(toDockerVolume), p);
+      return clientSideList(mapRowsSafe(items, toDockerVolume, "docker.volumesList"), p);
     },
   },
 
@@ -1329,7 +1329,7 @@ export const api = {
     } catch {
       // Status probe failed — fall back to "stopped" per-row (honest default).
     }
-    return agents.map((p) => toAgentRow(p, states[p.profile] ?? "stopped"));
+    return mapRowsSafe(agents, (p) => toAgentRow(p, states[p.profile] ?? "stopped"), "agents");
   },
 
   // ── Mail-Guardian (WIRED — WP-37) ────────────────────────────────────
