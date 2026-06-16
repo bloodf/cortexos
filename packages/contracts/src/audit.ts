@@ -20,7 +20,6 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import {
-  zHmacSha256,
   zSha256,
   zUuidV4,
   zIpAddress,
@@ -99,8 +98,8 @@ export const AuditEventSchema = z.object({
   requestId: zUuidV4.nullable(),
   payloadHash: zSha256,
   payload: z.record(z.string(), z.unknown()),
-  prevHash: zHmacSha256.nullable(),
-  currHash: zHmacSha256,
+  prevHash: zSha256.nullable(),
+  currHash: zSha256,
 });
 export type AuditEvent = z.infer<typeof AuditEventSchema>;
 
@@ -124,8 +123,8 @@ export const AuditEntrySchema = z.object({
   errorCode: z.string().min(1).max(64).nullable().optional(),
   requestId: zUuidV4.nullable(),
   /** Hash chain link — null only on the genesis row. */
-  prevHash: zHmacSha256.nullable(),
-  currHash: zHmacSha256,
+  prevHash: zSha256.nullable(),
+  currHash: zSha256,
   /** Whether the chain-verifier confirmed this row's hash link. */
   chainValid: z.boolean(),
 });

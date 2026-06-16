@@ -3,9 +3,8 @@
  * Users repository tests.
  *
  * Covers: PAM user upsert, session creation, session resolution
- * (with expiry check), session deletion, expired-session sweep,
- * per-user session deletion, list-active-sessions. Plus the
- * canReadPamUser RBAC helper.
+ * (with expiry check), session deletion, per-user session deletion,
+ * list-active-sessions.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
@@ -20,10 +19,8 @@ import {
   createAdminSession,
   resolveSessionByToken,
   deleteAdminSession,
-  deleteExpiredAdminSessions,
   deleteAdminSessionsForUser,
   listActiveAdminSessions,
-  canReadPamUser,
 } from "../users";
 
 let db: PgliteDbClient;
@@ -151,29 +148,6 @@ describe("users repo — admin sessions", () => {
     expect(await deleteAdminSession(db, "tok-del")).toBe(false);
   });
 
-  it("deleteExpiredAdminSessions removes only expired rows", async () => {
-    await createAdminSession(db, {
-      userId,
-      token: "tok-active",
-      expiresAt: new Date(Date.now() + 60_000),
-      isAdmin: false,
-    });
-    await createAdminSession(db, {
-      userId,
-      token: "tok-stale",
-      expiresAt: new Date(Date.now() - 60_000),
-      isAdmin: false,
-    });
-    const n = await deleteExpiredAdminSessions(db);
-    expect(n).toBe(1);
-    // Active session still resolves
-    const got = await resolveSessionByToken(db, "tok-active");
-    expect(got).not.toBeNull();
-    // Expired session does not
-    const gotStale = await resolveSessionByToken(db, "tok-stale");
-    expect(gotStale).toBeNull();
-  });
-
   it("deleteAdminSessionsForUser removes all sessions for a user", async () => {
     await createAdminSession(db, {
       userId,
@@ -210,23 +184,5 @@ describe("users repo — admin sessions", () => {
     expect(all.length).toBe(1);
     expect(all[0].userId).toBe(userId);
     expect(all[0].username).toBe("tester");
-  });
-});
-
-describe("users repo — RBAC helpers", () => {
-  it("canReadPamUser allows an admin to read any user", () => {
-    expect(canReadPamUser({ id: 1, isAdmin: true }, { id: 2 })).toBe(true);
-  });
-
-  it("canReadPamUser allows a user to read themselves", () => {
-    expect(canReadPamUser({ id: 1, isAdmin: false }, { id: 1 })).toBe(true);
-  });
-
-  it("canReadPamUser denies a user from reading another", () => {
-    expect(canReadPamUser({ id: 1, isAdmin: false }, { id: 2 })).toBe(false);
-  });
-
-  it("canReadPamUser denies a null actor", () => {
-    expect(canReadPamUser(null, { id: 1 })).toBe(false);
   });
 });

@@ -79,12 +79,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
-  const switchUser = useCallback((_admin: boolean) => {
-    /* no-op: role comes from PAM groups */
-  }, []);
-
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, switchUser }}>
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

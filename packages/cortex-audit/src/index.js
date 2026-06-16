@@ -19,13 +19,11 @@
  *     failure. Continuity of the production path beats absolute completeness
  *     of the audit trail; gaps are observable via `verifyChain`.
  */
-import { createHash } from 'node:crypto';
-import { v4 as uuidv4 } from 'uuid';
+import { createHash, randomUUID } from 'node:crypto';
 import pg from 'pg';
 import jcs from './jcs.js';
 import anchorDigest from './rekor.js';
 import { dbPassword, dbHost, dbPort, dbName, dbUser } from './env.js';
-import runSequentially from './sequential.js';
 
 const GENESIS_PREV_HASH = '0'.repeat(64);
 
@@ -128,7 +126,7 @@ export async function append(event, opts = {}) {
     );
     const prevHash = tip.rows[0]?.chain_hash || GENESIS_PREV_HASH;
 
-    const eventId = event.event_id || uuidv4();
+    const eventId = event.event_id || randomUUID();
     const payloadHash = payloadHashOf(event.payload);
     const chainHash = chainHashOf(prevHash, payloadHash);
 
@@ -222,9 +220,12 @@ export async function verifyChain(fromTs, toTs, opts = {}) {
     expectedPrev = GENESIS_PREV_HASH;
   }
 
-  const verification = await runSequentially(
-    rows,
-    (acc, row) => {
+  // Walk the window sequentially as a reduce-over-promises so ordering is
+  // preserved by construction (each row is folded before the next begins) and
+  // the code stays lint-clean under `no-restricted-syntax` (no `for...of`).
+  const verification = await rows.reduce(
+    async (accPromise, row) => {
+      const acc = await accPromise;
       if (!acc.valid) return acc;
       if (row.prev_hash !== acc.expectedPrev) {
         return {
@@ -251,7 +252,7 @@ export async function verifyChain(fromTs, toTs, opts = {}) {
       }
       return { ...acc, expectedPrev: row.chain_hash };
     },
-    { valid: true, expectedPrev },
+    Promise.resolve({ valid: true, expectedPrev }),
   );
 
   if (!verification.valid) return verification;

@@ -9,7 +9,7 @@
  * @module
  */
 import { z } from 'zod';
-import { zUuidV4, zIsoTimestamp, zSha256, zHmacSha256 } from '../primitives.js';
+import { zUuidV4, zIsoTimestamp, zSha256 } from '../primitives.js';
 import { ApprovalClassSchema } from '../approval.js';
 
 // ---------------------------------------------------------------------------
@@ -100,7 +100,7 @@ export const DashboardCommandAuditSchema = z.object({
   stderr: z.string().max(64_000).default(''),
   exitCode: z.number().int().min(-1).max(255).nullable().optional(),
   /** Approval token hash that authorized the command (never the token). */
-  approvalHash: zHmacSha256.nullable().optional(),
+  approvalHash: zSha256.nullable().optional(),
   createdAt: zIsoTimestamp,
   updatedAt: zIsoTimestamp,
   finishedAt: zIsoTimestamp.nullable().optional(),
@@ -112,7 +112,7 @@ export const DashboardCommandCreateSchema = z.object({
   requestId: zUuidV4,
   command: z.string().min(1).max(128),
   argv: z.array(z.string().min(1).max(512)).min(1).max(64),
-  approvalHash: zHmacSha256.optional(),
+  approvalHash: zSha256.optional(),
 });
 export type DashboardCommandCreate = z.infer<typeof DashboardCommandCreateSchema>;
 

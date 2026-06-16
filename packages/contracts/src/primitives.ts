@@ -221,8 +221,8 @@ export const zIpAddress = z.union([
 /** User-Agent header. Free-form; cap at 1024 chars to bound the audit row. */
 export const zUserAgent = z.string().min(0).max(1024);
 
-/** Hex-encoded SHA-256 digest (lowercase, 64 chars). */
+/**
+ * Hex-encoded SHA-256 digest (lowercase, 64 chars). Also used for
+ * HMAC-SHA256 values, which share the exact same wire shape.
+ */
 export const zSha256 = z.string().regex(/^[0-9a-f]{64}$/, 'must be a 64-char hex SHA-256 digest');
-
-/** Hex-encoded HMAC-SHA256 (lowercase, 64 chars). Same shape as SHA-256. */
-export const zHmacSha256 = zSha256;

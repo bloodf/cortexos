@@ -123,11 +123,6 @@ export class WebCookieJar implements CookieJar {
     this.pending.set(name, serializeCookie(name, "", { path: opts?.path ?? "/", maxAge: 0 }));
   }
 
-  /** The accumulated `Set-Cookie` header values to apply to the response. */
-  serializeSetCookies(): string[] {
-    return [...this.pending.values()];
-  }
-
   /** Apply accumulated Set-Cookie headers + framework headers to a response. */
   applyTo(headers: Headers): void {
     Array.from(this.pending.values()).forEach((cookie) => {

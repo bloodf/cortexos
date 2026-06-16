@@ -1,8 +1,7 @@
 // MP-008 (R2) — useAuth tests.
 //
 // The hook's job is the React state machine: hydrate from `me()` on mount,
-// mirror `login()` results into state, clear on `logout()`, and document the
-// deprecated `switchUser` no-op. The server-fn RPC transport is exercised
+// mirror `login()` results into state, clear on `logout()`. The server-fn RPC transport is exercised
 // end-to-end by the node-env pipeline tests in
 // `src/lib/api/__tests__/auth.functions.test.ts` (real PAM, real session
 // store, real gate+handler). We therefore mock the REAL module exports of
@@ -124,22 +123,4 @@ describe("useAuth", () => {
     expect(result.current.user).toBeNull();
   });
 
-  it("switchUser is a no-op (role comes from PAM groups)", async () => {
-    const { result } = renderHook(() => useAuth(), { wrapper });
-    await waitFor(() => expect(result.current.loading).toBe(false));
-    await act(async () => {
-      await result.current.login("admin", "x");
-    });
-    const before = result.current.user;
-    expect(before?.is_admin).toBe(true);
-    act(() => {
-      result.current.switchUser(false);
-    });
-    const after = result.current.user;
-    // Deprecated API contract: `switchUser` is a documented no-op at
-    // `useAuth.tsx:13-14` and `:83` — role derives from PAM groups, not
-    // client state. Assert `user` is unchanged after the call.
-    expect(after).toEqual(before);
-    expect(after?.is_admin).toBe(true);
-  });
 });

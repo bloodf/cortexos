@@ -25,7 +25,7 @@
  *   touch(token, rollingTtlMs) → updated session | null
  *     Extends `expires_at` to now + rollingTtlMs, capped at
  *     `created_at + rollingTtlMs`.
- *   deleteByToken / sweepExpired / revalidateRole / gcExpired
+ *   deleteByToken / revalidateRole / gcExpired
  */
 
 import { randomBytes } from "node:crypto";
@@ -106,9 +106,6 @@ export interface SessionStore {
 
   /** Delete a session by token. Idempotent. Returns true if a row was removed. */
   deleteByToken(token: string): Promise<boolean>;
-
-  /** Delete every expired session. Returns the number of rows removed. */
-  sweepExpired(): Promise<number>;
 
   /**
    * Update the cached `is_admin` for a session, recording the time the
@@ -380,18 +377,6 @@ export class InMemorySessionStore implements SessionStore {
     return this.sessions.delete(token);
   }
 
-  async sweepExpired(): Promise<number> {
-    const now = Date.now();
-    let removed = 0;
-    Array.from(this.sessions.entries()).forEach(([token, row]) => {
-      if (row.expiresAt <= now) {
-        this.sessions.delete(token);
-        removed += 1;
-      }
-    });
-    return removed;
-  }
-
   async revalidateRole(token: string, isAdmin: boolean): Promise<void> {
     const row = this.sessions.get(token);
     if (!row) return;
@@ -567,14 +552,6 @@ export class DrizzleSessionStore implements SessionStore {
       .where(eq(adminSessions.token, token))
       .returning({ id: adminSessions.id });
     return res.length > 0;
-  }
-
-  async sweepExpired(): Promise<number> {
-    const res = await this.db
-      .delete(adminSessions)
-      .where(sql`${adminSessions.expiresAt} <= NOW()`)
-      .returning({ id: adminSessions.id });
-    return res.length;
   }
 
   async revalidateRole(token: string, isAdmin: boolean): Promise<void> {

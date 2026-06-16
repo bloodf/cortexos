@@ -256,57 +256,21 @@ export default function IncusPage() {
     qc.invalidateQueries({ queryKey: ["incus"] }).catch(() => {});
   };
 
-  const handleStart = async (inst: IncusInstance) => {
-    const key = `start-${inst.name}`;
+  const incusAction = async (
+    action: "start" | "stop" | "restart" | "delete" | "launch",
+    successVerb: string,
+    errorVerb: string,
+    inst: IncusInstance,
+    dispatchAction?: string,
+  ) => {
+    const key = `${action}-${inst.name}`;
     setPendingAction(key);
     try {
-      await dispatchIncusAction("start", inst.name);
-      toast.success(`Started ${inst.name}`);
+      await dispatchIncusAction(action, inst.name, dispatchAction);
+      toast.success(`${successVerb} ${inst.name}`);
       invalidate();
     } catch {
-      toast.error(`Failed to start ${inst.name}`);
-    } finally {
-      setPendingAction(null);
-    }
-  };
-
-  const handleStop = async (inst: IncusInstance) => {
-    const key = `stop-${inst.name}`;
-    setPendingAction(key);
-    try {
-      await dispatchIncusAction("stop", inst.name);
-      toast.success(`Stopped ${inst.name}`);
-      invalidate();
-    } catch {
-      toast.error(`Failed to stop ${inst.name}`);
-    } finally {
-      setPendingAction(null);
-    }
-  };
-
-  const handleRestart = async (inst: IncusInstance) => {
-    const key = `restart-${inst.name}`;
-    setPendingAction(key);
-    try {
-      await dispatchIncusAction("restart", inst.name);
-      toast.success(`Restarted ${inst.name}`);
-      invalidate();
-    } catch {
-      toast.error(`Failed to restart ${inst.name}`);
-    } finally {
-      setPendingAction(null);
-    }
-  };
-
-  const handleDelete = async (inst: IncusInstance) => {
-    const key = `delete-${inst.name}`;
-    setPendingAction(key);
-    try {
-      await dispatchIncusAction("delete", inst.name, "delete");
-      toast.success(`Deleted ${inst.name}`);
-      invalidate();
-    } catch {
-      toast.error(`Failed to delete ${inst.name}`);
+      toast.error(`Failed to ${errorVerb} ${inst.name}`);
     } finally {
       setPendingAction(null);
     }
@@ -386,7 +350,7 @@ export default function IncusPage() {
                 size="sm"
                 variant="ghost"
                 disabled={acting}
-                onClick={() => handleStart(r)}
+                onClick={() => incusAction("start", "Started", "start", r)}
                 title="Start"
               >
                 {pendingAction === `start-${r.name}` ? (
@@ -401,7 +365,7 @@ export default function IncusPage() {
                 size="sm"
                 variant="ghost"
                 disabled={acting}
-                onClick={() => handleStop(r)}
+                onClick={() => incusAction("stop", "Stopped", "stop", r)}
                 title="Stop"
               >
                 {pendingAction === `stop-${r.name}` ? (
@@ -416,7 +380,7 @@ export default function IncusPage() {
                 size="sm"
                 variant="ghost"
                 disabled={acting}
-                onClick={() => handleRestart(r)}
+                onClick={() => incusAction("restart", "Restarted", "restart", r)}
                 title="Restart"
               >
                 {pendingAction === `restart-${r.name}` ? (
@@ -444,7 +408,7 @@ export default function IncusPage() {
                 destructive
                 requireText={r.name}
                 confirmLabel="Delete"
-                onConfirm={() => handleDelete(r)}
+                onConfirm={() => incusAction("delete", "Deleted", "delete", r, "delete")}
               />
             )}
           </div>

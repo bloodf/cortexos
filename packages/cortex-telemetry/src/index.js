@@ -7,7 +7,13 @@
 // no-op. Services that import this package must remain safe to boot in
 // dev/test environments where no observability stack is running.
 
+import { createRequire } from 'node:module';
+
 import { readConfig } from './env.js';
+
+// CJS shim so we can lazily load optional, peer-style dependencies from an
+// ESM module without forcing them to be installed.
+const nodeRequire = createRequire(import.meta.url);
 
 let initialized = false;
 let traceloop = null;
@@ -21,32 +27,9 @@ function langfuseOtelHeaders(publicKey, secretKey) {
   };
 }
 
-function loadCreateRequire() {
-  // Hoist to avoid repeated dynamic import cost. Stored on globalThis so the
-  // test suite can swap it for a stub.
-
-  const mod = { createRequire: undefined };
-  try {
-    // node:module is built-in; require() it via Node's CJS shim.
-    const m = process.getBuiltinModule ? process.getBuiltinModule('node:module') : null;
-    if (m && typeof m.createRequire === 'function') {
-      mod.createRequire = m.createRequire;
-    }
-  } catch {
-    /* fall through */
-  }
-  globalThis.cortexTelemetryRequire = mod;
-  return mod;
-}
-
 function requireOptional(name) {
   try {
-    // Use createRequire so the package stays ESM-pure while still allowing
-    // optional dependency loading.
-
-    const { createRequire } = globalThis.cortexTelemetryRequire || loadCreateRequire();
-    const req = createRequire(import.meta.url);
-    return req(name);
+    return nodeRequire(name);
   } catch {
     return null;
   }

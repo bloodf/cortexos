@@ -39,21 +39,6 @@ export const BRAND_COLORS: Record<string, string> = {
   "home-assistant": "#41bdf5",
 };
 
-/** Known env-file paths + their key names (Env Browser reference data). */
-export const ENV_FILES = [
-  {
-    path: "/etc/cortex/9router.env",
-    keys: ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "BUDGET_USD", "DEFAULT_MODEL"],
-  },
-  { path: "/etc/cortex/honcho.env", keys: ["REDIS_URL", "TTL_SECONDS"] },
-  { path: "/etc/cortex/caddy.env", keys: ["ACME_EMAIL", "CLOUDFLARE_API_TOKEN"] },
-  { path: "/etc/cortex/grafana.env", keys: ["GF_SECURITY_ADMIN_PASSWORD", "GF_SERVER_ROOT_URL"] },
-  {
-    path: "/etc/cortex/postgresql.env",
-    keys: ["POSTGRES_PASSWORD", "POSTGRES_USER", "POSTGRES_DB"],
-  },
-];
-
 /**
  * Deterministic, non-cryptographic hash used to chain audit-preview rows.
  * djb2-derived; kept for the golden-output test that pins its exact outputs.

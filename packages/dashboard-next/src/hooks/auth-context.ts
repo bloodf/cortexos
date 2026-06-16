@@ -11,8 +11,6 @@ interface AuthCtx {
   loading: boolean;
   login: (u: string, p: string) => Promise<void>;
   logout: () => Promise<void>;
-  /** @deprecated kept for backwards-compat; role now comes from real PAM groups. */
-  switchUser: (admin: boolean) => void;
 }
 
 export const AuthContext = createContext<AuthCtx | null>(null);

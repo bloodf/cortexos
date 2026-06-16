@@ -10,12 +10,10 @@
 import type {
   Service as ContractService,
   BadgeRef as ContractBadgeRef,
-  ServiceHealthSnapshot as ContractHealthSnapshot,
 } from "@cortexos/contracts/entities";
 
 import type {
   Service as MockService,
-  ServiceCheck as MockServiceCheck,
   BadgeRef as MockBadgeRef,
 } from "@/mocks/types";
 
@@ -113,44 +111,5 @@ export function toServiceRow(s: ServiceRowInput): MockService {
     sort_order: s.sortOrder,
     icon_type: s.icon?.type ?? "auto",
     badges: (s.badges ?? []).map(toBadgeRef),
-  };
-}
-
-/** Map a contract Service to the leaner ServiceCheck shape. */
-export function toServiceCheckRow(s: ServiceRowInput): MockServiceCheck {
-  return {
-    id: hashId(s.id),
-    slug: s.slug,
-    name: s.name,
-    open_url: s.openUrl ?? `/${s.slug}`,
-    category: s.category,
-    status: mapServiceStatus(s.status),
-    responseTime: s.responseMs ?? 0,
-    icon_color: s.icon?.color ?? null,
-    icon_image: s.icon?.image ?? null,
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Health snapshot (history page)
-// ---------------------------------------------------------------------------
-
-export interface HealthSnapshotRow {
-  id: string;
-  serviceId: string;
-  status: MockService["status"];
-  latencyMs: number | null;
-  checkedAt: string;
-  note: string | null;
-}
-
-export function toHealthSnapshotRow(snap: ContractHealthSnapshot): HealthSnapshotRow {
-  return {
-    id: snap.id,
-    serviceId: snap.serviceId,
-    status: mapServiceStatus(snap.status),
-    latencyMs: snap.latencyMs,
-    checkedAt: snap.checkedAt,
-    note: snap.note ?? null,
   };
 }

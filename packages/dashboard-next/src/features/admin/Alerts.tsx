@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { api, callCreateAlert, callPatchAlert, callDeleteAlert } from "@/lib/api/client";
-import { csrfHeaders } from "./csrf";
+import { csrfHeaders } from "@/lib/csrf";
 import type { AlertRule } from "@/mocks/types";
 
 type Condition = "offline" | "online" | "response_time";

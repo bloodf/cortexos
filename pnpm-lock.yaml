@@ -76,9 +76,6 @@ importers:
       undici:
         specifier: ^7.0.0
         version: 7.25.0
-      uuid:
-        specifier: '>=11.1.1'
-        version: 11.1.1
     devDependencies:
       '@vitest/coverage-v8':
         specifier: ^3.0.0

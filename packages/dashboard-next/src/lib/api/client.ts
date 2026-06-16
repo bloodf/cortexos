@@ -73,11 +73,7 @@ import {
   listServiceHealth as _listServiceHealth,
 } from "./services.functions";
 
-import {
-  toServiceRow,
-  type ServiceRowInput,
-  type HealthSnapshotRow,
-} from "@/lib/adapters/services";
+import { toServiceRow, type ServiceRowInput } from "@/lib/adapters/services";
 
 // ---------------------------------------------------------------------------
 // Wired server-function imports (WP-14 — system / network / processes / storage)
@@ -305,32 +301,12 @@ interface ListServicesOutput {
   rows: ServiceRowInput[];
   total: number;
 }
-interface ServiceHealthInput {
-  id: number;
-  limit?: number;
-}
-interface ServiceHealthOutput {
-  snapshots: {
-    id: string;
-    serviceId: number;
-    status: string;
-    latencyMs: number | null;
-    checkedAt: string;
-    note: string | null;
-  }[];
-}
-
 const listServicesFn = _listServices as unknown as (opts: {
   data: ListServicesInput;
 }) => Promise<ListServicesOutput>;
-const listServiceHealthFn = _listServiceHealth as unknown as (opts: {
-  data: ServiceHealthInput;
-}) => Promise<ServiceHealthOutput>;
-
 // Re-export the raw typed server fns for Wave-2 direct use.
 export const listServices = _listServices;
 export const listServiceHealth = _listServiceHealth;
-export type { HealthSnapshotRow };
 
 // WP-14 gate-middleware boundary casts — same pattern as services above.
 type GetSystemOutput = SystemData;
@@ -359,9 +335,6 @@ const getStorageFn = _getStorage as unknown as (opts: {
 // WP-13 gate-middleware boundary casts — same pattern as other domains.
 interface ListUnitsOutput {
   units: SystemdUnit[];
-}
-interface GetUnitOutput {
-  unit: SystemdUnit;
 }
 // SystemdActionInput schema has only `action` + `name`; the approval token is
 // passed via `x-cortex-approval-token` header (gate: approval: true), not in data.
@@ -410,9 +383,6 @@ interface HostLogsOutput {
 const listUnitsFn = _listUnits as unknown as (opts: {
   data: Record<string, never>;
 }) => Promise<ListUnitsOutput>;
-const getUnitFn = _getUnit as unknown as (opts: {
-  data: { name: string };
-}) => Promise<GetUnitOutput>;
 const hostLogsFn = _hostLogs as unknown as (opts: {
   data: HostLogsInputType;
 }) => Promise<HostLogsOutput>;
@@ -999,11 +969,6 @@ export type { ServerMailAccount };
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-/** Return a typed empty ListResult for domains without a backend yet. */
-function emptyList<T>(p: ListParams = {}): ListResult<T> {
-  return { rows: [], total: 0, page: p.page ?? 0, pageSize: p.pageSize ?? 25 };
-}
-
 /**
  * Apply client-side pagination/sorting to an already-filtered array.
  * Used when the server fn returns a full array without server-side pagination.
@@ -1071,14 +1036,6 @@ export const api = {
       pageSize,
     };
   },
-
-  /**
-   * Service health snapshots — returns empty until Wave-2 provides a serviceId.
-   * The mock `history()` returns a flat array with no service filter; the real
-   * `listServiceHealth` requires a specific id. Wave-2 components that need
-   * per-service history should call `listServiceHealth` directly.
-   */
-  history: (): Promise<HealthSnapshotRow[]> => Promise.resolve([]),
 
   /**
    * Paginated healthcheck view — services with activeOnly=true (WIRED — WP-10).
@@ -1380,12 +1337,6 @@ export const api = {
     return [toEnvFileRow(result)];
   },
 
-  // ── Badges ────────────────────────────────────────────────────────────
-  badges: (): Promise<unknown[]> => Promise.resolve([]),
-
-  badgesList: (p?: ListParams): Promise<ListResult<unknown>> =>
-    Promise.resolve(emptyList<unknown>(p)),
-
   // ── Backups (WIRED — MP-024b) ──────────────────────────────────────────
   /**
    * Returns all backup runs as fixed-row contract objects.
@@ -1488,14 +1439,6 @@ export const api = {
     return clientSideList<DriveInfo>(disks, p);
   },
 } as const;
-
-// listServices, listServiceHealth, and HealthSnapshotRow are already exported
-// above via `export const` / `export type` declarations.
-
-// Suppress unused-variable warnings for typed boundary casts used only
-// in cast expressions above.
-listServiceHealthFn satisfies typeof listServiceHealthFn;
-getUnitFn satisfies typeof getUnitFn;
 
 // ---------------------------------------------------------------------------
 // Wired server-function re-exports (WP-19 — terminal named ops)

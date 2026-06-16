@@ -68,23 +68,6 @@ export const IncusInstanceConfigSchema = z.object({
 });
 export type IncusInstanceConfig = z.infer<typeof IncusInstanceConfigSchema>;
 
-/** Per-step sub-schemas for the wizard. Each one validates only the
- *  fields the user can change on that step, so a client that posts
- *  step=2 gets the same errors the server would compute at launch
- *  time — without forcing the wizard to send the full config on
- *  every navigation. */
-export const IncusWizardStepTargetSchema = IncusInstanceConfigSchema.shape.target;
-export type IncusWizardStepTarget = z.infer<typeof IncusWizardStepTargetSchema>;
-
-export const IncusWizardStepImageSchema = IncusInstanceConfigSchema.shape.image;
-export type IncusWizardStepImage = z.infer<typeof IncusWizardStepImageSchema>;
-
-export const IncusWizardStepHermesSchema = IncusInstanceConfigSchema.shape.hermes;
-export type IncusWizardStepHermes = z.infer<typeof IncusWizardStepHermesSchema>;
-
-export const IncusWizardStepNetworkSchema = IncusInstanceConfigSchema.shape.network;
-export type IncusWizardStepNetwork = z.infer<typeof IncusWizardStepNetworkSchema>;
-
 /** The wizard's known step identifiers. The `profile` step is a no-op
  *  for now (no per-step validation surface yet — it's a UI-only
  *  summary of the chosen profiles from the image step). */
@@ -97,13 +80,6 @@ export const IncusWizardStepSchema = z.enum([
   'review',
 ]);
 export type IncusWizardStep = z.infer<typeof IncusWizardStepSchema>;
-
-/** Wire shape for the per-step validation action's form payload. */
-export const IncusWizardStepValidationInputSchema = z.object({
-  step: IncusWizardStepSchema,
-  values: z.unknown(),
-});
-export type IncusWizardStepValidationInput = z.infer<typeof IncusWizardStepValidationInputSchema>;
 
 export const IncusInstanceSchema = z.object({
   name: z

@@ -23,7 +23,6 @@ export function useFavorites() {
   return {
     favs,
     isFavorite,
-    isFav: isFavorite,
     toggle: (slug: string) =>
       persist(favs.includes(slug) ? favs.filter((s) => s !== slug) : [...favs, slug]),
   };

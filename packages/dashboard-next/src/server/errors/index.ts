@@ -3,7 +3,6 @@
  * SvelteKit `error()` / `json()` responses.
  *
  * Public surface:
- *   - apiError(event, error) → throw a SvelteKit `error()` for the right code
  *   - jsonError(error) → return a JSON Response (useful for +server.ts)
  *   - httpStatusFor(error) → map an `ApiError` to an HTTP status code
  *
@@ -17,21 +16,7 @@
  *   - system             → 500
  */
 
-import type { RequestEvent, SvelteKitShim, ErrorBody } from "../types";
 import type { ApiError } from "./types";
-
-// ---------------------------------------------------------------------------
-// SvelteKit shim — until the real SvelteKit package is in place, the +server.ts
-// handlers wire themselves through `setKitShim`. This is the same pattern
-// SvelteKit itself uses to abstract `error()` / `json()`.
-// ---------------------------------------------------------------------------
-
-let shim: SvelteKitShim | null = null;
-
-/** Inject the SvelteKit shim (called from the route files). */
-export function setKitShim(s: SvelteKitShim): void {
-  shim = s;
-}
 
 class ApiErrorThrown extends Error {
   public readonly apiError?: ApiError;
@@ -44,23 +29,6 @@ class ApiErrorThrown extends Error {
     this.name = "ApiErrorThrown";
     this.apiError = originalError;
   }
-}
-
-/** Used by the `+server.ts` shim below — `apiError` calls into this. */
-function requireShim(): SvelteKitShim {
-  if (shim) return shim;
-  // Fallback: build a minimal in-process shim so error helpers work in
-  // tests and in `+server.ts` handlers before the SvelteKit foundation
-  // lands. The shim is identical in shape to SvelteKit's exports.
-  return {
-    error: ((status: number, body: ErrorBody) => {
-      // SvelteKit's `error()` throws and is caught by the framework.
-      // We replicate that contract by throwing a tagged error.
-      throw new ApiErrorThrown(status, body);
-    }) as SvelteKitShim["error"],
-    json: (data, init) => new Response(JSON.stringify(data), init),
-    fail: (status, data) => ({ status, data }),
-  };
 }
 
 // ---------------------------------------------------------------------------
@@ -112,26 +80,6 @@ export function errorBody(error: ApiError): ApiErrorBody {
     default:
       return base;
   }
-}
-
-/**
- * Throw a SvelteKit `error()` with the right status for the given `ApiError`.
- *
- * In a SvelteKit `+server.ts` handler, this short-circuits the request with
- * the correct HTTP status. In a load function or form action, it surfaces
- * the error to the nearest `+error.svelte`.
- */
-export function apiError(event: RequestEvent, error: ApiError): never {
-  const sk = requireShim();
-  const status = httpStatusFor(error);
-  const body = errorBody(error);
-  // SvelteKit's `error()` accepts either a string or an object. We use the
-  // object form so the body fields are exposed to the client.
-  const errBody: ErrorBody = { message: body.message, code: body.code, details: body.details };
-  // Attach the original ApiError so the route helper can reconstruct it
-  // for the audit log and JSON response.
-  sk.error(status, errBody);
-  throw new ApiErrorThrown(status, errBody, error);
 }
 
 /**

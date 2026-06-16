@@ -41,7 +41,7 @@ import {
 import { toServiceRow, type ServiceRowInput } from "@/lib/adapters/services";
 import type { Service as MockService } from "@/mocks/types";
 
-import { csrfHeaders } from "./csrf";
+import { csrfHeaders } from "@/lib/csrf";
 
 // ---------------------------------------------------------------------------
 // Typed boundaries (recover payloads erased by the gate-middleware pattern)

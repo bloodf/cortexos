@@ -23,8 +23,9 @@
  *   - approvalStoreSize() → test/observability helper
  */
 
-import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { getServerHmacKey } from "../config";
+import { sha256Hex } from "../crypto";
 import type { ApprovalToken, SessionId } from "../entities";
 
 // ---------------------------------------------------------------------------
@@ -70,10 +71,6 @@ export function isTokenConsumed(token: string): boolean {
 // ---------------------------------------------------------------------------
 // Hash + HMAC
 // ---------------------------------------------------------------------------
-
-function sha256Hex(input: string): string {
-  return createHash("sha256").update(input).digest("hex");
-}
 
 /**
  * Compute the action hash the token is bound to. This is the canonical

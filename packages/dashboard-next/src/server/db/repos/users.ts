@@ -161,19 +161,6 @@ export async function deleteAdminSession(db: DbClient, token: string): Promise<b
   return res.length > 0;
 }
 
-/**
- * Delete all expired sessions. Returns the number of rows removed.
- * The caller is responsible for triggering this on a schedule (the
- * 6 h sweep in `lib/socket-server.ts` is the current driver).
- */
-export async function deleteExpiredAdminSessions(db: DbClient): Promise<number> {
-  const res = await db
-    .delete(adminSessions)
-    .where(sql`${adminSessions.expiresAt} <= NOW()`)
-    .returning({ id: adminSessions.id });
-  return res.length;
-}
-
 export async function deleteAdminSessionsForUser(db: DbClient, userId: number): Promise<number> {
   const res = await db
     .delete(adminSessions)
@@ -201,20 +188,4 @@ export async function listActiveAdminSessions(db: DbClient): Promise<ActiveSessi
     .innerJoin(pamUsers, eq(pamUsers.id, adminSessions.userId))
     .where(gt(adminSessions.expiresAt, sql`NOW()`))
     .orderBy(sql`${adminSessions.createdAt} DESC, ${adminSessions.id} DESC`);
-}
-
-/**
- * Row-level RBAC helper: a user is allowed to read their own PAM row
- * or an admin can read any. Use at the SvelteKit call site:
- *
- *   const actor = requireActor(event);
- *   if (!canReadPamUser(actor, target)) return forbidden();
- */
-export function canReadPamUser(
-  actor: { id: number; isAdmin: boolean } | null,
-  target: { id: number },
-): boolean {
-  if (!actor) return false;
-  if (actor.isAdmin) return true;
-  return actor.id === target.id;
 }

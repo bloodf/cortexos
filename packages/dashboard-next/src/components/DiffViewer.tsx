@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils";
 interface Props {
   before: string;
   after: string;
-  language?: string;
   className?: string;
   /** Header label rendered above each pane. */
   labels?: { before: string; after: string };

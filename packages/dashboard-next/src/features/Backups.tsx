@@ -31,10 +31,7 @@ export function BackupsPage() {
   const totalBytes = snaps.reduce((s, x) => s + (x.sizeBytes ?? 0), 0);
   const ok = snaps.filter((x) => x.status === "success").length;
   const newest = snaps.length
-    ? snaps
-        .map((s) => s.timestamp)
-        .sort()
-        .reverse()[0]
+    ? snaps.reduce((a, b) => (a.timestamp > b.timestamp ? a : b)).timestamp
     : null;
 
   const cols: Column<BackupRunRow>[] = [

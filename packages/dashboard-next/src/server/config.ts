@@ -26,12 +26,6 @@ export const RATE_LIMIT_DEFAULT_WINDOW_SEC = 60;
 /** Stricter default for token-mint endpoints (THREAT_MODEL SR-200). */
 export const RATE_LIMIT_TOKEN_MINT_PER_60S = 30;
 
-/** Looser default for general unauth endpoints (THREAT_MODEL SR-200). */
-export const RATE_LIMIT_UNAUTH_PER_60S = 100;
-
-/** Strict default for authenticated privileged ops. */
-export const RATE_LIMIT_AUTH_PRIVILEGED_PER_60S = 10;
-
 /**
  * Default for ordinary authenticated reads (auth: "any" gates with no
  * explicit rateLimit). The dashboard's own chrome (command palette,

@@ -33,6 +33,7 @@
 
 import { createHash, randomUUID } from "node:crypto";
 import type { AuditEvent, SessionId, UserId } from "../entities";
+import { sha256Hex } from "../crypto";
 import { asAuditEventId } from "../entities";
 
 const GENESIS_LITERAL = "cortexos-audit-genesis";
@@ -69,10 +70,6 @@ export function runningHashForTests(): string {
 // ---------------------------------------------------------------------------
 // Hash math
 // ---------------------------------------------------------------------------
-
-function sha256Hex(input: string): string {
-  return createHash("sha256").update(input).digest("hex");
-}
 
 function payloadHash(payload: Record<string, unknown>): string {
   // Stable JSON serialization — keys sorted alphabetically.

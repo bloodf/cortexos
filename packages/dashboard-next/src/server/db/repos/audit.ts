@@ -27,6 +27,7 @@ import { createHash } from "node:crypto";
 import type { DbClient } from "../client";
 import { agentGatewayAudit, auditLog } from "../schema";
 import type { AgentGatewayAuditRow, AuditLogEntry } from "../schema";
+import { sha256Hex } from "../../crypto";
 
 export type ToolClass = "safe" | "privileged" | "destructive";
 export type Decision = "allow" | "deny" | "prompt";
@@ -217,10 +218,6 @@ export function jcs(value: unknown): string {
   return `{${keys
     .map((k) => `${JSON.stringify(k)}:${jcs((value as Record<string, unknown>)[k])}`)
     .join(",")}}`;
-}
-
-function sha256Hex(input: string): string {
-  return createHash("sha256").update(input).digest("hex");
 }
 
 function chainHashOf(prevHashHex: string, payloadHashHex: string): string {

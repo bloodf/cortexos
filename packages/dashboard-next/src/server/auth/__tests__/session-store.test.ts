@@ -89,7 +89,7 @@ describe("InMemorySessionStore", () => {
     expect(resolved!.isAdmin).toBe(false);
   });
 
-  it("deleteByToken + sweepExpired work", async () => {
+  it("deleteByToken works", async () => {
     const { token } = await newSession();
     expect(await store.deleteByToken(token)).toBe(true);
     expect(await store.resolveByToken(token)).toBeNull();
@@ -115,7 +115,9 @@ describe("resolveContext lifecycle", () => {
       }),
     );
     expect(ctx.user).toBeNull();
-    const setCookies = ctx.cookies.serializeSetCookies().join("\n");
+    const h = new Headers();
+    ctx.cookies.applyTo(h);
+    const setCookies = h.get("set-cookie") ?? "";
     expect(setCookies).toContain(`${SESSION_COOKIE}=`);
     expect(setCookies).toContain("Max-Age=0");
   });

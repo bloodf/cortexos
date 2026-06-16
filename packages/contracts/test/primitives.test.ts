@@ -10,7 +10,6 @@ import {
   zIpAddress,
   zUserAgent,
   zSha256,
-  zHmacSha256,
   IdPattern,
   userId,
   serviceId,
@@ -236,11 +235,10 @@ describe('primitives — zUserAgent', () => {
   });
 });
 
-describe('primitives — zSha256 / zHmacSha256', () => {
+describe('primitives — zSha256', () => {
   it('accepts a 64-char hex digest', () => {
     const h = 'a'.repeat(64);
     expect(zSha256.parse(h)).toBe(h);
-    expect(zHmacSha256.parse(h)).toBe(h);
   });
   it('rejects uppercase hex', () => {
     expect(() => zSha256.parse('A'.repeat(64))).toThrow();

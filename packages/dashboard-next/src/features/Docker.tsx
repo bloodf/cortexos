@@ -92,57 +92,20 @@ export function DockerPage() {
     qc.invalidateQueries({ queryKey: ["docker", "containers"] }).catch(() => {});
   };
 
-  const handleStart = async (c: DockerContainer) => {
-    const key = `start-${c.id}`;
+  const dockerAction = async (
+    op: string,
+    successVerb: string,
+    errorVerb: string,
+    c: DockerContainer,
+  ) => {
+    const key = `${op}-${c.id}`;
     setPendingAction(key);
     try {
-      await dispatchDockerAction("docker.start", { container: c.id });
-      toast.success(`Started ${c.name}`);
+      await dispatchDockerAction(`docker.${op}`, { container: c.id });
+      toast.success(`${successVerb} ${c.name}`);
       invalidateContainers();
     } catch {
-      toast.error(`Failed to start ${c.name}`);
-    } finally {
-      setPendingAction(null);
-    }
-  };
-
-  const handleStop = async (c: DockerContainer) => {
-    const key = `stop-${c.id}`;
-    setPendingAction(key);
-    try {
-      await dispatchDockerAction("docker.stop", { container: c.id });
-      toast.success(`Stopped ${c.name}`);
-      invalidateContainers();
-    } catch {
-      toast.error(`Failed to stop ${c.name}`);
-    } finally {
-      setPendingAction(null);
-    }
-  };
-
-  const handleRestart = async (c: DockerContainer) => {
-    const key = `restart-${c.id}`;
-    setPendingAction(key);
-    try {
-      await dispatchDockerAction("docker.restart", { container: c.id });
-      toast.success(`Restarted ${c.name}`);
-      invalidateContainers();
-    } catch {
-      toast.error(`Failed to restart ${c.name}`);
-    } finally {
-      setPendingAction(null);
-    }
-  };
-
-  const handleRemove = async (c: DockerContainer) => {
-    const key = `rm-${c.id}`;
-    setPendingAction(key);
-    try {
-      await dispatchDockerAction("docker.rm", { container: c.id });
-      toast.success(`Removed ${c.name}`);
-      invalidateContainers();
-    } catch {
-      toast.error(`Failed to remove ${c.name}`);
+      toast.error(`Failed to ${errorVerb} ${c.name}`);
     } finally {
       setPendingAction(null);
     }
@@ -208,7 +171,7 @@ export function DockerPage() {
                 size="sm"
                 variant="ghost"
                 disabled={!isAdmin || isActing}
-                onClick={() => handleStart(r)}
+                onClick={() => dockerAction("start", "Started", "start", r)}
                 title="Start"
               >
                 {isActing && pendingAction === `start-${r.id}` ? (
@@ -222,7 +185,7 @@ export function DockerPage() {
                 size="sm"
                 variant="ghost"
                 disabled={!isAdmin || isActing}
-                onClick={() => handleStop(r)}
+                onClick={() => dockerAction("stop", "Stopped", "stop", r)}
                 title="Stop"
               >
                 {isActing && pendingAction === `stop-${r.id}` ? (
@@ -236,7 +199,7 @@ export function DockerPage() {
               size="sm"
               variant="ghost"
               disabled={!isAdmin || isActing}
-              onClick={() => handleRestart(r)}
+              onClick={() => dockerAction("restart", "Restarted", "restart", r)}
               title="Restart"
             >
               {isActing && pendingAction === `restart-${r.id}` ? (
@@ -262,7 +225,7 @@ export function DockerPage() {
               destructive
               requireText={r.name}
               confirmLabel="Remove"
-              onConfirm={() => handleRemove(r)}
+              onConfirm={() => dockerAction("rm", "Removed", "remove", r)}
             />
           </div>
         );
