@@ -947,7 +947,7 @@ export const DELETE_CONFIRMATION_PHRASE = "delete";
  *   2. Instance name matches the strict regex.
  *   3. Instance is in the executor's snapshot and is `allowlisted`.
  *   4. If the action is destructive, the caller must supply a valid
- *      approval token (verified by `verifyApproval` semantics).
+ *      approval token, which is consumed (single-use) before execution.
  *   5. If the action is `delete`, the caller must supply a typed
  *      confirmation phrase (PB-5 UX guard).
  *   6. Run the executor.
@@ -1118,7 +1118,7 @@ export async function dispatchAction(
     }
     // Verify the token. The approval is bound to the caller's
     // `SessionId` (THREAT_MODEL §3.4, PB-1).
-    const { verifyApproval } = await import("../approval");
+    const { verifyApproval, consumeApproval } = await import("../approval");
     const v = verifyApproval(ctx.approvalToken, asSessionId(ctx.sessionId));
     if (!v.ok) {
       const reason = `approval token ${v.reason}`;
@@ -1168,6 +1168,33 @@ export async function dispatchAction(
         name: input.name,
         code: "approval_invalid",
         reason: "approval token is not bound to this action + name",
+      };
+    }
+    // Consume the token so it is single-use: a replay within the 60s TTL is
+    // rejected (already_used). verifyApproval above does NOT burn it — without
+    // this consume an incus.stop/restart/delete token could be replayed,
+    // unlike docker (bridge.ts) and systemd (systemd.ts), which both consume.
+    const consumed = consumeApproval(ctx.approvalToken, asSessionId(ctx.sessionId));
+    if (!consumed.ok) {
+      audit({
+        actorUserId: ctx.user.id,
+        actorSessionId: null,
+        actorIp: ctx.ip,
+        actorUserAgent: ctx.userAgent,
+        surface: "incus",
+        action: "incus.bridge.reject",
+        target: input.name,
+        result: "denied",
+        errorCode: consumed.reason,
+        requestId: ctx.requestId,
+        payload: { phase: "approval_consume", op: policyName, reason: consumed.reason },
+      });
+      return {
+        status: "rejected",
+        action: input.action,
+        name: input.name,
+        code: approvalRejectionCode(consumed.reason),
+        reason: `approval token ${consumed.reason}`,
       };
     }
   }

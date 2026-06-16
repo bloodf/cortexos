@@ -375,6 +375,33 @@ describe("dispatchAction — approval gate", () => {
     }
   });
 
+  it("rejects a REPLAYED stop token (single-use; already_used)", async () => {
+    const sid = asSessionId("sess-stop-replay");
+    const tok = mintApproval({
+      action: "incus.stop",
+      payload: { name: "hermes-canary" },
+      sessionId: sid,
+      userId: "u-admin",
+    });
+    // First use succeeds AND consumes the token.
+    const first = await dispatchAction(
+      { action: "stop", name: "hermes-canary" },
+      makeAdminCtx({ sessionId: sid, approvalToken: tok.token }),
+    );
+    expect(first.status).toBe("accepted");
+    // Regression guard: incus used to verifyApproval WITHOUT consuming, so the
+    // same token could be replayed within its 60s TTL to repeat the destructive
+    // action. Replaying it now must be rejected as already_used.
+    const replay = await dispatchAction(
+      { action: "stop", name: "hermes-canary" },
+      makeAdminCtx({ sessionId: sid, approvalToken: tok.token }),
+    );
+    expect(replay.status).toBe("rejected");
+    if (replay.status === "rejected") {
+      expect(replay.code).toBe("approval_already_used");
+    }
+  });
+
   it("rejects stop with wrong session (session_mismatch)", async () => {
     const sid = asSessionId("sess-stop-2");
     const tok = mintApproval({
