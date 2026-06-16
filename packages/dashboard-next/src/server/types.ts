@@ -43,7 +43,8 @@ export interface RequestEvent {
   readonly locals: AppLocals;
   /** Cookies for the current request. */
   readonly cookies: CookiesAdapter;
-  /** Best-effort client IP (X-Forwarded-For aware). */
+  /** Best-effort client IP. Source of truth is `readClientIp` (X-Real-IP only,
+   *  set by Caddy from {client_ip}); raw X-Forwarded-For is never trusted. */
   getClientAddress: () => string;
   /** Returns the platform-specific adapter (we stub for now). */
   readonly platform?: unknown;

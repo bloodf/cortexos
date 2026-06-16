@@ -43,22 +43,22 @@ and are called directly from loaders/components:
 
 ```ts
 // src/lib/api/<domain>.functions.ts  (client-importable)
-import { createServerFn } from '@tanstack/react-start';
-import { defineServerFn, serverFnNoop } from '@/lib/api/define-server-fn';
-import { z } from 'zod';
+import { createServerFn } from "@tanstack/react-start";
+import { defineServerFn, serverFnNoop } from "@/lib/api/define-server-fn";
+import { z } from "zod";
 
 const gate = defineServerFn({
-  method: 'GET',          // 'GET' | 'POST'
-  auth: 'any',            // 'public' | 'any' | 'admin' | GroupName
+  method: "GET", // 'GET' | 'POST'
+  auth: "any", // 'public' | 'any' | 'admin' | GroupName
   input: z.object({ q: z.string().optional() }),
-  surface: 'domain',
-  action: 'domain.action',
+  surface: "domain",
+  action: "domain.action",
   handler: async ({ input }) => {
-    const { repo } = await import('@/server/domain/repo');  // DYNAMIC import
+    const { repo } = await import("@/server/domain/repo"); // DYNAMIC import
     return repo(input.q);
   },
 });
-export const listThings = createServerFn({ method: 'GET' })
+export const listThings = createServerFn({ method: "GET" })
   .middleware([gate])
   .handler(serverFnNoop);
 
@@ -67,6 +67,7 @@ export const listThings = createServerFn({ method: 'GET' })
 ```
 
 Hard rules:
+
 1. `createServerFn(...).middleware([gate]).handler(serverFnNoop)` MUST be a
    top-level variable assignment — the compiler enforces this.
 2. Never static-import `src/server/**` at the top of a `*.functions.ts` file.
@@ -84,7 +85,7 @@ src/
   lib/
     api/            <domain>.functions.ts + define-server-fn.ts
     adapters/       @cortexos/contracts → component props
-  i18n/             en.ts, es.ts, ptBR.ts
+  i18n/             en.ts (English-only; es.ts/ptBR.ts + switcher removed)
 migrations/         SQL migrations; runner: src/server/db/migrate.ts
 .output/            Nitro build output (gitignored)
 ```
