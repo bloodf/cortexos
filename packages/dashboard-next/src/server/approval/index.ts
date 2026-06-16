@@ -181,6 +181,7 @@ const mintableActions = new Set<string>([
   "incus.action",
   "docker.action",
   "docker.prune",
+  "processes.kill",
   // (3) Agent control verbs (the agents bridge mints the bare verb).
   "start",
   "stop",

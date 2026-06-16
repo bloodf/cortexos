@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/EmptyState";
 import { TableSkeleton } from "@/components/skeletons";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { api, callKillProcess } from "@/lib/api/client";
+import { api, callKillProcess, callMintApproval } from "@/lib/api/client";
 import { csrfHeaders } from "@/lib/csrf";
 import { useT } from "@/hooks/useT";
 import { useAuth } from "@/hooks/useAuth";
@@ -163,8 +163,18 @@ export function ProcessesPage() {
   const { user } = useAuth();
   const isAdmin = !!user?.is_admin;
   const killMut = useMutation({
-    mutationFn: (vars: { pid: number; signal: "SIGTERM" | "SIGKILL" }) =>
-      callKillProcess({ data: vars, headers: csrfHeaders() }),
+    mutationFn: async (vars: { pid: number; signal: "SIGTERM" | "SIGKILL" }) => {
+      // Mint a single-use approval token bound to action `processes.kill` with
+      // the same input the pipeline hashes ({ pid, signal }), then dispatch with
+      // the token + CSRF (parity with agent/docker/systemd destructive ops).
+      const mint = await callMintApproval({
+        data: { action: "processes.kill", payload: { pid: vars.pid, signal: vars.signal } },
+      });
+      return callKillProcess({
+        data: vars,
+        headers: { ...csrfHeaders(), "x-cortex-approval-token": mint.token },
+      });
+    },
     onSuccess: (_d, vars) => {
       toast.success(`Sent ${vars.signal} to PID ${vars.pid}`);
       qc.invalidateQueries({ queryKey: ["processes"] }).catch(() => {});

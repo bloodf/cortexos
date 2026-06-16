@@ -28,7 +28,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-import { defineServerFn, serverFnNoop } from "@/lib/api/define-server-fn";
+import { defineServerFn, serverFnNoop, type ServerFnOptions } from "@/lib/api/define-server-fn";
 
 // All four functions take no meaningful input — empty strict object.
 const EmptyInput = z.object({}).strict();
@@ -126,11 +126,20 @@ const KillProcessInput = z
   })
   .strict();
 
-const killProcessGate = defineServerFn({
+type KillProcessInputT = z.infer<typeof KillProcessInput>;
+
+/**
+ * killProcess gate options. Exported so the node-env test drives the REAL gate
+ * through the pipeline. `approval: true` for parity with every other
+ * destructive op (docker/incus/systemd/agents actions all require a single-use
+ * approval token) — signalling an arbitrary PID is at least as dangerous.
+ */
+export const killProcessGateOptions: ServerFnOptions<KillProcessInputT, { ok: true }> = {
   method: "POST",
   auth: "admin",
   input: KillProcessInput,
   rateLimit: { limit: 20, windowSec: 60, bucket: "user" },
+  approval: true,
   surface: "system",
   action: "processes.kill",
   target: (input) => `${input.signal}:${input.pid}`,
@@ -144,7 +153,8 @@ const killProcessGate = defineServerFn({
     }
     return { ok: true } as const;
   },
-});
+};
+const killProcessGate = defineServerFn(killProcessGateOptions);
 export const killProcess = createServerFn({ method: "POST" })
   .middleware([killProcessGate])
   .handler(serverFnNoop);
