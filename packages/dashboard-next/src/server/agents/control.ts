@@ -199,6 +199,13 @@ export async function getAgentRuntime(slug: string): Promise<{
   profile: string;
 }> {
   const { gateway, profile } = unitsFor(slug);
+  // Defense-in-depth: the read path takes caller-supplied slugs (agents.status
+  // is auth:'any'). `isActive` already shells out via execFile with an argv
+  // array — no shell injection is possible — but validate the slug format here
+  // so an arbitrary string is never interpolated into a unit name and probed.
+  if (!SLUG_RE.test(slug)) {
+    return { state: "stopped", gateway, profile };
+  }
   const [gatewayActive, profileActive] = await Promise.all([isActive(gateway), isActive(profile)]);
   return { state: deriveState(gatewayActive, profileActive), gateway, profile };
 }

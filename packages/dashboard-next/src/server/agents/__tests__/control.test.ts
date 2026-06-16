@@ -233,6 +233,17 @@ describe("getAgentRuntime state derivation", () => {
     expect((await getAgentRuntime("cleo")).state).toBe("stopped");
   });
 
+  it("does NOT shell out for a malformed slug — returns stopped (defense-in-depth)", async () => {
+    const { exec, calls } = makeExecutor({});
+    setExecutorForTests(exec);
+    // agents.status is auth:'any' and takes caller slugs; a slug that fails the
+    // SLUG_RE format guard must never reach systemctl.
+    const bad = ["bad slug!@#", "../etc/passwd", "a;b", "A_UPPER"];
+    const states = await Promise.all(bad.map((s) => getAgentRuntime(s)));
+    states.forEach((res) => expect(res.state).toBe("stopped"));
+    expect(calls.length).toBe(0);
+  });
+
   it("getAgentRuntimes derives many slugs in parallel", async () => {
     const { exec } = makeExecutor({
       isActive: {
