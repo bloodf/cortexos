@@ -99,6 +99,14 @@ memory:
 EOF
 ```
 
+## Step 4.5: Install Shared AI Harness Skills (Automatic)
+
+`scripts/incus-create-project.sh` runs `scripts/install-ai-harness-skills.sh`
+automatically after the Hermes profile is created. This installs the shared
+skill/prompt libraries (codebase-memory-mcp, superpowers, mattpocock/skills,
+prompt-master, stop-slop) into the instance's Hermes profile and every other
+agent harness on the instance. No operator action is required.
+
 ## Step 5: Telegram Bot Setup (Optional)
 
 ```bash

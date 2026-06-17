@@ -35,7 +35,7 @@ CortexOS is a self-hosted AI infrastructure system. This repository contains:
 ## AI Tools Configuration
 
 ### 9Router API
-- **Endpoint:** `https://cortexos.tailfd052e.ts.net:11434/v1`
+- **Endpoint:** `https://cortexos.<your-tailnet>.ts.net:11434/v1`
 - **API Key:** Set in `~/.qwen/settings.json`
 - **Models:** Claude Opus, Claude Sonnet, GPT-5, Gemini, Kimi, MiniMax, Grok
 

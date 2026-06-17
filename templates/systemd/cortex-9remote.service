@@ -1,0 +1,45 @@
+# 9Remote — remote terminal access (https://9remote.cc) systemd unit.
+#
+# Rendered by scripts/ops/cortex-render-units.sh which substitutes
+# {CORTEX_ROOT} at deploy time. After rendering, reload systemd:
+#
+#   sudo bash scripts/ops/cortex-render-units.sh cortex-9remote.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now cortex-9remote.service
+#
+# Runs `9remote ui` — the local web-UI mode. Unlike the bare `9remote`
+# TUI, `ui` mode serves the dashboard directly and does NOT spin up a
+# Cloudflare tunnel, so access stays on the tailnet.
+#
+# ponytail: 9remote ui binds 0.0.0.0:PORT (Node listen with no host arg —
+# no env knob to force loopback), so `tailscale serve` on the same port
+# would collide with its tailnet-IP listener. We don't serve it; reach it
+# directly at http://<tailnet-host>:2208 (ufw allows all of tailscale0,
+# wireguard already encrypts the hop). 9remote's own device-pairing (QR +
+# permanent key in HOME) is the auth boundary. If you must restrict the
+# physical LAN too: `sudo ufw deny in on enp3s0 to any port 2208`.
+#
+# Runs as the unprivileged `cortexos` user. This tool hands out interactive
+# shells by design, so it is intentionally NOT sandboxed (ProtectHome/
+# ProtectSystem would defeat the point). HOME points at a dedicated dir so
+# the machine-bound permanent key persists across restarts.
+
+[Unit]
+Description=9Remote terminal access (web UI, tunnel-free local mode)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=cortexos
+Group=cortexos
+Environment=HOME={CORTEX_ROOT}/data/9remote
+Environment=PORT=2208
+ExecStart=/usr/bin/node {CORTEX_ROOT}/data/9remote/.npm-global/lib/node_modules/9remote/dist/cli.cjs ui
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

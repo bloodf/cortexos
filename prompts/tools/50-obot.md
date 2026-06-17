@@ -37,11 +37,14 @@ SQL
 
 ### 2. Obot Environment File
 
+Obot must use the local 9Router gateway as its AI provider (OpenAI-compatible endpoint). Do not point it at `api.openai.com` directly.
+
 Write `/opt/cortexos/.secrets/obot.env`:
 
 ```env
 OBOT_SERVER_DSN=postgres://obot:<password>@<pg-host>:5432/obot
-OPENAI_API_KEY=<key-from-operator>
+OPENAI_API_KEY=<9router-api-key>
+OPENAI_BASE_URL=http://127.0.0.1:11434/v1
 OBOT_SERVER_HOSTNAME=<hostname>:<port>
 OBOT_SERVER_ENABLE_AUTHENTICATION=true
 OBOT_BOOTSTRAP_TOKEN=<generate-random>
@@ -49,7 +52,7 @@ OBOT_BOOTSTRAP_TOKEN=<generate-random>
 
 Ask the operator:
 
-- **OpenAI API key** (or other LLM provider key)
+- **9Router API key** (from `/opt/cortexos/.secrets/9router.env`)
 - **Bootstrap token** (generate if not provided)
 
 ### 3. Deploy

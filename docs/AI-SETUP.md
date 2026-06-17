@@ -36,6 +36,8 @@ Your Request
        └──► More...
 ```
 
+> **CortexOS routing policy:** every AI tool and agent — including Hermes, Claude Code, Qwen Code, Obot, Headroom, Honcho, Mail Guardian, and Memory OS — uses 9Router as its AI provider. The only exception is the Kimi CLI/tooling, which may continue to talk to Kimi directly. For Claude Code specifically, only Claude models are exposed.
+
 ---
 
 ## Available AI Models
@@ -45,7 +47,7 @@ Your Request
 | Model | Provider | Best For |
 |-------|----------|----------|
 | `cc/claude-opus-4-8` | Claude | Complex reasoning, coding |
-| `cc/claude-opus-4-7` | Claude | Complex reasoning, coding |
+| `cc/claude-opus-4-6` | Claude | Complex reasoning, coding |
 | `cc/claude-sonnet-4-6` | Claude | Balanced performance |
 | `cx/gpt-5.4` | ChatGPT | General tasks |
 | `cx/gpt-5.4-mini` | ChatGPT | Fast, efficient |
@@ -117,19 +119,58 @@ Edit `~/.qwen/settings.json`:
 npm install -g @anthropic-ai/claude-code
 ```
 
-### 2. Configure for 9Router
+### 2. Configure for 9Router (Claude models only)
 
 Create `~/.claude/settings.json`:
 
 ```json
 {
+  "env": {
+    "OPENAI_API_KEY": "your-9router-api-key"
+  },
+  "modelProviders": {
+    "openai": [
+      {
+        "id": "cc/claude-opus-4-8",
+        "name": "Claude Opus 4.8",
+        "baseUrl": "http://127.0.0.1:11434/v1",
+        "envKey": "OPENAI_API_KEY"
+      },
+      {
+        "id": "cc/claude-opus-4-6",
+        "name": "Claude Opus 4.6",
+        "baseUrl": "http://127.0.0.1:11434/v1",
+        "envKey": "OPENAI_API_KEY"
+      },
+      {
+        "id": "cc/claude-sonnet-4-6",
+        "name": "Claude Sonnet 4.6",
+        "baseUrl": "http://127.0.0.1:11434/v1",
+        "envKey": "OPENAI_API_KEY"
+      }
+    ]
+  },
   "model": {
     "name": "cc/claude-opus-4-8"
-  },
-  "apiKey": "your-api-key",
-  "baseUrl": "http://127.0.0.1:11434/v1"
+  }
 }
 ```
+
+### 3. Use Claude Code from a local workstation (via VPS)
+
+If your CortexOS VPS is already running Headroom and 9Router, you can route a
+local laptop through the VPS instead of configuring providers locally:
+
+```bash
+cd /opt/cortexos
+export VPS_HOST="cortex.tailXXXX.ts.net"
+bash scripts/install-local-ai-harness.sh
+```
+
+This creates SSH tunnels for Headroom (`:8787`), 9Router (`:11434`), and the
+VPS anthropic-proxy (`:18082`), installs an OMC-aware `claude` wrapper, and sets
+up local shell environment. See [`docs/LOCAL-AI-HARNESS.md`](LOCAL-AI-HARNESS.md)
+for full details.
 
 ---
 

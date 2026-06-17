@@ -59,6 +59,7 @@ import type {
   MountInfo,
 } from "@/mocks/types";
 import type { BackupRunRow } from "./backups.functions";
+import type { HeadroomHealth, HeadroomStats } from "./headroom.functions";
 import type {
   Container as StubContainer,
   DockerImage as StubDockerImage,
@@ -115,6 +116,15 @@ import { listSchedulerJobs as _listSchedulerJobs } from "./scheduler.functions";
 // Wired server-function imports (MP-024b — backups domain)
 // ---------------------------------------------------------------------------
 import { listBackupRuns as _listBackupRuns } from "./backups.functions";
+
+// ---------------------------------------------------------------------------
+// Wired server-function imports (headroom domain)
+// ---------------------------------------------------------------------------
+import {
+  getHeadroomHealth as _getHeadroomHealth,
+  getHeadroomStats as _getHeadroomStats,
+  getHeadroomUrl as _getHeadroomUrl,
+} from "./headroom.functions";
 
 // ---------------------------------------------------------------------------
 // Wired server-function imports (WP-11 — docker domain)
@@ -472,6 +482,17 @@ interface ListBackupRunsOutput {
 const listBackupRunsFn = _listBackupRuns as unknown as (opts: {
   data: Record<string, never>;
 }) => Promise<ListBackupRunsOutput>;
+
+// Headroom gate-middleware boundary cast.
+const getHeadroomHealthFn = _getHeadroomHealth as unknown as (opts: {
+  data: Record<string, never>;
+}) => Promise<HeadroomHealth>;
+const getHeadroomStatsFn = _getHeadroomStats as unknown as (opts: {
+  data: Record<string, never>;
+}) => Promise<HeadroomStats>;
+const getHeadroomUrlFn = _getHeadroomUrl as unknown as (opts: {
+  data: Record<string, never>;
+}) => Promise<{ url: string }>;
 
 /** Call incusAction RPC directly — requires a pre-minted approval token for destructive ops. */
 export const callIncusAction = _incusAction as unknown as (opts: {
@@ -1382,6 +1403,29 @@ export const api = {
     }
 
     return clientSideList<BackupRunRow>(filtered, p);
+  },
+
+  // ── Headroom ───────────────────────────────────────────────────────────
+  /**
+   * Headroom full UI URL (Tailscale domain + proxy port).
+   */
+  headroomUrl: async (): Promise<string> => {
+    const { url } = await getHeadroomUrlFn({ data: {} });
+    return url;
+  },
+
+  /**
+   * Headroom proxy health/status.
+   */
+  headroomHealth: async (): Promise<HeadroomHealth> => {
+    return getHeadroomHealthFn({ data: {} });
+  },
+
+  /**
+   * Headroom compression/savings statistics.
+   */
+  headroomStats: async (): Promise<HeadroomStats> => {
+    return getHeadroomStatsFn({ data: {} });
   },
 
   // ── Scheduler (WIRED — MP-024a) ───────────────────────────────────────

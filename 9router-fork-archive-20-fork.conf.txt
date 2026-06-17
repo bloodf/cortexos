@@ -1,0 +1,12 @@
+[Service]
+# Switch the gateway to the local fork build:
+#   /home/cortexos/9router-fork  (decolua/9router master + 23 curated PRs + MiniMax-M3 fix)
+# Run the Next standalone server directly — the Dockerfile's canonical headless
+# entrypoint (CMD ["node","server.js"]). Avoids cli.js, which daemonizes on
+# headless Linux (PR #1435) and is incompatible with Type=simple.
+# Rollback: rm this file, `systemctl daemon-reload`, `systemctl restart 9router`.
+ExecStart=
+ExecStart=/usr/bin/node /home/cortexos/9router-fork/cli/app/server.js
+Environment=PORT=11434
+Environment=HOSTNAME=127.0.0.1
+Environment=NODE_ENV=production

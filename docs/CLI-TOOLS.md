@@ -51,6 +51,18 @@ Interactive Incus project creator.
 sudo bash scripts/incus-create-project.sh
 ```
 
+### `scripts/install-local-ai-harness.sh`
+Route a local workstation's AI agents (Claude Code, OMC, OpenAI-compatible tools)
+through a CortexOS VPS over Tailscale + SSH tunnels.
+
+```bash
+cd /opt/cortexos
+export VPS_HOST="cortex.tailXXXX.ts.net"
+bash scripts/install-local-ai-harness.sh
+```
+
+See [`docs/LOCAL-AI-HARNESS.md`](LOCAL-AI-HARNESS.md) for details.
+
 ## Adding New Tools
 
 Place new scripts under `scripts/` or `scripts/ops/`. Follow conventions:

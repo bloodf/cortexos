@@ -22,6 +22,7 @@ import { Route as AuthenticatedNetworkRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedMailGuardianRouteImport } from './routes/_authenticated.mail-guardian'
 import { Route as AuthenticatedIncusRouteImport } from './routes/_authenticated.incus'
 import { Route as AuthenticatedHealthcheckRouteImport } from './routes/_authenticated.healthcheck'
+import { Route as AuthenticatedHeadroomRouteImport } from './routes/_authenticated.headroom'
 import { Route as AuthenticatedDockerRouteImport } from './routes/_authenticated.docker'
 import { Route as AuthenticatedBackupsRouteImport } from './routes/_authenticated.backups'
 import { Route as AuthenticatedAuditRouteImport } from './routes/_authenticated.audit'
@@ -107,6 +108,11 @@ const AuthenticatedHealthcheckRoute =
     path: '/healthcheck',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedHeadroomRoute = AuthenticatedHeadroomRouteImport.update({
+  id: '/headroom',
+  path: '/headroom',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedDockerRoute = AuthenticatedDockerRouteImport.update({
   id: '/docker',
   path: '/docker',
@@ -216,6 +222,7 @@ export interface FileRoutesByFullPath {
   '/audit': typeof AuthenticatedAuditRoute
   '/backups': typeof AuthenticatedBackupsRoute
   '/docker': typeof AuthenticatedDockerRouteWithChildren
+  '/headroom': typeof AuthenticatedHeadroomRoute
   '/healthcheck': typeof AuthenticatedHealthcheckRoute
   '/incus': typeof AuthenticatedIncusRouteWithChildren
   '/mail-guardian': typeof AuthenticatedMailGuardianRoute
@@ -248,6 +255,7 @@ export interface FileRoutesByTo {
   '/audit': typeof AuthenticatedAuditRoute
   '/backups': typeof AuthenticatedBackupsRoute
   '/docker': typeof AuthenticatedDockerRouteWithChildren
+  '/headroom': typeof AuthenticatedHeadroomRoute
   '/healthcheck': typeof AuthenticatedHealthcheckRoute
   '/incus': typeof AuthenticatedIncusRouteWithChildren
   '/mail-guardian': typeof AuthenticatedMailGuardianRoute
@@ -282,6 +290,7 @@ export interface FileRoutesById {
   '/_authenticated/audit': typeof AuthenticatedAuditRoute
   '/_authenticated/backups': typeof AuthenticatedBackupsRoute
   '/_authenticated/docker': typeof AuthenticatedDockerRouteWithChildren
+  '/_authenticated/headroom': typeof AuthenticatedHeadroomRoute
   '/_authenticated/healthcheck': typeof AuthenticatedHealthcheckRoute
   '/_authenticated/incus': typeof AuthenticatedIncusRouteWithChildren
   '/_authenticated/mail-guardian': typeof AuthenticatedMailGuardianRoute
@@ -316,6 +325,7 @@ export interface FileRouteTypes {
     | '/audit'
     | '/backups'
     | '/docker'
+    | '/headroom'
     | '/healthcheck'
     | '/incus'
     | '/mail-guardian'
@@ -348,6 +358,7 @@ export interface FileRouteTypes {
     | '/audit'
     | '/backups'
     | '/docker'
+    | '/headroom'
     | '/healthcheck'
     | '/incus'
     | '/mail-guardian'
@@ -381,6 +392,7 @@ export interface FileRouteTypes {
     | '/_authenticated/audit'
     | '/_authenticated/backups'
     | '/_authenticated/docker'
+    | '/_authenticated/headroom'
     | '/_authenticated/healthcheck'
     | '/_authenticated/incus'
     | '/_authenticated/mail-guardian'
@@ -500,6 +512,13 @@ declare module '@tanstack/react-router' {
       path: '/healthcheck'
       fullPath: '/healthcheck'
       preLoaderRoute: typeof AuthenticatedHealthcheckRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/headroom': {
+      id: '/_authenticated/headroom'
+      path: '/headroom'
+      fullPath: '/headroom'
+      preLoaderRoute: typeof AuthenticatedHeadroomRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/docker': {
@@ -696,6 +715,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAuditRoute: typeof AuthenticatedAuditRoute
   AuthenticatedBackupsRoute: typeof AuthenticatedBackupsRoute
   AuthenticatedDockerRoute: typeof AuthenticatedDockerRouteWithChildren
+  AuthenticatedHeadroomRoute: typeof AuthenticatedHeadroomRoute
   AuthenticatedHealthcheckRoute: typeof AuthenticatedHealthcheckRoute
   AuthenticatedIncusRoute: typeof AuthenticatedIncusRouteWithChildren
   AuthenticatedMailGuardianRoute: typeof AuthenticatedMailGuardianRoute
@@ -717,6 +737,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAuditRoute: AuthenticatedAuditRoute,
   AuthenticatedBackupsRoute: AuthenticatedBackupsRoute,
   AuthenticatedDockerRoute: AuthenticatedDockerRouteWithChildren,
+  AuthenticatedHeadroomRoute: AuthenticatedHeadroomRoute,
   AuthenticatedHealthcheckRoute: AuthenticatedHealthcheckRoute,
   AuthenticatedIncusRoute: AuthenticatedIncusRouteWithChildren,
   AuthenticatedMailGuardianRoute: AuthenticatedMailGuardianRoute,

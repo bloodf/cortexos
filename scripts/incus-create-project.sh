@@ -203,7 +203,18 @@ EOF
     sudo incus file push "$HERMES_TMP" "$PROJECT_NAME"/opt/cortexos/hermes/profiles/"$PROJECT_NAME"/config.yaml
     rm -f "$HERMES_TMP"
     sudo incus exec "$PROJECT_NAME" -- chown -R cortexos:cortexos /opt/cortexos/hermes
-    
+
+    # Step 5.5: Install shared AI harness skills (idempotent).
+    # This wires skills.external_dirs, the codebase-memory-mcp MCP server, and
+    # copies skill directories into every agent harness on the instance.
+    log "[5.5/8] Installing shared AI harness skills..."
+    if sudo incus exec "$PROJECT_NAME" -- test -f /opt/cortexos/scripts/install-ai-harness-skills.sh; then
+        sudo incus exec "$PROJECT_NAME" -- su - cortexos -c \
+            'cd /opt/cortexos && ./scripts/install-ai-harness-skills.sh'
+    else
+        warn "CortexOS installer script not found on instance; skipping AI harness skills install"
+    fi
+
     # Create systemd service
     SERVICE_TMP=$(mktemp)
     chmod 600 "$SERVICE_TMP"

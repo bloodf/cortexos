@@ -236,6 +236,7 @@ export default [
       'packages/cortex-audit/**/*.{js,ts}',
       'packages/cortex-mail-guardian/**/*.{js,ts}',
       'packages/cortex-telemetry/**/*.{js,ts}',
+      'packages/cortex-honcho-memory-mcp/**/*.{js,ts}',
     ],
     languageOptions: {
       sourceType: 'module',
@@ -348,6 +349,18 @@ export default [
     },
   },
 
+  // MP-028c: cortex-honcho-memory-mcp is a CLI MCP server; process.exit and
+  // process.env are expected in its entrypoint.
+  {
+    files: ['packages/cortex-honcho-memory-mcp/src/index.ts'],
+    rules: {
+      'n/no-process-exit': 'off',
+      'n/no-process-env': 'off',
+      'n/hashbang': 'off',
+      'n/prefer-global/process': 'off',
+    },
+  },
+
   // 7f) Parser coverage — packages without their own tsconfig.json
   {
     files: ['**/*.ts', '**/*.cts', '**/*.mts', '**/*.tsx', '**/*.d.ts'],
@@ -359,6 +372,7 @@ export default [
             'packages/cortex-mail-guardian/test/*.ts',
             'packages/cortex-mail-guardian/scripts/*.ts',
             'packages/cortex-mail-guardian/vitest.config.ts',
+            'packages/cortex-honcho-memory-mcp/__tests__/*.ts',
           ],
           maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 20,
         },

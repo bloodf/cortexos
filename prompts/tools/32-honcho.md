@@ -217,6 +217,41 @@ curl -fsS -X POST http://127.0.0.1:18690/v3/workspaces \
 
 Type `confirmed` to proceed.
 
+## Expose on tailnet
+
+Honcho binds loopback; publish the API (and MCP worker) over the tailnet via
+`tailscale serve` so other hosts can reach them with TLS:
+
+```bash
+# Honcho API (also serves Swagger at /docs)
+sudo tailscale serve --bg --https 18690 http://127.0.0.1:18690
+# Honcho MCP worker (effective port from the 10-port.conf drop-in is 18694)
+sudo tailscale serve --bg --https 18694 http://127.0.0.1:18694
+```
+
+Reach from another tailnet machine:
+`https://<tailnet-host>:18690/health` (API) ·
+`https://<tailnet-host>:18690/docs` (Swagger) ·
+`https://<tailnet-host>:18694/` (MCP — expects auth, returns 401 unauthenticated).
+
+## Dashboard registration
+
+The catalog rows, correct health probes, and visibility flags ship as
+dashboard migration `017_honcho_probe_fix.sql` (honcho / honcho-mcp / proxy),
+applied automatically at dashboard startup. The flags are set explicitly in
+the migration rather than left to `scripts/dynamic-seed.js` — that script is
+host-only and its startup invocation was dropped in the SvelteKit cutover, so
+migrations are the authoritative mechanism. No manual SQL needed.
+
+The public Apps URL (Swagger `/docs`) is **not** hardcoded — it is assigned
+per-install by `cortex_set_service_urls(base_url)` (migration `019`), where
+`base_url` is your own tailnet host passed at runtime:
+
+```bash
+# once, with this host's base URL (e.g. from `tailscale status`):
+SELECT cortex_set_service_urls('https://<your-tailnet-host>');
+```
+
 ## Rollback
 
 ```bash
@@ -225,6 +260,8 @@ docker compose down
 sudo systemctl disable --now ollama-honcho-embeddings-proxy.service
 sudo rm /etc/systemd/system/ollama-honcho-embeddings-proxy.service
 sudo systemctl daemon-reload
+sudo tailscale serve --https=18690 off
+sudo tailscale serve --https=18694 off
 ```
 
 ## Next

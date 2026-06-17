@@ -8,7 +8,7 @@ tailscale IP. Evidence (file:line):
 services table), `:103-127` (ss -tlnp port cross-reference), Q2 section
 ("show_in_webui is NOT filtered at the repo level" — listServices);
 `.planning/harness/artifacts/recon-compose-map.md:5` (nexusgate
-100.68.46.47), `:18`/`:29` and sibling "Edited ports" stanzas (022a's
+<nexusgate-ip>), `:18`/`:29` and sibling "Edited ports" stanzas (022a's
 binding prescriptions).
 DIRECTIVE INTERPRETATION (operator-context, binding): "no subdomains"
 targets per-app names (the XYZ.cortex.local complaint); the host's own
@@ -57,9 +57,9 @@ record every edit verbatim in the report.
    phpMyAdmin 8082, Mongo Express 8083, cAdvisor 8081, Obot 8090,
    9Router 11434, Dockhand 3420, Hermes WebUI 18787, hermes-dashboard
    9119, BoxBox (/files/) 8200, Memory OS (/memory/) 6333;
-   NexusGate rows http://100.68.46.47:PORT (LuCI 80, AdGuard 3000).
+   NexusGate rows http://<nexusgate-ip>:PORT (LuCI 80, AdGuard 3000).
    DOCUMENTED EXCEPTION (directive-consistent): the Cortex Dashboard row
-   keeps https://cortexos.tailfd052e.ts.net — that is the HOST's own
+   keeps https://cortexos.<your-tailnet>.ts.net — that is the HOST's own
    MagicDNS name on port 443 via Caddy TLS, not a per-app subdomain (the
    directive targets XYZ-per-app names); the dashboard binds
    127.0.0.1:3080 ONLY (PAM/root service behind Caddy), so an
@@ -86,7 +86,7 @@ Commit: feat(dashboard-next): /apps shows only web UIs with working tailscale:po
 
 ## Amendment (post-022a, evidence-driven — logged in GATE-RESOLUTION)
 022a discovery: `tailscale serve` already fronts most web-UI ports as
-`https://cortexos.tailfd052e.ts.net:PORT` (tailnet-wide TLS, proxy →
+`https://cortexos.<your-tailnet>.ts.net:PORT` (tailnet-wide TLS, proxy →
 localhost). Docker binds on the tailscale IP SHADOW serve (plain-HTTP
 collision → TLS "wrong version number"). Corrected architecture (now
 live, orchestrator-verified): containers bind 127.0.0.1; serve proxies
@@ -95,7 +95,7 @@ every web-UI port; probe matrix green (3000:301, 9090:302, 8081, 5050,
 11434:307, 9119:200, 18787:200, 8200:200, 6333:200; 8090:404-root —
 022b adjudicates Obot's real UI path).
 022b URL map SUPERSEDED: every webui row's open_url =
-`https://cortexos.tailfd052e.ts.net:PORT/` (uniform; the dashboard row
-stays the bare host root). NexusGate rows: http://100.68.46.47:PORT
+`https://cortexos.<your-tailnet>.ts.net:PORT/` (uniform; the dashboard row
+stays the bare host root). NexusGate rows: http://<nexusgate-ip>:PORT
 (separate node, unchanged plan). The URL battery (curl every open_url →
 2xx/3xx/401) remains the binding gate.

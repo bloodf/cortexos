@@ -20,6 +20,8 @@
 30b-fzf · fuzzy finder
 30c-boxbox · file manager
 30d-herdr · terminal workspace manager for AI coding agents
+30e-headroom · context compression proxy + MCP for AI agents
+30f-9remote · browser remote terminal (local web-UI mode)
 31-9router · OpenAI-compatible model router                 # AI gateway
 32-honcho · memory + knowledge backend
 33-hermes-memory-os · long-term memory (Qdrant + ARQ worker)
@@ -31,4 +33,5 @@
 58-mongo-express · MongoDB admin UI
 59-phpmyadmin · MySQL admin UI
 70-dashboard · SvelteKit control panel (PAM auth)
+80-ai-harness-skills · shared skill libraries for every coding agent
 82-mail-guardian · IMAP spam triage

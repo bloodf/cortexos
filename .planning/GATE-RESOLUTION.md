@@ -974,7 +974,7 @@ bridge UIs. Orchestrator completed 022a: reverted the three tailscale-IP
 docker binds to 127.0.0.1 (shadowing collision — TLS wrong-version
 diagnosed), added serve entries 18787/8200/6333 → localhost, verified
 ts:PORT 200 for all three + full probe matrix. Uniform scheme:
-https://cortexos.tailfd052e.ts.net:PORT for every web UI. MP-022 plan
+https://cortexos.<your-tailnet>.ts.net:PORT for every web UI. MP-022 plan
 amended (URL map superseded); 022b dispatched with the corrected map.
 
 ## 2026-06-11 — 022b (e18ddac) review adjudications
@@ -1056,7 +1056,7 @@ findings:
 
 ## 2026-06-11 — PRODUCT CAMPAIGN CLOSE (MP-022/023/024): all three operator-reported dashboard issues resolved
 1. /apps (MP-022): only web UIs show (has_webui filter, TDD); every URL
-   is the uniform https://cortexos.tailfd052e.ts.net:PORT (tailscale
+   is the uniform https://cortexos.<your-tailnet>.ts.net:PORT (tailscale
    serve, tailnet-wide TLS) — curl battery green; obot hidden (no UI);
    host architecture corrected (containers on 127.0.0.1, serve fronting;
    three new serve entries 18787/8200/6333).

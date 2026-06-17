@@ -19,6 +19,9 @@
 2. **Canonical install order** — `prompts/tools/_order.md`
    (lists every shipped install prompt, grouped by phase, in the
    order an operator runs them. Run them top-to-bottom.)
+3. **Shared AI skills** — `prompts/tools/80-ai-harness-skills.md`
+   (installs the same skill/prompt libraries into Hermes, Claude Code,
+   Kimi Code, Cursor, Codex CLI, and Pi.)
 3. **Per-project instance** — `prompts/tools/60-incus-project.md`
 
 ## Systemd units (host services)

@@ -123,10 +123,10 @@ journalctl -u service-name -n 100 --no-pager
 
 ```bash
 # From your local machine:
-ping cortexos.tailfd052e.ts.net
+ping cortexos.<your-tailnet>.ts.net
 
 # Check SSH
-ssh -v cortexos@cortexos.tailfd052e.ts.net
+ssh -v cortexos@cortexos.<your-tailnet>.ts.net
 ```
 
 ### Tailscale not connecting

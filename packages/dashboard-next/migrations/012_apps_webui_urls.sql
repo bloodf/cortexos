@@ -1,37 +1,28 @@
--- Migration 012: /apps webui-only listing + working tailscale:port URLs (MP-022 022b)
+-- Migration 012: /apps webui listing flags (MP-022 / 022b)
 --
--- Amended URL scheme (post-022a, evidence-driven):
---   Every has_webui=true row gets open_url = 'https://cortexos.tailfd052e.ts.net:PORT/'
---   (uniform; trailing slash).  NexusGate rows use http://100.68.46.47:PORT.
---   Cortex Dashboard keeps the bare host root (documented exception).
---   show_in_webui is aligned to has_webui for all web-UI rows.
+-- Host-agnostic by design (revised):
+--   This migration used to hardcode every web UI's open_url as
+--   https://<tailnet-host>:PORT/. That baked one install's tailnet hostname
+--   into the (public) repo. The per-install URL assignment now lives in
+--   cortex_set_service_urls(base_url) (migration 019), where the host is a
+--   runtime argument — so no hostname is committed here. Apply per host:
 --
--- Adjustments discovered during URL battery:
---   - cAdvisor is configured with --url_base_prefix=/cadvisor, so its UI
---     lives at /cadvisor/; open_url includes the path.
---   - Loki is API-only with no built-in web UI; has_webui and show_in_webui
---     are set false so it does not appear in /apps.
---   - Obot serves 404 on all probed paths (/, /ui, /admin); per plan
---     instruction show_in_webui is set false.
+--     SELECT cortex_set_service_urls('https://<your-tailnet-host>');
 --
--- Idempotency: updates are idempotent (same value every run).
+--   This migration keeps only the host-agnostic visibility flags.
+--
+-- Discovered during the URL battery (still valid):
+--   - cAdvisor lives at /cadvisor/ (--url_base_prefix); the proc encodes that.
+--   - Loki is API-only with no built-in web UI → hidden from /apps.
+--   - Obot serves 404 on probed UI paths → hidden from /apps.
+--   - NexusGate rows point at a separate appliance (a different host); their
+--     URLs are operator-specific and are NOT set by tracked code.
+--
+-- Idempotency: same value every run.
 
+-- Web-UI rows are listed on /apps.
 UPDATE services
-SET
-  open_url = CASE slug
-    WHEN 'boxbox-host'           THEN 'https://cortexos.tailfd052e.ts.net:8200/'
-    WHEN 'cadvisor'              THEN 'https://cortexos.tailfd052e.ts.net:8081/cadvisor/'
-    WHEN 'dockhand'              THEN 'https://cortexos.tailfd052e.ts.net:3420/'
-    WHEN 'hermes-webui-host'     THEN 'https://cortexos.tailfd052e.ts.net:18787/'
-    WHEN 'home-assistant'        THEN 'https://cortexos.tailfd052e.ts.net:8123/'
-    WHEN 'jellyfin'              THEN 'https://cortexos.tailfd052e.ts.net:8096/'
-    WHEN 'memory-os-host'        THEN 'https://cortexos.tailfd052e.ts.net:6333/'
-    WHEN 'mongo-express'         THEN 'https://cortexos.tailfd052e.ts.net:8083/'
-    WHEN 'nexusgate-adguard'     THEN 'http://100.68.46.47:3000/'
-    WHEN 'nexusgate-luci'        THEN 'http://100.68.46.47:80/'
-    ELSE open_url
-  END,
-  show_in_webui = true
+SET show_in_webui = true
 WHERE has_webui = true;
 
 -- Loki has no built-in web UI (API-only); remove from webui listing.
@@ -39,8 +30,7 @@ UPDATE services
 SET has_webui = false, show_in_webui = false
 WHERE slug = 'loki';
 
--- Obot serves 404 on all probed UI paths; keep has_webui=true (it does
--- expose a web UI when running) but hide from /apps until reachable.
+-- Obot serves 404 on all probed UI paths; hide from /apps until reachable.
 UPDATE services
 SET show_in_webui = false
 WHERE slug = 'obot';

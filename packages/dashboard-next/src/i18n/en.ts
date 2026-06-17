@@ -54,6 +54,7 @@ export const en = {
     apps: "Apps",
     healthcheck: "Healthcheck",
     agents: "Agents",
+    headroom: "Headroom",
     docker: "Docker",
     incus: "Incus",
     systemd: "Systemd",
