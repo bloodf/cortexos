@@ -268,6 +268,37 @@ curl http://127.0.0.1:11434/v1/chat/completions \
 
 ---
 
+## Honcho Memory (per-folder, MCP client)
+
+The `scripts/honcho-mcp` shim is a stdio MCP client that proxies to the Honcho
+MCP server over the tailnet and gives each project folder its own memory bank.
+Register it in your harness MCP config (Claude Code `~/.claude.json`, oh-my-pi
+`~/.omp/agent/mcp.json`, etc.):
+
+```json
+{
+  "command": "/path/to/scripts/honcho-mcp",
+  "env": {
+    "HONCHO_MCP_URL": "https://your-host.example.ts.net:18694",
+    "HONCHO_API_KEY": "your-honcho-key",
+    "HONCHO_USER": "your-name",
+    "HONCHO_AGENT_PREFIX": "your-name-"
+  }
+}
+```
+
+Workspace resolution per request, first match wins:
+
+1. `HONCHO_WORKSPACE_ID` env - used as-is (pin a monorepo to one bank).
+2. First line of the nearest `.honcho-project` file, walking up from the project root.
+3. `HONCHO_AGENT_PREFIX` + slug of the project-root folder name.
+
+The project root is `CLAUDE_PROJECT_DIR` when the harness exports it (Claude Code
+does), otherwise the working directory. This keeps memory scoped to the folder you
+are working in, not the directory the MCP server happened to be launched from.
+
+---
+
 ## Troubleshooting
 
 ### 9Router not responding
