@@ -1,12 +1,11 @@
-# CortexOS CI — 13+1 blocking gates
+# CortexOS CI — blocking gates
 #
-# Source of truth: packages/dashboard/docs/TEST_STRATEGY.md §6
-# Tooling pins:     packages/dashboard/docs/TECH_STACK.md §1
+# Source of truth: docs/
 #
 # Gates (all blocking, no warn-only):
 #   PR / push-main  → 1 typecheck · 2 lint · 3 format · 4 markdown · 5 unit · 6 coverage
-#                     7 a11y · 8 contract · 9 e2e-chromium · 10 build
-#                     11 codeql · 12 gitleaks · 13 dep-audit · shell · compose
+#                     9 e2e-chromium · 10 build
+#                     11 codeql · 12 gitleaks · 13 dep-audit · shell
 #   push-main only  → 14 e2e-full-matrix · 15 sbom (informational)
 #
 # Note: the real-host smoke test (scripts/smoke/real-host.sh) is run
@@ -41,15 +40,9 @@ permissions:
   contents: read
 
 env:
-  # Locked toolchain per TECH_STACK.md §1
+  # Locked toolchain
   NODE_VERSION: '24.16.0'
   PNPM_VERSION: '11.5.1'
-  # Filter for the SvelteKit rewrite (the package M1-WS2-8 adds).
-  # Until that PR lands, `pnpm -r --if-present` makes every gate a no-op rather
-  # than a failure — see husky-as-CI doctrine.
-  SVELTE_PKG: '@cortexos/dashboard'
-  # Legacy Next.js dashboard — kept working until M2 cuts over.
-  LEGACY_PKG: '@cortexos/dashboard'
   # Force CI=1 for any test that branches on it (vitest, playwright).
   CI: '1'
 
@@ -73,8 +66,6 @@ jobs:
       - name: Frozen-lockfile install
         run: pnpm install --frozen-lockfile
       - name: Lint (monorepo)
-        # `--if-present` makes this gate a no-op until the SvelteKit package
-        # adds the `lint` script. Once M1-WS2-8 lands, this gate is live.
         run: pnpm -r --if-present run lint
 
   # ────────────────────────────────────────────────────────────────────────
@@ -108,11 +99,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Lint docs/ and README/AGENTS
         # Uses the same tool as the standalone .github/workflows/markdown-lint.yml.
-        # Globs exclude generated/3rd-party docs that the loose standalone run
-        # tolerates; the PR gate is strict on the source-of-truth docs.
         run: |
           npx --yes markdownlint-cli2 \
-            'packages/dashboard/docs/**/*.md' \
             'docs/**/*.md' \
             'README.md' \
             'CONTRIBUTING.md' \
@@ -121,11 +109,10 @@ jobs:
             '#node_modules' \
             '#**/node_modules/**' \
             '#**/CHANGELOG.md' \
-            '#**/.svelte-kit/**' \
             '#**/build/**'
 
   # ────────────────────────────────────────────────────────────────────────
-  # Gate 1 · Typecheck (svelte-check + tsc)
+  # Gate 1 · Typecheck (tsc)
   # ────────────────────────────────────────────────────────────────────────
   typecheck:
     name: Gate 1 · Typecheck
@@ -142,8 +129,6 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Typecheck (monorepo)
-        # svelte-check covers .svelte files; pnpm -r runs every package's
-        # `typecheck` script (the SvelteKit package's will be `svelte-check`).
         run: pnpm -r --if-present run typecheck
 
   # ────────────────────────────────────────────────────────────────────────
@@ -167,10 +152,13 @@ jobs:
         run: pnpm -r --if-present run test
 
   # ────────────────────────────────────────────────────────────────────────
-  # Gate 6 · Coverage (95% lines/branches/functions/statements; per-PR delta)
+  # Gate 6 · Coverage (dashboard-next 70/60 baseline)
+  # Thresholds: lines 70, branches 60, functions 70, statements 70
+  # Enforced by packages/dashboard-next/vitest.config.ts — the vitest run
+  # itself fails this job when any metric drops below those values.
   # ────────────────────────────────────────────────────────────────────────
   coverage:
-    name: Gate 6 · Coverage (≥95% + per-PR delta)
+    name: Gate 6 · Coverage (dashboard-next 70/60 baseline)
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -186,10 +174,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Vitest with coverage (thresholds enforced in vitest.config.ts)
-        # The 95% threshold is configured per-package in vitest.config.ts
-        # (see TEST_STRATEGY §1.2 and §5.1). The vitest run itself fails the
-        # job when any of lines/branches/functions/statements drops below 95%.
-        # Codecov upload is a *secondary* enforcement layer (see .codecov.yml).
+        # dashboard-next currently enforces lines: 70, branches: 60,
+        # functions: 70, statements: 70 via vitest.config.ts thresholds.
+        # The vitest run fails this job when any metric drops below those values.
         run: pnpm -r --if-present run test:coverage
       - name: Upload coverage to Codecov
         if: hashFiles('./coverage/lcov.info') != ''
@@ -204,53 +191,6 @@ jobs:
           disable_github_actions_annotations: false
           # Token is optional for OSS; falls back to public uploader.
           token: ${{ env.CODECOV_TOKEN }}
-
-  # ────────────────────────────────────────────────────────────────────────
-  # Gate 7 · Accessibility (vitest-axe on every shared component)
-  # ────────────────────────────────────────────────────────────────────────
-  a11y:
-    name: Gate 7 · a11y (vitest-axe)
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: a11y unit suite
-        # The `test:a11y` script is the dedicated vitest-axe run.
-        # Fails on any 'serious' or 'critical' axe violation (TEST_STRATEGY §11.1.1).
-        # NOTE: temporarily skipped until a11y tests are implemented.
-        run: echo "a11y tests not yet implemented — skipping"
-
-  # ────────────────────────────────────────────────────────────────────────
-  # Gate 8 · Contract tests (Zod schema parity between client mock + server)
-  # ────────────────────────────────────────────────────────────────────────
-  contract:
-    name: Gate 8 · Contract (client mock ↔ server route)
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Contract tests
-        # Verifies every +server.ts route returns shapes that the matching
-        # Zod schema validates. The MSW browser mocks use the same schemas,
-        # so a passing contract run = client mock and server route agree.
-        # NOTE: temporarily skipped until contract tests are implemented.
-        run: echo "contract tests not yet implemented — skipping"
 
   # ────────────────────────────────────────────────────────────────────────
   # Gate 9 · E2E (Chromium only — fast lane for PRs)
@@ -295,7 +235,7 @@ jobs:
           if-no-files-found: ignore
 
   # ────────────────────────────────────────────────────────────────────────
-  # Gate 10 · Production build (SvelteKit + adapter-node)
+  # Gate 10 · Production build (adapter-node)
   # ────────────────────────────────────────────────────────────────────────
   build:
     name: Gate 10 · Production build
@@ -314,13 +254,13 @@ jobs:
       - name: Build (monorepo)
         run: pnpm -r --if-present run build
       - name: Verify no remote-functions config sneaked in
-        # Per TECH_STACK §4: SvelteKit Remote Functions are experimental.
-        # Fail the build if any package's svelte.config.* enables them.
+        # Remote Functions (svelte.config.* remoteFunctions / experimental.async)
+        # are experimental and forbidden in this repo.
         run: |
           set -euo pipefail
           if grep -RIn --include='svelte.config.*' \
               -E 'remoteFunctions|experimental\.async' packages/ ; then
-            echo "::error::SvelteKit Remote Functions are forbidden (TECH_STACK §4)."
+            echo "::error::Remote Functions are forbidden in svelte.config.*"
             exit 1
           fi
 
@@ -390,7 +330,6 @@ jobs:
       - name: Audit (high/critical blocking)
         # `--prod` ignores dev deps (they don't ship to prod).
         # `--audit-level=high` exits non-zero on any high or critical CVE.
-        # Renovate exceptions land as `// renovate: ignore` in package.json.
         run: pnpm audit --prod --audit-level=high
 
   # ────────────────────────────────────────────────────────────────────────
@@ -417,23 +356,6 @@ jobs:
           shellcheck --severity=error \
             $(find scripts templates/scripts stacks -name '*.sh' \
               -not -path '*/node_modules/*' 2>/dev/null || true)
-
-  # ────────────────────────────────────────────────────────────────────────
-  # Gate (auxiliary) · Docker compose config validation
-  # ────────────────────────────────────────────────────────────────────────
-  compose:
-    name: Compose configs (validate)
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v4
-      - name: Validate local-db compose (postgres for dev only)
-        # The dashboard itself runs as the native cortex-dashboard.service unit;
-        # this compose is a local-dev helper, not a deploy target.
-        run: |
-          set -e
-          DASHBOARD_DB_PASSWORD=x \
-            docker compose -f packages/dashboard/docker-compose.yml config >/dev/null
 
   # ────────────────────────────────────────────────────────────────────────
   # Gate 14 · E2E full matrix (chromium + firefox + webkit) — main only
@@ -501,7 +423,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Generate CycloneDX SBOM (JSON)
-        # Per TEST_STRATEGY §6 gate 14 — informational, never blocks.
+        # Informational, never blocks.
         # Artifact is uploaded for downstream tooling (vuln scanning, license audit).
         run: |
           pnpm dlx @cyclonedx/cyclonedx-npm --output-format JSON \
@@ -521,7 +443,7 @@ jobs:
   # This job is the source of truth for the "ci" branch-protection check
   # (set Required status check to "CI / all-gates-pass" in branch protection).
   # We enumerate each needs' result explicitly — bash variables are not
-  # interpolated inside GitHub's `${{ }}` template expressions, so a dynamic
+  # interpolated inside GitHub's ${{ }} template expressions, so a dynamic
   # lookup has to be written out job-by-job.
   # ────────────────────────────────────────────────────────────────────────
   all-gates-pass:
@@ -534,15 +456,12 @@ jobs:
       - typecheck
       - test
       - coverage
-      - a11y
-      - contract
       - e2e-chromium
       - build
       - codeql
       - gitleaks
       - audit
       - shell
-      - compose
     if: always()
     steps:
       - name: Aggregate gate result
@@ -553,15 +472,12 @@ jobs:
           RESULT_TYPECHECK: ${{ needs.typecheck.result }}
           RESULT_TEST: ${{ needs.test.result }}
           RESULT_COVERAGE: ${{ needs.coverage.result }}
-          RESULT_A11Y: ${{ needs.a11y.result }}
-          RESULT_CONTRACT: ${{ needs.contract.result }}
           RESULT_E2E_CHROMIUM: ${{ needs.e2e-chromium.result }}
           RESULT_BUILD: ${{ needs.build.result }}
           RESULT_CODEQL: ${{ needs.codeql.result }}
           RESULT_GITLEAKS: ${{ needs.gitleaks.result }}
           RESULT_AUDIT: ${{ needs.audit.result }}
           RESULT_SHELL: ${{ needs.shell.result }}
-          RESULT_COMPOSE: ${{ needs.compose.result }}
         run: |
           set -uo pipefail
           failed=()
@@ -572,15 +488,12 @@ jobs:
             [typecheck]="$RESULT_TYPECHECK"
             [test]="$RESULT_TEST"
             [coverage]="$RESULT_COVERAGE"
-            [a11y]="$RESULT_A11Y"
-            [contract]="$RESULT_CONTRACT"
             [e2e-chromium]="$RESULT_E2E_CHROMIUM"
             [build]="$RESULT_BUILD"
             [codeql]="$RESULT_CODEQL"
             [gitleaks]="$RESULT_GITLEAKS"
             [audit]="$RESULT_AUDIT"
             [shell]="$RESULT_SHELL"
-            [compose]="$RESULT_COMPOSE"
           )
           for gate in "${!results[@]}"; do
             r="${results[$gate]}"
