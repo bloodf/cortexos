@@ -14,6 +14,12 @@ import { defineServerFn, serverFnNoop } from "@/lib/api/define-server-fn";
 
 const HEADROOM_BASE_URL = "http://127.0.0.1:8787";
 
+export function resolveHeadroomDashboardUrl(env: NodeJS.ProcessEnv = process.env): string {
+  const origin = env.DASHBOARD_ORIGIN?.trim();
+  if (origin) return `${origin.replace(/\/$/, "")}/dashboard`;
+  return `${HEADROOM_BASE_URL}/dashboard`;
+}
+
 export interface HeadroomHealth {
   service: string;
   status: "healthy" | "unhealthy";
@@ -72,10 +78,7 @@ const getHeadroomUrlGate = defineServerFn({
   input: z.object({}).strict(),
   surface: "headroom",
   action: "headroom.url",
-  handler: async () => {
-    const origin = process.env.DASHBOARD_ORIGIN || "http://127.0.0.1:8787";
-    return { url: `${origin}:8787/dashboard` };
-  },
+  handler: async () => ({ url: resolveHeadroomDashboardUrl() }),
 });
 
 export const getHeadroomUrl = createServerFn({ method: "GET" })
