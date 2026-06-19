@@ -27,7 +27,8 @@ Think of this as the app store for your server. Each tool is installed by runnin
 | **DB Exporters** | Observability | Database health metrics for Prometheus | [`prompts/tools/28-db-exporters.md`](../prompts/tools/28-db-exporters.md) | — |
 | **9Router** | AI & Agents | AI model gateway — one API endpoint for many LLM providers | [`prompts/tools/31-9router.md`](../prompts/tools/31-9router.md) | *Internal CortexOS component* |
 | **Hermes WebUI** | AI & Agents | Web interface for managing AI agents | [`prompts/tools/30-hermes-webui.md`](../prompts/tools/30-hermes-webui.md) | [GitHub](https://github.com/nesquena/hermes-webui) |
-| **Honcho** | AI & Agents | Memory and knowledge backend for AI agents | [`prompts/tools/32-honcho.md`](../prompts/tools/32-honcho.md) | [GitHub](https://github.com/plastic-labs/honcho) |
+| **Honcho** | AI & Agents | Memory and knowledge backend for AI agents (legacy, read-only) | [`prompts/tools/32-honcho.md`](../prompts/tools/32-honcho.md) | [GitHub](https://github.com/plastic-labs/honcho) |
+| **Hindsight** | AI & Agents | Self-hosted AI memory backend (primary) | [`prompts/tools/32b-hindsight.md`](../prompts/tools/32b-hindsight.md) | [GitHub](https://github.com/vectorize-io/hindsight) |
 | **Hermes Memory OS** | AI & Agents | Long-term memory system (Qdrant vector DB + ARQ worker) | [`prompts/tools/33-hermes-memory-os.md`](../prompts/tools/33-hermes-memory-os.md) | [GitHub](https://github.com/ClaudioDrews/memory-os) |
 | **Cortex Sandbox** | AI & Agents | Trusted local sandbox for running untrusted code safely | [`prompts/tools/47a-cortex-sandbox.md`](../prompts/tools/47a-cortex-sandbox.md) | *Internal CortexOS component* |
 | **Obot** | AI & Agents | MCP (Model Context Protocol) gateway platform | [`prompts/tools/50-obot.md`](../prompts/tools/50-obot.md) | *Internal CortexOS component* |
@@ -241,14 +242,23 @@ Observability = "can you see what's happening inside your system?" These tools a
 
 ---
 
-### Honcho — Memory + Knowledge Backend
+### Honcho — Memory + Knowledge Backend (legacy)
 
 **What it is:** A context and memory layer for AI agents.
 
-**What it does for you:** Gives agents long-term memory ("remember that user prefers dark mode") and knowledge retrieval ("look up the API docs for this error"). Agents become stateful and personalized instead of forgetful.
+**What it does for you:** Gives agents long-term memory and knowledge retrieval. Kept deployed read-only as a fallback while Hindsight (32b) is the primary memory backend.
 
 - **Install prompt:** [`prompts/tools/32-honcho.md`](../prompts/tools/32-honcho.md)
 - **Links:** [GitHub](https://github.com/plastic-labs/honcho)
+
+### Hindsight — Memory Backend (primary)
+
+**What it is:** A self-hosted memory service for AI agents.
+
+**What it does for you:** Stores agent memories, supports semantic recall, and provides LLM-synthesized reflection. Each directory gets its own bank; Hermes profiles use `hermes-<profile>` banks. LLM routed through 9Router.
+
+- **Install prompt:** [`prompts/tools/32b-hindsight.md`](../prompts/tools/32b-hindsight.md)
+- **Links:** [GitHub](https://github.com/vectorize-io/hindsight)
 
 ---
 

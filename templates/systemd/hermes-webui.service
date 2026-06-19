@@ -1,4 +1,4 @@
-# Hermes Web UI — nesquena/hermes-webui systemd unit.
+# Hermes Web UI (nesquena/hermes-webui) — systemd unit (no Docker).
 #
 # Rendered by scripts/ops/cortex-render-units.sh which substitutes
 # {CORTEX_ROOT} and {CORTEX_SECRETS_DIR} at deploy time. After rendering,
@@ -8,28 +8,49 @@
 #   sudo systemctl daemon-reload
 #   sudo systemctl enable --now hermes-webui.service
 #
-# Runs `docker compose up -d` from {CORTEX_ROOT}/hermes-webui (the install
-# dir written by prompts/tools/30-hermes-webui.md). The compose file
-# bind-mounts /opt/cortexos/.secrets/hermes-webui.env so HERMES_WEBUI_PASSWORD
-# is never checked into git.
+# Replaces the previous Docker-based unit. The host install lives at
+# {CORTEX_ROOT}/hermes-webui and runs the upstream Python server.py directly
+# under {CORTEX_ROOT}/hermes-webui/venv. The state dir is /var/lib/hermes-webui
+# (managed by the host's pkg, NOT a docker volume).
 
 [Unit]
-Description=Hermes Web UI (nesquena/hermes-webui)
-After=docker.service network-online.target
-Requires=docker.service
+Description=Hermes Web UI (nesquena/hermes-webui) — systemd
+Documentation=https://github.com/nesquena/hermes-webui
+After=network-online.target
 Wants=network-online.target
 
 [Service]
-Type=oneshot
-RemainAfterExit=yes
+Type=simple
 User=hermes-webui
 Group=hermes-webui
 WorkingDirectory={CORTEX_ROOT}/hermes-webui
 EnvironmentFile={CORTEX_SECRETS_DIR}/hermes-webui.env
-ExecStart=/usr/bin/docker compose up -d --remove-orphans --wait
-ExecStop=/usr/bin/docker compose down
-ExecReload=/bin/sh -c '/usr/bin/docker compose pull && /usr/bin/docker compose up -d --remove-orphans'
-TimeoutStartSec=120
+# Same ports/host as the Docker image used internally. HERMES_WEBUI_PORT
+# defaults to 18787 (the canonical CortexOS port for the WebUI; matches the
+# legacy docker-compose 127.0.0.1:18787:8787 mapping). Tailscale Serve
+# already fronts https://cortexos.tailfd052e.ts.net:18787 → 127.0.0.1:18787.
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONIOENCODING=utf-8
+Environment=LANG=en_US.utf8
+Environment=LC_ALL=C
+# Defaults — the env file can override these (HERMES_WEBUI_HOST, _PORT,
+# _STATE_DIR, _NO_BROWSER, _PASSWORD, _ONBOARDING_OPEN).
+Environment=HERMES_WEBUI_HOST=127.0.0.1
+Environment=HERMES_WEBUI_PORT=18787
+Environment=HERMES_WEBUI_STATE_DIR=/var/lib/hermes-webui
+Environment=HERMES_WEBUI_NO_BROWSER=1
+Environment=HERMES_WEBUI_DEFAULT_WORKSPACE=/var/lib/hermes-webui/workspace
+# Point the WebUI's profile resolver at the host Hermes agent home so it
+# lists both the agent's root profile (default) and the named cortex profile
+# under profiles/cortex/. HERMES_WEBUI_AGENT_DIR pins the same value so the
+# resolver doesn't have to guess a sibling path.
+Environment=HERMES_HOME=/home/cortexos/.hermes
+Environment=HERMES_WEBUI_AGENT_DIR=/home/cortexos/.hermes/hermes-agent
+ExecStart={CORTEX_ROOT}/hermes-webui/venv/bin/python3 {CORTEX_ROOT}/hermes-webui/server.py
+# WebUI binds to 18787 — Caddy / Tailscale front the public hostname.
+Restart=always
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target

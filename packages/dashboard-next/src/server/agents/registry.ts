@@ -22,7 +22,7 @@ const DEFAULT_REGISTRY_PATH = "/opt/cortexos/hermes/profiles.json";
 
 /** A single entry from profiles.json `profiles` array. */
 export interface HermesProfile {
-  /** Profile slug — e.g. "default", "cleo". */
+  /** Profile slug — e.g. "cortex", "cleo". */
   profile: string;
   /** Absolute path to this profile's home directory. */
   home: string;
@@ -32,8 +32,8 @@ export interface HermesProfile {
   model?: string;
   /** Reasoning level, e.g. "medium". */
   reasoning?: string;
-  /** Honcho workspace name. */
-  honchoWorkspace?: string;
+  /** Hindsight bank id. */
+  hindsightBank?: string;
   /** Path to secrets env file. */
   secretPath?: string;
   /** Associated app slugs. */

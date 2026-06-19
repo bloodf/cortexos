@@ -335,7 +335,7 @@ describe("MP-025 live client surface", () => {
           apiPort: 8001,
           model: "claude-sonnet-4-5",
           reasoning: "medium",
-          honchoWorkspace: "ops",
+          hindsightBank: "ops",
           secretPath: "/opt/cortexos/.secrets/orchestrator.env",
           apps: ["dashboard"],
         },

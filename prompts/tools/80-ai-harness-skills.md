@@ -155,3 +155,7 @@ Type `confirmed` to proceed.
 ## Next
 
 → `prompts/tools/82-mail-guardian.md` (or the next operator-surface tool in `_order.md`).
+→ If you are configuring a **local workstation** (not an Incus instance), also see
+  `prompts/tools/35a-local-harness-9router.md` for the canonical 9Router model set,
+  per-harness wiring (Claude Code / OMP / Aider / OpenCode / Hermes), and cost.
+

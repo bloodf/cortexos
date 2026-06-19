@@ -35,8 +35,8 @@ Run these in order. Each prompt file contains step-by-step instructions you copy
 | 30d | [herdr](../prompts/tools/30d-herdr.md) | Agent terminal workspace manager |
 | 30f | [9Remote](../prompts/tools/30f-9remote.md) | Browser remote terminal |
 | 31 | [9Router](../prompts/tools/31-9router.md) | AI model gateway |
-| 32 | [Honcho](../prompts/tools/32-honcho.md) | AI memory backend |
-| 33 | [Memory OS](../prompts/tools/33-hermes-memory-os.md) | Long-term AI memory |
+| 32 | [Honcho](../prompts/tools/32-honcho.md) | AI memory backend (legacy, read-only) |
+| 32b | [Hindsight](../prompts/tools/32b-hindsight.md) | AI memory backend (primary) |
 | 47a | [Sandbox](../prompts/tools/47a-cortex-sandbox.md) | Safe code execution |
 | 50 | [Obot](../prompts/tools/50-obot.md) | MCP gateway |
 | 56 | [pgAdmin](../prompts/tools/56-pgadmin.md) | PostgreSQL admin UI *(optional)* |

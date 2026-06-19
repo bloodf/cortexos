@@ -36,7 +36,7 @@ Your Request
        └──► More...
 ```
 
-> **CortexOS routing policy:** every AI tool and agent — including Hermes, Claude Code, Qwen Code, Obot, Headroom, Honcho, Mail Guardian, and Memory OS — uses 9Router as its AI provider. The only exception is the Kimi CLI/tooling, which may continue to talk to Kimi directly. For Claude Code specifically, only Claude models are exposed.
+> **CortexOS routing policy:** every AI tool and agent — including Hermes, Claude Code, Qwen Code, Obot, Headroom, Hindsight, Honcho (legacy), Mail Guardian, and Memory OS — uses 9Router as its AI provider. The only exception is the Kimi CLI/tooling, which may continue to talk to Kimi directly. For Claude Code specifically, only Claude models are exposed.
 
 ---
 
@@ -242,9 +242,8 @@ model:
   id: cc/claude-opus-4-8
 
 memory:
-  provider: honcho
-  baseUrl: http://127.0.0.1:18690
-```
+  provider: hindsight
+  baseUrl: http://127.0.0.1:8888
 
 ---
 

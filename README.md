@@ -100,7 +100,8 @@ CortexOS installs **25+ tools** across your server. Here's what's included:
 |------|-------------|-------|
 | **9Router** | AI model gateway (internal) | *CortexOS component* |
 | **Hermes WebUI** | Agent operator interface | [GitHub](https://github.com/nesquena/hermes-webui) |
-| **Honcho** | Memory and knowledge backend | [GitHub](https://github.com/plastic-labs/honcho) |
+| **Hindsight** | Self-hosted AI memory backend (primary) | [GitHub](https://github.com/vectorize-io/hindsight) |
+| **Honcho** | Memory backend (legacy, read-only) | [GitHub](https://github.com/plastic-labs/honcho) |
 | **Memory OS** | Long-term AI memory | [GitHub](https://github.com/ClaudioDrews/memory-os) |
 | **Cortex Sandbox** | Safe code execution (internal) | *CortexOS component* |
 | **Obot** | MCP gateway platform (internal) | *CortexOS component* |

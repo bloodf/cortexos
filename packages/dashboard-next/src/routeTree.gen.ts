@@ -19,6 +19,7 @@ import { Route as AuthenticatedSchedulerRouteImport } from './routes/_authentica
 import { Route as AuthenticatedProcessesRouteImport } from './routes/_authenticated.processes'
 import { Route as AuthenticatedOverviewRouteImport } from './routes/_authenticated.overview'
 import { Route as AuthenticatedNetworkRouteImport } from './routes/_authenticated.network'
+import { Route as AuthenticatedMcpsRouteImport } from './routes/_authenticated.mcps'
 import { Route as AuthenticatedMailGuardianRouteImport } from './routes/_authenticated.mail-guardian'
 import { Route as AuthenticatedIncusRouteImport } from './routes/_authenticated.incus'
 import { Route as AuthenticatedHealthcheckRouteImport } from './routes/_authenticated.healthcheck'
@@ -89,6 +90,11 @@ const AuthenticatedOverviewRoute = AuthenticatedOverviewRouteImport.update({
 const AuthenticatedNetworkRoute = AuthenticatedNetworkRouteImport.update({
   id: '/network',
   path: '/network',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedMcpsRoute = AuthenticatedMcpsRouteImport.update({
+  id: '/mcps',
+  path: '/mcps',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedMailGuardianRoute =
@@ -226,6 +232,7 @@ export interface FileRoutesByFullPath {
   '/healthcheck': typeof AuthenticatedHealthcheckRoute
   '/incus': typeof AuthenticatedIncusRouteWithChildren
   '/mail-guardian': typeof AuthenticatedMailGuardianRoute
+  '/mcps': typeof AuthenticatedMcpsRoute
   '/network': typeof AuthenticatedNetworkRoute
   '/overview': typeof AuthenticatedOverviewRoute
   '/processes': typeof AuthenticatedProcessesRoute
@@ -259,6 +266,7 @@ export interface FileRoutesByTo {
   '/healthcheck': typeof AuthenticatedHealthcheckRoute
   '/incus': typeof AuthenticatedIncusRouteWithChildren
   '/mail-guardian': typeof AuthenticatedMailGuardianRoute
+  '/mcps': typeof AuthenticatedMcpsRoute
   '/network': typeof AuthenticatedNetworkRoute
   '/overview': typeof AuthenticatedOverviewRoute
   '/processes': typeof AuthenticatedProcessesRoute
@@ -294,6 +302,7 @@ export interface FileRoutesById {
   '/_authenticated/healthcheck': typeof AuthenticatedHealthcheckRoute
   '/_authenticated/incus': typeof AuthenticatedIncusRouteWithChildren
   '/_authenticated/mail-guardian': typeof AuthenticatedMailGuardianRoute
+  '/_authenticated/mcps': typeof AuthenticatedMcpsRoute
   '/_authenticated/network': typeof AuthenticatedNetworkRoute
   '/_authenticated/overview': typeof AuthenticatedOverviewRoute
   '/_authenticated/processes': typeof AuthenticatedProcessesRoute
@@ -329,6 +338,7 @@ export interface FileRouteTypes {
     | '/healthcheck'
     | '/incus'
     | '/mail-guardian'
+    | '/mcps'
     | '/network'
     | '/overview'
     | '/processes'
@@ -362,6 +372,7 @@ export interface FileRouteTypes {
     | '/healthcheck'
     | '/incus'
     | '/mail-guardian'
+    | '/mcps'
     | '/network'
     | '/overview'
     | '/processes'
@@ -396,6 +407,7 @@ export interface FileRouteTypes {
     | '/_authenticated/healthcheck'
     | '/_authenticated/incus'
     | '/_authenticated/mail-guardian'
+    | '/_authenticated/mcps'
     | '/_authenticated/network'
     | '/_authenticated/overview'
     | '/_authenticated/processes'
@@ -491,6 +503,13 @@ declare module '@tanstack/react-router' {
       path: '/network'
       fullPath: '/network'
       preLoaderRoute: typeof AuthenticatedNetworkRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/mcps': {
+      id: '/_authenticated/mcps'
+      path: '/mcps'
+      fullPath: '/mcps'
+      preLoaderRoute: typeof AuthenticatedMcpsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mail-guardian': {
@@ -719,6 +738,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedHealthcheckRoute: typeof AuthenticatedHealthcheckRoute
   AuthenticatedIncusRoute: typeof AuthenticatedIncusRouteWithChildren
   AuthenticatedMailGuardianRoute: typeof AuthenticatedMailGuardianRoute
+  AuthenticatedMcpsRoute: typeof AuthenticatedMcpsRoute
   AuthenticatedNetworkRoute: typeof AuthenticatedNetworkRoute
   AuthenticatedOverviewRoute: typeof AuthenticatedOverviewRoute
   AuthenticatedProcessesRoute: typeof AuthenticatedProcessesRoute
@@ -741,6 +761,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedHealthcheckRoute: AuthenticatedHealthcheckRoute,
   AuthenticatedIncusRoute: AuthenticatedIncusRouteWithChildren,
   AuthenticatedMailGuardianRoute: AuthenticatedMailGuardianRoute,
+  AuthenticatedMcpsRoute: AuthenticatedMcpsRoute,
   AuthenticatedNetworkRoute: AuthenticatedNetworkRoute,
   AuthenticatedOverviewRoute: AuthenticatedOverviewRoute,
   AuthenticatedProcessesRoute: AuthenticatedProcessesRoute,

@@ -5,10 +5,10 @@ const WORKSPACE_PREFIX = 'dir';
 const MAX_NAME_LEN = 64;
 
 /**
- * Derive a stable, filesystem-portable workspace name from an absolute
- * directory path. Honcho workspace ids must match `^[a-zA-Z0-9_-]{1,64}$`.
+ * Derive a stable, filesystem-portable Hindsight bank id from an absolute
+ * directory path. Bank ids must match `^[a-zA-Z0-9_-]{1,64}$`.
  */
-export function deriveWorkspaceName(cwd: string): string {
+export function deriveBankId(cwd: string): string {
   const absolute = path.resolve(cwd);
   const hash = crypto.createHash('sha256').update(absolute).digest('base64url').slice(0, 32);
   const base = path.basename(absolute) || 'root';
@@ -18,8 +18,8 @@ export function deriveWorkspaceName(cwd: string): string {
 }
 
 /**
- * Human-readable label used when creating the workspace metadata.
+ * Human-readable label for the bank.
  */
-export function deriveWorkspaceLabel(cwd: string): string {
+export function deriveBankLabel(cwd: string): string {
   return `CortexOS directory memory for ${path.resolve(cwd)}`;
 }

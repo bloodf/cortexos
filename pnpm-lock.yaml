@@ -15,6 +15,9 @@ importers:
       '@eslint/js':
         specifier: 9.39.4
         version: 9.39.4
+      '@honcho-ai/sdk':
+        specifier: ^2.1.2
+        version: 2.1.2
       '@stylistic/eslint-plugin':
         specifier: 5.10.0
         version: 5.10.0(eslint@9.39.4(jiti@2.7.0))
@@ -84,11 +87,8 @@ importers:
         specifier: ^3.0.0
         version: 3.2.4(@types/node@22.19.21)(jiti@2.7.0)(jsdom@29.1.1(@noble/hashes@1.8.0))(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.21)(typescript@5.9.3))(tsx@4.22.2)(yaml@2.9.0)
 
-  packages/cortex-honcho-memory-mcp:
+  packages/cortex-hindsight-memory-mcp:
     dependencies:
-      '@honcho-ai/sdk':
-        specifier: ^2.1.2
-        version: 2.1.2
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0
         version: 1.29.0(@cfworker/json-schema@4.1.1)(zod@4.4.3)
@@ -446,6 +446,21 @@ importers:
       authenticate-pam:
         specifier: ^1.0.1
         version: 1.0.5
+
+  packages/opencode-hindsight-plugin:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.21
+      tsx:
+        specifier: ^4.7.0
+        version: 4.22.2
+      typescript:
+        specifier: ^5.5.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.4(@types/node@22.19.21)(jiti@2.7.0)(jsdom@29.1.1(@noble/hashes@1.8.0))(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.21)(typescript@5.9.3))(tsx@4.22.2)(yaml@2.9.0)
 
 packages:
 

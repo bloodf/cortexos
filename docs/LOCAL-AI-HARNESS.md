@@ -11,7 +11,8 @@ Tailscale and a small set of generated files.
   - `127.0.0.1:8787` → VPS Headroom
   - `127.0.0.1:11434` → VPS 9Router
   - `127.0.0.1:18082` → VPS anthropic-proxy
-  - `127.0.0.1:18690` → VPS Honcho memory API
+  - `127.0.0.1:18690` → VPS Honcho memory API (legacy, read-only)
+  - `127.0.0.1:8888` → VPS Hindsight memory API (primary)
 - **`~/.claude/bin/claude` wrapper**:
   - Normal Claude Code → `127.0.0.1:8787` (VPS Headroom)
   - OMC team workers (`OMC_TEAM_WORKER` set) → `127.0.0.1:18082` (VPS anthropic-proxy → 9Router)
@@ -27,7 +28,7 @@ Tailscale and a small set of generated files.
 ## Prerequisites
 
 - Both the local machine and the CortexOS VPS are on the same Tailscale tailnet.
-- The VPS has Headroom, 9Router, the anthropic-proxy, and Honcho running on their default localhost ports.
+- The VPS has Headroom, 9Router, the anthropic-proxy, Hindsight (primary) and Honcho (legacy, read-only) running on their default localhost ports.
 - Local machine has `ssh`, `curl`, `systemctl --user`, and Claude Code installed.
 - Key-based SSH auth to the VPS user that owns `/opt/cortexos/.secrets/9router.env`.
 
@@ -42,8 +43,8 @@ bash scripts/install-local-ai-harness.sh
 ```
 
 The installer also builds and registers the
-`packages/cortex-honcho-memory-mcp` MCP server in `~/.claude/mcp.json` so
-Claude Code gets directory-scoped Honcho memory.
+`packages/cortex-hindsight-memory-mcp` MCP server in `~/.claude/mcp.json` so
+Claude Code gets directory-scoped Hindsight memory.
 
 Then open a new shell and verify:
 
@@ -57,8 +58,8 @@ curl -fsS -X POST http://127.0.0.1:18082/v1/messages \
   -H 'anthropic-version: 2023-06-01' \
   -d '{"model":"cx/gpt-5.5","max_tokens":20,"messages":[{"role":"user","content":"hello"}]}' \
   | python3 -m json.tool
-curl -fsS http://127.0.0.1:18690/health | python3 -m json.tool
-```
+curl -fsS http://127.0.0.1:18690/health | python3 -m json.tool || true
+curl -fsS http://127.0.0.1:8888/health | python3 -m json.tool
 
 ## Using Claude Code
 
@@ -98,7 +99,7 @@ export OPENAI_BASE_URL="http://127.0.0.1:11434/v1"
 | `~/.claude/bin/claude` | OMC-aware Claude launcher |
 | `~/.bashrc`, `~/.zshrc` | Env vars and `claude()` function (marked block) |
 | `~/.config/claude-omc/config.jsonc` | Default OMC routing |
-| `~/.claude/mcp.json` | Honcho memory MCP registration |
+| `~/.claude/mcp.json` | Hindsight memory MCP registration |
 
 ## Troubleshooting
 
@@ -106,4 +107,4 @@ export OPENAI_BASE_URL="http://127.0.0.1:11434/v1"
 - **Local endpoint returns connection refused:** The tunnel service may not be running. Run `systemctl --user restart cortexos-vps-tunnel.service`.
 - **Claude Code still hits the real Anthropic API:** Make sure a new shell was started so `~/.claude/bin` is first in `PATH`, or run `claude` through the wrapper directly: `~/.claude/bin/claude`.
 - **OMC workers use the wrong model:** Verify `OMC_ROUTING_FORCE_INHERIT=false` is set and run `omc config` to inspect resolved routing.
-- **Honcho memory tools do not appear in Claude Code:** Confirm the MCP server is built (`pnpm --filter @cortexos/honcho-memory-mcp build`), the tunnel is forwarding `127.0.0.1:18690`, and `~/.claude/mcp.json` contains an `honcho-memory` entry. Restart Claude Code after editing `mcp.json`.
+- **Hindsight memory tools do not appear in Claude Code:** Confirm the MCP server is built (`pnpm --filter @cortexos/hindsight-memory-mcp build`), the tunnel is forwarding `127.0.0.1:8888`, and `~/.claude/mcp.json` contains a `hindsight-memory` entry. Restart Claude Code after editing `mcp.json`.

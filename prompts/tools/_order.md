@@ -23,10 +23,11 @@
 30e-headroom · context compression proxy + MCP for AI agents
 30f-9remote · browser remote terminal (local web-UI mode)
 31-9router · OpenAI-compatible model router                 # AI gateway
-32-honcho · memory + knowledge backend
+32-honcho · memory backend (legacy, read-only)
+32b-hindsight · memory backend (Hindsight, primary)
 33-hermes-memory-os · long-term memory (Qdrant + ARQ worker)
+35a-local-harness-9router · pick 9Router models in your local AI harness
 47a-cortex-sandbox · trusted local tool sandbox
-50-obot · MCP gateway platform
 60-incus-project · per-project Incus + Hermes agent        # Per-project
 56-pgadmin · PostgreSQL admin UI                           # Operator surfaces
 57-redisinsight · Redis admin UI

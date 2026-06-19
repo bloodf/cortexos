@@ -138,3 +138,6 @@ OMC_ROUTING_FORCE_INHERIT=false
 - Use Claude Code normally: `claude`
 - Use OMC inside a project: ensure the project has a `.claude/omc.jsonc` (or rely on the user-level default), then run `/team` commands inside Claude Code.
 - For OpenAI-compatible agents, point them at `http://127.0.0.1:11434/v1` with `${OPENAI_API_KEY}`.
+- **Pick which 9Router model to use per task** — see
+  `prompts/tools/35a-local-harness-9router.md` for the canonical model set,
+  cost, and per-harness wiring.

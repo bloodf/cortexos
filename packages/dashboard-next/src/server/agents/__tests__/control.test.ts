@@ -79,7 +79,7 @@ beforeEach(() => {
     JSON.stringify({
       profiles: [
         { profile: "cleo", home: tmpDir, apiPort: 18700, model: "cx/gpt-5.5" },
-        { profile: "default", home: tmpDir, apiPort: 18701, model: "cx/test" },
+        { profile: "cortex", home: tmpDir, apiPort: 18701, model: "cx/test" },
       ],
     }),
   );
@@ -248,12 +248,12 @@ describe("getAgentRuntime state derivation", () => {
     const { exec } = makeExecutor({
       isActive: {
         "hermes-gateway@cleo.service": "active",
-        "hermes-gateway@default.service": "failed",
+        "hermes-gateway@cortex.service": "failed",
       },
     });
     setExecutorForTests(exec);
-    const states = await getAgentRuntimes(["cleo", "default"]);
-    expect(states).toEqual({ cleo: "running", default: "error" });
+    const states = await getAgentRuntimes(["cleo", "cortex"]);
+    expect(states).toEqual({ cleo: "running", cortex: "error" });
   });
 });
 
@@ -279,6 +279,6 @@ describe("slug validation", () => {
 
   it("getAgentRuntime does not validate (status probe is read-only) but unitsFor is safe", async () => {
     // unitsFor never interpolates a shell; it only builds the unit string.
-    expect(unitsFor("default").gateway).toBe("hermes-gateway@default.service");
+    expect(unitsFor("cortex").gateway).toBe("hermes-gateway@cortex.service");
   });
 });

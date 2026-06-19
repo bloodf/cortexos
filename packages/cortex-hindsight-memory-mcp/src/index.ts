@@ -4,12 +4,12 @@ import pc from 'picocolors';
 import { runStdioServer } from './server.js';
 
 function getEnv(): { cwd: string; baseUrl: string; apiKey?: string } {
-  const cwd = process.env.CORTEX_HONCHO_CWD ?? process.cwd();
-  const baseUrl = process.env.HONCHO_BASE_URL ?? 'http://127.0.0.1:18690';
-  const apiKey = process.env.HONCHO_API_KEY;
+  const cwd = process.env.CORTEX_HINDSIGHT_CWD ?? process.cwd();
+  const baseUrl = process.env.HINDSIGHT_API_URL ?? 'http://127.0.0.1:8888';
+  const apiKey = process.env.HINDSIGHT_API_KEY;
 
   if (!baseUrl) {
-    console.error(pc.red('[cortex-honcho-memory] HONCHO_BASE_URL is not set'));
+    console.error(pc.red('[cortex-hindsight-memory] HINDSIGHT_API_URL is not set'));
     process.exit(1);
   }
 
@@ -22,6 +22,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((err: unknown) => {
-  console.error(pc.red('[cortex-honcho-memory] fatal error'), err);
+  console.error(pc.red('[cortex-hindsight-memory] fatal error'), err);
   process.exit(1);
 });

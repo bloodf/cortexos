@@ -12,6 +12,8 @@ export const BRAND_COLORS: Record<string, string> = {
   ollama: "#111827",
   honcho: "#a855f7",
   "honcho-mcp": "#9333ea",
+  hindsight: "#6d28d9",
+  "hindsight-control-plane": "#7c3aed",
   obot: "#0ea5e9",
   "kernel-browser": "#6366f1",
   "cortex-sandbox-runner": "#7c3aed",
