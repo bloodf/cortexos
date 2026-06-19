@@ -13,8 +13,8 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { DetailSkeleton } from "@/components/skeletons";
 import { EmptyState } from "@/components/EmptyState";
 import { TimeRangeAreaTrend } from "@/components/TimeRangeAreaTrend";
-import { DiffViewer } from "@/components/DiffViewer";
 import { api, callIncusAction, callMintApproval, callInstanceLogs } from "@/lib/api/client";
+import { csrfHeaders } from "@/lib/csrf";
 import { useAuth } from "@/hooks/useAuth";
 import { bytes, relativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -33,6 +33,7 @@ async function dispatchIncusAction(
   });
   await callIncusAction({
     data: { action, name, confirmation, approvalToken: mint.token },
+    headers: csrfHeaders(),
   });
 }
 
@@ -74,7 +75,7 @@ function IncusDetail() {
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ["incus"],
+    queryKey: ["incus", name],
     queryFn: api.incus,
     refetchInterval: 15_000,
   });
@@ -196,10 +197,6 @@ function IncusDetail() {
     )
     .join("\n");
 
-  const beforeCfg = devicesCfg || "# no device config";
-  const afterCfg = `${beforeCfg
-    .replace(/limits\.cpu: \d+/, `limits.cpu: ${(inst.cpu ?? 0) + 1}`)
-    .trim()}\nsecurity.nesting: true`;
 
   const logLines = logsData?.lines ?? [];
 
@@ -282,7 +279,6 @@ function IncusDetail() {
           <TabsTrigger value="metrics">Metrics</TabsTrigger>
           <TabsTrigger value="logs">Logs</TabsTrigger>
           <TabsTrigger value="config">Config</TabsTrigger>
-          <TabsTrigger value="diff">Pending changes</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="pt-4">
@@ -351,12 +347,9 @@ function IncusDetail() {
         </TabsContent>
 
         <TabsContent value="config" className="pt-4">
-          <CodeBlock language="yaml" code={beforeCfg} />
+          <CodeBlock language="yaml" code={devicesCfg} />
         </TabsContent>
 
-        <TabsContent value="diff" className="pt-4">
-          <DiffViewer before={beforeCfg} after={afterCfg} />
-        </TabsContent>
       </Tabs>
     </div>
   );

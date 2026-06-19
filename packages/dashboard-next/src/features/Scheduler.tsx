@@ -30,7 +30,7 @@ async function dispatchSystemdAction(
   name: string,
 ): Promise<void> {
   const mint = await callMintApproval({
-    data: { action: `systemd.${action}`, payload: { action, name } },
+    data: { action: "systemd.action", payload: { action, name } },
   });
   await callSystemdAction({
     data: { action, name },
@@ -64,7 +64,11 @@ export function SchedulerPage() {
   };
 
   const runNow = async (j: SchedulerJob) => {
-    const unit = j.target || j.id;
+    if (!j.target) {
+      toast.error(`No target unit for ${j.id}`);
+      return;
+    }
+    const unit = j.target;
     setPending(`run-${j.id}`);
     try {
       await dispatchSystemdAction("start", unit);

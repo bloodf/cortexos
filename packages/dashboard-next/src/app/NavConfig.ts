@@ -19,7 +19,6 @@ import {
   Settings2,
   BadgeCheck,
   FileKey,
-  Users,
   Clock,
   Database,
 } from "lucide-react";
@@ -44,9 +43,7 @@ export type NavKey =
   | "services"
   | "badges"
   | "env"
-  | "users"
   | "projects"
-  | "account"
   | "scheduler"
   | "backups";
 
@@ -104,7 +101,6 @@ export const NAV: NavGroup[] = [
       { to: "/admin/services", key: "services", icon: Settings2 },
       { to: "/admin/badges", key: "badges", icon: BadgeCheck },
       { to: "/admin/env-browser", key: "env", icon: FileKey },
-      { to: "/admin/users", key: "users", icon: Users },
     ],
   },
 ];

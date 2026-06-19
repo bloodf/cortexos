@@ -111,14 +111,14 @@ export function AdminEnvPage() {
   };
 
   const qc = useQueryClient();
-  const [editEntry, setEditEntry] = useState<{ key: string; value: string } | null>(null);
+  const [editEntry, setEditEntry] = useState<{ path: string; key: string; value: string } | null>(null);
   const saveMut = useMutation({
-    mutationFn: (vars: { key: string; value: string }) =>
-      updateAdminEnv(path, vars.key, vars.value),
+    mutationFn: (vars: { path: string; key: string; value: string }) =>
+      updateAdminEnv(vars.path, vars.key, vars.value),
     onSuccess: (_d, vars) => {
       toast.success(`Updated ${vars.key}`);
       setEditEntry(null);
-      qc.invalidateQueries({ queryKey: ["envFiles", path] }).catch(() => {});
+      qc.invalidateQueries({ queryKey: ["envFiles", vars.path] }).catch(() => {});
     },
     onError: (e: Error) => toast.error(e.message || "Failed to update value"),
   });
@@ -160,7 +160,7 @@ export function AdminEnvPage() {
                   size="sm"
                   variant="ghost"
                   disabled={!revealed}
-                  onClick={() => setEditEntry({ key: entry.key, value: entry.value })}
+                  onClick={() => setEditEntry({ path, key: entry.key, value: entry.value })}
                   title={revealed ? "Edit value" : "Unlock to edit"}
                   aria-label={`Edit ${entry.key}`}
                 >
@@ -284,7 +284,7 @@ export function AdminEnvPage() {
             </DialogTitle>
             <DialogDescription>
               Writes <code className="font-mono">{editEntry?.key}</code> back to{" "}
-              <code className="font-mono">{path}</code>. Changing a value here can break the
+              <code className="font-mono">{editEntry?.path ?? path}</code>. Changing a value here can break the
               services that read it — they may need a restart to pick it up.
             </DialogDescription>
           </DialogHeader>

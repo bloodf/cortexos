@@ -146,7 +146,6 @@ export default function AppsPage() {
   const { isFavorite, toggle } = useFavorites();
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("All");
-  const [statusFilter, setStatusFilter] = useState<"all" | "online" | "offline">("all");
   const [view, setView] = useState<"grid" | "list">("grid");
 
   const categories = useMemo(
@@ -158,7 +157,6 @@ export default function AppsPage() {
     const ql = q.toLowerCase();
     return services.filter((s) => {
       if (cat !== "All" && s.category !== cat) return false;
-      if (statusFilter !== "all" && s.status !== statusFilter) return false;
       if (
         ql &&
         !(
@@ -171,7 +169,7 @@ export default function AppsPage() {
       }
       return true;
     });
-  }, [services, q, cat, statusFilter]);
+  }, [services, q, cat]);
 
   const favs = filtered.filter((s) => isFavorite(s.slug));
   const rest = filtered.filter((s) => !isFavorite(s.slug));
@@ -180,7 +178,7 @@ export default function AppsPage() {
     <div className="space-y-5">
       <PageHeader
         title={t.nav.apps}
-        description={`${services.length} apps · ${services.filter((s) => s.status === "online").length} online`}
+        description={`${services.length} active services`}
         actions={
           <div className="flex gap-1 border rounded-md p-0.5 bg-muted/30">
             <Button
@@ -227,22 +225,6 @@ export default function AppsPage() {
               )}
             >
               {c}
-            </button>
-          ))}
-        </div>
-        <div className="flex gap-1 ml-auto">
-          {(["all", "online", "offline"] as const).map((s) => (
-            <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className={cn(
-                "rounded-full px-3 py-1 text-xs border",
-                statusFilter === s
-                  ? "bg-accent text-accent-foreground border-accent"
-                  : "hover:bg-muted",
-              )}
-            >
-              {s}
             </button>
           ))}
         </div>

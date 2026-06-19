@@ -14,6 +14,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { DetailSkeleton } from "@/components/skeletons";
 import { EmptyState } from "@/components/EmptyState";
 import { api, callDockerAction, callMintApproval, callContainerLogs } from "@/lib/api/client";
+import { csrfHeaders } from "@/lib/csrf";
 import { useAuth } from "@/hooks/useAuth";
 import { relativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -28,6 +29,7 @@ async function dispatchDockerAction(op: string, args: Record<string, unknown>): 
   });
   await callDockerAction({
     data: { op, args, approvalToken: mint.token },
+    headers: csrfHeaders(),
   });
 }
 

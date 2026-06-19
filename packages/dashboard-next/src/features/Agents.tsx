@@ -107,7 +107,7 @@ function InspectorBody({ agent, isAdmin }: { agent: Agent; isAdmin: boolean }) {
 
   const uploadMutation = useMutation({
     mutationFn: async ({ filename, content }: { filename: string; content: string }) => {
-      return uploadAgentFile({ data: { slug: agent.slug, filename, content } });
+      return uploadAgentFile({ data: { slug: agent.slug, filename, content }, headers: csrfHeaders() });
     },
     onSuccess: (_, vars) => {
       toast.success("File uploaded", {

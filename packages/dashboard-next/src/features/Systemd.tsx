@@ -32,7 +32,7 @@ async function dispatchSystemdAction(
 ): Promise<void> {
   // 1. Mint a single-use approval token for this exact action+name.
   const mint = await callMintApproval({
-    data: { action: `systemd.${action}`, payload: { action, name } },
+    data: { action: "systemd.action", payload: { action, name } },
   });
 
   // 2. Dispatch via systemdAction; pass approval token + CSRF as headers.

@@ -18,16 +18,20 @@ import {
   resetSessionStore,
   generateSessionToken,
 } from "@/server/auth/session-store";
-import { SESSION_COOKIE, CSRF_COOKIE } from "@/server/config";
+import { SESSION_COOKIE, CSRF_COOKIE, setServerHmacKeyFromString } from "@/server/config";
 import {
   defineApiRoute,
   resetRateLimitBuckets,
   type ApiRouteCore,
 } from "@/server/server-fn-pipeline";
+import { mintApproval, resetApprovalStore } from "@/server/approval";
 
 let store: InMemorySessionStore;
 
 beforeEach(() => {
+  // Pin a deterministic HMAC key so minted approval tokens verify reproducibly.
+  setServerHmacKeyFromString("wp13-systemd-test-deterministic-key-0123456789");
+  resetApprovalStore();
   resetSessionStore();
   store = new InMemorySessionStore();
   setSessionStore(store);
@@ -234,6 +238,57 @@ describe("systemd.action gate (auth: admin, approval: true)", () => {
     );
     expect(res.status).toBe(400);
     expect((await res.json()).code).toBe("validation");
+  });
+  it("201 for admin + CSRF + valid approval token (minted with gate action)", async () => {
+    const { token, csrf } = await makeSession({ isAdmin: true });
+    const resolved = (await store.resolveByToken(token))!;
+    // Pipeline hashes actionHashFor("systemd.action", { action, name }).
+    // Client must mint with the GATE's action string, NOT `systemd.<verb>`.
+    const approval = mintApproval({
+      action: "systemd.action",
+      payload: { action: "start", name: "caddy.service" },
+      sessionId: resolved.session.id,
+      userId: resolved.user.id,
+    });
+    const res = await systemdActionCore(
+      new Request("http://localhost/_serverFn/systemd.action", {
+        method: "POST",
+        headers: {
+          cookie: cookieHeader({ [SESSION_COOKIE]: token, [CSRF_COOKIE]: csrf }),
+          "content-type": "application/json",
+          "x-csrf-token": csrf,
+          "x-cortex-approval-token": approval.token,
+        },
+        body: JSON.stringify({ action: "start", name: "caddy.service" }),
+      }),
+    );
+    expect(res.status).toBe(201);
+  });
+
+  it("412 when token minted with per-verb action string (regression: action-hash mismatch)", async () => {
+    const { token, csrf } = await makeSession({ isAdmin: true });
+    const resolved = (await store.resolveByToken(token))!;
+    // Wrong: mint with `systemd.start`. Gate hashes `systemd.action` → mismatch.
+    const approval = mintApproval({
+      action: "systemd.start",
+      payload: { action: "start", name: "caddy.service" },
+      sessionId: resolved.session.id,
+      userId: resolved.user.id,
+    });
+    const res = await systemdActionCore(
+      new Request("http://localhost/_serverFn/systemd.action", {
+        method: "POST",
+        headers: {
+          cookie: cookieHeader({ [SESSION_COOKIE]: token, [CSRF_COOKIE]: csrf }),
+          "content-type": "application/json",
+          "x-csrf-token": csrf,
+          "x-cortex-approval-token": approval.token,
+        },
+        body: JSON.stringify({ action: "start", name: "caddy.service" }),
+      }),
+    );
+    expect(res.status).toBe(412);
+    expect((await res.json()).code).toBe("approval_required");
   });
 });
 

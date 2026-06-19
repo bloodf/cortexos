@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { TableSkeleton } from "@/components/skeletons";
 import { EmptyState } from "@/components/EmptyState";
 import { api, callDockerAction, callMintApproval, callContainerLogs } from "@/lib/api/client";
+import { csrfHeaders } from "@/lib/csrf";
 import { useT } from "@/hooks/useT";
 import { useAuth } from "@/hooks/useAuth";
 import { bytes, relativeTime } from "@/lib/format";
@@ -37,6 +38,7 @@ async function dispatchDockerAction(op: string, args: Record<string, unknown>): 
   // 2. Dispatch via dockerAction, passing the token.
   await callDockerAction({
     data: { op, args, approvalToken: mint.token },
+    headers: csrfHeaders(),
   });
 }
 

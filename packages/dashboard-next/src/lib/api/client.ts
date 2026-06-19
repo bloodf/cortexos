@@ -116,6 +116,11 @@ import { listSchedulerJobs as _listSchedulerJobs } from "./scheduler.functions";
 // Wired server-function imports (MP-024b — backups domain)
 // ---------------------------------------------------------------------------
 import { listBackupRuns as _listBackupRuns } from "./backups.functions";
+// ---------------------------------------------------------------------------
+// Wired server-function imports (mcp domain)
+// ---------------------------------------------------------------------------
+import { listMcpServers as _listMcpServers } from "./mcp.functions";
+import type { McpServerEntry } from "@/server/mcp/registry";
 
 // ---------------------------------------------------------------------------
 // Wired server-function imports (headroom domain)
@@ -482,6 +487,14 @@ interface ListBackupRunsOutput {
 const listBackupRunsFn = _listBackupRuns as unknown as (opts: {
   data: Record<string, never>;
 }) => Promise<ListBackupRunsOutput>;
+// mcp domain gate-middleware boundary cast.
+interface ListMcpServersOutput {
+  servers: McpServerEntry[];
+}
+
+const listMcpServersFn = _listMcpServers as unknown as (opts: {
+  data: Record<string, never>;
+}) => Promise<ListMcpServersOutput>;
 
 // Headroom gate-middleware boundary cast.
 const getHeadroomHealthFn = _getHeadroomHealth as unknown as (opts: {
@@ -497,7 +510,7 @@ const getHeadroomUrlFn = _getHeadroomUrl as unknown as (opts: {
 /** Call incusAction RPC directly — requires a pre-minted approval token for destructive ops. */
 export const callIncusAction = _incusAction as unknown as (opts: {
   data: IncusActionInputType;
-}) => Promise<IncusActionOutput>;
+} & CsrfOpts) => Promise<IncusActionOutput>;
 /** Call instanceLogs RPC — returns newest-first log lines for a named instance. */
 export const callInstanceLogs = _instanceLogs as unknown as (opts: {
   data: InstanceLogsInputType;
@@ -598,7 +611,7 @@ const containerLogsFn = _containerLogs as unknown as (opts: {
 /** Call dockerAction RPC directly — requires a pre-minted approval token. */
 export const callDockerAction = _dockerAction as unknown as (opts: {
   data: DockerActionInputType;
-}) => Promise<DockerActionOutput>;
+} & CsrfOpts) => Promise<DockerActionOutput>;
 /** Call mintApproval RPC directly — admin only; mints a single-use approval token. */
 export const callMintApproval = _mintApproval as unknown as (opts: {
   data: MintApprovalInputType;
@@ -1482,6 +1495,17 @@ export const api = {
     const { disks } = await getStorageFn({ data: {} });
     return clientSideList<DriveInfo>(disks, p);
   },
+
+  // ── MCP Servers (WIRED) ───────────────────────────────────────────────
+  /**
+   * Returns MCP server declarations discovered in the configured harness
+   * home (Claude / Cursor config files). Calls listMcpServers RPC →
+   * server/mcp/registry.readMcpServers().
+   */
+  mcpServers: async (): Promise<McpServerEntry[]> => {
+    const { servers } = await listMcpServersFn({ data: {} });
+    return servers;
+  },
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -1489,6 +1513,7 @@ export const api = {
 // ---------------------------------------------------------------------------
 export { listTerminalOps, dispatchTerminalOp } from "./terminal.functions";
 export type { HermesProfile } from "@/server/agents/registry";
+export type { McpServerEntry } from "@/server/mcp/registry";
 
 interface CsrfOpts {
   headers?: Record<string, string>;

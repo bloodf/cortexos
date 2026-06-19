@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { api, callGrantApproval, callRevokeApproval } from "@/lib/api/client";
+import { csrfHeaders } from "@/lib/csrf";
 import { useT } from "@/hooks/useT";
 import { useAuth } from "@/hooks/useAuth";
 import type { ApprovalRequest } from "@/mocks/types";
@@ -42,7 +43,7 @@ export function ApprovalsPage() {
   const handleGrant = async (a: ApprovalRequest) => {
     setPending(`grant-${a.id}`);
     try {
-      await callGrantApproval({ data: { id: Number(a.id) } });
+    await callGrantApproval({ data: { id: Number(a.id) }, headers: csrfHeaders() });
       toast.success(`Approved: ${a.summary}`);
       invalidate();
     } catch {
@@ -55,7 +56,7 @@ export function ApprovalsPage() {
   const handleRevoke = async (a: ApprovalRequest, revokeReason: string) => {
     setPending(`deny-${a.id}`);
     try {
-      await callRevokeApproval({ data: { id: Number(a.id) } });
+    await callRevokeApproval({ data: { id: Number(a.id) }, headers: csrfHeaders() });
       toast.success(`Denied: ${a.summary}${revokeReason ? ` — ${revokeReason}` : ""}`);
       invalidate();
     } catch {

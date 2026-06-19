@@ -25,7 +25,7 @@ async function dispatchSystemdAction(
   name: string,
 ): Promise<void> {
   const mint = await callMintApproval({
-    data: { action: `systemd.${action}`, payload: { action, name } },
+    data: { action: "systemd.action", payload: { action, name } },
   });
   await callSystemdAction({
     data: { action, name },

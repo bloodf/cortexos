@@ -41,6 +41,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { api, callIncusAction, callMintApproval } from "@/lib/api/client";
+import { csrfHeaders } from "@/lib/csrf";
 import { useT } from "@/hooks/useT";
 import { useAuth } from "@/hooks/useAuth";
 import type { IncusInstance } from "@/mocks/types";
@@ -67,6 +68,7 @@ async function dispatchIncusAction(
   });
   await callIncusAction({
     data: { action, name, confirmation, approvalToken: mint.token },
+    headers: csrfHeaders(),
   });
 }
 
@@ -119,6 +121,7 @@ function ProvisionWizard({
       appendLog("Approval token minted.");
       await callIncusAction({
         data: { action: "launch", name, approvalToken: mint.token },
+        headers: csrfHeaders(),
       });
       appendLog(`Applying limits.cpu=${cpu}`);
       appendLog(`Applying limits.memory=${mem}MiB`);
