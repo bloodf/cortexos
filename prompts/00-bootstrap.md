@@ -26,7 +26,7 @@
 
 ## Systemd units (host services)
 
-The dashboard, hermes-gateway, hermes-webui, and boxbox unit files
+The dashboard, hermes-gateway, and boxbox unit files
 live as templates under `templates/systemd/`. They use
 `{CORTEX_ROOT}` and `{CORTEX_SECRETS_DIR}` placeholders.
 

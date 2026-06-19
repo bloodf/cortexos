@@ -16,7 +16,6 @@
 24-cadvisor · container metrics
 25-node-exporter · host metrics
 28-db-exporters · postgres/redis/mongo/mysql metrics
-30-hermes-webui · agent operator UI
 30b-fzf · fuzzy finder
 30c-boxbox · file manager
 30d-herdr · terminal workspace manager for AI coding agents
@@ -27,6 +26,7 @@
 32b-hindsight · memory backend (Hindsight, primary)
 33-hermes-memory-os · long-term memory (Qdrant + ARQ worker)
 35a-local-harness-9router · pick 9Router models in your local AI harness
+36-hermes-profile-factory · create Hermes agent profile with Hindsight memory
 47a-cortex-sandbox · trusted local tool sandbox
 60-incus-project · per-project Incus + Hermes agent        # Per-project
 56-pgadmin · PostgreSQL admin UI                           # Operator surfaces

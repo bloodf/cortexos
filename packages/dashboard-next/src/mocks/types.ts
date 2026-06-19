@@ -235,6 +235,9 @@ export interface MailReview {
   subject: string;
   snippet: string;
   body: string;
+  /** Sanitized HTML body (text/html MIME part). Empty when mail is plain-text
+   *  or legacy row — UI then renders `body` as preformatted text. */
+  bodyHtml?: string;
   risk: "low" | "medium" | "high";
   status: "pending" | "approved" | "flagged";
   received_at: string;

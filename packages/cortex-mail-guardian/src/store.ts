@@ -16,6 +16,11 @@ export interface PendingReviewInput {
   subject?: string;
   /** Decoded, human-readable body for the dashboard review detail. */
   body?: string;
+  /**
+   * Raw decoded text/html part (nothing stripped). Persisted as `body_html`
+   * so the dashboard can render rich HTML after client-side sanitization.
+   */
+  bodyHtml?: string;
   modelVerdict: string;
   modelConfidence: number;
 }
@@ -154,10 +159,11 @@ export class GuardianStore {
     // and a decoded, human-readable body. Added idempotently so the existing
     // reviews table (created by the dashboard migrations) gains them.
     await this.pool.query(`
-			ALTER TABLE mail_guardian_reviews
-			  ADD COLUMN IF NOT EXISTS subject TEXT,
-			  ADD COLUMN IF NOT EXISTS body_text TEXT
-		`);
+		ALTER TABLE mail_guardian_reviews
+		  ADD COLUMN IF NOT EXISTS subject TEXT,
+		  ADD COLUMN IF NOT EXISTS body_text TEXT,
+		  ADD COLUMN IF NOT EXISTS body_html TEXT
+	`);
   }
 
   async listAccounts(): Promise<AccountRow[]> {
@@ -236,17 +242,18 @@ export class GuardianStore {
   async createPendingReview(input: PendingReviewInput): Promise<number> {
     const result = await this.pool.query<{ id: number }>(
       `INSERT INTO mail_guardian_reviews (
-			   account_slug, message_uid, message_id, from_hash, domain_hash,
-			   subject_hash, body_hash, summary, model_verdict, model_confidence,
-			   subject, body_text
-			 ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
-			 ON CONFLICT (account_slug, message_uid) DO UPDATE
-			   SET summary = EXCLUDED.summary,
-			       subject = EXCLUDED.subject,
-			       body_text = EXCLUDED.body_text,
-			       model_verdict = EXCLUDED.model_verdict,
-			       model_confidence = EXCLUDED.model_confidence
-			 RETURNING id`,
+		   account_slug, message_uid, message_id, from_hash, domain_hash,
+		   subject_hash, body_hash, summary, model_verdict, model_confidence,
+		   subject, body_text, body_html
+		 ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+		 ON CONFLICT (account_slug, message_uid) DO UPDATE
+		   SET summary = EXCLUDED.summary,
+		       subject = EXCLUDED.subject,
+		       body_text = EXCLUDED.body_text,
+		       body_html = EXCLUDED.body_html,
+		       model_verdict = EXCLUDED.model_verdict,
+		       model_confidence = EXCLUDED.model_confidence
+		 RETURNING id`,
       [
         input.accountSlug,
         input.messageUid,
@@ -260,6 +267,7 @@ export class GuardianStore {
         input.modelConfidence,
         input.subject ?? null,
         input.body ?? null,
+        input.bodyHtml ?? null,
       ],
     );
     return result.rows[0].id;

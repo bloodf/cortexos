@@ -26,7 +26,6 @@ Think of this as the app store for your server. Each tool is installed by runnin
 | **Node Exporter** | Observability | Host metrics — CPU, disk, network stats from the OS | [`prompts/tools/25-node-exporter.md`](../prompts/tools/25-node-exporter.md) | [GitHub](https://github.com/prometheus/node_exporter) |
 | **DB Exporters** | Observability | Database health metrics for Prometheus | [`prompts/tools/28-db-exporters.md`](../prompts/tools/28-db-exporters.md) | — |
 | **9Router** | AI & Agents | AI model gateway — one API endpoint for many LLM providers | [`prompts/tools/31-9router.md`](../prompts/tools/31-9router.md) | *Internal CortexOS component* |
-| **Hermes WebUI** | AI & Agents | Web interface for managing AI agents | [`prompts/tools/30-hermes-webui.md`](../prompts/tools/30-hermes-webui.md) | [GitHub](https://github.com/nesquena/hermes-webui) |
 | **Honcho** | AI & Agents | Memory and knowledge backend for AI agents (legacy, read-only) | [`prompts/tools/32-honcho.md`](../prompts/tools/32-honcho.md) | [GitHub](https://github.com/plastic-labs/honcho) |
 | **Hindsight** | AI & Agents | Self-hosted AI memory backend (primary) | [`prompts/tools/32b-hindsight.md`](../prompts/tools/32b-hindsight.md) | [GitHub](https://github.com/vectorize-io/hindsight) |
 | **Hermes Memory OS** | AI & Agents | Long-term memory system (Qdrant vector DB + ARQ worker) | [`prompts/tools/33-hermes-memory-os.md`](../prompts/tools/33-hermes-memory-os.md) | [GitHub](https://github.com/ClaudioDrews/memory-os) |
@@ -231,17 +230,6 @@ Observability = "can you see what's happening inside your system?" These tools a
 
 ---
 
-### Hermes WebUI — Agent Operator UI
-
-**What it is:** A web control panel for AI agents.
-
-**What it does for you:** Start, stop, and monitor AI agent processes. View agent logs, configure prompts, and manage agent state through a browser instead of SSH commands.
-
-- **Install prompt:** [`prompts/tools/30-hermes-webui.md`](../prompts/tools/30-hermes-webui.md)
-- **Links:** [GitHub](https://github.com/nesquena/hermes-webui)
-
----
-
 ### Honcho — Memory + Knowledge Backend (legacy)
 
 **What it is:** A context and memory layer for AI agents.
@@ -250,6 +238,8 @@ Observability = "can you see what's happening inside your system?" These tools a
 
 - **Install prompt:** [`prompts/tools/32-honcho.md`](../prompts/tools/32-honcho.md)
 - **Links:** [GitHub](https://github.com/plastic-labs/honcho)
+
+---
 
 ### Hindsight — Memory Backend (primary)
 

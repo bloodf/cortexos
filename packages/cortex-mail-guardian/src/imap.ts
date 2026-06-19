@@ -1,3 +1,4 @@
+import { simpleParser } from 'mailparser';
 import tls from 'node:tls';
 import { once } from 'node:events';
 import type { MailAccountConfig } from './config.js';
@@ -31,6 +32,12 @@ export interface MailMessage {
    * a better candidate.
    */
   bodyText?: string;
+  /**
+   * Raw decoded text/html part (transfer-encoding resolved, nothing stripped).
+   * Persisted as `body_html` so the dashboard can render rich HTML after
+   * client-side sanitization. Undefined when the mail has no text/html part.
+   */
+  bodyHtml?: string;
 }
 
 export interface MailClient {
@@ -94,67 +101,7 @@ export function applyNamespacePrefix(mailbox: string, prefix: string | undefined
   return `${prefix}${mailbox}`;
 }
 
-function parseHeaders(raw: string): Map<string, string> {
-  const unfolded = raw.replace(/\r?\n[ \t]+/g, ' ');
-  const headers = new Map<string, string>();
-  unfolded.split(/\r?\n/).forEach((line) => {
-    const idx = line.indexOf(':');
-    if (idx > 0) {
-      headers.set(line.slice(0, idx).toLowerCase(), line.slice(idx + 1).trim());
-    }
-  });
-  return headers;
-}
-
-function decodeHeader(value: string): string {
-  return value.replace(/=\?utf-8\?b\?([^?]+)\?=/gi, (_, encoded: string) => {
-    try {
-      return Buffer.from(encoded, 'base64').toString('utf8');
-    } catch {
-      return '';
-    }
-  });
-}
-
-function decodeQuotedPrintable(input: string): string {
-  const stripped = input.replace(/=\r?\n/g, '');
-  // Collect raw bytes (literal chars as their code, `=XX` as the hex byte) then
-  // decode the whole buffer as UTF-8 — char-by-char decoding mangles multi-byte
-  // sequences (e.g. `=C3=A9` must become `é`, not two Latin-1 chars).
-  const bytes: number[] = [];
-  for (let i = 0; i < stripped.length; i += 1) {
-    const ch = stripped[i];
-    if (ch === '=' && /^[0-9A-Fa-f]{2}$/.test(stripped.slice(i + 1, i + 3))) {
-      bytes.push(parseInt(stripped.slice(i + 1, i + 3), 16));
-      i += 2;
-    } else {
-      bytes.push(ch.charCodeAt(0));
-    }
-  }
-  return Buffer.from(bytes).toString('utf8');
-}
-
-function decodeTransfer(body: string, encoding: string | undefined): string {
-  const enc = (encoding ?? '').toLowerCase();
-  if (enc.includes('base64')) {
-    try {
-      return Buffer.from(body.replace(/\s+/g, ''), 'base64').toString('utf8');
-    } catch {
-      return body;
-    }
-  }
-  if (enc.includes('quoted-printable')) return decodeQuotedPrintable(body);
-  return body;
-}
-
-function htmlToText(html: string): string {
-  return html
-    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<[^>]+>/g, ' ');
-}
-
-function normalizeBody(value: string): string {
+function normalizeText(value: string): string {
   return value
     .replace(/\r/g, '')
     .replace(/[ \t]+/g, ' ')
@@ -163,56 +110,37 @@ function normalizeBody(value: string): string {
 }
 
 /**
- * Extract a human-readable body. For multipart messages, prefer the text/plain
- * part, falling back to a tag-stripped text/html part; resolve base64 /
- * quoted-printable transfer encoding. Returns "" when nothing usable is found.
+ * Parse a raw RFC 5322 message into a `MailMessage` (minus uid). Uses
+ * `mailparser.simpleParser` so nested multipart/alternative,
+ * multipart/related, quoted-printable, base64, and RFC 2047 encoded-words
+ * are handled by a battle-tested decoder rather than a hand-rolled walker.
+ *
+ * `bodyText` is the preferred human-readable plain text; `bodyHtml` is the
+ * raw HTML part (sanitized client-side before render). `text` is a flat
+ * strip-tags blob used for classification + fallback.
  */
-function extractBodyText(headers: Map<string, string>, body: string): string {
-  const contentType = headers.get('content-type') ?? '';
-  const boundary = contentType.match(/boundary="?([^";]+)"?/i)?.[1];
-
-  if (/multipart/i.test(contentType) && boundary) {
-    const parts = body
-      .split(`--${boundary}`)
-      .map((seg) => seg.trim())
-      .filter((seg) => seg && seg !== '--')
-      .map((seg) => {
-        const [ph, ...pb] = seg.split(/\r?\n\r?\n/);
-        return { headers: parseHeaders(ph), raw: pb.join('\n\n') };
-      });
-    const plain = parts.find((p) => /text\/plain/i.test(p.headers.get('content-type') ?? ''));
-    if (plain) {
-      return normalizeBody(
-        decodeTransfer(plain.raw, plain.headers.get('content-transfer-encoding')),
-      );
-    }
-    const html = parts.find((p) => /text\/html/i.test(p.headers.get('content-type') ?? ''));
-    if (html) {
-      return normalizeBody(
-        htmlToText(decodeTransfer(html.raw, html.headers.get('content-transfer-encoding'))),
-      );
-    }
-    return '';
-  }
-
-  const decoded = decodeTransfer(body, headers.get('content-transfer-encoding'));
-  return normalizeBody(/text\/html/i.test(contentType) ? htmlToText(decoded) : decoded);
-}
-
-export function parseRawEmail(raw: string): Omit<MailMessage, 'uid'> {
-  const [headerRaw, ...bodyParts] = raw.split(/\r?\n\r?\n/);
-  const headers = parseHeaders(headerRaw);
-  const body = bodyParts.join('\n\n');
-  const bodyText = extractBodyText(headers, body);
+export async function parseRawEmail(raw: string): Promise<Omit<MailMessage, 'uid'>> {
+  const parsed = await simpleParser(raw);
+  const from = parsed.from?.text ?? '';
+  const subject = parsed.subject ?? '';
+  const bodyHtml = typeof parsed.html === 'string' && parsed.html.length > 0 ? parsed.html : undefined;
+  // Prefer parsed.text (plain). When absent (HTML-only mail), derive a
+  // tag-stripped fallback from the HTML so the review detail + classifier
+  // still see human-readable content instead of nothing.
+  const plainBody = parsed.text && parsed.text.trim().length > 0 ? parsed.text : null;
+  const bodyText = plainBody
+    ? normalizeText(plainBody)
+    : bodyHtml
+      ? normalizeText(bodyHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' '))
+      : undefined;
+  const text = normalizeText(plainBody ?? (bodyHtml ? bodyHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ') : ''));
   return {
-    messageId: headers.get('message-id'),
-    from: decodeHeader(headers.get('from') ?? ''),
-    subject: decodeHeader(headers.get('subject') ?? ''),
-    text: body
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim(),
-    bodyText: bodyText || undefined,
+    messageId: parsed.messageId ?? undefined,
+    from,
+    subject,
+    text,
+    bodyText,
+    bodyHtml,
   };
 }
 
@@ -392,7 +320,7 @@ class ImapSession {
       }
       const handlers = {
         onData: (chunk: string | Buffer) => {
-          this.buffer += chunk.toString();
+          this.buffer += chunk.toString('utf8');
           if (pattern.test(this.buffer)) {
             const out = this.buffer;
             this.buffer = '';
@@ -440,7 +368,7 @@ export class TlsImapMailClient implements MailClient {
     const uids = await session.searchAll();
     return runSequentially([...uids].reverse(), async (uid) => {
       const raw = await session.fetchRaw(uid);
-      return { uid, ...parseRawEmail(raw) };
+      return { uid, ...(await parseRawEmail(raw)) };
     });
   }
 
@@ -459,7 +387,7 @@ export class TlsImapMailClient implements MailClient {
     const session = await this.session(account);
     await session.select(mailbox);
     const raw = await session.fetchRaw(uid);
-    const parsed = parseRawEmail(raw);
+    const parsed = await parseRawEmail(raw);
     // A FETCH for an absent UID returns the tagged OK with no message literal;
     // fetchRaw then yields the bare protocol echo, which parses to an empty
     // message. Treat "no from, subject, or body" as "UID gone".
@@ -488,7 +416,7 @@ export class TlsImapMailClient implements MailClient {
     // "invalid uidset"). Treat as "message not in this mailbox".
     if (uid === undefined || !Number.isInteger(uid) || uid <= 0) return undefined;
     const raw = await session.fetchRaw(uid);
-    const parsed = parseRawEmail(raw);
+    const parsed = await parseRawEmail(raw);
     if (!parsed.from && !parsed.subject && !parsed.text) return undefined;
     return { uid, ...parsed };
   }

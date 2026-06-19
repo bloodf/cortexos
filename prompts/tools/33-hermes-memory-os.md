@@ -318,7 +318,7 @@ unprivileged user in a follow-up if the upstream ever supports a
 non-root compose profile. The unit uses `Type=oneshot RemainAfterExit=yes`
 because the actual work is `docker compose up -d --wait`, not a
 long-running child process the kernel needs to track (mirrors
-`hermes-webui.service` and `boxbox.service`).
+`boxbox.service`).
 
 ### 5. Verify
 

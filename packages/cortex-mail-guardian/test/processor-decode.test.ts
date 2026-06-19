@@ -84,7 +84,7 @@ async function runReview(rawEmail: string): Promise<{
   review: CapturedReview;
   classify: CapturedClassify;
 }> {
-  const message = { uid: 7, ...parseRawEmail(rawEmail) };
+  const message = { uid: 7, ...(await parseRawEmail(rawEmail)) };
   let captured: CapturedReview | undefined;
 
   const deps = {

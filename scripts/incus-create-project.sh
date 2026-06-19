@@ -65,11 +65,6 @@ fi
 read -p "Setup Hermes AI agent? (yes/no, default: yes): " SETUP_HERMES
 SETUP_HERMES="${SETUP_HERMES:-yes}"
 
-# Hermes Web UI per-profile setup
-if [ "$SETUP_HERMES" = "yes" ]; then
-    read -p "Setup Hermes Web UI per-profile? (yes/no, default: no): " SETUP_HERMES_WEBUI
-    SETUP_HERMES_WEBUI="${SETUP_HERMES_WEBUI:-no}"
-fi
 
 # Memory OS per-profile setup
 if [ "$SETUP_HERMES" = "yes" ]; then
@@ -243,85 +238,6 @@ EOF
     log "[5/8] Skipping Hermes setup"
 fi
 
-# Step 7: Hermes Web UI Setup (per-profile, conditional on SETUP_HERMES_WEBUI)
-if [ "$SETUP_HERMES_WEBUI" = "yes" ]; then
-    log "[7/8] Setting up Hermes Web UI per-profile..."
-
-    # Per-profile state dir
-    sudo incus exec "$PROJECT_NAME" -- install -d -m 0755 -o 1000 -g 1000 "/var/lib/"hermes-webui-$PROJECT_NAME""
-
-    # Per-profile env file
-    WEBUI_ENV_TMP=$(mktemp)
-    chmod 600 "$WEBUI_ENV_TMP"
-    cat > "$WEBUI_ENV_TMP" <<EOF
-HERMES_WEBUI_STATE_DIR=/var/lib/"hermes-webui-$PROJECT_NAME"
-HERMES_WEBUI_HOST=127.0.0.1
-HERMES_WEBUI_PORT=8933
-HERMES_WEBUI_NO_BROWSER=1
-HERMES_WEBUI_AGENT_DIR="/opt/cortexos/hermes/profiles/$PROJECT_NAME"
-EOF
-    sudo incus file push "$WEBUI_ENV_TMP" "$PROJECT_NAME"""/opt/cortexos/"hermes-webui-$PROJECT_NAME"".env"
-    sudo incus exec "$PROJECT_NAME" -- chown cortexos:cortexos ""/opt/cortexos/"hermes-webui-$PROJECT_NAME"".env"
-    rm -f "$WEBUI_ENV_TMP"
-
-    # docker-compose wrapper
-    COMPOSE_TMP=$(mktemp)
-    chmod 600 "$COMPOSE_TMP"
-    cat > "$COMPOSE_TMP" <<'YAML'
-services:
-  hermes-webui:
-    image: ghcr.io/nesquena/hermes-webui:v0.51.280
-    container_name: hermes-webui-PROJECT_NAME
-    restart: unless-stopped
-    env_file:
-      - /opt/cortexos/hermes-webui-PROJECT_NAME.env
-    ports:
-      - "127.0.0.1:8933:8787"
-    volumes:
-      - /var/lib/hermes-webui-PROJECT_NAME:/data
-    healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8787/health', timeout=2).read()"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-YAML
-    sed -i "s/PROJECT_NAME/$PROJECT_NAME/g" "$COMPOSE_TMP"
-    sudo incus exec "$PROJECT_NAME" -- install -d "/opt/cortexos/"hermes-webui-$PROJECT_NAME""
-    sudo incus file push "$COMPOSE_TMP" "$PROJECT_NAME""/opt/cortexos/"hermes-webui-$PROJECT_NAME""/docker-compose.yml
-    rm -f "$COMPOSE_TMP"
-
-    # systemd unit
-    WEBUI_SVC_TMP=$(mktemp)
-    chmod 600 "$WEBUI_SVC_TMP"
-    cat > "$WEBUI_SVC_TMP" <<EOF
-[Unit]
-Description=Hermes Web UI - $PROJECT_NAME
-After=docker.service network-online.target
-Requires=docker.service
-Wants=network-online.target
-
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-WorkingDirectory="/opt/cortexos/"hermes-webui-$PROJECT_NAME""
-ExecStart=/usr/bin/docker compose up -d --remove-orphans --wait
-ExecStop=/usr/bin/docker compose down
-ExecReload=/usr/bin/docker compose pull && /usr/bin/docker compose up -d --remove-orphans
-TimeoutStartSec=120
-
-[Install]
-WantedBy=multi-user.target
-EOF
-    sudo incus file push "$WEBUI_SVC_TMP" "$PROJECT_NAME"/etc/systemd/system/""hermes-webui-$PROJECT_NAME".service"
-    rm -f "$WEBUI_SVC_TMP"
-
-    # Enable + start
-    sudo incus exec "$PROJECT_NAME" -- systemctl daemon-reload
-    sudo incus exec "$PROJECT_NAME" -- systemctl enable "hermes-webui-$PROJECT_NAME"
-    sudo incus exec "$PROJECT_NAME" -- systemctl start "hermes-webui-$PROJECT_NAME"
-else
-    log "[7/8] Skipping Hermes Web UI per-profile setup"
-fi
 
 # Step 7.5: Memory OS per-profile setup (consumer side only)
 # Wires the host's Memory OS (Qdrant on :6333, Redis on :6379,
@@ -516,12 +432,6 @@ if [ "$SETUP_HERMES" = "yes" ]; then
 fi
 
 echo ""
-echo "=== Hermes Web UI Status ==="
-if [ "$SETUP_HERMES_WEBUI" = "yes" ]; then
-    sudo incus exec "$PROJECT_NAME" -- systemctl status "hermes-webui-$PROJECT_NAME" --no-pager 2>/dev/null || warn "Hermes Web UI still starting..."
-fi
-
-echo ""
 echo "=== Memory OS per-profile Status ==="
 if [ "$SETUP_MEMORY_OS" = "yes" ]; then
     sudo incus exec "$PROJECT_NAME" -- systemctl status "cortex-memory-os-$PROJECT_NAME" --no-pager 2>/dev/null || warn "Memory OS per-profile still starting..."
@@ -541,9 +451,6 @@ info "Tailscale status:    sudo incus exec $PROJECT_NAME -- tailscale status"
 info "fzf version:         sudo incus exec $PROJECT_NAME -- fzf --version"
 if [ "$SETUP_HERMES" = "yes" ]; then
     info "Hermes status:       sudo incus exec $PROJECT_NAME -- systemctl status "hermes-gateway-$PROJECT_NAME""
-fi
-if [ "$SETUP_HERMES_WEBUI" = "yes" ]; then
-    info "Hermes Web UI:       sudo incus exec $PROJECT_NAME -- systemctl status "hermes-webui-$PROJECT_NAME""
 fi
 if [ "$SETUP_MEMORY_OS" = "yes" ]; then
     info "Memory OS profile:   sudo incus exec $PROJECT_NAME -- systemctl status "cortex-memory-os-$PROJECT_NAME""

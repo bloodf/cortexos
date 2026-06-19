@@ -724,6 +724,11 @@ export const mailGuardianReviews = pgTable(
     // summary for those.
     subject: text("subject"),
     bodyText: text("body_text"),
+    // Rich HTML body (populated by the mail-guardian processor when the
+    // incoming MIME part is text/html). Null for plain-text mails or rows
+    // persisted before the feature landed — the adapter then falls back to
+    // bodyText/summary. Rendered sanitized in the dashboard review detail.
+    bodyHtml: text("body_html"),
     modelVerdict: text("model_verdict").notNull(),
     modelConfidence: numeric("model_confidence", { precision: 5, scale: 4 }).notNull(),
     ownerDecision: text("owner_decision"),

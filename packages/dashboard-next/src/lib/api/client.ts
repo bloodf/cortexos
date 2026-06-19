@@ -1335,7 +1335,7 @@ export const api = {
    * Calls listReviews RPC → server/db/repos/mail_guardian.listMailReviews().
    */
   mail: async (): Promise<MailReview[]> => {
-    const { reviews } = await listReviewsFn({ data: {} });
+    const { reviews } = await listReviewsFn({ data: { pendingOnly: true } });
     return mapRowsSafe(reviews, toMailReviewRow, "mail");
   },
 

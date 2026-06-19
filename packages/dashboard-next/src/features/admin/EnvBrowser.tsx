@@ -22,11 +22,17 @@ import { readAdminEnv, unlockAdminEnv, updateAdminEnv } from "./rpc";
 /**
  * Known allowlisted env paths. The server enforces an allowlist
  * (`/opt/cortexos/.secrets/`, `/opt/cortexos/stacks/`) and exposes no
- * directory-listing fn, so the picker is seeded from a known list (WP-40).
+ * directory-listing fn, so the picker is seeded from the files known to exist
+ * on a standard CortexOS install (WP-40). Add entries here as new stacks ship.
  */
 const KNOWN_PATHS: readonly string[] = [
   "/opt/cortexos/.secrets/dashboard.env",
-  "/opt/cortexos/.secrets/cortexos.env",
+  "/opt/cortexos/.secrets/mail-guardian.env",
+  "/opt/cortexos/.secrets/postgres.env",
+  "/opt/cortexos/.secrets/redis.env",
+  "/opt/cortexos/.secrets/mongodb.env",
+  "/opt/cortexos/.secrets/mysql.env",
+  "/opt/cortexos/.secrets/grafana.env",
 ];
 
 function remainingSeconds(expiresAt: number | null): number {

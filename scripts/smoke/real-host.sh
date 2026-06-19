@@ -212,13 +212,12 @@ echo "================================================"
 echo "  Smoke test summary: $PASS passed, $FAIL failed"
 echo "================================================"
 
-# --- T7: /apps launcher surface + term.fzf terminal op (W59/W58) ---
-# Verifies the new dashboard-launcher Service kind + the new fzf op
-# surface in the live host. W59 adds two seed rows (hermes-webui-host
-# openUrl=/hermes/, boxbox-host openUrl=/files/) via migration 009; the
-# /apps page renders them as a card grid. W58 adds term.fzf to the
-# terminal allowlist. T7.1 + T7.3 require the v1.0.0 build (with the
-# W59 changes) deployed; against an older build they will fail.
+# --- T7: /apps launcher surface + term.fzf terminal op (W59/W58, updated 022) ---
+# Verifies the dashboard-launcher Service kind + the fzf op surface in
+# the live host. W59 seeded hermes-webui-host + boxbox-host via migration
+# 009; migration 022 retired hermes-webui-host (Hermes Web UI removed).
+# T7.1a now asserts hermes-webui-host is ABSENT; T7.1b/T7.3 still assert
+# boxbox-host. T7.1 + T7.3 require the current build deployed.
 echo "=== T7: /apps launcher + term.fzf (W59/W58) ==="
 
 # T7.1 — admin GET /apps returns the launcher data in the SvelteKit
@@ -229,13 +228,13 @@ echo "=== T7: /apps launcher + term.fzf (W59/W58) ==="
 # not JSON — the grep is unquoted on the value side.
 curl -sS -b "$ADMIN_COOKIES" -o /tmp/apps_admin_html -w "%{http_code}" "$BASE/apps" > /tmp/apps_admin
 run "T7.1 GET /apps admin" 200 "$(cat /tmp/apps_admin)"
-if grep -q 'slug:"hermes-webui-host"' /tmp/apps_admin_html; then
+if ! grep -q 'slug:"hermes-webui-host"' /tmp/apps_admin_html; then
   PASS=$((PASS + 1))
-  echo "  ✓ T7.1a /apps hydration payload contains hermes-webui-host"
+  echo "  ✓ T7.1a /apps hydration payload does NOT contain hermes-webui-host (retired by migration 022)"
 else
   FAIL=$((FAIL + 1))
-  FAILED_TESTS+=("T7.1a /apps hydration payload contains hermes-webui-host (slug missing from __sveltekit data blob)")
-  echo "  ✗ T7.1a /apps hydration payload contains hermes-webui-host"
+  FAILED_TESTS+=("T7.1a /apps hydration payload still contains hermes-webui-host (migration 022 not applied?)")
+  echo "  ✗ T7.1a /apps hydration payload still contains hermes-webui-host"
 fi
 if grep -q 'slug:"boxbox-host"' /tmp/apps_admin_html; then
   PASS=$((PASS + 1))
@@ -250,15 +249,15 @@ fi
 curl -sS -o /dev/null -w "%{http_code}" "$BASE/apps" > /tmp/apps_anon
 run "T7.2 GET /apps anon" 303 "$(cat /tmp/apps_anon)"
 
-# T7.3 — /api/services contains the two seeded launchers (admin)
 curl -sS -b "$ADMIN_COOKIES" "$BASE/api/services" > /tmp/services_json
-if grep -q '"slug":"hermes-webui-host"' /tmp/services_json && grep -q '"slug":"boxbox-host"' /tmp/services_json; then
+# T7.3 — /api/services contains BoxBox but NOT the retired Hermes WebUI (admin)
+if grep -q '"slug":"boxbox-host"' /tmp/services_json && ! grep -q '"slug":"hermes-webui-host"' /tmp/services_json; then
   PASS=$((PASS + 1))
-  echo "  ✓ T7.3 /api/services lists hermes-webui-host + boxbox-host"
+  echo "  ✓ T7.3 /api/services lists boxbox-host (hermes-webui-host retired by migration 022)"
 else
   FAIL=$((FAIL + 1))
-  FAILED_TESTS+=("T7.3 /api/services lists hermes-webui-host + boxbox-host (one or both slugs missing)")
-  echo "  ✗ T7.3 /api/services lists hermes-webui-host + boxbox-host"
+  FAILED_TESTS+=("T7.3 /api/services boxbox-host missing or hermes-webui-host still present")
+  echo "  ✗ T7.3 /api/services boxbox-host missing or hermes-webui-host still present"
 fi
 if grep -q '"kind":"dashboard-launcher"' /tmp/services_json; then
   PASS=$((PASS + 1))

@@ -32,6 +32,8 @@ export interface ServerMailReview {
   summary: string;
   subject?: string | null;
   bodyText?: string | null;
+  /** Rich HTML body (text/html MIME part); null for plain-text mails. */
+  bodyHtml?: string | null;
   modelVerdict: string;
   modelConfidence: string;
   ownerDecision: string | null;
@@ -90,10 +92,9 @@ export function toMailReviewRow(m: ServerMailReview): MockMailReview {
   // `.slice`/`.trim` on a non-string throws, and React Query swallows the
   // rejection → the WHOLE mail page renders blank with no console error.
   const summary = String(m.summary ?? "").trim() || "(no summary)";
-  // Prefer the plaintext subject + decoded body the processor now stores; fall
-  // back to the model summary for rows persisted before the feature landed.
   const subject = String(m.subject ?? "").trim() || summary;
   const body = String(m.bodyText ?? "").trim() || summary;
+  const bodyHtml = typeof m.bodyHtml === "string" && m.bodyHtml.trim() ? m.bodyHtml : "";
   const snippet = body.length > 120 ? `${body.slice(0, 117)}…` : body;
   const fromHash = String(m.fromHash ?? "");
   const fromDisplay = `${m.accountSlug}/<${fromHash.slice(0, 8)}…>`;
@@ -103,6 +104,7 @@ export function toMailReviewRow(m: ServerMailReview): MockMailReview {
     subject,
     snippet,
     body,
+    bodyHtml,
     risk: toRisk(m.modelVerdict, m.modelConfidence),
     status: toStatus(m.ownerDecision, m.resolvedAt),
     received_at:

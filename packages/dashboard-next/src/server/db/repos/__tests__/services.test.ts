@@ -40,7 +40,7 @@ describe("services repo", () => {
     expect(result.rows.find((s) => s.slug === "postgresql")).toBeDefined();
   });
 
-  it("listServices filters by hasWebui=true", async () => {
+  it("listServices filters by hasWebui=true (also requires showInWebui=true)", async () => {
     await createService(db, {
       slug: "no-webui-svc",
       name: "No Web UI",
@@ -58,9 +58,29 @@ describe("services repo", () => {
       showInHealthcheck: false,
       showInWebui: false,
     });
+    // has_webui=true but show_in_webui=false → must NOT appear in /apps
+    await createService(db, {
+      slug: "hidden-webui-svc",
+      name: "Hidden Web UI",
+      kind: "service",
+      category: "Test",
+      healthUrl: "#",
+      healthType: "http",
+      openUrl: "#",
+      iconType: "auto",
+      iconColor: null,
+      iconImage: null,
+      sortOrder: 98,
+      isActive: true,
+      hasWebui: true,
+      showInHealthcheck: false,
+      showInWebui: false,
+    });
     const result = await listServices(db, { hasWebui: true, activeOnly: false });
     expect(result.rows.every((s) => s.hasWebui === true)).toBe(true);
+    expect(result.rows.every((s) => s.showInWebui === true)).toBe(true);
     expect(result.rows.find((s) => s.slug === "no-webui-svc")).toBeUndefined();
+    expect(result.rows.find((s) => s.slug === "hidden-webui-svc")).toBeUndefined();
     expect(result.rows.find((s) => s.slug === "grafana")).toBeDefined();
   });
 

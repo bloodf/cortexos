@@ -329,6 +329,6 @@ The research flagged three BoxBox issues to track:
 
 → `prompts/tools/30d-herdr.md` (agent terminal workspace manager) is next in the developer-experience chain.
 
-→ Update `docs/APPS.md` Shipped section to list `BoxBox` and `Hermes Web UI` as new entries. The current `docs/APPS.md` (post-audit-fixes W56) has a Shipped/Planned split — the new tools belong in Shipped once this prompt is in the install order.
+→ Update `docs/APPS.md` Shipped section to list `BoxBox` as a new entry. The current `docs/APPS.md` (post-audit-fixes W56) has a Shipped/Planned split — the new tool belongs in Shipped once this prompt is in the install order.
 
-→ Add a `BoxBox` and a `Hermes Web UI` tile to the dashboard's `/apps` page. The seed rows for that are in `packages/dashboard/migrations/009_hermes_webui_boxbox_seed.sql` (Track A of this plan).
+→ Add a `BoxBox` tile to the dashboard's `/apps` page. The seed row is in `packages/dashboard-next/migrations/009_hermes_webui_boxbox_seed.sql` (Track A of this plan).

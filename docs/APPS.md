@@ -29,7 +29,6 @@ Run these in order. Each prompt file contains step-by-step instructions you copy
 | 24 | [cAdvisor](../prompts/tools/24-cadvisor.md) | Monitor containers |
 | 25 | [Node Exporter](../prompts/tools/25-node-exporter.md) | Monitor server hardware |
 | 28 | [DB Exporters](../prompts/tools/28-db-exporters.md) | Monitor databases |
-| 30 | [Hermes WebUI](../prompts/tools/30-hermes-webui.md) | Agent operator interface |
 | 30b | [fzf](../prompts/tools/30b-fzf.md) | Fuzzy file/command finder |
 | 30c | [BoxBox](../prompts/tools/30c-boxbox.md) | Web file manager |
 | 30d | [herdr](../prompts/tools/30d-herdr.md) | Agent terminal workspace manager |

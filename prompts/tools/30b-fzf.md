@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Install the [junegunn/fzf](https://github.com/junegunn/fzf) fuzzy-finder on the host and on every Incus instance. fzf is a small Go binary (~3 MB) that provides `Ctrl+R` history, `Ctrl+T` file picking, and `Alt+C` directory jumping in bash + zsh. It is a developer-experience baseline for the operator shell and for the dashboard's terminal page (see `prompts/tools/30-hermes-webui.md` for the dashboard integration; the dashboard also exposes `fzf` as a "Quick command" — see `packages/dashboard/src/lib/server/terminal/pty-bridge.ts`).
+Install the [junegunn/fzf](https://github.com/junegunn/fzf) fuzzy-finder on the host and on every Incus instance. fzf is a small Go binary (~3 MB) that provides `Ctrl+R` history, `Ctrl+T` file picking, and `Alt+C` directory jumping in bash + zsh. It is a developer-experience baseline for the operator shell and for the dashboard's terminal page (the dashboard also exposes `fzf` as a "Quick command" — see `packages/dashboard/src/lib/server/terminal/pty-bridge.ts`).
 
 ## Prerequisites
 

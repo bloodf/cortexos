@@ -171,7 +171,7 @@ export async function listServices(
   if (opts.category) conds.push(eq(services.category, opts.category));
   if (opts.kind) conds.push(eq(services.kind, opts.kind));
   if (opts.status) conds.push(eq(services.status, opts.status));
-  if (opts.hasWebui) conds.push(eq(services.hasWebui, true));
+  if (opts.hasWebui) conds.push(eq(services.hasWebui, true), eq(services.showInWebui, true));
   if (opts.search) {
     const likeTerm = `%${opts.search}%`;
     conds.push(

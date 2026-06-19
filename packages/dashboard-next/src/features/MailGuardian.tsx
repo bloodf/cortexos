@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import {
@@ -56,13 +57,55 @@ import { cn } from "@/lib/utils";
 // ---------------------------------------------------------------------------
 // Risk colour helpers
 // ---------------------------------------------------------------------------
-
 const riskColor = {
   low: "border-[var(--success)] text-[var(--success)]",
   medium: "border-[var(--warning)] text-[var(--warning)]",
   high: "border-[var(--destructive)] text-[var(--destructive)]",
 } as const;
 
+// ---------------------------------------------------------------------------
+// HTML body sanitizer — strips scripts/event handlers/unknown tags so the
+// review detail can render mail HTML safely. DOMPurify runs client-side.
+// Returns "" when given empty/non-string input.
+// ---------------------------------------------------------------------------
+
+const EMPTY_HTML = "";
+
+function sanitizeHtml(html: string | null | undefined): string {
+  if (typeof html !== "string" || html.length === 0) return EMPTY_HTML;
+  try {
+    return DOMPurify.sanitize(html, {
+      USE_PROFILES: { html: true },
+      FORBID_TAGS: ["form", "input", "style", "script"],
+      FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover", "style"],
+      ALLOW_DATA_ATTR: false,
+    });
+  } catch {
+    return EMPTY_HTML;
+  }
+}
+
+/**
+ * MailBody — render a review's body. Prefers sanitized HTML when the
+ * processor stored a text/html part; otherwise falls back to plain text
+ * with preserved whitespace.
+ */
+function MailBody({ review }: { review: MailReview }) {
+  const html = useMemo(() => sanitizeHtml(review.bodyHtml), [review.bodyHtml]);
+  if (html) {
+    return (
+      <div
+        className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed text-foreground mail-html-body"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    );
+  }
+  return (
+    <div className="prose prose-sm max-w-none text-sm leading-relaxed text-foreground whitespace-pre-wrap">
+      {review.body}
+    </div>
+  );
+}
 // ---------------------------------------------------------------------------
 // Reviews pane — two-pane list + detail
 // ---------------------------------------------------------------------------
@@ -263,7 +306,32 @@ function ReviewsPane() {
               </div>
             </>
           ) : (
-            <span className="text-xs text-muted-foreground">Select to batch-process</span>
+            <div className="ml-auto flex items-center gap-1 text-xs">
+              <span className="text-muted-foreground mr-1">Select:</span>
+              {(["high", "medium", "low"] as const).map((level) => {
+                const count = mails.filter((m) => m.risk === level).length;
+                if (count === 0) return null;
+                return (
+                  <button
+                    key={level}
+                    type="button"
+                    onClick={() =>
+                      setPicked(
+                        new Set(mails.filter((m) => m.risk === level).map((m) => m.id)),
+                      )
+                    }
+                    className={cn(
+                      "rounded-full border px-2 py-0.5 text-[10px] uppercase transition-colors hover:bg-accent",
+                      riskColor[level],
+                    )}
+                    aria-label={`Select all ${level} risk`}
+                    title={`Select all ${count} ${level}-risk email${count === 1 ? "" : "s"}`}
+                  >
+                    {level} · {count}
+                  </button>
+                );
+              })}
+            </div>
           )}
         </div>
 
@@ -366,9 +434,7 @@ function ReviewsPane() {
                 {relativeTime(active.received_at)}
               </p>
             </div>
-            <div className="prose prose-sm max-w-none text-sm leading-relaxed text-foreground whitespace-pre-wrap">
-              {active.body}
-            </div>
+            <MailBody review={active} />
             <div className="flex gap-2 pt-3 border-t">
               <Button
                 variant="success"
