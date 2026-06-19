@@ -4,7 +4,7 @@
 
 Install the upstream [nesquena/hermes-webui](https://github.com/nesquena/hermes-webui) on the host as a **systemd unit** running the upstream Python `server.py` directly under a dedicated virtualenv — no Docker. The Hermes Web UI is the operator-facing UI for the Hermes agent runtime: a static SPA + Python `http.server` backend that the team exposes on the tailnet.
 
-Background and feasibility evidence: `docs/research/hermes-webui-feasibility.md` (commit `416a38a`, branch `research/hermes-webui-boxbox` — also vendored on this branch at `docs/research/`). The two non-negotiable security conditions from the feasibility study: **always front with Caddy + Tailscale Serve, and set `HERMES_WEBUI_PASSWORD` before exposing externally**.
+Upstream research baseline (commit `416a38a`, branch `research/hermes-webui-boxbox`) set two non-negotiable security conditions: **always front with Caddy + Tailscale Serve, and set `HERMES_WEBUI_PASSWORD` before exposing externally**.
 
 > **Why systemd and not Docker** (changed 2026-06-19). The previous Docker-based install (`docker compose up` inside a unit) had two recurring failure modes: (1) the upstream `docker_init.bash` does a heavy UID/GID dance against bind mounts that crashes on the first `c82fbd…` style image hash when state-dir ownership changes (e.g. after a `systemctl reset-failed`), and (2) `docker compose` only forwards env vars to the container that are explicitly referenced as `${VAR}` in the compose file, so adding a single new env var (e.g. `HERMES_WEBUI_ONBOARDING_OPEN`) silently requires a compose edit. The systemd path runs the upstream's `server.py` directly inside a venv with the same env vars the unit sets — the same code, the same config schema, no container layer.
 

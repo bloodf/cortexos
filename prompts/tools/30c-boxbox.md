@@ -4,7 +4,7 @@
 
 Install the upstream [jR4dh3y/BoxBox](https://github.com/jR4dh3y/BoxBox) file manager on the **host only** (per the user's brief — "I want to be part of the machine"). BoxBox is a single-binary Go web app with a SvelteKit front end, JWT auth, real-time WebSocket updates, and a chunked-resumable upload pipeline. On CortexOS it runs as a dedicated unprivileged OS user (`cortexos-files`) and is reverse-proxied through Caddy at `/files/*` with **HTTP Basic auth** — BoxBox's own JWT auth is **not** exposed to the network.
 
-Background and feasibility evidence: `docs/research/boxbox-feasibility.md` (commit `416a38a`, branch `research/hermes-webui-boxbox` — also vendored on this branch at `docs/research/`). The two non-negotiable security conditions from the feasibility study: **always front BoxBox with Caddy + Tailscale Serve, and use per-user `FM_USERS_<name>` env vars, not the YAML `users:` map** (the YAML map is plaintext and leaks via `docker inspect`).
+Upstream research baseline (commit `416a38a`, branch `research/hermes-webui-boxbox`) set two non-negotiable security conditions: **always front BoxBox with Caddy + Tailscale Serve, and use per-user `FM_USERS_<name>` env vars, not the YAML `users:` map** (the YAML map is plaintext and leaks via `docker inspect`).
 
 > **No fallback in use.** The research compared BoxBox against `filebrowser` and other maintained single-binary file managers and concluded BoxBox's real-time WebSocket + Monaco editor + chunked-resumable-upload surface is the right fit. This prompt does **not** implement a fallback; if BoxBox upstream is abandoned, file an issue and re-cut the plan.
 

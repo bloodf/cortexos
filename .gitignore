@@ -212,6 +212,8 @@ tmp/
 .serena/
 boxbox/
 memory-os/
+/headroom_memory.db
+/9router-fork-archive-*.conf.txt
 
 # Hermes Web UI upstream source (cloned from nesquena/hermes-webui, not vendored)
 /hermes-webui/

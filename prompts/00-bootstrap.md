@@ -65,11 +65,11 @@ target host after every major change.
 
 ## Where the legacy Next.js instructions went
 
-The pre-SvelteKit version of this file taught operators to hand-
+The pre-TanStack Start version of this file taught operators to hand-
 write a Next.js `cortex-dashboard.service` unit pointing at
 `/opt/cortexos/packages/dashboard` and run `next build`. That
-flow is retired. The current dashboard is a SvelteKit adapter
-build (`build/index.js`); the canonical unit template is
+flow is retired. The current dashboard is a TanStack Start
+Nitro/node-server build; the canonical unit template is
 `templates/systemd/cortex-dashboard.service`; render it via
 `scripts/ops/cortex-render-units.sh cortex-dashboard.service`
 and follow `prompts/tools/70-dashboard.md`.

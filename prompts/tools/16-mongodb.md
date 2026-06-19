@@ -2,12 +2,12 @@
 
 ## Purpose
 
-Run MongoDB as a Docker container for workloads that require document storage. **This spoke is optional** — only execute if the SETUP.md questionnaire had `mongodb=yes`.
+Run MongoDB as a Docker container for workloads that require document storage. **This spoke is optional** — only execute if the install questionnaire has `mongodb=yes`.
 
 ## Prerequisites
 
 - `11-docker.md` completed.
-- SETUP.md questionnaire: `mongodb=yes`.
+- Install questionnaire: `mongodb=yes`.
 
 ## Distro selection
 
@@ -42,7 +42,7 @@ CortexOS never stores your password — only the kernel's sudo timestamp is used
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** Is `mongodb=yes` set in your SETUP.md questionnaire (i.e. MongoDB is required for this install)?
+**STOP — operator question:** Is `mongodb=yes` set in the install questionnaire (i.e. MongoDB is required for this install)?
 
 Type `confirmed` to proceed. If `mongodb=no`, skip this spoke entirely and proceed to `17-dnsmasq.md`.
 

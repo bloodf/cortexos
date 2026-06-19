@@ -139,7 +139,7 @@ Tailscale creates a **secure tunnel** between your devices so you can access you
 3. Caddy receives the request
           │
           ▼
-4. Caddy routes to Dashboard (SvelteKit)
+4. Caddy routes to Dashboard (TanStack Start)
           │
           ▼
 5. Dashboard might query PostgreSQL
@@ -253,7 +253,7 @@ Tailscale creates a **secure tunnel** between your devices so you can access you
          ▼                 ▼                 ▼
 ┌─────────────────┐ ┌──────────────┐ ┌─────────────────┐
 │   DASHBOARD     │ │  DATABASE    │ │    AI STACK     │
-│   (SvelteKit)   │ │   ADMIN      │ │                 │
+│ (TanStack Start)│ │   ADMIN      │ │                 │
 │                 │ │   TOOLS      │ │                 │
 │                 │ │              │ │                 │
 │                 │ │  PHPMyAdmin  │ │                 │

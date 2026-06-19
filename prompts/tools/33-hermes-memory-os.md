@@ -4,7 +4,7 @@
 
 Install the upstream [ClaudioDrews/memory-os](https://github.com/ClaudioDrews/memory-os) stack on the **host** as a long-term memory layer on top of Honcho. The 7-layer architecture — workspace files, sessions, structured facts, Icarus fabric, Qdrant vector db, LLM wiki, ground-truth hierarchy — is wired to the existing 9router (port 11434) + Honcho (port 18690) stack. The Hermes Agent binary at `/usr/local/bin/hermes` (per `60-incus-project.md:132`) loads the Icarus plugin from `${HERMES_HOME}/plugins/icarus` after install.
 
-Background and feasibility evidence: `docs/research/memory-os-feasibility.md` (commit `a556f90`, branch `research/memory-os` — RECOMMENDATION: SWAP IN, layer on top of Honcho, MIT, 881 stars, v0.2.0, ~5-day-old repo at feasibility-study time). The three non-negotiable security conditions from the feasibility study: **pin to the `v0.2.0` git tag (C-1)**, **wire 9router via `ICARUS_ENDPOINT` + `ICARUS_API_KEY_ENV` (the upstream's documented provider-agnostic override, .env.example:72)**, and **wrap any wiki write-back in the existing PB-5 approvals gate (C-5)**.
+Upstream research baseline (commit `a556f90`, branch `research/memory-os` — RECOMMENDATION: SWAP IN, layer on top of Honcho, MIT, 881 stars, v0.2.0, ~5-day-old repo at research time) set three non-negotiable security conditions: **pin to the `v0.2.0` git tag (C-1)**, **wire 9router via `ICARUS_ENDPOINT` + `ICARUS_API_KEY_ENV` (the upstream's documented provider-agnostic override, .env.example:72)**, and **wrap any wiki write-back in the existing PB-5 approvals gate (C-5)**.
 
 > **Important upstream behavior.** `ClaudioDrews/memory-os/setup.sh` is **NOT** flag-driven — there is no `--llm-provider` or `--llm-base-url` flag. The script is opinionated: it clones to `${HOME}/memory-os`, installs the Icarus plugin to `${HOME}/.hermes/plugins/icarus`, and writes a Docker stack to `${HOME}/memory-os/docker/`. It knows about `OPENROUTER_API_KEY` and `OPENROUTER_DS_API_KEY` only — OpenRouter, not 9router. We override `${HOME}` for the duration of the install so the upstream's hardcoded paths land inside the CortexOS tree, then layer the 9router-specific env vars on top after the script finishes.
 
@@ -31,7 +31,7 @@ Background and feasibility evidence: `docs/research/memory-os-feasibility.md` (c
 | Secrets | `/opt/cortexos/.secrets/memory-os.env` |
 
 > **Port conflict (read first).** The upstream `docker-compose.yml` binds `127.0.0.1:6379:6379` and `127.0.0.1:6333:6333`. If the host already has a system Redis on `6379` (15-redis.md), the upstream container's `127.0.0.1:6379` host bind will fail with "port already in use" and the unit will not start. Two resolutions:
-> 1. **Preferred (per feasibility §4):** stop the system Redis, let the upstream's `redis:7-alpine` container own `6379` for the memory-arq workload, and continue. Memory-arq is a private queue (not shared with the dashboard's session-store Redis on a different DB index anyway).
+> 1. **Preferred (per upstream research §4):** stop the system Redis, let the upstream's `redis:7-alpine` container own `6379` for the memory-arq workload, and continue. Memory-arq is a private queue (not shared with the dashboard's session-store Redis on a different DB index anyway).
 > 2. **If the system Redis must stay:** edit the upstream `docker-compose.yml` to remap the redis port to e.g. `127.0.0.1:6390:6379` (the upstream's worker reads `REDIS_HOST`/`REDIS_PORT` from the `worker.environment` block in the compose file, so the only change needed is the host port mapping on the redis service). Document the change in the post-install note.
 
 ## Sudo gate
@@ -107,7 +107,7 @@ sudo tee /opt/cortexos/.secrets/memory-os.env >/dev/null <<EOF
 # 9router credentials — the upstream's provider-agnostic override (.env.example:72)
 # 9router is OpenAI-compatible, not OpenRouter, so the default OPENROUTER_API_KEY
 # flow would route to openrouter.ai. We override the extraction pipeline to call
-# the local 9router instead. See docs/research/memory-os-feasibility.md §3.
+# the local 9router instead. This follows the upstream research §3 notes.
 NINEROUTER_API_KEY={NINEROUTER_API_KEY}
 ICARUS_ENDPOINT=http://127.0.0.1:11434/v1/chat/completions
 ICARUS_API_KEY_ENV=NINEROUTER_API_KEY
@@ -160,14 +160,14 @@ The `ICARUS_ENDPOINT` + `ICARUS_API_KEY_ENV` mechanism is the upstream's documen
 - [ ] Secrets file written to `/opt/cortexos/.secrets/memory-os.env` (mode 0600) with `REDIS_PASSWORD`, `NINEROUTER_API_KEY`, `ICARUS_ENDPOINT`, `ICARUS_API_KEY_ENV`, `ICARUS_EXTRACTION_MODEL`
 - [ ] `${MEMORY_OS_INSTALL_PATH}` does not exist or is empty
 - [ ] `/opt/cortexos/data/memory-os` does not exist or is empty
-- [ ] Cloned the upstream `ClaudioDrews/memory-os` repo at the pinned tag `v0.2.0` (resolves to commit SHA `4b386e374d84fcfeb635f66fea9d4dcea7c6fd4a`; NOT `main` — C-1 from the feasibility study)
+- [ ] Cloned the upstream `ClaudioDrews/memory-os` repo at the pinned tag `v0.2.0` (resolves to commit SHA `4b386e374d84fcfeb635f66fea9d4dcea7c6fd4a`; NOT `main` — C-1 from upstream research)
 - [ ] Ran `setup.sh` with `HOME=${MEMORY_OS_INSTALL_PATH}` so upstream's hardcoded `${HOME}` paths land inside the CortexOS tree
 - [ ] Overlaid the 9router-specific env vars on `docker/.env` (so the worker's `OPENROUTER_API_KEY` slot gets the `NINEROUTER_API_KEY` value, and the worker reads `ICARUS_ENDPOINT` from the env it inherits from the systemd EnvironmentFile)
 - [ ] `templates/systemd/cortex-memory-os.service` committed (force-tracked past `.gitignore` per the W52 + W61 + W65 convention) and rendered via `scripts/ops/cortex-render-units.sh cortex-memory-os.service`
 - [ ] `systemctl enable --now cortex-memory-os.service` — Qdrant + Redis + worker containers up
 - [ ] CHECKPOINT 2 — Qdrant `/health` 200, Redis PING, ARQ worker container shows `health=healthy` in `docker ps`
 - [ ] Drop a test fact via the memory-os CLI and confirm Qdrant returns it via vector search
-- [ ] If `MEMORY_OS_PER_PROFILE=yes`, run the per-profile block in `prompts/tools/60-incus-project.md` step 6.7 (per F-3 from the feasibility study; that step is currently Planned, not shipped)
+- [ ] If `MEMORY_OS_PER_PROFILE=yes`, run the per-profile block in `prompts/tools/60-incus-project.md` step 6.7 (per F-3 from upstream research; that step is currently Planned, not shipped)
 
 ## Install (host)
 
@@ -178,7 +178,7 @@ sudo install -d -m 0755 -o root -g root "${MEMORY_OS_INSTALL_PATH}"
 sudo chown -R "$USER":"$USER" "${MEMORY_OS_INSTALL_PATH}"
 
 # Clone + check out the v0.2.0 tag (resolves to commit SHA 4b386e37).
-# Per the feasibility study's C-1 condition: "pin to tag `v0.2.0` (not
+# Per upstream research condition C-1: "pin to tag `v0.2.0` (not
 # `main`)". The upstream has git tags (v0.1.0, v0.2.0) but no GitHub
 # Release notes — the two are independent: a git tag is a ref pointer,
 # a GitHub Release is a packaged tarball + notes. We pin the git tag
@@ -208,11 +208,11 @@ VAULT_PATH="${MEMORY_OS_INSTALL_PATH}/wiki" \
   bash "${MEMORY_OS_INSTALL_PATH}/setup.sh"
 ```
 
-> **Security note on `curl|bash`.** The `bash <(curl -sSL ...)` pattern is the most common install idiom for repos that ship a `setup.sh` and is acceptable here because: (a) the upstream is a pinned commit SHA (C-1), not `main`; (b) the feasibility doc's trust-boundary analysis (`docs/research/memory-os-feasibility.md` §6) is cited inline above; (c) the script's actions are auditable in the public source (the script is 15855 bytes, fully readable in the pinned commit). We use the local clone + `bash` invocation rather than `curl|bash` for an additional layer of review-the-script-first.
+> **Security note on `curl|bash`.** The `bash <(curl -sSL ...)` pattern is the most common install idiom for repos that ship a `setup.sh` and is acceptable here because: (a) the upstream is a pinned commit SHA (C-1), not `main`; (b) the upstream research's trust-boundary analysis is captured in this prompt; (c) the script's actions are auditable in the public source (the script is 15855 bytes, fully readable in the pinned commit). We use the local clone + `bash` invocation rather than `curl|bash` for an additional layer of review-the-script-first.
 
 When the script's Phase 7 prompts for the OpenRouter key, **paste the 9router API key** (`{NINEROUTER_API_KEY}`). The setup script writes this to `docker/.env` as `OPENROUTER_API_KEY`, which is what the worker's environment gets. Step 3 below overlays the proper 9router env vars on top.
 
-The script's Phase 5 will install the Icarus plugin to `${HOME}/.hermes/plugins/icarus` = `${MEMORY_OS_INSTALL_PATH}/.hermes/plugins/icarus`. Phase 9 will warn that the rulebook amendments were not auto-applied — this is expected; the CortexOS layer 7 customization is per-profile (C-4, see F-3 in the feasibility doc).
+The script's Phase 5 will install the Icarus plugin to `${HOME}/.hermes/plugins/icarus` = `${MEMORY_OS_INSTALL_PATH}/.hermes/plugins/icarus`. Phase 9 will warn that the rulebook amendments were not auto-applied — this is expected; the CortexOS layer 7 customization is per-profile (C-4, see F-3 in upstream research).
 
 ### 3. Overlay the 9router env vars on the upstream `docker/.env`
 
@@ -390,7 +390,7 @@ Type `confirmed` to proceed.
 
 If `MEMORY_OS_PER_PROFILE=yes`, the per-profile wiring is in
 `prompts/tools/60-incus-project.md` step 6.7 (per F-3 from the
-feasibility study; that step is currently Planned, not shipped).
+upstream research; that step is currently Planned, not shipped).
 The pattern mirrors the existing `hermes-honcho` wiring planned for
 the per-profile `config.yaml` block from `60-incus-project.md:82-88` —
 add a `memory.longterm` block pointing at the host's Qdrant + Redis
@@ -401,7 +401,7 @@ order stays flat; do not duplicate the steps here.
 
 ## Layer 7 customization (C-4)
 
-The feasibility study's C-4 says: "layer 7 templates (SOUL.md,
+Upstream research condition C-4 says: "layer 7 templates (SOUL.md,
 rulebook.md) must be customized per-profile — the upstream templates
 are generic and need CortexOS-specific ground truth language." The
 upstream `setup.sh` warns at Phase 9 that the rulebook amendments are
@@ -433,7 +433,7 @@ not auto-applied; this is by design. After the install:
 
 ## Follow-up upstream issues (file after install)
 
-The feasibility study flagged F-6: "file an upstream issue if the
+Upstream research flagged F-6: "file an upstream issue if the
 README's 'any LLM provider' claim is too strong (e.g. 9router is
 OpenAI-compatible but not OpenRouter; the default OPENROUTER_API_KEY
 flow is wrong for us)." After install, file an upstream issue
@@ -441,12 +441,12 @@ naming this prompt as the workaround (the `ICARUS_ENDPOINT` +
 `ICARUS_API_KEY_ENV` mechanism works but is undocumented in the
 README; it is documented in `.env.example:72` only).
 
-Other open upstream concerns tracked in the feasibility study:
+Other open upstream concerns tracked in upstream research:
 
 1. **5-day-old repo age.** The single biggest risk flag. Monitor
    `https://api.github.com/repos/ClaudioDrews/memory-os` for the
    `pushed_at` field — if it goes >30 days, escalate per the
-   MONITOR triggers in the feasibility doc.
+   MONITOR triggers from upstream research.
 2. **No GitHub Release notes.** The upstream has git tags (`v0.1.0`,
    `v0.2.0`) but no GitHub Release notes (the `/releases` API returns
    404). The tags are sufficient for the install pin, but the
@@ -465,7 +465,7 @@ wiki write-back per C-5).
 
 → If `MEMORY_OS_PER_PROFILE=yes`, run `prompts/tools/60-incus-project.md`
 step 6.7 on every existing Incus instance (that step is currently
-Planned; see F-3 in the feasibility study).
+Planned; see F-3 in upstream research).
 
 → Update `docs/APPS.md` Shipped section to add `Memory OS` as a new
 entry. The current `docs/APPS.md` (post-audit-fixes W56) has a

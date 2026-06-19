@@ -1,4 +1,4 @@
-# CortexOS dashboard — SvelteKit prod unit.
+# CortexOS dashboard — TanStack Start production unit.
 # Runs as root because the dashboard is the host control plane
 # (per THREAT_MODEL §0.5: dashboard must own Docker/Incus/systemd/terminal/env-browser).
 #
