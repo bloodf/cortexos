@@ -329,5 +329,4 @@ if (isMain) {
   });
 }
 
-export { httpServer, wss, handleConnection, send, acceptThenClose, abortHandshake, runPanel, buildUserContent };
-
+export { httpServer, wss, handleConnection, send, acceptThenClose, abortHandshake, runPanel };
