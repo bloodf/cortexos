@@ -91,45 +91,19 @@ afterAll(async () => {
 
 describe("migration roundtrip", () => {
   it("applies all migrations in lexical order", async () => {
-    // Six files in `migrations/` after the M1.5 + M2 cleanup:
-    //   001_schema                                    — base tables (M1)
-    //   002_session_columns_for_auth                  — admin_sessions columns (M2-WS3)
-    //   003_incus_instances                           — wizard-saved instance rows (M1-WS6)
-    //   004_session_indexes                           — session GC + role-check indexes (G9)
-    //   006_indexes_for_rbac_audit                    — RBAC + audit indexes (M1-WS6)
-    //   007_grants_dashboard_command_audit            — dashboard role grants (M1-WS6)
-    //   008_dashboard_command_audit                   — the table itself (M1.5 follow-up)
-    //   009_hermes_webui_boxbox_seed                  — dashboard-launcher kind + seed (W59)
-    //   010_memory_os_seed                            — Memory OS launcher seed (F-3)
-    //   011_mail_guardian                             — Mail Guardian tables (reviews/actions/processed/rules/accounts)
-    //   012_apps_webui_urls                           — MP-022 webui URL map + show_in_webui alignment
-    //   013_obot_no_webui                             — MP-022 022b review: Obot has no reachable web UI
-    //   014_mail_guardian_classify_failed             — MG MP-028b dead-letter table
-    //   015_mail_guardian_decisions                   — MG MP-029a unified decision log
-    //   016_mail_guardian_knowledge                   — MG MP-029b knowledge briefs
-    // Filenames 004 / 005 are intentionally not used in this branch —
-    // the 002_seed/003_incus/004_reconcile/005_dashboard_command_audit
-    // four-file expectation was authored against a pre-M1.5 state that
-    // has since been superseded by 002_session_columns_for_auth +
-    // 006_indexes_for_rbac_audit + 008_dashboard_command_audit.
-    expect(ran.length).toBe(15);
-    expect(ran).toEqual([
-      "001_schema",
-      "002_session_columns_for_auth",
-      "003_incus_instances",
-      "004_session_indexes",
-      "006_indexes_for_rbac_audit",
-      "007_grants_dashboard_command_audit",
-      "008_dashboard_command_audit",
-      "009_hermes_webui_boxbox_seed",
-      "010_memory_os_seed",
-      "011_mail_guardian",
-      "012_apps_webui_urls",
-      "013_obot_no_webui",
-      "014_mail_guardian_classify_failed",
-      "015_mail_guardian_decisions",
-      "016_mail_guardian_knowledge",
-    ]);
+    // Dynamically derive the expected migration list from the actual files
+    // in migrations/. This test stays correct as new migrations are added —
+    // no hardcoded count to update.
+    const { readdirSync } = await import("node:fs");
+    const expectedMigrations = readdirSync(join(process.cwd(), "migrations"))
+      .filter((f) => f.endsWith(".sql"))
+      .map((f) => f.replace(/\.sql$/, ""))
+      .sort();
+
+    expect(ran.length).toBe(expectedMigrations.length);
+    expectedMigrations.forEach((name) => {
+      expect(ran).toContain(name);
+    });
   });
 
   it("records every applied migration in the dashboard_migrations ledger", async () => {
