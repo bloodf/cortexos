@@ -120,7 +120,29 @@ function normalizeText(value: string): string {
  * strip-tags blob used for classification + fallback.
  */
 export async function parseRawEmail(raw: string): Promise<Omit<MailMessage, 'uid'>> {
-  const parsed = await simpleParser(raw);
+  let parsed: Awaited<ReturnType<typeof simpleParser>>;
+  try {
+    // Wrap simpleParser with a 15s timeout. Malformed/huge emails can hang
+    // the parser; the timeout prevents the IMAP fetch loop from blocking
+    // indefinitely. The inner timer is cleared on both resolve and reject.
+    parsed = await new Promise((resolve, reject) => {
+      const t = setTimeout(() => reject(new Error('Email parse timeout after 15s')), 15_000);
+      simpleParser(raw).then(
+        (v) => { clearTimeout(t); resolve(v); },
+        (e) => { clearTimeout(t); reject(e); },
+      );
+    });
+  } catch (error) {
+    console.warn('[mail-guardian] parseRawEmail failed, skipping message:', error instanceof Error ? error.message : String(error));
+    return {
+      messageId: undefined,
+      from: '',
+      subject: '',
+      text: '',
+      bodyText: undefined,
+      bodyHtml: undefined,
+    };
+  }
   const from = parsed.from?.text ?? '';
   const subject = parsed.subject ?? '';
   const bodyHtml = typeof parsed.html === 'string' && parsed.html.length > 0 ? parsed.html : undefined;

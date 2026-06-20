@@ -71,13 +71,34 @@ const riskColor = {
 
 const EMPTY_HTML = "";
 
-function sanitizeHtml(html: string | null | undefined): string {
+let _linkHookRegistered = false;
+
+// Register the link-safety hook ONCE at module load. DOMPurify hooks are
+// global — registering inside sanitizeHtml would stack duplicates on every
+// call. The hook forces target=_blank + rel=noopener noreferrer on all links.
+function ensureLinkHook() {
+  if (_linkHookRegistered) return;
+  if (typeof window === "undefined") return; // SSR-safe: hook needs DOM
+  DOMPurify.addHook("afterSanitizeAttributes", (node) => {
+    if (node.tagName === "A") {
+      node.setAttribute("target", "_blank");
+      node.setAttribute("rel", "noopener noreferrer");
+    }
+  });
+  _linkHookRegistered = true;
+}
+
+export function sanitizeHtml(html: string | null | undefined): string {
   if (typeof html !== "string" || html.length === 0) return EMPTY_HTML;
   try {
+    ensureLinkHook();
     return DOMPurify.sanitize(html, {
       USE_PROFILES: { html: true },
-      FORBID_TAGS: ["form", "input", "style", "script"],
+      // Strip: scripts/styles (XSS), forms/inputs (phishing), img (remote
+      // tracking pixels), interactive controls (clickjacking).
+      FORBID_TAGS: ["form", "input", "style", "script", "img", "button", "select", "textarea", "option", "iframe", "object", "embed", "base", "link", "meta", "svg", "math"],
       FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover", "style"],
+      ADD_ATTR: ["target", "rel"],
       ALLOW_DATA_ATTR: false,
     });
   } catch {
