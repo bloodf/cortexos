@@ -1,6 +1,6 @@
 [Unit]
 Description=CortexOS Agent Generator WS sidecar
-After=network-online.target
+After=network-online.target postgresql.service
 Wants=network-online.target
 
 [Service]
@@ -8,40 +8,29 @@ Type=simple
 User=root
 Group=root
 
-# node-pty + sudo shells: run as root (mirrors cortex-terminal). The WS auth
-# gate enforces admin + live OS group membership; we trust the gate, not the
-# filesystem.
+# Hardening mirrors cortex-terminal.service: node-pty must fork shells, so
+# this is deliberately looser than the dashboard unit (no ProtectSystem, no
+# PrivateUsers — needs /dev/pts; no PrivateDevices — needs /dev/ptmx; no
+# MemoryDenyWriteExecute — node-pty allocates rxvt-unicode-256color; no
+# RestrictNamespaces — node-pty may need CLONE_NEWNS for the slave PTY).
 EnvironmentFile=/opt/cortexos/.secrets/dashboard.env
 Environment=GENERATOR_PORT=3082
 Environment=ALLOWED_ORIGIN=same-origin
 
 WorkingDirectory=/opt/cortexos/packages/cortex-agent-generator
-ExecStart=/usr/bin/env node ./src/server.js
+ExecStart=/usr/bin/node ./src/server.js
 
 Restart=always
-RestartSec=2
-RestartPreventExitStatus=0 2 3 4 5
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=10
+StandardOutput=journal
+StandardError=journal
 
-# Hardening (mirrors cortex-terminal).
-# Generator needs to write to /opt/cortexos/{hermes,.secrets,bin,templates}
-# and /etc/systemd/system (rendered units), so ProtectSystem=full + explicit
-# ReadWritePaths (not strict, which would make ReadWritePaths ignored).
-ProtectSystem=full
+NoNewPrivileges=no
+ProtectSystem=false
 ProtectHome=read-only
-PrivateDevices=yes
 PrivateTmp=yes
-ProtectKernelTunables=yes
-ProtectKernelModules=yes
-ProtectControlGroups=yes
-RestrictNamespaces=yes
 RestrictRealtime=yes
-RestrictSUIDSGID=yes
 LockPersonality=yes
-MemoryDenyWriteExecute=yes
-DevicePolicy=closed
-PrivateUsers=no
-
-ReadWritePaths=/opt/cortexos/hermes /opt/cortexos/.secrets /opt/cortexos/bin /opt/cortexos/templates /etc/systemd/system
-
-[Install]
-WantedBy=multi-user.target
+RestrictSUIDSGID=yes
