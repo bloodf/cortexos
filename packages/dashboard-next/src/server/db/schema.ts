@@ -805,6 +805,30 @@ export type MailGuardianRule = typeof mailGuardianRules.$inferSelect;
 export type MailGuardianAccount = typeof mailGuardianAccounts.$inferSelect;
 export type NewMailGuardianAccount = typeof mailGuardianAccounts.$inferInsert;
 
+export const agentGeneratorSessions = pgTable(
+  "agent_generator_sessions",
+  {
+    id: serial("id").primaryKey(),
+    slug: varchar("slug", { length: 64 }),
+    status: varchar("status", { length: 16 }).notNull().default("draft"),
+    model: varchar("model", { length: 128 }).notNull(),
+    reasoning: varchar("reasoning", { length: 8 }).notNull().default("medium"),
+    transcript: jsonb("transcript").notNull().default(sql`'[]'::jsonb`),
+    spec: jsonb("spec").notNull().default(sql`'{}'::jsonb`),
+    buildLogs: text("build_logs").notNull().default(""),
+    createdBy: varchar("created_by", { length: 128 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("idx_agent_generator_sessions_status").on(t.status),
+    index("idx_agent_generator_sessions_created_at").on(t.createdAt.desc()),
+  ],
+);
+
+export type AgentGeneratorSession = typeof agentGeneratorSessions.$inferSelect;
+export type NewAgentGeneratorSession = typeof agentGeneratorSessions.$inferInsert;
+
 export const schema = {
   migrations: migrationsTable,
   services,
@@ -832,4 +856,5 @@ export const schema = {
   mailGuardianProcessed,
   mailGuardianRules,
   mailGuardianAccounts,
+  agentGeneratorSessions,
 };

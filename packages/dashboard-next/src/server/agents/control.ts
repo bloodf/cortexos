@@ -31,9 +31,15 @@
  */
 
 import { execFile } from "node:child_process";
+import fs from "node:fs";
 import { promisify } from "node:util";
 
-import { findProfileBySlug } from "@/server/agents/registry";
+import {
+  findProfileBySlug,
+  updateProfileModel,
+} from "@/server/agents/registry";
+import { readEnvValue } from "@/server/agents/chat";
+import { validationError, systemError } from "@/server/errors/types";
 import { audit } from "@/server/audit";
 import { runSequentially } from "@/lib/sequential";
 
@@ -327,4 +333,190 @@ export async function controlAgent(
   }
 
   return { slug, action, status: "accepted", units: results, state };
+}
+
+// ---------------------------------------------------------------------------
+// setAgentModel — change a profile's model + reasoning (P1.3)
+// ---------------------------------------------------------------------------
+
+export const AGENT_REASONING_LEVELS = ["low", "medium", "high"] as const;
+export type AgentReasoning = (typeof AGENT_REASONING_LEVELS)[number];
+
+export interface SetAgentModelInput {
+  model: string;
+  reasoning: AgentReasoning;
+}
+export interface SetAgentModelResult {
+  slug: string;
+  model: string;
+  reasoning: AgentReasoning;
+  restarted: { unit: string; exitCode: number }[];
+}
+
+// `^  default: <id>$` — the indented line under the top-level `model:` key in
+// the profile's config.yaml (see scripts/hermes-profile-create.mjs
+// `renderHermesConfig`). Captures the current value to detect a no-op swap.
+const CONFIG_MODEL_LINE = /^([ \t]*default:[ \t]*)(.*?)([ \t]*#.*)?$/;
+
+/**
+ * Validate + persist a model/reasoning change for a Hermes profile, then
+ * restart its two units so the running service picks up the new value.
+ *
+ * Side effects (all under `<profile.home>` / `<profile.secretPath>`):
+ *   - rewrites `config.yaml`'s `model.default:` line
+ *   - rewrites the `.env` `HERMES_MODEL` / `HERMES_REASONING` values
+ *   - updates the registry entry (`profiles.json`) so the UI list is fresh
+ *   - `systemctl restart hermes-gateway@<slug>` + `hermes-profile@<slug>`
+ *
+ * Throws:
+ *   - `UnknownAgentError`  malformed/unknown slug
+ *   - `validationError`    unknown reasoning level, unknown model id, or a
+ *                          config.yaml without a `model.default:` line
+ *   - `systemError`        9Router unreachable (cannot validate model)
+ */
+export async function setAgentModel(
+  slug: string,
+  input: SetAgentModelInput,
+  ctx?: AgentControlContext,
+): Promise<SetAgentModelResult> {
+  assertKnownSlug(slug);
+  if (!AGENT_REASONING_LEVELS.includes(input.reasoning)) {
+    throw validationError(`unknown reasoning '${input.reasoning}'`, [
+      { field: "reasoning", message: "must be one of low, medium, high" },
+    ]);
+  }
+
+  const profile = findProfileBySlug(slug);
+  if (!profile) {
+    // assertKnownSlug already covered this; narrow for TS.
+    throw new UnknownAgentError(`agent '${slug}' is not a known Hermes profile`);
+  }
+
+  // Validate the model against 9Router's live catalog. If the catalog cannot
+  // be fetched, REFUSE the swap — silently accepting would let a typo through.
+  const { list9routerModels } = await import("@/server/agents/nineRouter");
+  const known = await list9routerModels();
+  if (known.length === 0) {
+    throw systemError("9router_models_unavailable");
+  }
+  if (!known.includes(input.model)) {
+    throw validationError(`unknown model '${input.model}'`, [
+      { field: "model", message: "model is not in the 9Router catalog" },
+    ]);
+  }
+
+  const configPath = `${profile.home}/config.yaml`;
+  const configText = (() => {
+    try {
+      return fs.readFileSync(configPath, "utf8");
+    } catch {
+      throw validationError("profile_config_missing");
+    }
+  })();
+  const lines = configText.split("\n");
+  // The `default:` line lives directly under the top-level `model:` key.
+  const modelKeyIdx = lines.findIndex((l) => /^model:\s*$/.test(l));
+  if (modelKeyIdx === -1) {
+    throw validationError("profile_config_malformed", [
+      { field: "model", message: "config.yaml has no top-level 'model:' key" },
+    ]);
+  }
+  // Scan only the `model:` block — stop at the next top-level (column-0) key
+  // so a nested `default:` under `providers:` etc. is never matched.
+  let defaultIdx = -1;
+  for (let i = modelKeyIdx + 1; i < lines.length; i += 1) {
+    const line = lines[i];
+    if (/^\S/.test(line)) break; // next top-level key → end of model block
+    if (CONFIG_MODEL_LINE.test(line) && /^[ \t]+/.test(line)) {
+      defaultIdx = i;
+      break;
+    }
+  }
+  if (defaultIdx === -1) {
+    throw validationError("profile_config_malformed", [
+      { field: "model", message: "config.yaml has no 'model.default:' line" },
+    ]);
+  }
+  const replaced = lines[defaultIdx].replace(
+    CONFIG_MODEL_LINE,
+    (_m, prefix: string, _old: string, comment: string | undefined) =>
+      `${prefix}${input.model}${comment ?? ""}`,
+  );
+  lines[defaultIdx] = replaced;
+  fs.writeFileSync(configPath, lines.join("\n"), { mode: 0o644 });
+
+  // Rewrite the .env HERMES_MODEL / HERMES_REASONING lines in place.
+  if (profile.secretPath) {
+    const envText = (() => {
+      try {
+        return fs.readFileSync(profile.secretPath, "utf8");
+      } catch {
+        return "";
+      }
+    })();
+    const nextEnv = rewriteEnvLines(envText, {
+      HERMES_MODEL: input.model,
+      HERMES_REASONING: input.reasoning,
+    });
+    fs.writeFileSync(profile.secretPath, nextEnv, { mode: 0o600 });
+  }
+
+  // Keep the registry fresh so the UI list reflects the swap immediately.
+  updateProfileModel(slug, { model: input.model, reasoning: input.reasoning });
+
+  const units = unitsFor(slug);
+  // Restart profile first so the new env/config is live before the gateway
+  // reconnects to it.
+  const restarted = await runSequentially(
+    [units.profile, units.gateway],
+    async (unit) => {
+      const res = await executor(["restart", unit]);
+      emitUnitAudit(
+        ctx,
+        "restart",
+        unit,
+        res.exitCode === 0 ? "success" : "failure",
+        res.exitCode === 0 ? null : "systemctl_nonzero",
+      );
+      return { unit, exitCode: res.exitCode };
+    },
+  );
+
+  const failed = restarted.find((r) => r.exitCode !== 0);
+  if (failed) {
+    throw systemError(
+      `restart ${failed.unit} failed (exit ${failed.exitCode})`,
+    );
+  }
+
+  return { slug, model: input.model, reasoning: input.reasoning, restarted };
+}
+
+/**
+ * Rewrite `KEY=...` lines in a dotenv string. Preserves comments, ordering,
+ * and quote style. Lines for keys in `updates` are replaced in place; keys
+ * absent from the file are APPENDED. Used by setAgentModel for HERMES_MODEL /
+ * HERMES_REASONING.
+ */
+function rewriteEnvLines(
+  envText: string,
+  updates: Record<string, string>,
+): string {
+  const remaining = new Set(Object.keys(updates));
+  const out = envText.split("\n").map((line) => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) return line;
+    const deexported = trimmed.replace(/^export\s+/, "");
+    const eq = deexported.indexOf("=");
+    if (eq <= 0) return line;
+    const key = deexported.slice(0, eq).trim();
+    if (!(key in updates)) return line;
+    remaining.delete(key);
+    const prefix = line.slice(0, line.indexOf("=") + 1);
+    return `${prefix}${updates[key]}`;
+  });
+  for (const key of Object.keys(updates)) {
+    if (remaining.has(key)) out.push(`${key}=${updates[key]}`);
+  }
+  return out.join("\n");
 }

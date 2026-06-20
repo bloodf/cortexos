@@ -21,6 +21,7 @@ import {
   FileKey,
   Clock,
   Database,
+  Sparkles,
 } from "lucide-react";
 
 export type NavKey =
@@ -28,6 +29,7 @@ export type NavKey =
   | "apps"
   | "healthcheck"
   | "agents"
+  | "agent-generator"
   | "headroom"
   | "docker"
   | "incus"
@@ -65,9 +67,8 @@ export const NAV: NavGroup[] = [
   {
     id: "platform",
     items: [
-      { to: "/apps", key: "apps", icon: LayoutGrid },
-      { to: "/healthcheck", key: "healthcheck", icon: HeartPulse },
       { to: "/agents", key: "agents", icon: Bot },
+      { to: "/agents/new", key: "agent-generator", icon: Sparkles },
       { to: "/headroom", key: "headroom", icon: BrainCircuit },
     ],
   },

@@ -188,7 +188,16 @@ import {
   listAgents as _listAgents,
   agentAction as _agentAction,
   agentStatuses as _agentStatuses,
+  agentChat as _agentChat,
+  setAgentModel as _setAgentModel,
+  listModels as _listModels,
 } from "./agents.functions";
+import {
+  createGeneratorSession as _createGeneratorSession,
+  generatorSend as _generatorSend,
+  getGeneratorSession as _getGeneratorSession,
+  buildGeneratorProfile as _buildGeneratorProfile,
+} from "./agentGenerator.functions";
 import { readEnv as _readEnv } from "./env-browser.functions";
 import type { HermesProfile } from "@/server/agents/registry";
 
@@ -1570,3 +1579,94 @@ export const callAgentAction = _agentAction as unknown as (
 export const callAgentStatuses = _agentStatuses as unknown as (opts: {
   data: { slugs?: string[] };
 }) => Promise<{ states: Record<string, AgentRunState> }>;
+
+/** Call agentChat RPC — admin only; sends text + optional media/model to a profile. CSRF-enforced. */
+export const callAgentChat = _agentChat as unknown as (
+  opts: {
+    data: {
+      slug: string;
+      text: string;
+      attachments?: { filename: string; mime: string; dataBase64: string }[];
+      model?: string;
+      reasoning?: "low" | "medium" | "high";
+    };
+  } & CsrfOpts,
+) => Promise<{ slug: string; reply: string }>;
+
+/**
+ * Call setAgentModel RPC — admin only; approval: true gate.
+ * Mint the token via callMintApproval for action `agents.model` with the
+ * COMPLETE payload `{ slug, model, reasoning }` (the pipeline hashes the full
+ * input), then pass it as `x-cortex-approval-token` + CSRF headers.
+ */
+export const callSetAgentModel = _setAgentModel as unknown as (
+  opts: {
+    data: {
+      slug: string;
+      model: string;
+      reasoning: "low" | "medium" | "high";
+    };
+  } & CsrfOpts,
+) => Promise<{
+  slug: string;
+  model: string;
+  reasoning: "low" | "medium" | "high";
+  restarted: { unit: string; exitCode: number }[];
+}>;
+
+/** Call listModels RPC — any session; returns the live 9Router model catalog. */
+export const listModels = _listModels as unknown as (opts: {
+  data: Record<string, never>;
+}) => Promise<{ models: string[] }>;
+
+/** Call createGeneratorSession RPC — admin only. CSRF-enforced. */
+export const callCreateGeneratorSession = _createGeneratorSession as unknown as (
+  opts: {
+    data: { model: string; reasoning?: "low" | "medium" | "high" };
+  } & CsrfOpts,
+) => Promise<{ id: number; status: string; model: string; reasoning: "low" | "medium" | "high" }>;
+
+/** Call generatorSend RPC — admin only. CSRF-enforced. */
+export const callGeneratorSend = _generatorSend as unknown as (
+  opts: {
+    data: {
+      sessionId: number;
+      text: string;
+      attachments?: { filename: string; mime: string; dataBase64: string }[];
+    };
+  } & CsrfOpts,
+) => Promise<{ reply: string; spec: Record<string, unknown>; status: "draft" | "done" }>;
+
+/** Call getGeneratorSession RPC — admin only. */
+export const callGetGeneratorSession = _getGeneratorSession as unknown as (opts: {
+  data: { sessionId: number };
+}) => Promise<{
+  id: number;
+  slug: string | null;
+  status: "draft" | "building" | "done" | "error";
+  model: string;
+  reasoning: "low" | "medium" | "high";
+  transcript: Array<{ role: "user" | "assistant" | "system"; content: string; ts: string }>;
+  spec: Record<string, unknown>;
+  buildLogs: string;
+  createdAt: string;
+  updatedAt: string;
+}>;
+
+/**
+ * Call buildGeneratorProfile RPC — admin only; approval: true gate.
+ * Mint the token via callMintApproval for action `agents.generator.build` with
+ * the COMPLETE payload `{ sessionId, slug, spec, telegramBotToken? }` (the
+ * pipeline hashes the full input), then pass it as `x-cortex-approval-token`
+ * + CSRF headers.
+ */
+export const callBuildGeneratorProfile = _buildGeneratorProfile as unknown as (
+  opts: {
+    data: {
+      sessionId: number;
+      slug: string;
+      spec: Record<string, unknown>;
+      telegramBotToken?: string;
+    };
+  } & CsrfOpts,
+) => Promise<{ slug: string; apiPort: number; status: "done" | "error" }>;

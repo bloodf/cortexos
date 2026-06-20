@@ -175,6 +175,8 @@ const mintableActions = new Set<string>([
   // (1) Pipeline gate action strings (`approval: true` gates).
   "systemd.action",
   "agents.action",
+  "agents.model",
+  "agents.generator.build",
   "incus.action",
   "docker.action",
   "docker.prune",

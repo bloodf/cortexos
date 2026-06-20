@@ -16,6 +16,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^2.0.106",
     "@cortexos/contracts": "workspace:*",
     "@electric-sql/pglite": "^0.2.0",
     "@hookform/resolvers": "^5.2.2",
@@ -53,6 +54,7 @@
     "@tanstack/router-plugin": "^1.167.28",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/xterm": "^6.0.0",
+    "ai": "^5.0.199",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",

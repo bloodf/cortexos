@@ -1,0 +1,185 @@
+--- /tmp/hermes-profile-api.orig.mjs	2026-06-19 21:24:10.961601502 +0000
++++ /opt/cortexos/scripts/hermes-profile-api.mjs	2026-06-19 21:24:46.498490585 +0000
+@@ -1,6 +1,9 @@
+ import http from "node:http";
+ import { execFile } from "node:child_process";
+-import { access, readFile } from "node:fs/promises";
++import { access, readFile, mkdtemp, rm, writeFile } from "node:fs/promises";
++import { tmpdir } from "node:os";
++import path from "node:path";
++import crypto from "node:crypto";
+ 
+ const profile = process.env.HERMES_PROFILE || process.argv[2] || "default";
+ const host = process.env.HERMES_API_HOST || "127.0.0.1";
+@@ -17,6 +20,13 @@
+ const maxBuffer = Number(process.env.HERMES_API_MAX_BUFFER || 1024 * 1024 * 8);
+ const timeout = Number(process.env.HERMES_API_TIMEOUT_MS || 300000);
+ 
++// P1.1 — attachment caps and validation.
++const MAX_ATTACHMENTS = Number(process.env.HERMES_MAX_ATTACHMENTS || 8);
++const MAX_ATTACHMENT_BYTES = Number(process.env.HERMES_MAX_ATTACHMENT_BYTES || 25 * 1024 * 1024);
++const MAX_FILENAME_LEN = 255;
++const MIME_RE = /^[a-zA-Z0-9!#$&\-+.^_/]+\/[a-zA-Z0-9!#$&\-+.^_*]+$/;
++const BASE64_RE = /^[A-Za-z0-9+/]+={0,2}$/;
++
+ function send(res, status, body) {
+   const payload = JSON.stringify(body);
+   res.writeHead(status, {
+@@ -57,9 +67,82 @@
+     .join("\n\n");
+ }
+ 
+-function runHermes(prompt) {
++// P1.1 — sanitize an attachment filename to a bare basename. Anything that
++// could escape the tmp dir (`..`, path separators, leading dots) is stripped.
++function sanitizeBasename(filename) {
++  const base = path.basename(String(filename || "")).replace(/^\.+/, "");
++  if (!base || base.length > MAX_FILENAME_LEN) return null;
++  if (base.includes("/") || base.includes("\\") || base.includes("..")) return null;
++  return base;
++}
++
++// P1.1 — write attachments to a per-request tmp dir. Returns an object with
++// the dir (for cleanup), the list of absolute staged paths, and the total
++// decoded byte count. Throws a structured error on validation failure.
++async function stageAttachments(tmpDir, attachments) {
++  const staged = [];
++  let totalBytes = 0;
++  let idx = 0;
++  for (const att of attachments) {
++    idx += 1;
++    const filename = sanitizeBasename(att?.filename);
++    if (!filename) {
++      const err = new Error("bad_attachment");
++      err.code = "bad_attachment";
++      err.detail = `attachment ${idx} has an invalid filename`;
++      throw err;
++    }
++    const mime = typeof att?.mime === "string" && MIME_RE.test(att.mime) ? att.mime : "application/octet-stream";
++    const dataStr = typeof att?.dataBase64 === "string" ? att.dataBase64 : "";
++    if (!dataStr || !BASE64_RE.test(dataStr)) {
++      const err = new Error("bad_attachment");
++      err.code = "bad_attachment";
++      err.detail = `attachment ${idx} (${filename}) is not valid base64`;
++      throw err;
++    }
++    let buf;
++    try {
++      buf = Buffer.from(dataStr, "base64");
++    } catch {
++      const err = new Error("bad_attachment");
++      err.code = "bad_attachment";
++      err.detail = `attachment ${idx} (${filename}) could not be decoded`;
++      throw err;
++    }
++    totalBytes += buf.byteLength;
++    if (totalBytes > MAX_ATTACHMENT_BYTES) {
++      const err = new Error("attachments_too_large");
++      err.code = "attachments_too_large";
++      err.detail = `attachments exceed ${MAX_ATTACHMENT_BYTES} bytes`;
++      throw err;
++    }
++    const dest = path.join(tmpDir, filename);
++    // Ensure unique filenames don't overwrite earlier siblings.
++    const unique = staged.includes(dest) ? path.join(tmpDir, `${idx}-${filename}`) : dest;
++    await writeFile(unique, buf, { mode: 0o600 });
++    staged.push(unique);
++    void mime; // retained on disk; the prompt only needs the path list below.
++  }
++  return { staged, totalBytes };
++}
++
++function buildArgsOverrides(modelOverride, reasoningOverride) {
++  const extra = [];
++  if (modelOverride && typeof modelOverride === "string" && modelOverride.length <= 128) {
++    extra.push("--model", modelOverride);
++  }
++  if (
++    reasoningOverride &&
++    ["low", "medium", "high"].includes(reasoningOverride)
++  ) {
++    extra.push("--reasoning", reasoningOverride);
++  }
++  return extra;
++}
++
++function runHermes(prompt, overrides) {
+   return new Promise((resolve, reject) => {
+-    const args = [...defaultArgs, prompt];
++    const args = [...defaultArgs, ...overrides, prompt];
+     const childEnv = {
+       ...process.env,
+       HERMES_HOME: hermesHome,
+@@ -109,14 +192,68 @@
+         send(res, 400, { error: "messages are required" });
+         return;
+       }
+-      const result = await (telemetry?.traceLLMCall
+-        ? telemetry.traceLLMCall({ name: "hermes.chat", model, input: prompt, metadata: { profile } }, () => runHermes(prompt))
+-        : runHermes(prompt));
++
++      // P1.1 — validate attachment count up-front so we never spawn hermes
++      // nor create a tmp dir for a request that will be rejected anyway.
++      const attachments = Array.isArray(body.attachments) ? body.attachments : [];
++      if (attachments.length > MAX_ATTACHMENTS) {
++        send(res, 400, {
++          error: "too_many_attachments",
++          detail: `at most ${MAX_ATTACHMENTS} attachments per request`,
++        });
++        return;
++      }
++
++      const overrides = buildArgsOverrides(body.model, body.reasoning);
++
++      // No attachments → original code path (no tmp dir, no cleanup).
++      if (attachments.length === 0) {
++        const result = await (telemetry?.traceLLMCall
++          ? telemetry.traceLLMCall({ name: "hermes.chat", model, input: prompt, metadata: { profile } }, () => runHermes(prompt, overrides))
++          : runHermes(prompt, overrides));
++        send(res, 200, {
++          id: `hermes-${profile}-${Date.now()}`,
++          object: "chat.completion",
++          created: Math.floor(Date.now() / 1000),
++          model: body.model || model,
++          choices: [{
++            index: 0,
++            message: { role: "assistant", content: result.stdout.trim() },
++            finish_reason: "stop",
++          }],
++          metadata: { profile, stderr: result.stderr?.trim() || undefined },
++        });
++        return;
++      }
++
++      // P1.1 — stage attachments to a per-request tmp dir and append their
++      // absolute paths to the prompt. The dir is always removed afterwards.
++      const tmpRoot = await mkdtemp(path.join(tmpdir(), `hermes-chat-${profile}-`));
++      let result;
++      try {
++        const { staged } = await stageAttachments(tmpRoot, attachments);
++        const fullPrompt = `${prompt}\n\n[attachments]\n${staged.join("\n")}\n`;
++        result = await (telemetry?.traceLLMCall
++          ? telemetry.traceLLMCall({ name: "hermes.chat", model, input: fullPrompt, metadata: { profile, attachments: staged.length } }, () => runHermes(fullPrompt, overrides))
++          : runHermes(fullPrompt, overrides));
++      } catch (stageErr) {
++        if (stageErr && stageErr.code === "attachments_too_large") {
++          send(res, 413, { error: "attachments_too_large", detail: stageErr.detail });
++        } else if (stageErr && stageErr.code === "bad_attachment") {
++          send(res, 400, { error: "bad_attachment", detail: stageErr.detail });
++        } else {
++          throw stageErr;
++        }
++        return;
++      } finally {
++        await rm(tmpRoot, { recursive: true, force: true });
++      }
++
+       send(res, 200, {
+         id: `hermes-${profile}-${Date.now()}`,
+         object: "chat.completion",
+         created: Math.floor(Date.now() / 1000),
+-        model,
++        model: body.model || model,
+         choices: [{
+           index: 0,
+           message: { role: "assistant", content: result.stdout.trim() },

@@ -1,0 +1,26 @@
+# Caddy snippet — Agent Generator WS sidecar (P3.3).
+# Mirrors `caddy-terminal.snippet` (terminal sidecar on :3081). The generator
+# sidecar binds 127.0.0.1:3082. Place this snippet BEFORE the :3080 catch-all so
+# the upgrade path resolves here, not the dashboard.
+#
+# Paste into /etc/caddy/Caddyfile (or include via `import`) above the
+# `:3080` reverse_proxy block.
+
+@agent_generator_ws path /agent-generator/ws
+
+# /agent-generator/ws → reverse-proxied to the sidecar; flush_interval -1
+# streams WS frames without buffering (required for low-latency PTY + AI
+# token streaming). The sidecar authenticates the WS upgrade itself
+# (Origin + session + admin). Caddy must NOT enforce auth here or it'd
+# double-gate the upgrade.
+reverse_proxy @agent_generator_ws 127.0.0.1:3082 {
+    flush_interval -1
+}
+
+# /agent-generator/healthz → liveness probe used by the systemd unit + ops.
+@agent_generator_healthz path /agent-generator/healthz /agent-generator/healthz/
+
+handle @agent_generator_healthz {
+    rewrite * /healthz
+    reverse_proxy 127.0.0.1:3082
+}

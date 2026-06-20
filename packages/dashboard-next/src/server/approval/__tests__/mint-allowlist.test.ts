@@ -39,6 +39,7 @@ describe("mintApproval — mintable-action allowlist", () => {
     "systemd.restart",
     "systemd.stop",
     "agents.action",
+    "agents.model",
     "incus.action",
     "incus.delete",
     "docker.action",
