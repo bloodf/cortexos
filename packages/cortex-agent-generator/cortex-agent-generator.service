@@ -34,3 +34,6 @@ PrivateTmp=yes
 RestrictRealtime=yes
 LockPersonality=yes
 RestrictSUIDSGID=yes
+
+[Install]
+WantedBy=multi-user.target
