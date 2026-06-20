@@ -41,11 +41,27 @@ vi.mock("@/lib/api/approvals.functions", () => ({
   deleteApproval: vi.fn(),
 }));
 
-vi.mock("@/lib/api/agents.functions", () => ({
-  listAgents: (...args: unknown[]) => mockListAgents(...args),
-  uploadAgentFile: vi.fn(),
-  agentStatuses: vi.fn(),
-  agentAction: vi.fn(),
+vi.mock("@/lib/api/agents.functions", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/api/agents.functions")>(
+    "@/lib/api/agents.functions",
+  );
+  return {
+    ...actual,
+    listAgents: (...args: unknown[]) => mockListAgents(...args),
+    uploadAgentFile: vi.fn(),
+    agentStatuses: vi.fn(),
+    agentAction: vi.fn(),
+    agentChat: vi.fn(),
+    setAgentModel: vi.fn(),
+    listModels: vi.fn(),
+  };
+});
+
+vi.mock("@/lib/api/agentGenerator.functions", () => ({
+  createGeneratorSession: vi.fn(),
+  generatorSend: vi.fn(),
+  getGeneratorSession: vi.fn(),
+  buildGeneratorProfile: vi.fn(),
 }));
 
 vi.mock("@/lib/api/env-browser.functions", () => ({

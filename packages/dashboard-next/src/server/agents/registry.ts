@@ -81,3 +81,28 @@ export function readRegistry(): HermesProfile[] {
 export function findProfileBySlug(slug: string): HermesProfile | null {
   return readRegistry().find((p) => p.profile === slug) ?? null;
 }
+
+/**
+ * Persist an updated `model` / `reasoning` for a profile back to the registry
+ * JSON (P1.3: setAgentModel). Writes atomically (tmp + rename). Throws if the
+ * registry is missing or the slug is absent — callers should have already
+ * validated the slug via `findProfileBySlug`.
+ */
+export function updateProfileModel(
+  slug: string,
+  patch: { model?: string; reasoning?: string },
+): void {
+  const registryPath = getRegistryPath();
+  const raw = fs.readFileSync(registryPath, "utf8");
+  const parsed = JSON.parse(raw) as ProfilesRegistry;
+  const entry = parsed.profiles.find((p) => p.profile === slug);
+  if (!entry) {
+    throw new Error(`profile '${slug}' not found in registry`);
+  }
+  if (patch.model !== undefined) entry.model = patch.model;
+  if (patch.reasoning !== undefined) entry.reasoning = patch.reasoning;
+  const next = `${JSON.stringify(parsed, null, 2)}\n`;
+  const tmp = `${registryPath}.${process.pid}.tmp`;
+  fs.writeFileSync(tmp, next, { mode: 0o644 });
+  fs.renameSync(tmp, registryPath);
+}

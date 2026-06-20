@@ -30,6 +30,15 @@ import { defineServerFn, serverFnNoop, type ServerFnOptions } from "@/lib/api/de
 // Input schemas
 // ---------------------------------------------------------------------------
 
+/** Reusable profile-slug schema (lowercase alnum, underscore, hyphen). Exported
+ *  for sibling function modules (e.g. agentGenerator.functions.ts). */
+export const slugSchema = () =>
+  z
+    .string()
+    .min(1)
+    .max(128)
+    .regex(/^[a-z0-9_-]+$/, "slug must be lowercase letters, numbers, underscores and hyphens");
+
 const AgentListInput = z.object({}).strict();
 
 const UploadAgentFileInput = z
@@ -226,4 +235,169 @@ export const agentActionGateOptions: ServerFnOptions<AgentActionInputT, AgentAct
 const agentActionGate = defineServerFn(agentActionGateOptions);
 export const agentAction = createServerFn({ method: "POST" })
   .middleware([agentActionGate])
+  .handler(serverFnNoop);
+
+// ---------------------------------------------------------------------------
+// agentChat — POST, auth: admin, rate-limit 30/min/user.
+// Sends a text turn (+ optional media / model override) to a profile's local
+// HTTP API via the chat bridge. Request/response (no streaming — P3).
+// ---------------------------------------------------------------------------
+
+const AgentChatInput = z
+  .object({
+    slug: slugSchema(),
+    text: z.string().max(32000),
+    attachments: z
+      .array(
+        z.object({
+          filename: z.string().max(255),
+          mime: z.string().max(128),
+          dataBase64: z.string().max(35_000_000),
+        }),
+      )
+      .max(8)
+      .optional(),
+    model: z.string().max(128).optional(),
+    reasoning: z.enum(["low", "medium", "high"]).optional(),
+  })
+  .strict();
+
+type AgentChatInputT = z.infer<typeof AgentChatInput>;
+
+interface AgentChatOutput {
+  slug: string;
+  reply: string;
+}
+
+/**
+ * agentChat gate options. Exported so the node-env test can drive the REAL
+ * handler through the defineApiRoute pipeline. Auth: admin (chat can trigger
+ * host-side tmp writes via attachments).
+ */
+export const agentChatGateOptions: ServerFnOptions<AgentChatInputT, AgentChatOutput> = {
+  method: "POST",
+  auth: "admin",
+  input: AgentChatInput,
+  rateLimit: { limit: 30, windowSec: 60, bucket: "user" },
+  surface: "agents",
+  action: "agents.chat",
+  target: (input) => `${input.slug}`,
+  handler: async ({ input }) => {
+    const { chatWithAgent } = await import("@/server/agents/chat");
+    const { UnknownAgentError } = await import("@/server/agents/control");
+    const { notFoundError } = await import("@/server/errors/types");
+
+    try {
+      const { reply } = await chatWithAgent(input.slug, {
+        text: input.text,
+        attachments: input.attachments,
+        model: input.model,
+        reasoning: input.reasoning,
+      });
+      return { slug: input.slug, reply };
+    } catch (err) {
+      if (err instanceof UnknownAgentError) {
+        throw notFoundError(err.message, "agent");
+      }
+      throw err;
+    }
+  },
+};
+const agentChatGate = defineServerFn(agentChatGateOptions);
+export const agentChat = createServerFn({ method: "POST" })
+  .middleware([agentChatGate])
+  .handler(serverFnNoop);
+
+// ---------------------------------------------------------------------------
+// setAgentModel — POST, auth: admin, approval: true.
+// Validates + persists a model/reasoning swap for a profile, then restarts its
+// units. Approval gate consumes the caller-minted token; the pipeline hashes
+// `action + full input`, so the UI must mint `agents.model` with the COMPLETE
+// payload `{ slug, model, reasoning }` (not just slug+model).
+// ---------------------------------------------------------------------------
+
+const SetAgentModelInput = z
+  .object({
+    slug: slugSchema(),
+    model: z.string().min(1).max(128),
+    reasoning: z.enum(["low", "medium", "high"]),
+  })
+  .strict();
+
+type SetAgentModelInputT = z.infer<typeof SetAgentModelInput>;
+
+interface SetAgentModelOutput {
+  slug: string;
+  model: string;
+  reasoning: "low" | "medium" | "high";
+  restarted: { unit: string; exitCode: number }[];
+}
+
+export const setAgentModelGateOptions: ServerFnOptions<
+  SetAgentModelInputT,
+  SetAgentModelOutput
+> = {
+  method: "POST",
+  auth: "admin",
+  input: SetAgentModelInput,
+  rateLimit: { limit: 10, windowSec: 60, bucket: "user" },
+  surface: "agents",
+  action: "agents.model",
+  target: (input) => `${input.slug}:${input.model}`,
+  approval: true,
+  handler: async ({ input, user, ctx }) => {
+    const { setAgentModel, UnknownAgentError } = await import("@/server/agents/control");
+    const { notFoundError } = await import("@/server/errors/types");
+
+    try {
+      return await setAgentModel(
+        input.slug,
+        { model: input.model, reasoning: input.reasoning },
+        {
+          userId: user ? String(user.id) : null,
+          sessionId: ctx.session?.id ? String(ctx.session.id) : null,
+          ip: ctx.clientIp,
+          userAgent: ctx.userAgent,
+          requestId: ctx.requestId,
+        },
+      );
+    } catch (err) {
+      if (err instanceof UnknownAgentError) {
+        throw notFoundError(err.message, "agent");
+      }
+      throw err;
+    }
+  },
+};
+const setAgentModelGate = defineServerFn(setAgentModelGateOptions);
+export const setAgentModel = createServerFn({ method: "POST" })
+  .middleware([setAgentModelGate])
+  .handler(serverFnNoop);
+
+// ---------------------------------------------------------------------------
+// listModels — GET, auth: any → { models: string[] }.
+// Live 9Router catalog for the model picker. Returns { models: [] } on any
+// fetch/parse error so the picker degrades gracefully (never 500s).
+// ---------------------------------------------------------------------------
+
+const ListModelsInput = z.object({}).strict();
+
+interface ListModelsOutput {
+  models: string[];
+}
+
+const listModelsGate = defineServerFn({
+  method: "GET",
+  auth: "any",
+  input: ListModelsInput,
+  surface: "agents",
+  action: "agents.models",
+  handler: async () => {
+    const { list9routerModels } = await import("@/server/agents/nineRouter");
+    const models = await list9routerModels();
+    return { models };
+  },
+});
+export const listModels = createServerFn({ method: "GET" })
+  .middleware([listModelsGate])
   .handler(serverFnNoop);
