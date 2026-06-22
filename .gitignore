@@ -218,3 +218,7 @@ memory-os/
 # Hermes Web UI upstream source (cloned from nesquena/hermes-webui, not vendored)
 /hermes-webui/
 /hermes-webui-src/
+# Local Pi runtime state
+.atl/
+# Local backup snapshots (may contain secret .env copies — never commit)
+.backups/
