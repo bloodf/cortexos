@@ -27,10 +27,13 @@ const execFileAsync = promisify(execFileCb);
 
 // -------------------------------------------------------------------
 // Test seams
-export type BuildExecutor = (argv: readonly string[], opts?: {
-  timeout?: number;
-  maxBuffer?: number;
-}) => Promise<{ stdout: string; stderr: string; exitCode: number }>;
+export type BuildExecutor = (
+  argv: readonly string[],
+  opts?: {
+    timeout?: number;
+    maxBuffer?: number;
+  },
+) => Promise<{ stdout: string; stderr: string; exitCode: number }>;
 
 const defaultExecutor: BuildExecutor = async (argv, opts) => {
   try {
@@ -80,7 +83,8 @@ export function setBuildTestConfig(overrides: {
   secretsDir?: string;
   profilesDir?: string;
 }): void {
-  if (overrides.richConfigTemplate !== undefined) RICH_CONFIG_TEMPLATE = overrides.richConfigTemplate;
+  if (overrides.richConfigTemplate !== undefined)
+    RICH_CONFIG_TEMPLATE = overrides.richConfigTemplate;
   if (overrides.hindsightBase !== undefined) HINDSIGHT_BASE = overrides.hindsightBase;
   if (overrides.secretsDir !== undefined) SECRETS_DIR = overrides.secretsDir;
   if (overrides.profilesDir !== undefined) PROFILES_DIR = overrides.profilesDir;
@@ -252,7 +256,13 @@ export async function buildProfileFromSpec(
     log(`integration ${id}: UNKNOWN (skipped)`);
   }
   const allSkills = [...new Set([...spec.skills, ...integ.skills])];
-  const allMcps = [...spec.mcps, ...integ.mcps];
+  // Name integration MCP servers per-profile (e.g. "<slug>-gsuite"), matching
+  // the host's existing pattern (e.g. "cieucpb-calendar"). Combined with the
+  // per-profile .env (each profile's OAuth/API creds live only in its own
+  // secured .env), this keeps multiple Google/Microsoft accounts on different
+  // profiles fully isolated — they never share a server name, config, or token.
+  const integMcps = integ.mcps.map((m) => ({ ...m, name: `${spec.slug}-${m.name}` }));
+  const allMcps = [...spec.mcps, ...integMcps];
 
   // 4. Install skills (BEST-EFFORT, sequential).
   const wrapper = `/opt/cortexos/bin/hermes-${spec.slug}`;

@@ -243,6 +243,7 @@ INTEGRATIONS (offer the ones that fit the purpose; put the selected ids in the s
 - gsuite (Google Workspace) · ms365 (Microsoft 365) · github (repos, issues, PRs)
 - notion (pages, databases) · slack (channels, DMs) · linear (issues/projects) · n8n (workflows)
 - filesystem (scoped local files) · web (Brave web search)
+- Each profile is fully ISOLATED: its OAuth/API credentials live only in that profile's own secured .env and its integration MCP servers are named per-profile, so a Google or Microsoft account connected to one agent never affects another. To connect a SECOND Google/Microsoft account, the operator creates a SECOND profile — tell them this if they ask about multiple accounts.
 
 CUSTOM MCP SERVERS:
 - The operator can give you ANY MCP server to integrate — its name, how to run it (a local command like "npx -y @scope/server", or a remote "url"), and any API keys it needs. Capture each as an entry in "mcps": {"name": "...", "command": "..." OR "url": "...", "env": {"API_KEY": "..."}}. Put the exact keys they provide into that server's "env"; the build stores them in the profile's secured .env and wires the server up.

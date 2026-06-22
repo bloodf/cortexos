@@ -45,7 +45,11 @@ describe("buildProfileFromSpec — MCP + credentials", () => {
       const arr = [...argv];
       calls.push(arr);
       if (arr[0] === "node" && arr[1]?.endsWith("hermes-profile-create.mjs")) {
-        return { stdout: JSON.stringify({ profile: "mtest", port: 18799 }), stderr: "", exitCode: 0 };
+        return {
+          stdout: JSON.stringify({ profile: "mtest", port: 18799 }),
+          stderr: "",
+          exitCode: 0,
+        };
       }
       return { stdout: "", stderr: "", exitCode: 0 };
     });
@@ -74,7 +78,10 @@ describe("buildProfileFromSpec — MCP + credentials", () => {
   });
 
   it("generates a SOUL.md when the spec has no soul", async () => {
-    await buildProfileFromSpec(makeSpec({ name: "Plain Bot", roles: [{ role: "planner" }] }), () => {});
+    await buildProfileFromSpec(
+      makeSpec({ name: "Plain Bot", roles: [{ role: "planner" }] }),
+      () => {},
+    );
     const soul = await readFile(join(pdir, "mtest", "SOUL.md"), "utf8");
     expect(soul).toContain("You are **Plain Bot**");
     expect(soul).toContain("planner");
@@ -103,8 +110,14 @@ describe("buildProfileFromSpec — MCP + credentials", () => {
     expect(argsIdx).toBeGreaterThan(-1);
     expect(custom.slice(argsIdx + 1)).toEqual(["-y", "x-server"]);
 
-    const github = byName("github")!;
-    expect(github).toEqual(expect.arrayContaining(["--env", "GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_PERSONAL_ACCESS_TOKEN}"]));
+    // Integration MCP servers are named per-profile for isolation (<slug>-<name>).
+    const github = byName("mtest-github")!;
+    expect(github).toEqual(
+      expect.arrayContaining([
+        "--env",
+        "GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_PERSONAL_ACCESS_TOKEN}",
+      ]),
+    );
 
     // Credentials written to the (tmp) profile .env: operator value real, key present.
     const env = await readFile(join(dir, "mtest.env"), "utf8");
