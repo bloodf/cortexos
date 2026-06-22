@@ -45,6 +45,12 @@ const ApprovalListInput = z
   .strict();
 
 const ApprovalIdInput = z.object({ id: z.coerce.number().int().positive() }).strict();
+const RevokeInput = z
+  .object({
+    id: z.coerce.number().int().positive(),
+    reason: z.string().max(1000).optional(),
+  })
+  .strict();
 
 const MintInput = z
   .object({
@@ -204,7 +210,7 @@ export const grantApproval = createServerFn({ method: "POST" })
 const revokeApprovalGate = defineServerFn({
   method: "POST",
   auth: "admin",
-  input: ApprovalIdInput,
+  input: RevokeInput,
   rateLimit: { limit: 30, windowSec: 60, bucket: "user" },
   surface: "approvals",
   action: "approvals.revoke",
@@ -214,7 +220,7 @@ const revokeApprovalGate = defineServerFn({
     const { resolvePendingApproval } = await import("@/server/db/repos/pending_approvals");
     const { notFoundError, systemError } = await import("@/server/errors/types");
     if (!user) throw systemError("Session required for approval revocation");
-    const updated = await resolvePendingApproval(getDb(), input.id, "deny", user.username);
+    const updated = await resolvePendingApproval(getDb(), input.id, "deny", user.username, input.reason);
     if (!updated) throw notFoundError(`Approval ${input.id} not found`, "approval");
     return { ok: true as const };
   },

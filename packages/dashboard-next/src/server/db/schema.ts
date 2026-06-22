@@ -617,6 +617,7 @@ export const pendingApprovals = pgTable(
     resolvedAt: timestamp("resolved_at", { withTimezone: true }),
     decision: text("decision"),
     approver: text("approver"),
+    decisionReason: text("decision_reason"),
   },
   (t) => [
     index("idx_pending_approvals_open")

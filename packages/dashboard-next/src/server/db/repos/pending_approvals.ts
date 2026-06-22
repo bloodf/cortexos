@@ -107,6 +107,7 @@ export async function resolvePendingApproval(
   id: number,
   decision: "approve" | "deny" | "timeout",
   approver: string,
+  reason?: string | null,
 ): Promise<PendingApproval | null> {
   const res = await db
     .update(pendingApprovals)
@@ -114,6 +115,7 @@ export async function resolvePendingApproval(
       decision,
       approver,
       resolvedAt: new Date(),
+      ...(reason != null && reason !== "" ? { decisionReason: reason } : {}),
     })
     .where(eq(pendingApprovals.id, id))
     .returning();

@@ -1532,10 +1532,10 @@ export const callGrantApproval = _grantApproval as unknown as (
   opts: { data: { id: number } } & CsrfOpts,
 ) => Promise<{ ok: boolean }>;
 export const callRevokeApproval = _revokeApproval as unknown as (
-  opts: { data: { id: number } } & CsrfOpts,
+  opts: { data: { id: number; reason?: string } } & CsrfOpts,
 ) => Promise<{ ok: boolean }>;
 export const callVerifyAudit = _verifyAudit as unknown as (opts: {
-  data: { from?: number };
+  data: { from?: string };
 }) => Promise<{ ok: boolean; count: number; brokenAt: { id: number } }>;
 export const callCreateAlert = _createAlert as unknown as (
   opts: { data: Record<string, unknown> } & CsrfOpts,

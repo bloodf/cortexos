@@ -56,7 +56,10 @@ export function ApprovalsPage() {
   const handleRevoke = async (a: ApprovalRequest, revokeReason: string) => {
     setPending(`deny-${a.id}`);
     try {
-    await callRevokeApproval({ data: { id: Number(a.id) }, headers: csrfHeaders() });
+    await callRevokeApproval({
+      data: { id: Number(a.id), reason: revokeReason || undefined },
+      headers: csrfHeaders(),
+    });
       toast.success(`Denied: ${a.summary}${revokeReason ? ` — ${revokeReason}` : ""}`);
       invalidate();
     } catch {
