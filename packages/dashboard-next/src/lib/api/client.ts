@@ -450,6 +450,10 @@ interface IncusActionInputType {
   name: string;
   confirmation?: string;
   approvalToken?: string;
+  // Launch-only provisioning fields (image alias + cpu/mem limits in MiB).
+  image?: string;
+  cpu?: number;
+  memory?: number;
 }
 interface IncusActionOutput {
   result: {

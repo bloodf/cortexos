@@ -112,21 +112,21 @@ function ProvisionWizard({
 
     appendLog(`Preflight: validating name "${name}"…`);
     appendLog(`Preflight: checking image cache for ${image}…`);
-    appendLog(`incus launch ${image} ${name}`);
+    appendLog(`Launching ${image} as ${name} (cpu=${cpu}, mem=${mem}MiB)…`);
 
     try {
+      // Approval is bound to `{ name }` only (PB-5) — the bridge hashes
+      // actionHashFor('incus.launch', { name }). The mint payload MUST match
+      // that shape exactly or the hashes diverge and the launch is rejected.
       const mint = await callMintApproval({
-        data: { action: "incus.launch", payload: { action: "launch", name } },
+        data: { action: "incus.launch", payload: { name } },
       });
       appendLog("Approval token minted.");
       await callIncusAction({
-        data: { action: "launch", name, approvalToken: mint.token },
+        data: { action: "launch", name, image, cpu, memory: mem, approvalToken: mint.token },
         headers: csrfHeaders(),
       });
-      appendLog(`Applying limits.cpu=${cpu}`);
-      appendLog(`Applying limits.memory=${mem}MiB`);
-      appendLog("Starting instance…");
-      appendLog("Instance started");
+      appendLog("Instance launched");
       setDone(true);
       onCreated();
     } catch (err) {

@@ -33,6 +33,12 @@ const IncusActionInput = z
     name: z.string().min(1).max(64),
     confirmation: z.string().optional(),
     approvalToken: z.string().optional(),
+    // Launch-only provisioning fields. Validated again server-side against
+    // the image allowlist + numeric bounds in the bridge; they are NOT part
+    // of the approval action-hash (which binds `{ name }` only).
+    image: z.string().min(1).max(128).optional(),
+    cpu: z.coerce.number().int().min(1).max(64).optional(),
+    memory: z.coerce.number().int().min(128).max(262144).optional(), // MiB
   })
   .strict();
 
@@ -99,6 +105,9 @@ const incusActionGate = defineServerFn({
         action: input.action,
         name: input.name,
         confirmation: input.confirmation,
+        image: input.image,
+        cpu: input.cpu,
+        memory: input.memory,
       },
       {
         user: ctx.user!,
@@ -136,6 +145,8 @@ const incusActionGate = defineServerFn({
     if (
       code === "confirmation_required" ||
       code === "instance_name_invalid" ||
+      code === "instance_exists" ||
+      code === "image_invalid" ||
       code === "unknown_op"
     ) {
       throw validationError(result.reason, [{ field: "name", message: result.reason }]);

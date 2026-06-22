@@ -18,11 +18,13 @@ import {
   dispatchExecNamed,
   resetIncusBridgeForTests,
   disableMockForTests,
+  setExecutorForTests,
   setLogExecForTests,
   SEED_INSTANCES,
   DESTRUCTIVE_ACTIONS,
   DELETE_CONFIRMATION_PHRASE,
   EXEC_NAMED_OPS,
+  type IncusExecutorContext,
   type DispatchContext,
   type ExecDispatchContext,
 } from "../bridge";
@@ -443,6 +445,133 @@ describe("dispatchAction — approval gate", () => {
     // hermes-canary exists and start is non-destructive
     const result = await dispatchAction({ action: "start", name: "hermes-canary" }, makeAdminCtx());
     expect(result.status).toBe("accepted");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// dispatchAction — launch (real provisioning) branch
+// ---------------------------------------------------------------------------
+
+/**
+ * Build the launch argv from an executor ctx the same way the real incus
+ * executor does. Used by the launch tests to assert that the bridge handed
+ * the image + cpu/memory limits through to the executor (the real executor's
+ * own argv assembly is identical: `launch <image> <name> -c limits.cpu=<n>
+ * -c limits.memory=<n>MiB`).
+ */
+function launchArgvFor(ctx: IncusExecutorContext): string[] {
+  const argv = ["launch", ctx.instance.image, ctx.instance.name];
+  if (ctx.instance.cpu != null) argv.push("-c", `limits.cpu=${ctx.instance.cpu}`);
+  if (ctx.instance.memory != null) argv.push("-c", `limits.memory=${ctx.instance.memory}MiB`);
+  return argv;
+}
+
+describe("dispatchAction — launch", () => {
+  it("requires approval (no token → approval_required with a non-empty actionHash)", async () => {
+    const result = await dispatchAction(
+      { action: "launch", name: "fresh-box", image: "ubuntu/24.04", cpu: 2, memory: 4096 },
+      makeAdminCtx(),
+    );
+    expect(result.status).toBe("approval_required");
+    if (result.status === "approval_required") {
+      expect(typeof result.actionHash).toBe("string");
+      expect(result.actionHash.length).toBeGreaterThan(0);
+      // Bound to `{ name }` only.
+      expect(result.actionHash).toBe(actionHashFor("incus.launch", { name: "fresh-box" }));
+    }
+  });
+
+  it("accepts launch with a valid token and passes image + cpu/memory limits to the executor", async () => {
+    const seen: IncusExecutorContext[] = [];
+    setExecutorForTests(async (ctx) => {
+      seen.push(ctx);
+      return {
+        stdout: `__launch__ ${ctx.instance.name}`,
+        stderr: "",
+        exitCode: 0,
+        instance: ctx.instance,
+      };
+    });
+    const sid = asSessionId("sess-launch-1");
+    const tok = mintApproval({
+      action: "incus.launch",
+      payload: { name: "fresh-box" },
+      sessionId: sid,
+      userId: "u-admin",
+    });
+    const result = await dispatchAction(
+      { action: "launch", name: "fresh-box", image: "ubuntu/24.04", cpu: 4, memory: 8192 },
+      makeAdminCtx({ sessionId: sid, approvalToken: tok.token }),
+    );
+    expect(result.status).toBe("accepted");
+    expect(seen).toHaveLength(1);
+    const argv = launchArgvFor(seen[0]);
+    expect(argv).toContain("launch");
+    expect(argv).toContain("ubuntu/24.04");
+    expect(argv).toContain("fresh-box");
+    expect(argv).toContain("limits.cpu=4");
+    expect(argv).toContain("limits.memory=8192MiB");
+  });
+
+  it("rejects launch when the executor exits non-zero (no false success)", async () => {
+    setExecutorForTests(async (ctx) => ({
+      stdout: "",
+      stderr: "Error: not enough disk space",
+      exitCode: 1,
+      instance: ctx.instance,
+    }));
+    const sid = asSessionId("sess-launch-fail");
+    const tok = mintApproval({
+      action: "incus.launch",
+      payload: { name: "fresh-box" },
+      sessionId: sid,
+      userId: "u-admin",
+    });
+    const result = await dispatchAction(
+      { action: "launch", name: "fresh-box", image: "ubuntu/24.04", cpu: 2, memory: 4096 },
+      makeAdminCtx({ sessionId: sid, approvalToken: tok.token }),
+    );
+    expect(result.status).toBe("rejected");
+    if (result.status === "rejected") {
+      expect(result.code).toBe("executor_error");
+      expect(result.reason).toContain("not enough disk space");
+    }
+  });
+
+  it("rejects launch with an unknown image (image_invalid)", async () => {
+    const sid = asSessionId("sess-launch-img");
+    const tok = mintApproval({
+      action: "incus.launch",
+      payload: { name: "fresh-box" },
+      sessionId: sid,
+      userId: "u-admin",
+    });
+    const result = await dispatchAction(
+      { action: "launch", name: "fresh-box", image: "not-a-real-image", cpu: 2, memory: 4096 },
+      makeAdminCtx({ sessionId: sid, approvalToken: tok.token }),
+    );
+    expect(result.status).toBe("rejected");
+    if (result.status === "rejected") {
+      expect(result.code).toBe("image_invalid");
+    }
+  });
+
+  it("rejects launch when the instance already exists (instance_exists)", async () => {
+    const sid = asSessionId("sess-launch-dup");
+    const tok = mintApproval({
+      action: "incus.launch",
+      payload: { name: "hermes-canary" },
+      sessionId: sid,
+      userId: "u-admin",
+    });
+    const result = await dispatchAction(
+      { action: "launch", name: "hermes-canary", image: "ubuntu/24.04", cpu: 2, memory: 4096 },
+      makeAdminCtx({ sessionId: sid, approvalToken: tok.token }),
+    );
+    expect(result.status).toBe("rejected");
+    if (result.status === "rejected") {
+      expect(result.code).toBe("instance_exists");
+    }
   });
 });
 

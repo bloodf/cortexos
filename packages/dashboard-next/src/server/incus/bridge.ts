@@ -44,8 +44,11 @@ import {
   type ProgressStep,
   type IncusInstanceConfig,
 } from "@cortexos/contracts";
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
+import { closeSync, mkdtempSync, openSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { type MockInstanceRecord, mapIncusImageType, mapIncusJsonToMockRecord } from "./incus-json";
 import { audit } from "../audit";
 import { actionHashFor } from "../approval";
@@ -718,18 +721,91 @@ export async function listImages(): Promise<IncusImage[]> {
 // the bridge before this runs.
 // ---------------------------------------------------------------------------
 
+/**
+ * Run `incus launch` and resolve on the process EXIT event rather than waiting
+ * for stdio pipe EOF. `incus launch` exits in ~8s, but something in the launch
+ * path keeps the captured stdout/stderr pipe open well past exit, so the usual
+ * execFile (which resolves on pipe close) hangs until its timeout and then
+ * SIGTERMs incus mid-create — rolling the new container back. Capturing stderr
+ * to a temp file (no pipe to hold open) and resolving on `exit` avoids the hang.
+ */
+async function runIncusLaunch(
+  argv: string[],
+  timeoutMs: number,
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  const dir = mkdtempSync(join(tmpdir(), "incus-launch-"));
+  const errPath = join(dir, "stderr");
+  const errFd = openSync(errPath, "w");
+  try {
+    return await new Promise((resolve) => {
+      const child = spawn("incus", argv, { stdio: ["ignore", "ignore", errFd] });
+      const timer = setTimeout(() => child.kill("SIGTERM"), timeoutMs);
+      child.on("exit", (code, signal) => {
+        clearTimeout(timer);
+        closeSync(errFd);
+        const stderr = readFileSync(errPath, "utf8");
+        resolve({
+          stdout: "",
+          stderr,
+          exitCode: code ?? (signal ? 124 : 1),
+        });
+      });
+      child.on("error", (e) => {
+        clearTimeout(timer);
+        closeSync(errFd);
+        resolve({ stdout: "", stderr: e.message, exitCode: 1 });
+      });
+    });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 const realIncusExecutor: IncusExecutor = async (ctx) => {
+  // `launch` carries the requested CPU/memory limits as repeated `-c` flags.
+  // These are fixed-shape argv (no shell): `incus launch <image> <name>
+  // [-c limits.cpu=<n>] [-c limits.memory=<n>MiB]`. cpu/memory are bounded
+  // integers validated by dispatchAction before this runs.
+  const launchArgs = ["launch", ctx.instance.image, ctx.instance.name];
+  if (ctx.instance.cpu != null) {
+    launchArgs.push("-c", `limits.cpu=${ctx.instance.cpu}`);
+  }
+  if (ctx.instance.memory != null) {
+    launchArgs.push("-c", `limits.memory=${ctx.instance.memory}MiB`);
+  }
+
   const args: Record<IncusActionKind, string[]> = {
     start: ["start", ctx.instance.name],
     stop: ["stop", ctx.instance.name],
     restart: ["restart", ctx.instance.name],
     delete: ["delete", ctx.instance.name, "--force"],
-    launch: ["launch", ctx.instance.image, ctx.instance.name],
+    launch: launchArgs,
     list: ["list", ctx.instance.name, "--format", "json"],
     "exec-named": ["list", ctx.instance.name, "--format", "json"],
   };
 
   try {
+    // `launch` boots a container and needs the exit-event path (see
+    // runIncusLaunch); start/stop/restart act on an existing instance and
+    // return promptly under the normal pipe-capturing executor.
+    if (ctx.action === "launch") {
+      const res = await runIncusLaunch(args.launch, 120_000);
+      if (res.exitCode !== 0) {
+        return {
+          stdout: res.stdout,
+          stderr: res.stderr,
+          exitCode: res.exitCode,
+          instance: ctx.instance,
+        };
+      }
+      const updated = await getMockRecord(ctx.instance.name);
+      return {
+        stdout: res.stdout,
+        stderr: res.stderr,
+        exitCode: 0,
+        instance: updated ? projectMockRecord(updated) : ctx.instance,
+      };
+    }
     const { stdout, stderr } = await execFileAsync("incus", args[ctx.action], {
       timeout: 60_000,
       maxBuffer: 4 * 1024 * 1024,
@@ -868,6 +944,12 @@ export interface DispatchInput {
   name: string;
   /** For `delete`: the typed-phrase the user confirmed. */
   confirmation?: string;
+  /** For `launch`: the image alias (validated against the image allowlist). */
+  image?: string;
+  /** For `launch`: CPU core limit (defaults to 2; bounded 1..64). */
+  cpu?: number;
+  /** For `launch`: memory limit in MiB (defaults to 4096; bounded 128..262144). */
+  memory?: number;
 }
 
 export interface DispatchContext {
@@ -916,6 +998,8 @@ export type DispatchResult =
         | "unknown_instance"
         | "not_allowlisted"
         | "instance_name_invalid"
+        | "instance_exists"
+        | "image_invalid"
         | "confirmation_required"
         | "approval_required"
         | "approval_invalid"
@@ -1015,6 +1099,307 @@ export async function dispatchAction(
       code: "instance_name_invalid",
       reason: `instance name '${input.name}' does not match ${INSTANCE_NAME_RE.source}`,
     };
+  }
+
+  // 2b. Launch — dedicated provisioning branch.
+  //
+  // Unlike the lifecycle actions (start/stop/restart/delete), `launch`
+  // CREATES a brand-new instance, so there is no existing record to look
+  // up. It runs its own validation (must NOT already exist; image must be
+  // on the allowlist; cpu/memory bounded) and its own approval gate bound
+  // to `actionHashFor('incus.launch', { name })` — the SAME `{ name }`-only
+  // binding as the destructive block, so the UI mints with payload `{ name }`.
+  if (input.action === "launch") {
+    // a. Must not already exist.
+    const existing = await getMockRecord(input.name);
+    if (existing) {
+      audit({
+        actorUserId: ctx.user.id,
+        actorSessionId: null,
+        actorIp: ctx.ip,
+        actorUserAgent: ctx.userAgent,
+        surface: "incus",
+        action: "incus.bridge.reject",
+        target: input.name,
+        result: "denied",
+        errorCode: "instance_exists",
+        requestId: ctx.requestId,
+        payload: { phase: "launch_exists", op: policyName, name: input.name },
+      });
+      return {
+        status: "rejected",
+        action: input.action,
+        name: input.name,
+        code: "instance_exists",
+        reason: `instance '${input.name}' already exists`,
+      };
+    }
+
+    // b. Image must be present + on the allowlist.
+    const images = await listImages();
+    const aliases = new Set(images.flatMap((i) => i.aliases));
+    const image = (input.image ?? "").trim();
+    if (!image || !aliases.has(image)) {
+      audit({
+        actorUserId: ctx.user.id,
+        actorSessionId: null,
+        actorIp: ctx.ip,
+        actorUserAgent: ctx.userAgent,
+        surface: "incus",
+        action: "incus.bridge.reject",
+        target: input.name,
+        result: "denied",
+        errorCode: "image_invalid",
+        requestId: ctx.requestId,
+        payload: { phase: "launch_image", op: policyName, name: input.name, image },
+      });
+      return {
+        status: "rejected",
+        action: input.action,
+        name: input.name,
+        code: "image_invalid",
+        reason: image
+          ? `image '${image}' is not on the image allowlist`
+          : "launch requires an image alias",
+      };
+    }
+
+    // c. Resolve cpu/memory with sane defaults + defensive bounds.
+    const cpu = input.cpu ?? 2;
+    const memory = input.memory ?? 4096;
+    if (
+      !Number.isInteger(cpu) ||
+      cpu < 1 ||
+      cpu > 64 ||
+      !Number.isInteger(memory) ||
+      memory < 128 ||
+      memory > 262144
+    ) {
+      audit({
+        actorUserId: ctx.user.id,
+        actorSessionId: null,
+        actorIp: ctx.ip,
+        actorUserAgent: ctx.userAgent,
+        surface: "incus",
+        action: "incus.bridge.reject",
+        target: input.name,
+        result: "denied",
+        errorCode: "instance_name_invalid",
+        requestId: ctx.requestId,
+        payload: { phase: "launch_limits", op: policyName, name: input.name, cpu, memory },
+      });
+      return {
+        status: "rejected",
+        action: input.action,
+        name: input.name,
+        code: "instance_name_invalid",
+        reason: `launch limits out of range (cpu=${cpu} must be 1..64, memory=${memory} must be 128..262144 MiB)`,
+      };
+    }
+
+    // d. Approval gate — bound to `{ name }` only (PB-5), mirroring the
+    //    destructive block exactly.
+    const actionHash = actionHashFor(policyName, { name: input.name });
+    if (!ctx.approvalToken) {
+      audit({
+        actorUserId: ctx.user.id,
+        actorSessionId: null,
+        actorIp: ctx.ip,
+        actorUserAgent: ctx.userAgent,
+        surface: "incus",
+        action: "incus.bridge.approval_required",
+        target: input.name,
+        result: "success",
+        errorCode: null,
+        requestId: ctx.requestId,
+        payload: { phase: "approval_required", op: policyName, actionHash },
+      });
+      return {
+        status: "approval_required",
+        action: input.action,
+        name: input.name,
+        actionHash,
+        ttlSec: APPROVAL_TTL_SEC,
+        message: `incus launch of '${input.name}' requires an approval token`,
+      };
+    }
+    const { verifyApproval, consumeApproval } = await import("../approval");
+    const v = verifyApproval(ctx.approvalToken, asSessionId(ctx.sessionId));
+    if (!v.ok) {
+      audit({
+        actorUserId: ctx.user.id,
+        actorSessionId: null,
+        actorIp: ctx.ip,
+        actorUserAgent: ctx.userAgent,
+        surface: "incus",
+        action: "incus.bridge.reject",
+        target: input.name,
+        result: "denied",
+        errorCode: v.reason,
+        requestId: ctx.requestId,
+        payload: { phase: "approval_verify", op: policyName, reason: v.reason },
+      });
+      return {
+        status: "rejected",
+        action: input.action,
+        name: input.name,
+        code: approvalRejectionCode(v.reason),
+        reason: `approval token ${v.reason}`,
+      };
+    }
+    if (v.claims.actionHash !== actionHash) {
+      audit({
+        actorUserId: ctx.user.id,
+        actorSessionId: null,
+        actorIp: ctx.ip,
+        actorUserAgent: ctx.userAgent,
+        surface: "incus",
+        action: "incus.bridge.reject",
+        target: input.name,
+        result: "denied",
+        errorCode: "approval_invalid",
+        requestId: ctx.requestId,
+        payload: {
+          phase: "approval_action_mismatch",
+          expected: actionHash,
+          got: v.claims.actionHash,
+        },
+      });
+      return {
+        status: "rejected",
+        action: input.action,
+        name: input.name,
+        code: "approval_invalid",
+        reason: "approval token is not bound to this action + name",
+      };
+    }
+    // Single-use: burn the token before running the launch.
+    const consumed = consumeApproval(ctx.approvalToken, asSessionId(ctx.sessionId));
+    if (!consumed.ok) {
+      audit({
+        actorUserId: ctx.user.id,
+        actorSessionId: null,
+        actorIp: ctx.ip,
+        actorUserAgent: ctx.userAgent,
+        surface: "incus",
+        action: "incus.bridge.reject",
+        target: input.name,
+        result: "denied",
+        errorCode: consumed.reason,
+        requestId: ctx.requestId,
+        payload: { phase: "approval_consume", op: policyName, reason: consumed.reason },
+      });
+      return {
+        status: "rejected",
+        action: input.action,
+        name: input.name,
+        code: approvalRejectionCode(consumed.reason),
+        reason: `approval token ${consumed.reason}`,
+      };
+    }
+
+    // e. Run the executor with a synthesized instance ctx (no DB record yet).
+    const nowIso = new Date().toISOString();
+    try {
+      const result = await executor({
+        instance: {
+          name: input.name,
+          slug: input.name,
+          status: "running",
+          type: "container",
+          image,
+          cpu,
+          memory,
+          config: {} as IncusInstance["config"],
+          devices: {} as IncusInstance["devices"],
+          lastValidation: null,
+          createdBy: ctx.user.id,
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        },
+        action: "launch",
+        user: ctx.user,
+        ip: ctx.ip,
+        requestId: ctx.requestId,
+      });
+      // A non-zero exit means `incus launch` failed and rolled back — no
+      // instance exists. Report it as an error so the UI surfaces the failure
+      // instead of telling the operator the container was provisioned.
+      if (result.exitCode !== 0) {
+        audit({
+          actorUserId: ctx.user.id,
+          actorSessionId: null,
+          actorIp: ctx.ip,
+          actorUserAgent: ctx.userAgent,
+          surface: "incus",
+          action: "incus.bridge.dispatch",
+          target: input.name,
+          result: "failure",
+          errorCode: "executor_error",
+          requestId: ctx.requestId,
+          payload: { op: policyName, image, cpu, memory, exitCode: result.exitCode },
+        });
+        return {
+          status: "rejected",
+          action: input.action,
+          name: input.name,
+          code: "executor_error",
+          reason: result.stderr.trim() || `incus launch failed (exit ${result.exitCode})`,
+        };
+      }
+      audit({
+        actorUserId: ctx.user.id,
+        actorSessionId: null,
+        actorIp: ctx.ip,
+        actorUserAgent: ctx.userAgent,
+        surface: "incus",
+        action: "incus.bridge.dispatch",
+        target: input.name,
+        result: "success",
+        errorCode: null,
+        requestId: ctx.requestId,
+        payload: {
+          op: policyName,
+          image,
+          cpu,
+          memory,
+          exitCode: result.exitCode,
+          stdoutBytes: result.stdout.length,
+          stderrBytes: result.stderr.length,
+        },
+      });
+      return {
+        status: "accepted",
+        action: input.action,
+        name: input.name,
+        stdout: result.stdout,
+        stderr: result.stderr,
+        exitCode: result.exitCode,
+        instance: result.instance,
+        durationMs: Date.now() - t0,
+      };
+    } catch (e) {
+      audit({
+        actorUserId: ctx.user.id,
+        actorSessionId: null,
+        actorIp: ctx.ip,
+        actorUserAgent: ctx.userAgent,
+        surface: "incus",
+        action: "incus.bridge.dispatch",
+        target: input.name,
+        result: "failure",
+        errorCode: "executor_error",
+        requestId: ctx.requestId,
+        payload: { op: policyName, error: (e as Error).message },
+      });
+      return {
+        status: "rejected",
+        action: input.action,
+        name: input.name,
+        code: "executor_error",
+        reason: `executor error: ${(e as Error).message}`,
+      };
+    }
   }
 
   // 3. Instance exists + is allowlisted.
