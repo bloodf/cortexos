@@ -23,8 +23,8 @@ import path from "node:path";
 
 const SCRIPT = "/opt/cortexos/scripts/hermes-profile-api.mjs";
 const API_KEY = "p1-test-key";
-const CONST_PNG_B64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
-
+const CONST_PNG_B64 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
 
 const describeIfHostScript = existsSync(SCRIPT) ? describe : describe.skip;
 
@@ -56,7 +56,6 @@ async function waitForServer(proc: ChildProcess, marker: RegExp): Promise<void> 
   });
 }
 
-
 let tmpBin: string;
 let serverProc: ChildProcess | null = null;
 let baseUrl = "";
@@ -72,7 +71,7 @@ beforeAll(async () => {
     [
       "#!/usr/bin/env node",
       "// Last argv is the prompt; echo it so callers can assert attachment paths.",
-      'process.stdout.write(process.argv[process.argv.length - 1]);',
+      "process.stdout.write(process.argv[process.argv.length - 1]);",
       "process.exit(0);",
       "",
     ].join("\n"),
@@ -168,9 +167,7 @@ describeIfHostScript("hermes-profile-api attachments + overrides", { timeout: 15
     expect(body.choices?.[0]?.message?.content).toContain("[attachments]");
     expect(body.choices?.[0]?.message?.content).toContain("tiny.png");
     // Per-request tmp dirs are named hermes-chat-p1test-*; all must be gone.
-    const leftover = readdirSync(os.tmpdir()).filter((n) =>
-      n.startsWith("hermes-chat-p1test-"),
-    );
+    const leftover = readdirSync(os.tmpdir()).filter((n) => n.startsWith("hermes-chat-p1test-"));
     expect(leftover).toEqual([]);
   });
 });

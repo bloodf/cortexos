@@ -13,479 +13,205 @@ export interface RecommendationTemplate {
   mcps: string[];
 }
 
-export const RECOMMENDATION_CATALOG: readonly RecommendationTemplate[] =
-[
+export const RECOMMENDATION_CATALOG: readonly RecommendationTemplate[] = [
   {
-    "id": "minimal",
-    "domain": "starter",
-    "name": "Minimal",
-    "desc": "Kernel + one host adapter + an init entry point. The smallest publishable harness.",
-    "tags": [
-      "starter",
-      "minimal"
-    ],
-    "agents": [],
-    "skills": [],
-    "mcps": []
+    id: "minimal",
+    domain: "starter",
+    name: "Minimal",
+    desc: "Kernel + one host adapter + an init entry point. The smallest publishable harness.",
+    tags: ["starter", "minimal"],
+    agents: [],
+    skills: [],
+    mcps: [],
   },
   {
-    "id": "vertical:devops",
-    "domain": "devops/incident-response",
-    "name": "DevOps / SRE",
-    "desc": "Incident-response harness — responder, runbook-runner, escalator, postmortem agents.",
-    "tags": [
-      "devops",
-      "sre",
-      "incident-response",
-      "on-call"
-    ],
-    "agents": [
-      "Responder",
-      "Runbook Runner",
-      "Escalator",
-      "Postmortem"
-    ],
-    "skills": [],
-    "mcps": []
+    id: "vertical:devops",
+    domain: "devops/incident-response",
+    name: "DevOps / SRE",
+    desc: "Incident-response harness — responder, runbook-runner, escalator, postmortem agents.",
+    tags: ["devops", "sre", "incident-response", "on-call"],
+    agents: ["Responder", "Runbook Runner", "Escalator", "Postmortem"],
+    skills: [],
+    mcps: [],
   },
   {
-    "id": "vertical:coding",
-    "domain": "software-engineering",
-    "name": "Advanced Coding",
-    "desc": "A senior engineering pod — architect, implementer, reviewer, and test-writer over a shared code memory.",
-    "tags": [
-      "coding",
-      "engineering",
-      "tdd",
-      "code-review",
-      "refactor"
-    ],
-    "agents": [
-      "Architect",
-      "Implementer",
-      "Reviewer",
-      "Test Writer"
-    ],
-    "skills": [
-      "plan-change"
-    ],
-    "mcps": [
-      "code_index"
-    ]
+    id: "vertical:coding",
+    domain: "software-engineering",
+    name: "Advanced Coding",
+    desc: "A senior engineering pod — architect, implementer, reviewer, and test-writer over a shared code memory.",
+    tags: ["coding", "engineering", "tdd", "code-review", "refactor"],
+    agents: ["Architect", "Implementer", "Reviewer", "Test Writer"],
+    skills: ["plan-change"],
+    mcps: ["code_index"],
   },
   {
-    "id": "vertical:research",
-    "domain": "research/multi-source-dossier",
-    "name": "Research Dossiers",
-    "desc": "Research dossier harness — scout, web-searcher, source-grader, synthesizer, fact-checker, citer; evidence-graded multi-source synthesis.",
-    "tags": [
-      "research",
-      "rag",
-      "citations",
-      "synthesis",
-      "fact-checking"
-    ],
-    "agents": [
-      "Scout",
-      "Web Searcher",
-      "Source Grader",
-      "Synthesizer",
-      "Fact Checker",
-      "Citer"
-    ],
-    "skills": [],
-    "mcps": []
+    id: "vertical:research",
+    domain: "research/multi-source-dossier",
+    name: "Research Dossiers",
+    desc: "Research dossier harness — scout, web-searcher, source-grader, synthesizer, fact-checker, citer; evidence-graded multi-source synthesis.",
+    tags: ["research", "rag", "citations", "synthesis", "fact-checking"],
+    agents: ["Scout", "Web Searcher", "Source Grader", "Synthesizer", "Fact Checker", "Citer"],
+    skills: [],
+    mcps: [],
   },
   {
-    "id": "vertical:trading",
-    "domain": "trading/quantitative",
-    "name": "Trading Desk",
-    "desc": "Trading harness — market-watcher, signal-gen, risk-checker, executor (paper by default), postmortem; circuit-breaker safety patterns.",
-    "tags": [
-      "trading",
-      "finance",
-      "risk",
-      "backtesting",
-      "quant"
-    ],
-    "agents": [
-      "Market Watcher",
-      "Signal Generator",
-      "Risk Checker",
-      "Executor",
-      "Postmortem"
-    ],
-    "skills": [],
-    "mcps": []
+    id: "vertical:trading",
+    domain: "trading/quantitative",
+    name: "Trading Desk",
+    desc: "Trading harness — market-watcher, signal-gen, risk-checker, executor (paper by default), postmortem; circuit-breaker safety patterns.",
+    tags: ["trading", "finance", "risk", "backtesting", "quant"],
+    agents: ["Market Watcher", "Signal Generator", "Risk Checker", "Executor", "Postmortem"],
+    skills: [],
+    mcps: [],
   },
   {
-    "id": "vertical:support",
-    "domain": "customer-support",
-    "name": "Customer Support",
-    "desc": "Customer support harness — triager, kb-searcher, responder, escalator; KB-RAG MCP and escalation rules.",
-    "tags": [
-      "support",
-      "customer-service",
-      "ticketing",
-      "kb",
-      "escalation"
-    ],
-    "agents": [
-      "Triager",
-      "KB Searcher",
-      "Responder",
-      "Escalator"
-    ],
-    "skills": [],
-    "mcps": []
+    id: "vertical:support",
+    domain: "customer-support",
+    name: "Customer Support",
+    desc: "Customer support harness — triager, kb-searcher, responder, escalator; KB-RAG MCP and escalation rules.",
+    tags: ["support", "customer-service", "ticketing", "kb", "escalation"],
+    agents: ["Triager", "KB Searcher", "Responder", "Escalator"],
+    skills: [],
+    mcps: [],
   },
   {
-    "id": "vertical:legal",
-    "domain": "legal/contract-review",
-    "name": "Legal Redline",
-    "desc": "Legal review harness — redline, citation-checker, risk-rater; citation-search MCP and a deliberation-first workflow. Drafts only; not legal advice.",
-    "tags": [
-      "legal",
-      "contracts",
-      "redline",
-      "compliance"
-    ],
-    "agents": [
-      "Redliner",
-      "Citation Checker",
-      "Risk Rater"
-    ],
-    "skills": [],
-    "mcps": []
+    id: "vertical:legal",
+    domain: "legal/contract-review",
+    name: "Legal Redline",
+    desc: "Legal review harness — redline, citation-checker, risk-rater; citation-search MCP and a deliberation-first workflow. Drafts only; not legal advice.",
+    tags: ["legal", "contracts", "redline", "compliance"],
+    agents: ["Redliner", "Citation Checker", "Risk Rater"],
+    skills: [],
+    mcps: [],
   },
   {
-    "id": "vertical:business",
-    "domain": "business/strategy",
-    "name": "Business Operations",
-    "desc": "A business pod — analyst, strategist, and ops-coordinator for plans, metrics, and execution.",
-    "tags": [
-      "business",
-      "strategy",
-      "operations",
-      "kpi",
-      "planning"
-    ],
-    "agents": [
-      "Analyst",
-      "Strategist",
-      "Ops Coordinator"
-    ],
-    "skills": [
-      "quarterly-plan"
-    ],
-    "mcps": [
-      "metrics"
-    ]
+    id: "vertical:business",
+    domain: "business/strategy",
+    name: "Business Operations",
+    desc: "A business pod — analyst, strategist, and ops-coordinator for plans, metrics, and execution.",
+    tags: ["business", "strategy", "operations", "kpi", "planning"],
+    agents: ["Analyst", "Strategist", "Ops Coordinator"],
+    skills: ["quarterly-plan"],
+    mcps: ["metrics"],
   },
   {
-    "id": "vertical:crm",
-    "domain": "crm/lifecycle",
-    "name": "Customer Management",
-    "desc": "A CRM pod — lead-qualifier, account-manager, and churn-watcher over the customer lifecycle.",
-    "tags": [
-      "crm",
-      "sales",
-      "accounts",
-      "churn",
-      "lifecycle"
-    ],
-    "agents": [
-      "Lead Qualifier",
-      "Account Manager",
-      "Churn Watcher"
-    ],
-    "skills": [
-      "memory-inspect"
-    ],
-    "mcps": [
-      "crm_store"
-    ]
+    id: "vertical:crm",
+    domain: "crm/lifecycle",
+    name: "Customer Management",
+    desc: "A CRM pod — lead-qualifier, account-manager, and churn-watcher over the customer lifecycle.",
+    tags: ["crm", "sales", "accounts", "churn", "lifecycle"],
+    agents: ["Lead Qualifier", "Account Manager", "Churn Watcher"],
+    skills: ["memory-inspect"],
+    mcps: ["crm_store"],
   },
   {
-    "id": "vertical:marketing",
-    "domain": "marketing/content",
-    "name": "Marketing",
-    "desc": "A marketing pod — strategist, content-creator, and SEO-analyst for campaigns and content.",
-    "tags": [
-      "marketing",
-      "content",
-      "seo",
-      "campaigns",
-      "growth"
-    ],
-    "agents": [
-      "Strategist",
-      "Content Creator",
-      "SEO Analyst"
-    ],
-    "skills": [
-      "campaign-brief"
-    ],
-    "mcps": [
-      "analytics"
-    ]
+    id: "vertical:marketing",
+    domain: "marketing/content",
+    name: "Marketing",
+    desc: "A marketing pod — strategist, content-creator, and SEO-analyst for campaigns and content.",
+    tags: ["marketing", "content", "seo", "campaigns", "growth"],
+    agents: ["Strategist", "Content Creator", "SEO Analyst"],
+    skills: ["campaign-brief"],
+    mcps: ["analytics"],
   },
   {
-    "id": "vertical:advertising",
-    "domain": "advertising/media",
-    "name": "Advertising",
-    "desc": "An ad shop — media-planner, copywriter, and performance-analyst across online and traditional.",
-    "tags": [
-      "advertising",
-      "media-planning",
-      "ppc",
-      "ooh",
-      "creative"
-    ],
-    "agents": [
-      "Media Planner",
-      "Copywriter",
-      "Performance Analyst"
-    ],
-    "skills": [
-      "media-plan"
-    ],
-    "mcps": [
-      "ad_metrics"
-    ]
+    id: "vertical:advertising",
+    domain: "advertising/media",
+    name: "Advertising",
+    desc: "An ad shop — media-planner, copywriter, and performance-analyst across online and traditional.",
+    tags: ["advertising", "media-planning", "ppc", "ooh", "creative"],
+    agents: ["Media Planner", "Copywriter", "Performance Analyst"],
+    skills: ["media-plan"],
+    mcps: ["ad_metrics"],
   },
   {
-    "id": "vertical:ai",
-    "domain": "ai/ml-lifecycle",
-    "name": "AI / ML Engineering",
-    "desc": "An ML pod — data-curator, trainer, evaluator, and deployer over the model lifecycle.",
-    "tags": [
-      "ai",
-      "ml",
-      "training",
-      "evaluation",
-      "mlops"
-    ],
-    "agents": [
-      "Data Curator",
-      "Trainer",
-      "Evaluator",
-      "Deployer"
-    ],
-    "skills": [
-      "eval-report"
-    ],
-    "mcps": [
-      "experiments"
-    ]
+    id: "vertical:ai",
+    domain: "ai/ml-lifecycle",
+    name: "AI / ML Engineering",
+    desc: "An ML pod — data-curator, trainer, evaluator, and deployer over the model lifecycle.",
+    tags: ["ai", "ml", "training", "evaluation", "mlops"],
+    agents: ["Data Curator", "Trainer", "Evaluator", "Deployer"],
+    skills: ["eval-report"],
+    mcps: ["experiments"],
   },
   {
-    "id": "vertical:agentics",
-    "domain": "agentics/orchestration",
-    "name": "Agentics",
-    "desc": "A self-coordinating swarm — orchestrator, planner, worker, and critic over shared memory.",
-    "tags": [
-      "agentics",
-      "multi-agent",
-      "swarm",
-      "orchestration",
-      "planning"
-    ],
-    "agents": [
-      "Orchestrator",
-      "Planner",
-      "Worker",
-      "Critic"
-    ],
-    "skills": [
-      "memory-inspect",
-      "run-swarm"
-    ],
-    "mcps": [
-      "swarm_bus"
-    ]
+    id: "vertical:agentics",
+    domain: "agentics/orchestration",
+    name: "Agentics",
+    desc: "A self-coordinating swarm — orchestrator, planner, worker, and critic over shared memory.",
+    tags: ["agentics", "multi-agent", "swarm", "orchestration", "planning"],
+    agents: ["Orchestrator", "Planner", "Worker", "Critic"],
+    skills: ["memory-inspect", "run-swarm"],
+    mcps: ["swarm_bus"],
   },
   {
-    "id": "vertical:ruview",
-    "domain": "ruvector/retrieval",
-    "name": "Ruvector Review",
-    "desc": "A ruvector-backed retrieval & review desk — indexer, retriever, and reviewer over a vector store.",
-    "tags": [
-      "ruvector",
-      "retrieval",
-      "review",
-      "hnsw",
-      "vector-db"
-    ],
-    "agents": [
-      "Indexer",
-      "Retriever",
-      "Reviewer"
-    ],
-    "skills": [
-      "memory-inspect",
-      "index-and-ask"
-    ],
-    "mcps": [
-      "ruvector"
-    ]
+    id: "vertical:ruview",
+    domain: "ruvector/retrieval",
+    name: "Ruvector Review",
+    desc: "A ruvector-backed retrieval & review desk — indexer, retriever, and reviewer over a vector store.",
+    tags: ["ruvector", "retrieval", "review", "hnsw", "vector-db"],
+    agents: ["Indexer", "Retriever", "Reviewer"],
+    skills: ["memory-inspect", "index-and-ask"],
+    mcps: ["ruvector"],
   },
   {
-    "id": "vertical:health",
-    "domain": "health/coordination",
-    "name": "Health & Wellness",
-    "desc": "A wellness-coordination harness — intake, triage, and care-coordinator. Informational only; not medical advice.",
-    "tags": [
-      "health",
-      "wellness",
-      "intake",
-      "coordination",
-      "safety"
-    ],
-    "agents": [
-      "Intake",
-      "Triage",
-      "Care Coordinator"
-    ],
-    "skills": [
-      "wellness-intake"
-    ],
-    "mcps": [
-      "health_kb"
-    ]
+    id: "vertical:health",
+    domain: "health/coordination",
+    name: "Health & Wellness",
+    desc: "A wellness-coordination harness — intake, triage, and care-coordinator. Informational only; not medical advice.",
+    tags: ["health", "wellness", "intake", "coordination", "safety"],
+    agents: ["Intake", "Triage", "Care Coordinator"],
+    skills: ["wellness-intake"],
+    mcps: ["health_kb"],
   },
   {
-    "id": "vertical:gaming",
-    "domain": "gaming",
-    "name": "Game Design / Playtest",
-    "desc": "A game-design pod — playtest reader, balance critic, economy modeler, narrative thread keeper over per-build telemetry memory.",
-    "tags": [
-      "gaming",
-      "game-design",
-      "playtest",
-      "balance",
-      "narrative"
-    ],
-    "agents": [
-      "Playtest Reader",
-      "Balance Critic",
-      "Economy Modeler",
-      "Narrative Keeper"
-    ],
-    "skills": [
-      "memory-inspect",
-      "playtest-recap"
-    ],
-    "mcps": [
-      "telemetry_store",
-      "design_doc"
-    ]
+    id: "vertical:gaming",
+    domain: "gaming",
+    name: "Game Design / Playtest",
+    desc: "A game-design pod — playtest reader, balance critic, economy modeler, narrative thread keeper over per-build telemetry memory.",
+    tags: ["gaming", "game-design", "playtest", "balance", "narrative"],
+    agents: ["Playtest Reader", "Balance Critic", "Economy Modeler", "Narrative Keeper"],
+    skills: ["memory-inspect", "playtest-recap"],
+    mcps: ["telemetry_store", "design_doc"],
   },
   {
-    "id": "vertical:sales",
-    "domain": "sales",
-    "name": "Sales / Pipeline",
-    "desc": "A B2B sales pod — prospector, qualifier, demo-coach, closer over per-account context memory.",
-    "tags": [
-      "sales",
-      "pipeline",
-      "b2b",
-      "qualification",
-      "demo"
-    ],
-    "agents": [
-      "Prospector",
-      "Qualifier",
-      "Demo Coach",
-      "Closer"
-    ],
-    "skills": [
-      "memory-inspect",
-      "qualify-lead"
-    ],
-    "mcps": [
-      "crm_store",
-      "pricing_book"
-    ]
+    id: "vertical:sales",
+    domain: "sales",
+    name: "Sales / Pipeline",
+    desc: "A B2B sales pod — prospector, qualifier, demo-coach, closer over per-account context memory.",
+    tags: ["sales", "pipeline", "b2b", "qualification", "demo"],
+    agents: ["Prospector", "Qualifier", "Demo Coach", "Closer"],
+    skills: ["memory-inspect", "qualify-lead"],
+    mcps: ["crm_store", "pricing_book"],
   },
   {
-    "id": "vertical:education",
-    "domain": "learning",
-    "name": "Education / Tutoring",
-    "desc": "A tutoring pod — tutor, explainer, quiz-master, grader over a per-learner mastery memory.",
-    "tags": [
-      "education",
-      "tutoring",
-      "learning",
-      "pedagogy",
-      "mastery-based"
-    ],
-    "agents": [
-      "Tutor",
-      "Explainer",
-      "Quiz Master",
-      "Grader"
-    ],
-    "skills": [
-      "memory-inspect",
-      "teach-next"
-    ],
-    "mcps": [
-      "mastery_log",
-      "curriculum"
-    ]
+    id: "vertical:education",
+    domain: "learning",
+    name: "Education / Tutoring",
+    desc: "A tutoring pod — tutor, explainer, quiz-master, grader over a per-learner mastery memory.",
+    tags: ["education", "tutoring", "learning", "pedagogy", "mastery-based"],
+    agents: ["Tutor", "Explainer", "Quiz Master", "Grader"],
+    skills: ["memory-inspect", "teach-next"],
+    mcps: ["mastery_log", "curriculum"],
   },
   {
-    "id": "vertical:repo-maintainer",
-    "domain": "engineering/repo-maintenance",
-    "name": "Repo Maintainer",
-    "desc": "A maintenance pod for an existing repo — maintainer, benchmarker, release, security agents. The \"this repo ships with its own agent\" demo.",
-    "tags": [
-      "repo-maintainer",
-      "engineering",
-      "release",
-      "security",
-      "benchmark",
-      "viral"
-    ],
-    "agents": [
-      "Maintainer",
-      "Benchmarker",
-      "Release",
-      "Security"
-    ],
-    "skills": [
-      "memory-inspect",
-      "plan-change"
-    ],
-    "mcps": [
-      "code_index"
-    ]
+    id: "vertical:repo-maintainer",
+    domain: "engineering/repo-maintenance",
+    name: "Repo Maintainer",
+    desc: 'A maintenance pod for an existing repo — maintainer, benchmarker, release, security agents. The "this repo ships with its own agent" demo.',
+    tags: ["repo-maintainer", "engineering", "release", "security", "benchmark", "viral"],
+    agents: ["Maintainer", "Benchmarker", "Release", "Security"],
+    skills: ["memory-inspect", "plan-change"],
+    mcps: ["code_index"],
   },
   {
-    "id": "vertical:exotic",
-    "domain": "exotic/self-evolution",
-    "name": "Exotic / Self-Evolving",
-    "desc": "A frontier harness — a meta-agent that proposes, tests, and federates improvements to itself.",
-    "tags": [
-      "exotic",
-      "self-evolving",
-      "federation",
-      "meta",
-      "experimental"
-    ],
-    "agents": [
-      "Hypothesizer",
-      "Experimenter",
-      "Federator"
-    ],
-    "skills": [
-      "memory-inspect",
-      "evolve"
-    ],
-    "mcps": [
-      "evolution_log",
-      "federation"
-    ]
-  }
+    id: "vertical:exotic",
+    domain: "exotic/self-evolution",
+    name: "Exotic / Self-Evolving",
+    desc: "A frontier harness — a meta-agent that proposes, tests, and federates improvements to itself.",
+    tags: ["exotic", "self-evolving", "federation", "meta", "experimental"],
+    agents: ["Hypothesizer", "Experimenter", "Federator"],
+    skills: ["memory-inspect", "evolve"],
+    mcps: ["evolution_log", "federation"],
+  },
 ] as const;

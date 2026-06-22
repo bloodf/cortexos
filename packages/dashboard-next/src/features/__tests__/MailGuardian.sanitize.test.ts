@@ -22,9 +22,7 @@ describe("sanitizeHtml — XSS payloads", () => {
   });
 
   it("strips style attributes", () => {
-    const out = sanitizeHtml(
-      '<div style="background-image:url(javascript:alert(1))">x</div>',
-    );
+    const out = sanitizeHtml('<div style="background-image:url(javascript:alert(1))">x</div>');
     expect(out).not.toContain("style=");
     expect(out).not.toContain("javascript:");
     expect(out).not.toContain("alert(1)");
@@ -52,7 +50,7 @@ describe("sanitizeHtml — XSS payloads", () => {
       '<a href="https://example.test">read more</a>' +
         '<img src="https://tracker.test/pixel.gif">' +
         '<form><input value="secret"><button>Send</button></form>' +
-        '<select><option>One</option></select><textarea>notes</textarea>',
+        "<select><option>One</option></select><textarea>notes</textarea>",
     );
     expect(html).toContain('target="_blank"');
     expect(html).toContain('rel="noopener noreferrer"');
@@ -66,7 +64,7 @@ describe("sanitizeHtml — XSS payloads", () => {
 
   it("strips svg, iframe, object, embed, base, link, meta and data: URIs", () => {
     const html = sanitizeHtml(
-      '<svg><script>alert(1)</script></svg>' +
+      "<svg><script>alert(1)</script></svg>" +
         '<iframe src="https://evil.test"></iframe>' +
         '<object data="https://evil.test"></object>' +
         '<embed src="https://evil.test">' +

@@ -197,7 +197,6 @@ function IncusDetail() {
     )
     .join("\n");
 
-
   const logLines = logsData?.lines ?? [];
 
   return (
@@ -349,7 +348,6 @@ function IncusDetail() {
         <TabsContent value="config" className="pt-4">
           <CodeBlock language="yaml" code={devicesCfg} />
         </TabsContent>
-
       </Tabs>
     </div>
   );

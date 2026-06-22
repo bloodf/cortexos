@@ -20,13 +20,17 @@ describe("resolveHeadroomDashboardUrl", () => {
 
   it("uses DASHBOARD_ORIGIN as the public origin without appending the Headroom port", () => {
     expect(
-      resolveHeadroomDashboardUrl({ DASHBOARD_ORIGIN: "https://dash.example.com" } as unknown as NodeJS.ProcessEnv),
+      resolveHeadroomDashboardUrl({
+        DASHBOARD_ORIGIN: "https://dash.example.com",
+      } as unknown as NodeJS.ProcessEnv),
     ).toBe("https://dash.example.com/dashboard");
   });
 
   it("normalizes a trailing slash in DASHBOARD_ORIGIN", () => {
     expect(
-      resolveHeadroomDashboardUrl({ DASHBOARD_ORIGIN: "https://dash.example.com/" } as unknown as NodeJS.ProcessEnv),
+      resolveHeadroomDashboardUrl({
+        DASHBOARD_ORIGIN: "https://dash.example.com/",
+      } as unknown as NodeJS.ProcessEnv),
     ).toBe("https://dash.example.com/dashboard");
   });
 });

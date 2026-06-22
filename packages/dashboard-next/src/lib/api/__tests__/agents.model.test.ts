@@ -82,7 +82,15 @@ describe("agents.model gate (auth: admin, approval: true) + setAgentModel bridge
     // Minimal config.yaml matching hermes-profile-create.mjs output.
     fs.writeFileSync(
       path.join(home, "config.yaml"),
-      ["model:", "  default: cx/old-model", "  provider: 9router", "providers:", "  9router:", "    api: x", ""].join("\n"),
+      [
+        "model:",
+        "  default: cx/old-model",
+        "  provider: 9router",
+        "providers:",
+        "  9router:",
+        "    api: x",
+        "",
+      ].join("\n"),
     );
     const secretPath = path.join(home, `${slug}.env`);
     fs.writeFileSync(
@@ -93,7 +101,16 @@ describe("agents.model gate (auth: admin, approval: true) + setAgentModel bridge
     fs.writeFileSync(
       registryPath,
       JSON.stringify({
-        profiles: [{ profile: slug, home, apiPort: 19000, model: "cx/old-model", reasoning: "medium", secretPath }],
+        profiles: [
+          {
+            profile: slug,
+            home,
+            apiPort: 19000,
+            model: "cx/old-model",
+            reasoning: "medium",
+            secretPath,
+          },
+        ],
       }),
     );
     process.env.HERMES_PROFILES_REGISTRY = registryPath;

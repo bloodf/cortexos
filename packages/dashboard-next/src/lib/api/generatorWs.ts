@@ -153,9 +153,12 @@ export function openGeneratorWs(opts: GeneratorSessionOptions): GeneratorSession
   let ws: WebSocket | null = null;
   let attempt = 0;
   let closed = false;
-  let pendingText:
-    | { text: string; model?: string; reasoning?: string; attachments?: GeneratorAttachment[] }
-    | null = null;
+  let pendingText: {
+    text: string;
+    model?: string;
+    reasoning?: string;
+    attachments?: GeneratorAttachment[];
+  } | null = null;
   let flushTimer: number | undefined;
   let state: GeneratorState = "connecting";
 
@@ -266,7 +269,9 @@ export function openGeneratorWs(opts: GeneratorSessionOptions): GeneratorSession
       clearTimeout(flushTimer);
       try {
         ws?.close();
-      } catch {}
+      } catch {
+        /* socket already closed */
+      }
     },
   };
 }

@@ -9,10 +9,7 @@
 import { desc, eq } from "drizzle-orm";
 import type { DbClient } from "../client";
 import { agentGeneratorSessions } from "../schema";
-import type {
-  AgentGeneratorSession,
-  NewAgentGeneratorSession,
-} from "../schema";
+import type { AgentGeneratorSession, NewAgentGeneratorSession } from "../schema";
 
 export type GeneratorStatus = "draft" | "building" | "done" | "error";
 

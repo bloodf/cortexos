@@ -27,7 +27,9 @@ describe("integration catalog", () => {
   it("dedupes credential keys and handles empty/undefined", () => {
     expect(expandIntegrations(undefined).mcps).toEqual([]);
     const out = expandIntegrations(["github", "github"]);
-    expect(out.credentialEnvKeys.filter((k) => k === "GITHUB_PERSONAL_ACCESS_TOKEN")).toHaveLength(1);
+    expect(out.credentialEnvKeys.filter((k) => k === "GITHUB_PERSONAL_ACCESS_TOKEN")).toHaveLength(
+      1,
+    );
   });
 
   it("preset-based integrations carry a preset", () => {

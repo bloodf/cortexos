@@ -13,7 +13,11 @@ function commandText(server: McpServerEntry): string {
 }
 
 export default function McpsPage() {
-  const { data: servers = [], isLoading, isError } = useQuery({
+  const {
+    data: servers = [],
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ["mcp", "servers"],
     queryFn: api.mcpServers,
   });

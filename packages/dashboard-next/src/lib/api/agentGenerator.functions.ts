@@ -48,9 +48,7 @@ const GeneratorSendInput = z
   })
   .strict();
 
-const GetGeneratorSessionInput = z
-  .object({ sessionId: z.number().int().positive() })
-  .strict();
+const GetGeneratorSessionInput = z.object({ sessionId: z.number().int().positive() }).strict();
 
 const BuildGeneratorProfileInput = z
   .object({
@@ -107,9 +105,14 @@ const createGeneratorSessionGate = defineServerFn({
     const session = await createSession(db, {
       model: input.model,
       reasoning: input.reasoning ?? "medium",
-      createdBy: user ? String(user.id) : ctx.session?.id ?? null,
+      createdBy: user ? String(user.id) : (ctx.session?.id ?? null),
     });
-    return { id: session.id, status: session.status, model: session.model, reasoning: session.reasoning };
+    return {
+      id: session.id,
+      status: session.status,
+      model: session.model,
+      reasoning: session.reasoning,
+    };
   },
 });
 export const createGeneratorSession = createServerFn({ method: "POST" })
@@ -120,7 +123,10 @@ export const createGeneratorSession = createServerFn({ method: "POST" })
 // generatorSend — POST, auth: admin, rate-limit 30/min.
 // ---------------------------------------------------------------------------
 
-const generatorSendGateOptions: ServerFnOptions<z.infer<typeof GeneratorSendInput>, GeneratorSendOutput> = {
+const generatorSendGateOptions: ServerFnOptions<
+  z.infer<typeof GeneratorSendInput>,
+  GeneratorSendOutput
+> = {
   method: "POST",
   auth: "admin",
   input: GeneratorSendInput,
@@ -143,7 +149,10 @@ const generatorSendGateOptions: ServerFnOptions<z.infer<typeof GeneratorSendInpu
     await repo.appendTurn(db, input.sessionId, { role: "user", content: input.text, ts: userTs });
 
     const messages = [
-      ...((session.transcript as Array<{ role: "user" | "assistant" | "system"; content: string }>) ?? []),
+      ...((session.transcript as Array<{
+        role: "user" | "assistant" | "system";
+        content: string;
+      }>) ?? []),
       { role: "user" as const, content: input.text },
     ];
     const specSoFar = (session.spec as Record<string, unknown>) ?? {};
@@ -271,14 +280,20 @@ const buildGeneratorProfileGateOptions: ServerFnOptions<
     await repo.setStatus(db, input.sessionId, "building", { slug: input.slug });
 
     const validChannels = new Set<string>([
-      "telegram", "whatsapp", "slack", "discord", "signal", "email",
+      "telegram",
+      "whatsapp",
+      "slack",
+      "discord",
+      "signal",
+      "email",
     ]);
-    const channels = (Array.isArray(input.spec.channels) ? input.spec.channels : [])
-      .filter((c): c is "telegram" | "whatsapp" | "slack" | "discord" | "signal" | "email" =>
+    const channels = (Array.isArray(input.spec.channels) ? input.spec.channels : []).filter(
+      (c): c is "telegram" | "whatsapp" | "slack" | "discord" | "signal" | "email" =>
         typeof c === "string" && validChannels.has(c),
-      );
-    const skills = (Array.isArray(input.spec.skills) ? input.spec.skills : [])
-      .filter((s): s is string => typeof s === "string");
+    );
+    const skills = (Array.isArray(input.spec.skills) ? input.spec.skills : []).filter(
+      (s): s is string => typeof s === "string",
+    );
     const rawMcps = Array.isArray(input.spec.mcps) ? input.spec.mcps : [];
     const mcps = rawMcps
       .filter(
@@ -295,7 +310,8 @@ const buildGeneratorProfileGateOptions: ServerFnOptions<
       name: typeof input.spec.name === "string" ? input.spec.name : input.slug,
       description: typeof input.spec.description === "string" ? input.spec.description : "",
       model: typeof input.spec.model === "string" ? input.spec.model : "claude-fallback",
-      reasoning: (typeof input.spec.reasoning === "string" && ["low","medium","high"].includes(input.spec.reasoning)
+      reasoning: (typeof input.spec.reasoning === "string" &&
+      ["low", "medium", "high"].includes(input.spec.reasoning)
         ? input.spec.reasoning
         : "medium") as "low" | "medium" | "high",
       channels,
@@ -315,7 +331,9 @@ const buildGeneratorProfileGateOptions: ServerFnOptions<
       return { slug: result.slug, apiPort: result.apiPort, status: "done" };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      await repo.setStatus(db, input.sessionId, "error", { buildLogs: lastLogs + `\n[error] ${msg}\n` });
+      await repo.setStatus(db, input.sessionId, "error", {
+        buildLogs: lastLogs + `\n[error] ${msg}\n`,
+      });
       throw systemError(`build failed: ${msg}`);
     }
   },

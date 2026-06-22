@@ -109,7 +109,10 @@ function InspectorBody({ agent, isAdmin }: { agent: Agent; isAdmin: boolean }) {
 
   const uploadMutation = useMutation({
     mutationFn: async ({ filename, content }: { filename: string; content: string }) => {
-      return uploadAgentFile({ data: { slug: agent.slug, filename, content }, headers: csrfHeaders() });
+      return uploadAgentFile({
+        data: { slug: agent.slug, filename, content },
+        headers: csrfHeaders(),
+      });
     },
     onSuccess: (_, vars) => {
       toast.success("File uploaded", {
@@ -412,7 +415,9 @@ export default function AgentsPage() {
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="min-w-0">
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Model</p>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                      Model
+                    </p>
                     <div className="text-xs mt-0.5 truncate">
                       <span className="font-mono truncate block" title={a.model}>
                         {a.model}
@@ -420,29 +425,39 @@ export default function AgentsPage() {
                     </div>
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Provider</p>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                      Provider
+                    </p>
                     <div className="text-xs mt-0.5 truncate">
                       <span className="capitalize">{a.modelProvider}</span>
                     </div>
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Uptime</p>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                      Uptime
+                    </p>
                     <div className="text-xs mt-0.5 truncate">{formatUptime(a.uptimeSec)}</div>
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Queue</p>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                      Queue
+                    </p>
                     <div className="text-xs mt-0.5 truncate">
                       <span className="tabular-nums">{a.queueDepth}</span>
                     </div>
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Req/min</p>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                      Req/min
+                    </p>
                     <div className="text-xs mt-0.5 truncate">
                       <span className="tabular-nums">{a.requestsPerMin}</span>
                     </div>
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Error rate</p>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                      Error rate
+                    </p>
                     <div className="text-xs mt-0.5 truncate">
                       <span className={cn("tabular-nums", errorRateClass(a.errorRatePct))}>
                         {a.errorRatePct.toFixed(1)}%
@@ -562,7 +577,11 @@ export default function AgentsPage() {
           {inspect && <InspectorBody agent={inspect} isAdmin={!!user?.is_admin} />}
         </DialogContent>
       </Dialog>
-      <AgentChat agent={chatAgent} open={!!chatAgent} onOpenChange={(o) => !o && setChatAgent(null)} />
+      <AgentChat
+        agent={chatAgent}
+        open={!!chatAgent}
+        onOpenChange={(o) => !o && setChatAgent(null)}
+      />
     </div>
   );
 }

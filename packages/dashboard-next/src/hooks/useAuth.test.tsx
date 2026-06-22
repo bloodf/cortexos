@@ -122,5 +122,4 @@ describe("useAuth", () => {
     });
     expect(result.current.user).toBeNull();
   });
-
 });

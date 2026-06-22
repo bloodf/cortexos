@@ -12,10 +12,7 @@ import type {
   BadgeRef as ContractBadgeRef,
 } from "@cortexos/contracts/entities";
 
-import type {
-  Service as MockService,
-  BadgeRef as MockBadgeRef,
-} from "@/mocks/types";
+import type { Service as MockService, BadgeRef as MockBadgeRef } from "@/mocks/types";
 
 /**
  * The runtime service row this adapter actually receives from the WP-10

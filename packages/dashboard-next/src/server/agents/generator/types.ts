@@ -9,13 +9,7 @@
 
 export type GeneratorReasoning = "low" | "medium" | "high";
 
-export type AgentChannel =
-  | "telegram"
-  | "whatsapp"
-  | "slack"
-  | "discord"
-  | "signal"
-  | "email";
+export type AgentChannel = "telegram" | "whatsapp" | "slack" | "discord" | "signal" | "email";
 
 export interface ProfileMcp {
   name: string;

@@ -71,7 +71,8 @@ export const ARCHETYPE_CATALOG: readonly Archetype[] = [
     name: "ADHD Focus Coach",
     category: "wellbeing",
     desc: "Task breakdown, body-doubling, gentle reminders and momentum.",
-    persona: "A patient ADHD coach that breaks work into tiny steps and keeps momentum without shame.",
+    persona:
+      "A patient ADHD coach that breaks work into tiny steps and keeps momentum without shame.",
     integrations: [],
     channels: ["telegram", "whatsapp"],
     skills: [],
@@ -91,7 +92,8 @@ export const ARCHETYPE_CATALOG: readonly Archetype[] = [
     name: "Personal Problem Helper",
     category: "wellbeing",
     desc: "Talk through personal problems and turn them into practical next steps.",
-    persona: "A calm, non-judgmental sounding board that helps think problems through and find concrete next steps. Not a substitute for professional help.",
+    persona:
+      "A calm, non-judgmental sounding board that helps think problems through and find concrete next steps. Not a substitute for professional help.",
     integrations: [],
     channels: ["telegram", "whatsapp", "signal"],
     skills: [],
@@ -121,7 +123,8 @@ export const ARCHETYPE_CATALOG: readonly Archetype[] = [
     name: "Personal Research Assistant",
     category: "work",
     desc: "Web research, source-gathering and plain-language summaries.",
-    persona: "A diligent researcher that gathers sources and summarizes them honestly with citations.",
+    persona:
+      "A diligent researcher that gathers sources and summarizes them honestly with citations.",
     integrations: ["web"],
     channels: ["telegram"],
     skills: [],

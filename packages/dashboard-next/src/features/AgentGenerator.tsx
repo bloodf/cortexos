@@ -119,6 +119,10 @@ export default function AgentGeneratorPage() {
   const wsRef = useRef<GeneratorSession | null>(null);
   const wsStateRef = useRef<WsState>("connecting");
   wsStateRef.current = wsState;
+  // Latest-value ref so the mount-once xterm effect can replay buffered PTY
+  // output without listing ptyOutput as a dependency (which would re-init xterm).
+  const ptyOutputRef = useRef("");
+  ptyOutputRef.current = ptyOutput;
   const termContainerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<XTerm | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
@@ -149,10 +153,17 @@ export default function AgentGeneratorPage() {
       }),
     onSuccess: (res) => {
       setSessionId(res.id);
-      setMessages([{ role: "assistant", content: "Hi — describe the agent you want to build and I'll interview you." }]);
+      setMessages([
+        {
+          role: "assistant",
+          content: "Hi — describe the agent you want to build and I'll interview you.",
+        },
+      ]);
     },
     onError: (e: unknown) => {
-      toast.error("Failed to start generator", { description: e instanceof Error ? e.message : String(e) });
+      toast.error("Failed to start generator", {
+        description: e instanceof Error ? e.message : String(e),
+      });
     },
   });
 
@@ -169,7 +180,12 @@ export default function AgentGeneratorPage() {
           reasoning,
           ...(pending.length > 0 ? { attachments: pending } : {}),
         });
-        return { via: "ws" as const, reply: "", spec: {} as Record<string, unknown>, status: "draft" as const };
+        return {
+          via: "ws" as const,
+          reply: "",
+          spec: {} as Record<string, unknown>,
+          status: "draft" as const,
+        };
       }
       const rpc = await callGeneratorSend({
         data: { sessionId, text, attachments: pending.length > 0 ? pending : undefined },
@@ -255,7 +271,10 @@ export default function AgentGeneratorPage() {
         const comma = result.indexOf(",");
         const dataBase64 = comma >= 0 ? result.slice(comma + 1) : result;
         setPending((p) =>
-          [...p, { filename: file.name, mime: file.type || "application/octet-stream", dataBase64 }].slice(0, 8),
+          [
+            ...p,
+            { filename: file.name, mime: file.type || "application/octet-stream", dataBase64 },
+          ].slice(0, 8),
         );
       };
       reader.readAsDataURL(file);
@@ -291,7 +310,7 @@ export default function AgentGeneratorPage() {
     } catch {
       /* container not yet sized */
     }
-    if (ptyOutput) term.write(ptyOutput);
+    if (ptyOutputRef.current) term.write(ptyOutputRef.current);
     termRef.current = term;
     fitRef.current = fit;
 
@@ -336,7 +355,10 @@ export default function AgentGeneratorPage() {
           setMessages((m) => {
             const last = m.at(-1);
             if (last && last.role === "assistant") {
-              return [...m.slice(0, -1), { role: "assistant", content: last.content + frame.delta }];
+              return [
+                ...m.slice(0, -1),
+                { role: "assistant", content: last.content + frame.delta },
+              ];
             }
             return [...m, { role: "assistant", content: frame.delta }];
           });
@@ -388,15 +410,24 @@ export default function AgentGeneratorPage() {
   if (!user?.is_admin) {
     return (
       <div className="space-y-5">
-        <PageHeader icon={<Sparkles className="size-5" />} title="Agent Generator" description="Admin only." />
+        <PageHeader
+          icon={<Sparkles className="size-5" />}
+          title="Agent Generator"
+          description="Admin only."
+        />
         <Card className="elev-1 p-6">
-          <EmptyState icon={<Sparkles className="size-8" />} title="Admin required" description="You need admin role to create agents." />
+          <EmptyState
+            icon={<Sparkles className="size-8" />}
+            title="Admin required"
+            description="You need admin role to create agents."
+          />
         </Card>
       </div>
     );
   }
 
-  const canSend = !!sessionId && (text.trim().length > 0 || pending.length > 0) && !sendMut.isPending;
+  const canSend =
+    !!sessionId && (text.trim().length > 0 || pending.length > 0) && !sendMut.isPending;
   const canBuild = status === "done" && typeof spec.slug === "string" && !buildMut.isPending;
   const currentSlug = typeof spec.slug === "string" ? spec.slug : "";
   const canConnectWhatsapp = wsState === "live" && currentSlug.length > 0;
@@ -418,27 +449,46 @@ export default function AgentGeneratorPage() {
               </SelectTrigger>
               <SelectContent>
                 {models.map((m) => (
-                  <SelectItem key={m} value={m} className="text-xs font-mono">{m}</SelectItem>
+                  <SelectItem key={m} value={m} className="text-xs font-mono">
+                    {m}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             {/* Effort applies to reasoning models; 9router ignores it for
                 others, so it's always selectable. */}
             <Select value={reasoning} onValueChange={(v) => setReasoning(v as Reasoning)}>
-              <SelectTrigger className="h-8 text-xs w-28"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-8 text-xs w-28">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 {REASONING_OPTIONS.map((r) => (
-                  <SelectItem key={r} value={r} className="text-xs capitalize">{r}</SelectItem>
+                  <SelectItem key={r} value={r} className="text-xs capitalize">
+                    {r}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Button size="sm" className="h-8 text-xs" disabled={!canBuild} onClick={() => buildMut.mutate()}>
+            <Button
+              size="sm"
+              className="h-8 text-xs"
+              disabled={!canBuild}
+              onClick={() => buildMut.mutate()}
+            >
               {buildMut.isPending ? <Loader2 className="size-3 animate-spin" /> : "Create agent"}
             </Button>
             <Badge
-              variant={wsState === "live" ? "default" : wsState === "unavailable" ? "destructive" : "secondary"}
+              variant={
+                wsState === "live"
+                  ? "default"
+                  : wsState === "unavailable"
+                    ? "destructive"
+                    : "secondary"
+              }
               className="h-7 text-[10px] uppercase tracking-wide"
-              title={wsState === "unavailable" ? "Sidecar unreachable; using P2 RPC fallback" : undefined}
+              title={
+                wsState === "unavailable" ? "Sidecar unreachable; using P2 RPC fallback" : undefined
+              }
             >
               WS {wsState}
             </Badge>
@@ -451,11 +501,23 @@ export default function AgentGeneratorPage() {
               </p>
             )}
             {messages.map((m, i) => (
-              <div key={i} className={cn("max-w-[85%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap break-words", m.role === "user" ? "ml-auto bg-primary text-primary-foreground" : "mr-auto bg-background border")}>
+              <div
+                key={i}
+                className={cn(
+                  "max-w-[85%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap break-words",
+                  m.role === "user"
+                    ? "ml-auto bg-primary text-primary-foreground"
+                    : "mr-auto bg-background border",
+                )}
+              >
                 {m.content}
               </div>
             ))}
-            {(thinking || sendMut.isPending) && <div className="mr-auto text-sm"><Loader2 className="size-3.5 animate-spin inline mr-1" /> thinking…</div>}
+            {(thinking || sendMut.isPending) && (
+              <div className="mr-auto text-sm">
+                <Loader2 className="size-3.5 animate-spin inline mr-1" /> thinking…
+              </div>
+            )}
           </div>
 
           {presets && messages.length <= 1 && (
@@ -485,7 +547,10 @@ export default function AgentGeneratorPage() {
           {pending.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {pending.map((p, i) => (
-                <span key={i} className="inline-flex items-center gap-1 rounded-full border bg-muted/40 px-2 py-0.5 text-[10px]">
+                <span
+                  key={i}
+                  className="inline-flex items-center gap-1 rounded-full border bg-muted/40 px-2 py-0.5 text-[10px]"
+                >
                   <Paperclip className="size-3" /> {p.filename}
                   <button onClick={() => setPending((a) => a.filter((_, idx) => idx !== i))}>
                     <X className="size-3" />
@@ -496,20 +561,49 @@ export default function AgentGeneratorPage() {
           )}
 
           <div className="flex items-end gap-2">
-            <input ref={fileInputRef} type="file" multiple className="hidden"
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              className="hidden"
               accept="image/*,audio/*,video/*,*"
-              onChange={(e) => { onPickFiles(e.target.files); e.target.value = ""; }} />
-            <Button size="icon" variant="outline" className="h-9 w-9 shrink-0" onClick={() => fileInputRef.current?.click()}>
+              onChange={(e) => {
+                onPickFiles(e.target.files);
+                e.target.value = "";
+              }}
+            />
+            <Button
+              size="icon"
+              variant="outline"
+              className="h-9 w-9 shrink-0"
+              onClick={() => fileInputRef.current?.click()}
+            >
               <Paperclip className="size-4" />
             </Button>
-            <Textarea value={text} onChange={(e) => setText(e.target.value)}
+            <Textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (canSend) sendMut.mutate(); }
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  if (canSend) sendMut.mutate();
+                }
               }}
               placeholder={sessionId ? "Reply…" : "Pick a model first…"}
-              className="min-h-[36px] max-h-40 resize-none text-sm" rows={1} />
-            <Button size="icon" className="h-9 w-9 shrink-0" disabled={!canSend} onClick={() => sendMut.mutate()}>
-              {sendMut.isPending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+              className="min-h-[36px] max-h-40 resize-none text-sm"
+              rows={1}
+            />
+            <Button
+              size="icon"
+              className="h-9 w-9 shrink-0"
+              disabled={!canSend}
+              onClick={() => sendMut.mutate()}
+            >
+              {sendMut.isPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Send className="size-4" />
+              )}
             </Button>
           </div>
         </Card>
@@ -519,7 +613,9 @@ export default function AgentGeneratorPage() {
             <Bot className="size-3.5" /> Live spec
           </div>
           <pre className="text-[10px] font-mono whitespace-pre-wrap break-all bg-muted/30 rounded p-2 min-h-[200px] max-h-[420px] overflow-y-auto">
-{Object.keys(spec).length === 0 ? "(empty — waiting for the model)" : JSON.stringify(redactSpec(spec), null, 2)}
+            {Object.keys(spec).length === 0
+              ? "(empty — waiting for the model)"
+              : JSON.stringify(redactSpec(spec), null, 2)}
           </pre>
         </Card>
       </div>
@@ -574,7 +670,7 @@ export default function AgentGeneratorPage() {
             <Sparkles className="size-3.5" /> Advisor
           </div>
           <pre className="text-[10px] font-mono whitespace-pre-wrap break-words bg-muted/30 rounded p-2 min-h-[120px] max-h-[280px] overflow-y-auto">
-{advisorBuf || "(no advisory yet — fires after each user turn)"}
+            {advisorBuf || "(no advisory yet — fires after each user turn)"}
           </pre>
         </Card>
         <Card className="elev-1 p-3 flex flex-col gap-2">
@@ -582,7 +678,7 @@ export default function AgentGeneratorPage() {
             <Bot className="size-3.5" /> Skeptic
           </div>
           <pre className="text-[10px] font-mono whitespace-pre-wrap break-words bg-muted/30 rounded p-2 min-h-[120px] max-h-[280px] overflow-y-auto">
-{skepticBuf || "(no challenge yet — fires after each user turn)"}
+            {skepticBuf || "(no challenge yet — fires after each user turn)"}
           </pre>
         </Card>
         <Card className="elev-1 p-3 flex flex-col gap-2">
@@ -596,14 +692,18 @@ export default function AgentGeneratorPage() {
         </Card>
       </div>
 
-       <div className="space-y-2">
+      <div className="space-y-2">
         <div className="text-xs font-semibold text-muted-foreground">Existing agents</div>
         {agentsLoading ? (
           <div className="grid gap-2 md:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, i) => <CardSkeleton key={i} lines={2} />)}
+            {Array.from({ length: 3 }).map((_, i) => (
+              <CardSkeleton key={i} lines={2} />
+            ))}
           </div>
         ) : agents.length === 0 ? (
-          <Card className="elev-1 p-3"><EmptyState icon={<Bot className="size-6" />} title="No existing agents" /></Card>
+          <Card className="elev-1 p-3">
+            <EmptyState icon={<Bot className="size-6" />} title="No existing agents" />
+          </Card>
         ) : (
           <div className="grid gap-2 md:grid-cols-3">
             {agents.map((a) => (

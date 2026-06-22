@@ -42,7 +42,11 @@ export function NetworkPage() {
               value={kbps(totalRx)}
               icon={<ArrowDown className="size-4" />}
             />
-            <MetricCard label="Tx Total" value={kbps(totalTx)} icon={<ArrowUp className="size-4" />} />
+            <MetricCard
+              label="Tx Total"
+              value={kbps(totalTx)}
+              icon={<ArrowUp className="size-4" />}
+            />
             <MetricCard
               label="Lifetime Rx"
               value={bytes(interfaces.reduce((a, i) => a + i.rxBytesTotal, 0))}
@@ -54,30 +58,30 @@ export function NetworkPage() {
           </div>
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {interfaces.map((i) => (
-          <Card key={i.name} className="elev-1">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-mono">{i.name}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Rx</span>
-                <span className="tabular-nums">{kbps(i.rxKbps)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Tx</span>
-                <span className="tabular-nums">{kbps(i.txKbps)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Rx total</span>
-                <span className="tabular-nums text-xs">{bytes(i.rxBytesTotal)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Tx total</span>
-                <span className="tabular-nums text-xs">{bytes(i.txBytesTotal)}</span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              <Card key={i.name} className="elev-1">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-mono">{i.name}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Rx</span>
+                    <span className="tabular-nums">{kbps(i.rxKbps)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Tx</span>
+                    <span className="tabular-nums">{kbps(i.txKbps)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Rx total</span>
+                    <span className="tabular-nums text-xs">{bytes(i.rxBytesTotal)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Tx total</span>
+                    <span className="tabular-nums text-xs">{bytes(i.txBytesTotal)}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </>
       )}

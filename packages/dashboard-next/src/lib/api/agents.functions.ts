@@ -333,10 +333,7 @@ interface SetAgentModelOutput {
   restarted: { unit: string; exitCode: number }[];
 }
 
-export const setAgentModelGateOptions: ServerFnOptions<
-  SetAgentModelInputT,
-  SetAgentModelOutput
-> = {
+export const setAgentModelGateOptions: ServerFnOptions<SetAgentModelInputT, SetAgentModelOutput> = {
   method: "POST",
   auth: "admin",
   input: SetAgentModelInput,

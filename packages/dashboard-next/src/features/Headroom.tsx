@@ -31,13 +31,21 @@ export function HeadroomPage() {
   const t = useT();
   const { health: initialHealth, stats: initialStats, url: initialUrl } = routeApi.useLoaderData();
 
-  const { data: health, isLoading: healthLoading, isError: healthError } = useQuery({
+  const {
+    data: health,
+    isLoading: healthLoading,
+    isError: healthError,
+  } = useQuery({
     queryKey: ["headroom", "health"],
     queryFn: api.headroomHealth,
     initialData: initialHealth,
     refetchInterval: 30_000,
   });
-  const { data: stats, isLoading: statsLoading, isError: statsError } = useQuery({
+  const {
+    data: stats,
+    isLoading: statsLoading,
+    isError: statsError,
+  } = useQuery({
     queryKey: ["headroom", "stats"],
     queryFn: api.headroomStats,
     initialData: initialStats,
@@ -109,17 +117,21 @@ export function HeadroomPage() {
           icon={<TrendingDown className="size-4" />}
           label="Tokens saved"
           value={formatNumber(savings?.total_tokens)}
-          hint={summary?.compression?.avg_compression_pct
-            ? `Avg compression ${formatPct(summary.compression.avg_compression_pct)}`
-            : undefined}
+          hint={
+            summary?.compression?.avg_compression_pct
+              ? `Avg compression ${formatPct(summary.compression.avg_compression_pct)}`
+              : undefined
+          }
         />
         <MetricCard
           icon={<Save className="size-4" />}
           label="Estimated savings"
           value={formatUsd(summary?.cost?.total_saved_usd)}
-          hint={summary?.cost?.savings_pct
-            ? `Savings ratio ${formatPct(summary.cost.savings_pct)}`
-            : undefined}
+          hint={
+            summary?.cost?.savings_pct
+              ? `Savings ratio ${formatPct(summary.cost.savings_pct)}`
+              : undefined
+          }
         />
         <MetricCard
           icon={<Gauge className="size-4" />}
@@ -145,8 +157,8 @@ export function HeadroomPage() {
                   </span>
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {formatUsd(p.compression_savings_usd)} saved ·{" "}
-                  {formatPct(p.savings_percent)} compression
+                  {formatUsd(p.compression_savings_usd)} saved · {formatPct(p.savings_percent)}{" "}
+                  compression
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {formatNumber(p.requests)} requests

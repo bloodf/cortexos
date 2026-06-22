@@ -34,10 +34,7 @@ import { execFile } from "node:child_process";
 import fs from "node:fs";
 import { promisify } from "node:util";
 
-import {
-  findProfileBySlug,
-  updateProfileModel,
-} from "@/server/agents/registry";
+import { findProfileBySlug, updateProfileModel } from "@/server/agents/registry";
 import { readEnvValue } from "@/server/agents/chat";
 import { validationError, systemError } from "@/server/errors/types";
 import { audit } from "@/server/audit";
@@ -467,26 +464,21 @@ export async function setAgentModel(
   const units = unitsFor(slug);
   // Restart profile first so the new env/config is live before the gateway
   // reconnects to it.
-  const restarted = await runSequentially(
-    [units.profile, units.gateway],
-    async (unit) => {
-      const res = await executor(["restart", unit]);
-      emitUnitAudit(
-        ctx,
-        "restart",
-        unit,
-        res.exitCode === 0 ? "success" : "failure",
-        res.exitCode === 0 ? null : "systemctl_nonzero",
-      );
-      return { unit, exitCode: res.exitCode };
-    },
-  );
+  const restarted = await runSequentially([units.profile, units.gateway], async (unit) => {
+    const res = await executor(["restart", unit]);
+    emitUnitAudit(
+      ctx,
+      "restart",
+      unit,
+      res.exitCode === 0 ? "success" : "failure",
+      res.exitCode === 0 ? null : "systemctl_nonzero",
+    );
+    return { unit, exitCode: res.exitCode };
+  });
 
   const failed = restarted.find((r) => r.exitCode !== 0);
   if (failed) {
-    throw systemError(
-      `restart ${failed.unit} failed (exit ${failed.exitCode})`,
-    );
+    throw systemError(`restart ${failed.unit} failed (exit ${failed.exitCode})`);
   }
 
   return { slug, model: input.model, reasoning: input.reasoning, restarted };
@@ -498,10 +490,7 @@ export async function setAgentModel(
  * absent from the file are APPENDED. Used by setAgentModel for HERMES_MODEL /
  * HERMES_REASONING.
  */
-function rewriteEnvLines(
-  envText: string,
-  updates: Record<string, string>,
-): string {
+function rewriteEnvLines(envText: string, updates: Record<string, string>): string {
   const remaining = new Set(Object.keys(updates));
   const out = envText.split("\n").map((line) => {
     const trimmed = line.trim();

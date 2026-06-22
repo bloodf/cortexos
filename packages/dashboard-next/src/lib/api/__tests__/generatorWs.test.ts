@@ -65,7 +65,9 @@ afterEach(() => {
 describe("generatorWsUrl", () => {
   it("builds the same-origin /agent-generator/ws URL", async () => {
     const { generatorWsUrl } = await import("@/lib/api/generatorWs");
-    expect(generatorWsUrl()).toBe(`${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}/agent-generator/ws`);
+    expect(generatorWsUrl()).toBe(
+      `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}/agent-generator/ws`,
+    );
   });
 });
 
@@ -126,7 +128,6 @@ describe("openGeneratorWs", () => {
     ]);
     session.close();
   });
-
 
   it("sendPty/resizePty/build only emit when state === 'live'", async () => {
     const { openGeneratorWs } = await import("@/lib/api/generatorWs");

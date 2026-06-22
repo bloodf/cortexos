@@ -2,12 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Bot, Loader2, Paperclip, Send, X } from "lucide-react";
 import { toast } from "sonner";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -17,12 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  callAgentChat,
-  callSetAgentModel,
-  callMintApproval,
-  listModels,
-} from "@/lib/api/client";
+import { callAgentChat, callSetAgentModel, callMintApproval, listModels } from "@/lib/api/client";
 import { csrfHeaders } from "@/lib/csrf";
 import { cn } from "@/lib/utils";
 import type { Agent } from "@/mocks/types";
@@ -172,7 +162,10 @@ export function AgentChat({
         const comma = result.indexOf(",");
         const dataBase64 = comma >= 0 ? result.slice(comma + 1) : result;
         setPending((p) =>
-          [...p, { filename: file.name, mime: file.type || "application/octet-stream", dataBase64 }].slice(0, 8),
+          [
+            ...p,
+            { filename: file.name, mime: file.type || "application/octet-stream", dataBase64 },
+          ].slice(0, 8),
         );
       };
       reader.readAsDataURL(file);
@@ -204,7 +197,10 @@ export function AgentChat({
                 ))}
               </SelectContent>
             </Select>
-            <Select value={reasoning} onValueChange={(v) => setReasoning(v as (typeof REASONING_OPTIONS)[number])}>
+            <Select
+              value={reasoning}
+              onValueChange={(v) => setReasoning(v as (typeof REASONING_OPTIONS)[number])}
+            >
               <SelectTrigger className="h-8 text-xs w-28">
                 <SelectValue />
               </SelectTrigger>
@@ -318,7 +314,11 @@ export function AgentChat({
             disabled={!canSend}
             onClick={() => chatMutation.mutate()}
           >
-            {chatMutation.isPending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+            {chatMutation.isPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Send className="size-4" />
+            )}
           </Button>
         </div>
       </SheetContent>

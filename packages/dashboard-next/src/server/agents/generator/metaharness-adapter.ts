@@ -41,10 +41,44 @@ export interface RecommendResult {
 // incident response for devops" scores on {incident, response, devops}, not
 // {an, agent, that, does, for}.
 const STOP_WORDS = new Set([
-  "a", "an", "the", "and", "or", "for", "to", "of", "in", "on", "with",
-  "that", "this", "is", "are", "be", "do", "does", "it", "its", "my",
-  "i", "we", "want", "need", "build", "create", "make", "agent", "agents",
-  "hermes", "profile", "please", "help", "me", "should", "will", "can",
+  "a",
+  "an",
+  "the",
+  "and",
+  "or",
+  "for",
+  "to",
+  "of",
+  "in",
+  "on",
+  "with",
+  "that",
+  "this",
+  "is",
+  "are",
+  "be",
+  "do",
+  "does",
+  "it",
+  "its",
+  "my",
+  "i",
+  "we",
+  "want",
+  "need",
+  "build",
+  "create",
+  "make",
+  "agent",
+  "agents",
+  "hermes",
+  "profile",
+  "please",
+  "help",
+  "me",
+  "should",
+  "will",
+  "can",
 ]);
 
 function tokenize(text: string): string[] {
@@ -55,7 +89,10 @@ function tokenize(text: string): string[] {
     .filter((t) => t.length > 1 && !STOP_WORDS.has(t));
 }
 
-function scoreTemplate(template: { domain: string; desc: string; tags: string[] }, keywords: string[]): number {
+function scoreTemplate(
+  template: { domain: string; desc: string; tags: string[] },
+  keywords: string[],
+): number {
   const haystack = `${template.domain} ${template.desc} ${template.tags.join(" ")}`.toLowerCase();
   let score = 0;
   for (const kw of keywords) {

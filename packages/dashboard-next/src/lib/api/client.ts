@@ -518,9 +518,11 @@ const getHeadroomUrlFn = _getHeadroomUrl as unknown as (opts: {
 }) => Promise<{ url: string }>;
 
 /** Call incusAction RPC directly — requires a pre-minted approval token for destructive ops. */
-export const callIncusAction = _incusAction as unknown as (opts: {
-  data: IncusActionInputType;
-} & CsrfOpts) => Promise<IncusActionOutput>;
+export const callIncusAction = _incusAction as unknown as (
+  opts: {
+    data: IncusActionInputType;
+  } & CsrfOpts,
+) => Promise<IncusActionOutput>;
 /** Call instanceLogs RPC — returns newest-first log lines for a named instance. */
 export const callInstanceLogs = _instanceLogs as unknown as (opts: {
   data: InstanceLogsInputType;
@@ -619,9 +621,11 @@ const containerLogsFn = _containerLogs as unknown as (opts: {
 }) => Promise<ContainerLogsOutput>;
 
 /** Call dockerAction RPC directly — requires a pre-minted approval token. */
-export const callDockerAction = _dockerAction as unknown as (opts: {
-  data: DockerActionInputType;
-} & CsrfOpts) => Promise<DockerActionOutput>;
+export const callDockerAction = _dockerAction as unknown as (
+  opts: {
+    data: DockerActionInputType;
+  } & CsrfOpts,
+) => Promise<DockerActionOutput>;
 /** Call mintApproval RPC directly — admin only; mints a single-use approval token. */
 export const callMintApproval = _mintApproval as unknown as (opts: {
   data: MintApprovalInputType;

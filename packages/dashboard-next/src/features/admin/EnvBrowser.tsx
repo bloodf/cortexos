@@ -117,7 +117,9 @@ export function AdminEnvPage() {
   };
 
   const qc = useQueryClient();
-  const [editEntry, setEditEntry] = useState<{ path: string; key: string; value: string } | null>(null);
+  const [editEntry, setEditEntry] = useState<{ path: string; key: string; value: string } | null>(
+    null,
+  );
   const saveMut = useMutation({
     mutationFn: (vars: { path: string; key: string; value: string }) =>
       updateAdminEnv(vars.path, vars.key, vars.value),
@@ -290,8 +292,8 @@ export function AdminEnvPage() {
             </DialogTitle>
             <DialogDescription>
               Writes <code className="font-mono">{editEntry?.key}</code> back to{" "}
-              <code className="font-mono">{editEntry?.path ?? path}</code>. Changing a value here can break the
-              services that read it — they may need a restart to pick it up.
+              <code className="font-mono">{editEntry?.path ?? path}</code>. Changing a value here
+              can break the services that read it — they may need a restart to pick it up.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-1.5">

@@ -220,7 +220,13 @@ const revokeApprovalGate = defineServerFn({
     const { resolvePendingApproval } = await import("@/server/db/repos/pending_approvals");
     const { notFoundError, systemError } = await import("@/server/errors/types");
     if (!user) throw systemError("Session required for approval revocation");
-    const updated = await resolvePendingApproval(getDb(), input.id, "deny", user.username, input.reason);
+    const updated = await resolvePendingApproval(
+      getDb(),
+      input.id,
+      "deny",
+      user.username,
+      input.reason,
+    );
     if (!updated) throw notFoundError(`Approval ${input.id} not found`, "approval");
     return { ok: true as const };
   },

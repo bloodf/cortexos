@@ -45,7 +45,13 @@ describe("buildProfileFromSpec — command sequence", () => {
       calls.push(arr);
       if (arr[0] === "node" && arr[1]?.endsWith("hermes-profile-create.mjs")) {
         return {
-          stdout: JSON.stringify({ profile: "btest", port: 18720, model: "x", reasoning: "medium", secretPath: "/x" }),
+          stdout: JSON.stringify({
+            profile: "btest",
+            port: 18720,
+            model: "x",
+            reasoning: "medium",
+            secretPath: "/x",
+          }),
           stderr: "",
           exitCode: 0,
         };
@@ -111,9 +117,9 @@ describe("buildProfileFromSpec — command sequence", () => {
       }
       return { stdout: "", stderr: "", exitCode: 0 };
     });
-    await expect(
-      buildProfileFromSpec(makeSpec({ slug: "fail" }), () => {}),
-    ).rejects.toThrow(/cortex-render-units/);
+    await expect(buildProfileFromSpec(makeSpec({ slug: "fail" }), () => {})).rejects.toThrow(
+      /cortex-render-units/,
+    );
     // The enable step was never reached.
     const systemctl = calls.filter((c) => c[0] === "/usr/bin/systemctl");
     expect(systemctl).toHaveLength(0);

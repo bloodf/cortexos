@@ -74,10 +74,7 @@ export function readEnvValue(filePath: string, key: string): string | null {
     const k = deexported.slice(0, eq).trim();
     if (k !== key) continue;
     let v = deexported.slice(eq + 1).trim();
-    if (
-      (v.startsWith('"') && v.endsWith('"')) ||
-      (v.startsWith("'") && v.endsWith("'"))
-    ) {
+    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
       v = v.slice(1, -1);
     }
     return v;

@@ -96,7 +96,25 @@ export function sanitizeHtml(html: string | null | undefined): string {
       USE_PROFILES: { html: true },
       // Strip: scripts/styles (XSS), forms/inputs (phishing), img (remote
       // tracking pixels), interactive controls (clickjacking).
-      FORBID_TAGS: ["form", "input", "style", "script", "img", "button", "select", "textarea", "option", "iframe", "object", "embed", "base", "link", "meta", "svg", "math"],
+      FORBID_TAGS: [
+        "form",
+        "input",
+        "style",
+        "script",
+        "img",
+        "button",
+        "select",
+        "textarea",
+        "option",
+        "iframe",
+        "object",
+        "embed",
+        "base",
+        "link",
+        "meta",
+        "svg",
+        "math",
+      ],
       FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover", "style"],
       ADD_ATTR: ["target", "rel"],
       ALLOW_DATA_ATTR: false,
@@ -337,9 +355,7 @@ function ReviewsPane() {
                     key={level}
                     type="button"
                     onClick={() =>
-                      setPicked(
-                        new Set(mails.filter((m) => m.risk === level).map((m) => m.id)),
-                      )
+                      setPicked(new Set(mails.filter((m) => m.risk === level).map((m) => m.id)))
                     }
                     className={cn(
                       "rounded-full border px-2 py-0.5 text-[10px] uppercase transition-colors hover:bg-accent",

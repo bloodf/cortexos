@@ -13,6 +13,13 @@ export default tseslint.config(
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
+      // only-throw-error (below) is type-aware; projectService gives the parser
+      // the type info it needs without enabling the rest of the type-checked
+      // ruleset. Without this, eslint errors on every file.
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
     },
     plugins: {
       "react-hooks": reactHooks,
