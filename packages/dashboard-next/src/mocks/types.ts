@@ -20,7 +20,7 @@ export interface BadgeRef {
 }
 
 export interface Service extends ServiceCheck {
-  kind: "app" | "service" | "docker" | "process";
+  kind: "app" | "service" | "docker" | "process" | "dashboard-launcher";
   health_url: string;
   health_type: "http" | "tcp" | "docker" | "systemd" | "process";
   description: string | null;

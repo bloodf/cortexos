@@ -26,8 +26,10 @@ export function AuditPage() {
   const { data: chainResult, isLoading: chainLoading } = useQuery({
     queryKey: ["audit", "verify"],
     queryFn: () => callVerifyAudit({ data: {} }),
-    // Verify once on mount; re-run every 5 minutes.
+    // Verify on mount and re-run every 5 minutes. refetchInterval drives the
+    // periodic re-check; staleTime alone never refetches.
     staleTime: 5 * 60 * 1000,
+    refetchInterval: 5 * 60 * 1000,
   });
   const [sel, setSel] = useState<AuditEntry | null>(null);
 

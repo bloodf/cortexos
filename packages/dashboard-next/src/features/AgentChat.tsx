@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Bot, Loader2, Paperclip, Send, X } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -79,11 +79,15 @@ export function AgentChat({
   const models = modelsData?.models ?? [];
 
   // Seed the model select with the agent's current model when opened.
+  // In an effect (not the render body) so it never sets state during render —
+  // which is unsafe under SSR and triggers React's update-during-render warning.
   const lastSeedSlug = useRef<string>("");
-  if (open && slug && slug !== lastSeedSlug.current) {
-    lastSeedSlug.current = slug;
-    if (!model && agent?.model) setModel(agent.model);
-  }
+  useEffect(() => {
+    if (open && slug && slug !== lastSeedSlug.current) {
+      lastSeedSlug.current = slug;
+      if (!model && agent?.model) setModel(agent.model);
+    }
+  }, [open, slug, agent?.model, model]);
 
   const chatMutation = useMutation({
     mutationFn: async () => {

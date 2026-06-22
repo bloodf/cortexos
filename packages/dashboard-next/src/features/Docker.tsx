@@ -369,13 +369,6 @@ export function DockerPage() {
         icon={<Container className="size-5" />}
         title={t.nav.docker}
         description={`${containers.filter((c) => c.state === "running").length} running · ${images.length} images · ${volumes.length} volumes`}
-        actions={
-          isAdmin ? (
-            <Button size="sm" variant="outline">
-              Pull image…
-            </Button>
-          ) : undefined
-        }
       />
 
       <Tabs defaultValue="containers" className="space-y-4">

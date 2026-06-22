@@ -32,24 +32,28 @@ export function NetworkPage() {
           description="The request failed — it will retry automatically."
         />
       )}
-      <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
-        <MetricCard
-          label="Rx Total"
-          value={kbps(totalRx)}
-          icon={<ArrowDown className="size-4" />}
-        />
-        <MetricCard label="Tx Total" value={kbps(totalTx)} icon={<ArrowUp className="size-4" />} />
-        <MetricCard
-          label="Lifetime Rx"
-          value={bytes(interfaces.reduce((a, i) => a + i.rxBytesTotal, 0))}
-        />
-        <MetricCard
-          label="Lifetime Tx"
-          value={bytes(interfaces.reduce((a, i) => a + i.txBytesTotal, 0))}
-        />
-      </div>
-      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-        {interfaces.map((i) => (
+      {/* Only render metrics once data has loaded — avoids a flash of
+          misleading all-zero values during load and under the error state. */}
+      {net && (
+        <>
+          <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
+            <MetricCard
+              label="Rx Total"
+              value={kbps(totalRx)}
+              icon={<ArrowDown className="size-4" />}
+            />
+            <MetricCard label="Tx Total" value={kbps(totalTx)} icon={<ArrowUp className="size-4" />} />
+            <MetricCard
+              label="Lifetime Rx"
+              value={bytes(interfaces.reduce((a, i) => a + i.rxBytesTotal, 0))}
+            />
+            <MetricCard
+              label="Lifetime Tx"
+              value={bytes(interfaces.reduce((a, i) => a + i.txBytesTotal, 0))}
+            />
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {interfaces.map((i) => (
           <Card key={i.name} className="elev-1">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-mono">{i.name}</CardTitle>
@@ -74,7 +78,9 @@ export function NetworkPage() {
             </CardContent>
           </Card>
         ))}
-      </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

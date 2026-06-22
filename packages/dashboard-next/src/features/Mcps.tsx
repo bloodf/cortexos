@@ -13,7 +13,7 @@ function commandText(server: McpServerEntry): string {
 }
 
 export default function McpsPage() {
-  const { data: servers = [], isLoading } = useQuery({
+  const { data: servers = [], isLoading, isError } = useQuery({
     queryKey: ["mcp", "servers"],
     queryFn: api.mcpServers,
   });
@@ -29,6 +29,14 @@ export default function McpsPage() {
       {isLoading ? (
         <Card className="p-6 elev-1">
           <EmptyState title="Loading MCP servers…" />
+        </Card>
+      ) : isError ? (
+        <Card className="p-6 elev-1">
+          <EmptyState
+            icon={<Boxes className="size-8" />}
+            title="Couldn't load MCP servers"
+            description="The request failed — it will retry automatically."
+          />
         </Card>
       ) : servers.length === 0 ? (
         <Card className="p-6 elev-1">
