@@ -61,6 +61,7 @@ vi.mock("@/lib/api/agentGenerator.functions", () => ({
   createGeneratorSession: vi.fn(),
   generatorSend: vi.fn(),
   getGeneratorSession: vi.fn(),
+  listGeneratorPresets: vi.fn(),
   buildGeneratorProfile: vi.fn(),
 }));
 

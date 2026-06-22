@@ -25,6 +25,13 @@ import { systemError } from "@/server/errors/types";
 
 const execFileAsync = promisify(execFileCb);
 
+// Defense-in-depth guards (the RPC handler in agentGenerator.functions.ts is the
+// primary gate, but a future caller could reach buildProfileFromSpec directly).
+/** Model id charset — must match the RPC boundary's MODEL_RE. */
+const MODEL_RE = /^[A-Za-z0-9._:/-]+$/;
+/** Any CR/LF makes a value unsafe to write into a line-oriented .env file. */
+const hasNewline = (v: string): boolean => v.includes("\n") || v.includes("\r");
+
 // -------------------------------------------------------------------
 // Test seams
 export type BuildExecutor = (
@@ -150,12 +157,21 @@ export async function buildProfileFromSpec(
   const warnings: string[] = [];
   const log = (line: string) => onLog(line);
 
+  // Sanitize the model defensively (the RPC boundary already validates it, but
+  // a direct caller could pass anything). A bad model would otherwise be written
+  // verbatim into config.yaml's `model.default:` and could inject a YAML key.
+  const safeModel = typeof spec.model === "string" && MODEL_RE.test(spec.model) ? spec.model : "";
+  if (spec.model && !safeModel) {
+    warnings.push("model rejected (invalid characters); using create-script default");
+    log("model: rejected (invalid characters)");
+  }
+
   // 1. Create the profile (CRITICAL).
-  log(`create: ${spec.slug} model=${spec.model || "claude-fallback"} reasoning=${spec.reasoning}`);
+  log(`create: ${spec.slug} model=${safeModel || "claude-fallback"} reasoning=${spec.reasoning}`);
   let port = 0;
   try {
     const { stdout } = await executor(
-      ["node", CREATE_SCRIPT, spec.slug, "", spec.model || "claude-fallback", spec.reasoning],
+      ["node", CREATE_SCRIPT, spec.slug, "", safeModel || "claude-fallback", spec.reasoning],
       { timeout: 60_000, maxBuffer: 4 * 1024 * 1024 },
     );
     const parsed = JSON.parse(stdout) as { profile?: string; port?: number };
@@ -190,7 +206,7 @@ export async function buildProfileFromSpec(
   // 2. Apply the rich config template (BEST-EFFORT).
   // The real template uses `<<PROFILE_NAME>>` / `<<HINDSIGHT_*>>` placeholders.
   // Substitute those and rewrite `model.default:` to the spec's model.
-  if (spec.model) {
+  if (safeModel) {
     try {
       const home = `${PROFILES_DIR}/${spec.slug}`;
       const tmpl = await fs.readFile(RICH_CONFIG_TEMPLATE, "utf8");
@@ -214,7 +230,7 @@ export async function buildProfileFromSpec(
         if (defaultLineRel >= 0) {
           lines[defaultLineRel] = lines[defaultLineRel].replace(
             /^([ \t]+default:\s*).*/,
-            `$1${spec.model}`,
+            `$1${safeModel}`,
           );
         }
       }
@@ -322,7 +338,14 @@ export async function buildProfileFromSpec(
   for (const mcp of allMcps) {
     if (mcp && mcp.env && typeof mcp.env === "object") {
       for (const [k, v] of Object.entries(mcp.env)) {
-        if (typeof k === "string" && k.length > 0 && typeof v === "string") mcpEnv[k] = v;
+        if (typeof k !== "string" || k.length === 0 || typeof v !== "string") continue;
+        // Defense-in-depth: a key/value with CR/LF would inject extra .env lines.
+        if (hasNewline(k) || hasNewline(v)) {
+          warnings.push(`mcp env '${k}' skipped: contains newline`);
+          log(`mcp env ${k}: skipped (newline)`);
+          continue;
+        }
+        mcpEnv[k] = v;
       }
     }
   }
@@ -364,7 +387,11 @@ export async function buildProfileFromSpec(
   }
 
   // 6. Telegram token → profile .env (BEST-EFFORT, replace or append).
-  if (spec.telegramBotToken) {
+  if (spec.telegramBotToken && hasNewline(spec.telegramBotToken)) {
+    // Defense-in-depth: a token with CR/LF would inject extra .env lines.
+    warnings.push("telegram token skipped: contains newline");
+    log("telegram: skipped (newline)");
+  } else if (spec.telegramBotToken) {
     try {
       const envPath = `${SECRETS_DIR}/${spec.slug}.env`;
       const envText = await fs.readFile(envPath, "utf8");

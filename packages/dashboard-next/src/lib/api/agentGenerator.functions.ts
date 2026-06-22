@@ -89,6 +89,167 @@ interface BuildGeneratorProfileOutput {
 }
 
 // ---------------------------------------------------------------------------
+// Spec projection + validation (the live RPC boundary).
+//
+// The model-authored spec is untrusted: it arrives as `Record<string, unknown>`
+// and flows into files the build writes (config.yaml, the profile .env). This
+// projection is the ONE place that decides what crosses into the builder, so it
+// also closes the injection surface:
+//   - model:           must match a strict charset (else fall back) — a value
+//                      like "x\nadmin: true" would otherwise inject a YAML key.
+//   - telegram token:  rejected if it carries CR/LF (\.env newline injection).
+//   - mcp env key/val: each rejected individually if it carries CR/LF.
+//   - mcp name:        strict charset, must not start with '-' (argv flag-spoof).
+// Rejected items are dropped and a warning is pushed (surfaced to the operator),
+// never silently written. Extracted as a pure function so it can be unit-tested
+// directly without standing up the whole server-fn pipeline.
+// ---------------------------------------------------------------------------
+
+/** Model id charset — letters, digits, and the separators real model ids use. */
+const MODEL_RE = /^[A-Za-z0-9._:/-]+$/;
+/** MCP server name charset; '-' lead is rejected so a name can't spoof a flag. */
+const MCP_NAME_RE = /^[A-Za-z0-9._-]+$/;
+/** Any CR or LF makes a value unsafe to write into a line-oriented .env file. */
+const hasNewline = (v: string): boolean => v.includes("\n") || v.includes("\r");
+
+export interface ProjectedBuildSpec {
+  slug: string;
+  name: string;
+  description: string;
+  model: string;
+  reasoning: "low" | "medium" | "high";
+  channels: Array<"telegram" | "whatsapp" | "slack" | "discord" | "signal" | "email">;
+  skills: string[];
+  mcps: Array<{
+    name: string;
+    preset?: string;
+    url?: string;
+    command?: string;
+    args?: string[];
+    env?: Record<string, string>;
+  }>;
+  integrations: string[];
+  roles: Array<{ role: string; focus?: string }>;
+  soul?: string;
+  telegramBotToken?: string;
+}
+
+/**
+ * Project + validate the untrusted spec record (and an out-of-band telegram
+ * token) into the shape `buildProfileFromSpec` consumes. Pushes a human-readable
+ * warning for every value it drops. Pure — no I/O, no throws.
+ */
+export function projectBuildSpec(
+  rawSpec: Record<string, unknown>,
+  slug: string,
+  telegramBotToken: string | undefined,
+  warnings: string[],
+): ProjectedBuildSpec {
+  const validChannels = new Set<string>([
+    "telegram",
+    "whatsapp",
+    "slack",
+    "discord",
+    "signal",
+    "email",
+  ]);
+  const channels = (Array.isArray(rawSpec.channels) ? rawSpec.channels : []).filter(
+    (c): c is "telegram" | "whatsapp" | "slack" | "discord" | "signal" | "email" =>
+      typeof c === "string" && validChannels.has(c),
+  );
+  const skills = (Array.isArray(rawSpec.skills) ? rawSpec.skills : []).filter(
+    (s): s is string => typeof s === "string",
+  );
+
+  const rawMcps = Array.isArray(rawSpec.mcps) ? rawSpec.mcps : [];
+  const mcps: ProjectedBuildSpec["mcps"] = [];
+  for (const m of rawMcps) {
+    if (!m || typeof (m as { name?: unknown }).name !== "string") continue;
+    const mm = m as {
+      name: string;
+      preset?: unknown;
+      url?: unknown;
+      command?: unknown;
+      args?: unknown;
+      env?: unknown;
+    };
+    // Reject names that fail the charset or could spoof a CLI flag.
+    if (!MCP_NAME_RE.test(mm.name) || mm.name.startsWith("-")) {
+      warnings.push(`mcp '${mm.name}' dropped: invalid name`);
+      continue;
+    }
+    const out: ProjectedBuildSpec["mcps"][number] = { name: mm.name };
+    if (typeof mm.preset === "string") out.preset = mm.preset;
+    if (typeof mm.url === "string") out.url = mm.url;
+    if (typeof mm.command === "string") out.command = mm.command;
+    if (Array.isArray(mm.args)) {
+      out.args = mm.args.filter((a): a is string => typeof a === "string");
+    }
+    if (mm.env && typeof mm.env === "object") {
+      const env: Record<string, string> = {};
+      for (const [k, v] of Object.entries(mm.env as Record<string, unknown>)) {
+        if (typeof k !== "string" || k.length === 0 || typeof v !== "string") continue;
+        if (hasNewline(k) || hasNewline(v)) {
+          warnings.push(`mcp '${mm.name}' env '${k}' dropped: contains newline`);
+          continue;
+        }
+        env[k] = v;
+      }
+      if (Object.keys(env).length > 0) out.env = env;
+    }
+    mcps.push(out);
+  }
+
+  const integrations = (Array.isArray(rawSpec.integrations) ? rawSpec.integrations : []).filter(
+    (i): i is string => typeof i === "string",
+  );
+
+  const rawRoles = Array.isArray(rawSpec.roles) ? rawSpec.roles : [];
+  const roles: ProjectedBuildSpec["roles"] = [];
+  for (const r of rawRoles) {
+    if (!r || typeof (r as { role?: unknown }).role !== "string") continue;
+    const rr = r as { role: string; focus?: unknown };
+    roles.push({
+      role: rr.role,
+      ...(typeof rr.focus === "string" ? { focus: rr.focus } : {}),
+    });
+  }
+
+  // model: strict charset or fall back — closes YAML key injection via model.
+  const rawModel = rawSpec.model;
+  const model =
+    typeof rawModel === "string" && MODEL_RE.test(rawModel) ? rawModel : "claude-fallback";
+  if (typeof rawModel === "string" && !MODEL_RE.test(rawModel)) {
+    warnings.push("model rejected (invalid characters); using fallback");
+  }
+
+  // telegram token: drop if it carries CR/LF — would inject extra .env lines.
+  let token = telegramBotToken;
+  if (typeof token === "string" && hasNewline(token)) {
+    warnings.push("telegram token rejected: contains newline");
+    token = undefined;
+  }
+
+  return {
+    slug,
+    name: typeof rawSpec.name === "string" ? rawSpec.name : slug,
+    description: typeof rawSpec.description === "string" ? rawSpec.description : "",
+    model,
+    reasoning: (typeof rawSpec.reasoning === "string" &&
+    ["low", "medium", "high"].includes(rawSpec.reasoning)
+      ? rawSpec.reasoning
+      : "medium") as "low" | "medium" | "high",
+    channels,
+    skills,
+    mcps,
+    integrations,
+    roles,
+    ...(typeof rawSpec.soul === "string" ? { soul: rawSpec.soul } : {}),
+    ...(token !== undefined ? { telegramBotToken: token } : {}),
+  };
+}
+
+// ---------------------------------------------------------------------------
 // createGeneratorSession — POST, auth: admin.
 // ---------------------------------------------------------------------------
 
@@ -279,48 +440,24 @@ const buildGeneratorProfileGateOptions: ServerFnOptions<
     if (!session) throw notFoundError(`generator session ${input.sessionId} not found`);
     await repo.setStatus(db, input.sessionId, "building", { slug: input.slug });
 
-    const validChannels = new Set<string>([
-      "telegram",
-      "whatsapp",
-      "slack",
-      "discord",
-      "signal",
-      "email",
-    ]);
-    const channels = (Array.isArray(input.spec.channels) ? input.spec.channels : []).filter(
-      (c): c is "telegram" | "whatsapp" | "slack" | "discord" | "signal" | "email" =>
-        typeof c === "string" && validChannels.has(c),
+    // Project + validate the untrusted model-authored spec at THIS boundary —
+    // the rich builder consumes integrations/roles/soul + per-mcp preset/args/env
+    // (which the old hand-rebuild dropped), and this is where injection is closed
+    // before any value reaches config.yaml or the profile .env. See projectBuildSpec.
+    const projectionWarnings: string[] = [];
+    const spec = projectBuildSpec(
+      input.spec,
+      input.slug,
+      input.telegramBotToken,
+      projectionWarnings,
     );
-    const skills = (Array.isArray(input.spec.skills) ? input.spec.skills : []).filter(
-      (s): s is string => typeof s === "string",
-    );
-    const rawMcps = Array.isArray(input.spec.mcps) ? input.spec.mcps : [];
-    const mcps = rawMcps
-      .filter(
-        (m): m is { name: string; url?: string; command?: string } =>
-          !!m && typeof (m as { name?: unknown }).name === "string",
-      )
-      .map((m) => ({
-        name: m.name,
-        ...(typeof m.url === "string" ? { url: m.url } : {}),
-        ...(typeof m.command === "string" ? { command: m.command } : {}),
-      }));
-    const spec = {
-      slug: input.slug,
-      name: typeof input.spec.name === "string" ? input.spec.name : input.slug,
-      description: typeof input.spec.description === "string" ? input.spec.description : "",
-      model: typeof input.spec.model === "string" ? input.spec.model : "claude-fallback",
-      reasoning: (typeof input.spec.reasoning === "string" &&
-      ["low", "medium", "high"].includes(input.spec.reasoning)
-        ? input.spec.reasoning
-        : "medium") as "low" | "medium" | "high",
-      channels,
-      skills,
-      mcps,
-      telegramBotToken: input.telegramBotToken,
-    };
 
     let lastLogs = "";
+    for (const w of projectionWarnings) {
+      const line = `spec: ${w}`;
+      lastLogs += line + "\n";
+      repo.appendBuildLogs(db, input.sessionId, line + "\n").catch(() => {});
+    }
     try {
       const result = await buildProfileFromSpec(spec, (line) => {
         lastLogs += line + "\n";
