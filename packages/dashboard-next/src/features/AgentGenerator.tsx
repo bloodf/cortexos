@@ -1,23 +1,47 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
-import { Bot, Loader2, Paperclip, Send, Sparkles, Terminal as TerminalIcon, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Bot,
+  ChevronDown,
+  FileText,
+  Loader2,
+  Paperclip,
+  Sparkles,
+  Terminal as TerminalIcon,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { CardSkeleton } from "@/components/skeletons";
+import {
+  Conversation,
+  ConversationContent,
+  ConversationEmptyState,
+  ConversationScrollButton,
+} from "@/components/ai-elements/conversation";
+import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
+import {
+  PromptInput,
+  PromptInputBody,
+  PromptInputButton,
+  PromptInputFooter,
+  PromptInputSelect,
+  PromptInputSelectContent,
+  PromptInputSelectItem,
+  PromptInputSelectTrigger,
+  PromptInputSelectValue,
+  PromptInputSubmit,
+  PromptInputTextarea,
+  PromptInputTools,
+} from "@/components/ai-elements/prompt-input";
 import {
   callCreateGeneratorSession,
   callGeneratorSend,
@@ -29,6 +53,7 @@ import {
 } from "@/lib/api/client";
 import { csrfHeaders } from "@/lib/csrf";
 import { useAuth } from "@/hooks/useAuth";
+import { bytes } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
   openGeneratorWs,
@@ -46,6 +71,7 @@ type Reasoning = (typeof REASONING_OPTIONS)[number];
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  attachments?: PendingAttachment[];
 }
 
 interface PendingAttachment {
@@ -55,11 +81,59 @@ interface PendingAttachment {
 }
 
 const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
+const MAX_ATTACHMENTS = 8;
 
 function decodedBytes(att: PendingAttachment): number {
   const len = att.dataBase64.length;
   const pad = att.dataBase64.endsWith("==") ? 2 : att.dataBase64.endsWith("=") ? 1 : 0;
   return Math.floor((len * 3) / 4) - pad;
+}
+
+/** A single attachment chip / thumbnail. `onRemove` present ⇒ pending (composer). */
+function AttachmentChip({ att, onRemove }: { att: PendingAttachment; onRemove?: () => void }) {
+  const isImage = att.mime.startsWith("image/");
+  const size = decodedBytes(att);
+  if (isImage) {
+    return (
+      <div className="group/att relative size-16 shrink-0 overflow-hidden rounded-md border bg-muted/30">
+        {/* data: URL preview — the base64 we already hold, no extra fetch. */}
+        <img
+          src={`data:${att.mime};base64,${att.dataBase64}`}
+          alt={att.filename}
+          className="size-full object-cover"
+        />
+        {onRemove && (
+          <button
+            type="button"
+            aria-label={`Remove ${att.filename}`}
+            onClick={onRemove}
+            className="absolute right-0.5 top-0.5 grid size-4 place-items-center rounded-full bg-background/80 text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover/att:opacity-100"
+          >
+            <X className="size-3" />
+          </button>
+        )}
+      </div>
+    );
+  }
+  return (
+    <span className="inline-flex max-w-[200px] items-center gap-1.5 rounded-md border bg-muted/40 px-2 py-1 text-xs">
+      <FileText className="size-3.5 shrink-0 text-muted-foreground" />
+      <span className="truncate" title={att.filename}>
+        {att.filename}
+      </span>
+      <span className="shrink-0 text-[10px] text-muted-foreground tabular-nums">{bytes(size)}</span>
+      {onRemove && (
+        <button
+          type="button"
+          aria-label={`Remove ${att.filename}`}
+          onClick={onRemove}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          <X className="size-3" />
+        </button>
+      )}
+    </span>
+  );
 }
 
 /**
@@ -70,6 +144,10 @@ function decodedBytes(att: PendingAttachment): number {
  * 3. When the model emits a complete spec (status=done), the "Create agent"
  *    button enables, mints an approval token, and builds the profile.
  * 4. On success → navigate to the new agent's chat page.
+ *
+ * P9 reskin: the interview is now a full ai-sdk Elements chat (Conversation +
+ * PromptInput), mirroring the agent chat page. All WS/RPC/build/spec machinery
+ * is preserved — only the presentation changed.
  */
 /** Mask operator-provided secrets (MCP env values + Telegram token) in the
     displayed spec so they aren't shown in plaintext in the live panel. */
@@ -91,6 +169,16 @@ function redactSpec(spec: Record<string, unknown>): Record<string, unknown> {
   }
   return clone;
 }
+
+const STATUS_BADGE: Record<
+  "draft" | "done" | "building" | "error",
+  { label: string; variant: "default" | "secondary" | "destructive" | "outline" }
+> = {
+  draft: { label: "Draft", variant: "secondary" },
+  done: { label: "Ready", variant: "default" },
+  building: { label: "Building", variant: "outline" },
+  error: { label: "Error", variant: "destructive" },
+};
 
 export default function AgentGeneratorPage() {
   const { user } = useAuth();
@@ -116,6 +204,9 @@ export default function AgentGeneratorPage() {
   // P3.4b Channels tab — Telegram bot token sent once with build payload;
   // empty/absent → omitted from the build mint payload.
   const [telegramToken, setTelegramToken] = useState("");
+  // Sidebar collapsibles (advisor/skeptic/PTY) — open by default on the desktop
+  // rail; the whole rail collapses behind a toggle on narrow screens.
+  const [showRail, setShowRail] = useState(false);
   const wsRef = useRef<GeneratorSession | null>(null);
   const wsStateRef = useRef<WsState>("connecting");
   wsStateRef.current = wsState;
@@ -171,8 +262,8 @@ export default function AgentGeneratorPage() {
     mutationFn: async () => {
       if (!sessionId) throw new Error("no session");
       // WS path: text + model + attachments all travel in one user frame.
-      // Sidecar converts images to multimodal parts and emits a text
-      // manifest for the advisor/skeptic panels. RPC fallback only runs
+      // The sidecar converts images to multimodal parts and emits a text
+      // manifest for the advisor/skeptic panels. The RPC fallback only runs
       // when the sidecar is unavailable.
       if (wsState === "live" && wsRef.current) {
         wsRef.current.send(text, {
@@ -194,9 +285,10 @@ export default function AgentGeneratorPage() {
       return { via: "rpc" as const, reply: rpc.reply, spec: rpc.spec, status: rpc.status };
     },
     onSuccess: (res) => {
-      setMessages((m) => [...m, { role: "user", content: text }]);
+      const sentAttachments = pending.length > 0 ? pending : undefined;
+      setMessages((m) => [...m, { role: "user", content: text, attachments: sentAttachments }]);
       if (res.via === "ws") {
-        // Empty assistant bubble; the WS `chat` frames will append into it.
+        // Empty assistant bubble; WS `chat` frames will append into it.
         setMessages((m) => [...m, { role: "assistant", content: "" }]);
         setText("");
         setPending([]);
@@ -218,7 +310,7 @@ export default function AgentGeneratorPage() {
       if (!sessionId) throw new Error("no session");
       const slug = typeof spec.slug === "string" ? spec.slug : "";
       if (!slug) throw new Error("spec missing slug");
-      // Mint must hash the COMPLETE request body (pipeline hashes action+input).
+      // Mint a hash over the COMPLETE request body (the pipeline hashes action+input).
       const trimmedToken = telegramToken.trim();
       const payload: {
         sessionId: number;
@@ -254,7 +346,7 @@ export default function AgentGeneratorPage() {
     if (!files) return;
     const fileArr = Array.from(files);
     if (fileArr.length === 0) return;
-    if (pending.length + fileArr.length > 8) {
+    if (pending.length + fileArr.length > MAX_ATTACHMENTS) {
       toast.error("Too many attachments");
       return;
     }
@@ -274,14 +366,14 @@ export default function AgentGeneratorPage() {
           [
             ...p,
             { filename: file.name, mime: file.type || "application/octet-stream", dataBase64 },
-          ].slice(0, 8),
+          ].slice(0, MAX_ATTACHMENTS),
         );
       };
       reader.readAsDataURL(file);
     }
   }
 
-  // Auto-create a session once a model is chosen.
+  // Auto-create session once a model is chosen.
   useEffect(() => {
     if (user?.is_admin && model && !sessionId && !createSessionMut.isPending) {
       createSessionMut.mutate();
@@ -370,7 +462,7 @@ export default function AgentGeneratorPage() {
           setSkepticBuf((b) => b + frame.delta);
           return;
         case "pty":
-          // Cap PTY buffer to avoid unbounded growth (WhatsApp QR can be long).
+          // Cap the PTY buffer to avoid unbounded growth (WhatsApp QR can be long).
           setPtyOutput((p) => (p + frame.data).slice(-32_000));
           termRef.current?.write(frame.data);
           return;
@@ -407,6 +499,11 @@ export default function AgentGeneratorPage() {
     };
   }, [sessionId]);
 
+  const pendingBytes = useMemo(
+    () => pending.reduce((sum, p) => sum + decodedBytes(p), 0),
+    [pending],
+  );
+
   if (!user?.is_admin) {
     return (
       <div className="space-y-5">
@@ -431,52 +528,172 @@ export default function AgentGeneratorPage() {
   const canBuild = status === "done" && typeof spec.slug === "string" && !buildMut.isPending;
   const currentSlug = typeof spec.slug === "string" ? spec.slug : "";
   const canConnectWhatsapp = wsState === "live" && currentSlug.length > 0;
+  const submitStatus = sendMut.isPending || thinking ? "submitted" : undefined;
+  const statusBadge = STATUS_BADGE[status];
+
+  function handleSubmit(raw: string) {
+    const trimmed = raw.trim();
+    setText(trimmed);
+    if (!sessionId) return;
+    if ((trimmed.length === 0 && pending.length === 0) || sendMut.isPending) return;
+    sendMut.mutate();
+  }
+
+  // ── Sidebar build rail — Live spec, Create agent, Advisor/Skeptic/PTY ──────
+  const rail = (
+    <div className="flex min-h-0 flex-col gap-4 overflow-y-auto pr-0.5">
+      {/* Live spec preview (redacted; never shows secrets in plaintext). */}
+      <Card className="elev-1 flex flex-col gap-2 p-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 text-xs font-semibold">
+            <Bot className="size-3.5" /> Live spec
+          </div>
+          <Badge variant={statusBadge.variant} className="h-5 px-1.5 text-[10px]">
+            {statusBadge.label}
+          </Badge>
+        </div>
+        <pre className="max-h-[360px] min-h-[180px] overflow-y-auto whitespace-pre-wrap break-all rounded bg-muted/30 p-2 font-mono text-[10px]">
+          {Object.keys(spec).length === 0
+            ? "(empty — waiting for the model)"
+            : JSON.stringify(redactSpec(spec), null, 2)}
+        </pre>
+      </Card>
+
+      {/* Create agent — approval+admin gated server-side. Telegram token sent
+          once with the build payload; WhatsApp runs in the live PTY pane. */}
+      <Card className="elev-1 flex flex-col gap-3 p-3">
+        <div className="flex items-center gap-1.5 text-xs font-semibold">
+          <Sparkles className="size-3.5" /> Create agent
+        </div>
+        <div className="space-y-1">
+          <label
+            htmlFor="telegram-token"
+            className="text-[10px] uppercase tracking-wide text-muted-foreground"
+          >
+            Telegram bot token (optional, used at build time)
+          </label>
+          <Input
+            id="telegram-token"
+            type="password"
+            autoComplete="off"
+            spellCheck={false}
+            placeholder="123456:ABCDEF…"
+            value={telegramToken}
+            onChange={(e) => setTelegramToken(e.target.value)}
+            className="h-8 font-mono text-xs"
+          />
+        </div>
+        <Button
+          size="sm"
+          className="h-8 w-full text-xs"
+          disabled={!canBuild}
+          onClick={() => buildMut.mutate()}
+          title={
+            canBuild
+              ? "Mint an approval token and build the Hermes profile."
+              : "Enabled once the model emits a complete spec (status=ready) with a slug."
+          }
+        >
+          {buildMut.isPending ? (
+            <>
+              <Loader2 className="mr-1.5 size-3.5 animate-spin" /> Building…
+            </>
+          ) : (
+            <>
+              <Sparkles className="mr-1.5 size-3.5" /> Create agent
+            </>
+          )}
+        </Button>
+        {status === "error" && (
+          <p className="text-[10px] text-destructive">
+            Build failed — see the toast for details, then adjust the spec and retry.
+          </p>
+        )}
+        <Separator />
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 w-full text-xs"
+          disabled={!canConnectWhatsapp}
+          onClick={() => {
+            wsRef.current?.sendPty(`hermes-${currentSlug} whatsapp setup\n`);
+          }}
+          title={
+            canConnectWhatsapp
+              ? "Run `hermes-<slug> whatsapp setup` in the live PTY pane; scan the QR in xterm."
+              : "Needs WS live and a settled slug; build the profile first to install the binary."
+          }
+        >
+          <TerminalIcon className="mr-1.5 size-3.5" /> Connect WhatsApp in PTY
+        </Button>
+      </Card>
+
+      {/* Advisor — streaming buffer, collapsible. */}
+      <RailPanel icon={<Sparkles className="size-3.5" />} title="Advisor" defaultOpen={false}>
+        <pre className="max-h-[240px] min-h-[80px] overflow-y-auto whitespace-pre-wrap break-words rounded bg-muted/30 p-2 font-mono text-[10px]">
+          {advisorBuf || "(no advisory yet — fires after each user turn)"}
+        </pre>
+      </RailPanel>
+
+      {/* Skeptic — streaming buffer, collapsible. */}
+      <RailPanel icon={<Bot className="size-3.5" />} title="Skeptic" defaultOpen={false}>
+        <pre className="max-h-[240px] min-h-[80px] overflow-y-auto whitespace-pre-wrap break-words rounded bg-muted/30 p-2 font-mono text-[10px]">
+          {skepticBuf || "(no challenge yet — fires after each user turn)"}
+        </pre>
+      </RailPanel>
+
+      {/* Live root PTY — xterm mounts into this div. `forceMount` keeps the
+          div in the DOM even while collapsed, so the mount-once xterm effect
+          can attach to the ref; collapsing only hides it visually. */}
+      <RailPanel
+        icon={<TerminalIcon className="size-3.5" />}
+        title="Live PTY (root bash)"
+        defaultOpen={false}
+        forceMount
+      >
+        <div
+          ref={termContainerRef}
+          className="h-[260px] min-h-[160px] overflow-hidden rounded bg-black p-1"
+        />
+      </RailPanel>
+    </div>
+  );
 
   return (
-    <div className="space-y-5">
+    <div className="flex h-[calc(100vh-7rem)] flex-col gap-3">
       <PageHeader
         icon={<Sparkles className="size-5" />}
         title="Agent Generator"
-        description="Describe the agent you want. The interview builds a Hermes profile spec; approve and create."
+        description="Describe the agent you want. The interview builds a Hermes profile spec; approve to create."
       />
 
-      <div className="grid gap-4 lg:grid-cols-[2fr,1fr]">
-        <Card className="elev-1 p-4 flex flex-col gap-3 min-h-[520px]">
-          <div className="flex items-center gap-2">
-            <Select value={model} onValueChange={setModel}>
-              <SelectTrigger className="h-8 text-xs flex-1">
-                <SelectValue placeholder="Pick a model to start…" />
-              </SelectTrigger>
-              <SelectContent>
-                {models.map((m) => (
-                  <SelectItem key={m} value={m} className="text-xs font-mono">
-                    {m}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {/* Effort applies to reasoning models; 9router ignores it for
-                others, so it's always selectable. */}
-            <Select value={reasoning} onValueChange={(v) => setReasoning(v as Reasoning)}>
-              <SelectTrigger className="h-8 text-xs w-28">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {REASONING_OPTIONS.map((r) => (
-                  <SelectItem key={r} value={r} className="text-xs capitalize">
-                    {r}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button
-              size="sm"
-              className="h-8 text-xs"
-              disabled={!canBuild}
-              onClick={() => buildMut.mutate()}
-            >
-              {buildMut.isPending ? <Loader2 className="size-3 animate-spin" /> : "Create agent"}
-            </Button>
+      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[1fr_22rem]">
+        {/* ---------------------------------------------------------------- */}
+        {/* Main chat column — the interview as an Elements chat              */}
+        {/* ---------------------------------------------------------------- */}
+        <Card className="elev-1 flex min-h-0 min-w-0 flex-col overflow-hidden p-0">
+          {/* Status / header strip: title + WS connection + thinking + rail toggle */}
+          <header className="flex flex-wrap items-center gap-3 border-b bg-card/80 px-4 py-3 backdrop-blur">
+            <div className="grid size-9 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
+              <Bot className="size-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <h1 className="truncate font-semibold">Interview</h1>
+                {currentSlug && (
+                  <span className="font-mono text-[10px] text-muted-foreground">{currentSlug}</span>
+                )}
+              </div>
+              <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                {thinking || sendMut.isPending ? (
+                  <span className="inline-flex items-center gap-1">
+                    <Loader2 className="size-3 animate-spin" /> thinking…
+                  </span>
+                ) : (
+                  <span>Refine the spec turn by turn, then build.</span>
+                )}
+              </p>
+            </div>
             <Badge
               variant={
                 wsState === "live"
@@ -485,213 +702,236 @@ export default function AgentGeneratorPage() {
                     ? "destructive"
                     : "secondary"
               }
-              className="h-7 text-[10px] uppercase tracking-wide"
+              className="h-6 shrink-0 text-[10px] uppercase tracking-wide"
               title={
-                wsState === "unavailable" ? "Sidecar unreachable; using P2 RPC fallback" : undefined
+                wsState === "unavailable"
+                  ? "Sidecar unreachable; using the P2 RPC fallback"
+                  : "Generator sidecar WebSocket state"
               }
             >
               WS {wsState}
             </Badge>
-          </div>
+            {/* Rail toggle — only meaningful on narrow screens (rail is inline below). */}
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 shrink-0 text-xs lg:hidden"
+              onClick={() => setShowRail((v) => !v)}
+              aria-expanded={showRail}
+              aria-controls="generator-rail"
+            >
+              {showRail ? "Hide" : "Build panel"}
+            </Button>
+          </header>
 
-          <div className="flex-1 min-h-0 overflow-y-auto rounded-md border bg-muted/20 p-3 space-y-2">
-            {messages.length === 0 && (
-              <p className="text-xs text-muted-foreground text-center py-8">
-                {model ? "Loading session…" : "Pick a model to start the interview."}
-              </p>
-            )}
-            {messages.map((m, i) => (
-              <div
-                key={i}
-                className={cn(
-                  "max-w-[85%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap break-words",
-                  m.role === "user"
-                    ? "ml-auto bg-primary text-primary-foreground"
-                    : "mr-auto bg-background border",
-                )}
-              >
-                {m.content}
-              </div>
-            ))}
-            {(thinking || sendMut.isPending) && (
-              <div className="mr-auto text-sm">
-                <Loader2 className="size-3.5 animate-spin inline mr-1" /> thinking…
-              </div>
-            )}
-          </div>
-
-          {presets && messages.length <= 1 && (
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[10px] text-muted-foreground mr-0.5">Start from:</span>
-              {presets.archetypes.map((a) => (
-                <button
-                  key={a.id}
-                  type="button"
-                  title={a.desc}
-                  onClick={() =>
-                    setText(
-                      `I want to build a ${a.name}: ${a.desc}` +
-                        (a.integrations.length
-                          ? ` Suggested integrations: ${a.integrations.join(", ")}.`
-                          : ""),
-                    )
+          {/* Conversation (autoscrolls via use-stick-to-bottom) */}
+          <Conversation className="min-h-0 flex-1">
+            <ConversationContent className="gap-6">
+              {messages.length === 0 ? (
+                <ConversationEmptyState
+                  icon={<Sparkles className="size-8" />}
+                  title="Agent Generator"
+                  description={
+                    model
+                      ? "Loading session…"
+                      : "Pick a model in the composer below to start the interview."
                   }
-                  className="rounded-full border bg-muted/40 px-2 py-0.5 text-[10px] hover:bg-muted transition-colors"
-                >
-                  {a.name}
-                </button>
-              ))}
-            </div>
-          )}
+                />
+              ) : (
+                messages.map((m, i) =>
+                  m.role === "user" ? (
+                    <Message key={i} from="user">
+                      {m.attachments && m.attachments.length > 0 && (
+                        <div className="ml-auto flex flex-wrap justify-end gap-1.5">
+                          {m.attachments.map((att, idx) => (
+                            <AttachmentChip key={`${att.filename}-${idx}`} att={att} />
+                          ))}
+                        </div>
+                      )}
+                      {m.content && (
+                        <MessageContent>
+                          <span className="whitespace-pre-wrap break-words">{m.content}</span>
+                        </MessageContent>
+                      )}
+                    </Message>
+                  ) : (
+                    <Message key={i} from="assistant">
+                      <MessageContent>
+                        {/* Markdown reply via Streamdown (matches the chat page). */}
+                        <MessageResponse>{m.content}</MessageResponse>
+                      </MessageContent>
+                    </Message>
+                  ),
+                )
+              )}
+              {/* Preset archetypes — seed the interview; stay visible (through the
+                  assistant greeting) until the user sends their first turn. */}
+              {!messages.some((m) => m.role === "user") &&
+                presets &&
+                presets.archetypes.length > 0 && (
+                  <div className="w-full max-w-md self-center">
+                    <p className="mb-2 text-[10px] uppercase tracking-wide text-muted-foreground">
+                      Start from an archetype
+                    </p>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {presets.archetypes.map((a) => (
+                        <button
+                          key={a.id}
+                          type="button"
+                          title={a.desc}
+                          onClick={() =>
+                            setText(
+                              `I want to build a ${a.name}: ${a.desc}` +
+                                (a.integrations.length
+                                  ? ` Suggested integrations: ${a.integrations.join(", ")}.`
+                                  : ""),
+                            )
+                          }
+                          className="rounded-lg border bg-card p-2.5 text-left transition-colors hover:border-primary/40 hover:bg-muted/40"
+                        >
+                          <div className="flex items-center gap-1.5 text-xs font-medium">
+                            <Sparkles className="size-3 text-primary" /> {a.name}
+                          </div>
+                          <p className="mt-0.5 line-clamp-2 text-[10px] text-muted-foreground">
+                            {a.desc}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              {(thinking || sendMut.isPending) && (
+                <Message from="assistant">
+                  <MessageContent>
+                    <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="size-3.5 animate-spin" /> thinking…
+                    </span>
+                  </MessageContent>
+                </Message>
+              )}
+            </ConversationContent>
+            <ConversationScrollButton />
+          </Conversation>
 
-          {pending.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {pending.map((p, i) => (
-                <span
-                  key={i}
-                  className="inline-flex items-center gap-1 rounded-full border bg-muted/40 px-2 py-0.5 text-[10px]"
-                >
-                  <Paperclip className="size-3" /> {p.filename}
-                  <button onClick={() => setPending((a) => a.filter((_, idx) => idx !== i))}>
-                    <X className="size-3" />
-                  </button>
+          {/* Composer */}
+          <div className="border-t bg-card/60 p-3">
+            {/* Pending attachment previews (above the composer) */}
+            {pending.length > 0 && (
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                {pending.map((att, i) => (
+                  <AttachmentChip
+                    key={`${att.filename}-${i}`}
+                    att={att}
+                    onRemove={() => setPending((arr) => arr.filter((_, idx) => idx !== i))}
+                  />
+                ))}
+                <span className="text-[10px] text-muted-foreground">
+                  {pending.length}/{MAX_ATTACHMENTS} · {bytes(pendingBytes)}
                 </span>
-              ))}
-            </div>
-          )}
+              </div>
+            )}
 
-          <div className="flex items-end gap-2">
             <input
               ref={fileInputRef}
               type="file"
               multiple
-              className="hidden"
               accept="image/*,audio/*,video/*,*"
+              className="hidden"
               onChange={(e) => {
                 onPickFiles(e.target.files);
                 e.target.value = "";
               }}
             />
-            <Button
-              size="icon"
-              variant="outline"
-              className="h-9 w-9 shrink-0"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Paperclip className="size-4" />
-            </Button>
-            <Textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  if (canSend) sendMut.mutate();
-                }
+
+            <PromptInput
+              onSubmit={(msg) => {
+                handleSubmit(msg.text ?? "");
               }}
-              placeholder={sessionId ? "Reply…" : "Pick a model first…"}
-              className="min-h-[36px] max-h-40 resize-none text-sm"
-              rows={1}
-            />
-            <Button
-              size="icon"
-              className="h-9 w-9 shrink-0"
-              disabled={!canSend}
-              onClick={() => sendMut.mutate()}
             >
-              {sendMut.isPending ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Send className="size-4" />
-              )}
-            </Button>
+              <PromptInputBody>
+                <PromptInputTextarea
+                  value={text}
+                  onChange={(e) => setText(e.currentTarget.value)}
+                  placeholder={
+                    sessionId
+                      ? "Reply… (Enter to send, Shift+Enter for newline)"
+                      : model
+                        ? "Loading session…"
+                        : "Pick a model first…"
+                  }
+                  disabled={!sessionId || sendMut.isPending}
+                />
+                <PromptInputFooter>
+                  <PromptInputTools>
+                    <PromptInputButton
+                      tooltip="Attach files"
+                      aria-label="Attach files"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={!sessionId}
+                    >
+                      <Paperclip className="size-4" />
+                    </PromptInputButton>
+
+                    {/* Model pick — seeds session creation, then travels with each turn. */}
+                    <PromptInputSelect value={model} onValueChange={setModel}>
+                      <PromptInputSelectTrigger className="h-7 text-xs" aria-label="Model">
+                        <PromptInputSelectValue placeholder="Pick a model…" />
+                      </PromptInputSelectTrigger>
+                      <PromptInputSelectContent>
+                        {models.map((m) => (
+                          <PromptInputSelectItem key={m} value={m} className="font-mono text-xs">
+                            {m}
+                          </PromptInputSelectItem>
+                        ))}
+                      </PromptInputSelectContent>
+                    </PromptInputSelect>
+
+                    {/* Reasoning effort (9router ignores it for non-reasoning models). */}
+                    <PromptInputSelect
+                      value={reasoning}
+                      onValueChange={(v) => setReasoning(v as Reasoning)}
+                    >
+                      <PromptInputSelectTrigger
+                        className="h-7 text-xs"
+                        aria-label="Reasoning effort"
+                      >
+                        <PromptInputSelectValue />
+                      </PromptInputSelectTrigger>
+                      <PromptInputSelectContent>
+                        {REASONING_OPTIONS.map((r) => (
+                          <PromptInputSelectItem key={r} value={r} className="text-xs capitalize">
+                            {r}
+                          </PromptInputSelectItem>
+                        ))}
+                      </PromptInputSelectContent>
+                    </PromptInputSelect>
+                  </PromptInputTools>
+
+                  <PromptInputSubmit
+                    status={submitStatus}
+                    disabled={!canSend}
+                    aria-label="Send message"
+                  />
+                </PromptInputFooter>
+              </PromptInputBody>
+            </PromptInput>
           </div>
         </Card>
 
-        <Card className="elev-1 p-3 flex flex-col gap-2">
-          <div className="text-xs font-semibold flex items-center gap-1.5">
-            <Bot className="size-3.5" /> Live spec
-          </div>
-          <pre className="text-[10px] font-mono whitespace-pre-wrap break-all bg-muted/30 rounded p-2 min-h-[200px] max-h-[420px] overflow-y-auto">
-            {Object.keys(spec).length === 0
-              ? "(empty — waiting for the model)"
-              : JSON.stringify(redactSpec(spec), null, 2)}
-          </pre>
-        </Card>
+        {/* ---------------------------------------------------------------- */}
+        {/* Build rail — Live spec, Create agent, advisor/skeptic/PTY.        */}
+        {/* Rendered ONCE (single xterm mount). On desktop it's the right     */}
+        {/* column; on narrow screens it collapses behind the header toggle. */}
+        {/* ---------------------------------------------------------------- */}
+        <div
+          id="generator-rail"
+          className={cn("min-h-0 lg:block", showRail ? "block" : "hidden lg:block")}
+        >
+          {rail}
+        </div>
       </div>
 
-      {/* P3.4b Channels row — Telegram token is sent once with the build
-          payload; WhatsApp runs `hermes-<slug> whatsapp setup` in the live PTY
-          pane. WhatsApp needs the binary built, so the honest UX is to gate
-          on the WS being live AND a slug being settled; the actual install
-          requires the agent to be built first (after which the operator can
-          SSH/run from the terminal page). */}
-      <Card className="elev-1 p-3 flex flex-col gap-2">
-        <div className="text-xs font-semibold flex items-center gap-1.5">
-          <Sparkles className="size-3.5" /> Channels
-        </div>
-        <div className="grid gap-2 md:grid-cols-[1fr,auto] items-end">
-          <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-wide text-muted-foreground">
-              Telegram bot token (optional, used at build time)
-            </label>
-            <Input
-              type="password"
-              autoComplete="off"
-              spellCheck={false}
-              placeholder="123456:ABCDEF…"
-              value={telegramToken}
-              onChange={(e) => setTelegramToken(e.target.value)}
-              className="h-8 text-xs font-mono"
-            />
-          </div>
-          <Button
-            size="sm"
-            className="h-8 text-xs"
-            variant="outline"
-            disabled={!canConnectWhatsapp}
-            onClick={() => {
-              wsRef.current?.sendPty(`hermes-${currentSlug} whatsapp setup\n`);
-            }}
-            title={
-              canConnectWhatsapp
-                ? "Run `hermes-<slug> whatsapp setup` in the live PTY pane; scan the QR in xterm."
-                : "Needs WS live and a settled slug; build the profile first to install the binary."
-            }
-          >
-            Connect WhatsApp in PTY
-          </Button>
-        </div>
-      </Card>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="elev-1 p-3 flex flex-col gap-2">
-          <div className="text-xs font-semibold flex items-center gap-1.5">
-            <Sparkles className="size-3.5" /> Advisor
-          </div>
-          <pre className="text-[10px] font-mono whitespace-pre-wrap break-words bg-muted/30 rounded p-2 min-h-[120px] max-h-[280px] overflow-y-auto">
-            {advisorBuf || "(no advisory yet — fires after each user turn)"}
-          </pre>
-        </Card>
-        <Card className="elev-1 p-3 flex flex-col gap-2">
-          <div className="text-xs font-semibold flex items-center gap-1.5">
-            <Bot className="size-3.5" /> Skeptic
-          </div>
-          <pre className="text-[10px] font-mono whitespace-pre-wrap break-words bg-muted/30 rounded p-2 min-h-[120px] max-h-[280px] overflow-y-auto">
-            {skepticBuf || "(no challenge yet — fires after each user turn)"}
-          </pre>
-        </Card>
-        <Card className="elev-1 p-3 flex flex-col gap-2">
-          <div className="text-xs font-semibold flex items-center gap-1.5">
-            <TerminalIcon className="size-3.5" /> Live PTY (root bash)
-          </div>
-          <div
-            ref={termContainerRef}
-            className="h-[280px] min-h-[180px] overflow-hidden rounded bg-black p-1"
-          />
-        </Card>
-      </div>
-
+      {/* Existing agents — quick reference of what's already built. */}
       <div className="space-y-2">
         <div className="text-xs font-semibold text-muted-foreground">Existing agents</div>
         {agentsLoading ? (
@@ -708,14 +948,54 @@ export default function AgentGeneratorPage() {
           <div className="grid gap-2 md:grid-cols-3">
             {agents.map((a) => (
               <Card key={a.slug} className="elev-1 p-3 text-xs">
-                <div className="font-semibold truncate">{a.name}</div>
-                <div className="text-muted-foreground font-mono truncate">{a.slug}</div>
-                <div className="text-muted-foreground truncate mt-0.5">{a.model}</div>
+                <div className="truncate font-semibold">{a.name}</div>
+                <div className="truncate font-mono text-muted-foreground">{a.slug}</div>
+                <div className="mt-0.5 truncate text-muted-foreground">{a.model}</div>
               </Card>
             ))}
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+/** Collapsible sidebar panel for the streaming advisor/skeptic/PTY buffers.
+    Defined at module scope (pure presentational helper, no hooks of its own
+    beyond Collapsible's) so it doesn't add a react-refresh export warning. */
+function RailPanel({
+  icon,
+  title,
+  defaultOpen,
+  forceMount,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  defaultOpen: boolean;
+  /** Keep content mounted while collapsed (only hide it). Needed for the PTY
+      pane so xterm's mount-once effect can attach to its container ref. */
+  forceMount?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Card className="elev-1 p-3">
+      <Collapsible defaultOpen={defaultOpen}>
+        <CollapsibleTrigger className="group flex w-full items-center justify-between gap-1.5 text-xs font-semibold">
+          <span className="flex items-center gap-1.5">
+            {icon} {title}
+          </span>
+          <ChevronDown className="size-3.5 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+        </CollapsibleTrigger>
+        {/* `forceMount` keeps children in the DOM; `data-[state=closed]:hidden`
+            hides them visually so the collapse still works. */}
+        <CollapsibleContent
+          {...(forceMount ? { forceMount: true } : {})}
+          className="pt-2 data-[state=closed]:hidden"
+        >
+          {children}
+        </CollapsibleContent>
+      </Collapsible>
+    </Card>
   );
 }
