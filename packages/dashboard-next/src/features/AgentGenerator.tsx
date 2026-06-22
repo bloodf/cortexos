@@ -82,6 +82,9 @@ export default function AgentGeneratorPage() {
   const [reasoning, setReasoning] = useState<Reasoning>("medium");
   const [spec, setSpec] = useState<Record<string, unknown>>({});
   const [status, setStatus] = useState<"draft" | "done" | "building" | "error">("draft");
+  // Driven by the sidecar's status frames; the WS send mutation resolves
+  // immediately (the reply streams async), so it can't track "thinking".
+  const [thinking, setThinking] = useState(false);
   // P3.4 WS layer: streaming chat/advisor/skeptic panels + live root PTY.
   // Falls back to the P2 RPC path when the sidecar is unavailable.
   const [wsState, setWsState] = useState<WsState>("connecting");
@@ -135,6 +138,7 @@ export default function AgentGeneratorPage() {
       if (wsState === "live" && wsRef.current) {
         wsRef.current.send(text, {
           model,
+          reasoning,
           ...(pending.length > 0 ? { attachments: pending } : {}),
         });
         return { via: "ws" as const, reply: "", spec: {} as Record<string, unknown>, status: "draft" as const };
@@ -320,9 +324,23 @@ export default function AgentGeneratorPage() {
           setPtyOutput((p) => (p + frame.data).slice(-32_000));
           termRef.current?.write(frame.data);
           return;
+        case "spec":
+          setSpec(frame.spec);
+          return;
         case "status":
-          if (frame.status === "idle") setStatus("draft");
-          if (frame.status === "error") setStatus("error");
+          if (frame.status === "thinking") setThinking(true);
+          if (frame.status === "idle") {
+            setThinking(false);
+            setStatus("draft");
+          }
+          if (frame.status === "ready") {
+            setThinking(false);
+            setStatus("done");
+          }
+          if (frame.status === "error") {
+            setThinking(false);
+            setStatus("error");
+          }
           return;
         case "exit":
           // Shell exited; no-op UI-wise, the user can restart via build/Channels.
@@ -376,6 +394,8 @@ export default function AgentGeneratorPage() {
                 ))}
               </SelectContent>
             </Select>
+            {/* Effort applies to reasoning models; 9router ignores it for
+                others, so it's always selectable. */}
             <Select value={reasoning} onValueChange={(v) => setReasoning(v as Reasoning)}>
               <SelectTrigger className="h-8 text-xs w-28"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -407,7 +427,7 @@ export default function AgentGeneratorPage() {
                 {m.content}
               </div>
             ))}
-            {sendMut.isPending && <div className="mr-auto text-sm"><Loader2 className="size-3.5 animate-spin inline mr-1" /> thinking…</div>}
+            {(thinking || sendMut.isPending) && <div className="mr-auto text-sm"><Loader2 className="size-3.5 animate-spin inline mr-1" /> thinking…</div>}
           </div>
 
           {pending.length > 0 && (

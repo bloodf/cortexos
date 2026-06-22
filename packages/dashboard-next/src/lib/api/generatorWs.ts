@@ -53,6 +53,11 @@ export interface StatusFrame {
   detail?: string;
 }
 
+export interface SpecFrame {
+  type: "spec";
+  spec: Record<string, unknown>;
+}
+
 export interface ExitFrame {
   type: "exit";
   code: number;
@@ -64,6 +69,7 @@ export type GeneratorFrame =
   | SkepticFrame
   | PtyFrame
   | StatusFrame
+  | SpecFrame
   | ExitFrame;
 
 // ─── Outbound frames (client → server) ──────────────────────────────────
@@ -78,6 +84,7 @@ interface UserSend {
   type: "user";
   text: string;
   model?: string;
+  reasoning?: string;
   attachments?: GeneratorAttachment[];
 }
 
@@ -113,7 +120,10 @@ export interface GeneratorSession {
   /** Send a user turn. Optional attachments are forwarded to the sidecar
       which converts images to multimodal parts and renders a text manifest
       for the advisor/skeptic panels. Cap enforcement lives server-side. */
-  send: (text: string, opts?: { model?: string; attachments?: GeneratorAttachment[] }) => void;
+  send: (
+    text: string,
+    opts?: { model?: string; reasoning?: string; attachments?: GeneratorAttachment[] },
+  ) => void;
   /** Send raw bytes to the PTY (mirrors typing into the terminal pane). */
   sendPty: (data: string) => void;
   /** Send a resize message to the PTY (cols/rows). */
@@ -143,7 +153,9 @@ export function openGeneratorWs(opts: GeneratorSessionOptions): GeneratorSession
   let ws: WebSocket | null = null;
   let attempt = 0;
   let closed = false;
-  let pendingText: { text: string; model?: string; attachments?: GeneratorAttachment[] } | null = null;
+  let pendingText:
+    | { text: string; model?: string; reasoning?: string; attachments?: GeneratorAttachment[] }
+    | null = null;
   let flushTimer: number | undefined;
   let state: GeneratorState = "connecting";
 
@@ -160,6 +172,7 @@ export function openGeneratorWs(opts: GeneratorSessionOptions): GeneratorSession
       type: "user",
       text: pendingText.text,
       ...(pendingText.model ? { model: pendingText.model } : {}),
+      ...(pendingText.reasoning ? { reasoning: pendingText.reasoning } : {}),
       ...(pendingText.attachments && pendingText.attachments.length > 0
         ? { attachments: pendingText.attachments }
         : {}),
@@ -228,6 +241,7 @@ export function openGeneratorWs(opts: GeneratorSessionOptions): GeneratorSession
       pendingText = {
         text,
         model: sendOpts?.model,
+        reasoning: sendOpts?.reasoning,
         attachments: sendOpts?.attachments,
       };
       const openWs = ws;

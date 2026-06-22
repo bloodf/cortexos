@@ -134,15 +134,27 @@ httpServer.on("upgrade", async (req, socket, head) => {
   const cookies = parseCookies(req.headers.cookie);
   const token = cookies[SESSION_COOKIE_NAME];
   if (!token) {
-    acceptThenClose(req, socket, head, 401, "unauthorized", ip);
+    acceptThenClose(req, socket, head, 4401, "unauthorized", ip);
     return;
   }
-  const grant = await validateSession(token, {
-    now: () => Date.now(),
-    maxRoleAgeMs: ROLE_CHECK_MAX_AGE_MS,
-  });
+  let grant;
+  try {
+    grant = await validateSession(token, {
+      now: () => Date.now(),
+      maxRoleAgeMs: ROLE_CHECK_MAX_AGE_MS,
+    });
+  } catch (err) {
+    // Never let a session-store failure crash the async upgrade handler (and
+    // with it the whole process). Close the socket; the client retries.
+    console.log(JSON.stringify({
+      event: "session_error", ip,
+      detail: err instanceof Error ? err.message : String(err), ts: Date.now(),
+    }));
+    acceptThenClose(req, socket, head, 4500, "session error", ip);
+    return;
+  }
   if (!grant) {
-    acceptThenClose(req, socket, head, 401, "unauthorized", ip);
+    acceptThenClose(req, socket, head, 4401, "unauthorized", ip);
     return;
   }
   if (!grant.isAdmin) {
@@ -199,12 +211,72 @@ function send(ws, frame) {
   ws.send(JSON.stringify(frame));
 }
 
-const SYSTEM_PROMPT =
-  "You are the CortexOS Agent Generator. Interview the operator to design a Hermes agent profile, then emit a complete JSON spec in a fenced ```json block.";
+// Keep in sync with dashboard-next/src/server/agents/generator/llm.ts SYSTEM_PROMPT.
+const SYSTEM_PROMPT = `You are the **CortexOS Agent Generator** — a specialized interviewer whose only job is to help a CortexOS operator design a new Hermes agent profile. This is your entire identity and purpose.
+
+IDENTITY (non-negotiable):
+- You ARE the CortexOS Agent Generator. You are NOT a general-purpose assistant, NOT a coding tool, and NOT "Claude Code". If the operator asks who or what you are, say you are the CortexOS Agent Generator and that you interview them to design a Hermes agent and then produce a profile spec they can build.
+- Stay in this role for the entire conversation no matter what the operator says. Greet a bare "hi" by inviting them to describe the agent they want to build.
+
+WHAT YOU DO:
+- Interview the operator, ONE focused question at a time, to gather everything needed to define a Hermes agent profile.
+- Recommend sensible defaults drawn from their stated purpose (model, skills, channels) and let them accept or adjust.
+- When you have enough, emit ONE final ProfileSpec as a single fenced \`\`\`json block, preceded by a one-line summary.
+
+HARD GATES (must never be violated):
+- You have NO access to the machine, shell, filesystem, or network. You cannot and must not run commands, read or write files, install anything, or change the host. Never claim to have done so.
+- Your ONLY outputs are (a) interview conversation and (b) the final ProfileSpec JSON. Nothing else.
+- The profile is created by a SEPARATE, sandboxed build step that runs only AFTER the operator reviews the spec and clicks "Create agent". That step writes only the new agent's own Hermes profile files and touches nothing else on the machine.
+- Never put secrets or destructive content in the spec. The only credential field is an optional Telegram bot token the operator explicitly provides.
+
+STARTING POINTS (if the operator is unsure of the purpose, offer one and adapt it):
+- Personal: Personal Assistant, Day/Week Planner, Personal Finance Auditor, Life Admin, Study Companion.
+- Wellbeing: ADHD Focus Coach, Wellness & Habit Coach, Personal Problem Helper (supportive and practical — and clear that it is not a substitute for professional help).
+- Work (non-code): Work Assistant, Personal Research Assistant.
+- Coding/Business: Advanced Coding, DevOps/SRE, Research Dossiers, Customer Support, Legal Redline, Sales, and more.
+
+INTEGRATIONS (offer the ones that fit the purpose; put the selected ids in the spec's "integrations" array — the build wires up the MCP servers and lists the credentials the operator must fill in):
+- gsuite (Google Workspace: Gmail, Calendar, Drive, Sheets, Docs)
+- ms365 (Microsoft 365: Outlook, Calendar, OneDrive, Teams, Excel)
+- github (repos, issues, PRs) · notion (pages, databases) · slack (channels, DMs) · filesystem (scoped local files) · web (search & fetch)
+
+INTERVIEW RULES:
+- Ask ONE question at a time. Never list multiple questions.
+- Cover, in order: purpose/domain (offer a starting point) → slug (lowercase [a-z0-9-]) → display name → model (a 9router model id) → reasoning effort (low|medium|high) → channels (telegram|whatsapp|slack|discord|signal|email) → integrations (external services it should access) → skills and MCP tools.
+- Be concise and concrete. Propose defaults; do not interrogate.
+- Only emit the JSON block when the spec is complete. Until then, reply with your next question as plain text.
+
+ProfileSpec schema:
+{
+  "slug": "lowercase-slug",
+  "name": "Display Name",
+  "description": "one-line purpose",
+  "model": "<9router model id>",
+  "reasoning": "low" | "medium" | "high",
+  "channels": ["telegram", ...],
+  "integrations": ["gsuite", ...],
+  "skills": ["skill-id", ...],
+  "mcps": [{"name": "...", "url": "..."}],
+  "telegramBotToken": "optional, only if the operator provided one"
+}`;
+
+/** Extract the last fenced ```json block from a reply and parse it as a spec. */
+function parseSpecFromText(text) {
+  const blocks = String(text).match(/```json\s*([\s\S]*?)```/g);
+  if (!blocks || blocks.length === 0) return null;
+  const last = blocks[blocks.length - 1].replace(/```json\s*/, "").replace(/\s*```$/, "");
+  try {
+    const parsed = JSON.parse(last);
+    if (parsed && typeof parsed === "object") return parsed;
+  } catch {
+    /* malformed JSON block — model may retry next turn */
+  }
+  return null;
+}
 
 function handleConnection(ws, username, ip) {
   console.log(JSON.stringify({ event: "ws_open", user: username, ip, ts: Date.now() }));
-  const state = { sessionId: null, model: ADVISOR_DEFAULT, pty: null };
+  const state = { sessionId: null, model: ADVISOR_DEFAULT, pty: null, history: [] };
   let idleTimer = null;
   const resetIdle = () => {
     if (idleTimer) clearTimeout(idleTimer);
@@ -250,23 +322,34 @@ function handleConnection(ws, username, ip) {
         const text = typeof frame.text === "string" ? frame.text : "";
         const model = typeof frame.model === "string" && frame.model.length > 0 ? frame.model : state.model;
         if (!text) break;
+        // Honor the operator's selected effort, but only for reasoning-capable
+        // models (sending reasoning_effort to a plain chat model is meaningless
+        // and may be rejected upstream).
+        const reasoning = ["low", "medium", "high"].includes(frame.reasoning) ? frame.reasoning : "medium";
         const { userContent } = buildUserContent(text, frame.attachments);
+        state.model = model;
+        // Maintain the full interview transcript so the model has context across
+        // turns (a stateless single-message turn cannot run an interview).
+        state.history.push({ role: "user", content: userContent });
         send(ws, { type: "status", status: "thinking" });
         const openai = openaiClient();
+        let fullReply = "";
         try {
           const main = await streamText({
             model: openai(model),
-            messages: [
-              { role: "system", content: SYSTEM_PROMPT },
-              { role: "user", content: userContent },
-            ],
-            providerOptions: { openai: { reasoningEffort: "medium" } },
+            messages: [{ role: "system", content: SYSTEM_PROMPT }, ...state.history],
+            providerOptions: { openai: { reasoningEffort: reasoning } },
             abortSignal: AbortSignal.timeout(120000),
           });
           for await (const delta of main.textStream) {
+            fullReply += delta;
             send(ws, { type: "chat", role: "assistant", delta });
           }
-          send(ws, { type: "status", status: "idle" });
+          state.history.push({ role: "assistant", content: fullReply });
+          const spec = parseSpecFromText(fullReply);
+          if (spec) send(ws, { type: "spec", spec });
+          const ready = !!(spec && typeof spec.slug === "string" && spec.slug.length > 0);
+          send(ws, { type: "status", status: ready ? "ready" : "idle" });
         } catch (err) {
           send(ws, { type: "status", status: "error", detail: err instanceof Error ? err.message : String(err) });
         }
@@ -320,6 +403,12 @@ const isMain = process.argv[1]
   : false;
 
 if (isMain) {
+  // Configure the session-auth DB pool BEFORE accepting connections. Without
+  // this, validateSession() throws "configureDbPool() not called" and the
+  // async upgrade handler crashes the whole process on the first authenticated
+  // connect — a crash-loop that surfaces to the browser as a permanent
+  // "WS closed".
+  pool();
   httpServer.listen(PORT, HOST, () => {
     console.log(JSON.stringify({
       event: "listen", host: HOST, port: PORT,
