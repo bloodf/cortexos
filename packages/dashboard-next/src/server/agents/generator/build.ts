@@ -39,6 +39,9 @@ export type BuildExecutor = (
   opts?: {
     timeout?: number;
     maxBuffer?: number;
+    cwd?: string;
+    /** Extra env vars merged over process.env (e.g. HERMES_COMMAND). */
+    env?: Record<string, string>;
   },
 ) => Promise<{ stdout: string; stderr: string; exitCode: number }>;
 
@@ -47,6 +50,8 @@ const defaultExecutor: BuildExecutor = async (argv, opts) => {
     const { stdout, stderr } = await execFileAsync(argv[0]!, argv.slice(1), {
       timeout: opts?.timeout,
       maxBuffer: opts?.maxBuffer,
+      cwd: opts?.cwd,
+      env: opts?.env ? { ...process.env, ...opts.env } : undefined,
     });
     return { stdout: stdout ?? "", stderr: stderr ?? "", exitCode: 0 };
   } catch (err) {
@@ -77,6 +82,12 @@ export function setExecutorForTests(fn: BuildExecutor | null): void {
 }
 
 // Host paths (gitignored but live on the host; mutable for test overrides).
+const REPO_ROOT = "/opt/cortexos";
+// The per-profile wrapper (`hermes-<slug>`) execs `${HERMES_COMMAND:-hermes}`.
+// The dashboard service has no PATH to /home/cortexos/.local/bin and no
+// HERMES_COMMAND, so bare `hermes` is unresolvable → skills/mcp steps silently
+// fail in prod. Point the wrapper at the absolute launcher for those calls.
+const HERMES_BIN = "/home/cortexos/.local/bin/hermes";
 const CREATE_SCRIPT = "/opt/cortexos/scripts/hermes-profile-create.mjs";
 let RICH_CONFIG_TEMPLATE = "/opt/cortexos/templates/hermes/profile-config.template.yaml";
 const RENDER_SCRIPT = "/opt/cortexos/scripts/ops/cortex-render-units.sh";
@@ -172,7 +183,12 @@ export async function buildProfileFromSpec(
   try {
     const { stdout } = await executor(
       ["node", CREATE_SCRIPT, spec.slug, "", safeModel || "claude-fallback", spec.reasoning],
-      { timeout: 60_000, maxBuffer: 4 * 1024 * 1024 },
+      // The create script resolves its template paths relative to cwd
+      // (`resolve("templates/hermes/...")`). The dashboard runs with
+      // WorkingDirectory=.../packages/dashboard-next, so without pinning cwd to
+      // the repo root the templates resolve under the package dir and the
+      // CRITICAL create step fails with ENOENT.
+      { timeout: 60_000, maxBuffer: 4 * 1024 * 1024, cwd: REPO_ROOT },
     );
     const parsed = JSON.parse(stdout) as { profile?: string; port?: number };
     port = Number(parsed?.port ?? 0);
@@ -288,6 +304,7 @@ export async function buildProfileFromSpec(
       await executor([wrapper, "skills", "install", skill], {
         timeout: 120_000,
         maxBuffer: 1 * 1024 * 1024,
+        env: { HERMES_COMMAND: HERMES_BIN },
       });
       log(`skill ${skill}: OK`);
     } catch (err) {
@@ -321,7 +338,11 @@ export async function buildProfileFromSpec(
       argv.push("--args", ...mcp.args.filter((a): a is string => typeof a === "string"));
     }
     try {
-      await executor(argv, { timeout: 60_000, maxBuffer: 1 * 1024 * 1024 });
+      await executor(argv, {
+        timeout: 60_000,
+        maxBuffer: 1 * 1024 * 1024,
+        env: { HERMES_COMMAND: HERMES_BIN },
+      });
       log(`mcp ${mcp.name}: OK`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

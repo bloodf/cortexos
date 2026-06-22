@@ -37,6 +37,7 @@ function makeSpec(overrides: Partial<ProfileSpec> = {}): ProfileSpec {
 
 describe("buildProfileFromSpec — rich passthrough + injection defense", () => {
   let calls: string[][];
+  let envByCall: (Record<string, string> | undefined)[];
   let dir: string;
   let pdir: string;
   let tmplPath: string;
@@ -59,9 +60,11 @@ describe("buildProfileFromSpec — rich passthrough + injection defense", () => 
       richConfigTemplate: tmplPath,
     });
     calls = [];
-    setExecutorForTests(async (argv) => {
+    envByCall = [];
+    setExecutorForTests(async (argv, opts) => {
       const arr = [...argv];
       calls.push(arr);
+      envByCall.push(opts?.env);
       if (arr[0] === "node" && arr[1]?.endsWith("hermes-profile-create.mjs")) {
         return {
           stdout: JSON.stringify({ profile: "htest", port: 18800 }),
@@ -106,6 +109,11 @@ describe("buildProfileFromSpec — rich passthrough + injection defense", () => 
     const names = mcpAdds.map((c) => c[c.indexOf("add") + 1]);
     expect(names).toContain("custom");
     expect(names).toContain("htest-github"); // integration mcp, per-profile name
+
+    // wrapper mcp-add calls must carry HERMES_COMMAND — the dashboard service has
+    // no PATH to the hermes launcher, so without it `hermes mcp add` fails in prod.
+    const mcpAddIdx = calls.findIndex((c) => c.includes("mcp") && c.includes("add"));
+    expect(envByCall[mcpAddIdx]?.HERMES_COMMAND).toMatch(/hermes$/);
 
     // operator-provided mcp credential value landed in the (tmp) .env
     const env = await readFile(join(dir, "htest.env"), "utf8");
