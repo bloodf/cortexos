@@ -32,9 +32,14 @@ import { Route as AuthenticatedApprovalsRouteImport } from './routes/_authentica
 import { Route as AuthenticatedAlertsRouteImport } from './routes/_authenticated.alerts'
 import { Route as AuthenticatedAgentsRouteImport } from './routes/_authenticated.agents'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
+import { Route as AuthenticatedSystemdIndexRouteImport } from './routes/_authenticated.systemd.index'
+import { Route as AuthenticatedIncusIndexRouteImport } from './routes/_authenticated.incus.index'
+import { Route as AuthenticatedDockerIndexRouteImport } from './routes/_authenticated.docker.index'
+import { Route as AuthenticatedAgentsIndexRouteImport } from './routes/_authenticated.agents.index'
 import { Route as AuthenticatedSystemdUnitRouteImport } from './routes/_authenticated.systemd.$unit'
 import { Route as AuthenticatedIncusNameRouteImport } from './routes/_authenticated.incus.$name'
 import { Route as AuthenticatedDockerIdRouteImport } from './routes/_authenticated.docker.$id'
+import { Route as AuthenticatedAgentsNewRouteImport } from './routes/_authenticated.agents.new'
 import { Route as AuthenticatedAdminServicesRouteImport } from './routes/_authenticated.admin.services'
 import { Route as AuthenticatedAdminProjectsRouteImport } from './routes/_authenticated.admin.projects'
 import { Route as AuthenticatedAdminEnvBrowserRouteImport } from './routes/_authenticated.admin.env-browser'
@@ -157,6 +162,29 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedSystemdIndexRoute =
+  AuthenticatedSystemdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedSystemdRoute,
+  } as any)
+const AuthenticatedIncusIndexRoute = AuthenticatedIncusIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedIncusRoute,
+} as any)
+const AuthenticatedDockerIndexRoute =
+  AuthenticatedDockerIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedDockerRoute,
+  } as any)
+const AuthenticatedAgentsIndexRoute =
+  AuthenticatedAgentsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAgentsRoute,
+  } as any)
 const AuthenticatedSystemdUnitRoute =
   AuthenticatedSystemdUnitRouteImport.update({
     id: '/$unit',
@@ -172,6 +200,11 @@ const AuthenticatedDockerIdRoute = AuthenticatedDockerIdRouteImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => AuthenticatedDockerRoute,
+} as any)
+const AuthenticatedAgentsNewRoute = AuthenticatedAgentsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AuthenticatedAgentsRoute,
 } as any)
 const AuthenticatedAdminServicesRoute =
   AuthenticatedAdminServicesRouteImport.update({
@@ -208,7 +241,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
-  '/agents': typeof AuthenticatedAgentsRoute
+  '/agents': typeof AuthenticatedAgentsRouteWithChildren
   '/alerts': typeof AuthenticatedAlertsRoute
   '/approvals': typeof AuthenticatedApprovalsRoute
   '/apps': typeof AuthenticatedAppsRoute
@@ -232,24 +265,26 @@ export interface FileRoutesByFullPath {
   '/admin/env-browser': typeof AuthenticatedAdminEnvBrowserRoute
   '/admin/projects': typeof AuthenticatedAdminProjectsRoute
   '/admin/services': typeof AuthenticatedAdminServicesRoute
+  '/agents/new': typeof AuthenticatedAgentsNewRoute
   '/docker/$id': typeof AuthenticatedDockerIdRoute
   '/incus/$name': typeof AuthenticatedIncusNameRoute
   '/systemd/$unit': typeof AuthenticatedSystemdUnitRoute
+  '/agents/': typeof AuthenticatedAgentsIndexRoute
+  '/docker/': typeof AuthenticatedDockerIndexRoute
+  '/incus/': typeof AuthenticatedIncusIndexRoute
+  '/systemd/': typeof AuthenticatedSystemdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
-  '/agents': typeof AuthenticatedAgentsRoute
   '/alerts': typeof AuthenticatedAlertsRoute
   '/approvals': typeof AuthenticatedApprovalsRoute
   '/apps': typeof AuthenticatedAppsRoute
   '/audit': typeof AuthenticatedAuditRoute
   '/backups': typeof AuthenticatedBackupsRoute
-  '/docker': typeof AuthenticatedDockerRouteWithChildren
   '/headroom': typeof AuthenticatedHeadroomRoute
   '/healthcheck': typeof AuthenticatedHealthcheckRoute
-  '/incus': typeof AuthenticatedIncusRouteWithChildren
   '/mail-guardian': typeof AuthenticatedMailGuardianRoute
   '/mcps': typeof AuthenticatedMcpsRoute
   '/network': typeof AuthenticatedNetworkRoute
@@ -257,16 +292,20 @@ export interface FileRoutesByTo {
   '/processes': typeof AuthenticatedProcessesRoute
   '/scheduler': typeof AuthenticatedSchedulerRoute
   '/storage': typeof AuthenticatedStorageRoute
-  '/systemd': typeof AuthenticatedSystemdRouteWithChildren
   '/terminal': typeof AuthenticatedTerminalRoute
   '/admin/alerts': typeof AuthenticatedAdminAlertsRoute
   '/admin/badges': typeof AuthenticatedAdminBadgesRoute
   '/admin/env-browser': typeof AuthenticatedAdminEnvBrowserRoute
   '/admin/projects': typeof AuthenticatedAdminProjectsRoute
   '/admin/services': typeof AuthenticatedAdminServicesRoute
+  '/agents/new': typeof AuthenticatedAgentsNewRoute
   '/docker/$id': typeof AuthenticatedDockerIdRoute
   '/incus/$name': typeof AuthenticatedIncusNameRoute
   '/systemd/$unit': typeof AuthenticatedSystemdUnitRoute
+  '/agents': typeof AuthenticatedAgentsIndexRoute
+  '/docker': typeof AuthenticatedDockerIndexRoute
+  '/incus': typeof AuthenticatedIncusIndexRoute
+  '/systemd': typeof AuthenticatedSystemdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -274,7 +313,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
-  '/_authenticated/agents': typeof AuthenticatedAgentsRoute
+  '/_authenticated/agents': typeof AuthenticatedAgentsRouteWithChildren
   '/_authenticated/alerts': typeof AuthenticatedAlertsRoute
   '/_authenticated/approvals': typeof AuthenticatedApprovalsRoute
   '/_authenticated/apps': typeof AuthenticatedAppsRoute
@@ -298,9 +337,14 @@ export interface FileRoutesById {
   '/_authenticated/admin/env-browser': typeof AuthenticatedAdminEnvBrowserRoute
   '/_authenticated/admin/projects': typeof AuthenticatedAdminProjectsRoute
   '/_authenticated/admin/services': typeof AuthenticatedAdminServicesRoute
+  '/_authenticated/agents/new': typeof AuthenticatedAgentsNewRoute
   '/_authenticated/docker/$id': typeof AuthenticatedDockerIdRoute
   '/_authenticated/incus/$name': typeof AuthenticatedIncusNameRoute
   '/_authenticated/systemd/$unit': typeof AuthenticatedSystemdUnitRoute
+  '/_authenticated/agents/': typeof AuthenticatedAgentsIndexRoute
+  '/_authenticated/docker/': typeof AuthenticatedDockerIndexRoute
+  '/_authenticated/incus/': typeof AuthenticatedIncusIndexRoute
+  '/_authenticated/systemd/': typeof AuthenticatedSystemdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -332,24 +376,26 @@ export interface FileRouteTypes {
     | '/admin/env-browser'
     | '/admin/projects'
     | '/admin/services'
+    | '/agents/new'
     | '/docker/$id'
     | '/incus/$name'
     | '/systemd/$unit'
+    | '/agents/'
+    | '/docker/'
+    | '/incus/'
+    | '/systemd/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/admin'
-    | '/agents'
     | '/alerts'
     | '/approvals'
     | '/apps'
     | '/audit'
     | '/backups'
-    | '/docker'
     | '/headroom'
     | '/healthcheck'
-    | '/incus'
     | '/mail-guardian'
     | '/mcps'
     | '/network'
@@ -357,16 +403,20 @@ export interface FileRouteTypes {
     | '/processes'
     | '/scheduler'
     | '/storage'
-    | '/systemd'
     | '/terminal'
     | '/admin/alerts'
     | '/admin/badges'
     | '/admin/env-browser'
     | '/admin/projects'
     | '/admin/services'
+    | '/agents/new'
     | '/docker/$id'
     | '/incus/$name'
     | '/systemd/$unit'
+    | '/agents'
+    | '/docker'
+    | '/incus'
+    | '/systemd'
   id:
     | '__root__'
     | '/'
@@ -397,9 +447,14 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/env-browser'
     | '/_authenticated/admin/projects'
     | '/_authenticated/admin/services'
+    | '/_authenticated/agents/new'
     | '/_authenticated/docker/$id'
     | '/_authenticated/incus/$name'
     | '/_authenticated/systemd/$unit'
+    | '/_authenticated/agents/'
+    | '/_authenticated/docker/'
+    | '/_authenticated/incus/'
+    | '/_authenticated/systemd/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -571,6 +626,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/systemd/': {
+      id: '/_authenticated/systemd/'
+      path: '/'
+      fullPath: '/systemd/'
+      preLoaderRoute: typeof AuthenticatedSystemdIndexRouteImport
+      parentRoute: typeof AuthenticatedSystemdRoute
+    }
+    '/_authenticated/incus/': {
+      id: '/_authenticated/incus/'
+      path: '/'
+      fullPath: '/incus/'
+      preLoaderRoute: typeof AuthenticatedIncusIndexRouteImport
+      parentRoute: typeof AuthenticatedIncusRoute
+    }
+    '/_authenticated/docker/': {
+      id: '/_authenticated/docker/'
+      path: '/'
+      fullPath: '/docker/'
+      preLoaderRoute: typeof AuthenticatedDockerIndexRouteImport
+      parentRoute: typeof AuthenticatedDockerRoute
+    }
+    '/_authenticated/agents/': {
+      id: '/_authenticated/agents/'
+      path: '/'
+      fullPath: '/agents/'
+      preLoaderRoute: typeof AuthenticatedAgentsIndexRouteImport
+      parentRoute: typeof AuthenticatedAgentsRoute
+    }
     '/_authenticated/systemd/$unit': {
       id: '/_authenticated/systemd/$unit'
       path: '/$unit'
@@ -591,6 +674,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/docker/$id'
       preLoaderRoute: typeof AuthenticatedDockerIdRouteImport
       parentRoute: typeof AuthenticatedDockerRoute
+    }
+    '/_authenticated/agents/new': {
+      id: '/_authenticated/agents/new'
+      path: '/new'
+      fullPath: '/agents/new'
+      preLoaderRoute: typeof AuthenticatedAgentsNewRouteImport
+      parentRoute: typeof AuthenticatedAgentsRoute
     }
     '/_authenticated/admin/services': {
       id: '/_authenticated/admin/services'
@@ -649,12 +739,27 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
 const AuthenticatedAdminRouteWithChildren =
   AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
 
+interface AuthenticatedAgentsRouteChildren {
+  AuthenticatedAgentsNewRoute: typeof AuthenticatedAgentsNewRoute
+  AuthenticatedAgentsIndexRoute: typeof AuthenticatedAgentsIndexRoute
+}
+
+const AuthenticatedAgentsRouteChildren: AuthenticatedAgentsRouteChildren = {
+  AuthenticatedAgentsNewRoute: AuthenticatedAgentsNewRoute,
+  AuthenticatedAgentsIndexRoute: AuthenticatedAgentsIndexRoute,
+}
+
+const AuthenticatedAgentsRouteWithChildren =
+  AuthenticatedAgentsRoute._addFileChildren(AuthenticatedAgentsRouteChildren)
+
 interface AuthenticatedDockerRouteChildren {
   AuthenticatedDockerIdRoute: typeof AuthenticatedDockerIdRoute
+  AuthenticatedDockerIndexRoute: typeof AuthenticatedDockerIndexRoute
 }
 
 const AuthenticatedDockerRouteChildren: AuthenticatedDockerRouteChildren = {
   AuthenticatedDockerIdRoute: AuthenticatedDockerIdRoute,
+  AuthenticatedDockerIndexRoute: AuthenticatedDockerIndexRoute,
 }
 
 const AuthenticatedDockerRouteWithChildren =
@@ -662,10 +767,12 @@ const AuthenticatedDockerRouteWithChildren =
 
 interface AuthenticatedIncusRouteChildren {
   AuthenticatedIncusNameRoute: typeof AuthenticatedIncusNameRoute
+  AuthenticatedIncusIndexRoute: typeof AuthenticatedIncusIndexRoute
 }
 
 const AuthenticatedIncusRouteChildren: AuthenticatedIncusRouteChildren = {
   AuthenticatedIncusNameRoute: AuthenticatedIncusNameRoute,
+  AuthenticatedIncusIndexRoute: AuthenticatedIncusIndexRoute,
 }
 
 const AuthenticatedIncusRouteWithChildren =
@@ -673,10 +780,12 @@ const AuthenticatedIncusRouteWithChildren =
 
 interface AuthenticatedSystemdRouteChildren {
   AuthenticatedSystemdUnitRoute: typeof AuthenticatedSystemdUnitRoute
+  AuthenticatedSystemdIndexRoute: typeof AuthenticatedSystemdIndexRoute
 }
 
 const AuthenticatedSystemdRouteChildren: AuthenticatedSystemdRouteChildren = {
   AuthenticatedSystemdUnitRoute: AuthenticatedSystemdUnitRoute,
+  AuthenticatedSystemdIndexRoute: AuthenticatedSystemdIndexRoute,
 }
 
 const AuthenticatedSystemdRouteWithChildren =
@@ -684,7 +793,7 @@ const AuthenticatedSystemdRouteWithChildren =
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
-  AuthenticatedAgentsRoute: typeof AuthenticatedAgentsRoute
+  AuthenticatedAgentsRoute: typeof AuthenticatedAgentsRouteWithChildren
   AuthenticatedAlertsRoute: typeof AuthenticatedAlertsRoute
   AuthenticatedApprovalsRoute: typeof AuthenticatedApprovalsRoute
   AuthenticatedAppsRoute: typeof AuthenticatedAppsRoute
@@ -707,7 +816,7 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
-  AuthenticatedAgentsRoute: AuthenticatedAgentsRoute,
+  AuthenticatedAgentsRoute: AuthenticatedAgentsRouteWithChildren,
   AuthenticatedAlertsRoute: AuthenticatedAlertsRoute,
   AuthenticatedApprovalsRoute: AuthenticatedApprovalsRoute,
   AuthenticatedAppsRoute: AuthenticatedAppsRoute,

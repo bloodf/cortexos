@@ -77,6 +77,14 @@ export function Sidebar({ collapsed, mobileOpen, onClose }: Props) {
   const { user } = useAuth();
   const path = useRouterState({ select: (s) => s.location.pathname });
 
+  // Exactly one nav item is active: the one whose `to` is the LONGEST prefix of
+  // the current path. So /agents/new lights only "Agent Generator" (not its
+  // parent "Agents"), while /incus/$name still lights "Incus".
+  const activeTo =
+    [PINNED.to, ...NAV.flatMap((g) => g.items.map((it) => it.to))]
+      .filter((to) => path === to || path.startsWith(`${to}/`))
+      .sort((a, b) => b.length - a.length)[0] ?? null;
+
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     platform: true,
     infra: true,
@@ -186,7 +194,7 @@ export function Sidebar({ collapsed, mobileOpen, onClose }: Props) {
                           to={it.to}
                           icon={<it.icon className="size-4" />}
                           label={t.nav[it.key]}
-                          active={path.startsWith(it.to)}
+                          active={it.to === activeTo}
                           collapsed
                           onClick={onClose}
                         />
@@ -222,7 +230,7 @@ export function Sidebar({ collapsed, mobileOpen, onClose }: Props) {
                           to={it.to}
                           icon={<it.icon className="size-4" />}
                           label={t.nav[it.key]}
-                          active={path.startsWith(it.to)}
+                          active={it.to === activeTo}
                           collapsed={false}
                           onClick={onClose}
                         />
