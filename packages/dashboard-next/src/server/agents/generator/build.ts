@@ -20,6 +20,7 @@ import { execFile as execFileCb } from "node:child_process";
 import { promisify } from "node:util";
 import fs from "node:fs/promises";
 import type { ProfileSpec } from "@/server/agents/generator/types";
+import { expandIntegrations } from "@/server/agents/generator/integration-catalog";
 import { systemError } from "@/server/errors/types";
 
 const execFileAsync = promisify(execFileCb);
@@ -177,9 +178,20 @@ export async function buildProfileFromSpec(
     log(`hindsight: skipped (${msg})`);
   }
 
+  // Expand selected integrations (gsuite, ms365, …) into the concrete MCP
+  // servers, skills, and credential placeholders they require, merged with any
+  // the spec already lists. Best-effort, like the steps below.
+  const integ = expandIntegrations(spec.integrations);
+  for (const id of integ.unknown) {
+    warnings.push(`unknown integration '${id}' skipped`);
+    log(`integration ${id}: UNKNOWN (skipped)`);
+  }
+  const allSkills = [...new Set([...spec.skills, ...integ.skills])];
+  const allMcps = [...spec.mcps, ...integ.mcps];
+
   // 4. Install skills (BEST-EFFORT, sequential).
   const wrapper = `/opt/cortexos/bin/hermes-${spec.slug}`;
-  for (const skill of spec.skills) {
+  for (const skill of allSkills) {
     if (typeof skill !== "string" || skill.length === 0) continue;
     try {
       await executor([wrapper, "skills", "install", skill], {
@@ -195,7 +207,7 @@ export async function buildProfileFromSpec(
   }
 
   // 5. Add MCPs (BEST-EFFORT, sequential).
-  for (const mcp of spec.mcps) {
+  for (const mcp of allMcps) {
     if (!mcp || typeof mcp.name !== "string" || mcp.name.length === 0) continue;
     const flag = mcp.url ? "--url" : "--command";
     const value = mcp.url ?? mcp.command ?? "";
@@ -210,6 +222,36 @@ export async function buildProfileFromSpec(
       const msg = err instanceof Error ? err.message : String(err);
       warnings.push(`mcp ${mcp.name} failed: ${msg}`);
       log(`mcp ${mcp.name}: FAIL (${msg})`);
+    }
+  }
+
+  // 5b. Integration credential placeholders → profile .env (BEST-EFFORT).
+  // Append empty `KEY=` lines for any credential the selected integrations need
+  // so the operator knows exactly what to fill in. Never overwrites a value.
+  if (integ.credentialEnvKeys.length > 0) {
+    try {
+      const envPath = `/opt/cortexos/.secrets/hermes/${spec.slug}.env`;
+      const envText = await fs.readFile(envPath, "utf8").catch(() => "");
+      const lines = envText.length > 0 ? envText.split("\n") : [];
+      const present = new Set(
+        lines.map((l) => l.split("=")[0]?.trim()).filter((k): k is string => !!k),
+      );
+      const added: string[] = [];
+      for (const key of integ.credentialEnvKeys) {
+        if (!present.has(key)) {
+          lines.push(`${key}=`);
+          added.push(key);
+        }
+      }
+      if (added.length > 0) {
+        await fs.writeFile(envPath, lines.join("\n"), { mode: 0o600 });
+        log(`integration creds: added placeholders ${added.join(", ")}`);
+        warnings.push(`fill integration credentials in ${envPath}: ${added.join(", ")}`);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      warnings.push(`integration credential placeholders skipped: ${msg}`);
+      log(`integration creds: skipped (${msg})`);
     }
   }
 

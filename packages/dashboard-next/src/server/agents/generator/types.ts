@@ -33,6 +33,12 @@ export interface ProfileSpec {
   channels: AgentChannel[];
   skills: string[];
   mcps: ProfileMcp[];
+  /**
+   * Integration catalog ids to enable (e.g. "gsuite", "ms365", "github").
+   * Expanded at build time into MCP servers + skills + credential placeholders
+   * in the profile .env. See integration-catalog.ts.
+   */
+  integrations?: string[];
   /** Telegram bot token (if the user provided one); written to the profile .env. */
   telegramBotToken?: string;
 }
