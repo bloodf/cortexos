@@ -13,8 +13,11 @@
 
 export interface IntegrationMcp {
   name: string;
+  /** Hermes catalog preset name; takes precedence over command/url. */
+  preset?: string;
   url?: string;
   command?: string;
+  args?: string[];
   /** Credentials/env vars; aligns with ProfileMcp so the two can be merged. */
   env?: Record<string, string>;
 }
@@ -29,12 +32,76 @@ export interface IntegrationTemplate {
   credentialEnvKeys: string[];
 }
 
+// Grounded in `hermes mcp catalog` (presets: linear, n8n, …) and known-good npm
+// packages. Entries without a Hermes preset run best-effort via npx; the build
+// warns on failure and the operator can correct via the custom-MCP flow.
 export const INTEGRATION_CATALOG: readonly IntegrationTemplate[] = [
+  {
+    id: "linear",
+    name: "Linear",
+    desc: "Find, create and update Linear issues, projects and comments (Hermes preset).",
+    mcps: [{ name: "linear", preset: "linear" }],
+    skills: [],
+    credentialEnvKeys: [],
+  },
+  {
+    id: "n8n",
+    name: "n8n",
+    desc: "Manage and inspect n8n workflows (Hermes preset).",
+    mcps: [{ name: "n8n", preset: "n8n" }],
+    skills: [],
+    credentialEnvKeys: [],
+  },
+  {
+    id: "github",
+    name: "GitHub",
+    desc: "Repos, issues, pull requests and Actions.",
+    mcps: [
+      {
+        name: "github",
+        command: "npx",
+        args: ["-y", "@modelcontextprotocol/server-github"],
+        env: { GITHUB_PERSONAL_ACCESS_TOKEN: "" },
+      },
+    ],
+    skills: [],
+    credentialEnvKeys: ["GITHUB_PERSONAL_ACCESS_TOKEN"],
+  },
+  {
+    id: "notion",
+    name: "Notion",
+    desc: "Pages and databases.",
+    mcps: [
+      {
+        name: "notion",
+        command: "npx",
+        args: ["-y", "@notionhq/notion-mcp-server"],
+        env: { NOTION_API_KEY: "" },
+      },
+    ],
+    skills: [],
+    credentialEnvKeys: ["NOTION_API_KEY"],
+  },
+  {
+    id: "slack",
+    name: "Slack",
+    desc: "Channels, DMs and search.",
+    mcps: [
+      {
+        name: "slack",
+        command: "npx",
+        args: ["-y", "@modelcontextprotocol/server-slack"],
+        env: { SLACK_BOT_TOKEN: "", SLACK_TEAM_ID: "" },
+      },
+    ],
+    skills: [],
+    credentialEnvKeys: ["SLACK_BOT_TOKEN", "SLACK_TEAM_ID"],
+  },
   {
     id: "gsuite",
     name: "Google Workspace",
-    desc: "Gmail, Calendar, Drive, Sheets and Docs.",
-    mcps: [{ name: "google-workspace", command: "npx -y @modelcontextprotocol/server-gsuite" }],
+    desc: "Google Drive/Workspace (community server; extend per your Workspace setup).",
+    mcps: [{ name: "gdrive", command: "npx", args: ["-y", "@modelcontextprotocol/server-gdrive"] }],
     skills: [],
     credentialEnvKeys: [
       "GOOGLE_OAUTH_CLIENT_ID",
@@ -45,50 +112,39 @@ export const INTEGRATION_CATALOG: readonly IntegrationTemplate[] = [
   {
     id: "ms365",
     name: "Microsoft 365",
-    desc: "Outlook mail & calendar, OneDrive, Teams, Excel.",
-    mcps: [{ name: "microsoft-365", command: "npx -y @modelcontextprotocol/server-microsoft365" }],
+    desc: "Outlook mail & calendar, OneDrive, Teams, Excel (community server).",
+    mcps: [{ name: "ms365", command: "npx", args: ["-y", "@softeria/ms-365-mcp-server"] }],
     skills: [],
     credentialEnvKeys: ["MS365_TENANT_ID", "MS365_CLIENT_ID", "MS365_CLIENT_SECRET"],
-  },
-  {
-    id: "github",
-    name: "GitHub",
-    desc: "Repos, issues, pull requests and Actions.",
-    mcps: [{ name: "github", command: "npx -y @modelcontextprotocol/server-github" }],
-    skills: [],
-    credentialEnvKeys: ["GITHUB_PERSONAL_ACCESS_TOKEN"],
-  },
-  {
-    id: "notion",
-    name: "Notion",
-    desc: "Pages and databases.",
-    mcps: [{ name: "notion", command: "npx -y @notionhq/notion-mcp-server" }],
-    skills: [],
-    credentialEnvKeys: ["NOTION_API_KEY"],
-  },
-  {
-    id: "slack",
-    name: "Slack",
-    desc: "Channels, DMs and search.",
-    mcps: [{ name: "slack", command: "npx -y @modelcontextprotocol/server-slack" }],
-    skills: [],
-    credentialEnvKeys: ["SLACK_BOT_TOKEN", "SLACK_TEAM_ID"],
   },
   {
     id: "filesystem",
     name: "Filesystem",
     desc: "Scoped local file access for the agent.",
-    mcps: [{ name: "filesystem", command: "npx -y @modelcontextprotocol/server-filesystem" }],
+    mcps: [
+      {
+        name: "filesystem",
+        command: "npx",
+        args: ["-y", "@modelcontextprotocol/server-filesystem", "${MCP_FILESYSTEM_ROOTS}"],
+      },
+    ],
     skills: [],
-    credentialEnvKeys: [],
+    credentialEnvKeys: ["MCP_FILESYSTEM_ROOTS"],
   },
   {
     id: "web",
-    name: "Web Search & Fetch",
-    desc: "Live web search and page fetching.",
-    mcps: [{ name: "fetch", command: "npx -y @modelcontextprotocol/server-fetch" }],
+    name: "Web Search (Brave)",
+    desc: "Live web search via Brave Search.",
+    mcps: [
+      {
+        name: "brave-search",
+        command: "npx",
+        args: ["-y", "@modelcontextprotocol/server-brave-search"],
+        env: { BRAVE_API_KEY: "" },
+      },
+    ],
     skills: [],
-    credentialEnvKeys: [],
+    credentialEnvKeys: ["BRAVE_API_KEY"],
   },
 ];
 

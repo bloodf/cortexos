@@ -25,6 +25,7 @@ import {
   callMintApproval,
   api,
   listModels,
+  listGeneratorPresets,
 } from "@/lib/api/client";
 import { csrfHeaders } from "@/lib/csrf";
 import { useAuth } from "@/hooks/useAuth";
@@ -124,6 +125,12 @@ export default function AgentGeneratorPage() {
     queryFn: () => listModels({ data: {} }),
   });
   const models = modelsData?.models ?? [];
+  const { data: presets } = useQuery({
+    queryKey: ["generator-presets"],
+    queryFn: () => listGeneratorPresets({ data: {} }),
+    enabled: !!user?.is_admin,
+    staleTime: 60 * 60 * 1000,
+  });
 
   const { data: agents = [], isLoading: agentsLoading } = useQuery({
     queryKey: ["agents"],
@@ -447,6 +454,30 @@ export default function AgentGeneratorPage() {
             ))}
             {(thinking || sendMut.isPending) && <div className="mr-auto text-sm"><Loader2 className="size-3.5 animate-spin inline mr-1" /> thinking…</div>}
           </div>
+
+          {presets && messages.length <= 1 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] text-muted-foreground mr-0.5">Start from:</span>
+              {presets.archetypes.map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  title={a.desc}
+                  onClick={() =>
+                    setText(
+                      `I want to build a ${a.name}: ${a.desc}` +
+                        (a.integrations.length
+                          ? ` Suggested integrations: ${a.integrations.join(", ")}.`
+                          : ""),
+                    )
+                  }
+                  className="rounded-full border bg-muted/40 px-2 py-0.5 text-[10px] hover:bg-muted transition-colors"
+                >
+                  {a.name}
+                </button>
+              ))}
+            </div>
+          )}
 
           {pending.length > 0 && (
             <div className="flex flex-wrap gap-1.5">

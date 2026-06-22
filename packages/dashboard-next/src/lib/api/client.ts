@@ -197,6 +197,7 @@ import {
   generatorSend as _generatorSend,
   getGeneratorSession as _getGeneratorSession,
   buildGeneratorProfile as _buildGeneratorProfile,
+  listGeneratorPresets as _listGeneratorPresets,
 } from "./agentGenerator.functions";
 import { readEnv as _readEnv } from "./env-browser.functions";
 import type { HermesProfile } from "@/server/agents/registry";
@@ -1620,6 +1621,21 @@ export const listModels = _listModels as unknown as (opts: {
 }) => Promise<{ models: string[] }>;
 
 /** Call createGeneratorSession RPC — admin only. CSRF-enforced. */
+export interface GeneratorArchetype {
+  id: string;
+  name: string;
+  category: string;
+  desc: string;
+  integrations: string[];
+}
+export interface GeneratorIntegration {
+  id: string;
+  name: string;
+  desc: string;
+}
+export const listGeneratorPresets = _listGeneratorPresets as unknown as (opts: {
+  data: Record<string, never>;
+}) => Promise<{ archetypes: GeneratorArchetype[]; integrations: GeneratorIntegration[] }>;
 export const callCreateGeneratorSession = _createGeneratorSession as unknown as (
   opts: {
     data: { model: string; reasoning?: "low" | "medium" | "high" };

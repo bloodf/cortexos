@@ -214,6 +214,36 @@ export const getGeneratorSession = createServerFn({ method: "GET" })
   .handler(serverFnNoop);
 
 // ---------------------------------------------------------------------------
+// listGeneratorPresets — GET, auth: admin. Archetype + integration catalogs for
+// the UI preset chips (static data; the AI also offers them conversationally).
+// ---------------------------------------------------------------------------
+
+const listGeneratorPresetsGate = defineServerFn({
+  method: "GET",
+  auth: "admin",
+  input: z.object({}),
+  surface: "agents.generator",
+  action: "agents.generator.presets",
+  handler: async () => {
+    const { ARCHETYPE_CATALOG } = await import("@/server/agents/generator/archetype-catalog");
+    const { INTEGRATION_CATALOG } = await import("@/server/agents/generator/integration-catalog");
+    return {
+      archetypes: ARCHETYPE_CATALOG.map((a) => ({
+        id: a.id,
+        name: a.name,
+        category: a.category,
+        desc: a.desc,
+        integrations: a.integrations,
+      })),
+      integrations: INTEGRATION_CATALOG.map((t) => ({ id: t.id, name: t.name, desc: t.desc })),
+    };
+  },
+});
+export const listGeneratorPresets = createServerFn({ method: "GET" })
+  .middleware([listGeneratorPresetsGate])
+  .handler(serverFnNoop);
+
+// ---------------------------------------------------------------------------
 // buildGeneratorProfile — POST, auth: admin, approval: true.
 // Drives buildProfileFromSpec, persists build logs, sets status done/error.
 // ---------------------------------------------------------------------------

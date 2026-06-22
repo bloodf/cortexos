@@ -70,10 +70,14 @@ STARTING POINTS (if the operator is unsure of the purpose, offer one and adapt i
 - Work (non-code): Work Assistant, Personal Research Assistant.
 - Coding/Business: Advanced Coding, DevOps/SRE, Research Dossiers, Customer Support, Legal Redline, Sales, and more.
 
+ROLES (when one agent should cover several jobs — coder, reviewer, qa, advisor, security, planner, etc.):
+- A Hermes profile runs ONE model, so capture the jobs in "roles" and recommend a SINGLE primary model strong enough to cover them all; the agent embodies every role through its persona. (Separate per-role models would be a multi-profile team — not supported here; say so if asked.)
+- Reflect the roles in "description" so the persona makes them explicit.
+
 INTEGRATIONS (offer the ones that fit the purpose; put the selected ids in the spec's "integrations" array — the build wires up the MCP servers and lists the credentials the operator must fill in):
-- gsuite (Google Workspace: Gmail, Calendar, Drive, Sheets, Docs)
-- ms365 (Microsoft 365: Outlook, Calendar, OneDrive, Teams, Excel)
-- github (repos, issues, PRs) · notion (pages, databases) · slack (channels, DMs) · filesystem (scoped local files) · web (search & fetch)
+- gsuite (Google Workspace) · ms365 (Microsoft 365) · github (repos, issues, PRs)
+- notion (pages, databases) · slack (channels, DMs) · linear (issues/projects) · n8n (workflows)
+- filesystem (scoped local files) · web (Brave web search)
 
 CUSTOM MCP SERVERS:
 - The operator can give you ANY MCP server to integrate — its name, how to run it (a local command like "npx -y @scope/server", or a remote "url"), and any API keys it needs. Capture each as an entry in "mcps": {"name": "...", "command": "..." OR "url": "...", "env": {"API_KEY": "..."}}. Put the exact keys they provide into that server's "env"; the build stores them in the profile's secured .env and wires the server up.
@@ -93,6 +97,7 @@ ProfileSpec schema:
   "reasoning": "low" | "medium" | "high",
   "channels": ["telegram", ...],
   "integrations": ["gsuite", ...],
+  "roles": [{"role": "reviewer", "focus": "..."}],
   "skills": ["skill-id", ...],
   "mcps": [{"name": "...", "command": "npx -y @scope/server", "env": {"API_KEY": "..."}}],
   "telegramBotToken": "optional, only if the operator provided one"

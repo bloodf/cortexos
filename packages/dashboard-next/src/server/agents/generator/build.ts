@@ -71,13 +71,16 @@ const CREATE_SCRIPT = "/opt/cortexos/scripts/hermes-profile-create.mjs";
 let RICH_CONFIG_TEMPLATE = "/opt/cortexos/templates/hermes/profile-config.template.yaml";
 const RENDER_SCRIPT = "/opt/cortexos/scripts/ops/cortex-render-units.sh";
 let HINDSIGHT_BASE = "http://127.0.0.1:8888/v1";
+let SECRETS_DIR = "/opt/cortexos/.secrets/hermes";
 
 export function setBuildTestConfig(overrides: {
   richConfigTemplate?: string;
   hindsightBase?: string;
+  secretsDir?: string;
 }): void {
   if (overrides.richConfigTemplate !== undefined) RICH_CONFIG_TEMPLATE = overrides.richConfigTemplate;
   if (overrides.hindsightBase !== undefined) HINDSIGHT_BASE = overrides.hindsightBase;
+  if (overrides.secretsDir !== undefined) SECRETS_DIR = overrides.secretsDir;
 }
 
 export interface BuildResult {
@@ -206,17 +209,31 @@ export async function buildProfileFromSpec(
     }
   }
 
-  // 5. Add MCPs (BEST-EFFORT, sequential).
+  // 5. Add MCPs (BEST-EFFORT, sequential). `hermes mcp add <name>` accepts
+  // --preset (Hermes catalog), --url/--command, --env KEY=VALUE…, and --args …
+  // (which must come last). Credentials live in the profile .env (step 5b); we
+  // reference them as ${KEY} so the secret never lands in config.yaml or argv.
   for (const mcp of allMcps) {
     if (!mcp || typeof mcp.name !== "string" || mcp.name.length === 0) continue;
-    const flag = mcp.url ? "--url" : "--command";
-    const value = mcp.url ?? mcp.command ?? "";
-    if (!value) continue;
+    const argv: string[] = [wrapper, "mcp", "add", mcp.name];
+    if (mcp.preset) {
+      argv.push("--preset", mcp.preset);
+    } else if (mcp.url) {
+      argv.push("--url", mcp.url);
+    } else if (mcp.command) {
+      argv.push("--command", mcp.command);
+    } else {
+      continue; // nothing actionable to add
+    }
+    const envKeys = mcp.env ? Object.keys(mcp.env).filter((k) => k.length > 0) : [];
+    if (envKeys.length > 0) {
+      argv.push("--env", ...envKeys.map((k) => `${k}=\${${k}}`));
+    }
+    if (Array.isArray(mcp.args) && mcp.args.length > 0) {
+      argv.push("--args", ...mcp.args.filter((a): a is string => typeof a === "string"));
+    }
     try {
-      await executor([wrapper, "mcp", "add", mcp.name, flag, value], {
-        timeout: 60_000,
-        maxBuffer: 1 * 1024 * 1024,
-      });
+      await executor(argv, { timeout: 60_000, maxBuffer: 1 * 1024 * 1024 });
       log(`mcp ${mcp.name}: OK`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -240,7 +257,7 @@ export async function buildProfileFromSpec(
   const placeholderKeys = integ.credentialEnvKeys.filter((k) => !(k in mcpEnv));
   if (Object.keys(mcpEnv).length > 0 || placeholderKeys.length > 0) {
     try {
-      const envPath = `/opt/cortexos/.secrets/hermes/${spec.slug}.env`;
+      const envPath = `${SECRETS_DIR}/${spec.slug}.env`;
       const envText = await fs.readFile(envPath, "utf8").catch(() => "");
       const lines = envText.length > 0 ? envText.split("\n") : [];
       const keyOf = (l: string) => l.split("=")[0]?.trim();
@@ -277,7 +294,7 @@ export async function buildProfileFromSpec(
   // 6. Telegram token → profile .env (BEST-EFFORT, replace or append).
   if (spec.telegramBotToken) {
     try {
-      const envPath = `/opt/cortexos/.secrets/hermes/${spec.slug}.env`;
+      const envPath = `${SECRETS_DIR}/${spec.slug}.env`;
       const envText = await fs.readFile(envPath, "utf8");
       const lines = envText.split("\n");
       const existing = lines.findIndex((l) => /^TELEGRAM_BOT_TOKEN=/.test(l));

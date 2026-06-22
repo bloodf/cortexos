@@ -19,8 +19,12 @@ export type AgentChannel =
 
 export interface ProfileMcp {
   name: string;
+  /** Hermes catalog preset name (e.g. "linear", "n8n"); takes precedence. */
+  preset?: string;
   url?: string;
   command?: string;
+  /** Arguments for a stdio command server (passed last, as `hermes mcp add` requires). */
+  args?: string[];
   /**
    * Credentials / env vars (e.g. API keys) the operator provided for this MCP
    * server. Written to the profile's own secured .env (mode 0600) at build
@@ -45,8 +49,21 @@ export interface ProfileSpec {
    * in the profile .env. See integration-catalog.ts.
    */
   integrations?: string[];
+  /** Roles the single-model agent should embody (folded into its persona). */
+  roles?: ProfileRole[];
   /** Telegram bot token (if the user provided one); written to the profile .env. */
   telegramBotToken?: string;
+}
+
+/**
+ * A role the agent should cover (coder, reviewer, qa, security, planner, …).
+ * Hermes runs ONE model per profile, so roles describe modes the single agent
+ * embodies via its persona — not separate per-role models (that would be a
+ * multi-profile team, out of scope here).
+ */
+export interface ProfileRole {
+  role: string;
+  focus?: string;
 }
 
 export interface GeneratorMessage {
