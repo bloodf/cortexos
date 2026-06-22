@@ -70,6 +70,24 @@ function decodedBytes(att: PendingAttachment): number {
  *    button enables, mints an approval token, and builds the profile.
  * 4. On success → navigate to the new agent's chat page.
  */
+/** Mask operator-provided secrets (MCP env values + Telegram token) in the
+    displayed spec so they aren't shown in plaintext in the live panel. */
+function redactSpec(spec: Record<string, unknown>): Record<string, unknown> {
+  const clone = JSON.parse(JSON.stringify(spec)) as Record<string, unknown>;
+  if (typeof clone.telegramBotToken === "string" && clone.telegramBotToken) {
+    clone.telegramBotToken = "••••••••";
+  }
+  if (Array.isArray(clone.mcps)) {
+    for (const m of clone.mcps as Array<Record<string, unknown>>) {
+      if (m && typeof m === "object" && m.env && typeof m.env === "object") {
+        const env = m.env as Record<string, unknown>;
+        for (const k of Object.keys(env)) if (env[k]) env[k] = "••••••••";
+      }
+    }
+  }
+  return clone;
+}
+
 export default function AgentGeneratorPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -467,7 +485,7 @@ export default function AgentGeneratorPage() {
             <Bot className="size-3.5" /> Live spec
           </div>
           <pre className="text-[10px] font-mono whitespace-pre-wrap break-all bg-muted/30 rounded p-2 min-h-[200px] max-h-[420px] overflow-y-auto">
-{Object.keys(spec).length === 0 ? "(empty — waiting for the model)" : JSON.stringify(spec, null, 2)}
+{Object.keys(spec).length === 0 ? "(empty — waiting for the model)" : JSON.stringify(redactSpec(spec), null, 2)}
           </pre>
         </Card>
       </div>

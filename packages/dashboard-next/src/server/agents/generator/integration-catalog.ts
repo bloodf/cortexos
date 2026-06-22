@@ -15,6 +15,8 @@ export interface IntegrationMcp {
   name: string;
   url?: string;
   command?: string;
+  /** Credentials/env vars; aligns with ProfileMcp so the two can be merged. */
+  env?: Record<string, string>;
 }
 
 export interface IntegrationTemplate {

@@ -21,6 +21,12 @@ export interface ProfileMcp {
   name: string;
   url?: string;
   command?: string;
+  /**
+   * Credentials / env vars (e.g. API keys) the operator provided for this MCP
+   * server. Written to the profile's own secured .env (mode 0600) at build
+   * time so the server process can read them; never logged or echoed.
+   */
+  env?: Record<string, string>;
 }
 
 /** The collected spec the generator builds a profile from. */

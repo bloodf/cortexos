@@ -225,33 +225,52 @@ export async function buildProfileFromSpec(
     }
   }
 
-  // 5b. Integration credential placeholders → profile .env (BEST-EFFORT).
-  // Append empty `KEY=` lines for any credential the selected integrations need
-  // so the operator knows exactly what to fill in. Never overwrites a value.
-  if (integ.credentialEnvKeys.length > 0) {
+  // 5b. Write credentials to the profile .env (mode 0600, BEST-EFFORT):
+  //   - operator-provided MCP env vars (API keys) → written with their values;
+  //   - integration credential keys not otherwise provided → empty placeholders.
+  // Key NAMES are logged for traceability; values are never logged or echoed.
+  const mcpEnv: Record<string, string> = {};
+  for (const mcp of allMcps) {
+    if (mcp && mcp.env && typeof mcp.env === "object") {
+      for (const [k, v] of Object.entries(mcp.env)) {
+        if (typeof k === "string" && k.length > 0 && typeof v === "string") mcpEnv[k] = v;
+      }
+    }
+  }
+  const placeholderKeys = integ.credentialEnvKeys.filter((k) => !(k in mcpEnv));
+  if (Object.keys(mcpEnv).length > 0 || placeholderKeys.length > 0) {
     try {
       const envPath = `/opt/cortexos/.secrets/hermes/${spec.slug}.env`;
       const envText = await fs.readFile(envPath, "utf8").catch(() => "");
       const lines = envText.length > 0 ? envText.split("\n") : [];
-      const present = new Set(
-        lines.map((l) => l.split("=")[0]?.trim()).filter((k): k is string => !!k),
-      );
+      const keyOf = (l: string) => l.split("=")[0]?.trim();
+      // Upsert real MCP credential values (replace if present, else append).
+      const setKeys: string[] = [];
+      for (const [k, v] of Object.entries(mcpEnv)) {
+        const idx = lines.findIndex((l) => keyOf(l) === k);
+        if (idx >= 0) lines[idx] = `${k}=${v}`;
+        else lines.push(`${k}=${v}`);
+        setKeys.push(k);
+      }
+      // Add empty placeholders only when the key is absent.
+      const present = new Set(lines.map(keyOf).filter((k): k is string => !!k));
       const added: string[] = [];
-      for (const key of integ.credentialEnvKeys) {
+      for (const key of placeholderKeys) {
         if (!present.has(key)) {
           lines.push(`${key}=`);
           added.push(key);
         }
       }
+      await fs.writeFile(envPath, lines.join("\n"), { mode: 0o600 });
+      if (setKeys.length > 0) log(`mcp creds: wrote ${setKeys.join(", ")}`);
       if (added.length > 0) {
-        await fs.writeFile(envPath, lines.join("\n"), { mode: 0o600 });
         log(`integration creds: added placeholders ${added.join(", ")}`);
         warnings.push(`fill integration credentials in ${envPath}: ${added.join(", ")}`);
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      warnings.push(`integration credential placeholders skipped: ${msg}`);
-      log(`integration creds: skipped (${msg})`);
+      warnings.push(`mcp/integration credentials skipped: ${msg}`);
+      log(`mcp/integration creds: skipped (${msg})`);
     }
   }
 
