@@ -51,6 +51,12 @@ export interface ProfileSpec {
   integrations?: string[];
   /** Roles the single-model agent should embody (folded into its persona). */
   roles?: ProfileRole[];
+  /**
+   * The agent's persona as a complete SOUL.md markdown document (identity, role,
+   * tone, language, domain, rules). Written to the profile's SOUL.md at build —
+   * this IS the agent's identity. If omitted, one is generated from the fields.
+   */
+  soul?: string;
   /** Telegram bot token (if the user provided one); written to the profile .env. */
   telegramBotToken?: string;
 }

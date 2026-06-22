@@ -72,15 +72,58 @@ let RICH_CONFIG_TEMPLATE = "/opt/cortexos/templates/hermes/profile-config.templa
 const RENDER_SCRIPT = "/opt/cortexos/scripts/ops/cortex-render-units.sh";
 let HINDSIGHT_BASE = "http://127.0.0.1:8888/v1";
 let SECRETS_DIR = "/opt/cortexos/.secrets/hermes";
+let PROFILES_DIR = "/opt/cortexos/hermes/profiles";
 
 export function setBuildTestConfig(overrides: {
   richConfigTemplate?: string;
   hindsightBase?: string;
   secretsDir?: string;
+  profilesDir?: string;
 }): void {
   if (overrides.richConfigTemplate !== undefined) RICH_CONFIG_TEMPLATE = overrides.richConfigTemplate;
   if (overrides.hindsightBase !== undefined) HINDSIGHT_BASE = overrides.hindsightBase;
   if (overrides.secretsDir !== undefined) SECRETS_DIR = overrides.secretsDir;
+  if (overrides.profilesDir !== undefined) PROFILES_DIR = overrides.profilesDir;
+}
+
+/** Build the agent persona (SOUL.md) from the spec when the model didn't author one. */
+function generateSoul(spec: ProfileSpec): string {
+  const name = spec.name || spec.slug;
+  const roles = (spec.roles ?? [])
+    .filter((r) => r && typeof r.role === "string" && r.role.length > 0)
+    .map((r) => `- ${r.role}${r.focus ? `: ${r.focus}` : ""}`)
+    .join("\n");
+  const out = [
+    `# SOUL`,
+    ``,
+    `You are **${name}**.`,
+    spec.description ? `\n${spec.description}` : ``,
+    `\n## Identity`,
+    `- Name: ${name}`,
+    spec.channels.length > 0 ? `- Channels: ${spec.channels.join(", ")}` : ``,
+    `\nWhen asked who you are, say you are ${name}.`,
+    roles ? `\n## Roles you cover\n${roles}` : ``,
+    `\n## Principles`,
+    `- Be accurate. Never invent facts, numbers, dates, or sources; if unsure, say so plainly.`,
+    `- Stay within your role and scope. Be concise and clear.`,
+    ``,
+  ];
+  return out.filter((l) => l !== "").join("\n");
+}
+
+/** Minimal operating-rules doc that defers to SOUL.md. */
+function generateAgentsMd(spec: ProfileSpec): string {
+  const name = spec.name || spec.slug;
+  return [
+    `# AGENTS.md`,
+    ``,
+    `You are **${name}**. Always follow SOUL.md.`,
+    ``,
+    `## Output`,
+    `Reply with the final answer only. Never expose tool calls, logs, MCP/RAG internals,`,
+    `execution IDs, or shell commands to the user.`,
+    ``,
+  ].join("\n");
 }
 
 export interface BuildResult {
@@ -121,12 +164,31 @@ export async function buildProfileFromSpec(
     throw systemError(`hermes-profile-create failed: ${msg}`);
   }
 
+  // 1b. Write the agent persona (SOUL.md) + operating rules (AGENTS.md) — the
+  // agent's actual identity. Without this the profile runs with a default
+  // persona and the whole interview is wasted. Prefer the model-authored soul;
+  // otherwise generate one from the spec.
+  try {
+    const home = `${PROFILES_DIR}/${spec.slug}`;
+    const soul =
+      typeof spec.soul === "string" && spec.soul.trim().length > 0
+        ? spec.soul.trim()
+        : generateSoul(spec);
+    await fs.writeFile(`${home}/SOUL.md`, `${soul}\n`, { mode: 0o644 });
+    await fs.writeFile(`${home}/AGENTS.md`, generateAgentsMd(spec), { mode: 0o644 });
+    log("persona: wrote SOUL.md + AGENTS.md");
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    warnings.push(`persona write skipped: ${msg}`);
+    log(`persona: skipped (${msg})`);
+  }
+
   // 2. Apply the rich config template (BEST-EFFORT).
   // The real template uses `<<PROFILE_NAME>>` / `<<HINDSIGHT_*>>` placeholders.
   // Substitute those and rewrite `model.default:` to the spec's model.
   if (spec.model) {
     try {
-      const home = `/opt/cortexos/hermes/profiles/${spec.slug}`;
+      const home = `${PROFILES_DIR}/${spec.slug}`;
       const tmpl = await fs.readFile(RICH_CONFIG_TEMPLATE, "utf8");
       const subbed = tmpl
         .replaceAll("<<PROFILE_NAME>>", spec.slug)

@@ -78,6 +78,9 @@ function redactSpec(spec: Record<string, unknown>): Record<string, unknown> {
   if (typeof clone.telegramBotToken === "string" && clone.telegramBotToken) {
     clone.telegramBotToken = "••••••••";
   }
+  if (typeof clone.soul === "string" && clone.soul.length > 0) {
+    clone.soul = `(persona — ${clone.soul.length} chars)`;
+  }
   if (Array.isArray(clone.mcps)) {
     for (const m of clone.mcps as Array<Record<string, unknown>>) {
       if (m && typeof m === "object" && m.env && typeof m.env === "object") {

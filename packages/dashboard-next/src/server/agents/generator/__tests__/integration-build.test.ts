@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -33,10 +33,13 @@ function makeSpec(overrides: Partial<ProfileSpec> = {}): ProfileSpec {
 describe("buildProfileFromSpec — MCP + credentials", () => {
   let calls: string[][];
   let dir: string;
+  let pdir: string;
 
   beforeEach(async () => {
     dir = await mkdtemp(join(tmpdir(), "gen-secrets-"));
-    setBuildTestConfig({ hindsightBase: "http://127.0.0.1:1", secretsDir: dir });
+    pdir = await mkdtemp(join(tmpdir(), "gen-profiles-"));
+    await mkdir(join(pdir, "mtest"), { recursive: true });
+    setBuildTestConfig({ hindsightBase: "http://127.0.0.1:1", secretsDir: dir, profilesDir: pdir });
     calls = [];
     setExecutorForTests(async (argv) => {
       const arr = [...argv];
@@ -50,8 +53,31 @@ describe("buildProfileFromSpec — MCP + credentials", () => {
 
   afterEach(async () => {
     setExecutorForTests(null);
-    setBuildTestConfig({ hindsightBase: "http://127.0.0.1:8888/v1", secretsDir: "/opt/cortexos/.secrets/hermes" });
+    setBuildTestConfig({
+      hindsightBase: "http://127.0.0.1:8888/v1",
+      secretsDir: "/opt/cortexos/.secrets/hermes",
+      profilesDir: "/opt/cortexos/hermes/profiles",
+    });
     await rm(dir, { recursive: true, force: true });
+    await rm(pdir, { recursive: true, force: true });
+  });
+
+  it("writes the model-authored SOUL.md + an AGENTS.md", async () => {
+    await buildProfileFromSpec(
+      makeSpec({ name: "Task Bot", soul: "# SOUL\n\nYou are Task Bot, a focused helper." }),
+      () => {},
+    );
+    expect(await readFile(join(pdir, "mtest", "SOUL.md"), "utf8")).toContain(
+      "You are Task Bot, a focused helper.",
+    );
+    expect(await readFile(join(pdir, "mtest", "AGENTS.md"), "utf8")).toContain("Task Bot");
+  });
+
+  it("generates a SOUL.md when the spec has no soul", async () => {
+    await buildProfileFromSpec(makeSpec({ name: "Plain Bot", roles: [{ role: "planner" }] }), () => {});
+    const soul = await readFile(join(pdir, "mtest", "SOUL.md"), "utf8");
+    expect(soul).toContain("You are **Plain Bot**");
+    expect(soul).toContain("planner");
   });
 
   it("adds preset / custom MCP with --env reference + --args, and writes creds to .env", async () => {
