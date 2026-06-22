@@ -60,7 +60,7 @@ export const INTEGRATION_CATALOG: readonly IntegrationTemplate[] = [
       {
         name: "github",
         command: "npx",
-        args: ["-y", "@modelcontextprotocol/server-github"],
+        args: ["-y", "@modelcontextprotocol/server-github"], // DEPRECATED on npm (last-known-good v2025.4.8); still installs. Consider repointing.
         env: { GITHUB_PERSONAL_ACCESS_TOKEN: "" },
       },
     ],
@@ -90,7 +90,7 @@ export const INTEGRATION_CATALOG: readonly IntegrationTemplate[] = [
       {
         name: "slack",
         command: "npx",
-        args: ["-y", "@modelcontextprotocol/server-slack"],
+        args: ["-y", "@modelcontextprotocol/server-slack"], // DEPRECATED on npm (last-known-good v2025.4.25); still installs. Consider repointing.
         env: { SLACK_BOT_TOKEN: "", SLACK_TEAM_ID: "" },
       },
     ],
@@ -101,7 +101,7 @@ export const INTEGRATION_CATALOG: readonly IntegrationTemplate[] = [
     id: "gsuite",
     name: "Google Workspace",
     desc: "Google Drive/Workspace (community server; extend per your Workspace setup).",
-    mcps: [{ name: "gdrive", command: "npx", args: ["-y", "@modelcontextprotocol/server-gdrive"] }],
+    mcps: [{ name: "gdrive", command: "npx", args: ["-y", "@modelcontextprotocol/server-gdrive"] }], // DEPRECATED on npm (last-known-good v2025.1.14); still installs. Consider repointing.
     skills: [],
     credentialEnvKeys: [
       "GOOGLE_OAUTH_CLIENT_ID",
@@ -139,7 +139,7 @@ export const INTEGRATION_CATALOG: readonly IntegrationTemplate[] = [
       {
         name: "brave-search",
         command: "npx",
-        args: ["-y", "@modelcontextprotocol/server-brave-search"],
+        args: ["-y", "@modelcontextprotocol/server-brave-search"], // DEPRECATED on npm (last-known-good v0.6.2); still installs. Consider repointing.
         env: { BRAVE_API_KEY: "" },
       },
     ],
