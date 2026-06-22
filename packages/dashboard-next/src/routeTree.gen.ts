@@ -23,7 +23,6 @@ import { Route as AuthenticatedMcpsRouteImport } from './routes/_authenticated.m
 import { Route as AuthenticatedMailGuardianRouteImport } from './routes/_authenticated.mail-guardian'
 import { Route as AuthenticatedIncusRouteImport } from './routes/_authenticated.incus'
 import { Route as AuthenticatedHealthcheckRouteImport } from './routes/_authenticated.healthcheck'
-import { Route as AuthenticatedHeadroomRouteImport } from './routes/_authenticated.headroom'
 import { Route as AuthenticatedDockerRouteImport } from './routes/_authenticated.docker'
 import { Route as AuthenticatedBackupsRouteImport } from './routes/_authenticated.backups'
 import { Route as AuthenticatedAuditRouteImport } from './routes/_authenticated.audit'
@@ -45,6 +44,7 @@ import { Route as AuthenticatedAdminProjectsRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminEnvBrowserRouteImport } from './routes/_authenticated.admin.env-browser'
 import { Route as AuthenticatedAdminBadgesRouteImport } from './routes/_authenticated.admin.badges'
 import { Route as AuthenticatedAdminAlertsRouteImport } from './routes/_authenticated.admin.alerts'
+import { Route as AuthenticatedAgentsSlugChatRouteImport } from './routes/_authenticated.agents.$slug.chat'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -117,11 +117,6 @@ const AuthenticatedHealthcheckRoute =
     path: '/healthcheck',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedHeadroomRoute = AuthenticatedHeadroomRouteImport.update({
-  id: '/headroom',
-  path: '/headroom',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
 const AuthenticatedDockerRoute = AuthenticatedDockerRouteImport.update({
   id: '/docker',
   path: '/docker',
@@ -236,6 +231,12 @@ const AuthenticatedAdminAlertsRoute =
     path: '/alerts',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAgentsSlugChatRoute =
+  AuthenticatedAgentsSlugChatRouteImport.update({
+    id: '/$slug/chat',
+    path: '/$slug/chat',
+    getParentRoute: () => AuthenticatedAgentsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -248,7 +249,6 @@ export interface FileRoutesByFullPath {
   '/audit': typeof AuthenticatedAuditRoute
   '/backups': typeof AuthenticatedBackupsRoute
   '/docker': typeof AuthenticatedDockerRouteWithChildren
-  '/headroom': typeof AuthenticatedHeadroomRoute
   '/healthcheck': typeof AuthenticatedHealthcheckRoute
   '/incus': typeof AuthenticatedIncusRouteWithChildren
   '/mail-guardian': typeof AuthenticatedMailGuardianRoute
@@ -273,6 +273,7 @@ export interface FileRoutesByFullPath {
   '/docker/': typeof AuthenticatedDockerIndexRoute
   '/incus/': typeof AuthenticatedIncusIndexRoute
   '/systemd/': typeof AuthenticatedSystemdIndexRoute
+  '/agents/$slug/chat': typeof AuthenticatedAgentsSlugChatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -283,7 +284,6 @@ export interface FileRoutesByTo {
   '/apps': typeof AuthenticatedAppsRoute
   '/audit': typeof AuthenticatedAuditRoute
   '/backups': typeof AuthenticatedBackupsRoute
-  '/headroom': typeof AuthenticatedHeadroomRoute
   '/healthcheck': typeof AuthenticatedHealthcheckRoute
   '/mail-guardian': typeof AuthenticatedMailGuardianRoute
   '/mcps': typeof AuthenticatedMcpsRoute
@@ -306,6 +306,7 @@ export interface FileRoutesByTo {
   '/docker': typeof AuthenticatedDockerIndexRoute
   '/incus': typeof AuthenticatedIncusIndexRoute
   '/systemd': typeof AuthenticatedSystemdIndexRoute
+  '/agents/$slug/chat': typeof AuthenticatedAgentsSlugChatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -320,7 +321,6 @@ export interface FileRoutesById {
   '/_authenticated/audit': typeof AuthenticatedAuditRoute
   '/_authenticated/backups': typeof AuthenticatedBackupsRoute
   '/_authenticated/docker': typeof AuthenticatedDockerRouteWithChildren
-  '/_authenticated/headroom': typeof AuthenticatedHeadroomRoute
   '/_authenticated/healthcheck': typeof AuthenticatedHealthcheckRoute
   '/_authenticated/incus': typeof AuthenticatedIncusRouteWithChildren
   '/_authenticated/mail-guardian': typeof AuthenticatedMailGuardianRoute
@@ -345,6 +345,7 @@ export interface FileRoutesById {
   '/_authenticated/docker/': typeof AuthenticatedDockerIndexRoute
   '/_authenticated/incus/': typeof AuthenticatedIncusIndexRoute
   '/_authenticated/systemd/': typeof AuthenticatedSystemdIndexRoute
+  '/_authenticated/agents/$slug/chat': typeof AuthenticatedAgentsSlugChatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -359,7 +360,6 @@ export interface FileRouteTypes {
     | '/audit'
     | '/backups'
     | '/docker'
-    | '/headroom'
     | '/healthcheck'
     | '/incus'
     | '/mail-guardian'
@@ -384,6 +384,7 @@ export interface FileRouteTypes {
     | '/docker/'
     | '/incus/'
     | '/systemd/'
+    | '/agents/$slug/chat'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -394,7 +395,6 @@ export interface FileRouteTypes {
     | '/apps'
     | '/audit'
     | '/backups'
-    | '/headroom'
     | '/healthcheck'
     | '/mail-guardian'
     | '/mcps'
@@ -417,6 +417,7 @@ export interface FileRouteTypes {
     | '/docker'
     | '/incus'
     | '/systemd'
+    | '/agents/$slug/chat'
   id:
     | '__root__'
     | '/'
@@ -430,7 +431,6 @@ export interface FileRouteTypes {
     | '/_authenticated/audit'
     | '/_authenticated/backups'
     | '/_authenticated/docker'
-    | '/_authenticated/headroom'
     | '/_authenticated/healthcheck'
     | '/_authenticated/incus'
     | '/_authenticated/mail-guardian'
@@ -455,6 +455,7 @@ export interface FileRouteTypes {
     | '/_authenticated/docker/'
     | '/_authenticated/incus/'
     | '/_authenticated/systemd/'
+    | '/_authenticated/agents/$slug/chat'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -561,13 +562,6 @@ declare module '@tanstack/react-router' {
       path: '/healthcheck'
       fullPath: '/healthcheck'
       preLoaderRoute: typeof AuthenticatedHealthcheckRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/headroom': {
-      id: '/_authenticated/headroom'
-      path: '/headroom'
-      fullPath: '/headroom'
-      preLoaderRoute: typeof AuthenticatedHeadroomRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/docker': {
@@ -717,6 +711,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAlertsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/agents/$slug/chat': {
+      id: '/_authenticated/agents/$slug/chat'
+      path: '/$slug/chat'
+      fullPath: '/agents/$slug/chat'
+      preLoaderRoute: typeof AuthenticatedAgentsSlugChatRouteImport
+      parentRoute: typeof AuthenticatedAgentsRoute
+    }
   }
 }
 
@@ -742,11 +743,13 @@ const AuthenticatedAdminRouteWithChildren =
 interface AuthenticatedAgentsRouteChildren {
   AuthenticatedAgentsNewRoute: typeof AuthenticatedAgentsNewRoute
   AuthenticatedAgentsIndexRoute: typeof AuthenticatedAgentsIndexRoute
+  AuthenticatedAgentsSlugChatRoute: typeof AuthenticatedAgentsSlugChatRoute
 }
 
 const AuthenticatedAgentsRouteChildren: AuthenticatedAgentsRouteChildren = {
   AuthenticatedAgentsNewRoute: AuthenticatedAgentsNewRoute,
   AuthenticatedAgentsIndexRoute: AuthenticatedAgentsIndexRoute,
+  AuthenticatedAgentsSlugChatRoute: AuthenticatedAgentsSlugChatRoute,
 }
 
 const AuthenticatedAgentsRouteWithChildren =
@@ -800,7 +803,6 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAuditRoute: typeof AuthenticatedAuditRoute
   AuthenticatedBackupsRoute: typeof AuthenticatedBackupsRoute
   AuthenticatedDockerRoute: typeof AuthenticatedDockerRouteWithChildren
-  AuthenticatedHeadroomRoute: typeof AuthenticatedHeadroomRoute
   AuthenticatedHealthcheckRoute: typeof AuthenticatedHealthcheckRoute
   AuthenticatedIncusRoute: typeof AuthenticatedIncusRouteWithChildren
   AuthenticatedMailGuardianRoute: typeof AuthenticatedMailGuardianRoute
@@ -823,7 +825,6 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAuditRoute: AuthenticatedAuditRoute,
   AuthenticatedBackupsRoute: AuthenticatedBackupsRoute,
   AuthenticatedDockerRoute: AuthenticatedDockerRouteWithChildren,
-  AuthenticatedHeadroomRoute: AuthenticatedHeadroomRoute,
   AuthenticatedHealthcheckRoute: AuthenticatedHealthcheckRoute,
   AuthenticatedIncusRoute: AuthenticatedIncusRouteWithChildren,
   AuthenticatedMailGuardianRoute: AuthenticatedMailGuardianRoute,

@@ -267,6 +267,8 @@ type AgentChatInputT = z.infer<typeof AgentChatInput>;
 interface AgentChatOutput {
   slug: string;
   reply: string;
+  usage?: { promptTokens: number; completionTokens: number; totalTokens: number };
+  latencyMs: number;
 }
 
 /**
@@ -288,13 +290,13 @@ export const agentChatGateOptions: ServerFnOptions<AgentChatInputT, AgentChatOut
     const { notFoundError } = await import("@/server/errors/types");
 
     try {
-      const { reply } = await chatWithAgent(input.slug, {
+      const { reply, usage, latencyMs } = await chatWithAgent(input.slug, {
         text: input.text,
         attachments: input.attachments,
         model: input.model,
         reasoning: input.reasoning,
       });
-      return { slug: input.slug, reply };
+      return { slug: input.slug, reply, usage, latencyMs };
     } catch (err) {
       if (err instanceof UnknownAgentError) {
         throw notFoundError(err.message, "agent");

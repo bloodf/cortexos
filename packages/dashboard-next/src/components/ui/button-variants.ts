@@ -27,6 +27,8 @@ export const buttonVariants = cva(
         sm: "h-8 rounded-md px-3 text-xs",
         lg: "h-10 rounded-md px-8",
         icon: "h-9 w-9",
+        // Compact icon size used by ai-elements (message actions, branch nav).
+        "icon-sm": "size-8 rounded-md p-0 [&_svg]:size-4",
       },
     },
     defaultVariants: {

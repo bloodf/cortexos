@@ -4,7 +4,6 @@ import {
   LayoutGrid,
   HeartPulse,
   Bot,
-  BrainCircuit,
   Container,
   Boxes,
   Server,
@@ -30,7 +29,6 @@ export type NavKey =
   | "healthcheck"
   | "agents"
   | "agent-generator"
-  | "headroom"
   | "docker"
   | "incus"
   | "systemd"
@@ -69,7 +67,6 @@ export const NAV: NavGroup[] = [
     items: [
       { to: "/agents", key: "agents", icon: Bot },
       { to: "/agents/new", key: "agent-generator", icon: Sparkles },
-      { to: "/headroom", key: "headroom", icon: BrainCircuit },
     ],
   },
   {

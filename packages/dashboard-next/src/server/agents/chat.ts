@@ -38,12 +38,23 @@ export interface ChatWithAgentInput {
   reasoning?: "low" | "medium" | "high";
 }
 
+export interface ChatUsage {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
+
 export interface ChatWithAgentResult {
   reply: string;
+  /** Token usage if the profile API reported it (OpenAI-style `usage`). */
+  usage?: ChatUsage;
+  /** Wall-clock time of the profile API round-trip, in milliseconds. */
+  latencyMs: number;
 }
 
 interface ChatCompletionResponse {
   choices?: Array<{ message?: { content?: string } }>;
+  usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
 }
 
 // ---------------------------------------------------------------------------
@@ -121,6 +132,7 @@ export async function chatWithAgent(
     reasoning: input.reasoning,
   };
 
+  const startedAt = Date.now();
   let res: Response;
   try {
     res = await fetch(`http://127.0.0.1:${profile.apiPort}/v1/chat/completions`, {
@@ -151,7 +163,17 @@ export async function chatWithAgent(
 
   const data = (await safeJson(res)) as ChatCompletionResponse | null;
   const reply = data?.choices?.[0]?.message?.content?.trim() ?? "";
-  return { reply };
+  const latencyMs = Date.now() - startedAt;
+  const u = data?.usage;
+  const usage: ChatUsage | undefined =
+    u && (u.prompt_tokens != null || u.completion_tokens != null || u.total_tokens != null)
+      ? {
+          promptTokens: u.prompt_tokens ?? 0,
+          completionTokens: u.completion_tokens ?? 0,
+          totalTokens: u.total_tokens ?? (u.prompt_tokens ?? 0) + (u.completion_tokens ?? 0),
+        }
+      : undefined;
+  return { reply, usage, latencyMs };
 }
 
 async function safeJson(res: Response): Promise<Record<string, unknown> | null> {

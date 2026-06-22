@@ -26,7 +26,6 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { CardSkeleton } from "@/components/skeletons";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AgentChat } from "@/features/AgentChat";
 import { api, uploadAgentFile, callAgentAction, callMintApproval } from "@/lib/api/client";
 import { csrfHeaders } from "@/lib/csrf";
 import { useT } from "@/hooks/useT";
@@ -229,7 +228,6 @@ export default function AgentsPage() {
   const [q, setQ] = useState("");
   const [stateFilter, setStateFilter] = useState<"all" | AgentRunState>("all");
   const [inspect, setInspect] = useState<Agent | null>(null);
-  const [chatAgent, setChatAgent] = useState<Agent | null>(null);
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -490,13 +488,10 @@ export default function AgentsPage() {
                     <FileText className="size-3.5 mr-1" /> Inspect
                   </Button>
                   {user?.is_admin && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 text-xs"
-                      onClick={() => setChatAgent(a)}
-                    >
-                      <MessageSquare className="size-3.5 mr-1" /> Chat
+                    <Button asChild size="sm" variant="ghost" className="h-7 text-xs">
+                      <Link to="/agents/$slug/chat" params={{ slug: a.slug }}>
+                        <MessageSquare className="size-3.5 mr-1" /> Chat
+                      </Link>
                     </Button>
                   )}
                   <div className="flex-1" />
@@ -577,11 +572,6 @@ export default function AgentsPage() {
           {inspect && <InspectorBody agent={inspect} isAdmin={!!user?.is_admin} />}
         </DialogContent>
       </Dialog>
-      <AgentChat
-        agent={chatAgent}
-        open={!!chatAgent}
-        onOpenChange={(o) => !o && setChatAgent(null)}
-      />
     </div>
   );
 }

@@ -55,7 +55,6 @@ export const en = {
     healthcheck: "Healthcheck",
     agents: "Agents",
     "agent-generator": "Agent Generator",
-    headroom: "Headroom",
     docker: "Docker",
     incus: "Incus",
     systemd: "Systemd",
