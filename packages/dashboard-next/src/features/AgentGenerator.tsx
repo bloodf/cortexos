@@ -3,12 +3,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Bot,
   ChevronDown,
-  FileText,
   Loader2,
   Paperclip,
   Sparkles,
   Terminal as TerminalIcon,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
@@ -54,6 +52,14 @@ import {
 import { csrfHeaders } from "@/lib/csrf";
 import { useAuth } from "@/hooks/useAuth";
 import { bytes } from "@/lib/format";
+import {
+  type PendingAttachment,
+  MAX_ATTACHMENT_BYTES,
+  MAX_ATTACHMENTS,
+  decodedBytes,
+  AttachmentChip,
+  readAttachments,
+} from "@/lib/attachment";
 import { cn } from "@/lib/utils";
 import {
   openGeneratorWs,
@@ -72,68 +78,6 @@ interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   attachments?: PendingAttachment[];
-}
-
-interface PendingAttachment {
-  filename: string;
-  mime: string;
-  dataBase64: string;
-}
-
-const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
-const MAX_ATTACHMENTS = 8;
-
-function decodedBytes(att: PendingAttachment): number {
-  const len = att.dataBase64.length;
-  const pad = att.dataBase64.endsWith("==") ? 2 : att.dataBase64.endsWith("=") ? 1 : 0;
-  return Math.floor((len * 3) / 4) - pad;
-}
-
-/** A single attachment chip / thumbnail. `onRemove` present ⇒ pending (composer). */
-function AttachmentChip({ att, onRemove }: { att: PendingAttachment; onRemove?: () => void }) {
-  const isImage = att.mime.startsWith("image/");
-  const size = decodedBytes(att);
-  if (isImage) {
-    return (
-      <div className="group/att relative size-16 shrink-0 overflow-hidden rounded-md border bg-muted/30">
-        {/* data: URL preview — the base64 we already hold, no extra fetch. */}
-        <img
-          src={`data:${att.mime};base64,${att.dataBase64}`}
-          alt={att.filename}
-          className="size-full object-cover"
-        />
-        {onRemove && (
-          <button
-            type="button"
-            aria-label={`Remove ${att.filename}`}
-            onClick={onRemove}
-            className="absolute right-0.5 top-0.5 grid size-4 place-items-center rounded-full bg-background/80 text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover/att:opacity-100"
-          >
-            <X className="size-3" />
-          </button>
-        )}
-      </div>
-    );
-  }
-  return (
-    <span className="inline-flex max-w-[200px] items-center gap-1.5 rounded-md border bg-muted/40 px-2 py-1 text-xs">
-      <FileText className="size-3.5 shrink-0 text-muted-foreground" />
-      <span className="truncate" title={att.filename}>
-        {att.filename}
-      </span>
-      <span className="shrink-0 text-[10px] text-muted-foreground tabular-nums">{bytes(size)}</span>
-      {onRemove && (
-        <button
-          type="button"
-          aria-label={`Remove ${att.filename}`}
-          onClick={onRemove}
-          className="text-muted-foreground hover:text-foreground"
-        >
-          <X className="size-3" />
-        </button>
-      )}
-    </span>
-  );
 }
 
 /**
@@ -343,34 +287,9 @@ export default function AgentGeneratorPage() {
   });
 
   function onPickFiles(files: FileList | null) {
-    if (!files) return;
-    const fileArr = Array.from(files);
-    if (fileArr.length === 0) return;
-    if (pending.length + fileArr.length > MAX_ATTACHMENTS) {
-      toast.error("Too many attachments");
-      return;
-    }
-    let running = pending.reduce((n, p) => n + decodedBytes(p), 0);
-    for (const file of fileArr) {
-      if (running + file.size > MAX_ATTACHMENT_BYTES) {
-        toast.error(`${file.name} exceeds the combined limit`);
-        continue;
-      }
-      running += file.size;
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = typeof reader.result === "string" ? reader.result : "";
-        const comma = result.indexOf(",");
-        const dataBase64 = comma >= 0 ? result.slice(comma + 1) : result;
-        setPending((p) =>
-          [
-            ...p,
-            { filename: file.name, mime: file.type || "application/octet-stream", dataBase64 },
-          ].slice(0, MAX_ATTACHMENTS),
-        );
-      };
-      reader.readAsDataURL(file);
-    }
+    readAttachments(files, pending, (att) =>
+      setPending((p) => [...p, att].slice(0, MAX_ATTACHMENTS)),
+    );
   }
 
   // Auto-create session once a model is chosen.

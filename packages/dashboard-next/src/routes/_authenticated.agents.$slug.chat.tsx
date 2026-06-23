@@ -7,12 +7,10 @@ import {
   Check,
   Copy,
   ExternalLink,
-  FileText,
   Loader2,
   Paperclip,
   Sparkles,
   User,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -51,18 +49,19 @@ import { csrfHeaders } from "@/lib/csrf";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { bytes, relativeTime } from "@/lib/format";
+import {
+  type PendingAttachment,
+  MAX_ATTACHMENT_BYTES,
+  MAX_ATTACHMENTS,
+  decodedBytes,
+  AttachmentChip,
+  readAttachments,
+} from "@/lib/attachment";
 import type { Agent, AgentRunState } from "@/mocks/types";
 
 // ---------------------------------------------------------------------------
-// Local types — mirror AgentChat.tsx (the legacy drawer) so the data flow and
-// attachment limits stay identical; only the presentation moves to a full page.
+// Local types
 // ---------------------------------------------------------------------------
-
-interface PendingAttachment {
-  filename: string;
-  mime: string;
-  dataBase64: string;
-}
 
 /** One displayed turn. Assistant turns carry the per-turn metadata the API
  *  returned (model/reasoning used + usage + latency) so the footer is honest. */
@@ -79,9 +78,6 @@ interface ChatTurn {
   latencyMs?: number;
 }
 
-/** Maximum combined base64 bytes per message enforced by the profile API (P1.1). */
-const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
-const MAX_ATTACHMENTS = 8;
 const REASONING_OPTIONS = ["low", "medium", "high"] as const;
 
 const STATE_DOT: Record<AgentRunState, string> = {
@@ -96,60 +92,6 @@ const STATE_LABEL: Record<AgentRunState, string> = {
   stopped: "Stopped",
   error: "Error",
 };
-
-/** Estimate decoded bytes of an already-read base64 attachment. */
-function decodedBytes(att: PendingAttachment): number {
-  const len = att.dataBase64.length;
-  const pad = att.dataBase64.endsWith("==") ? 2 : att.dataBase64.endsWith("=") ? 1 : 0;
-  return Math.floor((len * 3) / 4) - pad;
-}
-
-/** A single attachment chip / thumbnail. `onRemove` present ⇒ pending (composer). */
-function AttachmentChip({ att, onRemove }: { att: PendingAttachment; onRemove?: () => void }) {
-  const isImage = att.mime.startsWith("image/");
-  const size = decodedBytes(att);
-  if (isImage) {
-    return (
-      <div className="group/att relative size-16 shrink-0 overflow-hidden rounded-md border bg-muted/30">
-        {/* data: URL preview — the base64 we already hold, no extra fetch. */}
-        <img
-          src={`data:${att.mime};base64,${att.dataBase64}`}
-          alt={att.filename}
-          className="size-full object-cover"
-        />
-        {onRemove && (
-          <button
-            type="button"
-            aria-label={`Remove ${att.filename}`}
-            onClick={onRemove}
-            className="absolute right-0.5 top-0.5 grid size-4 place-items-center rounded-full bg-background/80 text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover/att:opacity-100"
-          >
-            <X className="size-3" />
-          </button>
-        )}
-      </div>
-    );
-  }
-  return (
-    <span className="inline-flex max-w-[200px] items-center gap-1.5 rounded-md border bg-muted/40 px-2 py-1 text-xs">
-      <FileText className="size-3.5 shrink-0 text-muted-foreground" />
-      <span className="truncate" title={att.filename}>
-        {att.filename}
-      </span>
-      <span className="shrink-0 text-[10px] text-muted-foreground tabular-nums">{bytes(size)}</span>
-      {onRemove && (
-        <button
-          type="button"
-          aria-label={`Remove ${att.filename}`}
-          onClick={onRemove}
-          className="text-muted-foreground hover:text-foreground"
-        >
-          <X className="size-3" />
-        </button>
-      )}
-    </span>
-  );
-}
 
 /** Copy-to-clipboard button with a transient check state. */
 function CopyButton({ text }: { text: string }) {
@@ -290,38 +232,9 @@ function ChatPage() {
   });
 
   function onPickFiles(files: FileList | null) {
-    if (!files) return;
-    const fileArr = Array.from(files);
-    if (fileArr.length === 0) return;
-    if (pending.length + fileArr.length > MAX_ATTACHMENTS) {
-      toast.error("Too many attachments", {
-        description: `At most ${MAX_ATTACHMENTS} per message.`,
-      });
-      return;
-    }
-    let runningBytes = pending.reduce((sum, p) => sum + decodedBytes(p), 0);
-    for (const file of fileArr) {
-      if (runningBytes + file.size > MAX_ATTACHMENT_BYTES) {
-        toast.error(`${file.name} exceeds the combined limit`, {
-          description: `Max ${MAX_ATTACHMENT_BYTES / (1024 * 1024)} MB total per message.`,
-        });
-        continue;
-      }
-      runningBytes += file.size;
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = typeof reader.result === "string" ? reader.result : "";
-        const comma = result.indexOf(",");
-        const dataBase64 = comma >= 0 ? result.slice(comma + 1) : result;
-        setPending((p) =>
-          [
-            ...p,
-            { filename: file.name, mime: file.type || "application/octet-stream", dataBase64 },
-          ].slice(0, MAX_ATTACHMENTS),
-        );
-      };
-      reader.readAsDataURL(file);
-    }
+    readAttachments(files, pending, (att) =>
+      setPending((p) => [...p, att].slice(0, MAX_ATTACHMENTS)),
+    );
   }
 
   const status = chatMutation.isPending ? "submitted" : undefined;
