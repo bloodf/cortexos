@@ -1,21 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  Bot,
-  ChevronDown,
-  Loader2,
-  Paperclip,
-  Sparkles,
-  Terminal as TerminalIcon,
-} from "lucide-react";
+import { Bot, Loader2, Paperclip, Sparkles, Terminal as TerminalIcon, X } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { CardSkeleton } from "@/components/skeletons";
@@ -148,9 +146,11 @@ export default function AgentGeneratorPage() {
   // P3.4b Channels tab — Telegram bot token sent once with build payload;
   // empty/absent → omitted from the build mint payload.
   const [telegramToken, setTelegramToken] = useState("");
-  // Sidebar collapsibles (advisor/skeptic/PTY) — open by default on the desktop
-  // rail; the whole rail collapses behind a toggle on narrow screens.
-  const [showRail, setShowRail] = useState(false);
+  // Live PTY modal visibility. The xterm host div is ALWAYS mounted (so the
+  // mount-once effect never tears down); this flag only reveals/hides the
+  // overlay chrome that frames it. Opening triggers a fit() so xterm sizes to
+  // the now-visible container.
+  const [ptyOpen, setPtyOpen] = useState(false);
   const wsRef = useRef<GeneratorSession | null>(null);
   const wsStateRef = useRef<WsState>("connecting");
   wsStateRef.current = wsState;
@@ -438,6 +438,27 @@ export default function AgentGeneratorPage() {
     };
   }, [sessionId]);
 
+  // When the PTY modal opens, the host div transitions from display:none to
+  // visible, so xterm must refit to the freshly-laid-out container and push
+  // the new dimensions back to the sidecar. The terminal itself is never
+  // remounted — only re-measured.
+  useEffect(() => {
+    if (!ptyOpen) return;
+    const id = window.requestAnimationFrame(() => {
+      try {
+        fitRef.current?.fit();
+      } catch {
+        /* container not yet sized */
+      }
+      const term = termRef.current;
+      if (term && wsStateRef.current === "live") {
+        wsRef.current?.resizePty(term.cols, term.rows);
+      }
+      term?.focus();
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [ptyOpen]);
+
   const pendingBytes = useMemo(
     () => pending.reduce((sum, p) => sum + decodedBytes(p), 0),
     [pending],
@@ -478,123 +499,159 @@ export default function AgentGeneratorPage() {
     sendMut.mutate();
   }
 
-  // ── Sidebar build rail — Live spec, Create agent, Advisor/Skeptic/PTY ──────
-  const rail = (
-    <div className="flex min-h-0 flex-col gap-4 overflow-y-auto pr-0.5">
-      {/* Live spec preview (redacted; never shows secrets in plaintext). */}
-      <Card className="elev-1 flex flex-col gap-2 p-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 text-xs font-semibold">
+  // ── Build-tool toolbar — Live spec / Advisor / Skeptic / Live PTY modals ───
+  // Each tool is a button that opens its own modal. The spec/advisor/skeptic
+  // bodies live inside shadcn Dialogs (no mount constraints). The PTY is a
+  // controlled overlay (see ptyOverlay below) because the xterm host div must
+  // never unmount — a Dialog would tear it down on close.
+  const toolbar = (
+    <div className="flex flex-wrap items-center gap-2 border-t bg-card/40 px-3 py-2">
+      {/* Live spec — redacted JSON + status badge. */}
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs">
             <Bot className="size-3.5" /> Live spec
-          </div>
-          <Badge variant={statusBadge.variant} className="h-5 px-1.5 text-[10px]">
-            {statusBadge.label}
-          </Badge>
-        </div>
-        <pre className="max-h-[360px] min-h-[180px] overflow-y-auto whitespace-pre-wrap break-all rounded bg-muted/30 p-2 font-mono text-[10px]">
-          {Object.keys(spec).length === 0
-            ? "(empty — waiting for the model)"
-            : JSON.stringify(redactSpec(spec), null, 2)}
-        </pre>
-      </Card>
+            <Badge variant={statusBadge.variant} className="ml-0.5 h-4 px-1.5 text-[9px]">
+              {statusBadge.label}
+            </Badge>
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Bot className="size-4" /> Live spec
+              <Badge variant={statusBadge.variant} className="h-5 px-1.5 text-[10px]">
+                {statusBadge.label}
+              </Badge>
+            </DialogTitle>
+          </DialogHeader>
+          {/* Redacted; never shows secrets in plaintext. */}
+          <pre className="max-h-[60vh] min-h-[200px] overflow-auto whitespace-pre-wrap break-all rounded bg-muted/30 p-3 font-mono text-[11px]">
+            {Object.keys(spec).length === 0
+              ? "(empty — waiting for the model)"
+              : JSON.stringify(redactSpec(spec), null, 2)}
+          </pre>
+        </DialogContent>
+      </Dialog>
 
-      {/* Create agent — approval+admin gated server-side. Telegram token sent
-          once with the build payload; WhatsApp runs in the live PTY pane. */}
-      <Card className="elev-1 flex flex-col gap-3 p-3">
-        <div className="flex items-center gap-1.5 text-xs font-semibold">
-          <Sparkles className="size-3.5" /> Create agent
-        </div>
-        <div className="space-y-1">
-          <label
-            htmlFor="telegram-token"
-            className="text-[10px] uppercase tracking-wide text-muted-foreground"
-          >
-            Telegram bot token (optional, used at build time)
-          </label>
-          <Input
-            id="telegram-token"
-            type="password"
-            autoComplete="off"
-            spellCheck={false}
-            placeholder="123456:ABCDEF…"
-            value={telegramToken}
-            onChange={(e) => setTelegramToken(e.target.value)}
-            className="h-8 font-mono text-xs"
-          />
-        </div>
-        <Button
-          size="sm"
-          className="h-8 w-full text-xs"
-          disabled={!canBuild}
-          onClick={() => buildMut.mutate()}
-          title={
-            canBuild
-              ? "Mint an approval token and build the Hermes profile."
-              : "Enabled once the model emits a complete spec (status=ready) with a slug."
-          }
-        >
-          {buildMut.isPending ? (
-            <>
-              <Loader2 className="mr-1.5 size-3.5 animate-spin" /> Building…
-            </>
-          ) : (
-            <>
-              <Sparkles className="mr-1.5 size-3.5" /> Create agent
-            </>
-          )}
-        </Button>
-        {status === "error" && (
-          <p className="text-[10px] text-destructive">
-            Build failed — see the toast for details, then adjust the spec and retry.
-          </p>
-        )}
-        <Separator />
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-8 w-full text-xs"
-          disabled={!canConnectWhatsapp}
-          onClick={() => {
-            wsRef.current?.sendPty(`hermes-${currentSlug} whatsapp setup\n`);
-          }}
-          title={
-            canConnectWhatsapp
-              ? "Run `hermes-<slug> whatsapp setup` in the live PTY pane; scan the QR in xterm."
-              : "Needs WS live and a settled slug; build the profile first to install the binary."
-          }
-        >
-          <TerminalIcon className="mr-1.5 size-3.5" /> Connect WhatsApp in PTY
-        </Button>
-      </Card>
+      {/* Advisor — streaming buffer. */}
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs">
+            <Sparkles className="size-3.5" /> Advisor
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="size-4" /> Advisor
+            </DialogTitle>
+          </DialogHeader>
+          <pre className="max-h-[60vh] min-h-[160px] overflow-auto whitespace-pre-wrap break-words rounded bg-muted/30 p-3 font-mono text-[11px]">
+            {advisorBuf || "(no advisory yet — fires after each user turn)"}
+          </pre>
+        </DialogContent>
+      </Dialog>
 
-      {/* Advisor — streaming buffer, collapsible. */}
-      <RailPanel icon={<Sparkles className="size-3.5" />} title="Advisor" defaultOpen={false}>
-        <pre className="max-h-[240px] min-h-[80px] overflow-y-auto whitespace-pre-wrap break-words rounded bg-muted/30 p-2 font-mono text-[10px]">
-          {advisorBuf || "(no advisory yet — fires after each user turn)"}
-        </pre>
-      </RailPanel>
+      {/* Skeptic — streaming buffer. */}
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs">
+            <Bot className="size-3.5" /> Skeptic
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Bot className="size-4" /> Skeptic
+            </DialogTitle>
+          </DialogHeader>
+          <pre className="max-h-[60vh] min-h-[160px] overflow-auto whitespace-pre-wrap break-words rounded bg-muted/30 p-3 font-mono text-[11px]">
+            {skepticBuf || "(no challenge yet — fires after each user turn)"}
+          </pre>
+        </DialogContent>
+      </Dialog>
 
-      {/* Skeptic — streaming buffer, collapsible. */}
-      <RailPanel icon={<Bot className="size-3.5" />} title="Skeptic" defaultOpen={false}>
-        <pre className="max-h-[240px] min-h-[80px] overflow-y-auto whitespace-pre-wrap break-words rounded bg-muted/30 p-2 font-mono text-[10px]">
-          {skepticBuf || "(no challenge yet — fires after each user turn)"}
-        </pre>
-      </RailPanel>
-
-      {/* Live root PTY — xterm mounts into this div. `forceMount` keeps the
-          div in the DOM even while collapsed, so the mount-once xterm effect
-          can attach to the ref; collapsing only hides it visually. */}
-      <RailPanel
-        icon={<TerminalIcon className="size-3.5" />}
-        title="Live PTY (root bash)"
-        defaultOpen={false}
-        forceMount
+      {/* Live PTY — opens the always-mounted overlay (NOT a Dialog; see below). */}
+      <Button
+        size="sm"
+        variant="outline"
+        className="h-8 gap-1.5 text-xs"
+        onClick={() => setPtyOpen(true)}
+        aria-haspopup="dialog"
+        aria-expanded={ptyOpen}
       >
+        <TerminalIcon className="size-3.5" /> Live PTY
+      </Button>
+    </div>
+  );
+
+  // ── Live PTY overlay — the xterm host div is ALWAYS rendered so the
+  // mount-once effect keeps its container; `ptyOpen` only toggles visibility
+  // (display, not unmount). The "Connect WhatsApp in PTY" action lives here.
+  const ptyOverlay = (
+    <div
+      role="dialog"
+      aria-label="Live PTY (root bash)"
+      aria-modal={ptyOpen}
+      className={cn(
+        "fixed inset-0 z-50 flex items-center justify-center p-4",
+        ptyOpen ? "" : "pointer-events-none invisible",
+      )}
+    >
+      {/* Backdrop — click to close. Hidden (and inert) while the modal is shut. */}
+      <div
+        aria-hidden
+        onClick={() => setPtyOpen(false)}
+        className={cn(
+          "absolute inset-0 bg-black/80 transition-opacity",
+          ptyOpen ? "opacity-100" : "opacity-0",
+        )}
+      />
+      <Card
+        className={cn(
+          "elev-sheet relative flex max-h-[85vh] w-full max-w-3xl flex-col gap-3 p-4 transition-opacity",
+          ptyOpen ? "opacity-100" : "opacity-0",
+        )}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 font-semibold">
+            <TerminalIcon className="size-4" /> Live PTY (root bash)
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs"
+              disabled={!canConnectWhatsapp}
+              onClick={() => {
+                wsRef.current?.sendPty(`hermes-${currentSlug} whatsapp setup\n`);
+              }}
+              title={
+                canConnectWhatsapp
+                  ? "Run `hermes-<slug> whatsapp setup` in the live PTY pane; scan the QR in xterm."
+                  : "Needs WS live and a settled slug; build the profile first to install the binary."
+              }
+            >
+              <TerminalIcon className="mr-1.5 size-3.5" /> Connect WhatsApp in PTY
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="size-7"
+              aria-label="Close PTY"
+              onClick={() => setPtyOpen(false)}
+            >
+              <X className="size-4" />
+            </Button>
+          </div>
+        </div>
+        {/* xterm host — never unmounts; only revealed/hidden with the overlay. */}
         <div
           ref={termContainerRef}
-          className="h-[260px] min-h-[160px] overflow-hidden rounded bg-black p-1"
+          className="h-[55vh] min-h-[260px] w-full overflow-hidden rounded bg-black p-1"
         />
-      </RailPanel>
+      </Card>
     </div>
   );
 
@@ -606,12 +663,12 @@ export default function AgentGeneratorPage() {
         description="Describe the agent you want. The interview builds a Hermes profile spec; approve to create."
       />
 
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[1fr_22rem]">
+      <div className="flex min-h-0 flex-1 flex-col">
         {/* ---------------------------------------------------------------- */}
-        {/* Main chat column — the interview as an Elements chat              */}
+        {/* Single-column interview — full-width Elements chat                */}
         {/* ---------------------------------------------------------------- */}
         <Card className="elev-1 flex min-h-0 min-w-0 flex-col overflow-hidden p-0">
-          {/* Status / header strip: title + WS connection + thinking + rail toggle */}
+          {/* Status / header strip: title + WS connection + thinking */}
           <header className="flex flex-wrap items-center gap-3 border-b bg-card/80 px-4 py-3 backdrop-blur">
             <div className="grid size-9 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
               <Bot className="size-5" />
@@ -650,17 +707,6 @@ export default function AgentGeneratorPage() {
             >
               WS {wsState}
             </Badge>
-            {/* Rail toggle — only meaningful on narrow screens (rail is inline below). */}
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-8 shrink-0 text-xs lg:hidden"
-              onClick={() => setShowRail((v) => !v)}
-              aria-expanded={showRail}
-              aria-controls="generator-rail"
-            >
-              {showRail ? "Hide" : "Build panel"}
-            </Button>
           </header>
 
           {/* Conversation (autoscrolls via use-stick-to-bottom) */}
@@ -751,6 +797,9 @@ export default function AgentGeneratorPage() {
             </ConversationContent>
             <ConversationScrollButton />
           </Conversation>
+
+          {/* Build-tool toolbar — opens the spec/advisor/skeptic/PTY modals. */}
+          {toolbar}
 
           {/* Composer */}
           <div className="border-t bg-card/60 p-3">
@@ -855,20 +904,63 @@ export default function AgentGeneratorPage() {
               </PromptInputBody>
             </PromptInput>
           </div>
-        </Card>
 
-        {/* ---------------------------------------------------------------- */}
-        {/* Build rail — Live spec, Create agent, advisor/skeptic/PTY.        */}
-        {/* Rendered ONCE (single xterm mount). On desktop it's the right     */}
-        {/* column; on narrow screens it collapses behind the header toggle. */}
-        {/* ---------------------------------------------------------------- */}
-        <div
-          id="generator-rail"
-          className={cn("min-h-0 lg:block", showRail ? "block" : "hidden lg:block")}
-        >
-          {rail}
-        </div>
+          {/* ------------------------------------------------------------ */}
+          {/* Create agent — below the composer; approval+admin gated      */}
+          {/* server-side. Telegram token sent once with the build payload;*/}
+          {/* WhatsApp runs in the Live PTY modal.                          */}
+          {/* ------------------------------------------------------------ */}
+          <div className="flex flex-wrap items-end gap-3 border-t bg-card/60 p-3">
+            <div className="min-w-[14rem] flex-1 space-y-1">
+              <label
+                htmlFor="telegram-token"
+                className="text-[10px] uppercase tracking-wide text-muted-foreground"
+              >
+                Telegram bot token (optional, used at build time)
+              </label>
+              <Input
+                id="telegram-token"
+                type="password"
+                autoComplete="off"
+                spellCheck={false}
+                placeholder="123456:ABCDEF…"
+                value={telegramToken}
+                onChange={(e) => setTelegramToken(e.target.value)}
+                className="h-8 font-mono text-xs"
+              />
+            </div>
+            <Button
+              size="sm"
+              className="h-8 text-xs"
+              disabled={!canBuild}
+              onClick={() => buildMut.mutate()}
+              title={
+                canBuild
+                  ? "Mint an approval token and build the Hermes profile."
+                  : "Enabled once the model emits a complete spec (status=ready) with a slug."
+              }
+            >
+              {buildMut.isPending ? (
+                <>
+                  <Loader2 className="mr-1.5 size-3.5 animate-spin" /> Building…
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-1.5 size-3.5" /> Create agent
+                </>
+              )}
+            </Button>
+            {status === "error" && (
+              <p className="w-full text-[10px] text-destructive">
+                Build failed — see the toast for details, then adjust the spec and retry.
+              </p>
+            )}
+          </div>
+        </Card>
       </div>
+
+      {/* Live PTY overlay — always rendered (xterm host never unmounts). */}
+      {ptyOverlay}
 
       {/* Existing agents — quick reference of what's already built. */}
       <div className="space-y-2">
@@ -896,45 +988,5 @@ export default function AgentGeneratorPage() {
         )}
       </div>
     </div>
-  );
-}
-
-/** Collapsible sidebar panel for the streaming advisor/skeptic/PTY buffers.
-    Defined at module scope (pure presentational helper, no hooks of its own
-    beyond Collapsible's) so it doesn't add a react-refresh export warning. */
-function RailPanel({
-  icon,
-  title,
-  defaultOpen,
-  forceMount,
-  children,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  defaultOpen: boolean;
-  /** Keep content mounted while collapsed (only hide it). Needed for the PTY
-      pane so xterm's mount-once effect can attach to its container ref. */
-  forceMount?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <Card className="elev-1 p-3">
-      <Collapsible defaultOpen={defaultOpen}>
-        <CollapsibleTrigger className="group flex w-full items-center justify-between gap-1.5 text-xs font-semibold">
-          <span className="flex items-center gap-1.5">
-            {icon} {title}
-          </span>
-          <ChevronDown className="size-3.5 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
-        </CollapsibleTrigger>
-        {/* `forceMount` keeps children in the DOM; `data-[state=closed]:hidden`
-            hides them visually so the collapse still works. */}
-        <CollapsibleContent
-          {...(forceMount ? { forceMount: true } : {})}
-          className="pt-2 data-[state=closed]:hidden"
-        >
-          {children}
-        </CollapsibleContent>
-      </Collapsible>
-    </Card>
   );
 }
