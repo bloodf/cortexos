@@ -16,7 +16,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { defineServerFn, serverFnNoop, type ServerFnOptions } from "@/lib/api/define-server-fn";
-import { slugSchema } from "@/lib/api/agents.functions";
+import { slugSchema } from "@/lib/api/schemas";
 
 // ---------------------------------------------------------------------------
 // Schemas

@@ -23,21 +23,13 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { slugSchema } from "@/lib/api/schemas";
 
 import { defineServerFn, serverFnNoop, type ServerFnOptions } from "@/lib/api/define-server-fn";
 
 // ---------------------------------------------------------------------------
 // Input schemas
 // ---------------------------------------------------------------------------
-
-/** Reusable profile-slug schema (lowercase alnum, underscore, hyphen). Exported
- *  for sibling function modules (e.g. agentGenerator.functions.ts). */
-export const slugSchema = () =>
-  z
-    .string()
-    .min(1)
-    .max(128)
-    .regex(/^[a-z0-9_-]+$/, "slug must be lowercase letters, numbers, underscores and hyphens");
 
 const AgentListInput = z.object({}).strict();
 
