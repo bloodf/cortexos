@@ -32,6 +32,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { connect } from "node:net";
 import { runSequentiallyUntil } from "@/lib/sequential";
+import { sql } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { listServices, updateService } from "../db/repos/services";
 import { serviceHealthLog } from "../db/schema";
@@ -262,6 +263,15 @@ export async function sweepOnce(): Promise<{ checked: number }> {
         // never let one bad row abort the sweep
       }
     });
+    // Prune rows older than 7 days. The retention index makes this fast.
+    // Guard: a prune failure must not abort the sweep or surface to callers.
+    try {
+      await db
+        .delete(serviceHealthLog)
+        .where(sql`${serviceHealthLog.checkedAt} < NOW() - INTERVAL '7 days'`);
+    } catch (err) {
+      console.error("[health-scheduler] prune service_health_log failed:", err);
+    }
     return { checked: catalog.length };
   } finally {
     sweeping = false;

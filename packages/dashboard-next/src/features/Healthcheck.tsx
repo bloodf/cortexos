@@ -32,7 +32,7 @@ export function HealthcheckPage() {
   const { data: history = [], isLoading: historyLoading } = useQuery({
     queryKey: ["alerts", "history"],
     queryFn: api.alerts.history,
-    refetchInterval: 3_000,
+    refetchInterval: 30_000,
   });
 
   const setTab = useCallback(

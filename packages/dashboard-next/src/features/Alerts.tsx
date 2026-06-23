@@ -37,7 +37,7 @@ export function AlertsPage() {
   } = useQuery({
     queryKey: ["alerts", "history"],
     queryFn: api.alerts.history,
-    refetchInterval: 3_000,
+    refetchInterval: 30_000,
   });
 
   const firingCount = history.filter((h) => h.status === "fired").length;
@@ -171,7 +171,7 @@ export function AlertsPage() {
         server={{
           queryKey: ["alerts", "history"],
           fetch: api.alerts.historyList,
-          refetchInterval: 3_000,
+          refetchInterval: 30_000,
         }}
       />
     );

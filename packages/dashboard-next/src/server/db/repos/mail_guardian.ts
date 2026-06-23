@@ -4,7 +4,7 @@
  * Reads from the mail_guardian_reviews and mail_guardian_actions tables
  * managed by packages/cortex-mail-guardian.
  */
-import { and, asc, desc, eq, isNull, not, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, not, sql, type SQL } from "drizzle-orm";
 import type { DbClient } from "../client";
 import { mailGuardianReviews, mailGuardianActions, mailGuardianAccounts } from "../schema";
 import type { MailGuardianReview, MailGuardianAction, MailGuardianAccount } from "../schema";
@@ -91,42 +91,32 @@ export async function getMailStats(db: DbClient): Promise<{
   highRisk: number;
   actionsPending: number;
 }> {
-  const [totalRow, pendingRow, resolvedRow, approvedRow, flaggedRow, highRiskRow, actionsRow] =
-    await Promise.all([
-      db.select({ count: sql<number>`COUNT(*)::int` }).from(mailGuardianReviews),
-      db
-        .select({ count: sql<number>`COUNT(*)::int` })
-        .from(mailGuardianReviews)
-        .where(isNull(mailGuardianReviews.resolvedAt)),
-      db
-        .select({ count: sql<number>`COUNT(*)::int` })
-        .from(mailGuardianReviews)
-        .where(not(isNull(mailGuardianReviews.resolvedAt))),
-      db
-        .select({ count: sql<number>`COUNT(*)::int` })
-        .from(mailGuardianReviews)
-        .where(eq(mailGuardianReviews.ownerDecision, "keep")),
-      db
-        .select({ count: sql<number>`COUNT(*)::int` })
-        .from(mailGuardianReviews)
-        .where(eq(mailGuardianReviews.ownerDecision, "spam")),
-      db
-        .select({ count: sql<number>`COUNT(*)::int` })
-        .from(mailGuardianReviews)
-        .where(eq(mailGuardianReviews.modelVerdict, "spam")),
-      db
-        .select({ count: sql<number>`COUNT(*)::int` })
-        .from(mailGuardianActions)
-        .where(eq(mailGuardianActions.status, "pending")),
-    ]);
+  // Two round-trips: one conditional-aggregation over mail_guardian_reviews
+  // (replaces 6 separate COUNT queries), plus one over mail_guardian_actions.
+  const [reviewsRow, actionsRow] = await Promise.all([
+    db
+      .select({
+        total: sql<number>`COUNT(*)::int`,
+        pending: sql<number>`COUNT(*) FILTER (WHERE ${mailGuardianReviews.resolvedAt} IS NULL)::int`,
+        resolved: sql<number>`COUNT(*) FILTER (WHERE ${mailGuardianReviews.resolvedAt} IS NOT NULL)::int`,
+        approved: sql<number>`COUNT(*) FILTER (WHERE ${mailGuardianReviews.ownerDecision} = 'keep')::int`,
+        flagged: sql<number>`COUNT(*) FILTER (WHERE ${mailGuardianReviews.ownerDecision} = 'spam')::int`,
+        highRisk: sql<number>`COUNT(*) FILTER (WHERE ${mailGuardianReviews.modelVerdict} = 'spam')::int`,
+      })
+      .from(mailGuardianReviews),
+    db
+      .select({ count: sql<number>`COUNT(*)::int` })
+      .from(mailGuardianActions)
+      .where(eq(mailGuardianActions.status, "pending")),
+  ]);
 
   return {
-    total: totalRow[0]?.count ?? 0,
-    pending: pendingRow[0]?.count ?? 0,
-    resolved: resolvedRow[0]?.count ?? 0,
-    approved: approvedRow[0]?.count ?? 0,
-    flagged: flaggedRow[0]?.count ?? 0,
-    highRisk: highRiskRow[0]?.count ?? 0,
+    total: reviewsRow[0]?.total ?? 0,
+    pending: reviewsRow[0]?.pending ?? 0,
+    resolved: reviewsRow[0]?.resolved ?? 0,
+    approved: reviewsRow[0]?.approved ?? 0,
+    flagged: reviewsRow[0]?.flagged ?? 0,
+    highRisk: reviewsRow[0]?.highRisk ?? 0,
     actionsPending: actionsRow[0]?.count ?? 0,
   };
 }
@@ -179,22 +169,12 @@ export async function batchUpdateMailReviewDecisions(
   approver: string,
 ): Promise<number> {
   if (ids.length === 0) return 0;
-  // Note: drizzle-orm's `inArray` may not be available on this version,
-  // so we issue one UPDATE per id for batch safety.
-  const results = await Promise.all(
-    ids.map((id) =>
-      db
-        .update(mailGuardianReviews)
-        .set({
-          ownerDecision: decision,
-          approver,
-          resolvedAt: new Date(),
-        })
-        .where(eq(mailGuardianReviews.id, id))
-        .returning({ id: mailGuardianReviews.id }),
-    ),
-  );
-  return results.filter((r) => r.length > 0).length;
+  const updated = await db
+    .update(mailGuardianReviews)
+    .set({ ownerDecision: decision, approver, resolvedAt: new Date() })
+    .where(inArray(mailGuardianReviews.id, ids))
+    .returning({ id: mailGuardianReviews.id });
+  return updated.length;
 }
 
 // ---------------------------------------------------------------------------
