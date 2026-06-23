@@ -862,7 +862,11 @@ export const PromptInput = ({
         type="file"
       />
       <form className={cn("w-full", className)} onSubmit={handleSubmit} ref={formRef} {...props}>
-        <InputGroup className="overflow-hidden">{children}</InputGroup>
+        {/* Force the column layout explicitly. The shadcn InputGroup only
+            stacks via `has-[>[data-align=block-end]]:flex-col`, a complex
+            arbitrary variant Tailwind v4 does not reliably generate — without
+            this the textarea and the tools render in one cramped row. */}
+        <InputGroup className="flex-col items-stretch overflow-hidden">{children}</InputGroup>
       </form>
     </>
   );
