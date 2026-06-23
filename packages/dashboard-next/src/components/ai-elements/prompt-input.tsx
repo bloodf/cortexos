@@ -862,11 +862,13 @@ export const PromptInput = ({
         type="file"
       />
       <form className={cn("w-full", className)} onSubmit={handleSubmit} ref={formRef} {...props}>
-        {/* Force the column layout explicitly. The shadcn InputGroup only
-            stacks via `has-[>[data-align=block-end]]:flex-col`, a complex
-            arbitrary variant Tailwind v4 does not reliably generate — without
-            this the textarea and the tools render in one cramped row. */}
-        <InputGroup className="flex-col items-stretch overflow-hidden">{children}</InputGroup>
+        {/* PromptInputBody wraps the textarea in a `display:contents` div, so
+            the textarea is a DOM grandchild of InputGroup. That breaks every
+            `has-[>textarea]` / `has-[>[data-align=block-end]]` selector the
+            InputGroup relies on to grow + stack — leaving it clamped at h-9 and
+            clipping the toolbar (you can't see/click the model picker). Force
+            the auto-height column layout explicitly. */}
+        <InputGroup className="h-auto flex-col items-stretch overflow-hidden">{children}</InputGroup>
       </form>
     </>
   );
