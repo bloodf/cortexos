@@ -1,6 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bot, Loader2, Paperclip, Sparkles, Terminal as TerminalIcon, X } from "lucide-react";
+import {
+  Bot,
+  Check,
+  Copy,
+  Loader2,
+  Paperclip,
+  RefreshCw,
+  Sparkles,
+  Terminal as TerminalIcon,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { Card } from "@/components/ui/card";
@@ -23,7 +33,21 @@ import {
   ConversationEmptyState,
   ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
-import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
+import {
+  Message,
+  MessageAction,
+  MessageActions,
+  MessageContent,
+  MessageResponse,
+} from "@/components/ai-elements/message";
+import {
+  Plan,
+  PlanContent,
+  PlanDescription,
+  PlanHeader,
+  PlanTitle,
+  PlanTrigger,
+} from "@/components/ai-elements/plan";
 import {
   PromptInput,
   PromptInputBody,
@@ -151,6 +175,9 @@ export default function AgentGeneratorPage() {
   // overlay chrome that frames it. Opening triggers a fit() so xterm sizes to
   // the now-visible container.
   const [ptyOpen, setPtyOpen] = useState(false);
+  // Which assistant bubble most recently had its body copied (drives the
+  // Copy→Check icon flip on the message action).
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const wsRef = useRef<GeneratorSession | null>(null);
   const wsStateRef = useRef<WsState>("connecting");
   wsStateRef.current = wsState;
@@ -490,6 +517,42 @@ export default function AgentGeneratorPage() {
   const canConnectWhatsapp = wsState === "live" && currentSlug.length > 0;
   const submitStatus = sendMut.isPending || thinking ? "submitted" : undefined;
   const statusBadge = STATUS_BADGE[status];
+  // Index of the last assistant bubble — only it gets a Retry action.
+  const lastAssistantIdx = messages.reduce((acc, m, i) => (m.role === "assistant" ? i : acc), -1);
+
+  // Build progress for the Plan view. The build is a single synchronous RPC
+  // (callBuildGeneratorProfile) — the per-step buildLogs accumulate server-side
+  // and aren't streamed back into this component, so the rows here reflect the
+  // real client-observable state machine (spec ready → mint+build → done/error)
+  // rather than a fabricated log stream.
+  const buildState: "pending" | "active" | "done" | "error" = buildMut.isError
+    ? "error"
+    : buildMut.isSuccess
+      ? "done"
+      : buildMut.isPending
+        ? "active"
+        : "pending";
+  const buildSteps: { label: string; state: "pending" | "active" | "done" | "error" }[] = [
+    {
+      label: "Spec ready",
+      state: status === "done" || buildMut.isPending || buildMut.isSuccess ? "done" : "pending",
+    },
+    {
+      label: "Mint approval & build profile",
+      state:
+        buildState === "error"
+          ? "error"
+          : buildMut.isSuccess
+            ? "done"
+            : buildMut.isPending
+              ? "active"
+              : "pending",
+    },
+    {
+      label: "Provision Hermes profile",
+      state: buildMut.isSuccess ? "done" : "pending",
+    },
+  ];
 
   function handleSubmit(raw: string) {
     const trimmed = raw.trim();
@@ -497,6 +560,26 @@ export default function AgentGeneratorPage() {
     if (!sessionId) return;
     if ((trimmed.length === 0 && pending.length === 0) || sendMut.isPending) return;
     sendMut.mutate();
+  }
+
+  // Copy an assistant message body; flips the icon to a check briefly.
+  function copyMessage(idx: number, content: string) {
+    navigator.clipboard.writeText(content).then(
+      () => {
+        setCopiedIdx(idx);
+        window.setTimeout(() => setCopiedIdx((c) => (c === idx ? null : c)), 1500);
+      },
+      () => toast.error("Copy failed"),
+    );
+  }
+
+  // Retry the last turn: re-send the most recent user message text through the
+  // existing send path (same sendMut/handleSubmit machinery — no new wiring).
+  function retryLastTurn() {
+    if (sendMut.isPending) return;
+    const lastUser = [...messages].reverse().find((m) => m.role === "user");
+    if (!lastUser?.content) return;
+    handleSubmit(lastUser.content);
   }
 
   // ── Build-tool toolbar — Live spec / Advisor / Skeptic / Live PTY modals ───
@@ -525,8 +608,51 @@ export default function AgentGeneratorPage() {
               </Badge>
             </DialogTitle>
           </DialogHeader>
+          {/* Build progress as a Plan — shimmers the title while building. */}
+          <Plan isStreaming={buildMut.isPending} defaultOpen>
+            <PlanHeader>
+              <div className="space-y-1">
+                <PlanTitle>{currentSlug ? `Building ${currentSlug}` : "Build profile"}</PlanTitle>
+                <PlanDescription>
+                  {buildState === "error"
+                    ? "Build failed — adjust the spec and retry."
+                    : buildState === "done"
+                      ? "Profile created."
+                      : buildState === "active"
+                        ? "Minting approval and provisioning the Hermes profile…"
+                        : status === "done"
+                          ? "Spec ready — approve to create the agent."
+                          : "Refine the spec until it's ready, then build."}
+                </PlanDescription>
+              </div>
+              <PlanTrigger />
+            </PlanHeader>
+            <PlanContent className="space-y-1.5">
+              {buildSteps.map((step) => (
+                <div key={step.label} className="flex items-center gap-2 text-xs">
+                  {step.state === "done" ? (
+                    <Check className="size-3.5 shrink-0 text-emerald-500" />
+                  ) : step.state === "error" ? (
+                    <X className="size-3.5 shrink-0 text-destructive" />
+                  ) : step.state === "active" ? (
+                    <Loader2 className="size-3.5 shrink-0 animate-spin text-primary" />
+                  ) : (
+                    <div className="size-3.5 shrink-0 rounded-full border border-muted-foreground/40" />
+                  )}
+                  <span
+                    className={cn(
+                      step.state === "pending" && "text-muted-foreground",
+                      step.state === "error" && "text-destructive",
+                    )}
+                  >
+                    {step.label}
+                  </span>
+                </div>
+              ))}
+            </PlanContent>
+          </Plan>
           {/* Redacted; never shows secrets in plaintext. */}
-          <pre className="max-h-[60vh] min-h-[200px] overflow-auto whitespace-pre-wrap break-all rounded bg-muted/30 p-3 font-mono text-[11px]">
+          <pre className="max-h-[50vh] min-h-[180px] overflow-auto whitespace-pre-wrap break-all rounded bg-muted/30 p-3 font-mono text-[11px]">
             {Object.keys(spec).length === 0
               ? "(empty — waiting for the model)"
               : JSON.stringify(redactSpec(spec), null, 2)}
@@ -547,9 +673,20 @@ export default function AgentGeneratorPage() {
               <Sparkles className="size-4" /> Advisor
             </DialogTitle>
           </DialogHeader>
-          <pre className="max-h-[60vh] min-h-[160px] overflow-auto whitespace-pre-wrap break-words rounded bg-muted/30 p-3 font-mono text-[11px]">
-            {advisorBuf || "(no advisory yet — fires after each user turn)"}
-          </pre>
+          {/* Advisor buffer is AI-generated text → render as markdown. */}
+          <div className="max-h-[60vh] min-h-[160px] overflow-auto rounded bg-muted/30 p-3">
+            <Message from="assistant">
+              <MessageContent>
+                {advisorBuf ? (
+                  <MessageResponse>{advisorBuf}</MessageResponse>
+                ) : (
+                  <span className="text-xs text-muted-foreground">
+                    (no advisory yet — fires after each user turn)
+                  </span>
+                )}
+              </MessageContent>
+            </Message>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -566,9 +703,20 @@ export default function AgentGeneratorPage() {
               <Bot className="size-4" /> Skeptic
             </DialogTitle>
           </DialogHeader>
-          <pre className="max-h-[60vh] min-h-[160px] overflow-auto whitespace-pre-wrap break-words rounded bg-muted/30 p-3 font-mono text-[11px]">
-            {skepticBuf || "(no challenge yet — fires after each user turn)"}
-          </pre>
+          {/* Skeptic buffer is AI-generated text → render as markdown. */}
+          <div className="max-h-[60vh] min-h-[160px] overflow-auto rounded bg-muted/30 p-3">
+            <Message from="assistant">
+              <MessageContent>
+                {skepticBuf ? (
+                  <MessageResponse>{skepticBuf}</MessageResponse>
+                ) : (
+                  <span className="text-xs text-muted-foreground">
+                    (no challenge yet — fires after each user turn)
+                  </span>
+                )}
+              </MessageContent>
+            </Message>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -745,6 +893,32 @@ export default function AgentGeneratorPage() {
                         {/* Markdown reply via Streamdown (matches the chat page). */}
                         <MessageResponse>{m.content}</MessageResponse>
                       </MessageContent>
+                      {/* Copy on every assistant turn; Retry only on the last. */}
+                      {m.content && (
+                        <MessageActions className="opacity-0 transition-opacity group-hover:opacity-100">
+                          <MessageAction
+                            tooltip="Copy"
+                            label="Copy message"
+                            onClick={() => copyMessage(i, m.content)}
+                          >
+                            {copiedIdx === i ? (
+                              <Check className="size-3.5" />
+                            ) : (
+                              <Copy className="size-3.5" />
+                            )}
+                          </MessageAction>
+                          {i === lastAssistantIdx && (
+                            <MessageAction
+                              tooltip="Retry"
+                              label="Retry last turn"
+                              disabled={sendMut.isPending || !sessionId}
+                              onClick={retryLastTurn}
+                            >
+                              <RefreshCw className="size-3.5" />
+                            </MessageAction>
+                          )}
+                        </MessageActions>
+                      )}
                     </Message>
                   ),
                 )
