@@ -29,7 +29,11 @@ async function dispatchIncusAction(
   confirmation?: string,
 ): Promise<void> {
   const mint = await callMintApproval({
-    data: { action: `incus.${action}`, payload: { action, name } },
+    // Payload MUST be `{ name }` only — the incus bridge binds its approval
+    // token to `actionHashFor(`incus.${action}`, { name })` (bridge.ts ~1480
+    // destructive, ~1202 launch). Including `action` here would change the
+    // hash shape and fail-close every UI-driven action with approval_invalid.
+    data: { action: `incus.${action}`, payload: { name } },
   });
   await callIncusAction({
     data: { action, name, confirmation, approvalToken: mint.token },

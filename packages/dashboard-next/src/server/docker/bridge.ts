@@ -82,6 +82,7 @@ export type DispatchResult =
         | "arg_type"
         | "argv_render"
         | "placeholder_unbound"
+        | "leading_dash"
         | "missing_approval"
         | "invalid_approval"
         | "executor_error";
@@ -206,7 +207,11 @@ function renderArgv(
   args: Readonly<Record<string, unknown>>,
 ):
   | { argv: string[] }
-  | { code: "placeholder_unbound" | "arg_type"; field: string; reason: string } {
+  | {
+      code: "placeholder_unbound" | "arg_type" | "leading_dash";
+      field: string;
+      reason: string;
+    } {
   const argv: string[] = [];
   for (let i = 0; i < entry.argv.length; i += 1) {
     const token = entry.argv[i];
@@ -221,6 +226,19 @@ function renderArgv(
         };
       }
       if (typeof v === "string") {
+        // SEC-02: a caller-controlled positional must never start with `-`, or
+        // it would be parsed by docker as a flag (flag-spoofing). incus
+        // neutralizes this with its name regex and systemd with an existence
+        // snapshot; docker did neither, so reject leading-dash values here.
+        // The fixed argv tokens (e.g. `--privileged`) bypass this branch —
+        // only placeholder-bound values are checked.
+        if (/^-/.test(v)) {
+          return {
+            code: "leading_dash",
+            field: key,
+            reason: `placeholder <${key}> must not start with '-' (flag-spoofing)`,
+          };
+        }
         argv.push(v);
       } else if (typeof v === "number" && Number.isFinite(v)) {
         argv.push(String(v));

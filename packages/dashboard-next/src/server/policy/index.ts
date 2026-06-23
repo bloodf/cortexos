@@ -262,11 +262,15 @@ export function installDefaultAllowlist(): void {
   );
 
   // Docker (§4.4.3)
+  // SEC-02: each template inserts a literal `--` end-of-options token before
+  // the first caller-controlled positional so docker never parses a
+  // `<container>`/`<command>` value as a flag (flag-spoofing). The bridge's
+  // renderArgv also rejects leading-dash placeholder values — belt and braces.
   ["start", "stop", "restart", "rm", "logs", "inspect", "list"].forEach((action) => {
     addAllowlisted({
       name: `docker.${action}`,
       surface: "docker",
-      argv: ["/usr/bin/docker", action, "<container>"],
+      argv: ["/usr/bin/docker", action, "--", "<container>"],
       requiresApproval: ["rm", "restart", "stop"].includes(action),
       description: `docker ${action} on an allowlisted container.`,
     });
@@ -274,14 +278,14 @@ export function installDefaultAllowlist(): void {
   addAllowlisted({
     name: "docker.privileged",
     surface: "docker",
-    argv: ["/usr/bin/docker", "run", "--privileged", "<container>"],
+    argv: ["/usr/bin/docker", "run", "--privileged", "--", "<container>"],
     requiresApproval: true,
     description: "Run a container in privileged mode (SR-042).",
   });
   addAllowlisted({
     name: "docker.exec",
     surface: "docker",
-    argv: ["/usr/bin/docker", "exec", "<container>", "<command>"],
+    argv: ["/usr/bin/docker", "exec", "--", "<container>", "<command>"],
     requiresApproval: true,
     description: "Execute an allowlisted subcommand inside an allowlisted container (PB-2 fix).",
   });

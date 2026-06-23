@@ -449,6 +449,99 @@ describe("dispatchAction — approval gate", () => {
 });
 
 // ---------------------------------------------------------------------------
+// dispatchAction — END-TO-END approval (UI mint payload ⇆ bridge) — SEC-01
+// ---------------------------------------------------------------------------
+
+/**
+ * SEC-01 regression guard. The incus detail route mints its approval token
+ * (src/routes/_authenticated.incus.$name.tsx) and the bridge consumes it with
+ * `actionHashFor(`incus.${action}`, { name })`. The per-side unit tests above
+ * each mint with the bridge's own `{ name }` shape, so they passed in
+ * isolation even while the UI shipped a mismatched `{ action, name }` payload —
+ * fail-closing every UI-driven destructive action with `approval_invalid`.
+ *
+ * These tests mint exactly as the route does and drive dispatchAction so the
+ * two sides are exercised together.
+ *
+ *   - `mintApprovalAsUi` reproduces the route's mint contract.
+ *   - The POST-FIX shape `{ name }` must be ACCEPTED.
+ *   - The BUGGY shape `{ action, name }` must be REJECTED as approval_invalid —
+ *     this is the shape that was live before the fix and would have failed the
+ *     accepted assertion below.
+ */
+describe("dispatchAction — end-to-end UI approval (SEC-01)", () => {
+  /** Mirror the route's `callMintApproval({ data: { action, payload } })`. */
+  function mintApprovalAsUi(
+    action: "start" | "stop" | "restart" | "delete",
+    name: string,
+    payload: Record<string, unknown>,
+    sid: ReturnType<typeof asSessionId>,
+  ) {
+    return mintApproval({
+      action: `incus.${action}`,
+      payload,
+      sessionId: sid,
+      userId: "u-admin",
+    });
+  }
+
+  // Single source of truth for the route's mint payload shape. If the route
+  // (_authenticated.incus.$name.tsx) regresses to `{ action, name }`, update
+  // this and the contract assertion below fails — the bridge binds to `{ name }`.
+  const routeMintPayload = (_action: string, name: string): Record<string, unknown> => ({ name });
+
+  it("route mint payload hashes to the bridge's expected actionHash (contract)", () => {
+    const action = "stop";
+    const name = "hermes-canary";
+    const uiHash = actionHashFor(`incus.${action}`, routeMintPayload(action, name));
+    // What the bridge computes (bridge.ts ~1480): `{ name }` only.
+    const bridgeHash = actionHashFor(`incus.${action}`, { name });
+    expect(uiHash).toBe(bridgeHash);
+    // And the buggy pre-fix shape must NOT collide with it.
+    const buggyHash = actionHashFor(`incus.${action}`, { action, name });
+    expect(buggyHash).not.toBe(bridgeHash);
+  });
+
+  it("accepts a destructive stop minted with the route's `{ name }` payload", async () => {
+    const sid = asSessionId("sess-e2e-fixed");
+    // POST-FIX route mint payload — `{ name }` only.
+    const tok = mintApprovalAsUi(
+      "stop",
+      "hermes-canary",
+      routeMintPayload("stop", "hermes-canary"),
+      sid,
+    );
+    const result = await dispatchAction(
+      { action: "stop", name: "hermes-canary" },
+      makeAdminCtx({ sessionId: sid, approvalToken: tok.token }),
+    );
+    expect(result.status).toBe("accepted");
+    if (result.status === "accepted") {
+      expect(result.instance.status).toBe("stopped");
+    }
+  });
+
+  it("rejects the pre-fix `{ action, name }` payload as approval_invalid (hash-shape mismatch)", async () => {
+    const sid = asSessionId("sess-e2e-buggy");
+    // PRE-FIX route mint payload — included `action`, changing the hash shape.
+    const tok = mintApprovalAsUi(
+      "stop",
+      "hermes-canary",
+      { action: "stop", name: "hermes-canary" },
+      sid,
+    );
+    const result = await dispatchAction(
+      { action: "stop", name: "hermes-canary" },
+      makeAdminCtx({ sessionId: sid, approvalToken: tok.token }),
+    );
+    expect(result.status).toBe("rejected");
+    if (result.status === "rejected") {
+      expect(result.code).toBe("approval_invalid");
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
 // dispatchAction — launch (real provisioning) branch
 // ---------------------------------------------------------------------------
 
