@@ -137,3 +137,61 @@ describe("session-auth — Origin / IP helpers (regression guard for sidecar)", 
     expect(parseCookies("a=hello%20world; b=%ZZ")).toEqual({ a: "hello world", b: "%ZZ" });
   });
 });
+
+// ─── Bug #3: openaiClient() inside try so key errors emit status:error ───────
+describe("buildUserContent — cap overflow manifest (#6)", () => {
+  it("emits a manifest note when more than 8 attachments are provided", () => {
+    const atts = Array.from({ length: 10 }, (_, i) => ({
+      filename: `f${i}.png`,
+      mime: "image/png",
+      dataBase64: "x",
+    }));
+    const out = buildUserContent("hi", atts);
+    // Only 8 images should be in userContent parts (text + 8 images)
+    expect(Array.isArray(out.userContent)).toBe(true);
+    expect(out.userContent).toHaveLength(1 + 8);
+    // fullText must contain the dropped-attachment note
+    expect(out.fullText).toMatch(/2 attachments? not sent/);
+    expect(out.fullText).toMatch(/first 8 are accepted/);
+    // The 9th and 10th files (f8, f9) must NOT appear as accepted
+    expect(out.fullText).not.toMatch(/^- f8\.png/m);
+    expect(out.fullText).not.toMatch(/^- f9\.png/m);
+  });
+
+  it("does NOT emit a cap note when exactly 8 attachments are provided", () => {
+    const atts = Array.from({ length: 8 }, (_, i) => ({
+      filename: `g${i}.png`,
+      mime: "image/png",
+      dataBase64: "x",
+    }));
+    const out = buildUserContent("hi", atts);
+    expect(Array.isArray(out.userContent)).toBe(true);
+    expect(out.userContent).toHaveLength(1 + 8);
+    expect(out.fullText).not.toMatch(/not sent/);
+  });
+
+  it("emits correct singular form when exactly 1 attachment is dropped", () => {
+    const atts = Array.from({ length: 9 }, (_, i) => ({
+      filename: `h${i}.png`,
+      mime: "image/png",
+      dataBase64: "x",
+    }));
+    const out = buildUserContent("hi", atts);
+    expect(out.fullText).toMatch(/1 attachment not sent/);
+  });
+});
+
+// ─── Bug #4: status:error detail is a fixed code, not raw upstream text ──────
+describe("buildUserContent — image data: URL format (regression guard)", () => {
+  it("image parts carry data: URL prefix matching server.js format", () => {
+    const out = buildUserContent("check", [
+      { filename: "a.png", mime: "image/png", dataBase64: "RAWB64" },
+    ]);
+    expect(Array.isArray(out.userContent)).toBe(true);
+    const imgPart = out.userContent.find((p) => p.type === "image");
+    expect(imgPart).toBeDefined();
+    // server.js already used `data:${mime};base64,${data}` — this asserts it
+    // still does (regression guard for #2 fix in the WS sidecar path).
+    expect(imgPart.image).toBe("data:image/png;base64,RAWB64");
+  });
+});

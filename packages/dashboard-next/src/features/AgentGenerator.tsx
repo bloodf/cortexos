@@ -491,7 +491,27 @@ export default function AgentGeneratorPage() {
           return;
       }
     };
-    const session = openGeneratorWs({ onFrame: handleFrame, onState: setWsState });
+    // Bug #5 fix: if the WS closes or becomes unavailable while `thinking` is
+    // true (e.g. a mid-stream disconnect), the spinner would stick forever.
+    // Clear `thinking` and mark the trailing empty assistant bubble as errored.
+    const handleState = (next: WsState) => {
+      setWsState(next);
+      if (next === "closed" || next === "unavailable") {
+        setThinking((wasThinking) => {
+          if (wasThinking) {
+            setMessages((m) => {
+              const last = m.at(-1);
+              if (last && last.role === "assistant" && last.content === "") {
+                return [...m.slice(0, -1), { role: "assistant", content: "[connection lost]" }];
+              }
+              return m;
+            });
+          }
+          return false;
+        });
+      }
+    };
+    const session = openGeneratorWs({ onFrame: handleFrame, onState: handleState });
     wsRef.current = session;
     return () => {
       wsRef.current = null;

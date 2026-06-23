@@ -181,6 +181,14 @@ export function buildUserContent(text, attachments) {
   const parts = [{ type: "text", text: cleanText }];
   const manifest = [];
   const atts = Array.isArray(attachments) ? attachments : [];
+  // Bug #6 fix: when attachments exceed the cap, push a manifest note so the
+  // model and operator see that files were dropped rather than silently lost.
+  if (atts.length > MAX_ATTACHMENT_COUNT) {
+    const dropped = atts.length - MAX_ATTACHMENT_COUNT;
+    manifest.push(
+      `- [${dropped} attachment${dropped === 1 ? "" : "s"} not sent: only the first ${MAX_ATTACHMENT_COUNT} are accepted]`,
+    );
+  }
   for (let i = 0; i < atts.length && i < MAX_ATTACHMENT_COUNT; i += 1) {
     const a = atts[i];
     if (!a || typeof a !== "object") continue;
@@ -342,9 +350,12 @@ function handleConnection(ws, username, ip) {
         // turns (a stateless single-message turn cannot run an interview).
         state.history.push({ role: "user", content: userContent });
         send(ws, { type: "status", status: "thinking" });
-        const openai = openaiClient();
         let fullReply = "";
+        // Bug #3 fix: openaiClient() and runPanel() calls moved inside the try so
+        // a missing 9router key (or any other setup error) is caught and emits a
+        // status:error frame instead of leaving the UI stuck in "thinking".
         try {
+          const openai = openaiClient();
           const main = await streamText({
             model: openai(model),
             messages: [{ role: "system", content: SYSTEM_PROMPT }, ...state.history],
@@ -360,14 +371,26 @@ function handleConnection(ws, username, ip) {
           if (spec) send(ws, { type: "spec", spec });
           const ready = !!(spec && typeof spec.slug === "string" && spec.slug.length > 0);
           send(ws, { type: "status", status: ready ? "ready" : "idle" });
+          // Advisor/skeptic panels are meta-panels; they get a text manifest
+          // instead of full image parts.
+          const { fullText } = buildUserContent(text, frame.attachments);
+          runPanel(openai, ADVISOR_DEFAULT, "advisor", fullText, (f) => send(ws, f));
+          runPanel(openai, SKEPTIC_DEFAULT, "skeptic", fullText, (f) => send(ws, f));
         } catch (err) {
-          send(ws, { type: "status", status: "error", detail: err instanceof Error ? err.message : String(err) });
+          // Bug #3 sub-fix: if the stream errored mid-reply, push the partial
+          // content into history so the transcript stays consistent.
+          if (fullReply) {
+            state.history.push({ role: "assistant", content: fullReply });
+          }
+          // Bug #4 fix: send a fixed error code; log the full detail server-side
+          // only (never forward raw upstream LLM text to the client).
+          console.error(JSON.stringify({
+            event: "chat_error",
+            detail: err instanceof Error ? err.message : String(err),
+            ts: Date.now(),
+          }));
+          send(ws, { type: "status", status: "error", detail: "model_error" });
         }
-        // Advisor/skeptic panels are meta-panels; they get a text manifest
-        // instead of full image parts.
-        const { fullText } = buildUserContent(text, frame.attachments);
-        runPanel(openai, ADVISOR_DEFAULT, "advisor", fullText, (f) => send(ws, f));
-        runPanel(openai, SKEPTIC_DEFAULT, "skeptic", fullText, (f) => send(ws, f));
         break;
       }
       case "build":

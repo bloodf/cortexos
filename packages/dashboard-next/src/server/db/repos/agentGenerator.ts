@@ -6,7 +6,7 @@
  * enforced at the server-fn layer; this repo does no auth.
  */
 
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import type { DbClient } from "../client";
 import { agentGeneratorSessions } from "../schema";
 import type { AgentGeneratorSession, NewAgentGeneratorSession } from "../schema";
@@ -33,6 +33,13 @@ export async function createSession(
       slug: input.slug,
     })
     .returning();
+  // Bug #7 fix: .returning() can yield an empty array (e.g. on a DB constraint
+  // violation that drizzle surfaces as an empty result rather than a throw).
+  // Guard explicitly so callers see a clear error rather than a runtime
+  // "Cannot read properties of undefined" when accessing inserted[0].id.
+  if (!inserted[0]) {
+    throw new Error("createSession: DB insert returned no rows");
+  }
   return inserted[0];
 }
 
@@ -104,18 +111,26 @@ export async function setStatus(
   return res[0] ?? null;
 }
 
-/** Append build-log lines (captured during buildProfileFromSpec). */
+/**
+ * Append build-log lines atomically (SQL-side concatenation).
+ *
+ * Bug #8 fix: the previous implementation did a read-modify-write cycle, which
+ * races when multiple streaming callbacks fire concurrently and can silently
+ * drop log lines. Using `build_logs = build_logs || $1` (via drizzle's `sql`
+ * template) makes the append atomic at the DB level, eliminating the race
+ * without requiring an application-level lock or queue.
+ */
 export async function appendBuildLogs(
   db: DbClient,
   id: number,
   lines: string,
 ): Promise<AgentGeneratorSession | null> {
-  const existing = await getSession(db, id);
-  if (!existing) return null;
-  const buildLogs = (existing.buildLogs ?? "") + lines;
   const res = await db
     .update(agentGeneratorSessions)
-    .set({ buildLogs, updatedAt: new Date() })
+    .set({
+      buildLogs: sql`${agentGeneratorSessions.buildLogs} || ${lines}`,
+      updatedAt: new Date(),
+    })
     .where(eq(agentGeneratorSessions.id, id))
     .returning();
   return res[0] ?? null;

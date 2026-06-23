@@ -456,14 +456,25 @@ const buildGeneratorProfileGateOptions: ServerFnOptions<
     for (const w of projectionWarnings) {
       const line = `spec: ${w}`;
       lastLogs += line + "\n";
-      repo.appendBuildLogs(db, input.sessionId, line + "\n").catch(() => {});
+      // Bug #8 fix: await the log flush so warning lines are not lost if the
+      // build completes before the unawaited promise resolves. appendBuildLogs
+      // is now SQL-side atomic so awaiting here is safe under concurrency.
+      await repo.appendBuildLogs(db, input.sessionId, line + "\n");
     }
     try {
+      // Bug #8 fix: collect log lines from the streaming callback into a local
+      // queue and flush them with awaited appendBuildLogs calls. Unawaited
+      // fire-and-forget calls raced against each other (and against setStatus at
+      // the end), losing lines. We flush each line individually so the UI sees
+      // progress without batching complexity; the SQL-side append is atomic.
+      const pendingLogs: Array<Promise<unknown>> = [];
       const result = await buildProfileFromSpec(spec, (line) => {
         lastLogs += line + "\n";
-        // Best-effort periodic flush so the UI sees progress.
-        repo.appendBuildLogs(db, input.sessionId, line + "\n").catch(() => {});
+        pendingLogs.push(repo.appendBuildLogs(db, input.sessionId, line + "\n").catch(() => {}));
       });
+      // Wait for all in-flight log appends before setting the final status so
+      // the DB row is consistent when the client next polls.
+      await Promise.all(pendingLogs);
       await repo.setStatus(db, input.sessionId, "done", { slug: input.slug, buildLogs: lastLogs });
       return { slug: result.slug, apiPort: result.apiPort, status: "done" };
     } catch (err) {

@@ -115,7 +115,14 @@ interface AiImagePart {
 }
 type AiPart = AiTextPart | AiImagePart;
 
-/** Convert a user turn + attachments into AI SDK content parts. */
+/**
+ * Convert a user turn + attachments into AI SDK content parts.
+ *
+ * Images are sent as multimodal image parts using a `data:` URL (required by
+ * the AI SDK / OpenAI API; raw base64 is not accepted). Non-image files are
+ * listed by filename so the model acknowledges them without an unverified
+ * audio/video content path.
+ */
 function buildUserContent(
   text: string,
   attachments: GeneratorTurnInput["attachments"],
@@ -126,7 +133,8 @@ function buildUserContent(
   const stagedNames: string[] = [];
   for (const att of attachments) {
     if (att.mime.startsWith("image/")) {
-      parts.push({ type: "image", image: att.dataBase64 });
+      // Bug #2 fix: send a `data:` URL, not raw base64 — mirrors server.js buildUserContent.
+      parts.push({ type: "image", image: `data:${att.mime};base64,${att.dataBase64}` });
     } else {
       // Non-image files cannot be sent as model content over an unverified
       // audio/video path; surface their names so the model acknowledges them.
@@ -178,15 +186,30 @@ export async function generatorTurn(input: GeneratorTurnInput): Promise<Generato
           content: `Current partial spec (refine, do not lose fields): ${JSON.stringify(input.specSoFar)}`,
         }
       : null;
-  const history: ModelMessage[] = input.messages.map((m) => {
-    if (m.role === "user") {
-      return { role: "user", content: buildUserContent(m.content, input.attachments) };
-    }
-    if (m.role === "assistant") {
-      return { role: "assistant", content: m.content };
-    }
-    return { role: "system", content: m.content };
-  });
+  // Bug #1 fix: attachments belong only on the FINAL user turn, not on every
+  // historical message. Build history as plain text; apply multimodal parts
+  // only to the last message below.
+  const historyMessages = input.messages.slice(0, -1);
+  const lastMessage = input.messages.at(-1);
+  const history: ModelMessage[] = [
+    ...historyMessages.map((m): ModelMessage => {
+      if (m.role === "user") return { role: "user", content: m.content };
+      if (m.role === "assistant") return { role: "assistant", content: m.content };
+      return { role: "system", content: m.content };
+    }),
+    ...(lastMessage
+      ? [
+          lastMessage.role === "user"
+            ? ({
+                role: "user",
+                content: buildUserContent(lastMessage.content, input.attachments),
+              } as ModelMessage)
+            : lastMessage.role === "assistant"
+              ? ({ role: "assistant", content: lastMessage.content } as ModelMessage)
+              : ({ role: "system", content: lastMessage.content } as ModelMessage),
+        ]
+      : []),
+  ];
   const messages: ModelMessage[] = specHint ? [sys, specHint, ...history] : [sys, ...history];
 
   const result = await generateText({
