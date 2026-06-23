@@ -242,6 +242,8 @@ function finalize(res: Response, ctx: RequestCtx): Response {
   Object.entries(FRAMEWORK_HEADERS).forEach(([name, value]) => {
     if (!res.headers.has(name)) res.headers.set(name, value);
   });
+  // Surface the request ID to the client for log correlation (DX-08).
+  if (ctx.requestId) res.headers.set("x-request-id", ctx.requestId);
   // Probabilistic session GC (best-effort; fire-and-forget).
   maybeGcExpiredSessions().catch(() => {});
   return res;

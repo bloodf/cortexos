@@ -102,9 +102,17 @@ Reference: `src/lib/api/define-server-fn.ts`
 
 - PostgreSQL `cortex_dashboard` at `127.0.0.1:5432`, user `dashboard`
 - Migrations: `migrations/NNN_description.sql` (lexical order)
-- Runner: `src/server/db/migrate.ts` (`runSqlMigrations`, in-process at
-  startup; `defaultMigrationsDir()` = `cwd/migrations`). `scripts/migrate-cli.js`
-  does not exist; root `scripts/migrate.js` is retired.
+- Migrations do NOT auto-apply on service restart. Apply them by hand with
+  `scripts/migrate-cli.js` (it DOES exist) before restarting:
+  `cd packages/dashboard-next && DB_PASSWORD=… node scripts/migrate-cli.js`
+  (also reads DB_HOST/PORT/NAME/USER).
+- Runner logic: `src/server/db/migrate.ts` (`runSqlMigrations`,
+  `defaultMigrationsDir()` = `cwd/migrations`) is the canonical
+  in-process/test runner. `scripts/migrate-cli.js` re-implements the SAME
+  ledger semantics (it can't import the TS module from plain node) and writes
+  the SAME `dashboard_migrations` ledger with the SAME `sha256(raw)`
+  checksums, so the two agree — keep them in sync. Root `scripts/migrate.js`
+  is a separate, retired runner (legacy `migrations` ledger) — do not use it.
 - Ledger: `dashboard_migrations` (namespaced, checksum-verified) —
   `(id, name UNIQUE, checksum CHAR(64), applied_at)`. Checksum =
   `sha256(raw file content)`. The runner records names automatically.
