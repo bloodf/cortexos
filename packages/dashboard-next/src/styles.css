@@ -1,5 +1,9 @@
 @import "tailwindcss" source(none);
 @source "../src";
+/* Required by ai-elements MessageResponse — Tailwind must scan streamdown's
+   compiled classes or markdown replies render unstyled (source(none) above
+   disables node_modules auto-scanning). */
+@source "../node_modules/streamdown/dist/*.js";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
