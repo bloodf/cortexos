@@ -59,6 +59,14 @@ const BuildGeneratorProfileInput = z
   })
   .strict();
 
+const SetGeneratorSecretInput = z
+  .object({
+    sessionId: z.number().int().positive(),
+    key: z.string().regex(/^[A-Z][A-Z0-9_]{0,63}$/, "must be an UPPER_SNAKE env var name"),
+    value: z.string().min(1).max(4096),
+  })
+  .strict();
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -74,6 +82,8 @@ interface GeneratorSessionDto {
   buildLogs: string;
   createdAt: string;
   updatedAt: string;
+  /** Key NAMES of secrets already staged out-of-band for this session (no values). */
+  stagedSecretKeys: string[];
 }
 
 interface GeneratorSendOutput {
@@ -86,6 +96,15 @@ interface BuildGeneratorProfileOutput {
   slug: string;
   apiPort: number;
   status: "done" | "error";
+}
+
+interface SetGeneratorSecretOutput {
+  /** The key that was stored. */
+  key: string;
+  /** All secret key NAMES currently staged for the session (never values). */
+  staged: string[];
+  /** Secret key NAMES the spec still needs filled before build. */
+  missing: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -362,9 +381,13 @@ const getGeneratorSessionGate = defineServerFn({
     const { getDb } = await import("@/server/db/client");
     const { getSession } = await import("@/server/db/repos/agentGenerator");
     const { notFoundError } = await import("@/server/errors/types");
+    const { listStagedSecretKeys } = await import("@/server/agents/generator/secretStaging");
     const db = getDb();
     const s = await getSession(db, input.sessionId);
     if (!s) throw notFoundError(`generator session ${input.sessionId} not found`);
+    // Key NAMES only — never the staged values. Lets the UI restore which secret
+    // slots are already filled after a refresh / reopen.
+    const stagedSecretKeys = await listStagedSecretKeys(s.id);
     return {
       id: s.id,
       slug: s.slug,
@@ -376,6 +399,7 @@ const getGeneratorSessionGate = defineServerFn({
       buildLogs: s.buildLogs ?? "",
       createdAt: s.createdAt.toISOString(),
       updatedAt: s.updatedAt.toISOString(),
+      stagedSecretKeys,
     };
   },
 });
@@ -414,6 +438,58 @@ export const listGeneratorPresets = createServerFn({ method: "GET" })
   .handler(serverFnNoop);
 
 // ---------------------------------------------------------------------------
+// setGeneratorSecret — POST, auth: admin. Stage ONE secret value out-of-band.
+//
+// Secret VALUES never travel through the interview: the spec carries only key
+// NAMES (empty `mcps[].env` slots / a `telegramBotToken` flag). The operator
+// types each value into the Secrets panel, which posts here. The value is
+// written to a per-session staging file (mode 0600) and merged into the profile
+// .env by the build, then deleted — it never enters the transcript, the spec,
+// or the approval-mint payload. The response echoes only key NAMES.
+//
+// The key is validated against the SESSION SPEC's declared secret slots, so the
+// client cannot inject an arbitrary env var into the generated profile.
+// ---------------------------------------------------------------------------
+
+const setGeneratorSecretGateOptions: ServerFnOptions<
+  z.infer<typeof SetGeneratorSecretInput>,
+  SetGeneratorSecretOutput
+> = {
+  method: "POST",
+  auth: "admin",
+  input: SetGeneratorSecretInput,
+  rateLimit: { limit: 60, windowSec: 60, bucket: "user" },
+  surface: "agents.generator",
+  action: "agents.generator.secret",
+  handler: async ({ input }) => {
+    const { getDb } = await import("@/server/db/client");
+    const repo = await import("@/server/db/repos/agentGenerator");
+    const staging = await import("@/server/agents/generator/secretStaging");
+    const { systemError, notFoundError, validationError } = await import("@/server/errors/types");
+    const db = getDb();
+    const session = await repo.getSession(db, input.sessionId);
+    if (!session) throw notFoundError(`generator session ${input.sessionId} not found`);
+    if (session.status === "building" || session.status === "done") {
+      throw systemError(`generator session is ${session.status}; cannot edit secrets`);
+    }
+    const spec = (session.spec as Record<string, unknown>) ?? {};
+    if (!staging.isAllowedSecretKey(spec, input.key)) {
+      // The spec does not declare this secret slot — refuse rather than stage an
+      // arbitrary env var that would be written into the profile .env.
+      throw validationError(`secret key '${input.key}' is not declared by this spec`);
+    }
+    const staged = await staging.stageSecret(input.sessionId, input.key, input.value);
+    const required = staging.requiredSecretKeys(spec);
+    const missing = required.filter((k) => !staged.includes(k));
+    return { key: input.key, staged, missing };
+  },
+};
+const setGeneratorSecretGate = defineServerFn(setGeneratorSecretGateOptions);
+export const setGeneratorSecret = createServerFn({ method: "POST" })
+  .middleware([setGeneratorSecretGate])
+  .handler(serverFnNoop);
+
+// ---------------------------------------------------------------------------
 // buildGeneratorProfile — POST, auth: admin, approval: true.
 // Drives buildProfileFromSpec, persists build logs, sets status done/error.
 // ---------------------------------------------------------------------------
@@ -434,6 +510,7 @@ const buildGeneratorProfileGateOptions: ServerFnOptions<
     const { getDb } = await import("@/server/db/client");
     const repo = await import("@/server/db/repos/agentGenerator");
     const { buildProfileFromSpec } = await import("@/server/agents/generator/build");
+    const staging = await import("@/server/agents/generator/secretStaging");
     const { systemError, notFoundError } = await import("@/server/errors/types");
     const db = getDb();
     const session = await repo.getSession(db, input.sessionId);
@@ -452,6 +529,20 @@ const buildGeneratorProfileGateOptions: ServerFnOptions<
       projectionWarnings,
     );
 
+    // Secret preflight: every secret slot the spec declares MUST be staged
+    // (entered out-of-band via setGeneratorSecret) before we build. UI gating is
+    // bypassable; this is the authoritative check. Without it a build could
+    // best-effort-skip a missing secret and deploy a profile with no credential.
+    const requiredKeys = staging.requiredSecretKeys(spec);
+    if (requiredKeys.length > 0) {
+      const stagedKeys = await staging.listStagedSecretKeys(input.sessionId);
+      const missing = requiredKeys.filter((k) => !stagedKeys.includes(k));
+      if (missing.length > 0) {
+        await repo.setStatus(db, input.sessionId, "draft", { slug: input.slug });
+        throw systemError(`missing required secrets before build: ${missing.join(", ")}`);
+      }
+    }
+
     let lastLogs = "";
     for (const w of projectionWarnings) {
       const line = `spec: ${w}`;
@@ -468,10 +559,14 @@ const buildGeneratorProfileGateOptions: ServerFnOptions<
       // the end), losing lines. We flush each line individually so the UI sees
       // progress without batching complexity; the SQL-side append is atomic.
       const pendingLogs: Array<Promise<unknown>> = [];
-      const result = await buildProfileFromSpec(spec, (line) => {
-        lastLogs += line + "\n";
-        pendingLogs.push(repo.appendBuildLogs(db, input.sessionId, line + "\n").catch(() => {}));
-      });
+      const result = await buildProfileFromSpec(
+        spec,
+        (line) => {
+          lastLogs += line + "\n";
+          pendingLogs.push(repo.appendBuildLogs(db, input.sessionId, line + "\n").catch(() => {}));
+        },
+        input.sessionId,
+      );
       // Wait for all in-flight log appends before setting the final status so
       // the DB row is consistent when the client next polls.
       await Promise.all(pendingLogs);

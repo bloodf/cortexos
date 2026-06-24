@@ -5,6 +5,7 @@ import {
   Check,
   Copy,
   Loader2,
+  Lock,
   Paperclip,
   RefreshCw,
   Sparkles,
@@ -77,6 +78,8 @@ import {
   callGeneratorSend,
   callBuildGeneratorProfile,
   callMintApproval,
+  callSetGeneratorSecret,
+  callGetGeneratorSession,
   listModels,
   listGeneratorPresets,
 } from "@/lib/api/client";
@@ -177,6 +180,22 @@ function redactSpec(spec: Record<string, unknown>): Record<string, unknown> {
     }
   }
   return clone;
+}
+
+/** Derive required secret key names from a spec (MCP env keys + TELEGRAM_BOT_TOKEN). */
+function requiredSecretKeys(spec: Record<string, unknown>): string[] {
+  const keys = new Set<string>();
+  const mcps = Array.isArray((spec as { mcps?: unknown }).mcps)
+    ? (spec as { mcps: Array<{ env?: Record<string, unknown> }> }).mcps
+    : [];
+  for (const mcp of mcps) {
+    if (mcp && mcp.env && typeof mcp.env === "object") {
+      for (const k of Object.keys(mcp.env)) if (/^[A-Z][A-Z0-9_]{0,63}$/.test(k)) keys.add(k);
+    }
+  }
+  if (typeof (spec as { telegramBotToken?: unknown }).telegramBotToken === "string")
+    keys.add("TELEGRAM_BOT_TOKEN");
+  return [...keys];
 }
 
 const STATUS_BADGE: Record<
@@ -353,20 +372,23 @@ export default function AgentGeneratorPage() {
       if (!sessionId) throw new Error("no session");
       const slug = typeof spec.slug === "string" ? spec.slug : "";
       if (!slug) throw new Error("spec missing slug");
-      // Mint a hash over the COMPLETE request body (the pipeline hashes action+input).
-      // Token is captured via chat handshake and lives in spec.telegramBotToken.
-      const specToken =
-        typeof spec.telegramBotToken === "string" ? spec.telegramBotToken.trim() : "";
-      const payload: {
-        sessionId: number;
-        slug: string;
-        spec: Record<string, unknown>;
-        telegramBotToken?: string;
-      } = {
+      // Deep-sanitize spec before hashing/sending: secret values (MCP env +
+      // telegramBotToken) are staged out-of-band and must never travel in
+      // the build payload. Keys are preserved so the builder knows what's staged.
+      const sanitizedSpec: Record<string, unknown> = JSON.parse(JSON.stringify(spec));
+      if (typeof sanitizedSpec.telegramBotToken === "string") sanitizedSpec.telegramBotToken = "";
+      if (Array.isArray(sanitizedSpec.mcps)) {
+        for (const mcp of sanitizedSpec.mcps as Array<Record<string, unknown>>) {
+          if (mcp && typeof mcp.env === "object" && mcp.env !== null) {
+            const env = mcp.env as Record<string, unknown>;
+            for (const k of Object.keys(env)) env[k] = "";
+          }
+        }
+      }
+      const payload: { sessionId: number; slug: string; spec: Record<string, unknown> } = {
         sessionId,
         slug,
-        spec,
-        ...(specToken ? { telegramBotToken: specToken } : {}),
+        spec: sanitizedSpec,
       };
       const mint = await callMintApproval({
         data: { action: "agents.generator.build", payload },
@@ -564,6 +586,62 @@ export default function AgentGeneratorPage() {
     return () => window.cancelAnimationFrame(id);
   }, [ptyOpen]);
 
+  // ── Secrets panel state ──────────────────────────────────────────────────
+  // secretValues: in-progress masked input values, cleared per key after
+  // a successful post. NEVER written into spec, messages, or any log.
+  const [secretValues, setSecretValues] = useState<Record<string, string>>({});
+  // stagedKeys: key names confirmed staged server-side (no values stored here).
+  const [stagedKeys, setStagedKeys] = useState<string[]>([]);
+  const requiredKeys = useMemo(() => requiredSecretKeys(spec), [spec]);
+  const missingSecrets = requiredKeys.filter((k) => !stagedKeys.includes(k));
+
+  const setSecretMut = useMutation({
+    mutationFn: async ({ key, value }: { key: string; value: string }) => {
+      if (!sessionId) throw new Error("no session");
+      return callSetGeneratorSecret({
+        data: { sessionId, key, value },
+        headers: csrfHeaders(),
+      });
+    },
+    onSuccess: (res, { key }) => {
+      setStagedKeys(res.staged);
+      setSecretValues((m) => {
+        const n = { ...m };
+        delete n[key];
+        return n;
+      });
+      toast.success(`${key} stored`);
+    },
+    onError: (e: unknown, { key }) => {
+      toast.error("Failed to store secret", {
+        description: `${key}: ${e instanceof Error ? e.message : String(e)}`,
+      });
+    },
+  });
+
+  // Seed stagedKeys from server truth whenever the session changes. The effect
+  // is keyed on sessionId, so a secret saved WITHIN a session (which does not
+  // change sessionId) never re-runs this and is never clobbered; switching to a
+  // new/empty session correctly RESETS to that session's staged set (no stale
+  // keys leaking across sessions and falsely satisfying the build gate).
+  useEffect(() => {
+    if (!sessionId) {
+      setStagedKeys([]);
+      return;
+    }
+    let cancelled = false;
+    callGetGeneratorSession({ data: { sessionId } })
+      .then((session) => {
+        if (!cancelled) setStagedKeys(session.stagedSecretKeys);
+      })
+      .catch(() => {
+        /* non-fatal; user can re-enter */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId]);
+
   const pendingBytes = useMemo(
     () => pending.reduce((sum, p) => sum + decodedBytes(p), 0),
     [pending],
@@ -587,7 +665,11 @@ export default function AgentGeneratorPage() {
       </div>
     );
   }
-  const canBuild = status === "done" && typeof spec.slug === "string" && !buildMut.isPending;
+  const canBuild =
+    status === "done" &&
+    typeof spec.slug === "string" &&
+    !buildMut.isPending &&
+    missingSecrets.length === 0;
   const currentSlug = typeof spec.slug === "string" ? spec.slug : "";
   const canConnectWhatsapp = wsState === "live" && currentSlug.length > 0;
   // Modal enablement — each tool opens only when there's something to see.
@@ -1262,9 +1344,66 @@ export default function AgentGeneratorPage() {
           </div>
 
           {/* ------------------------------------------------------------ */}
+          {/* Secrets panel — shown when spec declares required credentials */}
+          {/* Values are never written into spec/messages/logs.             */}
+          {/* ------------------------------------------------------------ */}
+          {requiredKeys.length > 0 && (status === "draft" || status === "done") && (
+            <div className="border-t bg-card/40 px-4 py-3 space-y-3">
+              <div className="flex items-center gap-2">
+                <Lock className="size-3.5 text-muted-foreground" />
+                <span className="text-xs font-medium">Required secrets</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Values are stored securely on the server and written to the profile at build time —
+                never shown in chat.
+              </p>
+              <div className="space-y-2">
+                {requiredKeys.map((key) => {
+                  const isStaged = stagedKeys.includes(key);
+                  return (
+                    <div key={key} className="flex items-center gap-2">
+                      <span
+                        className="w-48 shrink-0 font-mono text-[11px] text-foreground truncate"
+                        title={key}
+                      >
+                        {key}
+                      </span>
+                      <input
+                        type="password"
+                        autoComplete="off"
+                        value={secretValues[key] ?? ""}
+                        onChange={(e) => setSecretValues((m) => ({ ...m, [key]: e.target.value }))}
+                        placeholder={isStaged ? "re-enter to update" : "enter value…"}
+                        className="h-7 min-w-0 flex-1 rounded border bg-background px-2 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2 text-xs shrink-0"
+                        disabled={!(secretValues[key] ?? "").trim() || setSecretMut.isPending}
+                        onClick={() => setSecretMut.mutate({ key, value: secretValues[key] ?? "" })}
+                      >
+                        Save
+                      </Button>
+                      {isStaged ? (
+                        <span className="flex items-center gap-1 shrink-0 text-[10px] text-emerald-500">
+                          <Check className="size-3" /> stored
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 shrink-0 text-[10px] text-amber-500">
+                          <span className="size-2 rounded-full bg-amber-500 inline-block" /> needed
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ------------------------------------------------------------ */}
           {/* Create agent — below the composer; approval+admin gated      */}
-          {/* server-side. Telegram token sent once with the build payload;*/}
-          {/* WhatsApp runs in the Live PTY modal.                          */}
+          {/* server-side. Secrets staged out-of-band before build.        */}
           {/* ------------------------------------------------------------ */}
           <div className="flex flex-wrap items-end gap-3 border-t bg-card/60 p-3">
             <Button
@@ -1275,7 +1414,9 @@ export default function AgentGeneratorPage() {
               title={
                 canBuild
                   ? "Mint an approval token and build the Hermes profile."
-                  : "Enabled once the model emits a complete spec (status=ready) with a slug."
+                  : missingSecrets.length > 0
+                    ? `Enter required secrets first: ${missingSecrets.join(", ")}`
+                    : "Enabled once the model emits a complete spec (status=ready) with a slug."
               }
             >
               {buildMut.isPending ? (

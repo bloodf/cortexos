@@ -188,6 +188,7 @@ import {
   getGeneratorSession as _getGeneratorSession,
   buildGeneratorProfile as _buildGeneratorProfile,
   listGeneratorPresets as _listGeneratorPresets,
+  setGeneratorSecret as _setGeneratorSecret,
 } from "./agentGenerator.functions";
 import { readEnv as _readEnv } from "./env-browser.functions";
 import type { HermesProfile } from "@/server/agents/registry";
@@ -1636,6 +1637,7 @@ export const callGetGeneratorSession = _getGeneratorSession as unknown as (opts:
   buildLogs: string;
   createdAt: string;
   updatedAt: string;
+  stagedSecretKeys: string[];
 }>;
 
 /**
@@ -1655,3 +1657,14 @@ export const callBuildGeneratorProfile = _buildGeneratorProfile as unknown as (
     };
   } & CsrfOpts,
 ) => Promise<{ slug: string; apiPort: number; status: "done" | "error" }>;
+
+/**
+ * Call setGeneratorSecret RPC — admin only, CSRF-enforced. Stage ONE secret
+ * value out-of-band (never travels through chat / spec / mint). Returns only
+ * key NAMES: `staged` (all staged keys) + `missing` (declared-but-unfilled).
+ */
+export const callSetGeneratorSecret = _setGeneratorSecret as unknown as (
+  opts: {
+    data: { sessionId: number; key: string; value: string };
+  } & CsrfOpts,
+) => Promise<{ key: string; staged: string[]; missing: string[] }>;

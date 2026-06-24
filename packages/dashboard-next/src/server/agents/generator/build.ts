@@ -21,6 +21,7 @@ import { promisify } from "node:util";
 import fs from "node:fs/promises";
 import type { ProfileSpec } from "@/server/agents/generator/types";
 import { expandIntegrations } from "@/server/agents/generator/integration-catalog";
+import { readStagedSecrets, clearStagedSecrets } from "@/server/agents/generator/secretStaging";
 import { systemError } from "@/server/errors/types";
 
 const execFileAsync = promisify(execFileCb);
@@ -165,6 +166,9 @@ export interface BuildResult {
 export async function buildProfileFromSpec(
   spec: ProfileSpec,
   onLog: (line: string) => void,
+  /** When set, staged out-of-band secrets for this session are merged into the
+   *  profile .env and the staging file is deleted after a successful build. */
+  sessionId?: number,
 ): Promise<BuildResult> {
   if (!spec.slug || !/^[a-z0-9][a-z0-9-]*$/.test(spec.slug)) {
     throw systemError(`invalid slug '${spec.slug}'`);
@@ -544,6 +548,39 @@ export async function buildProfileFromSpec(
     }
   }
 
+  // 6.5 Merge out-of-band staged secrets into the profile .env (BEST-EFFORT
+  //      write; the staging file is cleared only AFTER the whole build succeeds,
+  //      so a render/enable failure below does not lose the operator's values on
+  //      retry). Values are entered via setGeneratorSecret, never via chat/spec.
+  if (typeof sessionId === "number") {
+    try {
+      const staged = await readStagedSecrets(sessionId);
+      if (staged.size > 0) {
+        const envPath = `${SECRETS_DIR}/${spec.slug}.env`;
+        const envText = await fs.readFile(envPath, "utf8").catch(() => "");
+        const lines = envText.length > 0 ? envText.split("\n") : [];
+        const keyOf = (l: string) => l.split("=")[0]?.trim();
+        const wrote: string[] = [];
+        for (const [k, v] of staged) {
+          if (hasNewline(k) || hasNewline(v)) {
+            warnings.push(`staged secret '${k}' skipped: contains newline`);
+            continue;
+          }
+          const idx = lines.findIndex((l) => keyOf(l) === k);
+          if (idx >= 0) lines[idx] = `${k}=${v}`;
+          else lines.push(`${k}=${v}`);
+          wrote.push(k);
+        }
+        await fs.writeFile(envPath, lines.join("\n"), { mode: 0o600 });
+        if (wrote.length > 0) log(`staged secrets: wrote ${wrote.join(", ")}`);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      warnings.push(`staged secrets skipped: ${msg}`);
+      log(`staged secrets: skipped (${msg})`);
+    }
+  }
+
   // 7. Render unit templates (CRITICAL).
   try {
     await executor(
@@ -591,6 +628,16 @@ export async function buildProfileFromSpec(
     const msg = err instanceof Error ? err.message : String(err);
     warnings.push(`status.json write skipped: ${msg}`);
     log(`status: skipped (${msg})`);
+  }
+
+  // Build succeeded through all critical steps — clear the staged secrets so the
+  // plaintext staging file does not linger on disk. Best-effort: a failure here
+  // does not fail the build (the file is 0600 and re-cleared on next build).
+  if (typeof sessionId === "number") {
+    await clearStagedSecrets(sessionId).catch((err) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      log(`staged secrets: cleanup skipped (${msg})`);
+    });
   }
 
   log(`done: ${spec.slug} ready (port ${port})`);

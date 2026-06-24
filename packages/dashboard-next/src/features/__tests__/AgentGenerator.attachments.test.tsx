@@ -74,6 +74,8 @@ vi.mock("@/lib/api/client", () => ({
   callGeneratorSend: vi.fn(),
   callBuildGeneratorProfile: vi.fn(),
   callMintApproval: vi.fn(),
+  callGetGeneratorSession: vi.fn(() => new Promise(() => {})),
+  callSetGeneratorSecret: vi.fn(),
   api: {},
   csrfHeaders: () => ({}),
 }));
