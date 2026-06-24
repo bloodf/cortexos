@@ -230,6 +230,8 @@ export default function AgentGeneratorPage() {
   const termRef = useRef<XTerm | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // WS in-flight guard: prevents overlapping turns that corrupt state.history ordering.
+  const wsTurnPending = useRef(false);
   const { data: modelsData } = useQuery({
     queryKey: ["agent-models"],
     queryFn: () => listModels({ data: {} }),
@@ -265,34 +267,64 @@ export default function AgentGeneratorPage() {
   });
 
   const sendMut = useMutation({
-    mutationFn: async () => {
+    mutationFn: async ({
+      sentText,
+      sentPending,
+    }: {
+      sentText: string;
+      sentPending: PendingAttachment[];
+    }) => {
       if (!sessionId) throw new Error("no session");
       // WS path: text + model + attachments all travel in one user frame.
       // The sidecar converts images to multimodal parts and emits a text
       // manifest for the advisor/skeptic panels. The RPC fallback only runs
       // when the sidecar is unavailable.
       if (wsState === "live" && wsRef.current) {
-        wsRef.current.send(text, {
+        // Fix #2: block overlapping WS turns — corrupts sidecar state.history.
+        if (wsTurnPending.current) throw new Error("Turn already in progress");
+        wsTurnPending.current = true;
+        wsRef.current.send(sentText, {
           model,
           reasoning,
-          ...(pending.length > 0 ? { attachments: pending } : {}),
+          ...(sentPending.length > 0 ? { attachments: sentPending } : {}),
         });
         return {
           via: "ws" as const,
           reply: "",
           spec: {} as Record<string, unknown>,
           status: "draft" as const,
+          sentText,
+          sentPending,
         };
       }
+      // RPC fallback intentionally sends only sessionId/text/attachments. The
+      // server resolves model + reasoning from the session (fixed at session
+      // creation), so they are not forwarded per-turn on this path.
       const rpc = await callGeneratorSend({
-        data: { sessionId, text, attachments: pending.length > 0 ? pending : undefined },
+        data: {
+          sessionId,
+          text: sentText,
+          attachments: sentPending.length > 0 ? sentPending : undefined,
+        },
         headers: csrfHeaders(),
       });
-      return { via: "rpc" as const, reply: rpc.reply, spec: rpc.spec, status: rpc.status };
+      return {
+        via: "rpc" as const,
+        reply: rpc.reply,
+        spec: rpc.spec,
+        status: rpc.status,
+        sentText,
+        sentPending,
+      };
     },
     onSuccess: (res) => {
-      const sentAttachments = pending.length > 0 ? pending : undefined;
-      setMessages((m) => [...m, { role: "user", content: text, attachments: sentAttachments }]);
+      // Fix #3: use mutation variables (snapshots), not live state, so the
+      // bubble matches exactly what was sent even if the operator edits mid-flight.
+      const sentAttachments = res.sentPending.length > 0 ? res.sentPending : undefined;
+      setMessages((m) => [
+        ...m,
+        { role: "user", content: res.sentText, attachments: sentAttachments },
+      ]);
       if (res.via === "ws") {
         // Empty assistant bubble; WS `chat` frames will append into it.
         setMessages((m) => [...m, { role: "assistant", content: "" }]);
@@ -307,6 +339,11 @@ export default function AgentGeneratorPage() {
       setStatus(res.status);
     },
     onError: (e: unknown) => {
+      // Don't clear wsTurnPending for the "Turn already in progress" guard throw —
+      // that path never set the flag, so clearing it would release the in-flight turn.
+      if (!(e instanceof Error && e.message === "Turn already in progress")) {
+        wsTurnPending.current = false;
+      }
       toast.error("Send failed", { description: e instanceof Error ? e.message : String(e) });
     },
   });
@@ -457,14 +494,17 @@ export default function AgentGeneratorPage() {
           if (frame.status === "idle") {
             setThinking(false);
             setStatus("draft");
+            wsTurnPending.current = false;
           }
           if (frame.status === "ready") {
             setThinking(false);
             setStatus("done");
+            wsTurnPending.current = false;
           }
           if (frame.status === "error") {
             setThinking(false);
             setStatus("error");
+            wsTurnPending.current = false;
           }
           return;
         case "exit":
@@ -480,6 +520,7 @@ export default function AgentGeneratorPage() {
     const handleState = (next: WsState) => {
       setWsState(next);
       if (next === "closed" || next === "unavailable") {
+        wsTurnPending.current = false;
         setThinking((wasThinking) => {
           if (wasThinking) {
             setMessages((m) => {
@@ -555,9 +596,13 @@ export default function AgentGeneratorPage() {
   const hasSpec = Object.keys(spec).length > 0;
   const hasAdvisor = advisorBuf.trim().length > 0;
   const hasSkeptic = skepticBuf.trim().length > 0;
-  const submitStatus = sendMut.isPending || thinking ? "submitted" : undefined;
+  const submitStatus =
+    sendMut.isPending || thinking || wsTurnPending.current ? "submitted" : undefined;
   const canSend =
-    !!sessionId && (text.trim().length > 0 || pending.length > 0) && !sendMut.isPending;
+    !!sessionId &&
+    (text.trim().length > 0 || pending.length > 0) &&
+    !sendMut.isPending &&
+    !wsTurnPending.current;
 
   const statusBadge = STATUS_BADGE[status];
   // Index of the last assistant bubble — only it gets a Retry action.
@@ -601,8 +646,13 @@ export default function AgentGeneratorPage() {
     const trimmed = raw.trim();
     setText(trimmed);
     if (!sessionId) return;
-    if ((trimmed.length === 0 && pending.length === 0) || sendMut.isPending) return;
-    sendMut.mutate();
+    if (
+      (trimmed.length === 0 && pending.length === 0) ||
+      sendMut.isPending ||
+      wsTurnPending.current
+    )
+      return;
+    sendMut.mutate({ sentText: trimmed, sentPending: pending });
   }
 
   // Copy an assistant message body; flips the icon to a check briefly.
@@ -616,13 +666,13 @@ export default function AgentGeneratorPage() {
     );
   }
 
-  // Retry the last turn: re-send the most recent user message text through the
-  // existing send path (same sendMut/handleSubmit machinery — no new wiring).
+  // Retry the last turn: directly mutate with the last user message text,
+  // bypassing handleSubmit to avoid the setText→stale-closure race.
   function retryLastTurn() {
-    if (sendMut.isPending) return;
+    if (sendMut.isPending || wsTurnPending.current) return;
     const lastUser = [...messages].reverse().find((m) => m.role === "user");
     if (!lastUser?.content) return;
-    handleSubmit(lastUser.content);
+    sendMut.mutate({ sentText: lastUser.content, sentPending: lastUser.attachments ?? [] });
   }
 
   // ── Build-tool toolbar — Live spec / Advisor / Skeptic / Live PTY modals ───
@@ -986,7 +1036,7 @@ export default function AgentGeneratorPage() {
                             <MessageAction
                               tooltip="Retry"
                               label="Retry last turn"
-                              disabled={sendMut.isPending || !sessionId}
+                              disabled={sendMut.isPending || wsTurnPending.current || !sessionId}
                               onClick={retryLastTurn}
                             >
                               <RefreshCw className="size-3.5" />
@@ -1113,7 +1163,7 @@ export default function AgentGeneratorPage() {
                         ? "Loading session…"
                         : "Pick a model first…"
                   }
-                  disabled={!sessionId || sendMut.isPending}
+                  disabled={!sessionId || sendMut.isPending || wsTurnPending.current}
                   onPaste={(e) => {
                     const files = e.clipboardData?.files;
                     if (files && files.length > 0) {

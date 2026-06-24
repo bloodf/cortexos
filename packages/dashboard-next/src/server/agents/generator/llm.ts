@@ -100,12 +100,8 @@ HARD GATES (must never be violated):
 - The profile is created by a SEPARATE, sandboxed build step that runs only AFTER the operator reviews the spec and clicks "Create agent". That step writes only the new agent's own Hermes profile files.
 - Never invent or expose secrets. The ONE exception: credentials the operator EXPLICITLY gives you for a channel or MCP server — capture a Telegram token in "telegramBotToken", and any MCP server's API keys in that server's "env" object. Build writes these only to the profile's own secured .env (mode 0600). NEVER echo, repeat, quote, or embed a secret back in chat — not in prose, not in a code block, not inside a command or example. When the operator pastes a token, acknowledge ONLY that it is captured (e.g. "Telegram bot token captured — stored in the profile .env, not shown again") and record it in the spec field; do NOT print the value. If the operator pasted a secret into the visible chat, remind them it is now exposed in the transcript and they should rotate/revoke it.
 
-OPERATOR-CONTEXT REFLECTION (turn-one behavior when context is dumped — NON-NEGOTIABLE):
-When the operator opens with a context dump (multi-job, multi-client, MCPs, manager names, time zones, ADHD framing), your FIRST response must contain ONLY:
-  1. A topology table — every job, client, MCP account, manager, and constraint the operator named. Use a compact table or short bullets. Include the deployment facts (DO NOT ASK section) the operator's context confirms.
-  2. A non-question confirmation pointer: "If anything above is wrong or missing, correct me before I continue — otherwise I'll start Category 1: Identity."
-
-Turn 1 has ZERO category questions. ZERO new field questions. ZERO re-asking of DO NOT ASK facts. If your first response contains a numbered list of category questions, you have failed this rule — go back and rewrite to be reflection-only.
+CONTEXT CAPTURE (turn 2 onward — the operator's FIRST turn is handled by a separate reflection-only prompt, so do NOT re-issue a turn-1 topology table here):
+When the operator has dumped context (multi-job, multi-client, MCPs, manager names, time zones, ADHD framing), treat it as already reflected and captured. Extract every fact directly into the spec and NEVER re-ask it. Move the interview forward one category at a time.
 
 Capture everything the operator already stated directly into the spec (\`spec.meta\` for free-form context, \`spec.soul\` for persona, \`spec.outputs\` for EOD structures, \`mcps[].accountLabel\` for per-account labels). Do NOT re-ask.
 
@@ -201,7 +197,7 @@ INTERVIEW CATEGORIES (walk in this order; one category per turn, 5-7 questions m
 6. ADHD — Surface modes (morning brief / on-demand / proactive nudge), what drops through cracks most, overwhelm threshold.
 7. OUTPUTS — Per-manager EOD format, draft-for-review vs auto-send, channel, format, sections.
 
-Start with Category 1 (Identity). Do not start the interview with "What do you want this agent to do?" — the operator already said it: "personal second brain to help me navigate multi-job/multi-client and not miss anything." Capture that into spec.soul + spec.meta.operatorNotes as your first action; THEN start the categorical walk.
+Start with Category 1 (Identity). Do not open the interview with "What do you want this agent to do?" — the operator already stated their purpose in their first message. Capture THEIR stated purpose (in their words, whatever it is) into spec.soul + spec.meta.operatorNotes as your first action; THEN start the categorical walk.
 
 CREDENTIALS — HANDSHAKE PROTOCOL (do NOT ask the operator to paste all tokens up front in their first message):
 For each MCP/integration that needs credentials, you walk the operator through ONE ACCOUNT AT A TIME using this flow:
@@ -241,6 +237,8 @@ ProfileSpec schema (the JSON you emit):
     {
       "name": "jira-pantone",
       "command": "npx -y @scope/server" | "url": "https://...",
+      "accountLabel": "Pantone JIRA",
+      "credentialClass": "employer-issued" | "personal" | "client-issued",
       "env": {"API_KEY": "..."}
     }
   ],
@@ -254,16 +252,6 @@ ProfileSpec schema (the JSON you emit):
   // directly. For now, the same information is ALSO encoded into existing fields
   // (per-account identity into mcps[].name, EOD structure into soul, deployment
   // model into description) so build.ts can act on it.
-
-  "mcps": [
-    {
-      "name": "jira-pantone",
-      "command": "..." | "url": "...",
-      "accountLabel": "Pantone JIRA",
-      "credentialClass": "employer-issued" | "personal" | "client-issued",
-      "env": {"API_KEY": "..."}
-    }
-  ],
   "outputs": [
     {
       "name": "Angel EOD",
@@ -459,12 +447,20 @@ export async function generatorTurn(input: GeneratorTurnInput): Promise<Generato
     ? [...head, ...priorHistory, reminder, ...lastTurn]
     : [{ role: "system", content: TURN1_SYSTEM_PROMPT }, ...lastTurn];
 
+  // Validate the model id shape before handing it to the provider SDK; fall
+  // back to a safe default rather than forwarding an arbitrary client string.
+  const MODEL_SHAPE = /^[a-z0-9-]+\/[A-Za-z0-9._:-]+$/;
+  const safeModel = MODEL_SHAPE.test(input.model) ? input.model : "cc/claude-opus-4-8";
+  // reasoning_effort is only meaningful for reasoning-capable models; sending it
+  // to a plain chat model is wasteful and may be rejected upstream.
+  const REASONING_CAPABLE =
+    /(^|\/)(claude-opus|claude-sonnet|gpt-5|o1|o3|o4|gemini-3|glm-|kimi|minimax|deepseek)/i;
   const result = await generateText({
-    model: openai(input.model),
+    model: openai(safeModel),
     messages,
-    // 9router applies reasoning_effort for reasoning models and ignores it for
-    // others, so it's always safe to pass.
-    providerOptions: { openai: { reasoningEffort: input.reasoning } },
+    ...(REASONING_CAPABLE.test(safeModel)
+      ? { providerOptions: { openai: { reasoningEffort: input.reasoning } } }
+      : {}),
     abortSignal: AbortSignal.timeout(TURN_TIMEOUT_MS),
   });
 

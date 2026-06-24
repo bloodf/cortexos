@@ -176,6 +176,27 @@ httpServer.on("upgrade", async (req, socket, head) => {
 const MAX_ATTACHMENT_COUNT = 8;
 const MAX_ATTACHMENT_B64 = 35_000_000;
 
+const MAX_USER_TEXT = 100_000;
+
+const REASONING_CAPABLE = /(^|\/)(claude-opus|claude-sonnet|gpt-5|o1|o3|o4|gemini-3|glm-|kimi|minimax|deepseek)/i;
+
+function redactSecrets(text) {
+  if (typeof text !== "string") return text;
+  return text
+    // Telegram bot tokens: 123456789:AAGxxxxxxx
+    .replace(/\b\d{8,10}:AA[A-Za-z0-9_-]{30,}\b/g, "[REDACTED]")
+    // Atlassian API tokens
+    .replace(/\bATATT[A-Za-z0-9_=-]{20,}\b/g, "[REDACTED]")
+    // GitHub PATs (ghp_ form)
+    .replace(/\bghp_[A-Za-z0-9]{36,}\b/g, "[REDACTED]")
+    // GitHub PATs (github_pat_ form)
+    .replace(/\bgithub_pat_[A-Za-z0-9_]{50,}\b/g, "[REDACTED]")
+    // Bearer tokens (entire match including the word Bearer)
+    .replace(/\bBearer\s+[A-Za-z0-9._-]{20,}\b/gi, "[REDACTED]")
+    // key=/token=/secret= assignments (entire key=value token)
+    .replace(/\b(key|token|secret)=\S{8,}/gi, "[REDACTED]");
+}
+
 export function buildUserContent(text, attachments) {
   const cleanText = typeof text === "string" ? text : "";
   const parts = [{ type: "text", text: cleanText }];
@@ -273,12 +294,8 @@ HARD GATES (must never be violated):
 - The profile is created by a SEPARATE, sandboxed build step that runs only AFTER the operator reviews the spec and clicks "Create agent". That step writes only the new agent's own Hermes profile files.
 - Never invent or expose secrets. The ONE exception: credentials the operator EXPLICITLY gives you for a channel or MCP server — capture a Telegram token in "telegramBotToken", and any MCP server's API keys in that server's "env" object. Build writes these only to the profile's own secured .env (mode 0600). NEVER echo, repeat, quote, or embed a secret back in chat — not in prose, not in a code block, not inside a command or example. When the operator pastes a token, acknowledge ONLY that it is captured (e.g. "Telegram bot token captured — stored in the profile .env, not shown again") and record it in the spec field; do NOT print the value. If the operator pasted a secret into the visible chat, remind them it is now exposed in the transcript and they should rotate/revoke it.
 
-OPERATOR-CONTEXT REFLECTION (turn-one behavior when context is dumped — NON-NEGOTIABLE):
-When the operator opens with a context dump (multi-job, multi-client, MCPs, manager names, time zones, ADHD framing), your FIRST response must contain ONLY:
-  1. A topology table — every job, client, MCP account, manager, and constraint the operator named. Use a compact table or short bullets. Include the deployment facts (DO NOT ASK section) the operator's context confirms.
-  2. A non-question confirmation pointer: "If anything above is wrong or missing, correct me before I continue — otherwise I'll start Category 1: Identity."
-
-Turn 1 has ZERO category questions. ZERO new field questions. ZERO re-asking of DO NOT ASK facts. If your first response contains a numbered list of category questions, you have failed this rule — go back and rewrite to be reflection-only.
+CONTEXT CAPTURE (turn 2 onward — the operator's FIRST turn is handled by a separate reflection-only prompt, so do NOT re-issue a turn-1 topology table here):
+When the operator has dumped context (multi-job, multi-client, MCPs, manager names, time zones, ADHD framing), treat it as already reflected and captured. Extract every fact directly into the spec and NEVER re-ask it. Move the interview forward one category at a time.
 
 Capture everything the operator already stated directly into the spec (\`spec.meta\` for free-form context, \`spec.soul\` for persona, \`spec.outputs\` for EOD structures, \`mcps[].accountLabel\` for per-account labels). Do NOT re-ask.
 
@@ -374,7 +391,7 @@ INTERVIEW CATEGORIES (walk in this order; one category per turn, 5-7 questions m
 6. ADHD — Surface modes (morning brief / on-demand / proactive nudge), what drops through cracks most, overwhelm threshold.
 7. OUTPUTS — Per-manager EOD format, draft-for-review vs auto-send, channel, format, sections.
 
-Start with Category 1 (Identity). Do not start the interview with "What do you want this agent to do?" — the operator already said it: "personal second brain to help me navigate multi-job/multi-client and not miss anything." Capture that into spec.soul + spec.meta.operatorNotes as your first action; THEN start the categorical walk.
+Start with Category 1 (Identity). Do not open the interview with "What do you want this agent to do?" — the operator already stated their purpose in their first message. Capture THEIR stated purpose (in their words, whatever it is) into spec.soul + spec.meta.operatorNotes as your first action; THEN start the categorical walk.
 
 CREDENTIALS — HANDSHAKE PROTOCOL (do NOT ask the operator to paste all tokens up front in their first message):
 For each MCP/integration that needs credentials, you walk the operator through ONE ACCOUNT AT A TIME using this flow:
@@ -414,6 +431,8 @@ ProfileSpec schema (the JSON you emit):
     {
       "name": "jira-pantone",
       "command": "npx -y @scope/server" | "url": "https://...",
+      "accountLabel": "Pantone JIRA",
+      "credentialClass": "employer-issued" | "personal" | "client-issued",
       "env": {"API_KEY": "..."}
     }
   ],
@@ -427,16 +446,6 @@ ProfileSpec schema (the JSON you emit):
   // directly. For now, the same information is ALSO encoded into existing fields
   // (per-account identity into mcps[].name, EOD structure into soul, deployment
   // model into description) so build.ts can act on it.
-
-  "mcps": [
-    {
-      "name": "jira-pantone",
-      "command": "..." | "url": "...",
-      "accountLabel": "Pantone JIRA",
-      "credentialClass": "employer-issued" | "personal" | "client-issued",
-      "env": {"API_KEY": "..."}
-    }
-  ],
   "outputs": [
     {
       "name": "Angel EOD",
@@ -580,8 +589,17 @@ function handleConnection(ws, username, ip) {
         break;
       case "user": {
         const text = typeof frame.text === "string" ? frame.text : "";
-        const model = typeof frame.model === "string" && frame.model.length > 0 ? frame.model : state.model;
-        if (!text) break;
+        // Fix 4: validate model id shape; reject arbitrary strings
+        const MODEL_SHAPE = /^[a-z0-9-]+\/[A-Za-z0-9._:-]+$/;
+        const model = (typeof frame.model === "string" && MODEL_SHAPE.test(frame.model))
+          ? frame.model
+          : state.model;
+        // Fix 6: reject whitespace-only and oversized input
+        if (!text.trim()) break;
+        if (text.length > MAX_USER_TEXT) {
+          send(ws, { type: "status", status: "error", code: "input_too_large" });
+          break;
+        }
         // Honor the operator's selected effort, but only for reasoning-capable
         // models (sending reasoning_effort to a plain chat model is meaningless
         // and may be rejected upstream).
@@ -590,7 +608,12 @@ function handleConnection(ws, username, ip) {
         state.model = model;
         // Maintain the full interview transcript so the model has context across
         // turns (a stateless single-message turn cannot run an interview).
-        state.history.push({ role: "user", content: userContent });
+        // Fix 1b: redact secrets before storing in history
+        const safeContent = typeof userContent === "string"
+          ? redactSecrets(userContent)
+          : userContent.map((p) => p.type === "text" ? { ...p, text: redactSecrets(p.text) } : p);
+        const userTurn = { role: "user", content: safeContent };
+        state.history.push(userTurn);
         send(ws, { type: "status", status: "thinking" });
         let fullReply = "";
         // Bug #3 fix: openaiClient() and runPanel() calls moved inside the try so
@@ -616,14 +639,15 @@ function handleConnection(ws, username, ip) {
           const main = await streamText({
             model: openai(model),
             messages,
-            providerOptions: { openai: { reasoningEffort: reasoning } },
+            // Fix 3: only send reasoningEffort for models that support it
+            ...(REASONING_CAPABLE.test(model) ? { providerOptions: { openai: { reasoningEffort: reasoning } } } : {}),
             abortSignal: AbortSignal.timeout(120000),
           });
           for await (const delta of main.textStream) {
             fullReply += delta;
             send(ws, { type: "chat", role: "assistant", delta });
           }
-          state.history.push({ role: "assistant", content: fullReply });
+          state.history.push({ role: "assistant", content: redactSecrets(fullReply) });
           const spec = parseSpecFromText(fullReply);
           if (spec) send(ws, { type: "spec", spec });
           const ready = !!(spec && typeof spec.slug === "string" && spec.slug.length > 0);
@@ -631,16 +655,22 @@ function handleConnection(ws, username, ip) {
           // Advisor/skeptic panels are meta-panels; they get a text manifest
           // instead of full image parts.
           const { fullText } = buildUserContent(text, frame.attachments);
-          runPanel(openai, ADVISOR_DEFAULT, "advisor", fullText, (f) => send(ws, f));
-          runPanel(openai, SKEPTIC_DEFAULT, "skeptic", fullText, (f) => send(ws, f));
+          // Fix 1b: never send raw secrets to panel models
+          const safeFullText = redactSecrets(fullText);
+          // Fix 5: catch panel rejections so they never become unhandled promise rejections
+          void runPanel(openai, ADVISOR_DEFAULT, "advisor", safeFullText, (f) => send(ws, f))
+            .catch((e) => send(ws, { type: "panel_error", role: "advisor", detail: e instanceof Error ? e.message : String(e) }));
+          void runPanel(openai, SKEPTIC_DEFAULT, "skeptic", safeFullText, (f) => send(ws, f))
+            .catch((e) => send(ws, { type: "panel_error", role: "skeptic", detail: e instanceof Error ? e.message : String(e) }));
         } catch (err) {
-          // Bug #3 sub-fix: if the stream errored mid-reply, push the partial
-          // content into history so the transcript stays consistent.
-          if (fullReply) {
-            state.history.push({ role: "assistant", content: fullReply });
+          // Fix 2: orphan-turn rollback — pop only the exact object we pushed,
+          // by reference, so concurrent turns are never accidentally removed.
+          if (!fullReply) {
+            if (state.history[state.history.length - 1] === userTurn) state.history.pop();
+          } else {
+            // Partial reply did stream; preserve it so the transcript stays consistent.
+            state.history.push({ role: "assistant", content: redactSecrets(fullReply) });
           }
-          // Bug #4 fix: send a fixed error code; log the full detail server-side
-          // only (never forward raw upstream LLM text to the client).
           console.error(JSON.stringify({
             event: "chat_error",
             detail: err instanceof Error ? err.message : String(err),
@@ -671,20 +701,16 @@ async function runPanel(openai, model, role, userText, emit) {
   const system = role === "advisor"
     ? "You are the ADVISOR panel. Suggest improvements to the emerging agent profile. Be concise (2-3 sentences)."
     : "You are the SKEPTIC panel. Find gaps, risks, and missing permissions in the plan. Be concise (2-3 sentences).";
-  try {
-    const result = await streamText({
-      model: openai(model),
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: userText },
-      ],
-      abortSignal: AbortSignal.timeout(60000),
-    });
-    for await (const delta of result.textStream) {
-      emit({ type: role, model, delta });
-    }
-  } catch {
-    // Panel failures are advisory only; never block the main model.
+  const result = await streamText({
+    model: openai(model),
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: userText },
+    ],
+    abortSignal: AbortSignal.timeout(60000),
+  });
+  for await (const delta of result.textStream) {
+    emit({ type: role, model, delta });
   }
 }
 
