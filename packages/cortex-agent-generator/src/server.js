@@ -197,6 +197,20 @@ function redactSecrets(text) {
     .replace(/\b(key|token|secret)=\S{8,}/gi, "[REDACTED]");
 }
 
+// Strip fenced code blocks from a PRIOR ASSISTANT turn before replaying it.
+// If the model architected earlier (Python/SQL/config/file trees), replaying
+// that verbatim makes it imitate its own broken precedent and the single
+// last-mile reminder cannot override it (verified). Removing the code blocks
+// removes the strongest imitation signal. Applied to assistant history only —
+// user turns stay verbatim so the operator's real facts are never lost.
+function neutralizeArchitect(text) {
+  if (typeof text !== "string") return text;
+  return text.replace(
+    /```[\s\S]*?```/g,
+    "[earlier draft content removed — you are an interviewer, not a code/architecture author]",
+  );
+}
+
 export function buildUserContent(text, attachments) {
   const cleanText = typeof text === "string" ? text : "";
   const parts = [{ type: "text", text: cleanText }];
@@ -498,7 +512,7 @@ BASIC PROFILE TEMPLATE (near-complete ProfileSpec the operator can adopt as-is, 
 // Turn-2+ last-mile batch reminder. Injected transiently before the user's turn
 // (NOT persisted to state.history) to counter "lost in the middle" on the long
 // prompt. Runtime string value MUST match dashboard-next llm.ts byte-for-byte.
-const LATER_TURN_REMINDER = `BATCH REMINDER: Ask ONE category this turn, 5–7 questions MAX (hard cap — if you'd write question 8, stop and defer it). Name the category first ("**Category: <name>**"). Run a "covered?" check against everything the operator already said and SKIP anything already answered. Offer 2–4 concrete A/B/C/D options per question. Do NOT pre-load future categories. Do NOT re-ask DO NOT ASK deployment/secrets/infra facts.
+const LATER_TURN_REMINDER = `STOP AND SELF-CORRECT FIRST: If ANY of your previous replies in this conversation contained code, a file tree, a schema, an architecture/component diagram, shell commands, or told the operator to "run"/"create"/"register"/"set up" something — you broke role and must NOT continue that. Ignore that prior style completely. This turn you produce ONLY interview output. NEVER write code, scaffolding, SQL, config files, component lists, OAuth-flow designs, or any "do this on the VPS" instruction — the operator runs NOTHING and the sandboxed build wires everything from the spec. If the operator gave stack/auth details (MCP URLs, OAuth, tokens, project keys), CAPTURE them into spec fields silently and move on.\nBATCH REMINDER: Ask ONE category this turn, 5–7 questions MAX (hard cap — if you'd write question 8, stop and defer it). Name the category first ("**Category: <name>**"). Run a "covered?" check against everything the operator already said and SKIP anything already answered. Offer 2–4 concrete A/B/C/D options per question. Do NOT pre-load future categories. Do NOT re-ask DO NOT ASK deployment/secrets/infra facts.
 ROLE GUARD (the model has broken this before): You are ONLY an interviewer that produces a ProfileSpec. You are NOT a solution architect or coding assistant. This turn you must NOT: write code/scaffolding (no Python/Node, no file trees, no config schemas), design system architecture, or tell the operator to run ANY command (no pip/curl/tailscale/git, no "go register an OAuth app", no "create a bot", no setup steps). The operator runs NOTHING — the sandboxed build does all wiring from the spec. When the operator gives stack/auth details (MCP URLs, OAuth flows, tokens, project keys), CAPTURE them into spec fields (mcps[], spec.meta, spec.outputs) and move on — do NOT turn them into an implementation plan. If you catch yourself writing a code block or a shell command, STOP and convert it into either a spec field or a single clarifying interview question.`;
 
 // Minimal, self-contained turn-1 prompt. Used ONLY for the operator's first
@@ -625,14 +639,20 @@ function handleConnection(ws, username, ip) {
           // the model has nothing to dump. Turn 2+ uses the full SYSTEM_PROMPT
           // plus a last-mile batch reminder (transient — NOT pushed to history).
           const hasAssistantTurn = state.history.some((m) => m.role === "assistant");
-          const prior = state.history.slice(0, -1);
+          const prior = state.history.slice(0, -1).map((m) =>
+            m.role === "assistant" ? { ...m, content: neutralizeArchitect(m.content) } : m,
+          );
           const lastUser = state.history[state.history.length - 1];
           const messages = hasAssistantTurn
             ? [
                 { role: "system", content: SYSTEM_PROMPT },
                 ...prior,
-                { role: "system", content: LATER_TURN_REMINDER },
                 lastUser,
+                // Reminder LAST (max recency) — a single mid-array system line
+                // loses to a full architect-style assistant turn already in
+                // history; placing it after the user turn makes it the final
+                // instruction the model reads before generating.
+                { role: "system", content: LATER_TURN_REMINDER },
               ]
             : [{ role: "system", content: TURN1_SYSTEM_PROMPT }, lastUser];
           const main = await streamText({

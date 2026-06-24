@@ -29,6 +29,17 @@ import type {
 const NINEROUTER_ENV = "/opt/cortexos/.secrets/9router.env";
 const TURN_TIMEOUT_MS = 120_000;
 
+// Strip fenced code blocks from a PRIOR ASSISTANT turn before replaying it, so
+// the model cannot imitate its own earlier architect/code output (verified:
+// replaying architect replies defeats the last-mile reminder). User turns are
+// never touched. Mirrors cortex-agent-generator/src/server.js.
+function neutralizeArchitect(text: string): string {
+  return text.replace(
+    /```[\s\S]*?```/g,
+    "[earlier draft content removed — you are an interviewer, not a code/architecture author]",
+  );
+}
+
 function nineRouterKey(): string {
   return readEnvValue(NINEROUTER_ENV, "NINEROUTER_API_KEY") ?? "";
 }
@@ -327,7 +338,7 @@ ABSOLUTE RULES FOR THIS TURN:
 - If the operator's dump already answers something (e.g. Jira is OAuth per-MCP, Granola URL, GitHub users), reflect it in Mission/Topology — do NOT turn it into a question.
 
 Be blunt and concise. Mission, Topology, How this works, Confirm gate. Nothing else.`;
-const LATER_TURN_REMINDER = `BATCH REMINDER: Ask ONE category this turn, 5–7 questions MAX (hard cap — if you'd write question 8, stop and defer it). Name the category first ("**Category: <name>**"). Run a "covered?" check against everything the operator already said and SKIP anything already answered. Offer 2–4 concrete A/B/C/D options per question. Do NOT pre-load future categories. Do NOT re-ask DO NOT ASK deployment/secrets/infra facts.
+const LATER_TURN_REMINDER = `STOP AND SELF-CORRECT FIRST: If ANY of your previous replies in this conversation contained code, a file tree, a schema, an architecture/component diagram, shell commands, or told the operator to "run"/"create"/"register"/"set up" something — you broke role and must NOT continue that. Ignore that prior style completely. This turn you produce ONLY interview output. NEVER write code, scaffolding, SQL, config files, component lists, OAuth-flow designs, or any "do this on the VPS" instruction — the operator runs NOTHING and the sandboxed build wires everything from the spec. If the operator gave stack/auth details (MCP URLs, OAuth, tokens, project keys), CAPTURE them into spec fields silently and move on.\nBATCH REMINDER: Ask ONE category this turn, 5–7 questions MAX (hard cap — if you'd write question 8, stop and defer it). Name the category first ("**Category: <name>**"). Run a "covered?" check against everything the operator already said and SKIP anything already answered. Offer 2–4 concrete A/B/C/D options per question. Do NOT pre-load future categories. Do NOT re-ask DO NOT ASK deployment/secrets/infra facts.
 ROLE GUARD (the model has broken this before): You are ONLY an interviewer that produces a ProfileSpec. You are NOT a solution architect or coding assistant. This turn you must NOT: write code/scaffolding (no Python/Node, no file trees, no config schemas), design system architecture, or tell the operator to run ANY command (no pip/curl/tailscale/git, no "go register an OAuth app", no "create a bot", no setup steps). The operator runs NOTHING — the sandboxed build does all wiring from the spec. When the operator gives stack/auth details (MCP URLs, OAuth flows, tokens, project keys), CAPTURE them into spec fields (mcps[], spec.meta, spec.outputs) and move on — do NOT turn them into an implementation plan. If you catch yourself writing a code block or a shell command, STOP and convert it into either a spec field or a single clarifying interview question.`;
 
 interface AiTextPart {
@@ -424,7 +435,8 @@ export async function generatorTurn(input: GeneratorTurnInput): Promise<Generato
   const hasAssistantTurn = input.messages.some((m) => m.role === "assistant");
   const priorHistory: ModelMessage[] = historyMessages.map((m): ModelMessage => {
     if (m.role === "user") return { role: "user", content: m.content };
-    if (m.role === "assistant") return { role: "assistant", content: m.content };
+    if (m.role === "assistant")
+      return { role: "assistant", content: neutralizeArchitect(m.content) };
     return { role: "system", content: m.content };
   });
   const lastTurn: ModelMessage[] = lastMessage
@@ -440,10 +452,13 @@ export async function generatorTurn(input: GeneratorTurnInput): Promise<Generato
       ]
     : [];
   const reminder: ModelMessage = { role: "system", content: LATER_TURN_REMINDER };
-  // Order (turn 2+): SYSTEM_PROMPT, (specHint), prior history, reminder, last turn.
+  // Order (turn 2+): SYSTEM_PROMPT, (specHint), prior history, last turn, reminder.
+  // The reminder goes LAST (after the user turn) so it is the final instruction
+  // the model reads — a mid-array system line loses to a full architect-style
+  // assistant turn already in history.
   const head: ModelMessage[] = specHint ? [sys, specHint] : [sys];
   const messages: ModelMessage[] = hasAssistantTurn
-    ? [...head, ...priorHistory, reminder, ...lastTurn]
+    ? [...head, ...priorHistory, ...lastTurn, reminder]
     : [{ role: "system", content: TURN1_SYSTEM_PROMPT }, ...lastTurn];
 
   // Validate the model id shape before handing it to the provider SDK; fall
