@@ -57,15 +57,6 @@ vi.mock("@/lib/api/agents.functions", async () => {
   };
 });
 
-vi.mock("@/lib/api/agentGenerator.functions", () => ({
-  createGeneratorSession: vi.fn(),
-  generatorSend: vi.fn(),
-  getGeneratorSession: vi.fn(),
-  listGeneratorPresets: vi.fn(),
-  buildGeneratorProfile: vi.fn(),
-  setGeneratorSecret: vi.fn(),
-}));
-
 vi.mock("@/lib/api/env-browser.functions", () => ({
   readEnv: (...args: unknown[]) => mockReadEnv(...args),
   unlock: vi.fn(),

@@ -182,14 +182,6 @@ import {
   setAgentModel as _setAgentModel,
   listModels as _listModels,
 } from "./agents.functions";
-import {
-  createGeneratorSession as _createGeneratorSession,
-  generatorSend as _generatorSend,
-  getGeneratorSession as _getGeneratorSession,
-  buildGeneratorProfile as _buildGeneratorProfile,
-  listGeneratorPresets as _listGeneratorPresets,
-  setGeneratorSecret as _setGeneratorSecret,
-} from "./agentGenerator.functions";
 import { readEnv as _readEnv } from "./env-browser.functions";
 import type { HermesProfile } from "@/server/agents/registry";
 
@@ -1589,82 +1581,3 @@ export const callSetAgentModel = _setAgentModel as unknown as (
 export const listModels = _listModels as unknown as (opts: {
   data: Record<string, never>;
 }) => Promise<{ models: string[] }>;
-
-/** Call createGeneratorSession RPC — admin only. CSRF-enforced. */
-export interface GeneratorArchetype {
-  id: string;
-  name: string;
-  category: string;
-  desc: string;
-  integrations: string[];
-}
-export interface GeneratorIntegration {
-  id: string;
-  name: string;
-  desc: string;
-}
-export const listGeneratorPresets = _listGeneratorPresets as unknown as (opts: {
-  data: Record<string, never>;
-}) => Promise<{ archetypes: GeneratorArchetype[]; integrations: GeneratorIntegration[] }>;
-export const callCreateGeneratorSession = _createGeneratorSession as unknown as (
-  opts: {
-    data: { model: string; reasoning?: "low" | "medium" | "high" };
-  } & CsrfOpts,
-) => Promise<{ id: number; status: string; model: string; reasoning: "low" | "medium" | "high" }>;
-
-/** Call generatorSend RPC — admin only. CSRF-enforced. */
-export const callGeneratorSend = _generatorSend as unknown as (
-  opts: {
-    data: {
-      sessionId: number;
-      text: string;
-      attachments?: { filename: string; mime: string; dataBase64: string }[];
-    };
-  } & CsrfOpts,
-) => Promise<{ reply: string; spec: Record<string, unknown>; status: "draft" | "done" }>;
-
-/** Call getGeneratorSession RPC — admin only. */
-export const callGetGeneratorSession = _getGeneratorSession as unknown as (opts: {
-  data: { sessionId: number };
-}) => Promise<{
-  id: number;
-  slug: string | null;
-  status: "draft" | "building" | "done" | "error";
-  model: string;
-  reasoning: "low" | "medium" | "high";
-  transcript: Array<{ role: "user" | "assistant" | "system"; content: string; ts: string }>;
-  spec: Record<string, unknown>;
-  buildLogs: string;
-  createdAt: string;
-  updatedAt: string;
-  stagedSecretKeys: string[];
-}>;
-
-/**
- * Call buildGeneratorProfile RPC — admin only; approval: true gate.
- * Mint the token via callMintApproval for action `agents.generator.build` with
- * the COMPLETE payload `{ sessionId, slug, spec, telegramBotToken? }` (the
- * pipeline hashes the full input), then pass it as `x-cortex-approval-token`
- * + CSRF headers.
- */
-export const callBuildGeneratorProfile = _buildGeneratorProfile as unknown as (
-  opts: {
-    data: {
-      sessionId: number;
-      slug: string;
-      spec: Record<string, unknown>;
-      telegramBotToken?: string;
-    };
-  } & CsrfOpts,
-) => Promise<{ slug: string; apiPort: number; status: "done" | "error" }>;
-
-/**
- * Call setGeneratorSecret RPC — admin only, CSRF-enforced. Stage ONE secret
- * value out-of-band (never travels through chat / spec / mint). Returns only
- * key NAMES: `staged` (all staged keys) + `missing` (declared-but-unfilled).
- */
-export const callSetGeneratorSecret = _setGeneratorSecret as unknown as (
-  opts: {
-    data: { sessionId: number; key: string; value: string };
-  } & CsrfOpts,
-) => Promise<{ key: string; staged: string[]; missing: string[] }>;

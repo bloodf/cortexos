@@ -72,43 +72,6 @@ importers:
         specifier: ^3.23.0
         version: 3.25.2(zod@3.25.76)
 
-  packages/cortex-agent-generator:
-    dependencies:
-      '@ai-sdk/openai':
-        specifier: ^2.0.0
-        version: 2.0.106(zod@4.4.3)
-      '@cortexos/session-auth':
-        specifier: workspace:*
-        version: link:../cortex-session-auth
-      ai:
-        specifier: ^5.0.52
-        version: 5.0.199(zod@4.4.3)
-      node-pty:
-        specifier: ^1.0.0
-        version: 1.1.0
-      pg:
-        specifier: ^8.13.0
-        version: 8.21.0
-      ws:
-        specifier: ^8.18.0
-        version: 8.21.0
-    devDependencies:
-      '@types/node':
-        specifier: ^22.10.0
-        version: 22.19.21
-      '@types/pg':
-        specifier: ^8.11.0
-        version: 8.20.0
-      '@types/ws':
-        specifier: ^8.5.0
-        version: 8.18.1
-      typescript:
-        specifier: ^5.4.0
-        version: 5.9.3
-      vitest:
-        specifier: ^2.0.0
-        version: 2.1.9(@types/node@22.19.21)(jsdom@29.1.1(@noble/hashes@1.8.0))(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.21)(typescript@5.9.3))
-
   packages/cortex-audit:
     dependencies:
       pg:
@@ -3352,9 +3315,6 @@ packages:
 
   '@types/unist@3.0.3':
     resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
-
-  '@types/ws@8.18.1':
-    resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
 
   '@typescript-eslint/eslint-plugin@8.60.1':
     resolution: {integrity: sha512-JQ4S5GB0tfjO8BuJ4fcX+HodkzJjYBV+7OJ+wLygaX7OGQ7FudyHL4NSCA6ob+w3Yn+5MkKIozOwQhXeM7opVg==}
@@ -8076,24 +8036,11 @@ snapshots:
       '@vercel/oidc': 3.1.0
       zod: 3.25.76
 
-  '@ai-sdk/gateway@2.0.98(zod@4.4.3)':
-    dependencies:
-      '@ai-sdk/provider': 2.0.3
-      '@ai-sdk/provider-utils': 3.0.25(zod@4.4.3)
-      '@vercel/oidc': 3.1.0
-      zod: 4.4.3
-
   '@ai-sdk/openai@2.0.106(zod@3.25.76)':
     dependencies:
       '@ai-sdk/provider': 2.0.3
       '@ai-sdk/provider-utils': 3.0.25(zod@3.25.76)
       zod: 3.25.76
-
-  '@ai-sdk/openai@2.0.106(zod@4.4.3)':
-    dependencies:
-      '@ai-sdk/provider': 2.0.3
-      '@ai-sdk/provider-utils': 3.0.25(zod@4.4.3)
-      zod: 4.4.3
 
   '@ai-sdk/provider-utils@3.0.25(zod@3.25.76)':
     dependencies:
@@ -8101,13 +8048,6 @@ snapshots:
       '@standard-schema/spec': 1.1.0
       eventsource-parser: 3.1.0
       zod: 3.25.76
-
-  '@ai-sdk/provider-utils@3.0.25(zod@4.4.3)':
-    dependencies:
-      '@ai-sdk/provider': 2.0.3
-      '@standard-schema/spec': 1.1.0
-      eventsource-parser: 3.1.0
-      zod: 4.4.3
 
   '@ai-sdk/provider@2.0.3':
     dependencies:
@@ -10926,10 +10866,6 @@ snapshots:
 
   '@types/unist@3.0.3': {}
 
-  '@types/ws@8.18.1':
-    dependencies:
-      '@types/node': 22.19.21
-
   '@typescript-eslint/eslint-plugin@8.60.1(@typescript-eslint/parser@8.60.1(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3)':
     dependencies:
       '@eslint-community/regexpp': 4.12.2
@@ -11230,7 +11166,7 @@ snapshots:
       obug: 2.1.1
       std-env: 4.1.0
       tinyrainbow: 3.1.0
-      vitest: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@22.19.19)(@vitest/coverage-v8@4.1.8)(jsdom@29.1.1(@noble/hashes@1.8.0))(msw@2.14.6(@types/node@22.19.19)(typescript@5.9.3))(vite@7.3.5(@types/node@22.19.19)(jiti@1.21.7)(lightningcss@1.32.0)(tsx@4.22.2)(yaml@2.9.0))
+      vitest: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@22.19.19)(@vitest/coverage-v8@4.1.8)(jsdom@29.1.1(@noble/hashes@1.8.0))(msw@2.14.6(@types/node@22.19.19)(typescript@5.9.3))(vite@7.3.5(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.2)(yaml@2.9.0))
 
   '@vitest/expect@2.1.9':
     dependencies:
@@ -11425,14 +11361,6 @@ snapshots:
       '@ai-sdk/provider-utils': 3.0.25(zod@3.25.76)
       '@opentelemetry/api': 1.9.0
       zod: 3.25.76
-
-  ai@5.0.199(zod@4.4.3):
-    dependencies:
-      '@ai-sdk/gateway': 2.0.98(zod@4.4.3)
-      '@ai-sdk/provider': 2.0.3
-      '@ai-sdk/provider-utils': 3.0.25(zod@4.4.3)
-      '@opentelemetry/api': 1.9.0
-      zod: 4.4.3
 
   ajv-formats@3.0.1(ajv@8.20.0):
     optionalDependencies:

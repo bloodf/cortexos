@@ -1,8 +1,8 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 
-// Layout route: renders child routes (index = list, /new = generator) into the
-// Outlet. Without this Outlet, /agents/new could not mount and fell back to the
-// list. The list itself lives in _authenticated.agents.index.tsx.
+// Layout route: renders child routes into the Outlet. Children: index = the
+// deployed-agent list (_authenticated.agents.index.tsx) and $slug/chat = chat
+// with a built agent.
 export const Route = createFileRoute("/_authenticated/agents")({
   component: () => <Outlet />,
 });

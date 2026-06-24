@@ -78,8 +78,8 @@ export function Sidebar({ collapsed, mobileOpen, onClose }: Props) {
   const path = useRouterState({ select: (s) => s.location.pathname });
 
   // Exactly one nav item is active: the one whose `to` is the LONGEST prefix of
-  // the current path. So /agents/new lights only "Agent Generator" (not its
-  // parent "Agents"), while /incus/$name still lights "Incus".
+  // the current path. So /incus/$name lights only "Incus" (not a shorter prefix),
+  // and /agents/$slug/chat lights "Agents".
   const activeTo =
     [PINNED.to, ...NAV.flatMap((g) => g.items.map((it) => it.to))]
       .filter((to) => path === to || path.startsWith(`${to}/`))

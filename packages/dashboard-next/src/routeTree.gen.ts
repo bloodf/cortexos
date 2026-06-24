@@ -38,7 +38,6 @@ import { Route as AuthenticatedAgentsIndexRouteImport } from './routes/_authenti
 import { Route as AuthenticatedSystemdUnitRouteImport } from './routes/_authenticated.systemd.$unit'
 import { Route as AuthenticatedIncusNameRouteImport } from './routes/_authenticated.incus.$name'
 import { Route as AuthenticatedDockerIdRouteImport } from './routes/_authenticated.docker.$id'
-import { Route as AuthenticatedAgentsNewRouteImport } from './routes/_authenticated.agents.new'
 import { Route as AuthenticatedAdminServicesRouteImport } from './routes/_authenticated.admin.services'
 import { Route as AuthenticatedAdminProjectsRouteImport } from './routes/_authenticated.admin.projects'
 import { Route as AuthenticatedAdminEnvBrowserRouteImport } from './routes/_authenticated.admin.env-browser'
@@ -196,11 +195,6 @@ const AuthenticatedDockerIdRoute = AuthenticatedDockerIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AuthenticatedDockerRoute,
 } as any)
-const AuthenticatedAgentsNewRoute = AuthenticatedAgentsNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => AuthenticatedAgentsRoute,
-} as any)
 const AuthenticatedAdminServicesRoute =
   AuthenticatedAdminServicesRouteImport.update({
     id: '/services',
@@ -265,7 +259,6 @@ export interface FileRoutesByFullPath {
   '/admin/env-browser': typeof AuthenticatedAdminEnvBrowserRoute
   '/admin/projects': typeof AuthenticatedAdminProjectsRoute
   '/admin/services': typeof AuthenticatedAdminServicesRoute
-  '/agents/new': typeof AuthenticatedAgentsNewRoute
   '/docker/$id': typeof AuthenticatedDockerIdRoute
   '/incus/$name': typeof AuthenticatedIncusNameRoute
   '/systemd/$unit': typeof AuthenticatedSystemdUnitRoute
@@ -298,7 +291,6 @@ export interface FileRoutesByTo {
   '/admin/env-browser': typeof AuthenticatedAdminEnvBrowserRoute
   '/admin/projects': typeof AuthenticatedAdminProjectsRoute
   '/admin/services': typeof AuthenticatedAdminServicesRoute
-  '/agents/new': typeof AuthenticatedAgentsNewRoute
   '/docker/$id': typeof AuthenticatedDockerIdRoute
   '/incus/$name': typeof AuthenticatedIncusNameRoute
   '/systemd/$unit': typeof AuthenticatedSystemdUnitRoute
@@ -337,7 +329,6 @@ export interface FileRoutesById {
   '/_authenticated/admin/env-browser': typeof AuthenticatedAdminEnvBrowserRoute
   '/_authenticated/admin/projects': typeof AuthenticatedAdminProjectsRoute
   '/_authenticated/admin/services': typeof AuthenticatedAdminServicesRoute
-  '/_authenticated/agents/new': typeof AuthenticatedAgentsNewRoute
   '/_authenticated/docker/$id': typeof AuthenticatedDockerIdRoute
   '/_authenticated/incus/$name': typeof AuthenticatedIncusNameRoute
   '/_authenticated/systemd/$unit': typeof AuthenticatedSystemdUnitRoute
@@ -376,7 +367,6 @@ export interface FileRouteTypes {
     | '/admin/env-browser'
     | '/admin/projects'
     | '/admin/services'
-    | '/agents/new'
     | '/docker/$id'
     | '/incus/$name'
     | '/systemd/$unit'
@@ -409,7 +399,6 @@ export interface FileRouteTypes {
     | '/admin/env-browser'
     | '/admin/projects'
     | '/admin/services'
-    | '/agents/new'
     | '/docker/$id'
     | '/incus/$name'
     | '/systemd/$unit'
@@ -447,7 +436,6 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/env-browser'
     | '/_authenticated/admin/projects'
     | '/_authenticated/admin/services'
-    | '/_authenticated/agents/new'
     | '/_authenticated/docker/$id'
     | '/_authenticated/incus/$name'
     | '/_authenticated/systemd/$unit'
@@ -669,13 +657,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDockerIdRouteImport
       parentRoute: typeof AuthenticatedDockerRoute
     }
-    '/_authenticated/agents/new': {
-      id: '/_authenticated/agents/new'
-      path: '/new'
-      fullPath: '/agents/new'
-      preLoaderRoute: typeof AuthenticatedAgentsNewRouteImport
-      parentRoute: typeof AuthenticatedAgentsRoute
-    }
     '/_authenticated/admin/services': {
       id: '/_authenticated/admin/services'
       path: '/services'
@@ -741,13 +722,11 @@ const AuthenticatedAdminRouteWithChildren =
   AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
 
 interface AuthenticatedAgentsRouteChildren {
-  AuthenticatedAgentsNewRoute: typeof AuthenticatedAgentsNewRoute
   AuthenticatedAgentsIndexRoute: typeof AuthenticatedAgentsIndexRoute
   AuthenticatedAgentsSlugChatRoute: typeof AuthenticatedAgentsSlugChatRoute
 }
 
 const AuthenticatedAgentsRouteChildren: AuthenticatedAgentsRouteChildren = {
-  AuthenticatedAgentsNewRoute: AuthenticatedAgentsNewRoute,
   AuthenticatedAgentsIndexRoute: AuthenticatedAgentsIndexRoute,
   AuthenticatedAgentsSlugChatRoute: AuthenticatedAgentsSlugChatRoute,
 }

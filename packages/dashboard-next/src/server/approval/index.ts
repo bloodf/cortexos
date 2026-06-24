@@ -176,7 +176,6 @@ const mintableActions = new Set<string>([
   "systemd.action",
   "agents.action",
   "agents.model",
-  "agents.generator.build",
   "incus.action",
   "docker.action",
   "docker.prune",
