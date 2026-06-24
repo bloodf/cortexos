@@ -39,6 +39,18 @@ import {
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
 import {
+  ModelSelector,
+  ModelSelectorTrigger,
+  ModelSelectorContent,
+  ModelSelectorInput,
+  ModelSelectorList,
+  ModelSelectorItem,
+  ModelSelectorEmpty,
+  ModelSelectorLogo,
+  ModelSelectorName,
+  type ModelSelectorLogoProps,
+} from "@/components/ai-elements/model-selector";
+import {
   api,
   callAgentChat,
   callSetAgentModel,
@@ -58,6 +70,41 @@ import {
   readAttachments,
 } from "@/lib/attachment";
 import type { Agent, AgentRunState } from "@/mocks/types";
+
+/**
+ * Map a 9router model id to a models.dev provider slug for the logo.
+ * Returns null for unknown prefixes — caller skips the logo entirely
+ * (avoids a broken-image icon in the UI).
+ *
+ * Grounded in the live 9router /v1/models catalog (78 models across these
+ * prefixes): cc, cf, cu, cx, gc, gh, glm, kimi, minimax, ollama-local, openrouter.
+ */
+function providerFor(modelId: string): ModelSelectorLogoProps["provider"] | null {
+  const slash = modelId.indexOf("/");
+  if (slash <= 0) return null;
+  const prefix = modelId.slice(0, slash);
+  switch (prefix) {
+    case "cc":
+      return "anthropic";
+    case "cf":
+      return "cloudflare-workers-ai";
+    case "cx":
+      return "openai";
+    case "gc":
+      return "google";
+    case "gh":
+      return "github-models";
+    case "glm":
+      return "zai-coding-plan";
+    case "kimi":
+      return "moonshotai";
+    case "openrouter":
+      return "openrouter";
+    // cu, minimax, ollama-local: no models.dev equivalent — skip logo.
+    default:
+      return null;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Local types
@@ -118,7 +165,7 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-function ChatPage() {
+export function ChatPage() {
   const { slug } = useParams({ from: "/_authenticated/agents/$slug/chat" });
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -127,6 +174,7 @@ function ChatPage() {
   const [turns, setTurns] = useState<ChatTurn[]>([]);
   const [pending, setPending] = useState<PendingAttachment[]>([]);
   const [model, setModel] = useState<string>("");
+  const [modelOpen, setModelOpen] = useState(false);
   const [reasoning, setReasoning] = useState<(typeof REASONING_OPTIONS)[number]>("medium");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const seededModel = useRef(false);
@@ -365,24 +413,26 @@ function ChatPage() {
               ) : (
                 turns.map((turn) =>
                   turn.role === "user" ? (
-                    <Message key={turn.id} from="user">
+                    <div key={turn.id} className="flex flex-col items-end gap-1.5">
+                      <Message from="user">
+                        {turn.content && (
+                          <MessageContent>
+                            <span className="whitespace-pre-wrap break-words">{turn.content}</span>
+                          </MessageContent>
+                        )}
+                        <div className="flex items-center gap-1 px-1 text-[10px] text-muted-foreground">
+                          <User className="size-3" />
+                          <span>{relativeTime(turn.at)}</span>
+                        </div>
+                      </Message>
                       {turn.attachments && turn.attachments.length > 0 && (
-                        <div className="ml-auto flex flex-wrap justify-end gap-1.5">
+                        <div className="flex flex-wrap justify-end gap-1.5">
                           {turn.attachments.map((att, i) => (
                             <AttachmentChip key={`${att.filename}-${i}`} att={att} />
                           ))}
                         </div>
                       )}
-                      {turn.content && (
-                        <MessageContent>
-                          <span className="whitespace-pre-wrap break-words">{turn.content}</span>
-                        </MessageContent>
-                      )}
-                      <div className="flex items-center gap-1 px-1 text-[10px] text-muted-foreground">
-                        <User className="size-3" />
-                        <span>{relativeTime(turn.at)}</span>
-                      </div>
-                    </Message>
+                    </div>
                   ) : (
                     <Message key={turn.id} from="assistant">
                       <MessageContent>
@@ -446,7 +496,21 @@ function ChatPage() {
           </Conversation>
 
           {/* Composer */}
-          <div className="border-t bg-card/60 p-3">
+          <div
+            className="border-t bg-card/60 p-3"
+            onDragOverCapture={(e) => {
+              if (!e.dataTransfer?.types?.includes("Files")) return;
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "copy";
+              e.stopPropagation();
+            }}
+            onDropCapture={(e) => {
+              if (!e.dataTransfer?.types?.includes("Files")) return;
+              e.preventDefault();
+              e.stopPropagation();
+              onPickFiles(e.dataTransfer?.files ?? null);
+            }}
+          >
             {/* Pending attachment previews (above the composer) */}
             {pending.length > 0 && (
               <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -488,6 +552,14 @@ function ChatPage() {
                       : "Admin role required to chat"
                   }
                   disabled={!isAdmin || chatMutation.isPending}
+                  onPaste={(e) => {
+                    const files = e.clipboardData?.files;
+                    if (files && files.length > 0) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onPickFiles(files);
+                    }
+                  }}
                 />
                 <PromptInputFooter>
                   <PromptInputTools>
@@ -501,21 +573,50 @@ function ChatPage() {
                     </PromptInputButton>
 
                     {/* Per-turn model pick (does NOT persist; the header Apply does) */}
-                    <PromptInputSelect value={model} onValueChange={setModel}>
-                      <PromptInputSelectTrigger
-                        className="h-7 text-xs"
-                        aria-label="Model for this message"
-                      >
-                        <PromptInputSelectValue placeholder="Model" />
-                      </PromptInputSelectTrigger>
-                      <PromptInputSelectContent>
-                        {models.map((m) => (
-                          <PromptInputSelectItem key={m} value={m} className="font-mono text-xs">
-                            {m}
-                          </PromptInputSelectItem>
-                        ))}
-                      </PromptInputSelectContent>
-                    </PromptInputSelect>
+                    <ModelSelector open={modelOpen} onOpenChange={setModelOpen}>
+                      <ModelSelectorTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          role="combobox"
+                          aria-label="Model for this message"
+                          disabled={models.length === 0}
+                          className="h-7 text-xs inline-flex items-center gap-1 max-w-[180px]"
+                        >
+                          {model ? (
+                            <>
+                              {providerFor(model) && (
+                                <ModelSelectorLogo provider={providerFor(model)!} />
+                              )}
+                              <ModelSelectorName>{model}</ModelSelectorName>
+                            </>
+                          ) : (
+                            <span className="text-muted-foreground">
+                              {models.length === 0 ? "Loading…" : "Pick a model…"}
+                            </span>
+                          )}
+                        </Button>
+                      </ModelSelectorTrigger>
+                      <ModelSelectorContent title="Pick a model" className="max-w-[420px]">
+                        <ModelSelectorInput autoFocus placeholder="Search models…" />
+                        <ModelSelectorList>
+                          <ModelSelectorEmpty>No matching models</ModelSelectorEmpty>
+                          {models.map((m) => (
+                            <ModelSelectorItem
+                              key={m}
+                              value={m}
+                              onSelect={() => {
+                                setModel(m);
+                                setModelOpen(false);
+                              }}
+                            >
+                              {providerFor(m) && <ModelSelectorLogo provider={providerFor(m)!} />}
+                              <ModelSelectorName>{m}</ModelSelectorName>
+                            </ModelSelectorItem>
+                          ))}
+                        </ModelSelectorList>
+                      </ModelSelectorContent>
+                    </ModelSelector>
 
                     {/* Reasoning effort */}
                     <PromptInputSelect

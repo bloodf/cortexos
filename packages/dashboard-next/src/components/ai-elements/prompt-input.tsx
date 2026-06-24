@@ -868,7 +868,9 @@ export const PromptInput = ({
             InputGroup relies on to grow + stack — leaving it clamped at h-9 and
             clipping the toolbar (you can't see/click the model picker). Force
             the auto-height column layout explicitly. */}
-        <InputGroup className="h-auto flex-col items-stretch overflow-hidden">{children}</InputGroup>
+        <InputGroup className="h-auto flex-col items-stretch overflow-hidden">
+          {children}
+        </InputGroup>
       </form>
     </>
   );

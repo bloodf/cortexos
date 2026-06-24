@@ -16,7 +16,6 @@ import { useNavigate } from "@tanstack/react-router";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -26,7 +25,6 @@ import {
 } from "@/components/ui/dialog";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
-import { CardSkeleton } from "@/components/skeletons";
 import {
   Conversation,
   ConversationContent,
@@ -63,11 +61,22 @@ import {
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
 import {
+  ModelSelector,
+  ModelSelectorTrigger,
+  ModelSelectorContent,
+  ModelSelectorInput,
+  ModelSelectorList,
+  ModelSelectorItem,
+  ModelSelectorEmpty,
+  ModelSelectorLogo,
+  ModelSelectorName,
+  type ModelSelectorLogoProps,
+} from "@/components/ai-elements/model-selector";
+import {
   callCreateGeneratorSession,
   callGeneratorSend,
   callBuildGeneratorProfile,
   callMintApproval,
-  api,
   listModels,
   listGeneratorPresets,
 } from "@/lib/api/client";
@@ -76,7 +85,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { bytes } from "@/lib/format";
 import {
   type PendingAttachment,
-  MAX_ATTACHMENT_BYTES,
   MAX_ATTACHMENTS,
   decodedBytes,
   AttachmentChip,
@@ -92,6 +100,41 @@ import {
 import { Terminal as XTerm } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
+
+/**
+ * Map a 9router model id to a models.dev provider slug for the logo.
+ * Returns null for unknown prefixes — caller skips the logo entirely
+ * (avoids a broken-image icon in the UI).
+ *
+ * Grounded in the live 9router /v1/models catalog (78 models across these
+ * prefixes): cc, cf, cu, cx, gc, gh, glm, kimi, minimax, ollama-local, openrouter.
+ */
+function providerFor(modelId: string): ModelSelectorLogoProps["provider"] | null {
+  const slash = modelId.indexOf("/");
+  if (slash <= 0) return null;
+  const prefix = modelId.slice(0, slash);
+  switch (prefix) {
+    case "cc":
+      return "anthropic";
+    case "cf":
+      return "cloudflare-workers-ai";
+    case "cx":
+      return "openai";
+    case "gc":
+      return "google";
+    case "gh":
+      return "github-models";
+    case "glm":
+      return "zai-coding-plan";
+    case "kimi":
+      return "moonshotai";
+    case "openrouter":
+      return "openrouter";
+    // cu, minimax, ollama-local: no models.dev equivalent — skip logo.
+    default:
+      return null;
+  }
+}
 
 const REASONING_OPTIONS = ["low", "medium", "high"] as const;
 type Reasoning = (typeof REASONING_OPTIONS)[number];
@@ -155,6 +198,7 @@ export default function AgentGeneratorPage() {
   const [text, setText] = useState("");
   const [pending, setPending] = useState<PendingAttachment[]>([]);
   const [model, setModel] = useState<string>("");
+  const [modelOpen, setModelOpen] = useState(false);
   const [reasoning, setReasoning] = useState<Reasoning>("medium");
   const [spec, setSpec] = useState<Record<string, unknown>>({});
   const [status, setStatus] = useState<"draft" | "done" | "building" | "error">("draft");
@@ -167,9 +211,6 @@ export default function AgentGeneratorPage() {
   const [ptyOutput, setPtyOutput] = useState("");
   const [advisorBuf, setAdvisorBuf] = useState("");
   const [skepticBuf, setSkepticBuf] = useState("");
-  // P3.4b Channels tab — Telegram bot token sent once with build payload;
-  // empty/absent → omitted from the build mint payload.
-  const [telegramToken, setTelegramToken] = useState("");
   // Live PTY modal visibility. The xterm host div is ALWAYS mounted (so the
   // mount-once effect never tears down); this flag only reveals/hides the
   // overlay chrome that frames it. Opening triggers a fit() so xterm sizes to
@@ -199,12 +240,6 @@ export default function AgentGeneratorPage() {
     queryFn: () => listGeneratorPresets({ data: {} }),
     enabled: !!user?.is_admin,
     staleTime: 60 * 60 * 1000,
-  });
-
-  const { data: agents = [], isLoading: agentsLoading } = useQuery({
-    queryKey: ["agents"],
-    queryFn: api.agents,
-    enabled: !!user?.is_admin,
   });
 
   const createSessionMut = useMutation({
@@ -282,7 +317,9 @@ export default function AgentGeneratorPage() {
       const slug = typeof spec.slug === "string" ? spec.slug : "";
       if (!slug) throw new Error("spec missing slug");
       // Mint a hash over the COMPLETE request body (the pipeline hashes action+input).
-      const trimmedToken = telegramToken.trim();
+      // Token is captured via chat handshake and lives in spec.telegramBotToken.
+      const specToken =
+        typeof spec.telegramBotToken === "string" ? spec.telegramBotToken.trim() : "";
       const payload: {
         sessionId: number;
         slug: string;
@@ -292,7 +329,7 @@ export default function AgentGeneratorPage() {
         sessionId,
         slug,
         spec,
-        ...(trimmedToken ? { telegramBotToken: trimmedToken } : {}),
+        ...(specToken ? { telegramBotToken: specToken } : {}),
       };
       const mint = await callMintApproval({
         data: { action: "agents.generator.build", payload },
@@ -509,13 +546,19 @@ export default function AgentGeneratorPage() {
       </div>
     );
   }
-
-  const canSend =
-    !!sessionId && (text.trim().length > 0 || pending.length > 0) && !sendMut.isPending;
   const canBuild = status === "done" && typeof spec.slug === "string" && !buildMut.isPending;
   const currentSlug = typeof spec.slug === "string" ? spec.slug : "";
   const canConnectWhatsapp = wsState === "live" && currentSlug.length > 0;
+  // Modal enablement — each tool opens only when there's something to see.
+  // The Live PTY keeps its existing WS-live + slug gate (it requires a real
+  // build to install the hermes-<slug> binary before the QR can run).
+  const hasSpec = Object.keys(spec).length > 0;
+  const hasAdvisor = advisorBuf.trim().length > 0;
+  const hasSkeptic = skepticBuf.trim().length > 0;
   const submitStatus = sendMut.isPending || thinking ? "submitted" : undefined;
+  const canSend =
+    !!sessionId && (text.trim().length > 0 || pending.length > 0) && !sendMut.isPending;
+
   const statusBadge = STATUS_BADGE[status];
   // Index of the last assistant bubble — only it gets a Retry action.
   const lastAssistantIdx = messages.reduce((acc, m, i) => (m.role === "assistant" ? i : acc), -1);
@@ -592,7 +635,13 @@ export default function AgentGeneratorPage() {
       {/* Live spec — redacted JSON + status badge. */}
       <Dialog>
         <DialogTrigger asChild>
-          <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 gap-1.5 text-xs"
+            disabled={!hasSpec}
+            title={hasSpec ? "View the live spec" : "Available once the model emits a spec"}
+          >
             <Bot className="size-3.5" /> Live spec
             <Badge variant={statusBadge.variant} className="ml-0.5 h-4 px-1.5 text-[9px]">
               {statusBadge.label}
@@ -663,7 +712,15 @@ export default function AgentGeneratorPage() {
       {/* Advisor — streaming buffer. */}
       <Dialog>
         <DialogTrigger asChild>
-          <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 gap-1.5 text-xs"
+            disabled={!hasAdvisor}
+            title={
+              hasAdvisor ? "View advisor feedback" : "Available after the model fires advisory text"
+            }
+          >
             <Sparkles className="size-3.5" /> Advisor
           </Button>
         </DialogTrigger>
@@ -693,7 +750,17 @@ export default function AgentGeneratorPage() {
       {/* Skeptic — streaming buffer. */}
       <Dialog>
         <DialogTrigger asChild>
-          <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 gap-1.5 text-xs"
+            disabled={!hasSkeptic}
+            title={
+              hasSkeptic
+                ? "View skeptic challenge"
+                : "Available after the model fires challenge text"
+            }
+          >
             <Bot className="size-3.5" /> Skeptic
           </Button>
         </DialogTrigger>
@@ -725,9 +792,15 @@ export default function AgentGeneratorPage() {
         size="sm"
         variant="outline"
         className="h-8 gap-1.5 text-xs"
+        disabled={ptyOutput.trim().length === 0}
         onClick={() => setPtyOpen(true)}
         aria-haspopup="dialog"
         aria-expanded={ptyOpen}
+        title={
+          ptyOutput.trim().length > 0
+            ? "Open the live root-bash PTY"
+            : "Available once a turn produces PTY output"
+        }
       >
         <TerminalIcon className="size-3.5" /> Live PTY
       </Button>
@@ -873,20 +946,22 @@ export default function AgentGeneratorPage() {
               ) : (
                 messages.map((m, i) =>
                   m.role === "user" ? (
-                    <Message key={i} from="user">
+                    <div key={i} className="flex flex-col items-end gap-1.5">
+                      <Message from="user">
+                        {m.content && (
+                          <MessageContent>
+                            <span className="whitespace-pre-wrap break-words">{m.content}</span>
+                          </MessageContent>
+                        )}
+                      </Message>
                       {m.attachments && m.attachments.length > 0 && (
-                        <div className="ml-auto flex flex-wrap justify-end gap-1.5">
+                        <div className="flex flex-wrap justify-end gap-1.5">
                           {m.attachments.map((att, idx) => (
                             <AttachmentChip key={`${att.filename}-${idx}`} att={att} />
                           ))}
                         </div>
                       )}
-                      {m.content && (
-                        <MessageContent>
-                          <span className="whitespace-pre-wrap break-words">{m.content}</span>
-                        </MessageContent>
-                      )}
-                    </Message>
+                    </div>
                   ) : (
                     <Message key={i} from="assistant">
                       <MessageContent>
@@ -976,7 +1051,24 @@ export default function AgentGeneratorPage() {
           {toolbar}
 
           {/* Composer */}
-          <div className="border-t bg-card/60 p-3">
+          <div
+            data-testid="composer-wrapper"
+            className="border-t bg-card/60 p-3"
+            onDragOverCapture={(e) => {
+              if (e.dataTransfer?.types?.includes("Files")) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.dataTransfer.dropEffect = "copy";
+              }
+            }}
+            onDropCapture={(e) => {
+              if (e.dataTransfer?.types?.includes("Files")) {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+              onPickFiles(e.dataTransfer?.files ?? null);
+            }}
+          >
             {/* Pending attachment previews (above the composer) */}
             {pending.length > 0 && (
               <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -1016,12 +1108,20 @@ export default function AgentGeneratorPage() {
                   onChange={(e) => setText(e.currentTarget.value)}
                   placeholder={
                     sessionId
-                      ? "Reply… (Enter to send, Shift+Enter for newline)"
+                      ? "Reply… (Enter to send, Shift+Enter for newline, paste/drop files)"
                       : model
                         ? "Loading session…"
                         : "Pick a model first…"
                   }
                   disabled={!sessionId || sendMut.isPending}
+                  onPaste={(e) => {
+                    const files = e.clipboardData?.files;
+                    if (files && files.length > 0) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onPickFiles(files);
+                    }
+                  }}
                 />
                 <PromptInputFooter>
                   <PromptInputTools>
@@ -1035,18 +1135,50 @@ export default function AgentGeneratorPage() {
                     </PromptInputButton>
 
                     {/* Model pick — seeds session creation, then travels with each turn. */}
-                    <PromptInputSelect value={model} onValueChange={setModel}>
-                      <PromptInputSelectTrigger className="h-7 text-xs" aria-label="Model">
-                        <PromptInputSelectValue placeholder="Pick a model…" />
-                      </PromptInputSelectTrigger>
-                      <PromptInputSelectContent>
-                        {models.map((m) => (
-                          <PromptInputSelectItem key={m} value={m} className="font-mono text-xs">
-                            {m}
-                          </PromptInputSelectItem>
-                        ))}
-                      </PromptInputSelectContent>
-                    </PromptInputSelect>
+                    <ModelSelector open={modelOpen} onOpenChange={setModelOpen}>
+                      <ModelSelectorTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          role="combobox"
+                          aria-label="Model"
+                          disabled={models.length === 0}
+                          className="h-7 text-xs inline-flex items-center gap-1 max-w-[180px]"
+                        >
+                          {model ? (
+                            <>
+                              {providerFor(model) && (
+                                <ModelSelectorLogo provider={providerFor(model)!} />
+                              )}
+                              <ModelSelectorName>{model}</ModelSelectorName>
+                            </>
+                          ) : (
+                            <span className="text-muted-foreground">
+                              {models.length === 0 ? "Loading…" : "Pick a model…"}
+                            </span>
+                          )}
+                        </Button>
+                      </ModelSelectorTrigger>
+                      <ModelSelectorContent title="Pick a model" className="max-w-[420px]">
+                        <ModelSelectorInput autoFocus placeholder="Search models…" />
+                        <ModelSelectorList>
+                          <ModelSelectorEmpty>No matching models</ModelSelectorEmpty>
+                          {models.map((m) => (
+                            <ModelSelectorItem
+                              key={m}
+                              value={m}
+                              onSelect={() => {
+                                setModel(m);
+                                setModelOpen(false);
+                              }}
+                            >
+                              {providerFor(m) && <ModelSelectorLogo provider={providerFor(m)!} />}
+                              <ModelSelectorName>{m}</ModelSelectorName>
+                            </ModelSelectorItem>
+                          ))}
+                        </ModelSelectorList>
+                      </ModelSelectorContent>
+                    </ModelSelector>
 
                     {/* Reasoning effort (9router ignores it for non-reasoning models). */}
                     <PromptInputSelect
@@ -1085,24 +1217,6 @@ export default function AgentGeneratorPage() {
           {/* WhatsApp runs in the Live PTY modal.                          */}
           {/* ------------------------------------------------------------ */}
           <div className="flex flex-wrap items-end gap-3 border-t bg-card/60 p-3">
-            <div className="min-w-[14rem] flex-1 space-y-1">
-              <label
-                htmlFor="telegram-token"
-                className="text-[10px] uppercase tracking-wide text-muted-foreground"
-              >
-                Telegram bot token (optional, used at build time)
-              </label>
-              <Input
-                id="telegram-token"
-                type="password"
-                autoComplete="off"
-                spellCheck={false}
-                placeholder="123456:ABCDEF…"
-                value={telegramToken}
-                onChange={(e) => setTelegramToken(e.target.value)}
-                className="h-8 font-mono text-xs"
-              />
-            </div>
             <Button
               size="sm"
               className="h-8 text-xs"
@@ -1135,32 +1249,6 @@ export default function AgentGeneratorPage() {
 
       {/* Live PTY overlay — always rendered (xterm host never unmounts). */}
       {ptyOverlay}
-
-      {/* Existing agents — quick reference of what's already built. */}
-      <div className="space-y-2">
-        <div className="text-xs font-semibold text-muted-foreground">Existing agents</div>
-        {agentsLoading ? (
-          <div className="grid gap-2 md:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <CardSkeleton key={i} lines={2} />
-            ))}
-          </div>
-        ) : agents.length === 0 ? (
-          <Card className="elev-1 p-3">
-            <EmptyState icon={<Bot className="size-6" />} title="No existing agents" />
-          </Card>
-        ) : (
-          <div className="grid gap-2 md:grid-cols-3">
-            {agents.map((a) => (
-              <Card key={a.slug} className="elev-1 p-3 text-xs">
-                <div className="truncate font-semibold">{a.name}</div>
-                <div className="truncate font-mono text-muted-foreground">{a.slug}</div>
-                <div className="mt-0.5 truncate text-muted-foreground">{a.model}</div>
-              </Card>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }

@@ -13,6 +13,9 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   buildProfileFromSpec,
   setExecutorForTests,
@@ -36,9 +39,13 @@ function makeSpec(overrides: Partial<ProfileSpec> = {}): ProfileSpec {
 
 describe("buildProfileFromSpec — command sequence", () => {
   let calls: string[][];
-
-  beforeEach(() => {
-    setBuildTestConfig({ hindsightBase: "http://127.0.0.1:1" }); // unreachable
+  let dir: string;
+  let pdir: string;
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), "btest-secrets-"));
+    pdir = await mkdtemp(join(tmpdir(), "btest-profiles-"));
+    await mkdir(join(pdir, "btest"), { recursive: true });
+    setBuildTestConfig({ hindsightBase: "http://127.0.0.1:1", secretsDir: dir, profilesDir: pdir });
     calls = [];
     setExecutorForTests(async (argv) => {
       const arr = [...argv];
@@ -60,12 +67,16 @@ describe("buildProfileFromSpec — command sequence", () => {
     });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     setExecutorForTests(null);
     setBuildTestConfig({
       hindsightBase: "http://127.0.0.1:8888/v1",
+      secretsDir: "/opt/cortexos/.secrets/hermes",
+      profilesDir: "/opt/cortexos/hermes/profiles",
       richConfigTemplate: "/opt/cortexos/templates/hermes/profile-config.template.yaml",
     });
+    await rm(dir, { recursive: true, force: true });
+    await rm(pdir, { recursive: true, force: true });
   });
 
   it("issues create → render → enable for a minimal spec", async () => {
@@ -99,6 +110,12 @@ describe("buildProfileFromSpec — command sequence", () => {
       ["/usr/bin/systemctl", "enable", "--now", "hermes-gateway@btest.service"],
       ["/usr/bin/systemctl", "enable", "--now", "hermes-profile@btest.service"],
     ]);
+
+    // Steps 1c + 1d: stub files always written even with no mcps/outputs.
+    const accounts = await readFile(join(pdir, "btest", "accounts.yaml"), "utf8");
+    expect(accounts).toContain("mcp_accounts: []");
+    const outputs = await readFile(join(pdir, "btest", "outputs.yaml"), "utf8");
+    expect(outputs).toContain("outputs: []");
   });
 
   it("throws and stops when render fails", async () => {
