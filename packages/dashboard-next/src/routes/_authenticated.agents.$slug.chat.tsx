@@ -669,9 +669,6 @@ export function ChatPage() {
               <span className={cn("size-1.5 rounded-full", STATE_DOT[agent.state])} />
               {STATE_LABEL[agent.state]}
             </Badge>
-            <Badge variant="outline" className="font-mono text-[10px]">
-              v{agent.version}
-            </Badge>
           </div>
 
           {agent.description && (

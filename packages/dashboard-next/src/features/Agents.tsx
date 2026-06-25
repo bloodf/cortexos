@@ -4,7 +4,6 @@ import {
   Activity,
   AlertTriangle,
   Bot,
-  ExternalLink,
   FileText,
   FolderTree,
   MessageSquare,
@@ -26,7 +25,13 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { CardSkeleton } from "@/components/skeletons";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { api, uploadAgentFile, callAgentAction, callMintApproval } from "@/lib/api/client";
+import {
+  api,
+  uploadAgentFile,
+  readAgentFiles,
+  callAgentAction,
+  callMintApproval,
+} from "@/lib/api/client";
 import { csrfHeaders } from "@/lib/csrf";
 import { useT } from "@/hooks/useT";
 import { useAuth } from "@/hooks/useAuth";
@@ -80,8 +85,6 @@ function profileYaml(agent: Agent): string {
     `profile: ${agent.slug}`,
     `model: ${agent.model}`,
     `provider: ${agent.modelProvider}`,
-    `hermes_url: ${agent.hermesUrl}`,
-    `version: ${agent.version}`,
     `state: ${agent.state}`,
     `health: ${agent.health}`,
   ];
@@ -95,16 +98,26 @@ function InspectorBody({ agent, isAdmin }: { agent: Agent; isAdmin: boolean }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeFile, setActiveFile] = useState<string>("profile");
 
-  // Files list — agent.files from registry (may be empty); always include the profile config tab.
-  const hasDiskFiles = agent.files.length > 0;
+  const queryClient = useQueryClient();
+
+  // Recursively read the profile home's config files (admin-only server-fn).
+  // Non-admins only ever see the synthesized profile.yaml tab.
+  const filesQuery = useQuery({
+    queryKey: ["agent-files", agent.slug],
+    queryFn: () => readAgentFiles({ data: { slug: agent.slug } }),
+    enabled: isAdmin,
+    staleTime: 30_000,
+  });
+  const diskFiles = filesQuery.data?.files ?? [];
+  const hasDiskFiles = diskFiles.length > 0;
   const activeContent =
     activeFile === "profile"
       ? profileYaml(agent)
-      : (agent.files.find((f) => f.path === activeFile)?.content ?? "");
+      : (diskFiles.find((f) => f.path === activeFile)?.content ?? "");
   const activeLanguage =
     activeFile === "profile"
       ? "yaml"
-      : (agent.files.find((f) => f.path === activeFile)?.language ?? "text");
+      : (diskFiles.find((f) => f.path === activeFile)?.language ?? "text");
 
   const uploadMutation = useMutation({
     mutationFn: async ({ filename, content }: { filename: string; content: string }) => {
@@ -117,6 +130,7 @@ function InspectorBody({ agent, isAdmin }: { agent: Agent; isAdmin: boolean }) {
       toast.success("File uploaded", {
         description: `${vars.filename} written to ${agent.slug} profile directory.`,
       });
+      void queryClient.invalidateQueries({ queryKey: ["agent-files", agent.slug] });
     },
     onError: (err) => {
       toast.error("Upload failed", {
@@ -154,9 +168,12 @@ function InspectorBody({ agent, isAdmin }: { agent: Agent; isAdmin: boolean }) {
           <span className="truncate">profile.yaml</span>
         </button>
 
-        {/* Disk files from the profile home directory (if any) */}
+        {/* Disk files from the profile home directory (admin-only, recursive) */}
+        {isAdmin && filesQuery.isLoading && (
+          <p className="px-2 py-1.5 text-[11px] text-muted-foreground">Loading files…</p>
+        )}
         {hasDiskFiles &&
-          agent.files.map((f) => (
+          diskFiles.map((f) => (
             <button
               key={f.path}
               onClick={() => setActiveFile(f.path)}
@@ -174,9 +191,7 @@ function InspectorBody({ agent, isAdmin }: { agent: Agent; isAdmin: boolean }) {
           <Badge variant="secondary" className="font-mono">
             {agent.model}
           </Badge>
-          <p className="text-muted-foreground text-[11px]">
-            v{agent.version} · {agent.slug}
-          </p>
+          <p className="text-muted-foreground text-[11px]">{agent.slug}</p>
         </div>
 
         {/* File upload — admin only, scoped to this profile's home directory */}
@@ -290,7 +305,7 @@ export default function AgentsPage() {
       <PageHeader
         icon={<Bot className="size-5" />}
         title={t.nav.agents}
-        description="Hermes agent fleet — live status, model, health and direct links to each agent's Hermes UI."
+        description="Hermes agent fleet — live status, model, and health."
       />
 
       <div className="flex flex-wrap items-center gap-2">
@@ -468,17 +483,10 @@ export default function AgentsPage() {
                   <span className="flex items-center gap-1.5">
                     <Activity className="size-3" /> p95 {a.p95LatencyMs}ms
                   </span>
-                  <span>
-                    v{a.version} · {relativeTime(a.lastActivity)}
-                  </span>
+                  <span>{relativeTime(a.lastActivity)}</span>
                 </div>
 
                 <div className="flex items-center gap-1 pt-1 border-t -mx-4 -mb-4 px-3 py-2 bg-muted/20 rounded-b-lg">
-                  <Button asChild size="sm" variant="ghost" className="h-7 text-xs">
-                    <a href={a.hermesUrl} target="_blank" rel="noreferrer">
-                      <ExternalLink className="size-3.5 mr-1" /> Hermes UI
-                    </a>
-                  </Button>
                   <Button
                     size="sm"
                     variant="ghost"

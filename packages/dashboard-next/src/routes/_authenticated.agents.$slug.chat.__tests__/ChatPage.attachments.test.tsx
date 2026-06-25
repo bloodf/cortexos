@@ -63,14 +63,12 @@ const STUB_AGENT = {
   modelProvider: "anthropic",
   health: "healthy" as const,
   hermesUrl: "https://hermes.example.com/test-agent",
-  version: "1",
   uptimeSec: 0,
   queueDepth: 0,
   requestsPerMin: 0,
   errorRatePct: 0,
   p95LatencyMs: 0,
   lastActivity: new Date().toISOString(),
-  files: [],
 };
 
 // ---------------------------------------------------------------------------

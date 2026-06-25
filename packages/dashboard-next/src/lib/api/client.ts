@@ -175,6 +175,7 @@ import {
 } from "./alerts.functions";
 import {
   uploadAgentFile as _uploadAgentFile,
+  readAgentFiles as _readAgentFiles,
   listAgents as _listAgents,
   agentAction as _agentAction,
   agentStatuses as _agentStatuses,
@@ -867,14 +868,12 @@ function toAgentRow(p: HermesProfile, state: AgentRunState = "stopped"): Agent {
     modelProvider,
     health: healthForState(state),
     hermesUrl,
-    version: "0.0.0",
     uptimeSec: 0,
     queueDepth: 0,
     requestsPerMin: 0,
     errorRatePct: 0,
     p95LatencyMs: 0,
     lastActivity: new Date().toISOString(),
-    files: [],
   };
 }
 
@@ -1515,6 +1514,15 @@ export const callMarkNotificationsRead = _markNotificationsRead as unknown as (
 export const uploadAgentFile = _uploadAgentFile as unknown as (
   opts: { data: { slug: string; filename: string; content: string } } & CsrfOpts,
 ) => Promise<{ ok: boolean }>;
+export interface AgentFile {
+  path: string;
+  content: string;
+  language: string;
+  bytes: number;
+}
+export const readAgentFiles = _readAgentFiles as unknown as (opts: {
+  data: { slug: string };
+}) => Promise<{ files: AgentFile[] }>;
 
 /**
  * Call agentAction RPC — admin only; approval: true gate (plan 0.5).

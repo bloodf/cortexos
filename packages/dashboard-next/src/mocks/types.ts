@@ -220,14 +220,12 @@ export interface Agent {
   modelProvider: string;
   health: AgentHealth;
   hermesUrl: string;
-  version: string;
   uptimeSec: number;
   queueDepth: number;
   requestsPerMin: number;
   errorRatePct: number;
   p95LatencyMs: number;
   lastActivity: string;
-  files: { path: string; language: string; content: string }[];
 }
 export interface MailReview {
   id: string;

@@ -364,13 +364,11 @@ describe("MP-025 live client surface", () => {
       modelProvider: "anthropic",
       health: "unknown",
       hermesUrl: "http://localhost:8001",
-      version: "0.0.0",
       uptimeSec: 0,
       queueDepth: 0,
       requestsPerMin: 0,
       errorRatePct: 0,
       p95LatencyMs: 0,
-      files: [],
     });
     expect(typeof result[0].lastActivity).toBe("string");
   });

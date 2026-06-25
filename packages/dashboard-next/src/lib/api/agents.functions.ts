@@ -61,6 +61,16 @@ const AgentStatusesInput = z
   })
   .strict();
 
+const ReadAgentFilesInput = z
+  .object({
+    slug: z
+      .string()
+      .min(1)
+      .max(128)
+      .regex(/^[a-z0-9_-]+$/, "slug must be lowercase letters, numbers, underscores and hyphens"),
+  })
+  .strict();
+
 const AgentActionInput = z
   .object({
     /** Profile slug — must match a registry entry. */
@@ -132,6 +142,33 @@ const uploadAgentFileGate = defineServerFn({
 });
 export const uploadAgentFile = createServerFn({ method: "POST" })
   .middleware([uploadAgentFileGate])
+  .handler(serverFnNoop);
+
+// ---------------------------------------------------------------------------
+// readAgentFiles — GET, auth: admin → { files: AgentFile[] }
+// Recursively reads the human-readable config files under the profile's home
+// for the Inspect dialog. Server-side filters skip cache/log/binary files AND
+// credential dirs/files (mcp-tokens, *token*, channel_directory, .env, …) and
+// redact credential-shaped substrings defensively. Admin-only.
+// ---------------------------------------------------------------------------
+
+const readAgentFilesGate = defineServerFn({
+  method: "GET",
+  auth: "admin",
+  input: ReadAgentFilesInput,
+  surface: "agents",
+  action: "agents.files.read",
+  handler: async ({ input }) => {
+    const { findProfileBySlug } = await import("@/server/agents/registry");
+    const { readAgentFiles } = await import("@/server/agents/files");
+    const { notFoundError } = await import("@/server/errors/types");
+    const profile = findProfileBySlug(input.slug);
+    if (!profile) throw notFoundError(`Agent profile '${input.slug}' not found`, "agent");
+    return { files: readAgentFiles(profile.home) };
+  },
+});
+export const readAgentFiles = createServerFn({ method: "GET" })
+  .middleware([readAgentFilesGate])
   .handler(serverFnNoop);
 
 // ---------------------------------------------------------------------------
