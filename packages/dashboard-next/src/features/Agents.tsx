@@ -1,10 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   AlertTriangle,
   Bot,
+  ChevronDown,
+  ChevronRight,
   FileText,
+  Folder,
+  FolderOpen,
   FolderTree,
   MessageSquare,
   Pause,
@@ -32,6 +36,7 @@ import {
   callAgentAction,
   callMintApproval,
 } from "@/lib/api/client";
+import type { AgentFile } from "@/lib/api/client";
 import { csrfHeaders } from "@/lib/csrf";
 import { useT } from "@/hooks/useT";
 import { useAuth } from "@/hooks/useAuth";
@@ -94,6 +99,125 @@ function profileYaml(agent: Agent): string {
   return lines.join("\n");
 }
 
+// ---------------------------------------------------------------------------
+// File tree for the Inspect dialog
+//
+// The server returns a FLAT list of POSIX-relative paths; the dialog shows them
+// as a collapsible directory tree so a profile home with 100+ files stays
+// navigable instead of overflowing a flat list off-screen.
+// ---------------------------------------------------------------------------
+
+interface TreeFile {
+  path: string;
+}
+interface TreeDir {
+  name: string;
+  /** Full path prefix (POSIX) — used as the collapse key. */
+  prefix: string;
+  dirs: TreeDir[];
+  files: { name: string; path: string }[];
+}
+
+/** Build a nested directory tree from flat `dir/sub/file` paths. */
+function buildFileTree(files: TreeFile[]): TreeDir {
+  const root: TreeDir = { name: "", prefix: "", dirs: [], files: [] };
+  for (const f of files) {
+    const parts = f.path.split("/");
+    let node = root;
+    for (let i = 0; i < parts.length - 1; i++) {
+      const name = parts[i];
+      const prefix = node.prefix ? `${node.prefix}/${name}` : name;
+      let child = node.dirs.find((d) => d.name === name);
+      if (!child) {
+        child = { name, prefix, dirs: [], files: [] };
+        node.dirs.push(child);
+      }
+      node = child;
+    }
+    node.files.push({ name: parts[parts.length - 1], path: f.path });
+  }
+  const sortRec = (d: TreeDir): void => {
+    d.dirs.sort((a, b) => a.name.localeCompare(b.name));
+    d.files.sort((a, b) => a.name.localeCompare(b.name));
+    d.dirs.forEach(sortRec);
+  };
+  sortRec(root);
+  return root;
+}
+
+function FileTreeNode({
+  dir,
+  depth,
+  activeFile,
+  onSelect,
+  expanded,
+  toggle,
+}: {
+  dir: TreeDir;
+  depth: number;
+  activeFile: string;
+  onSelect: (path: string) => void;
+  expanded: Set<string>;
+  toggle: (prefix: string) => void;
+}) {
+  return (
+    <>
+      {dir.dirs.map((sub) => {
+        const isOpen = expanded.has(sub.prefix);
+        return (
+          <div key={sub.prefix}>
+            <button
+              onClick={() => toggle(sub.prefix)}
+              style={{ paddingLeft: `${depth * 12 + 8}px` }}
+              className="w-full text-left rounded px-2 py-1 text-xs flex items-center gap-1.5 hover:bg-muted/50 font-mono text-muted-foreground"
+            >
+              {isOpen ? (
+                <ChevronDown className="size-3 shrink-0" />
+              ) : (
+                <ChevronRight className="size-3 shrink-0" />
+              )}
+              {isOpen ? (
+                <FolderOpen className="size-3 shrink-0" />
+              ) : (
+                <Folder className="size-3 shrink-0" />
+              )}
+              <span className="truncate">{sub.name}</span>
+            </button>
+            {isOpen && (
+              <FileTreeNode
+                dir={sub}
+                depth={depth + 1}
+                activeFile={activeFile}
+                onSelect={onSelect}
+                expanded={expanded}
+                toggle={toggle}
+              />
+            )}
+          </div>
+        );
+      })}
+      {dir.files.map((f) => (
+        <button
+          key={f.path}
+          onClick={() => onSelect(f.path)}
+          style={{ paddingLeft: `${depth * 12 + 8}px` }}
+          className={cn(
+            "w-full text-left rounded px-2 py-1 text-xs flex items-center gap-1.5 hover:bg-muted/50 font-mono",
+            activeFile === f.path && "bg-accent text-accent-foreground",
+          )}
+          title={f.path}
+        >
+          <FileText className="size-3 shrink-0 text-muted-foreground" />
+          <span className="truncate">{f.name}</span>
+        </button>
+      ))}
+    </>
+  );
+}
+
+/** Stable empty fallback so a loading query doesn't churn the file tree. */
+const EMPTY_FILES: AgentFile[] = [];
+
 function InspectorBody({ agent, isAdmin }: { agent: Agent; isAdmin: boolean }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeFile, setActiveFile] = useState<string>("profile");
@@ -108,8 +232,24 @@ function InspectorBody({ agent, isAdmin }: { agent: Agent; isAdmin: boolean }) {
     enabled: isAdmin,
     staleTime: 30_000,
   });
-  const diskFiles = filesQuery.data?.files ?? [];
+  const diskFiles = filesQuery.data?.files ?? EMPTY_FILES;
   const hasDiskFiles = diskFiles.length > 0;
+  const fileTree = useMemo(() => buildFileTree(diskFiles), [diskFiles]);
+  // Top-level dirs start expanded; reset when switching agents or when the file
+  // set changes. Keyed on a stable string (not the fileTree object) so a fresh
+  // empty-array fallback during loading can't loop the effect.
+  const topDirKeys = fileTree.dirs.map((d) => d.prefix).join("|");
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    setExpanded(new Set(topDirKeys ? topDirKeys.split("|") : []));
+  }, [agent.slug, topDirKeys]);
+  const toggleDir = (prefix: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(prefix)) next.delete(prefix);
+      else next.add(prefix);
+      return next;
+    });
   const activeContent =
     activeFile === "profile"
       ? profileYaml(agent)
@@ -154,40 +294,40 @@ function InspectorBody({ agent, isAdmin }: { agent: Agent; isAdmin: boolean }) {
   }
 
   return (
-    <div className="grid gap-3 md:grid-cols-[200px_1fr]">
-      <div className="space-y-1">
-        {/* Always show the profile config tab */}
-        <button
-          onClick={() => setActiveFile("profile")}
-          className={cn(
-            "w-full text-left rounded px-2 py-1.5 text-xs flex items-center gap-2 hover:bg-muted/50 font-mono",
-            activeFile === "profile" && "bg-accent text-accent-foreground",
+    <div className="grid gap-3 md:grid-cols-[240px_1fr] h-[70vh] min-h-0">
+      <div className="flex flex-col min-h-0 border-r pr-2">
+        {/* Scrollable file list: profile tab + recursive disk tree */}
+        <div className="flex-1 min-h-0 overflow-auto space-y-0.5 pr-1">
+          <button
+            onClick={() => setActiveFile("profile")}
+            className={cn(
+              "w-full text-left rounded px-2 py-1.5 text-xs flex items-center gap-2 hover:bg-muted/50 font-mono",
+              activeFile === "profile" && "bg-accent text-accent-foreground",
+            )}
+          >
+            <FileText className="size-3 text-muted-foreground shrink-0" />
+            <span className="truncate">profile.yaml</span>
+          </button>
+
+          {isAdmin && filesQuery.isLoading && (
+            <p className="px-2 py-1.5 text-[11px] text-muted-foreground">Loading files…</p>
           )}
-        >
-          <FileText className="size-3 text-muted-foreground" />
-          <span className="truncate">profile.yaml</span>
-        </button>
+          {isAdmin && !filesQuery.isLoading && !hasDiskFiles && (
+            <p className="px-2 py-1.5 text-[11px] text-muted-foreground">No files.</p>
+          )}
+          {hasDiskFiles && (
+            <FileTreeNode
+              dir={fileTree}
+              depth={0}
+              activeFile={activeFile}
+              onSelect={setActiveFile}
+              expanded={expanded}
+              toggle={toggleDir}
+            />
+          )}
+        </div>
 
-        {/* Disk files from the profile home directory (admin-only, recursive) */}
-        {isAdmin && filesQuery.isLoading && (
-          <p className="px-2 py-1.5 text-[11px] text-muted-foreground">Loading files…</p>
-        )}
-        {hasDiskFiles &&
-          diskFiles.map((f) => (
-            <button
-              key={f.path}
-              onClick={() => setActiveFile(f.path)}
-              className={cn(
-                "w-full text-left rounded px-2 py-1.5 text-xs flex items-center gap-2 hover:bg-muted/50 font-mono",
-                activeFile === f.path && "bg-accent text-accent-foreground",
-              )}
-            >
-              <FileText className="size-3 text-muted-foreground" />
-              <span className="truncate">{f.path}</span>
-            </button>
-          ))}
-
-        <div className="pt-3 mt-3 border-t space-y-1.5 text-xs">
+        <div className="pt-3 mt-2 border-t space-y-1.5 text-xs shrink-0">
           <Badge variant="secondary" className="font-mono">
             {agent.model}
           </Badge>
@@ -196,7 +336,7 @@ function InspectorBody({ agent, isAdmin }: { agent: Agent; isAdmin: boolean }) {
 
         {/* File upload — admin only, scoped to this profile's home directory */}
         {isAdmin && (
-          <div className="pt-2 mt-2 border-t">
+          <div className="pt-2 mt-2 border-t shrink-0">
             <input
               ref={fileInputRef}
               type="file"
@@ -218,11 +358,11 @@ function InspectorBody({ agent, isAdmin }: { agent: Agent; isAdmin: boolean }) {
         )}
       </div>
 
-      <div className="min-w-0">
+      <div className="min-w-0 min-h-0">
         <CodeBlock
           language={activeLanguage}
           code={activeContent}
-          className="h-[420px] overflow-auto"
+          className="h-full overflow-auto"
         />
       </div>
     </div>
@@ -569,7 +709,7 @@ export default function AgentsPage() {
       })()}
 
       <Dialog open={!!inspect} onOpenChange={(o) => !o && setInspect(null)}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FolderTree className="size-4" />
