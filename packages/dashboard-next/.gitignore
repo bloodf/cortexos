@@ -7,6 +7,11 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Generated Astryx theme artifacts (kept in repo: theme.css)
+src/lib/cortex.js
+src/lib/cortex.d.ts
+src/lib/cortex.variants.d.ts
+
 node_modules
 dist
 dist-ssr
