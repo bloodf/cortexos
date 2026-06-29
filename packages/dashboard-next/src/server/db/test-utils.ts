@@ -67,7 +67,7 @@ export const deterministicSeed = {
       category: "Monitoring",
       healthType: "http",
       healthUrl: "http://127.0.0.1:3000/api/health",
-      openUrl: "http://127.0.0.1:3000",
+      openUrl: "https://cortexos.tailfd052e.ts.net:3000/",
       iconType: "monitor",
       sortOrder: 1,
     },

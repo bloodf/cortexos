@@ -135,9 +135,13 @@ Expected: the recall response contains the pnpm fact.
 
 ```bash
 sudo tailscale serve --bg --https 8888 http://127.0.0.1:8888
+sudo tailscale serve --bg --https 9999 http://127.0.0.1:9999
 ```
 
-Reach from another tailnet machine: `https://<tailnet-host>:8888/health`.
+Reach from another tailnet machine:
+
+- Hindsight API / Swagger docs: `https://<tailnet-host>:8888/health`
+- Hindsight Control Plane UI: `https://<tailnet-host>:9999/`
 
 ## Dashboard registration
 
