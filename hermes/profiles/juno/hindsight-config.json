@@ -1,0 +1,7 @@
+{
+  "mode": "cloud",
+  "api_url": "http://127.0.0.1:8888",
+  "bank_id": "hermes-juno",
+  "autoRecall": true,
+  "autoRetain": true
+}
