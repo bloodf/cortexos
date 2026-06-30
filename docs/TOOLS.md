@@ -29,6 +29,7 @@ Think of this as the app store for your server. Each tool is installed by runnin
 | **Honcho** | AI & Agents | Memory and knowledge backend for AI agents (legacy, read-only) | [`prompts/tools/32-honcho.md`](../prompts/tools/32-honcho.md) | [GitHub](https://github.com/plastic-labs/honcho) |
 | **Hindsight** | AI & Agents | Self-hosted AI memory backend (primary) | [`prompts/tools/32b-hindsight.md`](../prompts/tools/32b-hindsight.md) | [GitHub](https://github.com/vectorize-io/hindsight) |
 | **Hermes Memory OS** | AI & Agents | Long-term memory system (Qdrant vector DB + ARQ worker) | [`prompts/tools/33-hermes-memory-os.md`](../prompts/tools/33-hermes-memory-os.md) | [GitHub](https://github.com/ClaudioDrews/memory-os) |
+| **FireCrawl** | AI & Agents | Self-hosted web crawl/scrape API — turns websites into LLM-readable markdown | [`prompts/tools/37-firecrawl.md`](../prompts/tools/37-firecrawl.md) | [GitHub](https://github.com/firecrawl/firecrawl) |
 | **Cortex Sandbox** | AI & Agents | Trusted local sandbox for running untrusted code safely | [`prompts/tools/47a-cortex-sandbox.md`](../prompts/tools/47a-cortex-sandbox.md) | *Internal CortexOS component* |
 | **Obot** | AI & Agents | MCP (Model Context Protocol) gateway platform | [`prompts/tools/50-obot.md`](../prompts/tools/50-obot.md) | *Internal CortexOS component* |
 | **fzf** | Developer Experience | Fuzzy finder — find files, commands, and history with fuzzy typing | [`prompts/tools/30b-fzf.md`](../prompts/tools/30b-fzf.md) | [GitHub](https://github.com/junegunn/fzf) |
@@ -260,6 +261,17 @@ Observability = "can you see what's happening inside your system?" These tools a
 
 - **Install prompt:** [`prompts/tools/33-hermes-memory-os.md`](../prompts/tools/33-hermes-memory-os.md)
 - **Links:** [GitHub](https://github.com/ClaudioDrews/memory-os)
+
+---
+
+### FireCrawl — Self-Hosted Web Crawl/Scrape API
+
+**What it is:** A local version of the FireCrawl service that converts web pages into structured, LLM-readable formats.
+
+**What it does for you:** Lets agents and tools scrape URLs, crawl sites, and extract structured data without sending anything to the FireCrawl cloud API. Runs entirely on your CortexOS host with its own Redis, PostgreSQL, RabbitMQ, and Playwright containers.
+
+- **Install prompt:** [`prompts/tools/37-firecrawl.md`](../prompts/tools/37-firecrawl.md)
+- **Links:** [GitHub](https://github.com/firecrawl/firecrawl)
 
 ---
 

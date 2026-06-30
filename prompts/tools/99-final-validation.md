@@ -56,6 +56,9 @@ curl -fsS http://127.0.0.1:11434/v1/models | jq '.data | length'
 
 # Ollama (if installed)
 curl -fsS http://127.0.0.1:11435/api/tags | jq '.models | length'
+
+# FireCrawl (if installed)
+curl -fsS http://127.0.0.1:3002/ | python3 -m json.tool
 ```
 
 ## CHECKPOINT 1
