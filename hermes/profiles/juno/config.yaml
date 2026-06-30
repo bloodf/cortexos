@@ -522,30 +522,27 @@ mcp_servers:
     command: npx
     args:
       - '-y'
-      - 'zai-vision@latest'
-      - '--preset'
-      - 'default'
+      - '@z_ai/mcp-server'
     env:
       Z_AI_API_KEY: adee801445f5424cba9b148f6cffccc5.g3g12Txi9HM5dEIc
+      Z_AI_MODE: ZAI
+      ZAI_MCP_LOG_PATH: /opt/cortexos/hermes/profiles/juno/logs/zai-mcp.log
     timeout: 120
     connect_timeout: 60
   zai-web-search:
     url: https://api.z.ai/api/mcp/web_search_prime/mcp
-    transport: sse
     headers:
       Authorization: 'Bearer adee801445f5424cba9b148f6cffccc5.g3g12Txi9HM5dEIc'
     timeout: 180
     connect_timeout: 30
   zai-web-reader:
     url: https://api.z.ai/api/mcp/web_reader/mcp
-    transport: sse
     headers:
       Authorization: 'Bearer adee801445f5424cba9b148f6cffccc5.g3g12Txi9HM5dEIc'
     timeout: 180
     connect_timeout: 30
   zai-zread:
     url: https://api.z.ai/api/mcp/zread/mcp
-    transport: sse
     headers:
       Authorization: 'Bearer adee801445f5424cba9b148f6cffccc5.g3g12Txi9HM5dEIc'
     timeout: 180
