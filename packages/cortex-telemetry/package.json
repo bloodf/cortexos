@@ -30,10 +30,10 @@
   },
   "dependencies": {
     "@traceloop/node-server-sdk": "^0.27.0",
-    "langfuse": "^3.37.0"
+    "langfuse": "^3.38.20"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^3.0.0",
-    "vitest": "^3.0.0"
+    "@vitest/coverage-v8": "^3.2.6",
+    "vitest": "^3.2.6"
   }
 }

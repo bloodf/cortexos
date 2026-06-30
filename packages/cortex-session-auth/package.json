@@ -12,12 +12,12 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "pg": "^8.13.0"
+    "pg": "^8.22.0"
   },
   "devDependencies": {
-    "@types/node": "^22.10.0",
-    "@types/pg": "^8.11.0",
-    "typescript": "^5.4.0",
-    "vitest": "^2.0.0"
+    "@types/node": "^22.20.0",
+    "@types/pg": "^8.20.0",
+    "typescript": "^5.9.3",
+    "vitest": "^2.1.9"
   }
 }
