@@ -1,0 +1,62 @@
+diff --git a/internal/adguard/client.go b/internal/adguard/client.go
+index 64d02e5..6788578 100644
+--- a/internal/adguard/client.go
++++ b/internal/adguard/client.go
+@@ -205,28 +205,41 @@ func (c *Client) Url() string {
+ 	return c.conf.Url
+ }
+ 
++// clientsListResponse matches the AdGuard Home GET /control/clients payload.
++// Older versions (e.g. v0.107.53) do not expose POST /control/clients/search,
++// so we use this endpoint instead and resolve names from both persistent and
++// runtime/auto clients.
++type clientsListResponse struct {
++	Clients     []persistentClient `json:"clients"`
++	AutoClients []autoClient       `json:"auto_clients"`
++}
++
++type persistentClient struct {
++	IDs  []string `json:"ids"`
++	Name string   `json:"name"`
++}
++
++type autoClient struct {
++	IP   string `json:"ip"`
++	Name string `json:"name"`
++}
++
+ func (c *Client) SearchClients(ctx context.Context, topClients []map[string]int) (map[string]string, error) {
+-	reqBody := clientsSearchRequest{}
+-    for _, c := range topClients {
+-        for key := range c {
+-            reqBody.Clients = append(reqBody.Clients, struct {
+-                ID string `json:"id"`
+-            }{ID: key})
+-        }
+-    }
+-
+-	var resp []map[string]clientInfo
+-	err := c.doPost(ctx, "/control/clients/search", reqBody, &resp)
++	var resp clientsListResponse
++	err := c.do(ctx, http.MethodGet, "/control/clients", &resp)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+ 
+ 	result := make(map[string]string)
+-	for _, obj := range resp {
+-		for _, info := range obj {
+-			for _, id := range info.IDs {
+-				result[id] = info.Name
+-			}
++	for _, client := range resp.Clients {
++		for _, id := range client.IDs {
++			result[id] = client.Name
++		}
++	}
++	for _, client := range resp.AutoClients {
++		if client.Name != "" && client.IP != "" {
++			result[client.IP] = client.Name
+ 		}
+ 	}
+ 
