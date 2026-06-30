@@ -1,0 +1,135 @@
+name: firecrawl
+
+x-common-service: &common-service
+  image: ghcr.io/firecrawl/firecrawl:latest
+  ulimits:
+    nofile:
+      soft: 65535
+      hard: 65535
+  networks:
+    - backend
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  logging: &default-logging
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "3"
+      compress: "true"
+
+services:
+  playwright-service:
+    image: ghcr.io/firecrawl/playwright-service:latest
+    container_name: firecrawl-playwright
+    restart: unless-stopped
+    env_file:
+      - ../../.secrets/firecrawl.env
+    environment:
+      PORT: 3000
+    networks:
+      - backend
+    cpus: 2.0
+    mem_limit: 4G
+    memswap_limit: 4G
+    logging: *default-logging
+    tmpfs:
+      - /tmp/.cache:noexec,nosuid,size=512m
+
+  api:
+    <<: *common-service
+    container_name: firecrawl-api
+    restart: unless-stopped
+    env_file:
+      - ../../.secrets/firecrawl.env
+    depends_on:
+      redis:
+        condition: service_started
+      playwright-service:
+        condition: service_started
+      nuq-postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3002:3002"
+    # The API listens on container port 3002. If you change PORT/INTERNAL_PORT
+    # in .secrets/firecrawl.env, keep this mapping in sync.
+    command: ["node", "dist/src/harness.js", "--start-docker"]
+    # Sized for the documented 8 GB / 4 vCPU minimum. Reduce on smaller hosts
+    # only if you also shrink Playwright and accept slower crawls.
+    cpus: 4.0
+    mem_limit: 8G
+    memswap_limit: 8G
+    networks:
+      - backend
+      - cortex-net
+
+  redis:
+    image: redis:8-alpine
+    container_name: firecrawl-redis
+    restart: unless-stopped
+    env_file:
+      - ../../.secrets/firecrawl.env
+    command: ["sh", "-c", "redis-server --save 60 1 --loglevel warning --requirepass \"$$REDIS_PASSWORD\""]
+    networks:
+      - backend
+    volumes:
+      - redis-data:/data
+    cpus: 0.25
+    mem_limit: 256M
+    memswap_limit: 256M
+    logging: *default-logging
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: firecrawl-rabbitmq
+    restart: unless-stopped
+    env_file:
+      - ../../.secrets/firecrawl.env
+    networks:
+      - backend
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    cpus: 0.5
+    mem_limit: 512M
+    memswap_limit: 512M
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    logging: *default-logging
+
+  nuq-postgres:
+    image: ghcr.io/firecrawl/nuq-postgres:latest
+    container_name: firecrawl-postgres
+    restart: unless-stopped
+    env_file:
+      - ../../.secrets/firecrawl.env
+    command: ["postgres", "-c", "cron.database_name=firecrawl"]
+    networks:
+      - backend
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    cpus: 0.5
+    mem_limit: 512M
+    memswap_limit: 512M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    logging: *default-logging
+
+networks:
+  backend:
+    driver: bridge
+  cortex-net:
+    external: true
+
+volumes:
+  redis-data:
+  postgres-data:
+  rabbitmq-data:

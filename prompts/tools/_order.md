@@ -26,6 +26,7 @@
 33-hermes-memory-os · long-term memory (Qdrant + ARQ worker)
 35a-local-harness-9router · pick 9Router models in your local AI harness
 36-hermes-profile-factory · create Hermes agent profile with Hindsight memory
+37-firecrawl · self-hosted web crawl/scrape API
 47a-cortex-sandbox · trusted local tool sandbox
 60-incus-project · per-project Incus + Hermes agent        # Per-project
 56-pgadmin · PostgreSQL admin UI                           # Operator surfaces
