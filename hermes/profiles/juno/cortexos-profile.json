@@ -1,0 +1,21 @@
+{
+  "profile": "juno",
+  "home": "/opt/cortexos/hermes/profiles/juno",
+  "api": {
+    "host": "127.0.0.1",
+    "port": 18697,
+    "publicPath": "/hermes/juno/v1"
+  },
+  "model": {
+    "provider": "9router",
+    "baseUrl": "http://127.0.0.1:11434/v1",
+    "id": "cx/gpt-5.5",
+    "reasoning": "high"
+  },
+  "memory": {
+    "provider": "hindsight",
+    "baseUrl": "http://127.0.0.1:8888",
+    "workspace": "hermes-juno",
+    "aiPeer": "hermes-juno"
+  }
+}
