@@ -136,7 +136,7 @@ jobs:
 
       - name: Upload artifacts for release job
         if: steps.src.outputs.exists == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-${{ matrix.artifact.name }}
           path: |
