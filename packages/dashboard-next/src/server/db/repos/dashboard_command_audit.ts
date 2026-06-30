@@ -19,11 +19,10 @@
  * migrations/007_grants_dashboard_command_audit.sql issues those grants
  * idempotently at deploy time.
  *
- * Why this is NOT the same as `agent_gateway_audit`:
- *   `agent_gateway_audit` is the **append-only** AI tool call trail —
- *   it never updates after the initial INSERT. `dashboard_command_audit`
- *   is a **two-phase execution log** — the row mutates as the command
- *   progresses through dispatch, exec, and completion.
+ * `dashboard_command_audit` is a **two-phase execution log** — the row
+ * mutates as the command progresses through dispatch, exec, and completion
+ * (INSERT with status='created', UPDATE on completion). Unlike a pure
+ * append-only trail, this table legitimately updates in place.
  */
 
 import { and, desc, eq, sql, type SQL } from "drizzle-orm";

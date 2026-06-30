@@ -1,53 +1,136 @@
 import * as React from "react";
-import * as TabsPrimitive from "@radix-ui/react-tabs";
-
+import { TabList, Tab } from "@astryxdesign/core/TabList";
 import { cn } from "@/lib/utils";
 
-const Tabs = TabsPrimitive.Root;
+interface TabsContextValue {
+  value: string;
+  onValueChange: (value: string) => void;
+}
 
-const TabsList = React.forwardRef<
-  React.ElementRef<typeof TabsPrimitive.List>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
->(({ className, ...props }, ref) => (
-  <TabsPrimitive.List
-    ref={ref}
-    className={cn(
-      "inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground",
-      className,
-    )}
-    {...props}
-  />
-));
-TabsList.displayName = TabsPrimitive.List.displayName;
+const TabsContext = React.createContext<TabsContextValue | null>(null);
 
-const TabsTrigger = React.forwardRef<
-  React.ElementRef<typeof TabsPrimitive.Trigger>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
->(({ className, ...props }, ref) => (
-  <TabsPrimitive.Trigger
-    ref={ref}
-    className={cn(
-      "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow",
-      className,
-    )}
-    {...props}
-  />
-));
-TabsTrigger.displayName = TabsPrimitive.Trigger.displayName;
+function useTabs() {
+  const ctx = React.useContext(TabsContext);
+  if (!ctx) throw new Error("Tabs subcomponents must be used within <Tabs>");
+  return ctx;
+}
 
-const TabsContent = React.forwardRef<
-  React.ElementRef<typeof TabsPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
->(({ className, ...props }, ref) => (
-  <TabsPrimitive.Content
-    ref={ref}
-    className={cn(
-      "mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-      className,
-    )}
-    {...props}
-  />
-));
-TabsContent.displayName = TabsPrimitive.Content.displayName;
+export interface TabsProps extends React.HTMLAttributes<HTMLDivElement> {
+  defaultValue?: string;
+  value?: string;
+  onValueChange?: (value: string) => void;
+  children?: React.ReactNode;
+}
+
+function Tabs({
+  defaultValue,
+  value: controlledValue,
+  onValueChange,
+  children,
+  className,
+  ...props
+}: TabsProps) {
+  const [uncontrolledValue, setUncontrolledValue] = React.useState(defaultValue ?? "");
+  const value = controlledValue !== undefined ? controlledValue : uncontrolledValue;
+  const onChange = React.useCallback(
+    (v: string) => {
+      setUncontrolledValue(v);
+      onValueChange?.(v);
+    },
+    [onValueChange],
+  );
+  return (
+    <TabsContext.Provider value={{ value, onValueChange: onChange }}>
+      <div className={cn(className)} {...props}>
+        {children}
+      </div>
+    </TabsContext.Provider>
+  );
+}
+
+export type TabsListProps = Omit<React.HTMLAttributes<HTMLElement>, "onChange">;
+
+const TabsList = React.forwardRef<HTMLElement, TabsListProps>(
+  ({ className, children, ...props }, ref) => {
+    const { value, onValueChange } = useTabs();
+    return (
+      <TabList
+        ref={ref}
+        value={value}
+        onChange={onValueChange}
+        className={cn(className)}
+        {...props}
+      >
+        {children}
+      </TabList>
+    );
+  },
+);
+TabsList.displayName = "TabsList";
+
+export interface TabsTriggerProps extends Omit<
+  React.ButtonHTMLAttributes<HTMLButtonElement>,
+  "value"
+> {
+  value: string;
+}
+
+function childrenToLabel(children: React.ReactNode): string {
+  if (children == null) return "";
+  if (typeof children === "string") return children;
+  if (typeof children === "number" || typeof children === "boolean") return String(children);
+  return React.Children.toArray(children)
+    .map((child) =>
+      typeof child === "string"
+        ? child
+        : typeof child === "number" || typeof child === "boolean"
+          ? String(child)
+          : "",
+    )
+    .join("");
+}
+
+const TabsTrigger = React.forwardRef<HTMLButtonElement, TabsTriggerProps>(
+  ({ className, value, children, role = "tab", ...props }, ref) => {
+    const { value: activeValue } = useTabs();
+    const isActive = value === activeValue;
+    return (
+      <Tab
+        ref={ref}
+        value={value}
+        label={childrenToLabel(children)}
+        className={cn(className)}
+        {...props}
+        role={role}
+        data-state={isActive ? "active" : "inactive"}
+      />
+    );
+  },
+);
+TabsTrigger.displayName = "TabsTrigger";
+
+export interface TabsContentProps extends React.HTMLAttributes<HTMLDivElement> {
+  value: string;
+}
+
+const TabsContent = React.forwardRef<HTMLDivElement, TabsContentProps>(
+  ({ className, value, children, ...props }, ref) => {
+    const { value: activeValue } = useTabs();
+    const isActive = value === activeValue;
+    if (!isActive) return null;
+    return (
+      <div
+        ref={ref}
+        role="tabpanel"
+        data-state={isActive ? "active" : "inactive"}
+        className={cn("mt-2", className)}
+        {...props}
+      >
+        {children}
+      </div>
+    );
+  },
+);
+TabsContent.displayName = "TabsContent";
 
 export { Tabs, TabsList, TabsTrigger, TabsContent };

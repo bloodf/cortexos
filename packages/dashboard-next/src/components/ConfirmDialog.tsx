@@ -83,7 +83,7 @@ export function ConfirmDialog({
             }}
             className={
               destructive
-                ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                ? "bg-[var(--color-error)] text-[var(--color-on-error)] hover:bg-[var(--color-error)]/90"
                 : ""
             }
           >

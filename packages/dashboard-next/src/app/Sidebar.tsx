@@ -1,18 +1,26 @@
-import { Link, useRouterState } from "@tanstack/react-router";
-import { ChevronDown, X, LayoutGrid, Server, ScrollText, Settings2 } from "lucide-react";
+import { useRouterState } from "@tanstack/react-router";
+import { LayoutGrid, Server, ScrollText, Settings2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import brandMark from "@/assets/cortexos-mark.svg";
+import {
+  SideNav,
+  SideNavItem,
+  SideNavSection,
+  SideNavHeading,
+  type SideNavImperativeCollapseHandle,
+} from "@astryxdesign/core/SideNav";
+import { Avatar } from "@astryxdesign/core/Avatar";
 import { NAV, PINNED, type GroupId } from "./NavConfig";
 import { useT } from "@/hooks/useT";
 import { useAuth } from "@/hooks/useAuth";
-import { cn } from "@/lib/utils";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Props {
   collapsed: boolean;
   mobileOpen: boolean;
   onClose: () => void;
+  onCollapsedChange?: (collapsed: boolean) => void;
+  collapseHandleRef?: React.RefObject<SideNavImperativeCollapseHandle | null>;
 }
 
 const GROUP_ICONS: Record<GroupId, LucideIcon> = {
@@ -24,55 +32,13 @@ const GROUP_ICONS: Record<GroupId, LucideIcon> = {
 
 const STORAGE_KEY = "cortex.nav.openGroups";
 
-function NavLink({
-  to,
-  icon,
-  label,
-  active,
+export function Sidebar({
   collapsed,
-  onClick,
-}: {
-  to: string;
-  icon: React.ReactNode;
-  label: string;
-  active: boolean;
-  collapsed: boolean;
-  onClick: () => void;
-}) {
-  const link = (
-    <Link
-      to={to}
-      onClick={onClick}
-      className={cn(
-        "flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors",
-        active
-          ? "bg-primary text-primary-foreground shadow-sm"
-          : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
-        collapsed && "md:justify-center md:px-2",
-      )}
-    >
-      <span className="shrink-0">{icon}</span>
-      <span className={cn("truncate", collapsed && "md:hidden")}>{label}</span>
-    </Link>
-  );
-
-  if (collapsed) {
-    return (
-      <li>
-        <Tooltip delayDuration={200}>
-          <TooltipTrigger asChild>{link}</TooltipTrigger>
-          <TooltipContent side="right" sideOffset={8}>
-            {label}
-          </TooltipContent>
-        </Tooltip>
-      </li>
-    );
-  }
-
-  return <li>{link}</li>;
-}
-
-export function Sidebar({ collapsed, mobileOpen, onClose }: Props) {
+  mobileOpen,
+  onClose,
+  onCollapsedChange,
+  collapseHandleRef,
+}: Props) {
   const t = useT();
   const { user } = useAuth();
   const path = useRouterState({ select: (s) => s.location.pathname });
@@ -121,8 +87,6 @@ export function Sidebar({ collapsed, mobileOpen, onClose }: Props) {
     }
   }, [openGroups]);
 
-  const toggle = (id: string) => setOpenGroups((p) => ({ ...p, [id]: !p[id] }));
-
   // Admin-only groups are hidden for non-admin users (role from real PAM groups).
   const visibleNav = NAV.filter((g) => !g.adminOnly || user?.is_admin);
 
@@ -134,135 +98,82 @@ export function Sidebar({ collapsed, mobileOpen, onClose }: Props) {
   };
 
   return (
-    <>
-      {mobileOpen && (
-        <div className="fixed inset-0 z-40 bg-black/50 md:hidden" onClick={onClose} aria-hidden />
-      )}
-      <aside
-        className={cn(
-          "z-50 mac-vibrant text-sidebar-foreground border-r border-sidebar-border/70 shrink-0 flex flex-col",
-          "fixed inset-y-0 left-0 transform transition-transform md:relative md:translate-x-0",
-          mobileOpen ? "translate-x-0" : "-translate-x-full",
-          collapsed ? "md:w-16" : "md:w-60",
-          "w-64",
-        )}
-      >
-        <div className="h-14 flex items-center justify-between border-b border-sidebar-border px-3">
-          <Link to="/overview" className="flex items-center gap-2 min-w-0">
-            <img src={brandMark} alt="" className="size-7 shrink-0" aria-hidden />
+    <SideNav
+      collapsible={{
+        isCollapsed: collapsed,
+        onCollapsedChange,
+      }}
+      handleRef={collapseHandleRef}
+      header={
+        <SideNavHeading
+          icon={<img src={brandMark} alt="" className="size-7" />}
+          heading={t.app.name}
+          headingHref="/overview"
+        />
+      }
+      footer={
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-xs">
+            <span
+              className="size-2 rounded-full animate-pulse"
+              style={{ backgroundColor: "var(--color-success)" }}
+            />
             {!collapsed && (
-              <span className="font-semibold tracking-tight truncate">{t.app.name}</span>
+              <span className="text-[var(--color-text-secondary)]">{t.live.connected}</span>
             )}
-          </Link>
-          <button
-            onClick={onClose}
-            className="md:hidden text-sidebar-foreground/60"
-            aria-label="Close"
-          >
-            <X className="size-4" />
-          </button>
-        </div>
-
-        <TooltipProvider delayDuration={150}>
-          <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1">
-            {/* Pinned: Overview */}
-            <ul className="space-y-0.5 mb-2">
-              <NavLink
-                to={PINNED.to}
-                icon={<PINNED.icon className="size-4" />}
-                label={t.nav[PINNED.key]}
-                active={path === PINNED.to}
-                collapsed={collapsed}
-                onClick={onClose}
-              />
-            </ul>
-
-            {visibleNav.map((group) => {
-              const Icon = GROUP_ICONS[group.id];
-              const isOpen = openGroups[group.id] ?? true;
-              const hasActive = group.items.some((it) => path.startsWith(it.to));
-
-              // Collapsed sidebar: just show items flat with separators
-              if (collapsed) {
-                return (
-                  <div key={group.id} className="hidden md:block">
-                    <div className="my-2 h-px bg-sidebar-border/50" />
-                    <ul className="space-y-0.5">
-                      {group.items.map((it) => (
-                        <NavLink
-                          key={it.to}
-                          to={it.to}
-                          icon={<it.icon className="size-4" />}
-                          label={t.nav[it.key]}
-                          active={it.to === activeTo}
-                          collapsed
-                          onClick={onClose}
-                        />
-                      ))}
-                    </ul>
-                  </div>
-                );
-              }
-
-              return (
-                <div key={group.id}>
-                  <button
-                    onClick={() => toggle(group.id)}
-                    className={cn(
-                      "w-full flex items-center gap-2 rounded-md px-2 py-1 text-xs font-semibold transition-colors",
-                      hasActive
-                        ? "text-sidebar-foreground"
-                        : "text-sidebar-foreground/55 hover:text-sidebar-foreground hover:bg-sidebar-accent/40",
-                    )}
-                    aria-expanded={isOpen}
-                  >
-                    <Icon className="size-3.5" />
-                    <span className="flex-1 text-left">{groupTitle[group.id]}</span>
-                    <ChevronDown
-                      className={cn("size-3 transition-transform", !isOpen && "-rotate-90")}
-                    />
-                  </button>
-                  {isOpen && (
-                    <ul className="mt-0.5 ml-2 pl-2 border-l border-sidebar-border/60 space-y-0.5">
-                      {group.items.map((it) => (
-                        <NavLink
-                          key={it.to}
-                          to={it.to}
-                          icon={<it.icon className="size-4" />}
-                          label={t.nav[it.key]}
-                          active={it.to === activeTo}
-                          collapsed={false}
-                          onClick={onClose}
-                        />
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              );
-            })}
-          </nav>
-        </TooltipProvider>
-
-        <div className={cn("border-t border-sidebar-border p-3 space-y-2", collapsed && "md:px-2")}>
-          <div className={cn("flex items-center gap-2 text-xs", collapsed && "md:justify-center")}>
-            <span className="size-2 rounded-full bg-[var(--success)] animate-pulse" />
-            {!collapsed && <span className="text-sidebar-foreground/70">{t.live.connected}</span>}
           </div>
           {!collapsed && user && (
-            <div className="flex items-center gap-2 rounded-md bg-sidebar-accent/40 px-2 py-1.5">
-              <div className="size-7 grid place-items-center rounded-full bg-primary text-primary-foreground text-xs font-semibold">
-                {user.username.slice(0, 2).toUpperCase()}
-              </div>
+            <div
+              className="flex items-center gap-2 rounded-md px-2 py-1.5"
+              style={{ backgroundColor: "var(--color-neutral)" }}
+            >
+              <Avatar name={user.username} size={32} />
               <div className="min-w-0">
-                <p className="text-xs font-medium truncate">{user.username}</p>
-                <p className="text-[10px] text-sidebar-foreground/60">
+                <p className="text-xs font-medium truncate text-[var(--color-text-primary)]">
+                  {user.username}
+                </p>
+                <p className="text-[10px] text-[var(--color-text-secondary)]">
                   {user.is_admin ? "Admin" : "User"}
                 </p>
               </div>
             </div>
           )}
         </div>
-      </aside>
-    </>
+      }
+    >
+      <SideNavSection title={t.nav.overview} isHeaderHidden>
+        <SideNavItem
+          label={t.nav[PINNED.key]}
+          icon={<PINNED.icon className="size-4" />}
+          href={PINNED.to}
+          isSelected={path === PINNED.to}
+        />
+      </SideNavSection>
+
+      {visibleNav.map((group) => {
+        const Icon = GROUP_ICONS[group.id];
+        return (
+          <SideNavItem
+            key={group.id}
+            label={groupTitle[group.id]}
+            icon={<Icon className="size-4" />}
+            collapsible={{
+              isCollapsed: !openGroups[group.id],
+              onCollapsedChange: (v) => setOpenGroups((prev) => ({ ...prev, [group.id]: !v })),
+            }}
+          >
+            {group.items.map((it) => (
+              <SideNavItem
+                key={it.to}
+                label={t.nav[it.key]}
+                icon={<it.icon className="size-4" />}
+                href={it.to}
+                isSelected={it.to === activeTo}
+              />
+            ))}
+          </SideNavItem>
+        );
+      })}
+    </SideNav>
   );
 }

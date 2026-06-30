@@ -28,19 +28,19 @@ export function AreaTrend({ data, series, height = 160, yDomain, xKey = "t" }: P
         <XAxis dataKey={xKey} tick={false} axisLine={false} />
         <YAxis
           domain={yDomain}
-          tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+          tick={{ fontSize: 10, fill: "var(--color-text-secondary)" }}
           axisLine={false}
           tickLine={false}
           width={28}
         />
         <Tooltip
           contentStyle={{
-            background: "var(--popover)",
-            border: "1px solid var(--border)",
+            background: "var(--color-background-popover)",
+            border: "1px solid var(--color-border)",
             borderRadius: 8,
             fontSize: 12,
           }}
-          labelStyle={{ color: "var(--muted-foreground)" }}
+          labelStyle={{ color: "var(--color-text-secondary)" }}
           formatter={(v: number) => v.toFixed(1)}
         />
         {series.map((s) => (

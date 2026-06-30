@@ -3,9 +3,7 @@
 ## Purpose
 
 Install self-hosted [Hindsight](https://github.com/vectorize-io/hindsight) as the
-CortexOS memory backend. Hindsight is the primary memory backend; the legacy
-Honcho stack (`32-honcho.md`) is left deployed read-only as a rollback safety
-net.
+CortexOS memory backend. Hindsight is the sole memory backend (Honcho was fully retired; its memory was migrated here).
 
 Live container: `hindsight-api`. Hindsight exposes a REST API on `:8888` and a
 control-plane UI on `:9999`. `/` may return 404; use `/health` and the control
@@ -205,7 +203,7 @@ mapping is deterministic:
   `cieucpb`, `cleo`, `cortex` are read from `hermes/profiles.json`).
 - All other workspaces → unchanged.
 
-Honcho stays deployed read-only throughout this migration.
+Honcho was removed after this migration completed (catalog rows dropped by migration 027; a pre-takedown DB dump is archived under `/opt/cortexos/.backups/`).
 
 ```bash
 # Dry-run: count conclusions per workspace, write nothing
@@ -236,8 +234,7 @@ docker compose down
 sudo tailscale serve --https=8888 off
 ```
 
-Honcho remains the fallback. Re-point any clients that have switched back to
-Honcho env vars.
+Hindsight is the sole memory backend; there is no Honcho fallback to re-point.
 
 ## Next
 

@@ -27,7 +27,11 @@ export function CopyButton({
       }}
       aria-label="Copy"
     >
-      {done ? <Check className="size-3.5 text-[var(--success)]" /> : <Copy className="size-3.5" />}
+      {done ? (
+        <Check className="size-3.5 text-[var(--color-success)]" />
+      ) : (
+        <Copy className="size-3.5" />
+      )}
     </Button>
   );
 }

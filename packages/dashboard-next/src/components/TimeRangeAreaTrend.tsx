@@ -54,7 +54,7 @@ export function TimeRangeAreaTrend({
   return (
     <div className={cn("space-y-2", className)}>
       <div className="flex justify-end">
-        <div className="inline-flex rounded-md border bg-card p-0.5 text-xs">
+        <div className="inline-flex rounded-md border bg-[var(--color-background-card)] p-0.5 text-xs">
           {(["1h", "24h", "7d"] as TimeRange[]).map((r) => (
             <button
               key={r}
@@ -63,8 +63,8 @@ export function TimeRangeAreaTrend({
               className={cn(
                 "px-2.5 py-1 rounded-sm transition-colors",
                 range === r
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground",
+                  ? "bg-[var(--color-accent)] text-[var(--color-on-accent)]"
+                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]",
               )}
             >
               {RANGE_LABEL[r]}

@@ -29,7 +29,6 @@ const EXPECTED_TABLES = [
   "badges",
   "service_badges",
   "alerts",
-  "agent_gateway_audit",
   "projects",
   "messaging_routes",
   "pam_users",
@@ -57,10 +56,6 @@ const CRITICAL_INDEXES = [
   "idx_admin_sessions_token",
   "idx_admin_sessions_user",
   "idx_admin_sessions_expires_at",
-  // Audit (agent_gateway)
-  "idx_agent_gateway_audit_ts",
-  "idx_agent_gateway_audit_role_ts",
-  "idx_agent_gateway_audit_actor_ts",
   // Audit (hash chain)
   "idx_audit_log_event_type",
   "idx_audit_log_subject",
@@ -168,15 +163,6 @@ describe("migration roundtrip", () => {
       client.exec(`
 				INSERT INTO dashboard_command_audit (request_id, command, argv)
 				VALUES ('test-req-1', 'echo', '[]'::jsonb)
-			`),
-    ).rejects.toThrow();
-  });
-
-  it("enforces the agent_gateway_audit CHECK constraints", async () => {
-    await expect(
-      client.exec(`
-				INSERT INTO agent_gateway_audit (tool_class, args_hash, decision, result)
-				VALUES ('not-a-tool-class', 'hash', 'allow', 'ok')
 			`),
     ).rejects.toThrow();
   });

@@ -160,7 +160,7 @@ Tailscale creates a **secure tunnel** between your devices so you can access you
 1. Hermes receives a task (e.g., "write code")
           │
           ▼
-2. Checks memory (Honcho) for context
+2. Checks memory (Hindsight) for context
           │
           ▼
 3. Asks 9Router for AI assistance
@@ -175,7 +175,7 @@ Tailscale creates a **secure tunnel** between your devices so you can access you
 6. Saves results to database
           │
           ▼
-7. Updates memory (Honcho)
+7. Updates memory (Hindsight)
           │
           ▼
 8. Reports back to you

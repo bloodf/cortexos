@@ -34,22 +34,24 @@ export function DetailDrawer({ open, onOpenChange, title, description, tabs, act
           </SheetTitle>
           {description && <SheetDescription>{description}</SheetDescription>}
         </SheetHeader>
-        <Tabs defaultValue={tabs[0]?.id} className="flex-1 min-h-0 flex flex-col">
-          <TabsList className="mx-6 mt-3 w-fit">
-            {tabs.map((t) => (
-              <TabsTrigger key={t.id} value={t.id}>
-                {t.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
-            {tabs.map((t) => (
-              <TabsContent key={t.id} value={t.id} className="mt-0 space-y-4">
-                {t.content}
-              </TabsContent>
-            ))}
-          </div>
-        </Tabs>
+        <div className="flex-1 min-h-0 flex flex-col">
+          <Tabs defaultValue={tabs[0]?.id}>
+            <TabsList className="mx-6 mt-3 w-fit">
+              {tabs.map((t) => (
+                <TabsTrigger key={t.id} value={t.id}>
+                  {t.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
+              {tabs.map((t) => (
+                <TabsContent key={t.id} value={t.id} className="mt-0 space-y-4">
+                  {t.content}
+                </TabsContent>
+              ))}
+            </div>
+          </Tabs>
+        </div>
       </SheetContent>
     </Sheet>
   );

@@ -1,205 +1,21 @@
 /**
  * Audit repository.
  *
- * Two concerns:
- *
- *   1. **agent_gateway_audit** (APPEND-ONLY) — writes via `pg` role with
- *      INSERT,SELECT only (UPDATE,DELETE,TRUNCATE are revoked at deploy
- *      time per migrations/001_schema.sql:252-262). This repo therefore
- *      exports ONLY `insertAgentGatewayAudit` and read methods; no
- *      `updateAgentGatewayAudit` or `deleteAgentGatewayAudit`. If a
- *      caller needs to "remove" a row, they don't — the row stays as
- *      a permanent record of the attempt.
- *
- *   2. **audit_log** (HASH-CHAINED, TimescaleDB hypertable) — append
- *      and verify. The canonical writer is `@cortexos/audit#append`
- *      (pool-injected) which takes a row-level lock on the chain tip.
- *      This repo provides a Drizzle-shaped wrapper around the same
- *      chain verification algorithm so the SvelteKit endpoints don't
- *      need a separate client.
- *
- * No Drizzle writes for `agent_gateway_audit` go through `update()` or
- * `delete()` — the TypeScript types reflect this.
+ * Hash-chained `audit_log` table: append (`appendAuditLog`) and verify
+ * (`verifyAuditLogChain`). The canonical writer is `@cortexos/audit#append`
+ * (pool-injected) which takes a row-level lock on the chain tip; this repo
+ * provides a Drizzle-shaped wrapper around the same chain verification
+ * algorithm so the server fns don't need a separate client.
  */
 
 import { and, asc, desc, eq, gte, lte, sql, type SQL } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import type { DbClient } from "../client";
-import { agentGatewayAudit, auditLog } from "../schema";
-import type { AgentGatewayAuditRow, AuditLogEntry } from "../schema";
+import { auditLog } from "../schema";
+import type { AuditLogEntry } from "../schema";
 import { sha256Hex } from "../../crypto";
 
-export type ToolClass = "safe" | "privileged" | "destructive";
-export type Decision = "allow" | "deny" | "prompt";
-export type AuditResult = "ok" | "err" | "timeout" | "denied";
-
-const TOOL_CLASSES: ReadonlySet<ToolClass> = new Set(["safe", "privileged", "destructive"]);
-const DECISIONS: ReadonlySet<Decision> = new Set(["allow", "deny", "prompt"]);
-const RESULTS: ReadonlySet<AuditResult> = new Set(["ok", "err", "timeout", "denied"]);
-
-function validateEnum<T extends string>(
-  value: string,
-  allowed: ReadonlySet<T>,
-  field: string,
-): asserts value is T {
-  if (!allowed.has(value as T)) {
-    throw new Error(`Invalid ${field}: ${value}`);
-  }
-}
-
 const GENESIS_PREV_HASH = "0".repeat(64);
-
-// =====================================================================
-// agent_gateway_audit (APPEND-ONLY)
-// =====================================================================
-
-export interface InsertAgentGatewayAuditInput {
-  actorUserId?: number | null;
-  sessionId?: string | null;
-  requestId?: string | null;
-  role?: string | null;
-  account?: string | null;
-  tool?: string | null;
-  toolClass: ToolClass;
-  argsHash: string;
-  approvalId?: string | null;
-  nonce?: string | null;
-  policyVersion?: number | null;
-  decision: Decision;
-  decisionReason?: string | null;
-  beforeStateHash?: string | null;
-  afterStateHash?: string | null;
-  latencyMs?: number | null;
-  result: AuditResult;
-}
-
-/**
- * Append an `agent_gateway_audit` row. The DB role for the dashboard
- * has INSERT,SELECT only; this is a pure INSERT — no UPDATE, no DELETE.
- */
-export async function insertAgentGatewayAudit(
-  db: DbClient,
-  input: InsertAgentGatewayAuditInput,
-): Promise<AgentGatewayAuditRow> {
-  validateEnum(input.toolClass, TOOL_CLASSES, "tool_class");
-  validateEnum(input.decision, DECISIONS, "decision");
-  validateEnum(input.result, RESULTS, "result");
-  if (!input.argsHash) {
-    throw new Error("args_hash is required");
-  }
-  const inserted = await db
-    .insert(agentGatewayAudit)
-    .values({
-      actorUserId: input.actorUserId ?? null,
-      sessionId: input.sessionId ?? null,
-      requestId: input.requestId ?? null,
-      role: input.role ?? null,
-      account: input.account ?? null,
-      tool: input.tool ?? null,
-      toolClass: input.toolClass,
-      argsHash: input.argsHash,
-      approvalId: input.approvalId ?? null,
-      nonce: input.nonce ?? null,
-      policyVersion: input.policyVersion ?? null,
-      decision: input.decision,
-      decisionReason: input.decisionReason ?? null,
-      beforeStateHash: input.beforeStateHash ?? null,
-      afterStateHash: input.afterStateHash ?? null,
-      latencyMs: input.latencyMs ?? null,
-      result: input.result,
-    })
-    .returning();
-  const row = inserted[0];
-  if (!row) throw new Error("Failed to insert agent_gateway_audit row");
-  return row;
-}
-
-export interface ListAgentGatewayAuditFilters {
-  actorUserId?: number;
-  role?: string;
-  account?: string;
-  tool?: string;
-  toolClass?: ToolClass;
-  decision?: Decision;
-  result?: AuditResult;
-  requestId?: string;
-  since?: Date;
-  until?: Date;
-  limit?: number;
-  offset?: number;
-}
-
-export async function listAgentGatewayAudit(
-  db: DbClient,
-  filters: ListAgentGatewayAuditFilters = {},
-): Promise<AgentGatewayAuditRow[]> {
-  const conds: SQL[] = [];
-  if (filters.actorUserId !== undefined) {
-    conds.push(eq(agentGatewayAudit.actorUserId, filters.actorUserId));
-  }
-  if (filters.role !== undefined) conds.push(eq(agentGatewayAudit.role, filters.role));
-  if (filters.account !== undefined) conds.push(eq(agentGatewayAudit.account, filters.account));
-  if (filters.tool !== undefined) conds.push(eq(agentGatewayAudit.tool, filters.tool));
-  if (filters.toolClass !== undefined) {
-    validateEnum(filters.toolClass, TOOL_CLASSES, "tool_class");
-    conds.push(eq(agentGatewayAudit.toolClass, filters.toolClass));
-  }
-  if (filters.decision !== undefined) {
-    validateEnum(filters.decision, DECISIONS, "decision");
-    conds.push(eq(agentGatewayAudit.decision, filters.decision));
-  }
-  if (filters.result !== undefined) {
-    validateEnum(filters.result, RESULTS, "result");
-    conds.push(eq(agentGatewayAudit.result, filters.result));
-  }
-  if (filters.requestId !== undefined) {
-    conds.push(eq(agentGatewayAudit.requestId, filters.requestId));
-  }
-  if (filters.since) conds.push(gte(agentGatewayAudit.ts, filters.since));
-  if (filters.until) conds.push(lte(agentGatewayAudit.ts, filters.until));
-  const where = conds.length > 0 ? and(...conds) : undefined;
-  const limit = Math.max(1, Math.min(filters.limit ?? 100, 1000));
-  const offset = Math.max(0, filters.offset ?? 0);
-  return db
-    .select()
-    .from(agentGatewayAudit)
-    .where(where)
-    .orderBy(desc(agentGatewayAudit.ts))
-    .limit(limit)
-    .offset(offset);
-}
-
-export async function countAgentGatewayAudit(
-  db: DbClient,
-  filters: Omit<ListAgentGatewayAuditFilters, "limit" | "offset"> = {},
-): Promise<number> {
-  const conds: SQL[] = [];
-  if (filters.actorUserId !== undefined) {
-    conds.push(eq(agentGatewayAudit.actorUserId, filters.actorUserId));
-  }
-  if (filters.role !== undefined) conds.push(eq(agentGatewayAudit.role, filters.role));
-  if (filters.account !== undefined) conds.push(eq(agentGatewayAudit.account, filters.account));
-  if (filters.toolClass !== undefined) {
-    validateEnum(filters.toolClass, TOOL_CLASSES, "tool_class");
-    conds.push(eq(agentGatewayAudit.toolClass, filters.toolClass));
-  }
-  if (filters.decision !== undefined) {
-    validateEnum(filters.decision, DECISIONS, "decision");
-    conds.push(eq(agentGatewayAudit.decision, filters.decision));
-  }
-  if (filters.result !== undefined) {
-    validateEnum(filters.result, RESULTS, "result");
-    conds.push(eq(agentGatewayAudit.result, filters.result));
-  }
-  if (filters.since) conds.push(gte(agentGatewayAudit.ts, filters.since));
-  if (filters.until) conds.push(lte(agentGatewayAudit.ts, filters.until));
-  const where = conds.length > 0 ? and(...conds) : undefined;
-  const res = await db
-    .select({ c: sql<number>`COUNT(*)::int` })
-    .from(agentGatewayAudit)
-    .where(where);
-  return res[0]?.c ?? 0;
-}
 
 // =====================================================================
 // audit_log (HASH-CHAINED) — chain verification

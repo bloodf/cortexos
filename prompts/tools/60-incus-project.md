@@ -92,9 +92,12 @@ model:
   id: cc/claude-opus-4-8
   reasoning: true
 memory:
-  provider: honcho
-  baseUrl: http://127.0.0.1:18690
-  workspace: PROJECT_NAME
+  memory_enabled: true
+  provider: hindsight
+hindsight:
+  config_path: /opt/cortexos/hermes/profiles/PROJECT_NAME/hindsight-config.json
+  auto_recall: true
+  auto_retain: true
 EOF
 ```
 

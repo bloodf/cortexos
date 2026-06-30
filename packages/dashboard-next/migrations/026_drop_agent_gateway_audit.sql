@@ -1,0 +1,12 @@
+-- Drop the unused agent_gateway_audit table.
+--
+-- The cortex-agentgateway MCP proxy (its only writer) was removed from the
+-- project. The dashboard's audit logging uses the hash-chained `audit_log`
+-- table (appendAuditLog / verifyAuditLogChain), and no route, server-fn, or
+-- UI ever read agent_gateway_audit — the Audit page reads `audit_log` via
+-- listAudit. The Drizzle schema definition, repo, and tests were removed
+-- alongside this migration.
+--
+-- Safe no-op on databases where the table was never created (001_schema.sql
+-- used CREATE TABLE IF NOT EXISTS); it was already absent in production.
+DROP TABLE IF EXISTS agent_gateway_audit;

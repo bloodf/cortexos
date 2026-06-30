@@ -7,11 +7,7 @@
  * applies the SQL files in lexical order — the Drizzle schema is read-only
  * for migrations.
  *
- * Two tables of note:
- *   - `agentGatewayAudit` (table: agent_gateway_audit) is **append-only**.
- *     The `dashboard` DB role has INSERT,SELECT but REVOKE UPDATE,DELETE,
- *     TRUNCATE. This is enforced at deploy time, not at the Drizzle level
- *     — we do NOT export UPDATE/DELETE helpers for it.
+ * One table of note:
  *   - `dashboardCommandAudit` is a two-phase lifecycle table: INSERT with
  *     status='created' before dispatch, UPDATE to fill in completion fields
  *     after the root helper returns. Not append-only.
@@ -189,50 +185,6 @@ export const alerts = pgTable(
 
 export type Alert = typeof alerts.$inferSelect;
 export type NewAlert = typeof alerts.$inferInsert;
-
-// =====================================================================
-// Agent gateway audit (APPEND-ONLY by DB role grants)
-// =====================================================================
-
-export const agentGatewayAudit = pgTable(
-  "agent_gateway_audit",
-  {
-    id: bigserial("id", { mode: "number" }).primaryKey(),
-    ts: timestamp("ts", { withTimezone: false }).notNull().defaultNow(),
-    actorUserId: integer("actor_user_id"),
-    sessionId: varchar("session_id", { length: 128 }),
-    requestId: varchar("request_id", { length: 128 }),
-    role: varchar("role", { length: 128 }),
-    account: varchar("account", { length: 128 }),
-    tool: varchar("tool", { length: 255 }),
-    toolClass: varchar("tool_class", { length: 16 }).notNull(),
-    argsHash: text("args_hash").notNull(),
-    approvalId: varchar("approval_id", { length: 128 }),
-    nonce: varchar("nonce", { length: 128 }),
-    policyVersion: integer("policy_version"),
-    decision: varchar("decision", { length: 16 }).notNull(),
-    decisionReason: text("decision_reason"),
-    beforeStateHash: text("before_state_hash"),
-    afterStateHash: text("after_state_hash"),
-    latencyMs: integer("latency_ms"),
-    result: varchar("result", { length: 16 }).notNull(),
-  },
-  (t) => [
-    index("idx_agent_gateway_audit_ts").on(t.ts.desc()),
-    index("idx_agent_gateway_audit_role_ts").on(t.role, t.ts.desc()),
-    index("idx_agent_gateway_audit_actor_ts").on(t.actorUserId, t.ts.desc()),
-    index("idx_agent_gateway_audit_request_id").on(t.requestId),
-    check(
-      "agent_gateway_audit_tool_class_check",
-      sql`${t.toolClass} IN ('safe','privileged','destructive')`,
-    ),
-    check("agent_gateway_audit_decision_check", sql`${t.decision} IN ('allow','deny','prompt')`),
-    check("agent_gateway_audit_result_check", sql`${t.result} IN ('ok','err','timeout','denied')`),
-  ],
-);
-
-export type AgentGatewayAuditRow = typeof agentGatewayAudit.$inferSelect;
-export type NewAgentGatewayAuditRow = typeof agentGatewayAudit.$inferInsert;
 
 // =====================================================================
 // Projects
@@ -817,7 +769,6 @@ export const schema = {
   badges,
   serviceBadges,
   alerts,
-  agentGatewayAudit,
   projects,
   messagingRoutes,
   pamUsers,

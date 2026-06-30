@@ -11,7 +11,6 @@ Tailscale and a small set of generated files.
   - `127.0.0.1:8787` → VPS Headroom
   - `127.0.0.1:11434` → VPS 9Router
   - `127.0.0.1:18082` → VPS anthropic-proxy
-  - `127.0.0.1:18690` → VPS Honcho memory API (legacy, read-only)
   - `127.0.0.1:8888` → VPS Hindsight memory API (primary)
 - **`~/.claude/bin/claude` wrapper**:
   - Normal Claude Code → `127.0.0.1:8787` (VPS Headroom)
@@ -28,7 +27,7 @@ Tailscale and a small set of generated files.
 ## Prerequisites
 
 - Both the local machine and the CortexOS VPS are on the same Tailscale tailnet.
-- The VPS has Headroom, 9Router, the anthropic-proxy, Hindsight (primary) and Honcho (legacy, read-only) running on their default localhost ports.
+- The VPS has Headroom, 9Router, the anthropic-proxy, and Hindsight (primary memory backend) running on their default localhost ports.
 - Local machine has `ssh`, `curl`, `systemctl --user`, and Claude Code installed.
 - Key-based SSH auth to the VPS user that owns `/opt/cortexos/.secrets/9router.env`.
 

@@ -1,0 +1,13 @@
+-- Migration 027: Remove the Honcho service-catalog rows.
+--
+-- Honcho was fully retired: its docker stack (honcho-api/deriver/database/redis),
+-- the honcho-mcp + ollama-honcho-embeddings-proxy systemd units, and the
+-- @honcho-ai/sdk dependency are gone. All Honcho memory was migrated into
+-- Hindsight (scripts/honcho-to-hindsight-migrate.mjs; 1195/1195 messages,
+-- 0 failed) and a pre-takedown DB dump is archived under
+-- /opt/cortexos/.backups/honcho-pre-takedown-*.sql.
+--
+-- Seed migrations 017/019/021 inserted these rows; this drops them so fresh
+-- installs and re-deploys no longer list Honcho in /apps or health views.
+-- Idempotent.
+DELETE FROM services WHERE slug IN ('honcho', 'honcho-mcp', 'ollama-honcho-embeddings-proxy');

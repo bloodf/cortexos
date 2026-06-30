@@ -62,7 +62,11 @@ export const PINNED: NavItem = { to: "/overview", key: "overview", icon: Activit
 export const NAV: NavGroup[] = [
   {
     id: "platform",
-    items: [{ to: "/agents", key: "agents", icon: Bot }],
+    items: [
+      { to: "/apps", key: "apps", icon: LayoutGrid },
+      { to: "/healthcheck", key: "healthcheck", icon: HeartPulse },
+      { to: "/agents", key: "agents", icon: Bot },
+    ],
   },
   {
     id: "infra",

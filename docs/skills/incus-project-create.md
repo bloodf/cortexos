@@ -53,7 +53,7 @@ listed below.
    the script prints the instance's public key so the operator can
    add it to GitHub manually.
 5. **Hermes setup** — write `/opt/cortexos/hermes/profiles/<NAME>/
-   config.yaml` (9router model, honcho memory workspace), then
+   config.yaml` (9router model, hindsight memory bank), then
    install a `hermes-gateway-<NAME>.service` systemd unit. The
    per-profile port is 8932 and the public path is
    `/hermes/<NAME>/v1`.

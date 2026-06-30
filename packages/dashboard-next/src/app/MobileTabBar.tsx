@@ -7,7 +7,7 @@ export function MobileTabBar() {
   const t = useT();
   const path = useRouterState({ select: (s) => s.location.pathname });
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-30 md:hidden bg-background/95 backdrop-blur border-t flex">
+    <nav className="fixed bottom-0 inset-x-0 z-30 md:hidden flex border-t bg-[var(--color-background-surface)]/95 backdrop-blur">
       {MOBILE_TABS.map((it) => {
         const active = path === it.to;
         return (
@@ -16,7 +16,9 @@ export function MobileTabBar() {
             to={it.to}
             className={cn(
               "flex-1 flex flex-col items-center gap-0.5 py-2 text-[10px]",
-              active ? "text-primary" : "text-muted-foreground hover:text-foreground",
+              active
+                ? "text-[var(--color-text-accent)]"
+                : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]",
             )}
           >
             <it.icon className="size-5" />

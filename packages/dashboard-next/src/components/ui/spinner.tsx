@@ -1,16 +1,9 @@
-import { Loader2Icon } from "lucide-react";
-
+import * as React from "react";
+import { Spinner as AstryxSpinner } from "@astryxdesign/core/Spinner";
 import { cn } from "@/lib/utils";
 
-function Spinner({ className, ...props }: React.ComponentProps<"svg">) {
-  return (
-    <Loader2Icon
-      role="status"
-      aria-label="Loading"
-      className={cn("size-4 animate-spin", className)}
-      {...props}
-    />
-  );
+function Spinner({ className, ...props }: React.ComponentProps<typeof AstryxSpinner>) {
+  return <AstryxSpinner className={cn(className)} {...props} />;
 }
 
 export { Spinner };

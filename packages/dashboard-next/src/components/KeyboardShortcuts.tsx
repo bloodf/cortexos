@@ -56,18 +56,18 @@ export function KeyboardShortcuts({ open, onOpenChange }: Props) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
           {GROUPS.map((g) => (
             <div key={g.label}>
-              <h3 className="text-[10px] uppercase tracking-wide text-muted-foreground mb-2 font-semibold">
+              <h3 className="text-[10px] uppercase tracking-wide text-[var(--color-text-secondary)] mb-2 font-semibold">
                 {g.label}
               </h3>
               <ul className="space-y-1.5">
                 {g.items.map((it) => (
                   <li key={it.label} className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">{it.label}</span>
+                    <span className="text-[var(--color-text-secondary)]">{it.label}</span>
                     <span className="flex gap-1">
                       {it.keys.map((k) => (
                         <kbd
                           key={k}
-                          className="px-1.5 py-0.5 border rounded text-[11px] font-mono bg-muted/40 min-w-[22px] text-center"
+                          className="px-1.5 py-0.5 border rounded text-[11px] font-mono bg-[var(--color-background-muted)]/40 min-w-[22px] text-center"
                         >
                           {k}
                         </kbd>

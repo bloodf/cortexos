@@ -38,13 +38,15 @@ export function MetricCard({
           )}
         >
           <div className="space-y-1 min-w-0 flex-1">
-            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground truncate">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--color-text-secondary)] truncate">
               {label}
             </p>
             <p className="text-2xl font-semibold tabular-nums leading-tight truncate">{value}</p>
-            {hint && <p className="text-xs text-muted-foreground truncate">{hint}</p>}
+            {hint && <p className="text-xs text-[var(--color-text-secondary)] truncate">{hint}</p>}
           </div>
-          {icon && !horizontal && <div className="text-muted-foreground shrink-0">{icon}</div>}
+          {icon && !horizontal && (
+            <div className="text-[var(--color-text-secondary)] shrink-0">{icon}</div>
+          )}
         </div>
         {trend && (
           <div

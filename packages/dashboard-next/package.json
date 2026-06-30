@@ -17,6 +17,8 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.106",
+    "@astryxdesign/core": "^0.1.1",
+    "@astryxdesign/theme-neutral": "^0.1.1",
     "@cortexos/contracts": "workspace:*",
     "@electric-sql/pglite": "^0.2.0",
     "@hookform/resolvers": "^5.2.2",
@@ -94,6 +96,7 @@
     "authenticate-pam": "^1.0.1"
   },
   "devDependencies": {
+    "@astryxdesign/cli": "^0.1.1",
     "@eslint/js": "^9.32.0",
     "@lovable.dev/vite-tanstack-config": "^2.1.1",
     "@testing-library/jest-dom": "^6.9.1",

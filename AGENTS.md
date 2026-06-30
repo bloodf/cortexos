@@ -17,7 +17,7 @@ Self-hosted AI infrastructure system: deployment docs and installer prompts, Doc
 - Single Tailscale MagicDNS FQDN with path-based reverse proxy (Caddy) for all web UIs - no subdomains.
 - Untrusted code runs sandboxed via `stacks/cortex-sandbox-runner` (gVisor).
 - Package management on hosts goes through `scripts/pkg.sh`, not raw `apt-get`.
-- Langfuse v3 (ClickHouse+MinIO) is the observability stack; Opik is retired.
+- Observability is Grafana + Prometheus + Loki (Fluent-bit pipeline).
 
 ## Conventions
 
@@ -32,6 +32,5 @@ Self-hosted AI infrastructure system: deployment docs and installer prompts, Doc
 - `templates/` - systemd units and config templates copied to servers
 - `stacks/` - Docker Compose service stacks
 - `packages/dashboard-next/` - TanStack Start + React 19 control dashboard (3 locales: en, es, pt-br); live on `cortex-dashboard.service` at `:3080`
-- `packages/cortex-telemetry/` - OpenLLMetry instrumentation for Langfuse
 - `scripts/` - host ops scripts (`pkg.sh`, smoke tests, backups)
 - `docs/` - deployment, secrets, and architecture docs

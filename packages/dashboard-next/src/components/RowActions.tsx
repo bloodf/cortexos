@@ -30,9 +30,9 @@ export interface RowAction {
 
 const VARIANT_COLOR: Record<RowActionVariant, string> = {
   outline: "",
-  "outline-success": "text-[var(--success)]",
-  "outline-warning": "text-[var(--warning)]",
-  "outline-destructive": "text-[var(--destructive)]",
+  "outline-success": "text-[var(--color-success)]",
+  "outline-warning": "text-[var(--color-warning)]",
+  "outline-destructive": "text-[var(--color-error)]",
   ghost: "",
 };
 

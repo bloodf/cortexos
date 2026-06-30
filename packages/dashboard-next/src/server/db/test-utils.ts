@@ -138,7 +138,6 @@ export async function resetTestDb(db: PgliteDbClient): Promise<void> {
   await db.delete(schema.alertHistory);
   await db.delete(schema.alertRules);
   await db.delete(schema.alerts);
-  await db.delete(schema.agentGatewayAudit);
   await db.delete(schema.auditLog);
   await db.delete(schema.serviceHealthLog);
   await db.delete(schema.serviceBadges);

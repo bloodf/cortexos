@@ -11,8 +11,7 @@ Summary:
 - Dashboard root operations go through a Unix-socket helper with Postgres and
    journald audit.
 
-> Honcho is kept deployed read-only as a rollback safety net; Hindsight is the
-> primary memory backend.
+> Hindsight is the primary memory backend.
 
 ---
 
@@ -30,7 +29,6 @@ Summary:
 │  │  Redis       │  │  Audit Log   │    │
 │  │  9Router     │  │              │  │
 │  │  Hindsight   │  │              │  │
-│  │  Honcho*     │  │              │  │
 │  └──────┬───────┘                      │
 │         │                              │
 │  ┌──────┴───────────────────────┐     │

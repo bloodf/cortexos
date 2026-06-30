@@ -231,7 +231,7 @@ export function DataTable<T>({
       <tr key={i} className="border-b last:border-0" aria-hidden>
         {selectable && (
           <td className="px-3 py-2">
-            <div className="size-4 rounded bg-muted/70 animate-pulse motion-reduce:animate-none" />
+            <div className="size-4 rounded bg-[var(--color-background-muted)]/70 animate-pulse motion-reduce:animate-none" />
           </td>
         )}
         {columns.map((c, ci) => {
@@ -243,7 +243,7 @@ export function DataTable<T>({
             <td key={c.key} className={cn("px-3", density === "compact" ? "py-2" : "py-3")}>
               <div
                 className={cn(
-                  "h-3 rounded bg-muted/70 animate-pulse motion-reduce:animate-none",
+                  "h-3 rounded bg-[var(--color-background-muted)]/70 animate-pulse motion-reduce:animate-none",
                   widthClass,
                 )}
               />
@@ -257,7 +257,7 @@ export function DataTable<T>({
       <tr>
         <td
           colSpan={columns.length + (selectable ? 1 : 0)}
-          className="px-3 py-10 text-center text-destructive text-sm"
+          className="px-3 py-10 text-center text-[var(--color-error)] text-sm"
           role="alert"
         >
           Failed to load. The request errored — it will retry automatically.
@@ -269,7 +269,7 @@ export function DataTable<T>({
       <tr>
         <td
           colSpan={columns.length + (selectable ? 1 : 0)}
-          className="px-3 py-10 text-center text-muted-foreground text-sm"
+          className="px-3 py-10 text-center text-[var(--color-text-secondary)] text-sm"
         >
           {empty ?? "No results"}
         </td>
@@ -282,7 +282,10 @@ export function DataTable<T>({
       return (
         <tr
           key={id}
-          className={cn("border-b last:border-0 hover:bg-muted/30", isSel && "bg-primary/5")}
+          className={cn(
+            "border-b last:border-0 hover:bg-[var(--color-background-muted)]/30",
+            isSel && "bg-[var(--color-accent)]/5",
+          )}
           onContextMenu={onRowContextMenu ? (e) => onRowContextMenu(row, e) : undefined}
         >
           {selectable && (
@@ -313,7 +316,7 @@ export function DataTable<T>({
         {showSearch && (
           <div className="relative flex-1 min-w-[180px] max-w-xs">
             <Search
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground"
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-[var(--color-text-secondary)]"
               aria-hidden
             />
             <Input
@@ -325,7 +328,7 @@ export function DataTable<T>({
             />
             {server && isServerFetching && (
               <Loader2
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground animate-spin motion-reduce:hidden"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-[var(--color-text-secondary)] animate-spin motion-reduce:hidden"
                 aria-hidden
               />
             )}
@@ -333,7 +336,7 @@ export function DataTable<T>({
         )}
         <div className="flex-1" />
         {showSelectionBar ? (
-          <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-2 py-1 text-xs">
+          <div className="flex items-center gap-2 rounded-md border bg-[var(--color-background-muted)]/40 px-2 py-1 text-xs">
             <span className="font-medium">{selectedRows.length} selected</span>
             {selectionToolbar(selectedRows, clearSelection)}
             <Button size="sm" variant="ghost" onClick={clearSelection}>
@@ -344,11 +347,11 @@ export function DataTable<T>({
           toolbar
         )}
       </div>
-      <div className="rounded-lg border bg-card overflow-hidden">
+      <div className="rounded-lg border bg-[var(--color-background-card)] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+              <tr className="border-b bg-[var(--color-background-muted)]/40 text-left text-xs uppercase tracking-wide text-[var(--color-text-secondary)]">
                 {selectable && (
                   <th className="w-9 px-3 py-2">
                     <Checkbox
@@ -368,7 +371,7 @@ export function DataTable<T>({
                       <button
                         onClick={() => toggleSort(c.key)}
                         aria-label={`Sort by ${typeof c.header === "string" ? c.header : c.key}`}
-                        className="inline-flex items-center gap-1 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                        className="inline-flex items-center gap-1 hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] rounded"
                       >
                         {c.header}
                         <SortIcon sortKey={sortKey} columnKey={c.key} sortDir={sortDir} />
@@ -384,7 +387,7 @@ export function DataTable<T>({
           </table>
         </div>
         {paginate && total > 0 && (
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t px-3 py-2 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t px-3 py-2 text-xs text-[var(--color-text-secondary)]">
             <div className="flex items-center gap-2">
               <span>
                 {`${safePage * pageSize + 1}–${Math.min((safePage + 1) * pageSize, total)} of ${total}`}

@@ -1,17 +1,10 @@
 import * as React from "react";
-
+import { Card as AstryxCard } from "@astryxdesign/core/Card";
 import { cn } from "@/lib/utils";
 
 const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn(
-        "rounded-xl border border-border/60 bg-card text-card-foreground elev-1",
-        className,
-      )}
-      {...props}
-    />
+    <AstryxCard ref={ref} className={cn("text-card-foreground", className)} {...props} />
   ),
 );
 Card.displayName = "Card";
@@ -48,9 +41,6 @@ const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDi
 );
 CardContent.displayName = "CardContent";
 
-// shadcn CardAction primitive — a top-right action slot. Required by the
-// ai-elements Plan component (PlanAction). Placed by self-justifying grid
-// position so it sits in the header's action column.
 const CardAction = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div

@@ -1,26 +1,29 @@
 import * as React from "react";
-import * as CheckboxPrimitive from "@radix-ui/react-checkbox";
-import { Check } from "lucide-react";
-
+import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
 import { cn } from "@/lib/utils";
 
-const Checkbox = React.forwardRef<
-  React.ElementRef<typeof CheckboxPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root>
->(({ className, ...props }, ref) => (
-  <CheckboxPrimitive.Root
-    ref={ref}
-    className={cn(
-      "grid place-content-center peer h-4 w-4 shrink-0 rounded-sm border border-primary shadow cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground",
-      className,
-    )}
-    {...props}
-  >
-    <CheckboxPrimitive.Indicator className={cn("grid place-content-center text-current")}>
-      <Check className="h-4 w-4" />
-    </CheckboxPrimitive.Indicator>
-  </CheckboxPrimitive.Root>
-));
-Checkbox.displayName = CheckboxPrimitive.Root.displayName;
+export interface CheckboxProps extends Omit<
+  React.ComponentProps<typeof CheckboxInput>,
+  "value" | "onChange" | "label"
+> {
+  checked?: boolean | "indeterminate";
+  onCheckedChange?: (checked: boolean | "indeterminate") => void;
+  label?: string;
+}
+
+const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
+  ({ className, checked, onCheckedChange, label, ...props }, ref) => (
+    <CheckboxInput
+      ref={ref}
+      value={checked ?? false}
+      onChange={onCheckedChange}
+      label={label ?? (props["aria-label"] || "Checkbox")}
+      isLabelHidden={!label}
+      className={cn(className)}
+      {...props}
+    />
+  ),
+);
+Checkbox.displayName = "Checkbox";
 
 export { Checkbox };

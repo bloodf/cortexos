@@ -1,8 +1,7 @@
 # 50 - Obot (MCP Gateway)
 
-Obot is the CortexOS MCP (Model Context Protocol) gateway platform. It replaces
-the previous custom agentgateway with a full-featured MCP server hosting,
-discovery, authentication, and audit solution.
+Obot is the CortexOS MCP (Model Context Protocol) gateway platform — a
+full-featured MCP server hosting, discovery, authentication, and audit solution.
 
 Source:
 
@@ -79,7 +78,7 @@ bootstrap token.
 
 ### 7. Migrate MCP Tools
 
-Re-create the agentgateway allowlist as MCP servers in Obot:
+Register the following MCP tools in Obot:
 
 - service.status → MCP tool
 - service.health → MCP tool
@@ -88,26 +87,8 @@ Re-create the agentgateway allowlist as MCP servers in Obot:
 
 Use Obot's web UI or API to register MCP servers and configure tool visibility.
 
-### 8. Remove Old AgentGateway (if present)
-
-After Obot is verified, remove the legacy agentgateway only if it exists:
-
-```bash
-if systemctl list-unit-files | grep -q cortex-agentgateway; then
-    systemctl stop cortex-agentgateway
-    systemctl disable cortex-agentgateway
-    rm -f /etc/systemd/system/cortex-agentgateway.service
-    systemctl daemon-reload
-fi
-```
-
-Remove any legacy agentgateway systemd unit or Caddy routes if still present.
-
 ## Notes
 
-- The dashboard's `agent_gateway_audit` table is **kept** — it's used by the
-  dashboard's own audit logging (15+ files). The audit module stays. Obot has
-  its own separate audit/MCP audit log system.
 - Obot needs Docker socket access to deploy MCP server containers.
 - The `OBOT_SERVER_DSN` must point to a PG instance reachable from the
   container network (use docker network hostname or host IP).

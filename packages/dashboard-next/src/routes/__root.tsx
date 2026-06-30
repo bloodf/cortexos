@@ -12,6 +12,9 @@ import {
 import { useEffect, type ReactNode } from "react";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Theme } from "@astryxdesign/core";
+import { LinkProvider } from "@astryxdesign/core/Link";
+import { cortexTheme } from "@/lib/cortex";
 import appCss from "../styles.css?url";
 import brandMark from "@/assets/cortexos-mark.svg";
 import reportLovableError from "../lib/lovable-error-reporting";
@@ -76,13 +79,17 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <UIProvider>
         <AuthProvider>
-          {/* Global tooltip provider — ai-elements (PromptInput) and other
-              shadcn Tooltips assume one ancestor. Without it they throw
-              "Tooltip must be used within TooltipProvider" during SSR. */}
-          <TooltipProvider delayDuration={150}>
-            <Outlet />
-            <ToasterMount />
-          </TooltipProvider>
+          <Theme theme={cortexTheme} mode="dark">
+            <LinkProvider component={Link}>
+              {/* Global tooltip provider — ai-elements (PromptInput) and other
+                  shadcn Tooltips assume one ancestor. Without it they throw
+                  "Tooltip must be used within TooltipProvider" during SSR. */}
+              <TooltipProvider delayDuration={150}>
+                <Outlet />
+                <ToasterMount />
+              </TooltipProvider>
+            </LinkProvider>
+          </Theme>
         </AuthProvider>
       </UIProvider>
     </QueryClientProvider>

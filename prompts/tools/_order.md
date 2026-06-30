@@ -22,7 +22,6 @@
 30e-headroom · context compression proxy + MCP for AI agents
 30f-9remote · browser remote terminal (local web-UI mode)
 31-9router · OpenAI-compatible model router                 # AI gateway
-32-honcho · memory backend (legacy, read-only)
 32b-hindsight · memory backend (Hindsight, primary)
 33-hermes-memory-os · long-term memory (Qdrant + ARQ worker)
 35a-local-harness-9router · pick 9Router models in your local AI harness

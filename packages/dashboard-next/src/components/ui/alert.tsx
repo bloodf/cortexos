@@ -1,39 +1,66 @@
 import * as React from "react";
-import { cva, type VariantProps } from "class-variance-authority";
-
+import { Banner as AstryxBanner } from "@astryxdesign/core/Banner";
 import { cn } from "@/lib/utils";
 
-const alertVariants = cva(
-  "relative w-full rounded-lg border px-4 py-3 text-sm [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground [&>svg~*]:pl-7",
-  {
-    variants: {
-      variant: {
-        default: "bg-background text-foreground",
-        destructive:
-          "border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-    },
+export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
+  variant?: "default" | "destructive";
+}
+
+function isAlertTitleElement(
+  child: React.ReactNode,
+): child is React.ReactElement<React.HTMLAttributes<HTMLElement>> {
+  return React.isValidElement(child) && child.type === AlertTitle;
+}
+
+function isAlertDescriptionElement(
+  child: React.ReactNode,
+): child is React.ReactElement<React.HTMLAttributes<HTMLElement>> {
+  return React.isValidElement(child) && child.type === AlertDescription;
+}
+
+const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
+  ({ className, variant = "default", children, ...props }, ref) => {
+    const status = variant === "destructive" ? "error" : "info";
+
+    let titleNode: React.ReactNode = null;
+    let descriptionNode: React.ReactNode = null;
+    const restChildren: React.ReactNode[] = [];
+
+    React.Children.forEach(children, (child) => {
+      if (isAlertTitleElement(child)) {
+        titleNode = child.props.children;
+      } else if (isAlertDescriptionElement(child)) {
+        descriptionNode = child.props.children;
+      } else {
+        restChildren.push(child);
+      }
+    });
+
+    return (
+      <AstryxBanner
+        ref={ref}
+        status={status}
+        title={titleNode ?? ""}
+        description={descriptionNode}
+        className={cn(className)}
+        {...props}
+      >
+        {restChildren.length > 0 ? restChildren : null}
+      </AstryxBanner>
+    );
   },
 );
-
-const Alert = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof alertVariants>
->(({ className, variant, ...props }, ref) => (
-  <div ref={ref} role="alert" className={cn(alertVariants({ variant }), className)} {...props} />
-));
 Alert.displayName = "Alert";
 
 const AlertTitle = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLHeadingElement>>(
-  ({ className, ...props }, ref) => (
+  ({ className, children, ...props }, ref) => (
     <h5
       ref={ref}
       className={cn("mb-1 font-medium leading-none tracking-tight", className)}
       {...props}
-    />
+    >
+      {children}
+    </h5>
   ),
 );
 AlertTitle.displayName = "AlertTitle";
@@ -41,8 +68,10 @@ AlertTitle.displayName = "AlertTitle";
 const AlertDescription = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>
->(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("text-sm [&_p]:leading-relaxed", className)} {...props} />
+>(({ className, children, ...props }, ref) => (
+  <div ref={ref} className={cn("text-sm [&_p]:leading-relaxed", className)} {...props}>
+    {children}
+  </div>
 ));
 AlertDescription.displayName = "AlertDescription";
 

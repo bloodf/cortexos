@@ -12,7 +12,7 @@ export function KeyValueList({
     <dl className={cn("grid grid-cols-[max-content_1fr] gap-x-4 gap-y-2 text-sm", className)}>
       {items.map((it) => (
         <div key={it.key} className="contents">
-          <dt className="text-muted-foreground">{it.key}</dt>
+          <dt className="text-[var(--color-text-secondary)]">{it.key}</dt>
           <dd className="font-mono text-xs sm:text-sm break-all">{it.value}</dd>
         </div>
       ))}

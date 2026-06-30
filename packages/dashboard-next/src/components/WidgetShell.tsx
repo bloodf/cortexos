@@ -37,14 +37,14 @@ export function WidgetShell({
   return (
     <div
       className={cn(
-        "elev-1 h-full w-full flex flex-col rounded-xl border bg-card text-card-foreground shadow overflow-hidden",
+        "elev-1 h-full w-full flex flex-col rounded-xl border bg-[var(--color-background-card)] text-[var(--color-text-primary)] shadow overflow-hidden",
         className,
       )}
     >
       {title && (
         <div className="flex items-center justify-between gap-2 px-4 pt-4 pb-2 shrink-0">
           <div className="flex items-center gap-2 min-w-0">
-            {icon && <span className="text-muted-foreground shrink-0">{icon}</span>}
+            {icon && <span className="text-[var(--color-text-secondary)] shrink-0">{icon}</span>}
             <h3 className="text-sm font-semibold leading-none truncate">{title}</h3>
           </div>
           {actions && <div className="shrink-0">{actions}</div>}

@@ -74,8 +74,13 @@ export function DiffViewer({
   const rows = useMemo(() => diff(before.split("\n"), after.split("\n")), [before, after]);
 
   return (
-    <div className={cn("rounded-lg border bg-card overflow-hidden text-xs font-mono", className)}>
-      <div className="grid grid-cols-2 border-b text-[10px] uppercase tracking-wide text-muted-foreground bg-muted/40">
+    <div
+      className={cn(
+        "rounded-lg border bg-[var(--color-background-card)] overflow-hidden text-xs font-mono",
+        className,
+      )}
+    >
+      <div className="grid grid-cols-2 border-b text-[10px] uppercase tracking-wide text-[var(--color-text-secondary)] bg-[var(--color-background-muted)]/40">
         <div className="px-3 py-1.5 border-r">{labels.before}</div>
         <div className="px-3 py-1.5">{labels.after}</div>
       </div>
@@ -86,11 +91,11 @@ export function DiffViewer({
               key={`a${i}`}
               className={cn(
                 "px-3 py-0.5 whitespace-pre",
-                r.type === "del" && "bg-destructive/10 text-destructive",
+                r.type === "del" && "bg-[var(--color-error)]/10 text-[var(--color-error)]",
                 r.type === "add" && "opacity-30",
               )}
             >
-              <span className="inline-block w-6 select-none text-muted-foreground">
+              <span className="inline-block w-6 select-none text-[var(--color-text-secondary)]">
                 {r.lineA ?? ""}
               </span>
               {r.type === "add" ? "" : `${r.type === "del" ? "- " : "  "}${r.text}`}
@@ -103,11 +108,11 @@ export function DiffViewer({
               key={`b${i}`}
               className={cn(
                 "px-3 py-0.5 whitespace-pre",
-                r.type === "add" && "bg-[var(--success)]/10 text-[var(--success)]",
+                r.type === "add" && "bg-[var(--color-success)]/10 text-[var(--color-success)]",
                 r.type === "del" && "opacity-30",
               )}
             >
-              <span className="inline-block w-6 select-none text-muted-foreground">
+              <span className="inline-block w-6 select-none text-[var(--color-text-secondary)]">
                 {r.lineB ?? ""}
               </span>
               {r.type === "del" ? "" : `${r.type === "add" ? "+ " : "  "}${r.text}`}

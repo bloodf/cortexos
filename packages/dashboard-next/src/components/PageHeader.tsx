@@ -15,15 +15,17 @@ export function PageHeader({
     <header className="flex flex-col gap-3 pb-5 sm:flex-row sm:items-end sm:justify-between">
       <div className="flex items-start gap-3">
         {icon && (
-          <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-accent text-accent-foreground">
+          <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-[var(--color-accent)] text-[var(--color-on-accent)]">
             {icon}
           </div>
         )}
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+          <h1 className="text-xl font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-2xl">
             {title}
           </h1>
-          {description && <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>}
+          {description && (
+            <p className="mt-0.5 text-sm text-[var(--color-text-secondary)]">{description}</p>
+          )}
         </div>
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}

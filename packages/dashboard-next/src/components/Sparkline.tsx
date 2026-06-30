@@ -10,7 +10,7 @@ export function Sparkline({
   data,
   width = 120,
   height = 36,
-  color = "var(--primary)",
+  color = "var(--color-accent)",
   fill = true,
 }: Props) {
   if (!data.length) return <svg width={width} height={height} />;

@@ -32,9 +32,9 @@ export function LogViewer({ lines, className, height = 320, follow = true }: Pro
               <span className="text-white/30 select-none w-10 text-right shrink-0">{i + 1}</span>
               <span
                 className={cn(
-                  isErr && "text-[var(--destructive)]",
-                  isWarn && "text-[var(--warning)]",
-                  isInfo && "text-[var(--success)]",
+                  isErr && "text-[var(--color-error)]",
+                  isWarn && "text-[var(--color-warning)]",
+                  isInfo && "text-[var(--color-success)]",
                 )}
               >
                 {l}

@@ -22,8 +22,6 @@
 ## Constraints / edge cases
 
 - Do not expose secrets, tokens, credentials, or private deployment notes.
-- Follow `docs/AGENT-GATEWAY.md` and `docs/AUDIT.md` for validation.
-- Use AgentGateway + hash-chained audit log when task touches orchestration.
 - {project_specific_constraint_or_edge_case}
 
 ## Acceptance criteria
