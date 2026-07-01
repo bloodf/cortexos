@@ -20,7 +20,6 @@
 30c-boxbox · file manager
 30d-herdr · terminal workspace manager for AI coding agents
 30e-headroom · context compression proxy + MCP for AI agents
-30f-9remote · browser remote terminal (local web-UI mode)
 31-9router · OpenAI-compatible model router                 # AI gateway
 32-honcho · memory backend (legacy, read-only)
 32b-hindsight · memory backend (Hindsight, primary)

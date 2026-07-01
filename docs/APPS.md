@@ -32,7 +32,6 @@ Run these in order. Each prompt file contains step-by-step instructions you copy
 | 30b | [fzf](../prompts/tools/30b-fzf.md) | Fuzzy file/command finder |
 | 30c | [BoxBox](../prompts/tools/30c-boxbox.md) | Web file manager |
 | 30d | [herdr](../prompts/tools/30d-herdr.md) | Agent terminal workspace manager |
-| 30f | [9Remote](../prompts/tools/30f-9remote.md) | Browser remote terminal |
 | 31 | [9Router](../prompts/tools/31-9router.md) | AI model gateway |
 | 32 | [Honcho](../prompts/tools/32-honcho.md) | AI memory backend (legacy, read-only) |
 | 32b | [Hindsight](../prompts/tools/32b-hindsight.md) | AI memory backend (primary) |
