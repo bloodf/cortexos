@@ -53,7 +53,6 @@ vi.mock("@/lib/api/agents.functions", async () => {
     agentAction: vi.fn(),
     agentChat: vi.fn(),
     setAgentModel: vi.fn(),
-    listModels: vi.fn(),
   };
 });
 

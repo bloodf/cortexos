@@ -9,7 +9,7 @@ Honcho exposes a REST API, not a web UI. `/` may return 404; use `/health` and `
 ## Prerequisites
 
 - `11-docker.md` completed.
-- `31-9router.md` completed and 9Router is serving chat models.
+- An OpenAI-compatible chat endpoint reachable from the host and from inside Docker.
 - Vulkan Ollama active on `127.0.0.1:11435` with `nomic-embed-text:latest` installed.
 
 ## Ports and paths
@@ -37,10 +37,11 @@ Type `confirmed` to proceed.
 
 **STOP — operator action required:** Provide the following values.
 
-1. What is the 9Router API key for this machine?
-2. What is the 9Router OpenAI-compatible base URL from the host? (default: `http://127.0.0.1:11434/v1`)
+1. What is the OpenAI-compatible API key for this machine?
+2. What is the OpenAI-compatible base URL from the host? (default: `https://api.openai.com/v1`)
+3. What chat model should Honcho use? (default: `gpt-4o-mini`)
 
-Wait for the operator's answers. Replace `{NINEROUTER_API_KEY}` and `{NINEROUTER_BASE_URL}` in the commands below.
+Wait for the operator's answers. Replace `{LLM_API_KEY}`, `{LLM_BASE_URL}`, and `{LLM_MODEL}` in the commands below.
 
 ```bash
 sudo install -d -m 0700 /opt/cortexos/.secrets
@@ -49,42 +50,46 @@ sudo install -d -m 0755 /opt/cortexos/data/honcho
 HONCHO_AUTH_SECRET="$(openssl rand -hex 32)"
 HONCHO_ENCRYPTION_KEY="$(openssl rand -hex 32)"
 
+# From inside Docker, the host gateway is usually 172.17.0.1; adjust if your
+# endpoint runs elsewhere.
+DOCKER_LLM_BASE_URL=http://172.17.0.1:11434/v1
+
 sudo tee /opt/cortexos/.secrets/honcho.env >/dev/null <<EOF
 APP_BASE_URL=http://127.0.0.1:18690
 AUTH_SECRET=${HONCHO_AUTH_SECRET}
 ENCRYPTION_KEY=${HONCHO_ENCRYPTION_KEY}
 HONCHO_HOST=127.0.0.1
 HONCHO_PORT=18690
-LLM_OPENAI_API_KEY={NINEROUTER_API_KEY}
+LLM_OPENAI_API_KEY={LLM_API_KEY}
 DERIVER_MODEL_CONFIG__TRANSPORT=openai
-DERIVER_MODEL_CONFIG__MODEL=cx/gpt-5.5
-DERIVER_MODEL_CONFIG__OVERRIDES__BASE_URL=http://172.17.0.1:11434/v1
+DERIVER_MODEL_CONFIG__MODEL={LLM_MODEL}
+DERIVER_MODEL_CONFIG__OVERRIDES__BASE_URL={DOCKER_LLM_BASE_URL}
 SUMMARY_ENABLED=true
 SUMMARY_MODEL_CONFIG__TRANSPORT=openai
-SUMMARY_MODEL_CONFIG__MODEL=cx/gpt-5.5
-SUMMARY_MODEL_CONFIG__OVERRIDES__BASE_URL=http://172.17.0.1:11434/v1
+SUMMARY_MODEL_CONFIG__MODEL={LLM_MODEL}
+SUMMARY_MODEL_CONFIG__OVERRIDES__BASE_URL={DOCKER_LLM_BASE_URL}
 DIALECTIC_LEVELS__minimal__MODEL_CONFIG__TRANSPORT=openai
-DIALECTIC_LEVELS__minimal__MODEL_CONFIG__MODEL=cx/gpt-5.5
-DIALECTIC_LEVELS__minimal__MODEL_CONFIG__OVERRIDES__BASE_URL=http://172.17.0.1:11434/v1
+DIALECTIC_LEVELS__minimal__MODEL_CONFIG__MODEL={LLM_MODEL}
+DIALECTIC_LEVELS__minimal__MODEL_CONFIG__OVERRIDES__BASE_URL={DOCKER_LLM_BASE_URL}
 DIALECTIC_LEVELS__low__MODEL_CONFIG__TRANSPORT=openai
-DIALECTIC_LEVELS__low__MODEL_CONFIG__MODEL=cx/gpt-5.5
-DIALECTIC_LEVELS__low__MODEL_CONFIG__OVERRIDES__BASE_URL=http://172.17.0.1:11434/v1
+DIALECTIC_LEVELS__low__MODEL_CONFIG__MODEL={LLM_MODEL}
+DIALECTIC_LEVELS__low__MODEL_CONFIG__OVERRIDES__BASE_URL={DOCKER_LLM_BASE_URL}
 DIALECTIC_LEVELS__medium__MODEL_CONFIG__TRANSPORT=openai
-DIALECTIC_LEVELS__medium__MODEL_CONFIG__MODEL=cx/gpt-5.5
-DIALECTIC_LEVELS__medium__MODEL_CONFIG__OVERRIDES__BASE_URL=http://172.17.0.1:11434/v1
+DIALECTIC_LEVELS__medium__MODEL_CONFIG__MODEL={LLM_MODEL}
+DIALECTIC_LEVELS__medium__MODEL_CONFIG__OVERRIDES__BASE_URL={DOCKER_LLM_BASE_URL}
 DIALECTIC_LEVELS__high__MODEL_CONFIG__TRANSPORT=openai
-DIALECTIC_LEVELS__high__MODEL_CONFIG__MODEL=cx/gpt-5.5
-DIALECTIC_LEVELS__high__MODEL_CONFIG__OVERRIDES__BASE_URL=http://172.17.0.1:11434/v1
+DIALECTIC_LEVELS__high__MODEL_CONFIG__MODEL={LLM_MODEL}
+DIALECTIC_LEVELS__high__MODEL_CONFIG__OVERRIDES__BASE_URL={DOCKER_LLM_BASE_URL}
 DIALECTIC_LEVELS__max__MODEL_CONFIG__TRANSPORT=openai
-DIALECTIC_LEVELS__max__MODEL_CONFIG__MODEL=cx/gpt-5.5
-DIALECTIC_LEVELS__max__MODEL_CONFIG__OVERRIDES__BASE_URL=http://172.17.0.1:11434/v1
+DIALECTIC_LEVELS__max__MODEL_CONFIG__MODEL={LLM_MODEL}
+DIALECTIC_LEVELS__max__MODEL_CONFIG__OVERRIDES__BASE_URL={DOCKER_LLM_BASE_URL}
 DREAM_ENABLED=true
 DREAM_DEDUCTION_MODEL_CONFIG__TRANSPORT=openai
-DREAM_DEDUCTION_MODEL_CONFIG__MODEL=cx/gpt-5.5
-DREAM_DEDUCTION_MODEL_CONFIG__OVERRIDES__BASE_URL=http://172.17.0.1:11434/v1
+DREAM_DEDUCTION_MODEL_CONFIG__MODEL={LLM_MODEL}
+DREAM_DEDUCTION_MODEL_CONFIG__OVERRIDES__BASE_URL={DOCKER_LLM_BASE_URL}
 DREAM_INDUCTION_MODEL_CONFIG__TRANSPORT=openai
-DREAM_INDUCTION_MODEL_CONFIG__MODEL=cx/gpt-5.5
-DREAM_INDUCTION_MODEL_CONFIG__OVERRIDES__BASE_URL=http://172.17.0.1:11434/v1
+DREAM_INDUCTION_MODEL_CONFIG__MODEL={LLM_MODEL}
+DREAM_INDUCTION_MODEL_CONFIG__OVERRIDES__BASE_URL={DOCKER_LLM_BASE_URL}
 EMBED_MESSAGES=true
 EMBEDDING_MODEL_CONFIG__TRANSPORT=openai
 EMBEDDING_MODEL_CONFIG__MODEL=nomic-embed-text:latest
@@ -98,7 +103,7 @@ EOF
 sudo chmod 600 /opt/cortexos/.secrets/honcho.env
 ```
 
-> Containers reach 9Router via Docker bridge `http://172.17.0.1:11434/v1`. The host-side URL (`{NINEROUTER_BASE_URL}`) is used only in verify commands run from the host shell.
+> Containers reach the chat endpoint via Docker bridge (`{DOCKER_LLM_BASE_URL}`). The host-side URL (`{LLM_BASE_URL}`) is used only in verify commands run from the host shell.
 
 ## Install embeddings proxy
 
@@ -149,21 +154,23 @@ docker ps -a --format '{{.Names}} {{.Label "com.docker.compose.project"}} {{.Lab
 ## Verify
 
 ```bash
-# 9Router reachable from host
-curl -fsS -H "Authorization: Bearer {NINEROUTER_API_KEY}" \
-  "{NINEROUTER_BASE_URL}/models" | jq -e '.data[].id | select(.=="cx/gpt-5.5")'
+# Chat endpoint reachable from host
+curl -fsS -H "Authorization: Bearer {LLM_API_KEY}" \
+  "{LLM_BASE_URL}/models" | jq -e '.data[].id | select(.=="{LLM_MODEL}")'
 
 # Honcho health
 curl -fsS http://127.0.0.1:18690/health
 # /health returning 200 is success; / returning 404 is not a failure.
 
-# 9Router reachable from inside honcho-api container
+# Chat endpoint reachable from inside honcho-api container
 cd /opt/cortexos/stacks/honcho
 docker exec -i honcho-api /app/.venv/bin/python - <<'PY'
 import json, os, urllib.request
+base = os.environ['DERIVER_MODEL_CONFIG__OVERRIDES__BASE_URL']
+model = os.environ['DERIVER_MODEL_CONFIG__MODEL']
 req = urllib.request.Request(
-  "http://172.17.0.1:11434/v1/chat/completions",
-  data=json.dumps({"model":"cx/gpt-5.5","messages":[{"role":"user","content":"Return ok."}],"max_tokens":20}).encode(),
+  f"{base}/chat/completions",
+  data=json.dumps({"model":model,"messages":[{"role":"user","content":"Return ok."}],"max_tokens":20}).encode(),
   headers={"content-type":"application/json","authorization":f"Bearer {os.environ['LLM_OPENAI_API_KEY']}"},
 )
 data = json.loads(urllib.request.urlopen(req, timeout=45).read())

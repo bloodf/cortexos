@@ -87,9 +87,9 @@ api:
   port: 8932
   publicPath: /hermes/PROJECT_NAME/v1
 model:
-  provider: 9router
-  baseUrl: http://127.0.0.1:11434/v1
-  id: cc/claude-opus-4-8
+  provider: openai
+  baseUrl: <<OPENAI_BASE_URL>>
+  id: gpt-4o
   reasoning: true
 memory:
   provider: honcho
@@ -176,7 +176,7 @@ wiki dir + Icarus plugin mount that this route serves.
 ## Step 6.7: Per-profile Memory OS (Optional)
 
 The per-profile Memory OS layer wires the **host's** Memory OS stack
-(Qdrant on `:6333`, Redis on `:6379`, 9Router on `:11434`, Icarus
+(Qdrant on `:6333`, Redis on `:6379`, LLM endpoint, Icarus
 plugin at `/opt/cortexos/memory-os/.hermes/plugins/icarus`) into this
 profile's Hermes runtime. The plugin code is **shared** (read-only
 bind mount from the host); only the per-profile data
@@ -256,18 +256,19 @@ else
   #    ICARUS_API_KEY_ENV / FABRIC_DIR / HERMES_HOME from this file when
   #    Hermes starts. All URLs point at the host's tailnet IP — the
   #    container cannot reach the host's loopback (127.0.0.1 inside the
-  #    container is the container's own loopback). The 9router key and
+  #    container is the container's own loopback). The LLM API key and
   #    Redis password are RE-SHARED from the host's secrets file (same
   #    pattern as 32-honcho.md).
-  NINEROUTER_API_KEY_VAL="$(sudo grep ^NINEROUTER_API_KEY= /opt/cortexos/.secrets/memory-os.env | cut -d= -f2-)"
+  LLM_API_KEY_VAL="$(sudo grep ^LLM_API_KEY= /opt/cortexos/.secrets/memory-os.env | cut -d= -f2-)"
+  LLM_BASE_URL_VAL="$(sudo grep ^ICARUS_ENDPOINT= /opt/cortexos/.secrets/memory-os.env | cut -d= -f2- | sed 's|/chat/completions||')"
   REDIS_PASSWORD_VAL="$(sudo grep ^REDIS_PASSWORD= /opt/cortexos/.secrets/memory-os.env | cut -d= -f2-)"
 
   sudo incus exec "PROJECT_NAME" -- tee /opt/cortexos/memory-os-PROJECT_NAME.env >/dev/null <<EOF
-  # 9router (host-side, via tailnet)
-  NINEROUTER_API_KEY=${NINEROUTER_API_KEY_VAL}
-  ICARUS_ENDPOINT=http://${CORTEX_HOST_TAILSCALE_IP}:11434/v1/chat/completions
-  ICARUS_API_KEY_ENV=NINEROUTER_API_KEY
-  ICARUS_EXTRACTION_MODEL=cx/gpt-5.5
+  # LLM endpoint (host-side, via tailnet)
+  LLM_API_KEY=${LLM_API_KEY_VAL}
+  ICARUS_ENDPOINT=${LLM_BASE_URL_VAL}/chat/completions
+  ICARUS_API_KEY_ENV=LLM_API_KEY
+  ICARUS_EXTRACTION_MODEL=gpt-4o-mini
   ICARUS_EXTRACTION_MAX_TOKENS=4096
 
   # Qdrant + Redis (host-side, via tailnet)
@@ -372,7 +373,7 @@ sudo incus exec "PROJECT_NAME" -- systemctl status cortex-memory-os-PROJECT_NAME
 # Confirm the Icarus plugin is visible inside the instance via the bind mount
 sudo incus exec "PROJECT_NAME" -- ls -la /opt/cortexos/hermes/profiles/PROJECT_NAME/plugins/icarus | head -5
 
-# Test 9Router
+# Test LLM endpoint reachability (assumes a local proxy on 127.0.0.1:11434)
 sudo incus exec "PROJECT_NAME" -- curl -s http://127.0.0.1:11434/v1/models | jq '.data | length'
 ```
 

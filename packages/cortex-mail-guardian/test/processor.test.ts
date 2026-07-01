@@ -61,10 +61,10 @@ function account(slug: string) {
 }
 
 const baseConfig = {
-  nineRouterBaseUrl: 'http://127.0.0.1:11434/v1',
-  nineRouterApiKey: 'test',
-  model: 'minimax/MiniMax-M3',
-  fallbackModel: 'cx/gpt-5.5',
+  openAiBaseUrl: 'http://127.0.0.1:11434/v1',
+  openAiApiKey: 'test',
+  model: 'gpt-4o-mini',
+  fallbackModel: 'gpt-4o',
   modelTimeoutMs: 30_000,
   confidenceThreshold: 0.95,
   dryRun: false,
@@ -338,7 +338,7 @@ describe('mail guardian processMessage — auto-trash branch', () => {
           reasons: ['phishing'] as string[],
           riskSignals: ['link'] as string[],
         },
-        modelUsed: 'minimax/MiniMax-M3',
+        modelUsed: 'gpt-4o-mini',
         attempts: 1,
       })
       .mockResolvedValueOnce({
@@ -348,7 +348,7 @@ describe('mail guardian processMessage — auto-trash branch', () => {
           reasons: ['scam'] as string[],
           riskSignals: ['wallet'] as string[],
         },
-        modelUsed: 'cx/gpt-5.5',
+        modelUsed: 'gpt-4o',
         attempts: 1,
       });
 
@@ -381,8 +381,8 @@ describe('mail guardian processMessage — auto-trash branch', () => {
     expect(decisions).toHaveLength(1);
     const d = decisions[0] as Record<string, unknown>;
     expect(d.outcome).toBe('auto_trashed');
-    expect(d.model).toBe('minimax/MiniMax-M3');
-    expect(d.verifyModel).toBe('cx/gpt-5.5');
+    expect(d.model).toBe('gpt-4o-mini');
+    expect(d.verifyModel).toBe('gpt-4o');
     expect(d.reasons).toEqual(['phishing']);
     expect(d.riskSignals).toEqual(['link']);
   });
@@ -440,7 +440,7 @@ describe('mail guardian processMessage — kept branch records kept', () => {
           reasons: [] as string[],
           riskSignals: [] as string[],
         },
-        modelUsed: 'minimax/MiniMax-M3',
+        modelUsed: 'gpt-4o-mini',
         attempts: 1,
       })
       .mockResolvedValueOnce({
@@ -450,7 +450,7 @@ describe('mail guardian processMessage — kept branch records kept', () => {
           reasons: [] as string[],
           riskSignals: [] as string[],
         },
-        modelUsed: 'cx/gpt-5.5',
+        modelUsed: 'gpt-4o',
         attempts: 1,
       });
 
@@ -482,8 +482,8 @@ describe('mail guardian processMessage — kept branch records kept', () => {
     expect(decisions).toHaveLength(1);
     const d = decisions[0] as Record<string, unknown>;
     expect(d.outcome).toBe('kept');
-    expect(d.model).toBe('minimax/MiniMax-M3');
-    expect(d.verifyModel).toBe('cx/gpt-5.5');
+    expect(d.model).toBe('gpt-4o-mini');
+    expect(d.verifyModel).toBe('gpt-4o');
   });
 });
 
@@ -594,7 +594,7 @@ describe('mail guardian processMessage — review path records pending', () => {
           reasons: [] as string[],
           riskSignals: [] as string[],
         },
-        modelUsed: 'minimax/MiniMax-M3',
+        modelUsed: 'gpt-4o-mini',
         attempts: 1,
       })
       .mockResolvedValueOnce({
@@ -604,7 +604,7 @@ describe('mail guardian processMessage — review path records pending', () => {
           reasons: [] as string[],
           riskSignals: [] as string[],
         },
-        modelUsed: 'cx/gpt-5.5',
+        modelUsed: 'gpt-4o',
         attempts: 1,
       });
     const decisions: unknown[] = [];
@@ -636,7 +636,7 @@ describe('mail guardian processMessage — review path records pending', () => {
     expect(decisions).toHaveLength(1);
     const d = decisions[0] as Record<string, unknown>;
     expect(d.outcome).toBe('pending');
-    expect(d.model).toBe('minimax/MiniMax-M3');
+    expect(d.model).toBe('gpt-4o-mini');
   });
 });
 
@@ -672,8 +672,8 @@ describe('mail guardian processMessage — cross-model call signatures', () => {
 
     const [classifyPrimary, classifyFallback, classifyInput] = classifyWithFallbackMock.mock
       .calls[0] as [{ model: string }, { model: string } | null, Record<string, unknown>];
-    expect(classifyPrimary.model).toBe('minimax/MiniMax-M3');
-    expect(classifyFallback?.model).toBe('cx/gpt-5.5');
+    expect(classifyPrimary.model).toBe('gpt-4o-mini');
+    expect(classifyFallback?.model).toBe('gpt-4o');
     expect(classifyInput).not.toHaveProperty('feedbackSummary');
 
     const [verifyPrimary, verifyFallback, verifyInput] = classifyWithFallbackMock.mock.calls[1] as [
@@ -681,7 +681,7 @@ describe('mail guardian processMessage — cross-model call signatures', () => {
       null,
       Record<string, unknown>,
     ];
-    expect(verifyPrimary.model).toBe('cx/gpt-5.5');
+    expect(verifyPrimary.model).toBe('gpt-4o');
     expect(verifyFallback).toBeNull();
     expect(verifyInput).not.toHaveProperty('feedbackSummary');
   });

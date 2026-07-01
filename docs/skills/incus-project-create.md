@@ -53,7 +53,7 @@ listed below.
    the script prints the instance's public key so the operator can
    add it to GitHub manually.
 5. **Hermes setup** — write `/opt/cortexos/hermes/profiles/<NAME>/
-   config.yaml` (9router model, honcho memory workspace), then
+   config.yaml` (openai-compatible model, honcho memory workspace), then
    install a `hermes-gateway-<NAME>.service` systemd unit. The
    per-profile port is 8932 and the public path is
    `/hermes/<NAME>/v1`.
@@ -73,8 +73,8 @@ listed below.
   on the host before this script runs (install it via
   `prompts/tools/` first — see the install order in
   `prompts/tools/_order.md`).
-- 9Router must be reachable from the instance's `127.0.0.1:11434`
-  (the host reverse-proxies via Tailscale + Caddy).
+- The configured OpenAI-compatible chat endpoint must be reachable from
+  the instance (the host reverse-proxies via Tailscale + Caddy if needed).
 - The script is the single source of truth for the procedure; this
   doc is intentionally a pointer. If the script and this doc ever
   disagree, the script wins — fix the doc.

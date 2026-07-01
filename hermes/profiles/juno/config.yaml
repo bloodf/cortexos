@@ -1,13 +1,13 @@
 model:
   default: cx/gpt-5.5
-  provider: 9router
+  provider: openai
   base_url: http://127.0.0.1:11434/v1
   api_mode: chat_completions
   reasoning: high
   max_tokens: 32000
 providers:
-  9router:
-    name: 9Router
+  openai:
+    name: OpenAI
     api: http://127.0.0.1:11434/v1
     api_key: sk-b6f4d3879cc4a442-j312zt-35ffe437
     transport: openai_chat
@@ -19,17 +19,17 @@ providers:
       minimax/MiniMax-M3: {}
       cf/@cf/meta/llama-3.3-70b-instruct-fp8-fast: {}
 fallback_providers:
-  - provider: 9router
-    model: minimax/MiniMax-M3
-    base_url: http://127.0.0.1:11434/v1
-    api_mode: chat_completions
-  - provider: 9router
-    model: cf/@cf/meta/llama-3.3-70b-instruct-fp8-fast
-    base_url: http://127.0.0.1:11434/v1
-    api_mode: chat_completions
+- provider: openai
+  model: minimax/MiniMax-M3
+  base_url: http://127.0.0.1:11434/v1
+  api_mode: chat_completions
+- provider: openai
+  model: cf/@cf/meta/llama-3.3-70b-instruct-fp8-fast
+  base_url: http://127.0.0.1:11434/v1
+  api_mode: chat_completions
 credential_pool_strategies: {}
 toolsets:
-  - hermes-cli
+- hermes-cli
 agent:
   max_turns: 120
   gateway_timeout: 1800
@@ -42,8 +42,8 @@ agent:
   gateway_notify_interval: 180
   gateway_auto_continue_freshness: 3600
   image_input_mode: auto
-  disabled_toolsets: ["memory"]
-
+  disabled_toolsets:
+  - memory
 memory:
   memory_enabled: true
   provider: hindsight
@@ -51,7 +51,6 @@ hindsight:
   config_path: /opt/cortexos/hermes/profiles/juno/hindsight-config.json
   auto_recall: true
   auto_retain: true
-
 terminal:
   backend: local
   modal_mode: auto
@@ -76,7 +75,6 @@ terminal:
   docker_extra_args: []
   docker_run_as_host_user: false
   persistent_shell: true
-
 web:
   backend: ''
   search_backend: ''
@@ -96,7 +94,6 @@ browser:
     user_id: ''
     session_key: ''
     adopt_existing_tab: false
-
 checkpoints:
   enabled: false
 file_read_max_chars: 100000
@@ -252,9 +249,9 @@ display:
   runtime_footer:
     enabled: false
     fields:
-      - model
-      - context_pct
-      - cwd
+    - model
+    - context_pct
+    - cwd
   copy_shortcut: auto
   tool_progress: 'off'
 dashboard:
@@ -289,14 +286,11 @@ tts:
     voice: pt_BR-lessac-medium
 stt:
   enabled: true
-  provider: local
-  local:
-    model: base
-    language: pt
+  provider: openai
   openai:
     model: whisper-1
-  mistral:
-    model: voxtral-mini-latest
+    base_url: http://127.0.0.1:11500/v1
+    api_key: dummy-local-key
 voice:
   record_key: ctrl+b
   max_recording_seconds: 120
@@ -310,7 +304,6 @@ human_delay:
   max_ms: 2500
 context:
   engine: compressor
-
 delegation:
   model: minimax/MiniMax-M3
   provider: ''
@@ -330,49 +323,41 @@ goals:
   max_turns: 20
 skills:
   external_dirs:
-    - /opt/cortexos/hermes/skills/9router
-    - /opt/cortexos/hermes/skills/9router-chat
-    - /opt/cortexos/hermes/skills/9router-embeddings
-    - /opt/cortexos/hermes/skills/9router-image
-    - /opt/cortexos/hermes/skills/9router-stt
-    - /opt/cortexos/hermes/skills/9router-tts
-    - /opt/cortexos/hermes/skills/9router-web-fetch
-    - /opt/cortexos/hermes/skills/9router-web-search
-    - /opt/cortexos/hermes/skills/apple
-    - /opt/cortexos/hermes/skills/autonomous-ai-agents
-    - /opt/cortexos/hermes/skills/creative
-    - /opt/cortexos/hermes/skills/data-science
-    - /opt/cortexos/hermes/skills/devops
-    - /opt/cortexos/hermes/skills/diagramming
-    - /opt/cortexos/hermes/skills/dogfood
-    - /opt/cortexos/hermes/skills/domain
-    - /opt/cortexos/hermes/skills/email
-    - /opt/cortexos/hermes/skills/gaming
-    - /opt/cortexos/hermes/skills/gifs
-    - /opt/cortexos/hermes/skills/github
-    - /opt/cortexos/hermes/skills/inference-sh
-    - /opt/cortexos/hermes/skills/media
-    - /opt/cortexos/hermes/skills/mlops
-    - /opt/cortexos/hermes/skills/note-taking
-    - /opt/cortexos/hermes/skills/productivity
-    - /opt/cortexos/hermes/skills/prompt-master
-    - /opt/cortexos/hermes/skills/red-teaming
-    - /opt/cortexos/hermes/skills/research
-    - /opt/cortexos/hermes/skills/smart-home
-    - /opt/cortexos/hermes/skills/social-media
-    - /opt/cortexos/hermes/skills/software-development
-    - /opt/cortexos/hermes/skills/stop-slop
-    - /opt/cortexos/hermes/skills/yuanbao
-    - /opt/cortexos/hermes/skills/vendor/codebase-memory-mcp
-    - /opt/cortexos/hermes/skills/vendor/improve
-    - /opt/cortexos/hermes/skills/vendor/mattpocock-skills/skills/engineering
-    - /opt/cortexos/hermes/skills/vendor/mattpocock-skills/skills/misc
-    - /opt/cortexos/hermes/skills/vendor/mattpocock-skills/skills/personal
-    - /opt/cortexos/hermes/skills/vendor/mattpocock-skills/skills/productivity
-    - /opt/cortexos/hermes/skills/vendor/prompt-master
-    - /opt/cortexos/hermes/skills/vendor/stop-slop
-    - /opt/cortexos/hermes/skills/vendor/superpowers/skills
-    - /opt/cortexos/hermes/skills/mcp/native-mcp
+  - /opt/cortexos/hermes/skills/apple
+  - /opt/cortexos/hermes/skills/autonomous-ai-agents
+  - /opt/cortexos/hermes/skills/creative
+  - /opt/cortexos/hermes/skills/data-science
+  - /opt/cortexos/hermes/skills/devops
+  - /opt/cortexos/hermes/skills/diagramming
+  - /opt/cortexos/hermes/skills/dogfood
+  - /opt/cortexos/hermes/skills/domain
+  - /opt/cortexos/hermes/skills/email
+  - /opt/cortexos/hermes/skills/gaming
+  - /opt/cortexos/hermes/skills/gifs
+  - /opt/cortexos/hermes/skills/github
+  - /opt/cortexos/hermes/skills/inference-sh
+  - /opt/cortexos/hermes/skills/media
+  - /opt/cortexos/hermes/skills/mlops
+  - /opt/cortexos/hermes/skills/note-taking
+  - /opt/cortexos/hermes/skills/productivity
+  - /opt/cortexos/hermes/skills/prompt-master
+  - /opt/cortexos/hermes/skills/red-teaming
+  - /opt/cortexos/hermes/skills/research
+  - /opt/cortexos/hermes/skills/smart-home
+  - /opt/cortexos/hermes/skills/social-media
+  - /opt/cortexos/hermes/skills/software-development
+  - /opt/cortexos/hermes/skills/stop-slop
+  - /opt/cortexos/hermes/skills/yuanbao
+  - /opt/cortexos/hermes/skills/vendor/codebase-memory-mcp
+  - /opt/cortexos/hermes/skills/vendor/improve
+  - /opt/cortexos/hermes/skills/vendor/mattpocock-skills/skills/engineering
+  - /opt/cortexos/hermes/skills/vendor/mattpocock-skills/skills/misc
+  - /opt/cortexos/hermes/skills/vendor/mattpocock-skills/skills/personal
+  - /opt/cortexos/hermes/skills/vendor/mattpocock-skills/skills/productivity
+  - /opt/cortexos/hermes/skills/vendor/prompt-master
+  - /opt/cortexos/hermes/skills/vendor/stop-slop
+  - /opt/cortexos/hermes/skills/vendor/superpowers/skills
+  - /opt/cortexos/hermes/skills/mcp/native-mcp
   template_vars: true
   inline_shell: false
   inline_shell_timeout: 10
@@ -390,9 +375,9 @@ timezone: America/Sao_Paulo
 telegram:
   dm_policy: allowlist
   allow_from:
-    - '24395114'
+  - '24395114'
   allow_admin_from:
-    - '24395114'
+  - '24395114'
   group_policy: disabled
   require_mention: false
   gateway_restart_notification: false
@@ -516,13 +501,12 @@ secrets:
     override_existing: true
     auto_install: true
 _config_version: 23
-
 mcp_servers:
   zai-vision:
     command: npx
     args:
-      - '-y'
-      - '@z_ai/mcp-server'
+    - -y
+    - '@z_ai/mcp-server'
     env:
       Z_AI_API_KEY: adee801445f5424cba9b148f6cffccc5.g3g12Txi9HM5dEIc
       Z_AI_MODE: ZAI
@@ -532,18 +516,18 @@ mcp_servers:
   zai-web-search:
     url: https://api.z.ai/api/mcp/web_search_prime/mcp
     headers:
-      Authorization: 'Bearer adee801445f5424cba9b148f6cffccc5.g3g12Txi9HM5dEIc'
+      Authorization: Bearer adee801445f5424cba9b148f6cffccc5.g3g12Txi9HM5dEIc
     timeout: 180
     connect_timeout: 30
   zai-web-reader:
     url: https://api.z.ai/api/mcp/web_reader/mcp
     headers:
-      Authorization: 'Bearer adee801445f5424cba9b148f6cffccc5.g3g12Txi9HM5dEIc'
+      Authorization: Bearer adee801445f5424cba9b148f6cffccc5.g3g12Txi9HM5dEIc
     timeout: 180
     connect_timeout: 30
   zai-zread:
     url: https://api.z.ai/api/mcp/zread/mcp
     headers:
-      Authorization: 'Bearer adee801445f5424cba9b148f6cffccc5.g3g12Txi9HM5dEIc'
+      Authorization: Bearer adee801445f5424cba9b148f6cffccc5.g3g12Txi9HM5dEIc
     timeout: 180
     connect_timeout: 30

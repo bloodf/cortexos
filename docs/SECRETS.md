@@ -87,13 +87,11 @@ The decrypted file lives only on your server, never in Git.
 Repository (Git)
 ├── secrets/
 │   ├── dashboard.env.enc.yaml      ← Encrypted, safe to commit
-│   ├── 9router.env.enc.yaml        ← Encrypted, safe to commit
 │   └── caddy.env.enc.yaml          ← Encrypted, safe to commit
 │
 Server (never in Git)
 └── /opt/cortexos/.secrets/
     ├── dashboard.env               ← Decrypted at runtime
-    ├── 9router.env                 ← Decrypted at runtime
     └── caddy.env                   ← Decrypted at runtime
 ```
 
@@ -104,7 +102,6 @@ Server (never in Git)
 | File | What's Inside |
 |------|--------------|
 | `dashboard.env` | Database password, session secret |
-| `9router.env` | API keys for Claude, OpenAI, Gemini |
 | `caddy.env` | TLS certificate email |
 
 ---

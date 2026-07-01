@@ -54,10 +54,10 @@ function account(slug: string) {
 }
 
 const baseConfig = {
-  nineRouterBaseUrl: 'http://127.0.0.1:11434/v1',
-  nineRouterApiKey: 'test',
-  model: 'minimax/MiniMax-M3',
-  fallbackModel: 'cx/gpt-5.5',
+  openAiBaseUrl: 'http://127.0.0.1:11434/v1',
+  openAiApiKey: 'test',
+  model: 'gpt-4o-mini',
+  fallbackModel: 'gpt-4o',
   modelTimeoutMs: 30_000,
   confidenceThreshold: 0.95,
   dryRun: false,

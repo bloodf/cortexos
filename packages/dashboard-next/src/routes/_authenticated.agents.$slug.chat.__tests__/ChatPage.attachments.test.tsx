@@ -37,7 +37,6 @@ vi.mock("@/hooks/useAuth", () => ({
 }));
 
 vi.mock("@/lib/api/client", () => ({
-  listModels: vi.fn(),
   callAgentChat: vi.fn(),
   callSetAgentModel: vi.fn(),
   callMintApproval: vi.fn(),
@@ -48,7 +47,7 @@ vi.mock("@/lib/api/client", () => ({
 // ---------------------------------------------------------------------------
 // Lazy imports after vi.mock
 // ---------------------------------------------------------------------------
-import { listModels, callAgentChat, api } from "@/lib/api/client";
+import { callAgentChat, api } from "@/lib/api/client";
 import { ChatPage } from "@/routes/_authenticated.agents.$slug.chat";
 
 // ---------------------------------------------------------------------------
@@ -104,7 +103,6 @@ function makeFileList(files: File[]): FileList {
 // ---------------------------------------------------------------------------
 describe("ChatPage — paste + drop attachments", () => {
   beforeEach(() => {
-    vi.mocked(listModels).mockResolvedValue({ models: ["claude-sonnet-4"] });
     vi.mocked(api.agents).mockResolvedValue([STUB_AGENT]);
     vi.mocked(callAgentChat).mockResolvedValue({
       slug: "test-agent",
@@ -122,9 +120,11 @@ describe("ChatPage — paste + drop attachments", () => {
     const { container } = renderChatPage();
 
     // Wait for agent to load and composer to appear.
-    await waitFor(() => expect(screen.getByRole("textbox")).toBeTruthy());
-
-    const textarea = container.querySelector("textarea")!;
+    const textarea = await waitFor(() => {
+      const el = container.querySelector("textarea");
+      expect(el).toBeTruthy();
+      return el!;
+    });
 
     // text/plain → AttachmentChip renders filename in textContent (not image).
     const file = new File(["hello"], "pasted.txt", { type: "text/plain" });
@@ -141,7 +141,7 @@ describe("ChatPage — paste + drop attachments", () => {
     const user = userEvent.setup();
     const { container } = renderChatPage();
 
-    await waitFor(() => expect(screen.getByRole("textbox")).toBeTruthy());
+    await waitFor(() => expect(container.querySelector("textarea")).toBeTruthy());
 
     // text/plain → filename in textContent (image/* only appears in <img alt>).
     const file = new File(["world"], "dropped.txt", { type: "text/plain" });
@@ -162,9 +162,11 @@ describe("ChatPage — paste + drop attachments", () => {
     const user = userEvent.setup();
     const { container } = renderChatPage();
 
-    await waitFor(() => expect(screen.getByRole("textbox")).toBeTruthy());
-
-    const textarea = container.querySelector("textarea")!;
+    const textarea = await waitFor(() => {
+      const el = container.querySelector("textarea");
+      expect(el).toBeTruthy();
+      return el!;
+    });
 
     const file = new File(["data"], "attach.pdf", { type: "application/pdf" });
     const paste = new Event("paste", { bubbles: true, cancelable: true });
@@ -193,74 +195,5 @@ describe("ChatPage — paste + drop attachments", () => {
         }),
       );
     });
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Model picker filtering
-// ---------------------------------------------------------------------------
-describe("ChatPage — model picker filtering", () => {
-  const FOUR_MODELS = ["claude-sonnet-4", "claude-opus-4", "gpt-5", "kimi-k2.5"];
-
-  beforeEach(() => {
-    vi.mocked(listModels).mockResolvedValue({ models: FOUR_MODELS });
-    // Use model: "" so the trigger label never duplicates a list item name.
-    vi.mocked(api.agents).mockResolvedValue([{ ...STUB_AGENT, model: "" }]);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it("search input filters the model list by substring", async () => {
-    const user = userEvent.setup();
-    renderChatPage();
-
-    await waitFor(() => expect(screen.getByRole("textbox")).toBeTruthy());
-
-    await user.click(screen.getByRole("combobox", { name: /model/i }));
-    const searchInput = await screen.findByPlaceholderText("Search models…");
-    const popover = searchInput.closest('[role="dialog"]') as HTMLElement;
-    const picker = within(popover);
-
-    // Capture filtered-out elements before typing (all models visible initially)
-    const gpt5El = picker.getByText("gpt-5");
-    const kimiEl = picker.getByText("kimi-k2.5");
-
-    await user.type(searchInput, "claude");
-
-    await picker.findByText("claude-sonnet-4");
-    await picker.findByText("claude-opus-4");
-    expect(gpt5El).not.toBeVisible();
-    expect(kimiEl).not.toBeVisible();
-  });
-
-  it("empty state shows when no models match", async () => {
-    const user = userEvent.setup();
-    renderChatPage();
-
-    await waitFor(() => expect(screen.getByRole("textbox")).toBeTruthy());
-
-    await user.click(screen.getByRole("combobox", { name: /model/i }));
-    const searchInput = screen.getByPlaceholderText("Search models…");
-    await user.type(searchInput, "zzzzzz");
-
-    await screen.findByText("No matching models");
-  });
-
-  it("selecting a model closes the popover", async () => {
-    const user = userEvent.setup();
-    renderChatPage();
-
-    await waitFor(() => expect(screen.getByRole("textbox")).toBeTruthy());
-
-    await user.click(screen.getByRole("combobox", { name: /model/i }));
-    const searchInput = await screen.findByPlaceholderText("Search models…");
-    const popover = searchInput.closest('[role="dialog"]') as HTMLElement;
-    const picker = within(popover);
-
-    await user.click(await picker.findByText("claude-sonnet-4"));
-
-    expect(searchInput).not.toBeVisible();
   });
 });

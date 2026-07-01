@@ -37,7 +37,7 @@ Categories:
 - **Core Infrastructure** — tmux, Docker, Caddy, OS hardening
 - **Databases** — PostgreSQL, Redis, MongoDB, MySQL
 - **Observability** — Prometheus, Grafana, Loki, Fluent Bit
-- **AI & Agents** — 9Router, Hermes, Honcho, Memory OS
+- **AI & Agents** — Hermes, Honcho, Memory OS
 - **Developer Tools** — fzf, BoxBox
 - **Admin UIs** — pgAdmin, RedisInsight, Mongo Express, phpMyAdmin
 

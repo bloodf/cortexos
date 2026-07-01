@@ -6,7 +6,7 @@
  * build emit duplicate copies of the imported module — the server then
  * registers a fn's handler under one copy while the client calls the id of the
  * other, yielding `Server function info not found for <fn>` at runtime (this
- * broke listModels/agentChat: empty model picker + stuck WS). Keep cross-module
+ * once broke agentChat due to cross-module schema sharing). Keep cross-module
  * schema sharing here instead.
  */
 import { z } from "zod";

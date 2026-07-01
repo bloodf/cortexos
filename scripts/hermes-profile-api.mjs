@@ -163,14 +163,14 @@ async function runHermes(prompt, overrides) {
     HERMES_PROFILE: profile,
     HERMES_MODEL: model,
     HERMES_REASONING: reasoning,
-    OPENAI_BASE_URL: process.env.HERMES_PROVIDER_BASE_URL || process.env.NINEROUTER_BASE_URL || "http://127.0.0.1:11434/v1",
-    OPENAI_API_KEY: process.env.NINEROUTER_API_KEY || process.env.OPENAI_API_KEY || "",
+    OPENAI_BASE_URL: process.env.HERMES_PROVIDER_BASE_URL || process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY || "",
     HONCHO_BASE_URL: process.env.HONCHO_BASE_URL || "http://127.0.0.1:18690",
     HONCHO_WORKSPACE: process.env.HONCHO_WORKSPACE || profile,
-    // 9Router (and some other local gateways) do not yet map the OpenAI
-    // "developer" role to "system". Hermes converts system prompts to
-    // "developer" for GPT-5/Codex model names; force the classic "system"
-    // role so the injected SOUL.md identity reaches the provider.
+    // Some local gateways do not yet map the OpenAI "developer" role to
+    // "system". Hermes converts system prompts to "developer" for GPT-5/Codex
+    // model names; force the classic "system" role so the injected SOUL.md
+    // identity reaches the provider.
     HERMES_FORCE_SYSTEM_ROLE: "1",
   };
 

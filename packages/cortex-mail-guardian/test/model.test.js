@@ -12,7 +12,7 @@ const { classifyEmail, shouldAutoQuarantine } = await import('../src/model.js');
 const modelConfig = {
   baseUrl: 'http://localhost:11434/v1',
   apiKey: 'test-key',
-  model: 'minimax/MiniMax-M2.7-highspeed',
+  model: 'gpt-4o-mini',
   timeoutMs: 5_000,
 };
 describe('model decisions', () => {
@@ -57,7 +57,7 @@ describe('classifyEmail (Vercel AI SDK wiring)', () => {
       apiKey: 'test-key',
     });
     const call = generateObjectMock.mock.calls[0][0];
-    expect(call.model).toEqual({ modelId: 'minimax/MiniMax-M2.7-highspeed' });
+    expect(call.model).toEqual({ modelId: 'gpt-4o-mini' });
     expect(call.abortSignal).toBeInstanceOf(AbortSignal);
     expect(result.verdict).toBe('not_spam');
     expect(result.confidence).toBe(0.88);

@@ -51,9 +51,6 @@ curl -fsS http://127.0.0.1:3100/api/health
 ## AI Stack
 
 ```bash
-# 9Router
-curl -fsS http://127.0.0.1:11434/v1/models | jq '.data | length'
-
 # Ollama (if installed)
 curl -fsS http://127.0.0.1:11435/api/tags | jq '.models | length'
 

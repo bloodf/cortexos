@@ -25,7 +25,6 @@ Think of this as the app store for your server. Each tool is installed by runnin
 | **cAdvisor** | Observability | Container metrics — how much RAM is Docker using? | [`prompts/tools/24-cadvisor.md`](../prompts/tools/24-cadvisor.md) | [GitHub](https://github.com/google/cadvisor) |
 | **Node Exporter** | Observability | Host metrics — CPU, disk, network stats from the OS | [`prompts/tools/25-node-exporter.md`](../prompts/tools/25-node-exporter.md) | [GitHub](https://github.com/prometheus/node_exporter) |
 | **DB Exporters** | Observability | Database health metrics for Prometheus | [`prompts/tools/28-db-exporters.md`](../prompts/tools/28-db-exporters.md) | — |
-| **9Router** | AI & Agents | AI model gateway — one API endpoint for many LLM providers | [`prompts/tools/31-9router.md`](../prompts/tools/31-9router.md) | *Internal CortexOS component* |
 | **Honcho** | AI & Agents | Memory and knowledge backend for AI agents (legacy, read-only) | [`prompts/tools/32-honcho.md`](../prompts/tools/32-honcho.md) | [GitHub](https://github.com/plastic-labs/honcho) |
 | **Hindsight** | AI & Agents | Self-hosted AI memory backend (primary) | [`prompts/tools/32b-hindsight.md`](../prompts/tools/32b-hindsight.md) | [GitHub](https://github.com/vectorize-io/hindsight) |
 | **Hermes Memory OS** | AI & Agents | Long-term memory system (Qdrant vector DB + ARQ worker) | [`prompts/tools/33-hermes-memory-os.md`](../prompts/tools/33-hermes-memory-os.md) | [GitHub](https://github.com/ClaudioDrews/memory-os) |
@@ -220,17 +219,6 @@ Observability = "can you see what's happening inside your system?" These tools a
 
 ## AI & Agents
 
-### 9Router — AI Model Gateway
-
-**What it is:** CortexOS's internal traffic router for AI models.
-
-**What it does for you:** Instead of hardcoding OpenAI, Anthropic, or Gemini APIs in every app, you call 9Router's single OpenAI-compatible endpoint. It routes to the best available model, handles failover, and lets you swap providers without changing code.
-
-- **Install prompt:** [`prompts/tools/31-9router.md`](../prompts/tools/31-9router.md)
-- **Links:** *Internal CortexOS component*
-
----
-
 ### Honcho — Memory + Knowledge Backend (legacy)
 
 **What it is:** A context and memory layer for AI agents.
@@ -246,7 +234,7 @@ Observability = "can you see what's happening inside your system?" These tools a
 
 **What it is:** A self-hosted memory service for AI agents.
 
-**What it does for you:** Stores agent memories, supports semantic recall, and provides LLM-synthesized reflection. Each directory gets its own bank; Hermes profiles use `hermes-<profile>` banks. LLM routed through 9Router.
+**What it does for you:** Stores agent memories, supports semantic recall, and provides LLM-synthesized reflection. Each directory gets its own bank; Hermes profiles use `hermes-<profile>` banks.
 
 - **Install prompt:** [`prompts/tools/32b-hindsight.md`](../prompts/tools/32b-hindsight.md)
 - **Links:** [GitHub](https://github.com/vectorize-io/hindsight)

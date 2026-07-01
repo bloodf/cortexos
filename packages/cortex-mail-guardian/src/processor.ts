@@ -90,8 +90,8 @@ export async function processMessage(
   const hasAllowRule = await deps.store.hasAllowRule(redacted.fromHash, redacted.domainHash);
   const heuristicScore = heuristicSpamScore(message);
   const primaryConfig = {
-    baseUrl: deps.config.nineRouterBaseUrl,
-    apiKey: deps.config.nineRouterApiKey,
+    baseUrl: deps.config.openAiBaseUrl,
+    apiKey: deps.config.openAiApiKey,
     model: deps.config.model,
     timeoutMs: deps.config.modelTimeoutMs,
   };

@@ -35,7 +35,7 @@ Your server is the main computer running everything. It's always on and connecte
 │                                     │
 │  ┌─────────────────────────────┐   │
 │  │      AI Services            │   │
-│  │   (9Router, Ollama)         │   │
+│  │   (Ollama)                  │   │
 │  └─────────────────────────────┘   │
 │                                     │
 │  ┌─────────────────────────────┐   │
@@ -68,28 +68,7 @@ Databases are organized storage for your data.
 
 ### 4. 🤖 AI Services
 
-Instead of paying per API call, you run AI models locally or through smart routing.
-
-```
-┌─────────────────────────────────────┐
-│            9Router                  │
-│     (Smart AI Traffic Director)     │
-└──────────────┬──────────────────────┘
-               │
-    ┌──────────┼──────────┐
-    │          │          │
-    ▼          ▼          ▼
-┌────────┐ ┌────────┐ ┌────────┐
-│ Claude │ │  GPT   │ │ Gemini │
-│(OpenAI)│ │(OpenAI)│ │(Google)│
-└────────┘ └────────┘ └────────┘
-```
-
-**9Router** decides which AI model to use based on:
-- Cost
-- Speed
-- Quality needs
-- Availability
+Instead of paying per API call, you can run AI models locally with Ollama.
 
 ### 5. 🤖 Hermes (AI Agent)
 
@@ -145,13 +124,7 @@ Tailscale creates a **secure tunnel** between your devices so you can access you
 5. Dashboard might query PostgreSQL
           │
           ▼
-6. Dashboard might ask 9Router for AI
-          │
-          ▼
-7. 9Router picks best AI model
-          │
-          ▼
-8. You see the result in your browser
+6. You see the result in your browser
 ```
 
 ### When Hermes Does a Task
@@ -163,22 +136,19 @@ Tailscale creates a **secure tunnel** between your devices so you can access you
 2. Checks memory (Honcho) for context
           │
           ▼
-3. Asks 9Router for AI assistance
+3. Asks the configured AI provider for assistance
           │
           ▼
-4. 9Router routes to Claude/GPT/Gemini
+4. Gets response and executes code
           │
           ▼
-5. Gets response and executes code
+5. Saves results to database
           │
           ▼
-6. Saves results to database
+6. Updates memory (Honcho)
           │
           ▼
-7. Updates memory (Honcho)
-          │
-          ▼
-8. Reports back to you
+7. Reports back to you
 ```
 
 ---
@@ -220,7 +190,6 @@ Tailscale creates a **secure tunnel** between your devices so you can access you
 | MySQL | 3306 | Local only |
 | Redis | 6379 | Local only |
 | Prometheus | 9090 | Local only |
-| 9Router | 11434 | Local + Docker |
 
 ---
 
@@ -253,34 +222,12 @@ Tailscale creates a **secure tunnel** between your devices so you can access you
          ▼                 ▼                 ▼
 ┌─────────────────┐ ┌──────────────┐ ┌─────────────────┐
 │   DASHBOARD     │ │  DATABASE    │ │    AI STACK     │
-│ (TanStack Start)│ │   ADMIN      │ │                 │
+│ (TanStack Start)│ │   ADMIN      │ │   (Ollama)      │
 │                 │ │   TOOLS      │ │                 │
 │                 │ │              │ │                 │
 │                 │ │  PHPMyAdmin  │ │                 │
 │                 │ │ MongoExpress │ │                 │
-└─────────────────┘ └──────────────┘ └────────┬──────────┘
-                                              │
-                                              ▼
-                                    ┌──────────────────┐
-                                    │    9ROUTER       │
-                                    │   (AI Gateway)   │
-                                    └────────┬─────────┘
-                                             │
-              ┌──────────────────────────────┼──────────────────────────────┐
-              │                              │                              │
-              ▼                              ▼                              ▼
-      ┌──────────────┐              ┌──────────────┐              ┌──────────────┐
-      │   CLAUDE     │              │     GPT      │              │   GEMINI     │
-      │  (Remote)    │              │  (Remote)    │              │  (Remote)    │
-      └──────────────┘              └──────────────┘              └──────────────┘
-              │                              │                              │
-              └──────────────────────────────┼──────────────────────────────┘
-                                             │
-                                             ▼
-                                      ┌──────────────┐
-                                      │   OLLAMA     │
-                                      │   (Local)    │
-                                      └──────────────┘
+└─────────────────┘ └──────────────┘ └─────────────────┘
 
                          ┌─────────────────────────────────────┐
                          │          DATABASES                  │

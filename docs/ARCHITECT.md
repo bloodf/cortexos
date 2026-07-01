@@ -39,7 +39,7 @@ The file `prompts/tools/_order.md` lists every prompt in order. Here's what the 
 | 11 | `11-docker` | Installs Docker, the container engine that runs most CortexOS services |
 | 13 | `13-caddy` | Sets up the web proxy that routes traffic to your apps |
 | 14–25 | Databases & monitoring | PostgreSQL, Redis, MongoDB, MySQL, ClickHouse, MinIO, Grafana, etc. |
-| 30+ | AI tools & dashboard | Langfuse, 9Router, the CortexOS web dashboard, and more |
+| 30+ | AI tools & dashboard | Langfuse, the CortexOS web dashboard, and more |
 
 You don't have to install everything. Skip the tools you don't need.
 

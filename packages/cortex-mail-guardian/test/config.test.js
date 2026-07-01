@@ -24,7 +24,7 @@ function baseEnv() {
     MAIL_GUARDIAN_ACCOUNT_3_USERNAME: 'eu@heitorramon.com',
     MAIL_GUARDIAN_ACCOUNT_3_PASSWORD_B64: password,
     TELEGRAM_BOT_TOKEN: 'token',
-    NINEROUTER_API_KEY: 'key',
+    OPENAI_API_KEY: 'key',
   };
 }
 describe('config', () => {
@@ -34,7 +34,7 @@ describe('config', () => {
     expect(config.accounts[0].password).toBe('dummy#password;with.symbols');
     expect(config.accounts[2].host).toBe('mail.heitorramon.com');
     expect(config.accounts[2].reviewMailbox).toBe('INBOX.Cortex Mail Guardian Review');
-    expect(config.model).toBe('minimax/MiniMax-M2.7-highspeed');
+    expect(config.model).toBe('gpt-4o-mini');
     expect(config.confidenceThreshold).toBe(0.95);
   });
   it('rejects invalid base64', () => {
@@ -46,7 +46,7 @@ describe('config', () => {
     expect(() => loadConfig(input)).toThrow(/positive integer/);
   });
   it('loads with no env accounts when the count is absent (DB-only mode)', () => {
-    const config = loadConfig({ NINEROUTER_API_KEY: 'key' });
+    const config = loadConfig({ OPENAI_API_KEY: 'key' });
     expect(config.accounts).toHaveLength(0);
   });
 });

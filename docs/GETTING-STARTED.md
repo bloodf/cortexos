@@ -13,7 +13,7 @@ CortexOS is a **self-hosted AI infrastructure**. You have:
 | What's on Your Server | What It Does |
 |----------------------|--------------|
 | 💾 **Databases** | Store data (like MySQL, PostgreSQL) |
-| 🤖 **AI Models** | Claude, GPT, Gemini via 9Router |
+| 🤖 **AI Models** | Claude, GPT, Gemini via direct provider APIs |
 | 📊 **Monitoring** | Watch CPU, memory, disk usage |
 | 🌐 **Dashboard** | Web interface to control everything |
 | 🔒 **VPN** | Secure access from anywhere |

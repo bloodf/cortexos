@@ -20,8 +20,8 @@ const config = {
   accounts: [],
   model: 'test',
   fallbackModel: 'test-fb',
-  nineRouterBaseUrl: 'http://localhost',
-  nineRouterApiKey: 'key',
+  openAiBaseUrl: 'http://localhost',
+  openAiApiKey: 'key',
   modelTimeoutMs: 5_000,
   confidenceThreshold: 0.95,
   maxMessagesPerSweep: 10,
@@ -44,12 +44,12 @@ describe('GuardianStore.recordDecision', () => {
       fromHash: redacted.fromHash,
       domainHash: redacted.domainHash,
       summary: redacted.summary,
-      model: 'minimax/MiniMax-M3',
+      model: 'gpt-4o-mini',
       verdict: 'spam',
       confidence: 0.98,
       reasons: ['phishing'],
       riskSignals: ['credential request'],
-      verifyModel: 'cx/gpt-5.5',
+      verifyModel: 'gpt-4o',
       verifyVerdict: 'spam',
       verifyConfidence: 0.95,
       outcome: 'pending',
@@ -62,10 +62,10 @@ describe('GuardianStore.recordDecision', () => {
     expect(params).toContain(redacted.fromHash);
     expect(params).toContain(redacted.domainHash);
     expect(params).toContain(redacted.summary);
-    expect(params).toContain('minimax/MiniMax-M3');
+    expect(params).toContain('gpt-4o-mini');
     expect(params).toContain('spam');
     expect(params).toContain(0.98);
-    expect(params).toContain('cx/gpt-5.5');
+    expect(params).toContain('gpt-4o');
     expect(params).toContain('pending');
   });
 

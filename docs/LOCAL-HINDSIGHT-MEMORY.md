@@ -27,10 +27,7 @@ instance, not on the local machine.
 
 ## Installation
 
-If you already ran `scripts/install-local-ai-harness.sh`, the MCP server is
-registered automatically in `~/.claude/mcp.json`.
-
-To register or repair it manually:
+To register or repair the MCP server manually:
 
 ```bash
 cd /opt/cortexos

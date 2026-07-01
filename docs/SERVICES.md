@@ -161,23 +161,6 @@ docker exec -it cortex-redis redis-cli
 
 ## AI Services
 
-### 9Router
-| Property | Value |
-|----------|--------|
-| Container | `9router` |
-| Port | `11434` |
-| Image | `ghcr.io/openrouter/9router:latest` |
-| Purpose | AI gateway/router |
-
-**API Endpoint:** http://127.0.0.1:11434/v1
-
-**List models:**
-```bash
-curl -s http://127.0.0.1:11434/v1/models | jq '.data[].id'
-```
-
----
-
 ### Ollama
 | Property | Value |
 |----------|--------|
@@ -238,7 +221,7 @@ systemctl status 'cortex-*' --no-pager
 
 ### Check Ports
 ```bash
-ss -tlnp | grep -E ":(3000|5432|3306|6379|9090|11434)"
+ss -tlnp | grep -E ":(3000|5432|3306|6379|9090)"
 ```
 
 ### Restart All Docker Services
@@ -264,7 +247,6 @@ journalctl -u caddy -u tailscaled -u ollama --no-pager -n 50
 | MongoDB | 27017 | Local only |
 | Redis | 6379 | Local only |
 | Prometheus | 9090 | Local only |
-| 9Router | 11434 | Local + Docker |
 | PHPMyAdmin | 8082 | Via Caddy |
 | Mongo Express | 8083 | Via Caddy |
 | Node Exporter | 9100 | Local only |

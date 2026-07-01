@@ -3,15 +3,16 @@
 ## Purpose
 
 Install the optional Cortex-owned IMAP spam guardian. It watches selected inboxes,
-classifies messages through 9Router, moves high-confidence spam to Trash, and
-sends a Telegram review request to the owner when a decision is uncertain.
+classifies messages through an OpenAI-compatible chat endpoint, moves
+high-confidence spam to Trash, and sends a Telegram review request to the owner
+when a decision is uncertain.
 
 Backend-only service: no web UI, no open URL. Appears in the healthcheck dashboard
 and in the Mail Guardian admin page (`/{locale}/mail-guardian`).
 
 ## Prerequisites
 
-- `31-9router.md` completed (9Router must be running and reachable).
+- An OpenAI-compatible chat endpoint reachable from the host.
 - `70-dashboard.md` completed (PostgreSQL and the cortex_dashboard DB must exist).
 - Cortex Telegram bot set up and the owner has sent `/start` to it.
 - IMAP app passwords ready for the accounts to be monitored.
@@ -25,12 +26,12 @@ and in the Mail Guardian admin page (`/{locale}/mail-guardian`).
 Ask the operator for the following, one at a time. Offer defaults where shown but
 require explicit confirmation before using them.
 
-### 9Router / model
+### LLM / model
 
 ```
-NINEROUTER_BASE_URL   [default: http://localhost:11434/v1]
-NINEROUTER_API_KEY    (required — no default)
-MAIL_GUARDIAN_MODEL   [default: minimax/MiniMax-M2.7-highspeed]
+OPENAI_BASE_URL   [default: https://api.openai.com/v1]
+OPENAI_API_KEY    (required — no default)
+MAIL_GUARDIAN_MODEL   [default: gpt-4o-mini]
 ```
 
 ### Telegram (for review notifications)
@@ -109,9 +110,9 @@ Create the encrypted secrets file on the **operator laptop**:
 ```bash
 # On the laptop (where the age private key lives):
 cat > /tmp/mail-guardian-plain.yaml << 'EOF'
-NINEROUTER_BASE_URL: "http://localhost:11434/v1"
-NINEROUTER_API_KEY: "REPLACE_WITH_KEY"
-MAIL_GUARDIAN_MODEL: "minimax/MiniMax-M2.7-highspeed"
+OPENAI_BASE_URL: "https://api.openai.com/v1"
+OPENAI_API_KEY: "REPLACE_WITH_KEY"
+MAIL_GUARDIAN_MODEL: "gpt-4o-mini"
 TELEGRAM_BOT_TOKEN: "REPLACE_WITH_TOKEN"
 MAIL_GUARDIAN_TELEGRAM_OWNER_CHAT_ID: "REPLACE_WITH_CHAT_ID"
 MAIL_GUARDIAN_CONFIDENCE_THRESHOLD: "0.95"
@@ -200,7 +201,6 @@ journalctl -u cortex-mail-guardian.service -n 50 --no-pager
 
 # Smoke test (requires all env vars loaded):
 set -a
-source /opt/cortexos/.secrets/9router.env
 source /opt/cortexos/.secrets/dashboard.env
 source /opt/cortexos/.secrets/mail-guardian.env
 set +a

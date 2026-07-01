@@ -128,4 +128,4 @@ Config lives at `~/.config/herdr/config.toml` (`herdr config <subcommand>` to ma
 
 ## Next
 
-→ `prompts/tools/31-9router.md` (AI gateway)
+→ Configure an OpenAI-compatible chat endpoint for agent model calls.

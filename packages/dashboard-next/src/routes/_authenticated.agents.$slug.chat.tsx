@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import {
   Conversation,
@@ -38,25 +39,8 @@ import {
   PromptInputTextarea,
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
-import {
-  ModelSelector,
-  ModelSelectorTrigger,
-  ModelSelectorContent,
-  ModelSelectorInput,
-  ModelSelectorList,
-  ModelSelectorItem,
-  ModelSelectorEmpty,
-  ModelSelectorLogo,
-  ModelSelectorName,
-  type ModelSelectorLogoProps,
-} from "@/components/ai-elements/model-selector";
-import {
-  api,
-  callAgentChat,
-  callSetAgentModel,
-  callMintApproval,
-  listModels,
-} from "@/lib/api/client";
+import { ModelSelectorLogo, type ModelSelectorLogoProps } from "@/components/ai-elements/model-selector";
+import { api, callAgentChat, callSetAgentModel, callMintApproval } from "@/lib/api/client";
 import { csrfHeaders } from "@/lib/csrf";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -72,12 +56,9 @@ import {
 import type { Agent, AgentRunState } from "@/mocks/types";
 
 /**
- * Map a 9router model id to a models.dev provider slug for the logo.
+ * Map a model id prefix to a models.dev provider slug for the logo.
  * Returns null for unknown prefixes — caller skips the logo entirely
  * (avoids a broken-image icon in the UI).
- *
- * Grounded in the live 9router /v1/models catalog (78 models across these
- * prefixes): cc, cf, cu, cx, gc, gh, glm, kimi, minimax, ollama-local, openrouter.
  */
 function providerFor(modelId: string): ModelSelectorLogoProps["provider"] | null {
   const slash = modelId.indexOf("/");
@@ -174,7 +155,6 @@ export function ChatPage() {
   const [turns, setTurns] = useState<ChatTurn[]>([]);
   const [pending, setPending] = useState<PendingAttachment[]>([]);
   const [model, setModel] = useState<string>("");
-  const [modelOpen, setModelOpen] = useState(false);
   const [reasoning, setReasoning] = useState<(typeof REASONING_OPTIONS)[number]>("medium");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const seededModel = useRef(false);
@@ -192,13 +172,6 @@ export function ChatPage() {
     refetchInterval: 15_000,
   });
   const agent: Agent | undefined = agents.find((a) => a.slug === slug);
-
-  // Live model catalog for the composer's model dropdown + the header swap.
-  const { data: modelsData } = useQuery({
-    queryKey: ["agent-models"],
-    queryFn: () => listModels({ data: {} }),
-  });
-  const models = modelsData?.models ?? [];
 
   // Seed the composer's model select with the agent's current model once it
   // loads — in render is unsafe under SSR, so guard with a ref + only-once.
@@ -573,50 +546,19 @@ export function ChatPage() {
                     </PromptInputButton>
 
                     {/* Per-turn model pick (does NOT persist; the header Apply does) */}
-                    <ModelSelector open={modelOpen} onOpenChange={setModelOpen}>
-                      <ModelSelectorTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          role="combobox"
-                          aria-label="Model for this message"
-                          disabled={models.length === 0}
-                          className="h-7 text-xs inline-flex items-center gap-1 max-w-[180px]"
-                        >
-                          {model ? (
-                            <>
-                              {providerFor(model) && (
-                                <ModelSelectorLogo provider={providerFor(model)!} />
-                              )}
-                              <ModelSelectorName>{model}</ModelSelectorName>
-                            </>
-                          ) : (
-                            <span className="text-muted-foreground">
-                              {models.length === 0 ? "Loading…" : "Pick a model…"}
-                            </span>
-                          )}
-                        </Button>
-                      </ModelSelectorTrigger>
-                      <ModelSelectorContent title="Pick a model" className="max-w-[420px]">
-                        <ModelSelectorInput autoFocus placeholder="Search models…" />
-                        <ModelSelectorList>
-                          <ModelSelectorEmpty>No matching models</ModelSelectorEmpty>
-                          {models.map((m) => (
-                            <ModelSelectorItem
-                              key={m}
-                              value={m}
-                              onSelect={() => {
-                                setModel(m);
-                                setModelOpen(false);
-                              }}
-                            >
-                              {providerFor(m) && <ModelSelectorLogo provider={providerFor(m)!} />}
-                              <ModelSelectorName>{m}</ModelSelectorName>
-                            </ModelSelectorItem>
-                          ))}
-                        </ModelSelectorList>
-                      </ModelSelectorContent>
-                    </ModelSelector>
+                    <div className="flex items-center gap-1.5">
+                      {model && providerFor(model) && (
+                        <ModelSelectorLogo provider={providerFor(model)!} />
+                      )}
+                      <Input
+                        type="text"
+                        placeholder="model id"
+                        value={model}
+                        onChange={(e) => setModel(e.target.value)}
+                        className="h-7 w-40 text-xs"
+                        aria-label="Model for this message"
+                      />
+                    </div>
 
                     {/* Reasoning effort */}
                     <PromptInputSelect

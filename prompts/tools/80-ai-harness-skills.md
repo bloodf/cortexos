@@ -20,7 +20,7 @@ contains:
 
 ## Prerequisites
 
-- `31-9router.md` completed (Hermes / AI gateway is in place).
+- An OpenAI-compatible chat endpoint configured.
 - `git`, `node`, and `npm` are available (baseline from `00-preflight.md`).
 - `~/.local/bin` is on the operator `$PATH`.
 
@@ -156,6 +156,6 @@ Type `confirmed` to proceed.
 
 → `prompts/tools/82-mail-guardian.md` (or the next operator-surface tool in `_order.md`).
 → If you are configuring a **local workstation** (not an Incus instance), also see
-  `prompts/tools/35a-local-harness-9router.md` for the canonical 9Router model set,
-  per-harness wiring (Claude Code / OMP / Aider / OpenCode / Hermes), and cost.
+  the endpoint provider's documentation for available models, per-harness wiring,
+  and cost.
 

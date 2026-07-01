@@ -197,30 +197,7 @@ docker exec cortex-postgres psql -U cortex -c "SELECT pid, now() - query_start A
 
 ---
 
-## AI / 9Router Issues
-
-### 9Router not responding
-
-```bash
-# Check if container is running
-docker ps | grep 9router
-
-# Check logs
-docker logs 9router
-
-# Test API
-curl -s http://127.0.0.1:11434/v1/models | jq '.data | length'
-```
-
-### Model not available
-
-```bash
-# List available models
-curl -s http://127.0.0.1:11434/v1/models | jq '.data[].id'
-
-# Check 9Router configuration
-cat /opt/cortexos/.secrets/9router.env
-```
+## AI Issues
 
 ### Ollama not responding
 

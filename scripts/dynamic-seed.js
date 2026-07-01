@@ -26,7 +26,7 @@ const SPOKE_TO_SERVICES = {
   "26a-otel-collector": ["otel-collector"],
   "27-dockhand": ["dockhand"],
   "28-db-exporters": ["pg-exporter", "redis-exporter", "mongo-exporter", "snmp-exporter", "adguard-exporter"],
-  "31-9router": ["9router", "ollama"],
+  "31-ollama": ["ollama"],
   "34-kernel-browser": ["kernel-browser"],
   "37-firecrawl": ["firecrawl"],
   "47a-cortex-sandbox": ["cortex-sandbox-runner"],

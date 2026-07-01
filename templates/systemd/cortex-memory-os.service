@@ -14,8 +14,8 @@
 # Redis (memory-arq queue, port 6379), and the ARQ worker (Python
 # 3.12, custom build). The docker/.env file (written by the upstream
 # setup.sh + overlaid by the install prompt) holds REDIS_PASSWORD,
-# OPENROUTER_API_KEY, and the 9router overrides; the systemd
-# EnvironmentFile mirrors the host-side secrets so 9router reachability
+# OPENROUTER_API_KEY, and the LLM endpoint overrides; the systemd
+# EnvironmentFile mirrors the host-side secrets so endpoint reachability
 # can be verified from the host shell.
 #
 # Runs as root because the worker needs to bind 127.0.0.1:6379 and

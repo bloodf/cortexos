@@ -21,8 +21,8 @@ export interface GuardianConfig {
   action: 'trash';
   telegramBotToken?: string;
   telegramOwnerChatId?: string;
-  nineRouterBaseUrl: string;
-  nineRouterApiKey: string;
+  openAiBaseUrl: string;
+  openAiApiKey: string;
   databaseUrl?: string;
   maxMessagesPerSweep: number;
   modelTimeoutMs: number;
@@ -122,8 +122,8 @@ export function loadConfig(source: NodeJS.ProcessEnv = getProcessEnv()): Guardia
 
   return {
     accounts,
-    model: env('MAIL_GUARDIAN_MODEL', source) ?? 'minimax/MiniMax-M3',
-    fallbackModel: env('MAIL_GUARDIAN_FALLBACK_MODEL', source) ?? 'cx/gpt-5.5',
+    model: env('MAIL_GUARDIAN_MODEL', source) ?? 'gpt-4o-mini',
+    fallbackModel: env('MAIL_GUARDIAN_FALLBACK_MODEL', source) ?? 'gpt-4o',
     confidenceThreshold,
     action,
     telegramBotToken: env('TELEGRAM_BOT_TOKEN', source),
@@ -134,10 +134,10 @@ export function loadConfig(source: NodeJS.ProcessEnv = getProcessEnv()): Guardia
     // client is installed when no token is present), so a chat id without a
     // token simply means "no doomed send is attempted" — not a crash.
     telegramOwnerChatId: env('MAIL_GUARDIAN_TELEGRAM_OWNER_CHAT_ID', source),
-    nineRouterBaseUrl: normalizeOpenAiBaseUrl(
-      env('NINEROUTER_BASE_URL', source) ?? 'http://localhost:11434/v1',
+    openAiBaseUrl: normalizeOpenAiBaseUrl(
+      env('OPENAI_BASE_URL', source) ?? 'https://api.openai.com/v1',
     ),
-    nineRouterApiKey: requireEnv('NINEROUTER_API_KEY', source),
+    openAiApiKey: requireEnv('OPENAI_API_KEY', source),
     databaseUrl: env('DATABASE_URL', source) ?? env('PG_DSN', source),
     maxMessagesPerSweep: parseIntEnv('MAIL_GUARDIAN_MAX_MESSAGES_PER_SWEEP', source, 20),
     modelTimeoutMs: parseIntEnv('MAIL_GUARDIAN_MODEL_TIMEOUT_MS', source, 30_000),

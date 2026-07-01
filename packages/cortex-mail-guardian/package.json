@@ -1,7 +1,7 @@
 {
   "name": "@cortexos/mail-guardian",
   "version": "0.1.0",
-  "description": "CortexOS IMAP spam guardian with 9Router classification and Cortex Telegram review.",
+  "description": "CortexOS IMAP spam guardian with OpenAI-compatible LLM classification and Cortex Telegram review.",
   "license": "MIT",
   "private": true,
   "type": "module",

@@ -98,7 +98,7 @@ CortexOS installs **25+ tools** across your server. Here's what's included:
 ### AI & Agents
 | Tool | Description | Links |
 |------|-------------|-------|
-| **9Router** | AI model gateway (internal) | *CortexOS component* |
+| **Model endpoint** | OpenAI-compatible chat endpoint (configure per profile) | *external or local* |
 | **Hindsight** | Self-hosted AI memory backend (primary) | [GitHub](https://github.com/vectorize-io/hindsight) |
 | **Honcho** | Memory backend (legacy, read-only) | [GitHub](https://github.com/plastic-labs/honcho) |
 | **Memory OS** | Long-term AI memory | [GitHub](https://github.com/ClaudioDrews/memory-os) |
@@ -154,7 +154,7 @@ CortexOS installs **25+ tools** across your server. Here's what's included:
 │                                         │
 │  ┌──────────────────────────────┐      │
 │  │         AI Stack             │      │
-│  │  9Router → Models → Memory   │      │
+│  │  LLM endpoint → Models → Memory   │      │
 │  └──────────────────────────────┘      │
 └─────────────────────────────────────────┘
 ```

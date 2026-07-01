@@ -369,7 +369,6 @@ const CONFIG_MODEL_LINE = /^([ \t]*default:[ \t]*)(.*?)([ \t]*#.*)?$/;
  *   - `UnknownAgentError`  malformed/unknown slug
  *   - `validationError`    unknown reasoning level, unknown model id, or a
  *                          config.yaml without a `model.default:` line
- *   - `systemError`        9Router unreachable (cannot validate model)
  */
 export async function setAgentModel(
   slug: string,
@@ -387,19 +386,6 @@ export async function setAgentModel(
   if (!profile) {
     // assertKnownSlug already covered this; narrow for TS.
     throw new UnknownAgentError(`agent '${slug}' is not a known Hermes profile`);
-  }
-
-  // Validate the model against 9Router's live catalog. If the catalog cannot
-  // be fetched, REFUSE the swap — silently accepting would let a typo through.
-  const { list9routerModels } = await import("@/server/agents/nineRouter");
-  const known = await list9routerModels();
-  if (known.length === 0) {
-    throw systemError("9router_models_unavailable");
-  }
-  if (!known.includes(input.model)) {
-    throw validationError(`unknown model '${input.model}'`, [
-      { field: "model", message: "model is not in the 9Router catalog" },
-    ]);
   }
 
   const configPath = `${profile.home}/config.yaml`;

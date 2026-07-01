@@ -341,28 +341,7 @@ docker ps  # Should show all containers running
 
 ---
 
-## Step 6: Install 9Router (AI Gateway)
-
-9Router is the AI gateway that routes requests to different AI providers.
-
-```bash
-docker run -d \
-  --name 9router \
-  --restart unless-stopped \
-  -p 127.0.0.1:11434:11434 \
-  -v 9router-data:/data \
-  ghcr.io/openrouter/9router:latest
-```
-
-### Verify
-
-```bash
-curl -s http://127.0.0.1:11434/v1/models | jq '.data[].id'
-```
-
----
-
-## Step 7: Install Ollama (Local AI)
+## Step 6: Install Ollama (Local AI)
 
 Ollama runs open-source AI models locally.
 
@@ -386,7 +365,7 @@ ollama pull nomic-embed-text
 
 ---
 
-## Step 8: Install Caddy (Reverse Proxy)
+## Step 7: Install Caddy (Reverse Proxy)
 
 Caddy handles HTTPS automatically.
 
@@ -425,7 +404,7 @@ sudo systemctl reload caddy
 
 ---
 
-## Step 9: Install Tailscale (VPN)
+## Step 8: Install Tailscale (VPN)
 
 Tailscale creates a secure network between your devices.
 
@@ -447,7 +426,7 @@ tailscale status  # Shows your tailnet IP
 
 ---
 
-## Step 10: Install Node.js (for Dashboard)
+## Step 9: Install Node.js (for Dashboard)
 
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_22.x | sudo bash -
@@ -457,7 +436,7 @@ npm install -g pnpm
 
 ---
 
-## Step 11: Configure Your Tools
+## Step 10: Configure Your Tools
 
 See [CONFIG.md](CONFIG.md) for:
 - Shell setup (zsh, tmux)
@@ -466,7 +445,7 @@ See [CONFIG.md](CONFIG.md) for:
 
 ---
 
-## Step 12: Verify Everything
+## Step 11: Verify Everything
 
 Run this to check all services:
 
@@ -510,13 +489,6 @@ sudo ss -tlnp | grep :PORT
 sudo kill PROCESS_ID
 ```
 
-### 9Router not responding
-
-```bash
-docker logs 9router
-docker restart 9router
-```
-
 See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for more solutions.
 
 ---
@@ -525,5 +497,4 @@ See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for more solutions.
 
 1. 📖 Read [GUIDE.md](GUIDE.md) - Understand what you built
 2. 🔧 Set up your tools in [CONFIG.md](CONFIG.md)
-3. 🤖 Configure AI in [AI-SETUP.md](AI-SETUP.md)
-4. 📊 Access monitoring dashboards
+3. 📊 Access monitoring dashboards

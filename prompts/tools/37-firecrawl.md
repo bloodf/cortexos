@@ -46,11 +46,11 @@ FireCrawl is resource-hungry. Do not install this on a host below the minimum.
 
 | Field | Default | Notes |
 | --- | --- | --- |
-| AI extraction backend | `none` | `none` disables `/extract`; `openai` for cloud; `9router` for CortexOS 9Router (requires a chat model on 9Router); `ollama` for local Ollama. |
+| AI extraction backend | `none` | `none` disables `/extract`; `openai` for cloud; `ollama` for local Ollama. |
 | Expose on tailnet? | `yes` | Adds the `/firecrawl` path to Caddy. |
 
 ```bash
-read -p "AI extraction backend (none/openai/9router/ollama) [none]: " AI_BACKEND
+read -p "AI extraction backend (none/openai/ollama) [none]: " AI_BACKEND
 AI_BACKEND="${AI_BACKEND:-none}"
 read -p "Expose FireCrawl on the tailnet via Caddy? (yes/no) [yes]: " EXPOSE_TAILNET
 EXPOSE_TAILNET="${EXPOSE_TAILNET:-yes}"
@@ -66,15 +66,7 @@ if [ "${AI_BACKEND}" = "ollama" ]; then
   MODEL_NAME="${MODEL_NAME:-qwen3:32b}"
 fi
 
-if [ "${AI_BACKEND}" = "9router" ]; then
-  read -s -p "9Router API key (press Enter to read from /opt/cortexos/.secrets/9router.env): " NINEROUTER_API_KEY; echo
-  if [ -z "${NINEROUTER_API_KEY}" ]; then
-    NINEROUTER_API_KEY=$(grep '^NINEROUTER_API_KEY=' /opt/cortexos/.secrets/9router.env 2>/dev/null | cut -d= -f2-)
-  fi
-  : "${NINEROUTER_API_KEY:?NINEROUTER_API_KEY is required}"
-fi
-
-export AI_BACKEND EXPOSE_TAILNET OPENAI_API_KEY OLLAMA_BASE_URL MODEL_NAME NINEROUTER_API_KEY
+export AI_BACKEND EXPOSE_TAILNET OPENAI_API_KEY OLLAMA_BASE_URL MODEL_NAME
 echo "AI backend: ${AI_BACKEND}, tailnet: ${EXPOSE_TAILNET}"
 ```
 
@@ -124,13 +116,6 @@ case "${AI_BACKEND}" in
     AI_EXTRACT_OPENAI_API_KEY="${OPENAI_API_KEY}"
     AI_EXTRACT_MODEL_NAME="gpt-5.5"
     AI_EXTRACT_MODEL_EMBEDDING_NAME="text-embedding-3-small"
-    ;;
-  9router)
-    AI_EXTRACT_OPENAI_API_KEY="${NINEROUTER_API_KEY}"
-    AI_EXTRACT_OPENAI_BASE_URL="http://172.17.0.1:11434/v1"
-    AI_EXTRACT_MODEL_NAME="cx/gpt-5.5"
-    # MODEL_EMBEDDING_NAME is left empty; set it only if your 9Router exposes
-    # a compatible embedding model and FireCrawl's /extract requires it.
     ;;
   ollama)
     AI_EXTRACT_OLLAMA_BASE_URL="${OLLAMA_BASE_URL}"

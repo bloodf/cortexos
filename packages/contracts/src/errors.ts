@@ -162,11 +162,11 @@ export const ApprovalReplayErrorSchema = z.object({
 });
 export type ApprovalReplayError = z.infer<typeof ApprovalReplayErrorSchema>;
 
-/** A dependency (e.g. root-helper, 9Router) returned an error. Maps to HTTP 502. */
+/** A dependency (e.g. root-helper, LLM endpoint) returned an error. Maps to HTTP 502. */
 export const DependencyFailedErrorSchema = z.object({
   code: z.literal('dependency_failed'),
   ...BaseError,
-  /** The failing dependency, e.g. "root-helper", "9router". */
+  /** The failing dependency, e.g. "root-helper", "llm-endpoint". */
   dependency: z.string().min(1).max(64).optional(),
 });
 export type DependencyFailedError = z.infer<typeof DependencyFailedErrorSchema>;

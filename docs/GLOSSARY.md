@@ -291,7 +291,6 @@
 |------|--------------|-------------------|
 | Docker | Run services in containers | `docker ps` |
 | Caddy | Web proxy + HTTPS | Your websites work |
-| 9Router | Route AI requests | AI models accessible |
 | Hermes | AI coding assistant | Your AI helper |
 | PostgreSQL | Database | Store data |
 | Prometheus | Collect metrics | System monitoring |

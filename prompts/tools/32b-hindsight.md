@@ -14,8 +14,9 @@ plane on `:9999` for operator verification.
 ## Prerequisites
 
 - `11-docker.md` completed.
-- `31-9router.md` completed and 9Router is serving chat models. Hindsight
-  bundles its own embedder, so no Ollama embeddings proxy is required.
+- An OpenAI-compatible chat endpoint reachable from Docker (e.g., cloud provider
+  API or a local Ollama instance). Hindsight bundles its own embedder, so no
+  separate embedding proxy is required.
 
 ## Ports and paths
 
@@ -29,41 +30,43 @@ plane on `:9999` for operator verification.
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** Is 9Router reachable and `cx/gpt-5.5` available?
+**STOP — operator question:** Is the chosen chat endpoint reachable from the host
+and from inside Docker?
 
 ```bash
-curl -fsS -H "Authorization: Bearer {NINEROUTER_API_KEY}" \
-  "{NINEROUTER_BASE_URL}/models" | jq -e '.data[].id | select(.=="cx/gpt-5.5")'
+# from the host
+curl -fsS -H "Authorization: Bearer {LLM_API_KEY}" \
+  "{LLM_BASE_URL}/models" | jq -e '.data[].id | select(.=="{LLM_MODEL}")'
 ```
 
-Expected: `cx/gpt-5.5` appears. Type `confirmed` to proceed.
+Expected: the target model appears. Type `confirmed` to proceed.
 
 ## Configure secrets
 
-**STOP — operator action required:** Provide the 9Router API key for this
-machine. The 9Router base URL from the host is `http://172.17.0.1:11434/v1` when
-accessed from inside Docker (docker0 bridge); from the host shell, use
-`http://127.0.0.1:11434/v1`.
+**STOP — operator action required:** Provide the OpenAI-compatible API key,
+base URL, and model name for this machine. From inside Docker the host gateway
+is usually `http://172.17.0.1:11434/v1` for a local proxy, or a cloud URL such
+as `https://api.openai.com/v1`.
 
-Wait for the operator's answer. Replace `{NINEROUTER_API_KEY}` below.
+Wait for the operator's answer. Replace `{LLM_API_KEY}`, `{LLM_BASE_URL}`, and
+`{LLM_MODEL}` below.
 
 ```bash
 sudo install -d -m 0700 /opt/cortexos/.secrets
 
 sudo tee /opt/cortexos/.secrets/hindsight.env >/dev/null <<EOF
 HINDSIGHT_API_LLM_PROVIDER=openai
-HINDSIGHT_API_LLM_BASE_URL=http://172.17.0.1:11434/v1
-HINDSIGHT_API_LLM_API_KEY={NINEROUTER_API_KEY}
-HINDSIGHT_API_LLM_MODEL=cx/gpt-5.5
+HINDSIGHT_API_LLM_BASE_URL={LLM_BASE_URL}
+HINDSIGHT_API_LLM_API_KEY={LLM_API_KEY}
+HINDSIGHT_API_LLM_MODEL={LLM_MODEL}
 HINDSIGHT_API_WORKER_ID=hindsight-prod
 EOF
 sudo chmod 600 /opt/cortexos/.secrets/hindsight.env
 ```
 
-> If `cx/gpt-5.5` does not satisfy Hindsight's 65k-output-token requirement
-> during retain/extraction, switch `HINDSIGHT_API_LLM_MODEL` to a 9Router model
-> that does (e.g. a gpt-5-class model) and re-create the container. Keep
-> provider/base-url/key unchanged.
+> If the chosen model does not satisfy Hindsight's 65k-output-token requirement
+> during retain/extraction, switch `HINDSIGHT_API_LLM_MODEL` to a compatible
+> model and re-create the container. Keep provider/base-url/key unchanged.
 
 ## Install stack
 
@@ -86,12 +89,14 @@ init). Allow up to 60s before the healthcheck starts passing.
 # Hindsight health
 curl -fsS http://127.0.0.1:8888/health
 
-# 9Router reachable from inside the container
+# LLM reachable from inside the container
 docker exec -i hindsight-api python3 - <<'PY'
 import json, os, urllib.request
+base = os.environ['HINDSIGHT_API_LLM_BASE_URL']
+model = os.environ['HINDSIGHT_API_LLM_MODEL']
 req = urllib.request.Request(
-  "http://172.17.0.1:11434/v1/chat/completions",
-  data=json.dumps({"model":"cx/gpt-5.5","messages":[{"role":"user","content":"Return ok."}],"max_tokens":20}).encode(),
+  f"{base}/chat/completions",
+  data=json.dumps({"model":model,"messages":[{"role":"user","content":"Return ok."}],"max_tokens":20}).encode(),
   headers={"content-type":"application/json","authorization":f"Bearer {os.environ['HINDSIGHT_API_LLM_API_KEY']}"},
 )
 data = json.loads(urllib.request.urlopen(req, timeout=45).read())
@@ -114,8 +119,8 @@ write.)
 ## CHECKPOINT 2
 
 **STOP — operator question:** Does `curl -fsS http://127.0.0.1:8888/health`
-return 200, and did the in-container 9Router smoke test complete without
-errors? Type `confirmed` to proceed.
+return 200, and did the in-container LLM smoke test complete without errors?
+Type `confirmed` to proceed.
 
 ## Smoke test retain → recall
 
@@ -176,8 +181,7 @@ After CHECKPOINT 2, switch the clients over to Hindsight:
    then disable Hermes' built-in markdown memory tool per profile
    (`hermes tools disable memory`).
 
-2. **Claude Code MCP** — `scripts/install-local-ai-harness.sh`
-   (`install_hindsight_mcp`) registers `hindsight-memory` in
+2. **Claude Code MCP** — register `hindsight-memory` in
    `~/.claude/mcp.json` with `HINDSIGHT_API_URL=http://127.0.0.1:8888`. The
    per-directory wrapper sets `CORTEX_HINDSIGHT_CWD` before each launch.
 

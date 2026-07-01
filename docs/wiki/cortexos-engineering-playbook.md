@@ -18,7 +18,7 @@ served on a single Tailscale MagicDNS host (`cortexos.tailfd052e.ts.net`) with
 | Layer | What it is | Where |
 |---|---|---|
 | **Dashboard** | TanStack Start + React 19 control panel | `packages/dashboard-next`, `cortex-dashboard.service` on `:3080` |
-| **9Router** | OpenAI-compatible AI gateway (chat + responses APIs) | `http://127.0.0.1:11434/v1`, key in `/opt/cortexos/.secrets/9router.env` |
+| **Model endpoint** | OpenAI-compatible chat endpoint (configure per profile) | secrets in `/opt/cortexos/.secrets/hermes/<slug>.env` |
 | **Caddy** | TLS termination + path reverse-proxy | `/etc/caddy/Caddyfile`, fronted by `tailscale serve` |
 | **Postgres** | Dashboard DB | `127.0.0.1:5432/cortex_dashboard`, creds in `/opt/cortexos/.secrets/dashboard.env` |
 | **Hindsight** | Canonical cross-session memory store | `http://127.0.0.1:8888/v1`, per-profile banks `hermes-<slug>` |
@@ -26,7 +26,7 @@ served on a single Tailscale MagicDNS host (`cortexos.tailfd052e.ts.net`) with
 
 **Mental model of a request:** browser → `tailscale serve` (HTTPS) → Caddy
 (path match) → dashboard `:3080` **or** a sidecar (loopback port). The dashboard
-talks to 9Router for model calls and to Postgres for state.
+talks to the configured model endpoint for model calls and to Postgres for state.
 
 ---
 
@@ -114,16 +114,16 @@ false positive. The production model with a long real conversation does not.
 Always test against the actual gateway:
 
 ```js
-// stream:false is REQUIRED — 9Router streams SSE by default, which breaks res.json()
-fetch("http://127.0.0.1:11434/v1/chat/completions", {
+// stream:false is REQUIRED — many gateways stream SSE by default, which breaks res.json()
+fetch(`${baseUrl}/chat/completions`, {
   method: "POST",
   headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
-  body: JSON.stringify({ model: "cc/claude-opus-4-8", messages, stream: false }),
+  body: JSON.stringify({ model: "gpt-4o", messages, stream: false }),
 });
 ```
 
 Gotchas:
-- 9Router serves **both** `/v1/chat/completions` and `/v1/responses` (both 200).
+- Some gateways serve **both** `/v1/chat/completions` and `/v1/responses` (both 200).
   The `@ai-sdk/openai` v2 `openai(model)` callable uses the **Responses API**
   (`/v1/responses`); the base URL must include `/v1` or you 404.
 - A long prompt (~30 KB) can **time out** at 300 s for deep-reasoning models, or
@@ -231,10 +231,10 @@ triage against real source. (See the `cortexos-multi-model-review` and
 1. **Split the artifact** into self-contained payloads (e.g. prompt-only and
    wiring/logic) so each model call is focused. Reviewers get **no repo access**
    — only the inlined code.
-2. **Call models via 9Router HTTP** with `stream:false`. Working ids:
-   `cc/claude-opus-4-8`, `cx/gpt-5.5`, `minimax/minimax-m3:high`. For a long
-   payload, append a terse-output directive and raise the timeout (a 30 KB
-   payload times out / 502s otherwise).
+2. **Call models via the configured OpenAI-compatible HTTP endpoint** with
+   `stream:false`. Working ids depend on the endpoint (e.g. `gpt-4o`,
+   `claude-sonnet-4`). For a long payload, append a terse-output directive and
+   raise the timeout (a 30 KB payload times out / 502s otherwise).
 3. **Triage every finding against the real file.** ~50% are false positives
    because models review summaries, not code. **Cross-model agreement is the
    high-signal filter** — when two independent models flag the same thing
@@ -304,7 +304,7 @@ template for any dashboard feature removal.
 | Symptom | Cause | Fix |
 |---|---|---|
 | `caddy reload` fails: `dial tcp 127.0.0.1:2019: connection refused` | The running Caddy has the **admin API disabled**, so hot-reload can't post config | `caddy validate` then **`systemctl restart caddy`**. The old instance keeps serving during the failed reload, so the dashboard stays up. |
-| `res.json()` throws `Unexpected token 'd', "data: {…"` | 9Router streamed SSE | add `stream:false` to the request body |
+| `res.json()` throws `Unexpected token 'd', "data: {…"` | gateway streamed SSE | add `stream:false` to the request body |
 | ai-sdk call 404s on `/responses` | base URL missing `/v1`, or wrong API surface | base = `…:11434/v1`; ai-sdk v2 `openai(model)` uses the Responses API |
 | Full test suite shows 1 failure in `migrate-filter.test.ts` | known serial flake | re-run that file isolated; it passes |
 | Edited `.ts` but behavior unchanged | dashboard serves `.output/` | `pnpm build` + `systemctl restart cortex-dashboard.service` |
@@ -343,7 +343,6 @@ template for any dashboard feature removal.
 ## Appendix B — Key paths
 
 ```
-/opt/cortexos/.secrets/9router.env            # NINEROUTER_API_KEY, NINEROUTER_BASE_URL
 /opt/cortexos/.secrets/dashboard.env          # DATABASE_URL, session keys
 /opt/cortexos/.secrets/hermes/<slug>.env      # per-profile creds (0600)
 /etc/caddy/Caddyfile                          # path reverse-proxy; restart (not reload) to apply

@@ -181,7 +181,6 @@ import {
   agentStatuses as _agentStatuses,
   agentChat as _agentChat,
   setAgentModel as _setAgentModel,
-  listModels as _listModels,
 } from "./agents.functions";
 import { readEnv as _readEnv } from "./env-browser.functions";
 import type { HermesProfile } from "@/server/agents/registry";
@@ -1585,7 +1584,4 @@ export const callSetAgentModel = _setAgentModel as unknown as (
   restarted: { unit: string; exitCode: number }[];
 }>;
 
-/** Call listModels RPC — any session; returns the live 9Router model catalog. */
-export const listModels = _listModels as unknown as (opts: {
-  data: Record<string, never>;
-}) => Promise<{ models: string[] }>;
+

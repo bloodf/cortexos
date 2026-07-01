@@ -1,13 +1,12 @@
 [Unit]
 Description=Cortex Mail Guardian owner-preference brief distillation
-After=network-online.target postgresql.service 9router.service
+After=network-online.target postgresql.service
 Wants=network-online.target
 
 [Service]
 Type=oneshot
 User=cortexos
 Group=cortexos
-EnvironmentFile=/opt/cortexos/.secrets/9router.env
 EnvironmentFile=/opt/cortexos/.secrets/dashboard.env
 EnvironmentFile=-/opt/cortexos/.secrets/hermes/default.env
 EnvironmentFile=/opt/cortexos/.secrets/mail-guardian.env

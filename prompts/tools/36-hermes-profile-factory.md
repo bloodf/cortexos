@@ -11,8 +11,7 @@ linked to its Hindsight bank, a secrets `.env` at
 committed templates.
 
 Prerequisites: `32b-hindsight.md` completed (Hindsight API reachable on `:8888`),
-`31-9router.md` completed (`cx/gpt-5.5` available on `:11434`), Node.js at
-`/usr/bin/node`.
+an OpenAI-compatible chat endpoint configured, Node.js at `/usr/bin/node`.
 
 ## Inputs
 
@@ -21,7 +20,7 @@ Prerequisites: `32b-hindsight.md` completed (Hindsight API reachable on `:8888`)
 | Field | Default | Notes |
 | --- | --- | --- |
 | Profile name (slug) | — | lowercase alphanumeric + hyphens, e.g. `mybot` |
-| Model | `cx/gpt-5.5` | Any 9Router model ID |
+| Model | `gpt-4o` | Any model id served by the configured endpoint |
 | Hindsight bank name | `hermes-<profile>` | Bank must exist in Hindsight |
 | Hindsight peer label | `hermes-<profile>` | Stored in `.env` as `HINDSIGHT_PEER`; also `honcho.aiPeer` |
 | Telegram enabled? | `no` | If yes: bot token and allowed chat IDs |
@@ -30,7 +29,7 @@ Prerequisites: `32b-hindsight.md` completed (Hindsight API reachable on `:8888`)
 ```bash
 read -p "Profile name: " PROFILE
 : "${PROFILE:?Profile name is required}"
-read -p "Model [cx/gpt-5.5]: " _m;  MODEL="${_m:-cx/gpt-5.5}"
+read -p "Model [gpt-4o]: " _m;  MODEL="${_m:-gpt-4o}"
 read -p "Hindsight bank [hermes-${PROFILE}]: " _b; BANK="${_b:-hermes-${PROFILE}}"
 read -p "Hindsight peer [hermes-${PROFILE}]: " _p; PEER="${_p:-hermes-${PROFILE}}"
 read -p "Enable Telegram? (yes/no) [no]: " _tg; TG="${_tg:-no}"
@@ -168,16 +167,13 @@ HINDSIGHT_PEER=${PEER}
 OLLAMA_API_KEY=ollama
 EOF
 
-# 9Router key — copy from host secrets if not already present
-if ! grep -q NINEROUTER_API_KEY "${SECRETS_FILE}"; then
-  NRKEY=$(grep '^NINEROUTER_API_KEY=' /opt/cortexos/.secrets/9router.env 2>/dev/null | cut -d= -f2-)
-  : "${NRKEY:?NINEROUTER_API_KEY not found in /opt/cortexos/.secrets/9router.env — add it manually}"
+# LLM key — copy from host secrets if not already present
+if ! grep -q OPENAI_API_KEY "${SECRETS_FILE}"; then
+  LLMKEY=$(grep '^OPENAI_API_KEY=' /opt/cortexos/.secrets/hermes/default.env 2>/dev/null | cut -d= -f2-)
+  : "${LLMKEY:?OPENAI_API_KEY not found in /opt/cortexos/.secrets/hermes/default.env — add it manually}"
   sudo tee -a "${SECRETS_FILE}" >/dev/null <<EOF
-NINEROUTER_BASE_URL=http://127.0.0.1:11434
-NINEROUTER_API_KEY=${NRKEY}
-OPENAI_BASE_URL=http://127.0.0.1:11434/v1
-OPENAI_API_KEY=${NRKEY}
-OPENROUTER_API_KEY=${NRKEY}
+OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_API_KEY=${LLMKEY}
 EOF
 fi
 ```

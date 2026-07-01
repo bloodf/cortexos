@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Install [Headroom](https://github.com/chopratejas/headroom) on the host and enable it for AI agent traffic. Headroom runs a local optimization proxy (`:8787`) plus MCP tools so Claude Code and Codex can compress tool outputs, logs, files, and long context before model calls. Use it as the default per-user agent compression layer; keep 9Router as the model gateway when a profile explicitly targets 9Router.
+Install [Headroom](https://github.com/chopratejas/headroom) on the host and enable it for AI agent traffic. Headroom runs a local optimization proxy (`:8787`) plus MCP tools so Claude Code and Codex can compress tool outputs, logs, files, and long context before model calls. Use it as the default per-user agent compression layer; it does not select the model provider — that remains configured per agent profile.
 
 ## Prerequisites
 
@@ -72,11 +72,11 @@ headroom --version
 
 ## Enable for every agent action
 
-Install Headroom as a persistent per-user service and configure supported providers (`claude`, `codex` when present) to route through the local proxy. The proxy backend targets the local 9Router gateway so all wrapped agents use 9Router as their AI provider (not Anthropic directly).
+Install Headroom as a persistent per-user service and configure supported providers (`claude`, `codex` when present) to route through the local proxy. The proxy backend targets an OpenAI-compatible chat endpoint so all wrapped agents use the configured OpenAI-compatible endpoint (not Anthropic directly).
 
 ```bash
-export OPENAI_API_KEY="${NINEROUTER_API_KEY}"
-export OPENAI_BASE_URL="http://127.0.0.1:11434/v1"
+export OPENAI_API_KEY="${OPENAI_API_KEY}"
+export OPENAI_BASE_URL="${OPENAI_BASE_URL:-https://api.openai.com/v1}"
 
 headroom install apply \
   --preset persistent-service \
@@ -92,7 +92,7 @@ headroom install apply \
 
 This creates a user systemd service named `headroom-default.service`, keeps the proxy running at `http://127.0.0.1:8787`, and applies durable agent routing for supported local CLIs. Restart any already-running agent session so it picks up the updated provider config.
 
-> **Why `openai` backend?** 9Router exposes an OpenAI-compatible `/v1` endpoint. Headroom's `openai` backend forwards the compressed request to `OPENAI_BASE_URL` using `OPENAI_API_KEY`, so wrapped agents (Claude Code, Codex, etc.) transparently route through 9Router instead of calling Anthropic or OpenAI directly.
+> **Why `openai` backend?** an OpenAI-compatible endpoint exposes the same `/v1` endpoint. Headroom's `openai` backend forwards the compressed request to `OPENAI_BASE_URL` using `OPENAI_API_KEY`, so wrapped agents (Claude Code, Codex, etc.) transparently route through that endpoint instead of calling Anthropic or OpenAI directly.
 
 ## Enable MCP tools
 
@@ -143,4 +143,4 @@ Type `confirmed` to proceed.
 
 ## Next
 
-→ `prompts/tools/31-9router.md` (AI gateway)
+→ a configured OpenAI-compatible chat endpoint

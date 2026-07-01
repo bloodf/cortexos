@@ -30,7 +30,7 @@ function baseEnv(): NodeJS.ProcessEnv {
     MAIL_GUARDIAN_ACCOUNT_3_USERNAME: 'eu@heitorramon.com',
     MAIL_GUARDIAN_ACCOUNT_3_PASSWORD_B64: password,
     TELEGRAM_BOT_TOKEN: 'token',
-    NINEROUTER_API_KEY: 'key',
+    OPENAI_API_KEY: 'key',
   };
 }
 
@@ -41,7 +41,7 @@ describe('config', () => {
     expect(config.accounts[0].password).toBe('dummy#password;with.symbols');
     expect(config.accounts[2].host).toBe('mail.heitorramon.com');
     expect(config.accounts[2].reviewMailbox).toBe('INBOX.Cortex Mail Guardian Review');
-    expect(config.model).toBe('minimax/MiniMax-M3');
+    expect(config.model).toBe('gpt-4o-mini');
     expect(config.confidenceThreshold).toBe(0.95);
   });
 
@@ -56,7 +56,7 @@ describe('config', () => {
   });
 
   it('loads with no env accounts when the count is absent (DB-only mode)', () => {
-    const config = loadConfig({ NINEROUTER_API_KEY: 'key' });
+    const config = loadConfig({ OPENAI_API_KEY: 'key' });
     expect(config.accounts).toHaveLength(0);
   });
 });
@@ -67,7 +67,7 @@ describe('telegram configuration gate', () => {
     // copy-paste bug), so a configured chat id vanished whenever the token was
     // absent. With only the chat id set, telegramOwnerChatId must be defined.
     const config = loadConfig({
-      NINEROUTER_API_KEY: 'key',
+      OPENAI_API_KEY: 'key',
       MAIL_GUARDIAN_TELEGRAM_OWNER_CHAT_ID: '123456789',
     });
     expect(config.telegramOwnerChatId).toBe('123456789');
@@ -76,7 +76,7 @@ describe('telegram configuration gate', () => {
 
   it('treats Telegram as disabled (send path skipped) when the token is absent', () => {
     const config = loadConfig({
-      NINEROUTER_API_KEY: 'key',
+      OPENAI_API_KEY: 'key',
       MAIL_GUARDIAN_TELEGRAM_OWNER_CHAT_ID: '123456789',
     });
     // chat id present, token absent → not live → no doomed send attempted.
@@ -85,7 +85,7 @@ describe('telegram configuration gate', () => {
 
   it('treats Telegram as live only when both token and chat id are present', () => {
     const config = loadConfig({
-      NINEROUTER_API_KEY: 'key',
+      OPENAI_API_KEY: 'key',
       TELEGRAM_BOT_TOKEN: 'bot-token',
       MAIL_GUARDIAN_TELEGRAM_OWNER_CHAT_ID: '123456789',
     });
@@ -95,25 +95,25 @@ describe('telegram configuration gate', () => {
   });
 
   it('is not live when the chat id is absent even if the token is present', () => {
-    const config = loadConfig({ NINEROUTER_API_KEY: 'key', TELEGRAM_BOT_TOKEN: 'bot-token' });
+    const config = loadConfig({ OPENAI_API_KEY: 'key', TELEGRAM_BOT_TOKEN: 'bot-token' });
     expect(telegramEnabled(config)).toBe(false);
   });
 });
 
 describe('model and fallback configuration', () => {
-  it('defaults to MiniMax-M3 when MAIL_GUARDIAN_MODEL is not set', () => {
-    const config = loadConfig({ NINEROUTER_API_KEY: 'key' });
-    expect(config.model).toBe('minimax/MiniMax-M3');
+  it('defaults to gpt-4o-mini when MAIL_GUARDIAN_MODEL is not set', () => {
+    const config = loadConfig({ OPENAI_API_KEY: 'key' });
+    expect(config.model).toBe('gpt-4o-mini');
   });
 
-  it('defaults fallbackModel to cx/gpt-5.5 when MAIL_GUARDIAN_FALLBACK_MODEL is not set', () => {
-    const config = loadConfig({ NINEROUTER_API_KEY: 'key' });
-    expect(config.fallbackModel).toBe('cx/gpt-5.5');
+  it('defaults fallbackModel to gpt-4o when MAIL_GUARDIAN_FALLBACK_MODEL is not set', () => {
+    const config = loadConfig({ OPENAI_API_KEY: 'key' });
+    expect(config.fallbackModel).toBe('gpt-4o');
   });
 
   it('respects env overrides for model and fallbackModel', () => {
     const config = loadConfig({
-      NINEROUTER_API_KEY: 'key',
+      OPENAI_API_KEY: 'key',
       MAIL_GUARDIAN_MODEL: 'custom/primary',
       MAIL_GUARDIAN_FALLBACK_MODEL: 'custom/fallback',
     });
@@ -122,7 +122,7 @@ describe('model and fallback configuration', () => {
   });
 
   it('keeps model and fallbackModel distinct when no env overrides are set', () => {
-    const config = loadConfig({ NINEROUTER_API_KEY: 'key' });
+    const config = loadConfig({ OPENAI_API_KEY: 'key' });
     expect(config.fallbackModel).not.toBe(config.model);
   });
 });

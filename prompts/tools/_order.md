@@ -20,11 +20,9 @@
 30c-boxbox · file manager
 30d-herdr · terminal workspace manager for AI coding agents
 30e-headroom · context compression proxy + MCP for AI agents
-31-9router · OpenAI-compatible model router                 # AI gateway
 32-honcho · memory backend (legacy, read-only)
 32b-hindsight · memory backend (Hindsight, primary)
 33-hermes-memory-os · long-term memory (Qdrant + ARQ worker)
-35a-local-harness-9router · pick 9Router models in your local AI harness
 36-hermes-profile-factory · create Hermes agent profile with Hindsight memory
 37-firecrawl · self-hosted web crawl/scrape API
 47a-cortex-sandbox · trusted local tool sandbox

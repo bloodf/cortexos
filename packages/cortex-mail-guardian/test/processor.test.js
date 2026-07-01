@@ -38,8 +38,8 @@ describe('mail guardian sweep', () => {
       config: {
         accounts,
         maxMessagesPerSweep: 1,
-        nineRouterBaseUrl: 'http://127.0.0.1:11434/v1',
-        nineRouterApiKey: 'test',
+        openAiBaseUrl: 'http://127.0.0.1:11434/v1',
+        openAiApiKey: 'test',
         model: 'test',
         modelTimeoutMs: 30_000,
         confidenceThreshold: 0.95,

@@ -71,13 +71,13 @@ async function smoke(): Promise<void> {
       throw new Error('TELEGRAM_BOT_TOKEN is required for smoke');
     }
     await assertTelegramReady(telegram, config.telegramOwnerChatId);
-    const modelsRes = await fetch(`${config.nineRouterBaseUrl.replace(/\/+$/, '')}/models`, {
-      headers: { authorization: `Bearer ${config.nineRouterApiKey}` },
+    const modelsRes = await fetch(`${config.openAiBaseUrl.replace(/\/+$/, '')}/models`, {
+      headers: { authorization: `Bearer ${config.openAiApiKey}` },
     });
-    if (!modelsRes.ok) throw new Error(`9Router models check failed: ${modelsRes.status}`);
+    if (!modelsRes.ok) throw new Error(`LLM models check failed: ${modelsRes.status}`);
     const models = (await modelsRes.json()) as { data?: { id?: string }[] };
     if (!models.data?.some((model) => model.id === config.model)) {
-      throw new Error(`9Router model unavailable: ${config.model}`);
+      throw new Error(`LLM model unavailable: ${config.model}`);
     }
     process.stdout.write('cortex-mail-guardian smoke ok\n');
   } finally {

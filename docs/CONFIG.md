@@ -220,8 +220,6 @@ The dashboard's terminal page exposes `fzf` as a "Quick command" (see `packages/
 
 ## AI CLI: Claude Code
 
-> **CortexOS routing policy:** all AI CLIs and agents use the local 9Router gateway as their provider, except Kimi tooling which may target Kimi directly. Claude Code is additionally restricted to Claude-only models.
-
 ### Installation
 
 ```bash
@@ -254,70 +252,12 @@ Work directly for: trivial ops, small clarifications.
 <!-- OMC:END -->
 ```
 
-**`~/.claude/settings.json`** (Claude models only, routed through 9Router):
-```json
-{
-  "env": {
-    "OPENAI_API_KEY": "${NINEROUTER_API_KEY}"
-  },
-  "modelProviders": {
-    "openai": [
-      {
-        "id": "cc/claude-opus-4-8",
-        "name": "Claude Opus 4.8",
-        "baseUrl": "http://127.0.0.1:11434/v1",
-        "envKey": "OPENAI_API_KEY"
-      },
-      {
-        "id": "cc/claude-opus-4-6",
-        "name": "Claude Opus 4.6",
-        "baseUrl": "http://127.0.0.1:11434/v1",
-        "envKey": "OPENAI_API_KEY"
-      },
-      {
-        "id": "cc/claude-sonnet-4-6",
-        "name": "Claude Sonnet 4.6",
-        "baseUrl": "http://127.0.0.1:11434/v1",
-        "envKey": "OPENAI_API_KEY"
-      }
-    ]
-  },
-  "model": {
-    "name": "cc/claude-opus-4-8"
-  }
-}
-```
-
 ### Useful Aliases
 
 ```bash
 alias cc='claude'
 alias ccc='claude --print'
 alias ccs='claude --session'
-```
-
----
-
-## AI CLI: Qwen Code (9Router)
-
-### Configuration
-
-**`~/.qwen/settings.json`** (all models route through 9Router):
-```json
-{
-  "env": {
-    "QWEN_NINEROUTER_KEY": "${NINEROUTER_API_KEY}"
-  },
-  "modelProviders": {
-    "openai": [
-      {"id": "cc/claude-opus-4-8", "name": "cc/claude-opus-4-8", "baseUrl": "http://127.0.0.1:11434/v1", "envKey": "QWEN_NINEROUTER_KEY"},
-      {"id": "cc/claude-opus-4-6", "name": "cc/claude-opus-4-6", "baseUrl": "http://127.0.0.1:11434/v1", "envKey": "QWEN_NINEROUTER_KEY"},
-      {"id": "cc/claude-sonnet-4-6", "name": "cc/claude-sonnet-4-6", "baseUrl": "http://127.0.0.1:11434/v1", "envKey": "QWEN_NINEROUTER_KEY"},
-      {"id": "cx/gpt-5.4", "name": "cx/gpt-5.4", "baseUrl": "http://127.0.0.1:11434/v1", "envKey": "QWEN_NINEROUTER_KEY"}
-    ]
-  },
-  "model": {"name": "cc/claude-opus-4-8"}
-}
 ```
 
 ---

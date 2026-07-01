@@ -2,16 +2,16 @@
 
 ## Purpose
 
-Install the upstream [ClaudioDrews/memory-os](https://github.com/ClaudioDrews/memory-os) stack on the **host** as a long-term memory layer on top of Honcho. The 7-layer architecture — workspace files, sessions, structured facts, Icarus fabric, Qdrant vector db, LLM wiki, ground-truth hierarchy — is wired to the existing 9router (port 11434) + Honcho (port 18690) stack. The Hermes Agent binary at `/usr/local/bin/hermes` (per `60-incus-project.md:132`) loads the Icarus plugin from `${HERMES_HOME}/plugins/icarus` after install.
+Install the upstream [ClaudioDrews/memory-os](https://github.com/ClaudioDrews/memory-os) stack on the **host** as a long-term memory layer on top of Honcho. The 7-layer architecture — workspace files, sessions, structured facts, Icarus fabric, Qdrant vector db, LLM wiki, ground-truth hierarchy — is wired to an OpenAI-compatible chat endpoint + Honcho (port 18690) stack. The Hermes Agent binary at `/usr/local/bin/hermes` (per `60-incus-project.md:132`) loads the Icarus plugin from `${HERMES_HOME}/plugins/icarus` after install.
 
-Upstream research baseline (commit `a556f90`, branch `research/memory-os` — RECOMMENDATION: SWAP IN, layer on top of Honcho, MIT, 881 stars, v0.2.0, ~5-day-old repo at research time) set three non-negotiable security conditions: **pin to the `v0.2.0` git tag (C-1)**, **wire 9router via `ICARUS_ENDPOINT` + `ICARUS_API_KEY_ENV` (the upstream's documented provider-agnostic override, .env.example:72)**, and **wrap any wiki write-back in the existing PB-5 approvals gate (C-5)**.
+Upstream research baseline (commit `a556f90`, branch `research/memory-os` — RECOMMENDATION: SWAP IN, layer on top of Honcho, MIT, 881 stars, v0.2.0, ~5-day-old repo at research time) set three non-negotiable security conditions: **pin to the `v0.2.0` git tag (C-1)**, **wire the LLM via `ICARUS_ENDPOINT` + `ICARUS_API_KEY_ENV` (the upstream's documented provider-agnostic override, .env.example:72)**, and **wrap any wiki write-back in the existing PB-5 approvals gate (C-5)**.
 
-> **Important upstream behavior.** `ClaudioDrews/memory-os/setup.sh` is **NOT** flag-driven — there is no `--llm-provider` or `--llm-base-url` flag. The script is opinionated: it clones to `${HOME}/memory-os`, installs the Icarus plugin to `${HOME}/.hermes/plugins/icarus`, and writes a Docker stack to `${HOME}/memory-os/docker/`. It knows about `OPENROUTER_API_KEY` and `OPENROUTER_DS_API_KEY` only — OpenRouter, not 9router. We override `${HOME}` for the duration of the install so the upstream's hardcoded paths land inside the CortexOS tree, then layer the 9router-specific env vars on top after the script finishes.
+> **Important upstream behavior.** `ClaudioDrews/memory-os/setup.sh` is **NOT** flag-driven — there is no `--llm-provider` or `--llm-base-url` flag. The script is opinionated: it clones to `${HOME}/memory-os`, installs the Icarus plugin to `${HOME}/.hermes/plugins/icarus`, and writes a Docker stack to `${HOME}/memory-os/docker/`. It knows about `OPENROUTER_API_KEY` and `OPENROUTER_DS_API_KEY` only — OpenRouter, not a generic endpoint. We override `${HOME}` for the duration of the install so the upstream's hardcoded paths land inside the CortexOS tree, then layer the endpoint-specific env vars on top after the script finishes.
 
 ## Prerequisites
 
 - `11-docker.md` completed (the upstream `setup.sh` requires `docker info` to succeed and the compose plugin).
-- `31-9router.md` completed and 9Router is serving chat models on `127.0.0.1:11434`.
+- An OpenAI-compatible chat endpoint reachable from the host and from inside Docker.
 - `32-honcho.md` completed (we layer on top of Honcho — the per-profile `config.yaml` block from `60-incus-project.md:82-88` is what wires both backends into the Hermes Agent).
 - `15-redis.md` completed and Redis is reachable on `127.0.0.1:6379` from the host (memory-arq shares this Redis on a separate DB index; the upstream `setup.sh` starts its own `redis:7-alpine` container bound to `127.0.0.1:6379`, which will conflict if a system Redis is already on that port — see "Port conflict" below).
 - Hermes Agent binary installed at `/usr/local/bin/hermes` (per `60-incus-project.md:132`).
@@ -56,11 +56,11 @@ fi
 
 ## CHECKPOINT 1
 
-**STOP — operator question:** Is Docker running, 9Router reachable on `127.0.0.1:11434`, Honcho reachable on `127.0.0.1:18690`, the Hermes Agent binary present at `/usr/local/bin/hermes`, and `nomic-embed-text:latest` available in Ollama on `127.0.0.1:11435`?
+**STOP — operator question:** Is Docker running, the chat endpoint reachable on `{LLM_BASE_URL}`, Honcho reachable on `127.0.0.1:18690`, the Hermes Agent binary present at `/usr/local/bin/hermes`, and `nomic-embed-text:latest` available in Ollama on `127.0.0.1:11435`?
 
 ```bash
 docker info >/dev/null 2>&1
-curl -fsS http://127.0.0.1:11434/v1/models | jq -e '.data | length > 0' >/dev/null
+curl -fsS -H "Authorization: Bearer {LLM_API_KEY}" {LLM_BASE_URL}/models | jq -e '.data | length > 0' >/dev/null
 curl -fsS http://127.0.0.1:18690/health >/dev/null 2>&1
 test -x /usr/local/bin/hermes
 curl -fsS http://127.0.0.1:11435/v1/embeddings \
@@ -90,10 +90,11 @@ export MEMORY_OS_INSTALL_PATH MEMORY_OS_PER_PROFILE
 
 **STOP — operator action required:** Provide the following values.
 
-1. What is the 9Router API key for this machine?
-2. (Optional) Confirm the 9Router OpenAI-compatible base URL. Default: `http://127.0.0.1:11434/v1` (host-side; the upstream setup.sh writes a `docker/.env` that the worker reads, and from inside the docker network the URL is the same — we are not running the worker in a separate network namespace).
+1. What is the OpenAI-compatible API key for this machine?
+2. What is the OpenAI-compatible base URL? Default: `http://127.0.0.1:11434/v1` (host-side; the upstream setup.sh writes a `docker/.env` that the worker reads, and from inside the docker network the URL is the same — we are not running the worker in a separate network namespace).
+3. What chat model name should Icarus use for extraction? Default: `gpt-4o-mini`.
 
-Wait for the operator's answers. Replace `{NINEROUTER_API_KEY}` in the commands below.
+Wait for the operator's answers. Replace `{LLM_API_KEY}`, `{LLM_BASE_URL}`, and `{LLM_MODEL}` in the commands below.
 
 ```bash
 sudo install -d -m 0700 -o root -g root /opt/cortexos/.secrets
@@ -104,14 +105,14 @@ sudo install -d -m 0755 -o root -g root /opt/cortexos/data/memory-os
 REDIS_PASSWORD="$(openssl rand -hex 16)"
 
 sudo tee /opt/cortexos/.secrets/memory-os.env >/dev/null <<EOF
-# 9router credentials — the upstream's provider-agnostic override (.env.example:72)
-# 9router is OpenAI-compatible, not OpenRouter, so the default OPENROUTER_API_KEY
-# flow would route to openrouter.ai. We override the extraction pipeline to call
-# the local 9router instead. This follows the upstream research §3 notes.
-NINEROUTER_API_KEY={NINEROUTER_API_KEY}
-ICARUS_ENDPOINT=http://127.0.0.1:11434/v1/chat/completions
-ICARUS_API_KEY_ENV=NINEROUTER_API_KEY
-ICARUS_EXTRACTION_MODEL=cx/gpt-5.5
+# LLM credentials — the upstream's provider-agnostic override (.env.example:72)
+# Generic OpenAI-compatible endpoint, not OpenRouter. We override the extraction
+# pipeline to call the configured endpoint instead. This follows the upstream
+# research §3 notes.
+LLM_API_KEY={LLM_API_KEY}
+ICARUS_ENDPOINT={LLM_BASE_URL}/chat/completions
+ICARUS_API_KEY_ENV=LLM_API_KEY
+ICARUS_EXTRACTION_MODEL={LLM_MODEL}
 ICARUS_EXTRACTION_MAX_TOKENS=4096
 
 # Ollama embeddings (matches 32-honcho.md line 13 — nomic-embed-text on 11435)
@@ -156,13 +157,13 @@ The `ICARUS_ENDPOINT` + `ICARUS_API_KEY_ENV` mechanism is the upstream's documen
 
 ## Todo
 
-- [ ] CHECKPOINT 1 confirmed — Docker, 9Router, Honcho, Hermes Agent binary, Ollama nomic-embed-text all present
-- [ ] Secrets file written to `/opt/cortexos/.secrets/memory-os.env` (mode 0600) with `REDIS_PASSWORD`, `NINEROUTER_API_KEY`, `ICARUS_ENDPOINT`, `ICARUS_API_KEY_ENV`, `ICARUS_EXTRACTION_MODEL`
+- [ ] CHECKPOINT 1 confirmed — Docker, chat endpoint, Honcho, Hermes Agent binary, Ollama nomic-embed-text all present
+- [ ] Secrets file written to `/opt/cortexos/.secrets/memory-os.env` (mode 0600) with `REDIS_PASSWORD`, `LLM_API_KEY`, `ICARUS_ENDPOINT`, `ICARUS_API_KEY_ENV`, `ICARUS_EXTRACTION_MODEL`
 - [ ] `${MEMORY_OS_INSTALL_PATH}` does not exist or is empty
 - [ ] `/opt/cortexos/data/memory-os` does not exist or is empty
 - [ ] Cloned the upstream `ClaudioDrews/memory-os` repo at the pinned tag `v0.2.0` (resolves to commit SHA `4b386e374d84fcfeb635f66fea9d4dcea7c6fd4a`; NOT `main` — C-1 from upstream research)
 - [ ] Ran `setup.sh` with `HOME=${MEMORY_OS_INSTALL_PATH}` so upstream's hardcoded `${HOME}` paths land inside the CortexOS tree
-- [ ] Overlaid the 9router-specific env vars on `docker/.env` (so the worker's `OPENROUTER_API_KEY` slot gets the `NINEROUTER_API_KEY` value, and the worker reads `ICARUS_ENDPOINT` from the env it inherits from the systemd EnvironmentFile)
+- [ ] Overlaid the endpoint-specific env vars on `docker/.env` (so the worker's `OPENROUTER_API_KEY` slot gets the `LLM_API_KEY` value, and the worker reads `ICARUS_ENDPOINT` from the env it inherits from the systemd EnvironmentFile)
 - [ ] `templates/systemd/cortex-memory-os.service` committed (force-tracked past `.gitignore` per the W52 + W61 + W65 convention) and rendered via `scripts/ops/cortex-render-units.sh cortex-memory-os.service`
 - [ ] `systemctl enable --now cortex-memory-os.service` — Qdrant + Redis + worker containers up
 - [ ] CHECKPOINT 2 — Qdrant `/health` 200, Redis PING, ARQ worker container shows `health=healthy` in `docker ps`
@@ -210,25 +211,25 @@ VAULT_PATH="${MEMORY_OS_INSTALL_PATH}/wiki" \
 
 > **Security note on `curl|bash`.** The `bash <(curl -sSL ...)` pattern is the most common install idiom for repos that ship a `setup.sh` and is acceptable here because: (a) the upstream is a pinned commit SHA (C-1), not `main`; (b) the upstream research's trust-boundary analysis is captured in this prompt; (c) the script's actions are auditable in the public source (the script is 15855 bytes, fully readable in the pinned commit). We use the local clone + `bash` invocation rather than `curl|bash` for an additional layer of review-the-script-first.
 
-When the script's Phase 7 prompts for the OpenRouter key, **paste the 9router API key** (`{NINEROUTER_API_KEY}`). The setup script writes this to `docker/.env` as `OPENROUTER_API_KEY`, which is what the worker's environment gets. Step 3 below overlays the proper 9router env vars on top.
+When the script's Phase 7 prompts for the OpenRouter key, **paste the LLM API key** (`{LLM_API_KEY}`). The setup script writes this to `docker/.env` as `OPENROUTER_API_KEY`, which is what the worker's environment gets. Step 3 below overlays the proper endpoint env vars on top.
 
 The script's Phase 5 will install the Icarus plugin to `${HOME}/.hermes/plugins/icarus` = `${MEMORY_OS_INSTALL_PATH}/.hermes/plugins/icarus`. Phase 9 will warn that the rulebook amendments were not auto-applied — this is expected; the CortexOS layer 7 customization is per-profile (C-4, see F-3 in upstream research).
 
-### 3. Overlay the 9router env vars on the upstream `docker/.env`
+### 3. Overlay the endpoint env vars on the upstream `docker/.env`
 
-The upstream `setup.sh` writes a minimal `docker/.env` with `OPENROUTER_API_KEY`, `REDIS_PASSWORD`, `QDRANT_API_KEY`, `EMBEDDING_DIMS`, `COLLECTION_NAME`, `LOG_LEVEL`, and the path overrides. We **append** the 9router overrides and the CortexOS path overrides on top — do NOT delete the existing keys (the worker reads them verbatim):
+The upstream `setup.sh` writes a minimal `docker/.env` with `OPENROUTER_API_KEY`, `REDIS_PASSWORD`, `QDRANT_API_KEY`, `EMBEDDING_DIMS`, `COLLECTION_NAME`, `LOG_LEVEL`, and the path overrides. We **append** the endpoint overrides and the CortexOS path overrides on top — do NOT delete the existing keys (the worker reads them verbatim):
 
 ```bash
 sudo tee -a "${MEMORY_OS_INSTALL_PATH}/docker/.env" >/dev/null <<EOF
 
 # ── CortexOS overlay (added by prompts/tools/33-hermes-memory-os.md) ─────────
-# 9router provider-agnostic override (.env.example:72)
+# OpenAI-compatible provider-agnostic override (.env.example:72)
 # The worker reads ICARUS_ENDPOINT from the env we pass via the systemd
 # EnvironmentFile; this docker/.env block is for the host-side record.
-NINEROUTER_API_KEY={NINEROUTER_API_KEY}
-ICARUS_ENDPOINT=http://127.0.0.1:11434/v1/chat/completions
-ICARUS_API_KEY_ENV=NINEROUTER_API_KEY
-ICARUS_EXTRACTION_MODEL=cx/gpt-5.5
+LLM_API_KEY={LLM_API_KEY}
+ICARUS_ENDPOINT={LLM_BASE_URL}/chat/completions
+ICARUS_API_KEY_ENV=LLM_API_KEY
+ICARUS_EXTRACTION_MODEL={LLM_MODEL}
 # Use the same REDIS_PASSWORD the upstream just generated (read it back)
 REDIS_PASSWORD_FILE=/opt/cortexos/.secrets/memory-os.env
 # Memory stack paths inside the CortexOS tree
@@ -240,24 +241,24 @@ sudo chmod 0600 "${MEMORY_OS_INSTALL_PATH}/docker/.env"
 sudo chown root:root "${MEMORY_OS_INSTALL_PATH}/docker/.env"
 ```
 
-Then copy the host secrets file into the same directory the docker-compose context sees, so the worker can read the `NINEROUTER_API_KEY`:
+Then copy the host secrets file into the same directory the docker-compose context sees, so the worker can read the `LLM_API_KEY`:
 
 ```bash
 # The worker's OPENAI-compatible env requires the API key on a named var.
 # The upstream's compose file uses OPENROUTER_API_KEY (see docker-compose.yml
 # line 49: OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}). The Icarus plugin's
 # ICARUS_API_KEY_ENV override reads the named env var, so we also export
-# NINEROUTER_API_KEY into the worker's environment by adding it to the
+# LLM_API_KEY into the worker's environment by adding it to the
 # compose file's worker.environment block. This is the only edit the
 # upstream compose file needs.
 
-# Add NINEROUTER_API_KEY to the worker service's environment block
+# Add LLM_API_KEY to the worker service's environment block
 sudo python3 - "${MEMORY_OS_INSTALL_PATH}/docker/docker-compose.yml" <<'PY'
 import sys, re, pathlib
 p = pathlib.Path(sys.argv[1])
 text = p.read_text()
 inject = (
-    "      NINEROUTER_API_KEY: ${NINEROUTER_API_KEY}\n"
+    "      LLM_API_KEY: ${LLM_API_KEY}\n"
     "      ICARUS_ENDPOINT: ${ICARUS_ENDPOINT}\n"
     "      ICARUS_API_KEY_ENV: ${ICARUS_API_KEY_ENV}\n"
     "      ICARUS_EXTRACTION_MODEL: ${ICARUS_EXTRACTION_MODEL}\n"
@@ -273,7 +274,7 @@ if text2 == text:
     print("WARN: did not find OPENROUTER_API_KEY line — manual edit needed", file=sys.stderr)
 else:
     p.write_text(text2)
-    print("patched worker.environment with NINEROUTER_API_KEY + ICARUS_* vars")
+    print("patched worker.environment with LLM_API_KEY + ICARUS_* vars")
 PY
 ```
 
@@ -434,12 +435,12 @@ not auto-applied; this is by design. After the install:
 ## Follow-up upstream issues (file after install)
 
 Upstream research flagged F-6: "file an upstream issue if the
-README's 'any LLM provider' claim is too strong (e.g. 9router is
-OpenAI-compatible but not OpenRouter; the default OPENROUTER_API_KEY
-flow is wrong for us)." After install, file an upstream issue
-naming this prompt as the workaround (the `ICARUS_ENDPOINT` +
-`ICARUS_API_KEY_ENV` mechanism works but is undocumented in the
-README; it is documented in `.env.example:72` only).
+README's 'any LLM provider' claim is too strong (generic
+OpenAI-compatible endpoints are not OpenRouter; the default
+OPENROUTER_API_KEY flow is wrong for us)." After install, file an
+upstream issue naming this prompt as the workaround (the
+`ICARUS_ENDPOINT` + `ICARUS_API_KEY_ENV` mechanism works but is
+undocumented in the README; it is documented in `.env.example:72` only).
 
 Other open upstream concerns tracked in upstream research:
 

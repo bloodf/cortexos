@@ -18,9 +18,9 @@ beforeEach(() => {
 });
 
 const config = {
-  model: 'minimax/MiniMax-M3',
-  nineRouterBaseUrl: 'http://localhost:11434/v1',
-  nineRouterApiKey: 'test-key',
+  model: 'gpt-4o-mini',
+  openAiBaseUrl: 'http://localhost:11434/v1',
+  openAiApiKey: 'test-key',
   dryRun: false,
   accounts: [],
 };

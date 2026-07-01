@@ -8,7 +8,6 @@
 
 // ── Brand colors for TechIcon monograms ───────────────────────────────
 export const BRAND_COLORS: Record<string, string> = {
-  "9router": "#f97316",
   ollama: "#111827",
   honcho: "#a855f7",
   "honcho-mcp": "#9333ea",

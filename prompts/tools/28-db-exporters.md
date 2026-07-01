@@ -128,4 +128,4 @@ fi
 
 ## Next
 
-→ `prompts/tools/31-9router.md`
+→ Configure an OpenAI-compatible chat endpoint for agent model calls.

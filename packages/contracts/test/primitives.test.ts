@@ -167,7 +167,7 @@ describe('primitives — zUlid', () => {
 
 describe('primitives — zSlug', () => {
   it('accepts a service-style slug', () => {
-    expect(zSlug.parse('9router')).toBe('9router');
+    expect(zSlug.parse('llm-endpoint')).toBe('llm-endpoint');
     expect(zSlug.parse('cortex-dashboard')).toBe('cortex-dashboard');
   });
   it('rejects uppercase', () => {

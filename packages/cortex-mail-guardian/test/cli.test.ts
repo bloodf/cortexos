@@ -16,9 +16,9 @@ describe('mail guardian distill CLI dispatch', () => {
 
     const fakeDeps = {
       config: {
-        model: 'minimax/MiniMax-M3',
-        nineRouterBaseUrl: 'http://localhost',
-        nineRouterApiKey: 'k',
+        model: 'gpt-4o-mini',
+        openAiBaseUrl: 'http://localhost',
+        openAiApiKey: 'k',
         dryRun: false,
         accounts: [],
       },

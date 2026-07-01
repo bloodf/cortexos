@@ -403,29 +403,4 @@ export const setAgentModel = createServerFn({ method: "POST" })
   .handler(serverFnNoop);
 
 // ---------------------------------------------------------------------------
-// listModels — GET, auth: any → { models: string[] }.
-// Live 9Router catalog for the model picker. Returns { models: [] } on any
-// fetch/parse error so the picker degrades gracefully (never 500s).
-// ---------------------------------------------------------------------------
 
-const ListModelsInput = z.object({}).strict();
-
-interface ListModelsOutput {
-  models: string[];
-}
-
-const listModelsGate = defineServerFn({
-  method: "GET",
-  auth: "any",
-  input: ListModelsInput,
-  surface: "agents",
-  action: "agents.models",
-  handler: async () => {
-    const { list9routerModels } = await import("@/server/agents/nineRouter");
-    const models = await list9routerModels();
-    return { models };
-  },
-});
-export const listModels = createServerFn({ method: "GET" })
-  .middleware([listModelsGate])
-  .handler(serverFnNoop);

@@ -170,9 +170,9 @@ api:
   port: 8932
   publicPath: /hermes/$PROJECT_NAME/v1
 model:
-  provider: 9router
-  baseUrl: http://127.0.0.1:11434/v1
-  id: cc/claude-opus-4-8
+  provider: openai
+  baseUrl: <<OPENAI_BASE_URL>>
+  id: gpt-4o
   reasoning: true
 memory:
   provider: honcho
@@ -241,7 +241,7 @@ fi
 
 # Step 7.5: Memory OS per-profile setup (consumer side only)
 # Wires the host's Memory OS (Qdrant on :6333, Redis on :6379,
-# 9Router on :11434, Icarus plugin at
+# LLM endpoint, Icarus plugin at
 # /opt/cortexos/memory-os/.hermes/plugins/icarus) into this
 # profile's Hermes runtime. Plugin code is shared via read-only
 # bind mount; per-profile data is unique. See
@@ -307,18 +307,19 @@ if [ "$SETUP_MEMORY_OS" = "yes" ]; then
                 readonly=true
         fi
 
-        # 3. Per-profile env file (re-shares the host's 9router key
+        # 3. Per-profile env file (re-shares the host's LLM API key
         #    and Redis password; same pattern as 32-honcho.md). The
         #    URLs point at the host's tailnet IP, NOT 127.0.0.1.
-        NINEROUTER_API_KEY_VAL="$(sudo grep '^NINEROUTER_API_KEY=' /opt/cortexos/.secrets/memory-os.env | cut -d= -f2-)"
+        LLM_API_KEY_VAL="$(sudo grep '^LLM_API_KEY=' /opt/cortexos/.secrets/memory-os.env | cut -d= -f2-)"
+        LLM_BASE_URL_VAL="$(sudo grep '^ICARUS_ENDPOINT=' /opt/cortexos/.secrets/memory-os.env | cut -d= -f2- | sed 's|/chat/completions||')"
         REDIS_PASSWORD_VAL="$(sudo grep '^REDIS_PASSWORD=' /opt/cortexos/.secrets/memory-os.env | cut -d= -f2-)"
 
         cat > "/tmp/memory-os-$PROJECT_NAME.env" <<EOF
-# 9router (host-side, via tailnet)
-NINEROUTER_API_KEY=${NINEROUTER_API_KEY_VAL}
-ICARUS_ENDPOINT=http://${CORTEX_HOST_TAILSCALE_IP}:11434/v1/chat/completions
-ICARUS_API_KEY_ENV=NINEROUTER_API_KEY
-ICARUS_EXTRACTION_MODEL=cx/gpt-5.5
+# LLM endpoint (host-side, via tailnet)
+LLM_API_KEY=${LLM_API_KEY_VAL}
+ICARUS_ENDPOINT=${LLM_BASE_URL_VAL}/chat/completions
+ICARUS_API_KEY_ENV=LLM_API_KEY
+ICARUS_EXTRACTION_MODEL=gpt-4o-mini
 ICARUS_EXTRACTION_MAX_TOKENS=4096
 
 # Qdrant + Redis (host-side, via tailnet)

@@ -17,13 +17,13 @@ const { classifyEmail, classifyWithFallback, shouldAutoQuarantine } = await impo
 const modelConfig = {
   baseUrl: 'http://localhost:11434/v1',
   apiKey: 'test-key',
-  model: 'minimax/MiniMax-M2.7-highspeed',
+  model: 'gpt-4o-mini',
   timeoutMs: 5_000,
 };
 
 const fallbackConfig = {
   ...modelConfig,
-  model: 'cx/gpt-5.5',
+  model: 'gpt-4o',
 };
 
 const sampleInput = {
@@ -86,7 +86,7 @@ describe('classifyEmail (Vercel AI SDK wiring)', () => {
       schema: unknown;
       abortSignal: unknown;
     };
-    expect(call.model).toEqual({ modelId: 'minimax/MiniMax-M2.7-highspeed' });
+    expect(call.model).toEqual({ modelId: 'gpt-4o-mini' });
     expect(call.abortSignal).toBeInstanceOf(AbortSignal);
     expect(result.verdict).toBe('not_spam');
     expect(result.confidence).toBe(0.88);

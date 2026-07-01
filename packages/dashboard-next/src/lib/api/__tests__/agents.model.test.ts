@@ -1,18 +1,16 @@
 // @vitest-environment node
 /**
- * P1.3/P1.4 — setAgentModel gate + REAL control bridge.
+ * P1.3 — setAgentModel gate + REAL control bridge.
  *
  * Drives the REAL setAgentModel handler (with an injected fake systemctl
- * executor + a mocked 9Router model catalog) through the defineApiRoute
- * pipeline. Asserts:
- *   - admin + CSRF + approval + UNKNOWN model → 400 validation
- *   - admin + CSRF + approval + KNOWN model → 201, config.yaml rewritten,
+ * executor) through the defineApiRoute pipeline. Asserts:
+ *   - admin + CSRF + approval + any model → 201, config.yaml rewritten,
  *     .env rewritten, registry updated, BOTH units restarted (profile first)
  *
  * Mirrors agents.functions.test.ts > agents.action gate.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -30,12 +28,6 @@ import {
   type ApiRouteCore,
 } from "@/server/server-fn-pipeline";
 import { mintApproval, resetApprovalStore } from "@/server/approval";
-
-// Mock the 9Router catalog so setAgentModel validates against a known list
-// without hitting the live gateway.
-vi.mock("@/server/agents/nineRouter", () => ({
-  list9routerModels: vi.fn(async () => ["cx/known-model", "cc/also-known"]),
-}));
 
 let store: InMemorySessionStore;
 
@@ -85,9 +77,9 @@ describe("agents.model gate (auth: admin, approval: true) + setAgentModel bridge
       [
         "model:",
         "  default: cx/old-model",
-        "  provider: 9router",
+        "  provider: openai",
         "providers:",
-        "  9router:",
+        "  openai:",
         "    api: x",
         "",
       ].join("\n"),
@@ -142,7 +134,6 @@ describe("agents.model gate (auth: admin, approval: true) + setAgentModel bridge
     control.setExecutorForTests(null);
     if (originalRegistry === undefined) delete process.env.HERMES_PROFILES_REGISTRY;
     else process.env.HERMES_PROFILES_REGISTRY = originalRegistry;
-    vi.mocked(await import("@/server/agents/nineRouter")).list9routerModels.mockClear();
     try {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     } catch {
@@ -150,33 +141,7 @@ describe("agents.model gate (auth: admin, approval: true) + setAgentModel bridge
     }
   });
 
-  it("400 for an UNKNOWN model even with valid approval token", async () => {
-    const { token, csrf } = await makeSession({ isAdmin: true });
-    const resolved = (await store.resolveByToken(token))!;
-    const approval = mintApproval({
-      action: "agents.model",
-      payload: { slug, model: "cx/bogus-model", reasoning: "medium" },
-      sessionId: resolved.session.id,
-      userId: resolved.user.id,
-    });
-    const res = await core(
-      new Request("http://localhost/_serverFn/agents.model", {
-        method: "POST",
-        headers: {
-          cookie: cookieHeader({ [SESSION_COOKIE]: token, [CSRF_COOKIE]: csrf }),
-          "content-type": "application/json",
-          "x-csrf-token": csrf,
-          "x-cortex-approval-token": approval.token,
-        },
-        body: JSON.stringify({ slug, model: "cx/bogus-model", reasoning: "medium" }),
-      }),
-    );
-    expect(res.status).toBe(400);
-    expect((await res.json()).code).toBe("validation");
-    expect(calls).toHaveLength(0);
-  });
-
-  it("201 for a KNOWN model → rewrites config + env + registry, restarts both units", async () => {
+  it("201 for any model → rewrites config + env + registry, restarts both units", async () => {
     const { token, csrf } = await makeSession({ isAdmin: true });
     const resolved = (await store.resolveByToken(token))!;
     const approval = mintApproval({

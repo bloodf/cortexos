@@ -37,8 +37,8 @@ export async function distillBrief(deps: DistillDeps): Promise<DistillResult> {
   });
 
   const openai = createOpenAI({
-    baseURL: deps.config.nineRouterBaseUrl.replace(/\/+$/, ''),
-    apiKey: deps.config.nineRouterApiKey,
+    baseURL: deps.config.openAiBaseUrl.replace(/\/+$/, ''),
+    apiKey: deps.config.openAiApiKey,
   });
 
   const prompt = [
