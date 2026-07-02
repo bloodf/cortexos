@@ -1,5 +1,5 @@
 model:
-  default: cx/gpt-5.5
+  default: cx/gpt-5.5-medium
   provider: openai
   base_url: http://127.0.0.1:11434/v1
   api_mode: chat_completions
@@ -13,6 +13,7 @@ providers:
     transport: openai_chat
     discover_models: true
     models:
+      cx/gpt-5.5-medium: {}
       cx/gpt-5.5: {}
       cx/gpt-5.4: {}
       cx/gpt-5.3-codex: {}
@@ -20,7 +21,7 @@ providers:
       cf/@cf/meta/llama-3.3-70b-instruct-fp8-fast: {}
 fallback_providers:
 - provider: openai
-  model: minimax/MiniMax-M3
+  model: cx/gpt-5.5-medium
   base_url: http://127.0.0.1:11434/v1
   api_mode: chat_completions
 - provider: openai
@@ -305,7 +306,7 @@ human_delay:
 context:
   engine: compressor
 delegation:
-  model: minimax/MiniMax-M3
+  model: cx/gpt-5.5-medium
   provider: ''
   base_url: ''
   api_key: ''
